@@ -32,7 +32,7 @@ You are a **Platform Tool Suite Construction Agent** - an expert system architec
 - Provides 594 tools across 20+ platforms
 - Supports progressive discovery via meta-tools
 
-### Schema Format (Anthropic-Compatible)
+### Schema Format (Anthropic-Compatible with Intelligence Layers)
 ```json
 {
   "platform": "platform_name",
@@ -69,6 +69,41 @@ You are a **Platform Tool Suite Construction Agent** - an expert system architec
         "best_practices": ["Practice 1"],
         "error_handling": ["Error 401: ...", "Error 404: ..."],
         "related_tools": ["other_tool_name"]
+      },
+      
+      "tool_intelligence": {
+        "category": "content_management|communication|data_processing|automation",
+        "typical_workflow_patterns": [
+          "platform_list_items → platform_action_resource",
+          "platform_action_resource → platform_share_resource"
+        ],
+        "success_indicators": {
+          "keywords": ["created successfully", "completed", "done"],
+          "behavioral": ["User continues workflow", "User shares result"]
+        },
+        "failure_indicators": {
+          "keywords": ["failed", "error", "permission denied"],
+          "behavioral": ["User retries", "User asks for different approach"]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      
+      "memory_context": {
+        "vectorization_fields": ["param1", "result_id"],
+        "search_keywords": ["platform", "action", "resource type"],
+        "related_synergy_platforms": ["platform_name"],
+        "typical_use_cases": [
+          "Use case 1 - detailed scenario",
+          "Use case 2 - detailed scenario"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Title, ID, sharing settings",
+          "search_context": "When user asks about past projects with this platform"
+        }
       }
     }
   ]
@@ -79,7 +114,7 @@ You are a **Platform Tool Suite Construction Agent** - an expert system architec
 ```python
 def platform_action_resource(
     param1: str,
-    **kwargs  # CRITICAL: Receives credentials
+    **kwargs  # CRITICAL: Receives credentials + tool intelligence context
 ) -> Dict[str, Any]:
     """Detailed docstring"""
     access_token = kwargs.get('access_token')
@@ -98,6 +133,111 @@ def platform_action_resource(
     except Exception as e:
         return {"success": False, "error": str(e)}
 ```
+
+### Tool Intelligence & Memory System Integration (November 2025)
+
+**CRITICAL**: Tools now have THREE layers of intelligence:
+
+**Layer 1: Tool Execution** (Current - Works Now)
+- User requests action → AI calls tool → Tool executes → Returns result
+- This is what you're building - the functional implementation
+
+**Layer 2: Tool Intelligence** (Platform Learning - Design Complete)
+- **Purpose**: Silent platform improvement through usage analytics
+- **NOT accessible to AI** - This is for admin dashboard insights
+- **Location**: `AI_infrastructure/core/tool_intelligence_logger.py`
+- **Database**: `ai_infrastructure.ai_tool_intelligence_log` (35 fields)
+- **What it tracks**:
+  * Workflow patterns (user always does A→B→C)
+  * User sentiment ("Perfect!" vs "That's wrong")
+  * Reinforcement scores (-10 to +10)
+  * Organization-level learning (team best practices)
+- **Auto-logged**: Every tool execution automatically logged (no work required)
+
+**Layer 3: Memory & Semantic Search** (AI Tools - Design Complete)
+- **Purpose**: AI can recall past conversations and projects
+- **IS accessible to AI** - 5 new AI tools for memory
+- **What it provides**:
+  * `search_past_conversations()` - Find relevant past discussions
+  * `search_synergy_projects()` - Find past projects using this platform
+  * `recall_thread_context()` - Load compressed conversation history
+  * `summarize_current_thread()` - Compress current chat (79% token savings)
+  * `remember_code_snippet()` - Find reusable code from past work
+- **Vectorization**: Conversations → Pinecone → Searchable by AI
+
+**How These Layers Enhance Your Tools:**
+
+When you create a tool like `notion_create_page()`:
+
+1. **Tool Execution** (you build this):
+   ```python
+   def notion_create_page(title: str, **kwargs):
+       # Your implementation
+       return {"success": True, "page_id": "abc123"}
+   ```
+
+2. **Tool Intelligence** (automatically logged):
+   ```python
+   # After execution, system logs:
+   log_entry = {
+       "tool_name": "notion_create_page",
+       "execution_status": "success",
+       "user_feedback_sentiment": "satisfied",  # If user says "Perfect!"
+       "reinforcement_score": 8,
+       "times_user_repeated_workflow": 3,
+       "is_approved_pattern": True  # After 3+ successes
+   }
+   ```
+
+3. **Memory System** (AI can recall):
+   ```python
+   # Week later, user says: "Continue that Notion project"
+   # AI calls: search_synergy_projects("Notion")
+   # Finds: "Customer Wiki" project from last week
+   # AI recalls: "I see you were building a customer wiki in Notion..."
+   ```
+
+**What You Need to Add to Tool Schemas:**
+
+```json
+{
+  "name": "notion_create_page",
+  "description": "Create a new page in Notion...",
+  "parameters": { "..." },
+  
+  "tool_intelligence": {
+    "category": "content_management",
+    "typical_workflow_patterns": [
+      "notion_list_databases → notion_create_page",
+      "notion_create_page → notion_add_content"
+    ],
+    "success_indicators": {
+      "keywords": ["page created", "success", "page_id returned"],
+      "behavioral": ["User continues to add content", "User shares page"]
+    },
+    "failure_indicators": {
+      "keywords": ["failed", "error", "permission denied"],
+      "behavioral": ["User retries immediately", "User asks to change approach"]
+    }
+  },
+  
+  "memory_context": {
+    "vectorization_fields": ["title", "parent_page"],
+    "search_keywords": ["notion", "page", "wiki", "documentation"],
+    "related_synergy_platforms": ["notion"],
+    "typical_use_cases": [
+      "Creating knowledge base",
+      "Building project documentation",
+      "Team wiki setup"
+    ]
+  }
+}
+```
+
+**See Complete Documentation:**
+- Tool Intelligence: `AI_TOOL_INTELLIGENCE_SYSTEM_DESIGN.md`
+- Memory System: `MEMORY_SEMANTIC_SEARCH_SYSTEM_DESIGN.md`
+- User Feedback: `USER_FEEDBACK_REINFORCEMENT_LEARNING.md`
 
 ### Naming Convention
 **Format**: `{platform}_{action}_{resource}`

@@ -313,43 +313,38 @@
 
     .card-header-row {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        gap: 8px;
         margin-bottom: 8px;
+    }
+
+    .card-priority-icon {
+        font-size: 18px;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+
+    .card-priority-icon.critical {
+        color: #EF4444;
+    }
+
+    .card-priority-icon.high {
+        color: #F97316;
+    }
+
+    .card-priority-icon.medium {
+        color: #3B82F6;
+    }
+
+    .card-priority-icon.low {
+        color: #6B7280;
     }
 
     .card-job-number {
         font-size: 14px;
         font-weight: 700;
         color: #00509E;
-    }
-
-    .card-priority-badge {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-
-    .card-priority-badge.critical {
-        background: rgba(239, 68, 68, 0.2);
-        color: #EF4444;
-    }
-
-    .card-priority-badge.high {
-        background: rgba(249, 115, 22, 0.2);
-        color: #F97316;
-    }
-
-    .card-priority-badge.medium {
-        background: rgba(59, 130, 246, 0.2);
-        color: #3B82F6;
-    }
-
-    .card-priority-badge.low {
-        background: rgba(107, 114, 128, 0.2);
-        color: #6B7280;
+        flex: 1;
     }
 
     .card-item-name {

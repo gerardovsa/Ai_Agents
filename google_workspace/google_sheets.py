@@ -372,6 +372,170 @@ def google_sheets_append_data(spreadsheet_id, data, sheet_name='Sheet1', _user_i
         raise
 
 
+def google_sheets_update_range(spreadsheet_id, range_name, data, mode='update', sheet_name=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Update Google Sheets data with multiple modes.
+    
+    Args:
+        spreadsheet_id: Spreadsheet ID
+        range_name: A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10')
+        data: 2D array of values to write [[row1], [row2], ...]
+        mode: Update mode:
+            - 'update': Overwrite specific range (default)
+            - 'append': Add rows to end of existing data
+            - 'clear': Clear range first, then write data
+        sheet_name: Optional sheet name (if not in range_name)
+        **kwargs: OAuth credentials
+    
+    Returns:
+        dict with operation details
+    """
+    print(f"Updating spreadsheet {spreadsheet_id} with mode: {mode}")
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Build full range if sheet_name provided
+        if sheet_name and '!' not in range_name:
+            full_range = f"{sheet_name}!{range_name}"
+        else:
+            full_range = range_name
+        
+        if mode == 'update':
+            # Standard update - overwrite specific range
+            body = {'values': data}
+            result = sheets_service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range=full_range,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            
+            updated_cells = result.get('updatedCells', 0)
+            updated_rows = result.get('updatedRows', 0)
+            updated_range = result.get('updatedRange', '')
+            
+            print(f"Updated {updated_cells} cells ({updated_rows} rows) in range {updated_range}")
+            
+            return {
+                'success': True,
+                'mode': 'update',
+                'updated_cells': updated_cells,
+                'updated_rows': updated_rows,
+                'updated_range': updated_range
+            }
+            
+        elif mode == 'append':
+            # Append to end of existing data
+            body = {'values': data}
+            result = sheets_service.spreadsheets().values().append(
+                spreadsheetId=spreadsheet_id,
+                range=full_range,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            
+            rows_added = result.get('updates', {}).get('updatedRows', 0)
+            updated_range = result.get('updates', {}).get('updatedRange', '')
+            
+            print(f"Appended {rows_added} rows to end of data")
+            
+            return {
+                'success': True,
+                'mode': 'append',
+                'rows_added': rows_added,
+                'updated_range': updated_range
+            }
+            
+        elif mode == 'clear':
+            # Clear range first, then write new data
+            # Step 1: Clear
+            sheets_service.spreadsheets().values().clear(
+                spreadsheetId=spreadsheet_id,
+                range=full_range,
+                body={}
+            ).execute()
+            
+            # Step 2: Write new data
+            body = {'values': data}
+            result = sheets_service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range=full_range,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            
+            updated_cells = result.get('updatedCells', 0)
+            updated_rows = result.get('updatedRows', 0)
+            updated_range = result.get('updatedRange', '')
+            
+            print(f"Cleared and wrote {updated_cells} cells ({updated_rows} rows)")
+            
+            return {
+                'success': True,
+                'mode': 'clear_and_update',
+                'updated_cells': updated_cells,
+                'updated_rows': updated_rows,
+                'updated_range': updated_range
+            }
+            
+        else:
+            raise ValueError(f"Invalid mode: '{mode}'. Use 'update', 'append', or 'clear'")
+        
+    except Exception as e:
+        print(f"Failed to update range: {e}")
+        raise
+
+
+def google_sheets_clear_range(spreadsheet_id, range_name, sheet_name=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Clear all data in a specific range (delete content but keep formatting).
+    
+    Args:
+        spreadsheet_id: Spreadsheet ID
+        range_name: A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10')
+        sheet_name: Optional sheet name (if not in range_name)
+        **kwargs: OAuth credentials
+    
+    Returns:
+        dict with success status and cleared_range
+    """
+    print(f"Clearing range {range_name} in spreadsheet {spreadsheet_id}")
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Build full range if sheet_name provided
+        if sheet_name and '!' not in range_name:
+            full_range = f"{sheet_name}!{range_name}"
+        else:
+            full_range = range_name
+        
+        # Clear the range
+        result = sheets_service.spreadsheets().values().clear(
+            spreadsheetId=spreadsheet_id,
+            range=full_range,
+            body={}
+        ).execute()
+        
+        cleared_range = result.get('clearedRange', '')
+        
+        print(f"Cleared range {cleared_range}")
+        
+        return {
+            'success': True,
+            'cleared_range': cleared_range
+        }
+        
+    except Exception as e:
+        print(f"Failed to clear range: {e}")
+        raise
+
+
 def google_sheets_read_data(spreadsheet_id, range_name='Sheet1!A1:Z1000', _user_id=None, _injected_credentials=None, **kwargs):
     """
     Read data from Google Sheet (LEGACY - use google_sheets_get_range instead)

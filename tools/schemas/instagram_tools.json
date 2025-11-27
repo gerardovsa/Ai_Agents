@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "instagram_get_account_info",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Instagram Business/Creator account information",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Instagram Business/Creator account information",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -33,7 +33,7 @@
     },
     {
       "name": "instagram_get_media",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet media object details",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet media object details",
       "platform": "instagram",
       "parameters": {
         "media_id": {
@@ -64,7 +64,7 @@
     },
     {
       "name": "instagram_list_media",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList user's media posts",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList user's media posts",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -96,7 +96,7 @@
     },
     {
       "name": "instagram_publish_photo",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a photo to Instagram (two-step process: create container, then publish)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a photo to Instagram (two-step process: create container, then publish)",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -132,7 +132,7 @@
     },
     {
       "name": "instagram_publish_video",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a video to Instagram",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a video to Instagram",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -169,7 +169,7 @@
     },
     {
       "name": "instagram_publish_carousel",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a carousel album (multiple photos/videos)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a carousel album (multiple photos/videos)",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -200,7 +200,7 @@
     },
     {
       "name": "instagram_publish_story",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a story (photo or video)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPublish a story (photo or video)",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -226,7 +226,7 @@
     },
     {
       "name": "instagram_list_stories",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList user's active stories",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList user's active stories",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -242,7 +242,7 @@
     },
     {
       "name": "instagram_get_comments",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet comments on a media object",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet comments on a media object",
       "platform": "instagram",
       "parameters": {
         "media_id": {
@@ -264,7 +264,7 @@
     },
     {
       "name": "instagram_get_comment",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific comment",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific comment",
       "platform": "instagram",
       "parameters": {
         "comment_id": {
@@ -291,7 +291,7 @@
     },
     {
       "name": "instagram_reply_to_comment",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nReply to a comment",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nReply to a comment",
       "platform": "instagram",
       "parameters": {
         "comment_id": {
@@ -312,7 +312,7 @@
     },
     {
       "name": "instagram_delete_comment",
-      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a comment",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a comment",
       "platform": "instagram",
       "parameters": {
         "comment_id": {
@@ -328,7 +328,7 @@
     },
     {
       "name": "instagram_hide_comment",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nHide or unhide a comment",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nHide or unhide a comment",
       "platform": "instagram",
       "parameters": {
         "comment_id": {
@@ -349,7 +349,7 @@
     },
     {
       "name": "instagram_get_media_insights",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet insights/analytics for a media post",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet insights/analytics for a media post",
       "platform": "instagram",
       "parameters": {
         "media_id": {
@@ -376,7 +376,7 @@
     },
     {
       "name": "instagram_get_account_insights",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet account-level insights",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet account-level insights",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -412,7 +412,7 @@
     },
     {
       "name": "instagram_get_audience_insights",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet audience demographics and insights",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet audience demographics and insights",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -439,7 +439,7 @@
     },
     {
       "name": "instagram_get_story_insights",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet insights for a story",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet insights for a story",
       "platform": "instagram",
       "parameters": {
         "story_id": {
@@ -465,7 +465,7 @@
     },
     {
       "name": "instagram_get_hashtag_id",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Instagram hashtag ID for search",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Instagram hashtag ID for search",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -486,7 +486,7 @@
     },
     {
       "name": "instagram_search_hashtag",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch for recent or top media by hashtag",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch for recent or top media by hashtag",
       "platform": "instagram",
       "parameters": {
         "user_id": {
@@ -519,7 +519,7 @@
     },
     {
       "name": "instagram_get_mentioned_media",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet media where user is mentioned",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet media where user is mentioned",
       "platform": "instagram",
       "parameters": {
         "user_id": {

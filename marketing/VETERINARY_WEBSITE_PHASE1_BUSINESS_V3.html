@@ -4593,222 +4593,246 @@
         })();
     </script>
 
-    <!-- Real-Time Data Flow & Analysis V2 (Canvas Version) -->
-    <div class="data-flow-v2" data-aos="fade-up" data-aos-delay="600"
+    <!-- Today's Reality: Sequential Task Processing (TEAM Only - No VetAI) -->
+    <div class="data-flow-v4" data-aos="fade-up" data-aos-delay="700"
         style="margin-top: var(--space-4xl); background: linear-gradient(135deg, #0a1929 0%, #1a237e 50%, #0d1b3d 100%); border-radius: 32px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.3);">
         <h3
             style="text-align: center; font-size: var(--text-2xl); margin-bottom: var(--space-lg); color: var(--color-accent);">
-            Real-Time Data Flow & Analysis
+            Today's Reality: Sequential Task Processing
         </h3>
         <p
-            style="text-align: center; max-width: 700px; margin: 0 auto var(--space-2xl); color: rgba(255,255,255,0.9); font-size: var(--text-md);">
-            See how data flows from your team through VetAI to all infrastructure layers—animated particles show
-            continuous processing
+            style="text-align: center; max-width: 700px; margin: 0 auto var(--space-sm); color: var(--color-accent); font-size: var(--text-md); font-weight: 600;">
+            One Task, One Platform, One Step at a Time
+        </p>
+        <p
+            style="text-align: center; max-width: 800px; margin: 0 auto var(--space-2xl); color: rgba(255,255,255,0.9); font-size: var(--text-md);">
+            Team members access platforms one at a time—manually switching systems, searching for information, reading,
+            thinking and processing sequentially within their bandwidth and capability. This creates productivity
+            bottlenecks and limits what your team can accomplish as each step takes time.
         </p>
 
-        <div
-            style="position: relative; max-width: 1000px; margin: 0 auto; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 50%, rgba(6,10,25,0.98) 100%); border-radius: 24px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.4); min-height: 800px; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
+        <div id="dataFlowV4Container"
+            style="position: relative; max-width: 1000px; margin: 0 auto; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 50%, rgba(6,10,25,0.98) 100%); border-radius: 24px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.4); height: 800px; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
             <!-- Canvas for particle animation -->
-            <canvas id="dataFlowCanvas"
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+            <canvas id="dataFlowCanvasV4"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;"></canvas>
 
-            <!-- USER at top -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="300"
-                style="position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.6);">
-                <div style="font-size: 36px; margin-bottom: var(--space-xs);">👥</div>
-                <div style="font-size: var(--text-md); font-weight: 700; color: white; text-align: center;">USER</div>
-                <div style="font-size: 10px; color: rgba(255,255,255,0.9); text-align: center;">Your Team</div>
+            <!-- TEAM Members: Middle column showing sequential bottleneck -->
+
+            <!-- Vet (Center) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="300"
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 12; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 60px rgba(59,130,246,0.7), 0 0 100px rgba(59,130,246,0.3);">
+                <div style="font-size: 14px; font-weight: 700; color: white; text-align: center;">Vet</div>
             </div>
 
-            <!-- VetAI Center Hub (hexagon orange) -->
-            <div class="arch-layer vetai-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="400"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
-                <div style="font-size: 56px; margin-bottom: var(--space-xs);">🧠</div>
-                <div style="font-size: var(--text-xl); font-weight: 700; color: white; text-align: center;">VetAI</div>
-                <div style="font-size: var(--text-xs); color: rgba(255,255,255,0.95); text-align: center;">Augmentation
-                    Layer</div>
+            <!-- Client Care (Above Vet) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="350"
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -180px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
+                <div style="font-size: 12px; font-weight: 700; color: white; text-align: center;">Client<br>Care</div>
             </div>
 
-            <!-- 4 Layers around VetAI -->
+            <!-- Admin (Below Vet) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-up" data-aos-delay="400"
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 130px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
+                <div style="font-size: 12px; font-weight: 700; color: white; text-align: center;">Admin</div>
+            </div>
 
-            <!-- Layer 1: Top-left (Blue - Collaboration) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="500"
-                style="position: absolute; top: 50%; left: 40px; transform: translateY(-50%); z-index: 10; background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+            <!-- Managers (Top) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="450"
+                style="position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
+                <div style="font-size: 11px; font-weight: 700; color: white; text-align: center;">Managers</div>
+            </div>
+
+            <!-- Techs (Bottom) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-up" data-aos-delay="500"
+                style="position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
+                <div style="font-size: 12px; font-weight: 700; color: white; text-align: center;">Techs</div>
+            </div>
+
+            <!-- 3 Layers on LEFT column -->
+
+            <!-- Layer 1: Top-Left (Yellow - Collaboration) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="600"
+                style="position: absolute; top: 50%; left: 40px; transform: translateY(-240px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
                 <div
-                    style="background: var(--color-info); color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
+                    style="background: #FACC15; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
                     LAYER 1</div>
-                <div
-                    style="background: rgba(59,130,246,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    🔗</div>
                 <h5
-                    style="color: #3B82F6; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #FACC15; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Collaboration</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Platforms</p>
             </div>
 
-            <!-- Layer 2: Top-right (Green - Business Software) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="600"
-                style="position: absolute; top: 50%; right: 40px; transform: translateY(-50%); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+            <!-- Layer 2: Middle-Left (Red - Business Software) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="650"
+                style="position: absolute; top: 50%; left: 40px; transform: translateY(-50%); z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
                 <div
-                    style="background: var(--color-success); color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
+                    style="background: #DC2626; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
                     LAYER 2</div>
-                <div
-                    style="background: rgba(34,197,94,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    ⚙️</div>
                 <h5
-                    style="color: #22C55E; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #DC2626; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Business</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Software</p>
             </div>
 
-            <!-- Layer 3: Bottom-left (Purple - Information & Knowledge) -->
+            <!-- Layer 3: Bottom-Left (Purple - Information & Knowledge) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="700"
-                style="position: absolute; bottom: 80px; left: 80px; z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+                style="position: absolute; top: 50%; left: 40px; transform: translateY(120px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
                 <div
                     style="background: #A855F7; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
                     LAYER 3</div>
-                <div
-                    style="background: rgba(168,85,247,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    📚</div>
                 <h5
-                    style="color: #A855F7; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #A855F7; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Information</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">& Knowledge</p>
             </div>
 
-            <!-- Layer 4: Bottom-right (Red - Business Outputs) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="800"
-                style="position: absolute; bottom: 80px; right: 80px; z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+            <!-- Outputs on RIGHT column -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="750"
+                style="position: absolute; top: 50%; right: 40px; transform: translateY(-50%); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
                 <div
-                    style="background: #DC2626; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 4</div>
-                <div
-                    style="background: rgba(220,38,38,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    📊</div>
+                    style="background: #22C55E; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
+                    OUTPUTS</div>
                 <h5
-                    style="color: #DC2626; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #22C55E; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Business</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Outputs</p>
             </div>
         </div>
     </div>
 
-    <!-- Data Flow Animation Script -->
+    <!-- Data Flow V4 Animation Script (TEAM Direct - No VetAI) -->
     <script>
         (function () {
-            const canvas = document.getElementById('dataFlowCanvas');
-            if (!canvas) return;
+            const canvas = document.getElementById('dataFlowCanvasV4');
+            if (!canvas) {
+                console.error('Canvas V4 not found!');
+                return;
+            }
 
             const ctx = canvas.getContext('2d');
             let animationId = null;
             let startTime = Date.now();
+            let currentWidth = 0;
+            let currentHeight = 0;
+            let particles = [];
 
             function resizeCanvas() {
-                const rect = canvas.getBoundingClientRect();
-                canvas.width = rect.width;
-                canvas.height = rect.height;
-            }
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
+                const container = canvas.parentElement;
+                const rect = container.getBoundingClientRect();
+                currentWidth = rect.width;
+                currentHeight = rect.height;
+                canvas.width = currentWidth;
+                canvas.height = currentHeight;
 
-            // Particle that flows along specific paths
-            class FlowParticle {
-                constructor(width, height, isUserParticle = false) {
+                console.log('V4 Canvas resized:', currentWidth, 'x', currentHeight);
+
+                if (particles.length > 0) {
+                    particles.forEach(p => {
+                        p.updateDimensions(currentWidth, currentHeight);
+                    });
+                }
+            }
+
+            resizeCanvas();
+
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    resizeCanvas();
+                }, 100);
+            });
+
+            // Direct TEAM particle class (no VetAI intermediary)
+            class DirectUserParticle {
+                constructor(width, height) {
+                    this.updateDimensions(width, height);
+                }
+
+                updateDimensions(width, height) {
                     this.width = width;
                     this.height = height;
-                    this.isUserParticle = isUserParticle;
-                    this.reset();
+
+                    if (this.x !== undefined) {
+                        const progressX = this.x / (this.oldWidth || width);
+                        const progressY = this.y / (this.oldHeight || height);
+                        const targetProgressX = this.targetX / (this.oldWidth || width);
+                        const targetProgressY = this.targetY / (this.oldHeight || height);
+
+                        this.x = progressX * width;
+                        this.y = progressY * height;
+                        this.targetX = targetProgressX * width;
+                        this.targetY = targetProgressY * height;
+                    } else {
+                        this.reset();
+                    }
+
+                    this.oldWidth = width;
+                    this.oldHeight = height;
                 }
 
                 reset() {
-                    // Define center positions for reference
-                    const userCenter = { x: this.width * 0.5, y: this.height * 0.08 };
-                    const vetaiCenter = { x: this.width * 0.5, y: this.height * 0.5 };
+                    // Multiple TEAM members in middle vertical column (sequential bottleneck)
+                    const teamMembers = [
+                        { x: this.width * 0.5, y: this.height * 0.5, name: 'Vet' },            // Center
+                        { x: this.width * 0.5, y: this.height * 0.28, name: 'Client Care' },   // Above Vet
+                        { x: this.width * 0.5, y: this.height * 0.68, name: 'Admin' },         // Below Vet
+                        { x: this.width * 0.5, y: this.height * 0.12, name: 'Managers' },      // Top
+                        { x: this.width * 0.5, y: this.height * 0.88, name: 'Techs' }          // Bottom
+                    ];
 
-                    // Layer box boundaries (each has multiple spawn points inside)
-                    const layer1Box = { x: this.width * 0.12, y: this.height * 0.5, w: 160, h: 120 };
-                    const layer2Box = { x: this.width * 0.88, y: this.height * 0.5, w: 160, h: 120 };
-                    const layer3Box = { x: this.width * 0.25, y: this.height * 0.82, w: 160, h: 120 };
-                    const layer4Box = { x: this.width * 0.75, y: this.height * 0.82, w: 160, h: 120 };
+                    // Pick a random team member
+                    const teamMember = teamMembers[Math.floor(Math.random() * teamMembers.length)];
 
-                    if (this.isUserParticle) {
-                        // USER <-> VetAI interaction
-                        const isUserToAI = Math.random() > 0.15; // 85% user requests, 15% AI responses
+                    // Layer boxes positioned on left column
+                    const layers = [
+                        { box: { x: this.width * 0.12, y: this.height * 0.20, w: 140, h: 110 }, color: { r: 250, g: 204, b: 21 }, platforms: 8 },  // Top-Left (Yellow) - moved up 40px
+                        { box: { x: this.width * 0.12, y: this.height * 0.5, w: 140, h: 110 }, color: { r: 220, g: 38, b: 38 }, platforms: 12 },   // Middle-Left (Red - was green)
+                        { box: { x: this.width * 0.12, y: this.height * 0.75, w: 140, h: 110 }, color: { r: 168, g: 85, b: 247 }, platforms: 10 }  // Bottom-Left (Purple) - moved down 20px
+                    ];
+                    
+                    // Output box on right column
+                    const outputBox = { x: this.width * 0.88, y: this.height * 0.5, w: 140, h: 110 };
 
-                        if (isUserToAI) {
-                            // Multiple user request sources converging on VetAI center
-                            const userSpawnOffset = {
-                                x: (Math.random() - 0.5) * 80, // Random position within user area
-                                y: (Math.random() - 0.5) * 30
-                            };
-                            this.x = userCenter.x + userSpawnOffset.x;
-                            this.y = userCenter.y + userSpawnOffset.y;
+                    const layer = layers[Math.floor(Math.random() * layers.length)];
+                    
+                    const flowType = Math.random();
 
-                            // All converge on VetAI center with slight variation
-                            this.targetX = vetaiCenter.x + (Math.random() - 0.5) * 40;
-                            this.targetY = vetaiCenter.y + (Math.random() - 0.5) * 40;
-                            this.color = { r: 59, g: 130, b: 246 }; // Blue (user queries)
-                        } else {
-                            // AI response: Single point from VetAI center to USER center (uniform)
-                            this.x = vetaiCenter.x + (Math.random() - 0.5) * 20; // Small variation at source
-                            this.y = vetaiCenter.y + (Math.random() - 0.5) * 20;
-                            this.targetX = userCenter.x; // EXACT center of user (uniform response)
-                            this.targetY = userCenter.y;
-                            this.color = { r: 255, g: 107, b: 53 }; // Orange (AI responses)
-                        }
-
-                        this.speed = 2.0 + Math.random() * 1.5; // FAST (2.0-3.5) - increased from 0.6-1.0
-                        this.trail = [];
-                        this.maxTrail = 40; // LONG trails - increased from 15
-                        this.size = 2.0; // Reduced from 4.5
+                    if (flowType < 0.25) {
+                        // Team → Layer (25% - team queries layer)
+                        this.x = teamMember.x + (Math.random() - 0.5) * 20;
+                        this.y = teamMember.y + (Math.random() - 0.5) * 20;
+                        this.targetX = layer.box.x + layer.box.w * 0.5 + (Math.random() - 0.5) * 30;
+                        this.targetY = layer.box.y + (Math.random() - 0.5) * 30;
+                        this.color = { r: 59, g: 130, b: 246 }; // Blue for team requests
+                    } else if (flowType < 0.5) {
+                        // Layer → Team (25% - layer responds back to team)
+                        this.x = layer.box.x + layer.box.w * 0.5 + (Math.random() - 0.5) * 30;
+                        this.y = layer.box.y + (Math.random() - 0.5) * 30;
+                        this.targetX = teamMember.x + (Math.random() - 0.5) * 20;
+                        this.targetY = teamMember.y + (Math.random() - 0.5) * 20;
+                        this.color = layer.color; // Layer's color for responses
+                    } else if (flowType < 0.75) {
+                        // Team → Output (25% - team pushes to outputs)
+                        this.x = teamMember.x + (Math.random() - 0.5) * 20;
+                        this.y = teamMember.y + (Math.random() - 0.5) * 20;
+                        this.targetX = outputBox.x + (Math.random() - 0.5) * 30;
+                        this.targetY = outputBox.y + (Math.random() - 0.5) * 30;
+                        this.color = { r: 59, g: 130, b: 246 }; // Blue for team outputs
                     } else {
-                        // VetAI <-> Layers (fast, many platforms within each layer)
-                        const isLayerToAI = Math.random() > 0.25; // 75% layer->AI, 25% AI->layer
-
-                        // Define layer configurations
-                        const layers = [
-                            { box: layer1Box, color: { r: 59, g: 130, b: 246 }, platforms: 8 },   // Layer 1: 8 platforms
-                            { box: layer2Box, color: { r: 34, g: 197, b: 94 }, platforms: 12 },   // Layer 2: 12 platforms
-                            { box: layer3Box, color: { r: 168, g: 85, b: 247 }, platforms: 10 },  // Layer 3: 10 platforms
-                            { box: layer4Box, color: { r: 220, g: 38, b: 38 }, platforms: 6 }     // Layer 4: 6 platforms
-                        ];
-
-                        const layer = layers[Math.floor(Math.random() * layers.length)];
-
-                        if (isLayerToAI) {
-                            // Multiple platforms within layer sending data to VetAI
-                            // Random spawn point INSIDE the layer box
-                            const spawnX = layer.box.x + (Math.random() - 0.5) * layer.box.w * 0.7;
-                            const spawnY = layer.box.y + (Math.random() - 0.5) * layer.box.h * 0.6;
-
-                            this.x = spawnX;
-                            this.y = spawnY;
-
-                            // All converge on VetAI center
-                            this.targetX = vetaiCenter.x + (Math.random() - 0.5) * 50;
-                            this.targetY = vetaiCenter.y + (Math.random() - 0.5) * 50;
-                        } else {
-                            // AI sending data back to layer (less frequent, orange)
-                            this.x = vetaiCenter.x + (Math.random() - 0.5) * 30;
-                            this.y = vetaiCenter.y + (Math.random() - 0.5) * 30;
-
-                            // Random point within layer box
-                            this.targetX = layer.box.x + (Math.random() - 0.5) * layer.box.w * 0.7;
-                            this.targetY = layer.box.y + (Math.random() - 0.5) * layer.box.h * 0.6;
-
-                            // Override color to orange for AI responses
-                            this.color = { r: 255, g: 107, b: 53 };
-                        }
-
-                        if (isLayerToAI) {
-                            this.color = layer.color; // Use layer's color
-                        }
-
-                        this.speed = 3.0 + Math.random() * 2.5; // VERY FAST (3.0-5.5) - increased from 1.5-3.5
-                        this.trail = [];
-                        this.maxTrail = 35; // LONG trails - increased from 10
-                        this.size = 1.5; // Reduced from 3.0
+                        // Layer → Team (25% - additional layer data)
+                        this.x = layer.box.x + layer.box.w * 0.5 + (Math.random() - 0.5) * 30;
+                        this.y = layer.box.y + (Math.random() - 0.5) * 30;
+                        this.targetX = teamMember.x + (Math.random() - 0.5) * 20;
+                        this.targetY = teamMember.y + (Math.random() - 0.5) * 20;
+                        this.color = layer.color; // Layer's color
                     }
+
+                    this.speed = 2.5 + Math.random() * 2.0; // VERY FAST (2.5-4.5) - increased from 0.8-1.4
+                    this.trail = [];
+                    this.maxTrail = 45; // VERY LONG trails - increased from 12
+                    this.size = 4.0; // LARGER - increased from 2.0 for visibility
                 }
 
                 update(speedMult) {
@@ -4830,10 +4854,9 @@
                 }
 
                 draw(ctx, brightness) {
-                    const lineWidth = this.isUserParticle ? 3.0 : 2.0;
-                    const trailAlpha = this.isUserParticle ? 0.9 : 0.7;
+                    const lineWidth = 2.5; // THICKER - increased from 0.8 for visibility
+                    const trailAlpha = 1.0; // FULL BRIGHTNESS - maximum visibility
 
-                    // Trail
                     if (this.trail.length > 1) {
                         for (let i = 0; i < this.trail.length - 1; i++) {
                             const alpha = (i / this.trail.length) * trailAlpha * brightness;
@@ -4846,10 +4869,9 @@
                         }
                     }
 
-                    // Core
                     ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${brightness})`;
-                    ctx.shadowBlur = (this.isUserParticle ? 6 : 4) * brightness; // Reduced from 15/10
-                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.6)`; // Reduced from 0.9
+                    ctx.shadowBlur = 18 * brightness; // MAXIMUM glow - increased from 12
+                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`; // FULL BRIGHTNESS
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
@@ -4857,54 +4879,43 @@
                 }
             }
 
-            // Initialize particles - INCREASED for more visual density (static speed)
-            const particles = [];
-
-            // USER <-> VetAI particles (slow, infrequent, prominent) - increased from 8 to 15
-            for (let i = 0; i < 15; i++) {
-                particles.push(new FlowParticle(canvas.width, canvas.height, true));
+            // Initialize particles - MINIMAL for serial processing demonstration (one at a time)
+            console.log('Initializing V4 particles with dimensions:', currentWidth, 'x', currentHeight);
+            for (let i = 0; i < 4; i++) { // REDUCED to 4 particles - serial one-at-a-time processing
+                particles.push(new DirectUserParticle(currentWidth, currentHeight));
             }
-
-            // VetAI <-> Layers particles (fast, many, subtle) - increased from 70 to 135
-            for (let i = 0; i < 135; i++) {
-                particles.push(new FlowParticle(canvas.width, canvas.height, false));
-            }
+            console.log('V4 Particles initialized:', particles.length);
 
             // Animation loop - STATIC SPEED (no phase cycling)
             function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Draw faint connection lines (static brightness)
-                const user = { x: canvas.width * 0.5, y: canvas.height * 0.08 };
-                const vetai = { x: canvas.width * 0.5, y: canvas.height * 0.5 };
+                ctx.clearRect(0, 0, currentWidth, currentHeight);
+
+                // Draw faint connection lines from TEAM to layers (static brightness)
+                const team = { x: currentWidth * 0.5, y: currentHeight * 0.5 };
                 const layers = [
-                    { x: canvas.width * 0.12, y: canvas.height * 0.5 },
-                    { x: canvas.width * 0.88, y: canvas.height * 0.5 },
-                    { x: canvas.width * 0.25, y: canvas.height * 0.82 },
-                    { x: canvas.width * 0.75, y: canvas.height * 0.82 }
+                    { x: currentWidth * 0.12, y: currentHeight * 0.12 },
+                    { x: currentWidth * 0.88, y: currentHeight * 0.12 },
+                    { x: currentWidth * 0.12, y: currentHeight * 0.88 },
+                    { x: currentWidth * 0.88, y: currentHeight * 0.88 }
                 ];
 
-                // User <-> VetAI lines (static)
+                // STATIC: Connection lines use constant brightness
                 ctx.strokeStyle = `rgba(88, 166, 255, 0.15)`;
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 4]);
-                ctx.beginPath();
-                ctx.moveTo(user.x, user.y);
-                ctx.lineTo(vetai.x, vetai.y);
-                ctx.stroke();
 
-                // VetAI <-> Layers
                 layers.forEach(layer => {
                     ctx.beginPath();
-                    ctx.moveTo(vetai.x, vetai.y);
+                    ctx.moveTo(team.x, team.y);
                     ctx.lineTo(layer.x, layer.y);
                     ctx.stroke();
                 });
                 ctx.setLineDash([]);
 
-                // Update and draw particles - FASTER SPEED (2.5x) and FULL BRIGHTNESS
+                // STATIC: Update and draw particles with FASTER speed (3.0x) and full brightness
                 particles.forEach(p => {
-                    p.update(2.5); // FASTER static speed - increased from 1.5x
+                    p.update(3.0); // VERY FAST static speed - increased from 1.5x
                     p.draw(ctx, 1.0); // Static full brightness
                 });
 
@@ -4915,8 +4926,13 @@
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        if (!animationId) animate();
+                        console.log('V4 Canvas is visible, starting animation...');
+                        if (!animationId) {
+                            console.log('V4 Starting animation with', particles.length, 'particles');
+                            animate();
+                        }
                     } else {
+                        console.log('V4 Canvas not visible, stopping animation');
                         if (animationId) {
                             cancelAnimationFrame(animationId);
                             animationId = null;
@@ -4926,19 +4942,31 @@
             }, { threshold: 0.1 });
 
             observer.observe(canvas);
+            console.log('V4 IntersectionObserver initialized');
         })();
     </script>
 
-    <!-- Real-Time Data Flow & Analysis V3 (Responsive Canvas) -->
+
+    <!-- VetAI Intelligence: Parallel Multi-Platform Orchestration -->
     <div class="data-flow-v3" data-aos="fade-up" data-aos-delay="600"
         style="margin-top: var(--space-4xl); background: linear-gradient(135deg, #0a1929 0%, #1a237e 50%, #0d1b3d 100%); border-radius: 32px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.3);">
         <h3
             style="text-align: center; font-size: var(--text-2xl); margin-bottom: var(--space-lg); color: var(--color-accent);">
-            Real-Time Data Flow & Analysis V3 (Responsive)
+            VetAI Intelligence: Parallel Multi-Platform Orchestration
         </h3>
         <p
-            style="text-align: center; max-width: 700px; margin: 0 auto var(--space-2xl); color: rgba(255,255,255,0.9); font-size: var(--text-md);">
-            Fully responsive animation that maintains proper particle flow even when window resizes
+            style="text-align: center; max-width: 700px; margin: 0 auto var(--space-sm); color: var(--color-accent); font-size: var(--text-md); font-weight: 600;">
+            Multiple Tasks, Integrated Systems, Simultaneous Execution
+        </p>
+        <p
+            style="text-align: center; max-width: 900px; margin: 0 auto var(--space-2xl); color: rgba(255,255,255,0.9); font-size: var(--text-md);">
+            VetAI simultaneously accesses your entire tech stack—retrieving, filtering, and analyzing information across
+            multiple platforms in parallel. Advanced reasoning pathways enable the AI to navigate your software stack
+            and rapidly perform multi-step, multi-platform tasks simultaneously. The AI anticipates needs and provides
+            preemptive support before your team requests it. The AI reflects and refines its processes and creates
+            tailored workflows which can become scheduled automations. VetAI evolves with your team, learning your
+            patterns and needs, and it works silently in the background freeing up valuable time and resources for
+            patient care.
         </p>
 
         <div id="dataFlowV3Container"
@@ -4947,18 +4975,41 @@
             <canvas id="dataFlowCanvasV3"
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;"></canvas>
 
-            <!-- USER at top -->
+            <!-- TEAM Members along top -->
+            
+            <!-- Vet (Center Top) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="300"
-                style="position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.6);">
-                <div style="font-size: 36px; margin-bottom: var(--space-xs);">👥</div>
-                <div style="font-size: var(--text-md); font-weight: 700; color: white; text-align: center;">USER</div>
-                <div style="font-size: 10px; color: rgba(255,255,255,0.9); text-align: center;">Your Team</div>
+                style="position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 12; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6);">
+                <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Vet</div>
             </div>
 
-            <!-- VetAI Center Hub (hexagon orange) -->
+            <!-- Client Care (Left of Vet) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="350"
+                style="position: absolute; top: 60px; left: 50%; transform: translateX(-180px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Client<br>Care</div>
+            </div>
+
+            <!-- Admin (Right of Vet) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="400"
+                style="position: absolute; top: 80px; left: 49%; transform: translateX(130px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Admin</div>
+            </div>
+
+            <!-- Managers (Far Left) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="450"
+                style="position: absolute; top: 80px; left: 50%; transform: translateX(-300px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Managers</div>
+            </div>
+
+            <!-- Techs (Far Right) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="500"
+                style="position: absolute; top: 80px; left: 50%; transform: translateX(280px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Techs</div>
+            </div>
+
+            <!-- VetAI Center Hub (square orange) -->
             <div class="arch-layer vetai-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="400"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
-                <div style="font-size: 56px; margin-bottom: var(--space-xs);">🧠</div>
+                style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 16px; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
                 <div style="font-size: var(--text-xl); font-weight: 700; color: white; text-align: center;">VetAI</div>
                 <div style="font-size: var(--text-xs); color: rgba(255,255,255,0.95); text-align: center;">Augmentation
                     Layer</div>
@@ -4966,62 +5017,50 @@
 
             <!-- 4 Layers around VetAI -->
 
-            <!-- Layer 1: Left (Blue - Collaboration) -->
+            <!-- Layer 1: Top Left (Yellow - Collaboration) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="500"
-                style="position: absolute; top: 50%; left: 40px; transform: translateY(-50%); z-index: 10; background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+                style="position: absolute; top: 180px; left: 70px; z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
                 <div
-                    style="background: var(--color-info); color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
+                    style="background: #FACC15; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
                     LAYER 1</div>
-                <div
-                    style="background: rgba(59,130,246,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    🔗</div>
                 <h5
-                    style="color: #3B82F6; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #FACC15; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Collaboration</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Platforms</p>
             </div>
 
-            <!-- Layer 2: Right (Green - Business Software) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="600"
-                style="position: absolute; top: 50%; right: 40px; transform: translateY(-50%); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+            <!-- Layer 2: Middle Left (Red - Business Software) -->
+            <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="600"
+                style="position: absolute; top: 54%; left: 70px; transform: translateY(-50%); z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
                 <div
-                    style="background: var(--color-success); color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
+                    style="background: #DC2626; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
                     LAYER 2</div>
-                <div
-                    style="background: rgba(34,197,94,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    ⚙️</div>
                 <h5
-                    style="color: #22C55E; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #DC2626; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Business</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Software</p>
             </div>
 
-            <!-- Layer 3: Bottom-left (Purple - Information & Knowledge) -->
+            <!-- Layer 3: Bottom Left (Purple - Information & Knowledge) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="700"
-                style="position: absolute; bottom: 80px; left: 80px; z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+                style="position: absolute; bottom: 125px; left: 70px; z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
                 <div
                     style="background: #A855F7; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
                     LAYER 3</div>
-                <div
-                    style="background: rgba(168,85,247,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    📚</div>
                 <h5
-                    style="color: #A855F7; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #A855F7; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Information</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">& Knowledge</p>
             </div>
 
-            <!-- Layer 4: Bottom-right (Red - Business Outputs) -->
+            <!-- Business Outputs: Right Column (Green - System Results) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="800"
-                style="position: absolute; bottom: 80px; right: 80px; z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+                style="position: absolute; top: 55%; right: 40px; transform: translateY(-50%); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
                 <div
-                    style="background: #DC2626; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 4</div>
-                <div
-                    style="background: rgba(220,38,38,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    📊</div>
+                    style="background: #22C55E; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
+                    OUTPUTS</div>
                 <h5
-                    style="color: #DC2626; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
+                    style="color: #22C55E; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
                     Business</h5>
                 <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Outputs</p>
             </div>
@@ -5106,77 +5145,97 @@
                 }
 
                 reset() {
-                    // Calculate positions based on current dimensions
-                    const userCenter = { x: this.width * 0.5, y: this.height * 0.08 };
-                    const vetaiCenter = { x: this.width * 0.5, y: this.height * 0.5 };
+                    // Multiple TEAM members along top
+                    const teamMembers = [
+                        { x: this.width * 0.5, y: this.height * 0.095, name: 'Vet' },          // Center Top
+                        { x: this.width * 0.35, y: this.height * 0.095, name: 'Client Care' }, // Left of Vet
+                        { x: this.width * 0.635, y: this.height * 0.120, name: 'Admin' },      // Right of Vet (moved right 20px, down 20px)
+                        { x: this.width * 0.20, y: this.height * 0.120, name: 'Managers' },    // Far Left (moved right 20px, down 20px)
+                        { x: this.width * 0.78, y: this.height * 0.120, name: 'Techs' }        // Far Right (moved right 20px, down 20px)
+                    ];
+                    
+                    // Pick a random team member for this particle
+                    const teamMember = teamMembers[Math.floor(Math.random() * teamMembers.length)];
+                    
+                    const vetaiCenter = { x: this.width * 0.5, y: this.height * 0.55 };
 
-                    // Layer boxes (responsive to canvas size)
-                    const layer1Box = { x: this.width * 0.12, y: this.height * 0.5, w: 160, h: 120 };
-                    const layer2Box = { x: this.width * 0.88, y: this.height * 0.5, w: 160, h: 120 };
-                    const layer3Box = { x: this.width * 0.25, y: this.height * 0.82, w: 160, h: 120 };
-                    const layer4Box = { x: this.width * 0.75, y: this.height * 0.82, w: 160, h: 120 };
+                    // Layer boxes - LEFT column (3 layers vertically) - moved right 30px
+                    const layer1Box = { x: this.width * 0.145, y: this.height * 0.31, w: 160, h: 120 };  // Top Left (moved right)
+                    const layer2Box = { x: this.width * 0.145, y: this.height * 0.54, w: 160, h: 120 };   // Middle Left (moved right)
+                    const layer3Box = { x: this.width * 0.145, y: this.height * 0.74, w: 160, h: 120 };  // Bottom Left (moved right)
+                    
+                    // Business Outputs - RIGHT column
+                    const outputBox = { x: this.width * 0.88, y: this.height * 0.55, w: 160, h: 120 };   // Right Middle
 
                     if (this.isUserParticle) {
-                        const isUserToAI = Math.random() > 0.15;
+                        const isTeamToAI = Math.random() > 0.15;
 
-                        if (isUserToAI) {
-                            const userSpawnOffset = {
-                                x: (Math.random() - 0.5) * 80,
-                                y: (Math.random() - 0.5) * 30
+                        if (isTeamToAI) {
+                            // Spawn from specific team member
+                            const teamSpawnOffset = {
+                                x: (Math.random() - 0.5) * 20,
+                                y: (Math.random() - 0.5) * 20
                             };
-                            this.x = userCenter.x + userSpawnOffset.x;
-                            this.y = userCenter.y + userSpawnOffset.y;
-                            this.targetX = vetaiCenter.x + (Math.random() - 0.5) * 40;
-                            this.targetY = vetaiCenter.y + (Math.random() - 0.5) * 40;
+                            this.x = teamMember.x + teamSpawnOffset.x;
+                            this.y = teamMember.y + teamSpawnOffset.y;
+                            this.targetX = vetaiCenter.x + (Math.random() - 0.5) * 30;
+                            this.targetY = vetaiCenter.y + (Math.random() - 0.5) * 30;
                             this.color = { r: 59, g: 130, b: 246 };
                         } else {
-                            this.x = vetaiCenter.x + (Math.random() - 0.5) * 20;
-                            this.y = vetaiCenter.y + (Math.random() - 0.5) * 20;
-                            this.targetX = userCenter.x;
-                            this.targetY = userCenter.y;
+                            // Return to specific team member
+                            this.x = vetaiCenter.x + (Math.random() - 0.5) * 30;
+                            this.y = vetaiCenter.y + (Math.random() - 0.5) * 30;
+                            this.targetX = teamMember.x + (Math.random() - 0.5) * 20;
+                            this.targetY = teamMember.y + (Math.random() - 0.5) * 20;
                             this.color = { r: 255, g: 107, b: 53 };
                         }
 
                         this.speed = 2.0 + Math.random() * 1.5; // FAST (2.0-3.5) - increased from 0.6-1.0
                         this.trail = [];
                         this.maxTrail = 40; // LONG trails - increased from 15
-                        this.size = 2.0; // Reduced from 4.5
+                        this.size = 3.5; // LARGER - increased from 2.0 for visibility
                     } else {
                         const isLayerToAI = Math.random() > 0.25;
 
                         const layers = [
-                            { box: layer1Box, color: { r: 59, g: 130, b: 246 }, platforms: 8 },
-                            { box: layer2Box, color: { r: 34, g: 197, b: 94 }, platforms: 12 },
-                            { box: layer3Box, color: { r: 168, g: 85, b: 247 }, platforms: 10 },
-                            { box: layer4Box, color: { r: 220, g: 38, b: 38 }, platforms: 6 }
+                            { box: layer1Box, color: { r: 250, g: 204, b: 21 }, platforms: 8 },  // Yellow - Collaboration
+                            { box: layer2Box, color: { r: 220, g: 38, b: 38 }, platforms: 12 },  // Red - Business (was green)
+                            { box: layer3Box, color: { r: 168, g: 85, b: 247 }, platforms: 10 }  // Purple - Information
                         ];
 
                         const layer = layers[Math.floor(Math.random() * layers.length)];
+                        
+                        // 20% chance: AI → Outputs (showing results being generated)
+                        const isAIToOutput = Math.random() < 0.2;
 
-                        if (isLayerToAI) {
-                            const spawnX = layer.box.x + (Math.random() - 0.5) * layer.box.w * 0.7;
-                            const spawnY = layer.box.y + (Math.random() - 0.5) * layer.box.h * 0.6;
+                        if (isAIToOutput) {
+                            // AI generates outputs (VetAI → Output box on right)
+                            this.x = vetaiCenter.x + (Math.random() - 0.5) * 30;
+                            this.y = vetaiCenter.y + (Math.random() - 0.5) * 30;
+                            this.targetX = outputBox.x + (Math.random() - 0.5) * 40;
+                            this.targetY = outputBox.y + (Math.random() - 0.5) * 40;
+                            this.color = { r: 255, g: 107, b: 53 }; // Orange for VetAI→Output
+                        } else if (isLayerToAI) {
+                            const spawnX = layer.box.x + layer.box.w * 0.5 + (Math.random() - 0.5) * 40;
+                            const spawnY = layer.box.y + (Math.random() - 0.5) * 40;
 
                             this.x = spawnX;
                             this.y = spawnY;
-                            this.targetX = vetaiCenter.x + (Math.random() - 0.5) * 50;
-                            this.targetY = vetaiCenter.y + (Math.random() - 0.5) * 50;
+                            this.targetX = vetaiCenter.x + (Math.random() - 0.5) * 30;
+                            this.targetY = vetaiCenter.y + (Math.random() - 0.5) * 30;
+                            this.color = layer.color; // Layer's color
                         } else {
                             this.x = vetaiCenter.x + (Math.random() - 0.5) * 30;
                             this.y = vetaiCenter.y + (Math.random() - 0.5) * 30;
-                            this.targetX = layer.box.x + (Math.random() - 0.5) * layer.box.w * 0.7;
-                            this.targetY = layer.box.y + (Math.random() - 0.5) * layer.box.h * 0.6;
-                            this.color = { r: 255, g: 107, b: 53 };
-                        }
-
-                        if (isLayerToAI) {
-                            this.color = layer.color;
+                            this.targetX = layer.box.x + layer.box.w * 0.5 + (Math.random() - 0.5) * 40;
+                            this.targetY = layer.box.y + (Math.random() - 0.5) * 40;
+                            this.color = { r: 255, g: 107, b: 53 }; // Orange for AI responses
                         }
 
                         this.speed = 3.0 + Math.random() * 2.5; // VERY FAST (3.0-5.5) - increased from 1.5-3.5
                         this.trail = [];
                         this.maxTrail = 35; // LONG trails - increased from 10
-                        this.size = 1.5; // Reduced from 3.0
+                        this.size = 2.5; // LARGER - increased from 1.5 for visibility
                     }
                 }
 
@@ -5199,7 +5258,7 @@
                 }
 
                 draw(ctx, brightness) {
-                    const lineWidth = this.isUserParticle ? 1.0 : 0.8; // Reduced from 3.0/2.0
+                    const lineWidth = this.isUserParticle ? 2.5 : 2.0; // THICKER - increased from 1.0/0.8
                     const trailAlpha = this.isUserParticle ? 1.0 : 0.95; // MAXIMUM BRIGHTNESS from 0.6/0.5
 
                     if (this.trail.length > 1) {
@@ -5224,12 +5283,12 @@
                 }
             }
 
-            // Initialize particles - INCREASED for more visual density (static speed)
+            // Initialize particles - REDUCED by 50% for cleaner visual (static speed)
             console.log('Initializing V3 particles with dimensions:', currentWidth, 'x', currentHeight);
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 10; i++) {
                 particles.push(new ResponsiveFlowParticle(currentWidth, currentHeight, true));
             }
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 50; i++) {
                 particles.push(new ResponsiveFlowParticle(currentWidth, currentHeight, false));
             }
             console.log('V3 Particles initialized:', particles.length);
@@ -5239,7 +5298,7 @@
                 ctx.clearRect(0, 0, currentWidth, currentHeight);
 
                 // Draw faint connection lines (static brightness)
-                const user = { x: currentWidth * 0.5, y: currentHeight * 0.08 };
+                const team = { x: currentWidth * 0.5, y: currentHeight * 0.08 };
                 const vetai = { x: currentWidth * 0.5, y: currentHeight * 0.5 };
                 const layers = [
                     { x: currentWidth * 0.12, y: currentHeight * 0.5 },
@@ -5252,7 +5311,7 @@
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath();
-                ctx.moveTo(user.x, user.y);
+                ctx.moveTo(team.x, team.y);
                 ctx.lineTo(vetai.x, vetai.y);
                 ctx.stroke();
 
@@ -5297,325 +5356,395 @@
         })();
     </script>
 
-    <!-- Real-Time Data Flow & Analysis V4 (USER Only - No VetAI) -->
-    <div class="data-flow-v4" data-aos="fade-up" data-aos-delay="700"
-        style="margin-top: var(--space-4xl); background: linear-gradient(135deg, #0a1929 0%, #1a237e 50%, #0d1b3d 100%); border-radius: 32px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.3);">
-        <h3
-            style="text-align: center; font-size: var(--text-2xl); margin-bottom: var(--space-lg); color: var(--color-accent);">
-            Real-Time Data Flow & Analysis V4 (USER Direct)
-        </h3>
-        <p
-            style="text-align: center; max-width: 700px; margin: 0 auto var(--space-2xl); color: rgba(255,255,255,0.9); font-size: var(--text-md);">
-            Direct interaction: USER communicating with all platforms without intermediary
-        </p>
+    <!-- ========================================
+         TRANSFORMATION COMPARISON
+         Before vs After with AI
+         ======================================== -->
+    <div style="margin-top: var(--space-4xl); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2xl); max-width: 1400px; margin-left: auto; margin-right: auto;">
+        
+        <!-- BEFORE: Without AI -->
+        <div data-aos="fade-up" data-aos-delay="200"
+            style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 24px; padding: var(--space-2xl); border: 2px solid rgba(220,38,38,0.4);">
+            <h3 style="text-align: center; font-size: var(--text-xl); margin-bottom: var(--space-lg); color: #DC2626;">
+                Before: Without AI
+            </h3>
+            <p style="text-align: center; margin-bottom: var(--space-2xl); color: rgba(255,255,255,0.8); font-size: var(--text-sm);">
+                Human manually manages all layers
+            </p>
 
-        <div id="dataFlowV4Container"
-            style="position: relative; max-width: 1000px; margin: 0 auto; background: linear-gradient(135deg, rgba(10,25,41,0.9) 0%, rgba(26,35,126,0.7) 50%, rgba(13,27,61,0.9) 100%); border-radius: 24px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.4); height: 800px; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
-            <!-- Canvas for particle animation -->
-            <canvas id="dataFlowCanvasV4"
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;"></canvas>
+            <div style="position: relative; height: 600px; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 100%); border-radius: 16px; padding: var(--space-xl);">
+                <canvas id="beforeAICanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+                
+                <!-- Layers across top -->
+                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-260px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div style="background: #FACC15; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 1</div>
+                    <p style="font-size: 11px; color: #FACC15; margin: 0; text-align: center; font-weight: 600;">Collaboration</p>
+                </div>
 
-            <!-- USER at center -->
-            <div class="arch-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="300"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(59,130,246,0.8), 0 0 140px rgba(59,130,246,0.4);">
-                <div style="font-size: 56px; margin-bottom: var(--space-xs);">👥</div>
-                <div style="font-size: var(--text-xl); font-weight: 700; color: white; text-align: center;">USER</div>
-                <div style="font-size: var(--text-xs); color: rgba(255,255,255,0.95); text-align: center;">Your Team
+                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-60px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 2</div>
+                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">Business</p>
+                </div>
+
+                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(140px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div style="background: #A855F7; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 3</div>
+                    <p style="font-size: 11px; color: #A855F7; margin: 0; text-align: center; font-weight: 600;">Information</p>
+                </div>
+
+                <!-- Human in middle -->
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 50px rgba(59,130,246,0.6);">
+                    <div style="font-size: 14px; font-weight: 700; color: white; text-align: center;">Human</div>
+                </div>
+
+                <!-- Business Outputs at bottom -->
+                <div style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-80px); z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 12px; padding: var(--space-md); width: 160px;">
+                    <div style="background: #DC2626; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">OUTPUT</div>
+                    <p style="font-size: 11px; color: #DC2626; margin: 0; text-align: center; font-weight: 600;">Business Outputs</p>
                 </div>
             </div>
+        </div>
 
-            <!-- 4 Layers around USER -->
+        <!-- AFTER: With AI -->
+        <div data-aos="fade-up" data-aos-delay="400"
+            style="background: linear-gradient(135deg, #0a1929 0%, #1a237e 100%); border-radius: 24px; padding: var(--space-2xl); border: 2px solid rgba(34,197,94,0.4);">
+            <h3 style="text-align: center; font-size: var(--text-xl); margin-bottom: var(--space-lg); color: #22C55E;">
+                After: With AI
+            </h3>
+            <p style="text-align: center; margin-bottom: var(--space-2xl); color: rgba(255,255,255,0.8); font-size: var(--text-sm);">
+                AI coordinates all layers, Human focuses on decisions
+            </p>
 
-            <!-- Layer 1: Top-Left (Blue - Collaboration) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="400"
-                style="position: absolute; top: 60px; left: 80px; z-index: 10; background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
-                <div
-                    style="background: var(--color-info); color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 1</div>
-                <div
-                    style="background: rgba(59,130,246,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    🔗</div>
-                <h5
-                    style="color: #3B82F6; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
-                    Collaboration</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Platforms</p>
-            </div>
+            <div style="position: relative; height: 600px; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 100%); border-radius: 16px; padding: var(--space-xl);">
+                <canvas id="afterAICanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+                
+                <!-- Layers across top -->
+                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-260px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div style="background: #FACC15; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 1</div>
+                    <p style="font-size: 11px; color: #FACC15; margin: 0; text-align: center; font-weight: 600;">Collaboration</p>
+                </div>
 
-            <!-- Layer 2: Top-Right (Green - Business Software) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="500"
-                style="position: absolute; top: 60px; right: 80px; z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
-                <div
-                    style="background: var(--color-success); color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 2</div>
-                <div
-                    style="background: rgba(34,197,94,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    ⚙️</div>
-                <h5
-                    style="color: #22C55E; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
-                    Business</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Software</p>
-            </div>
+                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-60px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 2</div>
+                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">Business</p>
+                </div>
 
-            <!-- Layer 3: Bottom-Left (Purple - Information & Knowledge) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-up" data-aos-delay="600"
-                style="position: absolute; bottom: 60px; left: 80px; z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
-                <div
-                    style="background: #A855F7; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 3</div>
-                <div
-                    style="background: rgba(168,85,247,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    📚</div>
-                <h5
-                    style="color: #A855F7; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
-                    Information</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">& Knowledge</p>
-            </div>
+                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(140px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div style="background: #A855F7; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 3</div>
+                    <p style="font-size: 11px; color: #A855F7; margin: 0; text-align: center; font-weight: 600;">Information</p>
+                </div>
 
-            <!-- Layer 4: Bottom-Right (Red - Business Outputs) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-up" data-aos-delay="700"
-                style="position: absolute; bottom: 60px; right: 80px; z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
-                <div
-                    style="background: #DC2626; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 4</div>
-                <div
-                    style="background: rgba(220,38,38,0.3); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm); font-size: 24px;">
-                    📊</div>
-                <h5
-                    style="color: #DC2626; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center;">
-                    Business</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Outputs</p>
+                <!-- AI in center-left -->
+                <div style="position: absolute; top: 50%; left: 35%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 16px; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 60px rgba(255,107,53,0.7);">
+                    <div style="font-size: 16px; font-weight: 700; color: white; text-align: center;">AI</div>
+                    <div style="font-size: 9px; color: rgba(255,255,255,0.9); text-align: center;">Coordinator</div>
+                </div>
+
+                <!-- Human in center-right -->
+                <div style="position: absolute; top: 50%; right: 28%; transform: translateY(-50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 40px rgba(59,130,246,0.6);">
+                    <div style="font-size: 13px; font-weight: 700; color: white; text-align: center;">Human</div>
+                </div>
+
+                <!-- Business Outputs at bottom -->
+                <div style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-80px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 160px;">
+                    <div style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">OUTPUT</div>
+                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">Business Outputs</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Data Flow V4 Animation Script (USER Direct - No VetAI) -->
+    <!-- Animation Scripts -->
     <script>
-        (function () {
-            const canvas = document.getElementById('dataFlowCanvasV4');
-            if (!canvas) {
-                console.error('Canvas V4 not found!');
-                return;
-            }
-
+        // BEFORE AI Animation
+        (function() {
+            const canvas = document.getElementById('beforeAICanvas');
+            if (!canvas) return;
+            
             const ctx = canvas.getContext('2d');
-            let animationId = null;
-            let startTime = Date.now();
-            let currentWidth = 0;
-            let currentHeight = 0;
-            let particles = [];
-
+            const container = canvas.parentElement;
+            
             function resizeCanvas() {
-                const container = canvas.parentElement;
-                const rect = container.getBoundingClientRect();
-                currentWidth = rect.width;
-                currentHeight = rect.height;
-                canvas.width = currentWidth;
-                canvas.height = currentHeight;
-
-                console.log('V4 Canvas resized:', currentWidth, 'x', currentHeight);
-
-                if (particles.length > 0) {
-                    particles.forEach(p => {
-                        p.updateDimensions(currentWidth, currentHeight);
-                    });
-                }
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
             }
-
             resizeCanvas();
-
-            let resizeTimeout;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(() => {
-                    resizeCanvas();
-                }, 100);
-            });
-
-            // Direct USER particle class (no VetAI intermediary)
-            class DirectUserParticle {
-                constructor(width, height) {
-                    this.updateDimensions(width, height);
+            window.addEventListener('resize', resizeCanvas);
+            
+            const particles = [];
+            const particleCount = 30;
+            
+            class BeforeParticle {
+                constructor() {
+                    this.reset();
                 }
-
-                updateDimensions(width, height) {
-                    this.width = width;
-                    this.height = height;
-
-                    if (this.x !== undefined) {
-                        const progressX = this.x / (this.oldWidth || width);
-                        const progressY = this.y / (this.oldHeight || height);
-                        const targetProgressX = this.targetX / (this.oldWidth || width);
-                        const targetProgressY = this.targetY / (this.oldHeight || height);
-
-                        this.x = progressX * width;
-                        this.y = progressY * height;
-                        this.targetX = targetProgressX * width;
-                        this.targetY = targetProgressY * height;
-                    } else {
-                        this.reset();
-                    }
-
-                    this.oldWidth = width;
-                    this.oldHeight = height;
-                }
-
+                
                 reset() {
-                    // USER at center
-                    const userCenter = { x: this.width * 0.5, y: this.height * 0.5 };
-
-                    // Layer boxes positioned around USER
+                    const w = canvas.width;
+                    const h = canvas.height;
+                    
+                    // Positions
+                    const human = { x: w * 0.5, y: h * 0.5 };
                     const layers = [
-                        { box: { x: this.width * 0.12, y: this.height * 0.12, w: 160, h: 120 }, color: { r: 59, g: 130, b: 246 }, platforms: 8 },  // Top-left
-                        { box: { x: this.width * 0.88, y: this.height * 0.12, w: 160, h: 120 }, color: { r: 34, g: 197, b: 94 }, platforms: 12 }, // Top-right
-                        { box: { x: this.width * 0.12, y: this.height * 0.88, w: 160, h: 120 }, color: { r: 168, g: 85, b: 247 }, platforms: 10 }, // Bottom-left
-                        { box: { x: this.width * 0.88, y: this.height * 0.88, w: 160, h: 120 }, color: { r: 220, g: 38, b: 38 }, platforms: 6 }    // Bottom-right
+                        { x: w * 0.3, y: h * 0.12 },   // Layer 1
+                        { x: w * 0.5, y: h * 0.12 },   // Layer 2
+                        { x: w * 0.7, y: h * 0.12 }    // Layer 3
                     ];
-
-                    const layer = layers[Math.floor(Math.random() * layers.length)];
-
-                    // 50% USER → Layer (request), 50% Layer → USER (response) - ONE AT A TIME
-                    const isUserToLayer = Math.random() > 0.5;
-
-                    if (isUserToLayer) {
-                        // USER sends request to layer (WIDER spawn area for visual spread)
-                        const userSpawnOffset = {
-                            x: (Math.random() - 0.5) * 80, // INCREASED spread from 20 to 80
-                            y: (Math.random() - 0.5) * 80  // INCREASED spread from 20 to 80
-                        };
-                        this.x = userCenter.x + userSpawnOffset.x;
-                        this.y = userCenter.y + userSpawnOffset.y;
-
-                        // Target with MORE SPREAD at layer box (wider target area)
-                        this.targetX = layer.box.x + (Math.random() - 0.5) * 60; // INCREASED from 0
-                        this.targetY = layer.box.y + (Math.random() - 0.5) * 60; // INCREASED from 0
-
-                        this.color = { r: 59, g: 130, b: 246 }; // Blue for user requests
+                    const output = { x: w * 0.5, y: h * 0.88 };
+                    
+                    const rand = Math.random();
+                    
+                    if (rand < 0.6) {
+                        // Human ↔ Layer
+                        const layer = layers[Math.floor(Math.random() * layers.length)];
+                        if (Math.random() > 0.5) {
+                            this.x = human.x + (Math.random() - 0.5) * 40;
+                            this.y = human.y + (Math.random() - 0.5) * 40;
+                            this.targetX = layer.x;
+                            this.targetY = layer.y;
+                            this.color = { r: 59, g: 130, b: 246 };
+                        } else {
+                            this.x = layer.x;
+                            this.y = layer.y;
+                            this.targetX = human.x;
+                            this.targetY = human.y;
+                            this.color = { r: 250, g: 204, b: 21 };
+                        }
                     } else {
-                        // Layer sends response back to USER (WIDER spawn from layer)
-                        this.x = layer.box.x + (Math.random() - 0.5) * 60; // INCREASED spread from 15 to 60
-                        this.y = layer.box.y + (Math.random() - 0.5) * 60; // INCREASED spread from 15 to 60
-
-                        // Target USER with MORE SPREAD (wider arrival area)
-                        this.targetX = userCenter.x + (Math.random() - 0.5) * 80; // INCREASED from 0
-                        this.targetY = userCenter.y + (Math.random() - 0.5) * 80; // INCREASED from 0
-
-                        this.color = layer.color; // Layer's color for responses
+                        // Human → Output
+                        this.x = human.x + (Math.random() - 0.5) * 40;
+                        this.y = human.y + (Math.random() - 0.5) * 40;
+                        this.targetX = output.x + (Math.random() - 0.5) * 60;
+                        this.targetY = output.y;
+                        this.color = { r: 220, g: 38, b: 38 };
                     }
-
-                    this.speed = 2.5 + Math.random() * 2.0; // VERY FAST (2.5-4.5) - increased from 0.8-1.4
+                    
+                    this.speed = 2.0 + Math.random() * 1.5;
                     this.trail = [];
-                    this.maxTrail = 45; // VERY LONG trails - increased from 12
-                    this.size = 2.0; // Reduced from 5.0 - thin data lines
+                    this.maxTrail = 30;
+                    this.size = 3.0;
                 }
-
-                update(speedMult) {
+                
+                update() {
                     this.trail.push({ x: this.x, y: this.y });
                     if (this.trail.length > this.maxTrail) this.trail.shift();
-
+                    
                     const dx = this.targetX - this.x;
                     const dy = this.targetY - this.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-
+                    
                     if (dist < 10) {
                         this.reset();
                         return;
                     }
-
-                    const currentSpeed = this.speed * speedMult;
-                    this.x += (dx / dist) * currentSpeed;
-                    this.y += (dy / dist) * currentSpeed;
+                    
+                    this.x += (dx / dist) * this.speed;
+                    this.y += (dy / dist) * this.speed;
                 }
-
-                draw(ctx, brightness) {
-                    const lineWidth = 0.8; // Reduced from 2.5
-                    const trailAlpha = 1.0; // FULL BRIGHTNESS - maximum visibility
-
+                
+                draw(ctx) {
                     if (this.trail.length > 1) {
-                        for (let i = 0; i < this.trail.length - 1; i++) {
-                            const alpha = (i / this.trail.length) * trailAlpha * brightness;
-                            ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
-                            ctx.lineWidth = lineWidth;
-                            ctx.beginPath();
-                            ctx.moveTo(this.trail[i].x, this.trail[i].y);
-                            ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
-                            ctx.stroke();
-                        }
+                        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.6)`;
+                        ctx.lineWidth = 2.0;
+                        ctx.beginPath();
+                        this.trail.forEach((point, i) => {
+                            if (i === 0) ctx.moveTo(point.x, point.y);
+                            else ctx.lineTo(point.x, point.y);
+                        });
+                        ctx.stroke();
                     }
-
-                    ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${brightness})`;
-                    ctx.shadowBlur = 18 * brightness; // MAXIMUM glow - increased from 12
-                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`; // FULL BRIGHTNESS
+                    
+                    ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`;
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.shadowBlur = 0;
                 }
             }
-
-            // Initialize particles - MINIMAL for serial processing demonstration (one at a time)
-            console.log('Initializing V4 particles with dimensions:', currentWidth, 'x', currentHeight);
-            for (let i = 0; i < 4; i++) { // REDUCED to 4 particles - serial one-at-a-time processing
-                particles.push(new DirectUserParticle(currentWidth, currentHeight));
+            
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new BeforeParticle());
             }
-            console.log('V4 Particles initialized:', particles.length);
-
-            // Animation loop - STATIC SPEED (no phase cycling)
+            
+            let animationId;
             function animate() {
-
-                ctx.clearRect(0, 0, currentWidth, currentHeight);
-
-                // Draw faint connection lines from USER to layers (static brightness)
-                const user = { x: currentWidth * 0.5, y: currentHeight * 0.5 };
-                const layers = [
-                    { x: currentWidth * 0.12, y: currentHeight * 0.12 },
-                    { x: currentWidth * 0.88, y: currentHeight * 0.12 },
-                    { x: currentWidth * 0.12, y: currentHeight * 0.88 },
-                    { x: currentWidth * 0.88, y: currentHeight * 0.88 }
-                ];
-
-                // STATIC: Connection lines use constant brightness
-                ctx.strokeStyle = `rgba(88, 166, 255, 0.15)`;
-                ctx.lineWidth = 1;
-                ctx.setLineDash([4, 4]);
-
-                layers.forEach(layer => {
-                    ctx.beginPath();
-                    ctx.moveTo(user.x, user.y);
-                    ctx.lineTo(layer.x, layer.y);
-                    ctx.stroke();
-                });
-                ctx.setLineDash([]);
-
-                // STATIC: Update and draw particles with FASTER speed (3.0x) and full brightness
+                ctx.fillStyle = 'rgba(5, 12, 20, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
                 particles.forEach(p => {
-                    p.update(3.0); // VERY FAST static speed - increased from 1.5x
-                    p.draw(ctx, 1.0); // Static full brightness
+                    p.update();
+                    p.draw(ctx);
                 });
-
+                
                 animationId = requestAnimationFrame(animate);
             }
-
-            // Start animation when visible
+            
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        console.log('V4 Canvas is visible, starting animation...');
-                        if (!animationId) {
-                            console.log('V4 Starting animation with', particles.length, 'particles');
-                            animate();
-                        }
-                    } else {
-                        console.log('V4 Canvas not visible, stopping animation');
-                        if (animationId) {
-                            cancelAnimationFrame(animationId);
-                            animationId = null;
-                        }
+                    if (entry.isIntersecting && !animationId) animate();
+                    else if (!entry.isIntersecting && animationId) {
+                        cancelAnimationFrame(animationId);
+                        animationId = null;
                     }
                 });
             }, { threshold: 0.1 });
-
+            
             observer.observe(canvas);
-            console.log('V4 IntersectionObserver initialized');
+        })();
+        
+        // AFTER AI Animation
+        (function() {
+            const canvas = document.getElementById('afterAICanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const container = canvas.parentElement;
+            
+            function resizeCanvas() {
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            const particles = [];
+            const particleCount = 60;  // More particles = more activity
+            
+            class AfterParticle {
+                constructor() {
+                    this.reset();
+                }
+                
+                reset() {
+                    const w = canvas.width;
+                    const h = canvas.height;
+                    
+                    // Positions
+                    const ai = { x: w * 0.35, y: h * 0.5 };
+                    const human = { x: w * 0.65, y: h * 0.5 };
+                    const layers = [
+                        { x: w * 0.3, y: h * 0.12, color: { r: 250, g: 204, b: 21 } },   // Layer 1
+                        { x: w * 0.5, y: h * 0.12, color: { r: 34, g: 197, b: 94 } },    // Layer 2
+                        { x: w * 0.7, y: h * 0.12, color: { r: 168, g: 85, b: 247 } }    // Layer 3
+                    ];
+                    const output = { x: w * 0.5, y: h * 0.88 };
+                    
+                    const rand = Math.random();
+                    
+                    if (rand < 0.5) {
+                        // AI ↔ Layer
+                        const layer = layers[Math.floor(Math.random() * layers.length)];
+                        if (Math.random() > 0.5) {
+                            this.x = ai.x + (Math.random() - 0.5) * 30;
+                            this.y = ai.y + (Math.random() - 0.5) * 30;
+                            this.targetX = layer.x;
+                            this.targetY = layer.y;
+                            this.color = { r: 255, g: 107, b: 53 };
+                        } else {
+                            this.x = layer.x;
+                            this.y = layer.y;
+                            this.targetX = ai.x;
+                            this.targetY = ai.y;
+                            this.color = layer.color;
+                        }
+                    } else if (rand < 0.7) {
+                        // AI ↔ Human
+                        if (Math.random() > 0.5) {
+                            this.x = ai.x + (Math.random() - 0.5) * 30;
+                            this.y = ai.y + (Math.random() - 0.5) * 30;
+                            this.targetX = human.x;
+                            this.targetY = human.y;
+                            this.color = { r: 255, g: 107, b: 53 };
+                        } else {
+                            this.x = human.x + (Math.random() - 0.5) * 30;
+                            this.y = human.y + (Math.random() - 0.5) * 30;
+                            this.targetX = ai.x;
+                            this.targetY = ai.y;
+                            this.color = { r: 59, g: 130, b: 246 };
+                        }
+                    } else {
+                        // AI → Output or Human → Output
+                        if (Math.random() > 0.5) {
+                            this.x = ai.x + (Math.random() - 0.5) * 30;
+                            this.y = ai.y + (Math.random() - 0.5) * 30;
+                            this.color = { r: 255, g: 107, b: 53 };
+                        } else {
+                            this.x = human.x + (Math.random() - 0.5) * 30;
+                            this.y = human.y + (Math.random() - 0.5) * 30;
+                            this.color = { r: 59, g: 130, b: 246 };
+                        }
+                        this.targetX = output.x + (Math.random() - 0.5) * 60;
+                        this.targetY = output.y;
+                    }
+                    
+                    this.speed = 2.5 + Math.random() * 1.5;
+                    this.trail = [];
+                    this.maxTrail = 35;
+                    this.size = 3.0;
+                }
+                
+                update() {
+                    this.trail.push({ x: this.x, y: this.y });
+                    if (this.trail.length > this.maxTrail) this.trail.shift();
+                    
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 10) {
+                        this.reset();
+                        return;
+                    }
+                    
+                    this.x += (dx / dist) * this.speed;
+                    this.y += (dy / dist) * this.speed;
+                }
+                
+                draw(ctx) {
+                    if (this.trail.length > 1) {
+                        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.6)`;
+                        ctx.lineWidth = 2.0;
+                        ctx.beginPath();
+                        this.trail.forEach((point, i) => {
+                            if (i === 0) ctx.moveTo(point.x, point.y);
+                            else ctx.lineTo(point.x, point.y);
+                        });
+                        ctx.stroke();
+                    }
+                    
+                    ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new AfterParticle());
+            }
+            
+            let animationId;
+            function animate() {
+                ctx.fillStyle = 'rgba(5, 12, 20, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                particles.forEach(p => {
+                    p.update();
+                    p.draw(ctx);
+                });
+                
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !animationId) animate();
+                    else if (!entry.isIntersecting && animationId) {
+                        cancelAnimationFrame(animationId);
+                        animationId = null;
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            observer.observe(canvas);
         })();
     </script>
 
@@ -5821,7 +5950,7 @@
             easing: 'ease-out-cubic', // Smoother easing function
             mirror: false, // Don't re-animate on scroll up
             anchorPlacement: 'top-bottom', // Trigger when top of element hits bottom of viewport
-            disable: function() {
+            disable: function () {
                 // Disable AOS on very small screens or low-performance devices
                 return window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             }
@@ -5886,7 +6015,7 @@
                         heroObserver.disconnect();
                     }
                 });
-            }, { 
+            }, {
                 threshold: 0.2, // Reduced from 0.5 - triggers earlier
                 rootMargin: '50px' // Start animation 50px before element enters viewport
             });
@@ -5898,29 +6027,29 @@
 
         // FIXED: Pain cards sliding animation with improved sequencing
         const painCards = document.querySelectorAll('.pain-card');
-        
+
         if (painCards.length > 0) {
             // Track which cards have been animated
             let animatedCount = 0;
-            
+
             const painObserver = new IntersectionObserver((entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting && !entry.target.classList.contains('slide-in-left') && !entry.target.classList.contains('slide-in-right')) {
                         const direction = entry.target.dataset.direction || 'left';
-                        
+
                         // Stagger animations based on order in DOM
                         const delay = animatedCount * 200; // Increased from 150ms for smoother effect
-                        
+
                         setTimeout(() => {
                             entry.target.classList.add(`slide-in-${direction}`);
                             entry.target.style.opacity = '1'; // Ensure visibility
                         }, delay);
-                        
+
                         animatedCount++;
                         painObserver.unobserve(entry.target);
                     }
                 });
-            }, { 
+            }, {
                 threshold: 0.15, // Lower threshold for earlier trigger
                 rootMargin: '30px' // Add margin for smoother entry
             });

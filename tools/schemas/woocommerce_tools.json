@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "woocommerce_get_orders",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRetrieve orders from WooCommerce store with advanced filtering",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRetrieve orders from WooCommerce store with advanced filtering",
       "platform": "woocommerce",
       "parameters": {
         "status": {
@@ -47,7 +47,7 @@
     },
     {
       "name": "woocommerce_get_order",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single order by ID with complete details",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single order by ID with complete details",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -63,7 +63,7 @@
     },
     {
       "name": "woocommerce_create_order",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new order programmatically",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new order programmatically",
       "platform": "woocommerce",
       "parameters": {
         "payment_method": {
@@ -110,7 +110,7 @@
     },
     {
       "name": "woocommerce_update_order",
-      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an order's status, notes, or details",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an order's status, notes, or details",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -146,7 +146,7 @@
     },
     {
       "name": "woocommerce_delete_order",
-      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete an order permanently",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete an order permanently",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -168,7 +168,7 @@
     },
     {
       "name": "woocommerce_get_products",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList products from WooCommerce store with advanced filtering",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList products from WooCommerce store with advanced filtering",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -221,7 +221,7 @@
     },
     {
       "name": "woocommerce_get_product",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single product by ID",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single product by ID",
       "platform": "woocommerce",
       "parameters": {
         "product_id": {
@@ -237,7 +237,7 @@
     },
     {
       "name": "woocommerce_create_product",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product in WooCommerce",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product in WooCommerce",
       "platform": "woocommerce",
       "parameters": {
         "name": {
@@ -305,7 +305,7 @@
     },
     {
       "name": "woocommerce_update_product",
-      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing product",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing product",
       "platform": "woocommerce",
       "parameters": {
         "product_id": {
@@ -346,7 +346,7 @@
     },
     {
       "name": "woocommerce_delete_product",
-      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a product",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a product",
       "platform": "woocommerce",
       "parameters": {
         "product_id": {
@@ -368,7 +368,7 @@
     },
     {
       "name": "woocommerce_get_customers",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList customers from store",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList customers from store",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -406,7 +406,7 @@
     },
     {
       "name": "woocommerce_get_customer",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single customer by ID",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single customer by ID",
       "platform": "woocommerce",
       "parameters": {
         "customer_id": {
@@ -422,7 +422,7 @@
     },
     {
       "name": "woocommerce_create_customer",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new customer",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new customer",
       "platform": "woocommerce",
       "parameters": {
         "email": {
@@ -463,7 +463,7 @@
     },
     {
       "name": "woocommerce_get_categories",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList product categories",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList product categories",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -480,7 +480,7 @@
     },
     {
       "name": "woocommerce_create_category",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product category",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product category",
       "platform": "woocommerce",
       "parameters": {
         "name": {
@@ -511,7 +511,7 @@
     },
     {
       "name": "woocommerce_get_coupons",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList discount coupons",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList discount coupons",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -533,7 +533,7 @@
     },
     {
       "name": "woocommerce_create_coupon",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new discount coupon",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new discount coupon",
       "platform": "woocommerce",
       "parameters": {
         "code": {
@@ -574,7 +574,7 @@
     },
     {
       "name": "woocommerce_get_refunds",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList refunds for an order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList refunds for an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -590,7 +590,7 @@
     },
     {
       "name": "woocommerce_create_refund",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a refund for an order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a refund for an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -627,7 +627,7 @@
     },
     {
       "name": "woocommerce_get_reports_sales",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet sales reports",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet sales reports",
       "platform": "woocommerce",
       "parameters": {
         "period": {
@@ -654,7 +654,7 @@
     },
     {
       "name": "woocommerce_get_reports_top_sellers",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet top selling products report",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet top selling products report",
       "platform": "woocommerce",
       "parameters": {
         "period": {
@@ -677,7 +677,7 @@
     },
     {
       "name": "woocommerce_get_order_notes",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet notes for an order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet notes for an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -693,7 +693,7 @@
     },
     {
       "name": "woocommerce_create_order_note",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a note to an order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a note to an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -720,7 +720,7 @@
     },
     {
       "name": "woocommerce_get_shipping_zones",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList shipping zones",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList shipping zones",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {
@@ -730,7 +730,7 @@
     },
     {
       "name": "woocommerce_get_payment_gateways",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList available payment gateways",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList available payment gateways",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {
@@ -740,7 +740,7 @@
     },
     {
       "name": "woocommerce_get_tax_rates",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tax rates",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tax rates",
       "platform": "woocommerce",
       "parameters": {
         "class": {
@@ -756,7 +756,7 @@
     },
     {
       "name": "woocommerce_get_webhooks",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList webhooks",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList webhooks",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {
@@ -766,7 +766,7 @@
     },
     {
       "name": "woocommerce_create_webhook",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new webhook",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new webhook",
       "platform": "woocommerce",
       "parameters": {
         "name": {
@@ -792,7 +792,7 @@
     },
     {
       "name": "woocommerce_get_system_status",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet WooCommerce system status",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet WooCommerce system status",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {

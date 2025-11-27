@@ -21,21 +21,7 @@
         "storage:local"
     ],
     "dependencies": [],
-    "tabs": [
-        {
-            "id": "kanban-board",
-            "name": "Kanban Board",
-            "icon": "fas fa-columns",
-            "description": "Visual production workflow with stage tracking",
-            "default": true
-        },
-        {
-            "id": "analytics",
-            "name": "Analytics",
-            "icon": "fas fa-chart-line",
-            "description": "Workflow analytics and bottleneck detection"
-        }
-    ],
+    "main_tab": false,
     "settings": {
         "api_endpoint": "/api/inhouse-kanban",
         "backend_url": "http://localhost:5001",

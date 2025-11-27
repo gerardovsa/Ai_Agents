@@ -18,26 +18,28 @@
  * @updated 2025-11-03 15:30 - Fixed StageID filtering
  */
 
-console.log('🔷 InHouse Kanban Module Loading - VERSION 3.0 - BaseModule.initialize() + analyticsApiBase FIXED');
+console.log('🔷 InHouse Kanban Module Loading - VERSION 3.0 - BaseModule.initialize() FIXED');
 
 // BaseModule polyfill (lightweight replacement since BaseModule.js not loaded)
+// VERSION 3.0 - Added initialize() method
 class BaseModule {
     constructor(moduleId) {
         this.moduleId = moduleId;
         this.manifest = null;
         this.backendUrl = window.API_BASE_URL || 'http://localhost:5001';
-        console.log(`✅ BaseModule constructor - moduleId: ${moduleId}, backendUrl: ${this.backendUrl}`);
+        console.log(`✅ BaseModule constructor - moduleId: ${moduleId}`);
     }
-    
+
     async initialize() {
         console.log(`✅ BaseModule.initialize() called for ${this.moduleId}`);
+        // Load manifest from backend
         try {
             const response = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
             if (response.ok) {
                 this.manifest = await response.json();
                 console.log(`✅ Manifest loaded for ${this.moduleId}:`, this.manifest);
             } else {
-                console.warn(`⚠️ Failed to load manifest (HTTP ${response.status}), using defaults`);
+                console.warn(`⚠️ Failed to load manifest (HTTP ${response.status})`);
             }
         } catch (error) {
             console.warn(`⚠️ Failed to load manifest for ${this.moduleId}:`, error);
@@ -134,11 +136,13 @@ class InhouseKanbanModule extends BaseModule {
         ];
 
         // Workboard definitions (filter stage display by StageID)
+        // NOTE: Stages 5 (Digital-Other) and 7 (Digital-Cello) don't exist in current database
+        // Using only stages that actually exist: 3, 4, 6, 8, 9, 11, 12, 13, 14, 15
         this.workboards = {
             'main': {
                 name: 'Main Workflow',
                 icon: 'fa-stream',
-                stages: [11, 4, 5, 6, 7, 8, 9]  // ReadyToPrint, Digital-9110, Other, OutSource, Cello, Bindery, Complete
+                stages: [11, 4, 6, 8, 9]  // ReadyToPrint, Digital-9110, OutSource, Bindery, Complete
             },
             'wide-format': {
                 name: 'Wide Format',
@@ -148,12 +152,12 @@ class InhouseKanbanModule extends BaseModule {
             'apg': {
                 name: 'APG Supplies',
                 icon: 'fa-box-open',
-                stages: [1, 3, 6, 7, 8, 9]  // ArtOnly, OnHold, OutSource, Cello, Bindery, Complete
+                stages: [3, 6, 8, 9]  // OnHold, OutSource, Bindery, Complete (removed non-existent 1, 7)
             },
             'publishing': {
                 name: 'Publishing',
                 icon: 'fa-book',
-                stages: [11, 4, 5, 7, 8, 9]  // ReadyToPrint, Digital-9110, Other, Cello, Bindery, Complete
+                stages: [11, 4, 8, 9]  // ReadyToPrint, Digital-9110, Bindery, Complete (removed non-existent 5, 7)
             }
         };
 
@@ -200,14 +204,28 @@ class InhouseKanbanModule extends BaseModule {
         // Apply module colors (after manifest is loaded)
         this.applyModuleColors();
 
-        // Load initial data
-        await this.loadInitialData();
+        // CRITICAL: Initialize the Kanban board HTML structure
+        // This creates all the UI elements (filters, legend, metrics, board container)
+        this.initializeKanbanBoard();
 
-        // Set up event listeners
+        // Set up event listeners (must be after HTML is created)
         this.setupEventListeners();
 
         // Start auto-refresh
         this.startAutoRefresh();
+
+        // Load initial data - CRITICAL: Must complete before sidebar initialization
+        console.log('🔄 Starting data load...');
+        try {
+            await this.refreshData();
+            console.log(`✅ Data loaded in initialize(): ${this.jobs?.length || 0} jobs`);
+            if (!this.jobs || this.jobs.length === 0) {
+                console.warn('⚠️ WARNING: refreshData() completed but this.jobs is empty or undefined!');
+            }
+        } catch (error) {
+            console.error('❌ Failed to load initial data in initialize():', error);
+            throw error; // Re-throw to prevent sidebar initialization
+        }
 
         console.log('✅ InHouse Print Production Workflow module ready');
     }
@@ -931,7 +949,7 @@ class InhouseKanbanModule extends BaseModule {
      * Apply module-specific colors as CSS variables
      */
     applyModuleColors() {
-        // CRITICAL: Safe null-checking for manifest
+        // CRITICAL: Safe null-checking for manifest colors
         // Manifest is loaded by super.initialize(), check it exists
         if (!this.manifest) {
             console.warn('⚠️ Manifest not loaded yet, skipping color application');
@@ -1122,7 +1140,7 @@ class InhouseKanbanModule extends BaseModule {
      * Refresh all data
      */
     async refreshData() {
-        console.log('Refreshing InHouse Print data...');
+        console.log('🔄 refreshData() started - jobs before:', this.jobs?.length || 0);
         const refreshBtn = document.getElementById('inhouse-refresh-btn');
         if (refreshBtn) {
             refreshBtn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Refreshing...';
@@ -1131,6 +1149,7 @@ class InhouseKanbanModule extends BaseModule {
 
         try {
             await this.loadInitialData();
+            console.log('✅ refreshData() complete - jobs after:', this.jobs?.length || 0);
 
             // Re-render current view
             if (this.currentView === 'kanban-board') {
@@ -1142,13 +1161,37 @@ class InhouseKanbanModule extends BaseModule {
             this.showNotification('success', 'Data refreshed successfully');
 
         } catch (error) {
+            console.error('❌ refreshData() error:', error);
             this.showNotification('error', 'Failed to refresh data');
+            throw error; // Re-throw to propagate error to caller
         } finally {
             if (refreshBtn) {
                 refreshBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
                 refreshBtn.disabled = false;
             }
         }
+    }
+
+    /**
+     * Get sub-tab container for module content
+     * @param {string} tabName - Name of the sub-tab (not used, returns main container)
+     * @returns {HTMLElement} The main module container
+     */
+    getSubTabContainer(tabName) {
+        const container = document.getElementById(`${this.manifest.id}-main-container`);
+
+        if (!container) {
+            console.error(`[InHouseKanban] Main container #${this.manifest.id}-main-container not found!`);
+            // Fallback to tab container
+            const tabContainer = document.getElementById(`tab-${this.manifest.id}`);
+            if (tabContainer) {
+                console.warn(`[InHouseKanban] Using fallback tab container #tab-${this.manifest.id}`);
+                return tabContainer;
+            }
+            throw new Error(`Cannot find container for module ${this.manifest.id}`);
+        }
+
+        return container;
     }
 
     /**
@@ -1167,6 +1210,17 @@ class InhouseKanbanModule extends BaseModule {
         const primaryColor = this.manifest?.colors?.primary || '#00509E';
 
         container.innerHTML = `
+            <!-- Module Header -->
+            <div style="padding: 20px 20px 12px 20px; border-bottom: 2px solid #30363d; background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);">
+                <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #f0f6fc; display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-industry" style="color: ${primaryColor};"></i>
+                    InHouse Print Workboard
+                </h1>
+                <p style="margin: 8px 0 0 0; color: #8b949e; font-size: 14px;">
+                    Production workflow management and job tracking
+                </p>
+            </div>
+            
             <div class="filters-bar">
                 <div class="filter-group">
                     <label><i class="fas fa-calendar-alt"></i> Timeframe:</label>
@@ -1372,7 +1426,7 @@ class InhouseKanbanModule extends BaseModule {
             </details>
             
             <!-- Card Customisations (Advanced Settings - Placed AFTER Color Guide) -->
-            <details class="card-customisations-expander" open style="margin: 15px 20px; border: 2px solid #58a6ff; border-radius: 8px; background: #161b22; padding: 12px;">
+            <details class="card-customisations-expander" style="margin: 15px 20px; border: 2px solid #30363d; border-radius: 8px; background: #161b22; padding: 12px;">
                 <summary style="cursor: pointer; font-weight: bold; color: #58a6ff; padding: 10px; user-select: none; display: flex; align-items: center; gap: 10px; font-size: 1.05em;">
                     <i class="fas fa-cogs"></i> Advanced Color Customization
                     <span style="font-size: 0.85em; color: #8b949e; font-weight: normal; margin-left: auto;">(Edit colors, borders, & styles - LINKED TO GUIDE ABOVE)</span>
@@ -1501,7 +1555,9 @@ class InhouseKanbanModule extends BaseModule {
                 </div>
             </details>
             
-            <div class="workboard-selector" id="workboard-selector"></div>
+            <div class="workboard-selector" id="workboard-selector" style="min-height: 60px; background: #1A1F2E; border: 2px solid #00509E;">
+                <div style="padding: 20px; color: #FBBF24;">⏳ Loading workboard selector...</div>
+            </div>
             
             <div class="kanban-metrics" id="kanban-metrics"></div>
             
@@ -1563,31 +1619,60 @@ class InhouseKanbanModule extends BaseModule {
      * Render workboard selector tabs
      */
     renderWorkboardSelector() {
+        console.log('🔷 renderWorkboardSelector() called');
+
         const container = document.getElementById('workboard-selector');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ Workboard selector container not found!');
+            return;
+        }
+
+        console.log('✅ Workboard selector container found');
+        console.log('   Workboards defined:', Object.keys(this.workboards));
+        console.log('   Active workboard:', this.activeWorkboard);
 
         let tabsHtml = '';
         Object.keys(this.workboards).forEach(boardKey => {
             const board = this.workboards[boardKey];
             const isActive = boardKey === this.activeWorkboard ? 'active' : '';
             tabsHtml += `
-                <button class="workboard-tab ${isActive}" onclick="window.ModuleRegistry['inhouse-kanban'].switchWorkboard('${boardKey}')">
+                <button class="workboard-tab ${isActive}" onclick="window.currentKanbanModule.switchWorkboard('${boardKey}')">
                     <i class="fas ${board.icon}"></i>
                     ${board.name}
                 </button>
             `;
         });
 
-        container.innerHTML = tabsHtml;
+        console.log('   Generated HTML length:', tabsHtml.length);
+
+        if (tabsHtml.length === 0) {
+            container.innerHTML = '<div style="padding: 20px; color: #EF4444;">⚠️ No workboards found!</div>';
+            console.error('❌ No workboards to render!');
+        } else {
+            container.innerHTML = tabsHtml;
+            console.log('✅ Workboard selector rendered with', Object.keys(this.workboards).length, 'tabs');
+        }
     }
 
     /**
      * Switch to a different workboard
      */
     switchWorkboard(boardKey) {
+        console.log(`🔄 Switching to workboard: ${boardKey}`);
+
+        if (!this.workboards[boardKey]) {
+            console.error(`❌ Invalid workboard key: ${boardKey}`);
+            console.log('   Available workboards:', Object.keys(this.workboards));
+            return;
+        }
+
         this.activeWorkboard = boardKey;
+        console.log(`✅ Active workboard set to: ${this.activeWorkboard}`);
+
         this.renderWorkboardSelector();
         this.renderKanbanBoard();
+
+        console.log(`✅ Workboard switch complete`);
     }
 
     /**
@@ -2365,9 +2450,6 @@ class InhouseKanbanModule extends BaseModule {
             // Initialize drag and resize functionality
             this.initializeModalDragResize();
 
-            // Initialize collapsible sections
-            this.initializeCollapsibleSections();
-
             // Load production log entries
             this.loadProductionLogEntries(jobId);
 
@@ -2470,52 +2552,6 @@ class InhouseKanbanModule extends BaseModule {
 
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
-            });
-        });
-    }
-
-    /**
-     * Initialize collapsible sections in modal
-     */
-    initializeCollapsibleSections() {
-        const sectionTitles = document.querySelectorAll('.kanban-section-title');
-        
-        sectionTitles.forEach(title => {
-            // Make cursor pointer to indicate clickability
-            title.style.cursor = 'pointer';
-            title.style.userSelect = 'none';
-            
-            // Add chevron icon if not already present
-            if (!title.querySelector('.section-chevron')) {
-                const chevron = document.createElement('i');
-                chevron.className = 'fas fa-chevron-down section-chevron';
-                chevron.style.marginLeft = 'auto';
-                chevron.style.transition = 'transform 0.3s ease';
-                title.appendChild(chevron);
-            }
-            
-            // Add click handler
-            title.addEventListener('click', (e) => {
-                // Don't collapse if clicking a button inside the title
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-                
-                const section = title.parentElement;
-                const content = section.querySelector('.kanban-section-content');
-                const chevron = title.querySelector('.section-chevron');
-                
-                if (content) {
-                    const isCollapsed = content.style.display === 'none';
-                    
-                    if (isCollapsed) {
-                        // Expand
-                        content.style.display = '';
-                        if (chevron) chevron.style.transform = 'rotate(0deg)';
-                    } else {
-                        // Collapse
-                        content.style.display = 'none';
-                        if (chevron) chevron.style.transform = 'rotate(-90deg)';
-                    }
-                }
             });
         });
     }
@@ -4217,14 +4253,610 @@ window.ModuleRegistry['inhouse_print'] = {
 };
 */
 
+// ==================== SIDEBAR FUNCTIONALITY ====================
+
+class InhouseKanbanSidebar {
+    constructor(moduleInstance) {
+        this.module = moduleInstance;
+        this.selectedWorkboard = 'main';
+        this.selectedColumn = null;
+        this.expandedCards = new Set();
+        this.filters = {
+            search: '',
+            dateRange: '-6',
+            priority: 'all'
+        };
+
+        this.initializeSidebar();
+    }
+
+    initializeSidebar() {
+        console.log('🔧 Initializing sidebar functionality...');
+
+        // Workboard selector
+        const workboardSelector = document.getElementById('sidebar-workboard-selector');
+        if (workboardSelector) {
+            workboardSelector.addEventListener('change', (e) => this.onWorkboardChange(e.target.value));
+        }
+
+        // Column selector
+        const columnSelector = document.getElementById('sidebar-column-selector');
+        if (columnSelector) {
+            columnSelector.addEventListener('change', (e) => this.onColumnChange(e.target.value));
+        }
+
+        // Search input
+        const searchInput = document.getElementById('sidebar-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => this.onSearchChange(e.target.value));
+        }
+
+        // Date filter
+        const dateFilter = document.getElementById('sidebar-date-filter');
+        if (dateFilter) {
+            dateFilter.addEventListener('change', (e) => this.onDateFilterChange(e.target.value));
+        }
+
+        // Priority filter
+        const priorityFilter = document.getElementById('sidebar-priority-filter');
+        if (priorityFilter) {
+            priorityFilter.addEventListener('change', (e) => this.onPriorityFilterChange(e.target.value));
+        }
+
+        // Clear filters button
+        const clearBtn = document.getElementById('sidebar-clear-filters');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this.clearFilters());
+        }
+
+        // Refresh button
+        const refreshBtn = document.getElementById('sidebar-refresh');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.refreshData());
+        }
+
+        // Analytics refresh
+        const analyticsRefreshBtn = document.getElementById('analytics-refresh-btn');
+        if (analyticsRefreshBtn) {
+            analyticsRefreshBtn.addEventListener('click', () => this.refreshAnalytics());
+        }
+
+        // Initialize with default workboard (wait for data to load first)
+        if (this.module.jobs && this.module.jobs.length > 0) {
+            this.loadWorkboardColumns(this.selectedWorkboard);
+            console.log('✅ Sidebar initialized with data');
+        } else {
+            console.log('⏳ Sidebar initialized - waiting for data to load');
+            // Data will load via refreshData() in main module
+            // Sidebar will update when user selects a column
+        }
+    }
+
+    onWorkboardChange(workboardKey) {
+        console.log(`📋 Workboard changed to: ${workboardKey}`);
+        this.selectedWorkboard = workboardKey;
+        this.loadWorkboardColumns(workboardKey);
+    }
+
+    loadWorkboardColumns(workboardKey) {
+        const workboard = this.module.workboards[workboardKey];
+        if (!workboard) {
+            console.error(`❌ Workboard not found: ${workboardKey}`);
+            return;
+        }
+
+        const columnSelector = document.getElementById('sidebar-column-selector');
+        if (!columnSelector) return;
+
+        // Clear existing options
+        columnSelector.innerHTML = '';
+
+        // Get stages for this workboard
+        const stages = workboard.stages || [];
+        const allStages = this.module.stages;
+
+        stages.forEach(stageId => {
+            const stage = allStages.find(s => s.id === stageId);
+            if (stage) {
+                const option = document.createElement('option');
+                option.value = stageId;
+                option.textContent = `${stage.name}`;
+                columnSelector.appendChild(option);
+            }
+        });
+
+        // Select first column and load cards
+        if (stages.length > 0) {
+            this.selectedColumn = stages[0];
+            this.loadColumnCards();
+        }
+
+        // Update analytics workboard display
+        const analyticsDisplay = document.getElementById('analytics-workboard-display');
+        if (analyticsDisplay) {
+            analyticsDisplay.textContent = workboard.name;
+        }
+    }
+
+    onColumnChange(stageId) {
+        console.log(`📊 Column changed to: ${stageId}`);
+        this.selectedColumn = parseInt(stageId);
+        this.loadColumnCards();
+    }
+
+    onSearchChange(searchText) {
+        this.filters.search = searchText.toLowerCase();
+        this.filterCards();
+    }
+
+    onDateFilterChange(dateRange) {
+        this.filters.dateRange = dateRange;
+        this.refreshData();
+    }
+
+    onPriorityFilterChange(priority) {
+        this.filters.priority = priority;
+        this.filterCards();
+    }
+
+    clearFilters() {
+        this.filters = {
+            search: '',
+            dateRange: '-6',
+            priority: 'all'
+        };
+
+        document.getElementById('sidebar-search').value = '';
+        document.getElementById('sidebar-date-filter').value = '-6';
+        document.getElementById('sidebar-priority-filter').value = 'all';
+
+        this.filterCards();
+    }
+
+    async refreshData() {
+        console.log('🔄 Refreshing sidebar data...');
+        await this.module.loadTickets();
+        this.loadColumnCards();
+        this.refreshAnalytics();
+    }
+
+    loadColumnCards() {
+        if (!this.selectedColumn) {
+            console.warn('⚠️ No column selected');
+            return;
+        }
+
+        const container = document.getElementById('sidebar-cards-container');
+        if (!container) return;
+
+        // Check if data is loaded
+        if (!this.module.jobs || !Array.isArray(this.module.jobs)) {
+            console.warn('⚠️ Jobs data not loaded yet');
+            container.innerHTML = '<div class="sidebar-empty"><i class="fas fa-sync"></i><p>Loading data...</p></div>';
+            return;
+        }
+
+        // Get jobs for selected column (use this.module.jobs, NOT tickets)
+        const jobs = this.module.jobs.filter(job =>
+            job.current_stage_id === this.selectedColumn
+        );
+
+        console.log(`📦 Loading ${jobs.length} cards for column ${this.selectedColumn}`);
+
+        // Clear container
+        container.innerHTML = '';
+
+        if (jobs.length === 0) {
+            container.innerHTML = `
+                <div class="sidebar-empty" style="display: flex;">
+                    <i class="fas fa-inbox"></i>
+                    <p>No jobs in this stage</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Render cards
+        jobs.forEach(job => {
+            const card = this.createJobCard(job);
+            container.appendChild(card);
+        });
+
+        // Apply filters
+        this.filterCards();
+    }
+
+    createJobCard(job) {
+        const card = document.createElement('div');
+        card.className = 'sidebar-job-card';
+        card.dataset.ticketId = job.ticket_id;
+        card.dataset.jobNumber = job.job_number || '';
+        card.dataset.clientName = (job.client_name || '').toLowerCase();
+        card.dataset.itemDescription = (job.item_description || '').toLowerCase();
+        card.dataset.priority = job.priority || 'medium';
+
+        // Check if overdue
+        const isOverdue = job.due_date && new Date(job.due_date) < new Date();
+
+        // Collapsed view
+        const collapsedView = document.createElement('div');
+        collapsedView.className = 'card-collapsed';
+        collapsedView.innerHTML = `
+            ${isOverdue ? '<div style="background: #ef4444; color: #ffffff; padding: 4px 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; margin: -12px -12px 8px -12px;">OVERDUE</div>' : ''}
+            <div class="card-header-row">
+                <span class="card-priority-icon ${job.priority || 'medium'}">
+                    <i class="fas fa-exclamation-circle"></i>
+                </span>
+                <span class="card-job-number">#${job.job_number || job.ticket_id}</span>
+            </div>
+            <div class="card-item-name">${job.item_description || 'No description'}</div>
+            <div class="card-client-name">${job.client_name || 'No client'}</div>
+            <div class="card-due-date ${this.getDueDateClass(job.due_date)}">
+                <i class="fas fa-calendar"></i>
+                ${this.formatDueDate(job.due_date)}
+            </div>
+        `;
+
+        collapsedView.addEventListener('click', () => this.toggleCardExpansion(card, job));
+        card.appendChild(collapsedView);
+
+        return card;
+    }
+
+    toggleCardExpansion(cardElement, job) {
+        const ticketId = job.ticket_id;
+        const isExpanded = this.expandedCards.has(ticketId);
+
+        if (isExpanded) {
+            // Collapse
+            this.expandedCards.delete(ticketId);
+            cardElement.classList.remove('expanded');
+            const expandedView = cardElement.querySelector('.card-expanded');
+            if (expandedView) {
+                expandedView.remove();
+            }
+        } else {
+            // Expand
+            this.expandedCards.add(ticketId);
+            cardElement.classList.add('expanded');
+            const expandedView = this.createExpandedView(job);
+            cardElement.appendChild(expandedView);
+        }
+    }
+
+    createExpandedView(job) {
+        const expandedDiv = document.createElement('div');
+        expandedDiv.className = 'card-expanded';
+
+        expandedDiv.innerHTML = `
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-building"></i> Client Information
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Company:</span>
+                        <span class="card-detail-value">${job.client_name || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Contact:</span>
+                        <span class="card-detail-value">${job.contact_name || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Tier:</span>
+                        <span class="card-detail-value">${job.customer_tier || 'Standard'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-box"></i> Job Details
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Item:</span>
+                        <span class="card-detail-value">${job.item_description || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Quantity:</span>
+                        <span class="card-detail-value">${job.quantity || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Priority:</span>
+                        <span class="card-detail-value">${(job.priority || 'medium').toUpperCase()}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-calendar-alt"></i> Timeline
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Created:</span>
+                        <span class="card-detail-value">${this.formatDate(job.date_created)}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Due Date:</span>
+                        <span class="card-detail-value ${this.getDueDateClass(job.due_date)}">${this.formatDueDate(job.due_date)}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Stage:</span>
+                        <span class="card-detail-value">${this.getStageName(job.current_stage_id)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-dollar-sign"></i> Financial
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Quote:</span>
+                        <span class="card-detail-value">$${(job.quote_amount || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Status:</span>
+                        <span class="card-detail-value">${job.payment_status || 'Pending'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            ${job.notes ? `
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-sticky-note"></i> Notes
+                </div>
+                <div class="card-section-content">
+                    ${job.notes}
+                </div>
+            </div>
+            ` : ''}
+            
+            <div class="card-actions">
+                <button class="btn btn-copy" onclick="window.inhouseKanbanSidebar.copyJobToClipboard(${job.ticket_id})">
+                    <i class="fas fa-clipboard"></i> Copy
+                </button>
+                <button class="btn btn-collapse" onclick="window.inhouseKanbanSidebar.collapseCard(${job.ticket_id})">
+                    <i class="fas fa-chevron-up"></i> Collapse
+                </button>
+            </div>
+        `;
+
+        return expandedDiv;
+    }
+
+    collapseCard(ticketId) {
+        const card = document.querySelector(`.sidebar-job-card[data-ticket-id="${ticketId}"]`);
+        if (card) {
+            this.expandedCards.delete(ticketId);
+            card.classList.remove('expanded');
+            const expandedView = card.querySelector('.card-expanded');
+            if (expandedView) {
+                expandedView.remove();
+            }
+        }
+    }
+
+    copyJobToClipboard(ticketId) {
+        const job = this.module.tickets.find(t => t.ticket_id === ticketId);
+        if (!job) return;
+
+        const formattedText = `
+Job #${job.job_number || job.ticket_id} - ${job.item_description || 'No description'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Priority: ${(job.priority || 'medium').toUpperCase()} ${this.getPriorityEmoji(job.priority)}
+Due: ${this.formatDueDate(job.due_date)}
+
+CLIENT:
+• Company: ${job.client_name || 'N/A'}
+• Contact: ${job.contact_name || 'N/A'}
+• Tier: ${job.customer_tier || 'Standard'}
+
+JOB DETAILS:
+• Item: ${job.item_description || 'N/A'}
+• Quantity: ${job.quantity || 'N/A'}
+• Priority: ${(job.priority || 'medium').toUpperCase()}
+
+TIMELINE:
+• Created: ${this.formatDate(job.date_created)}
+• Due: ${this.formatDueDate(job.due_date)}
+• Stage: ${this.getStageName(job.current_stage_id)}
+
+FINANCIAL:
+• Quote: $${(job.quote_amount || 0).toFixed(2)}
+• Status: ${job.payment_status || 'Pending'}
+
+${job.notes ? `NOTES:\n${job.notes}` : ''}
+        `.trim();
+
+        navigator.clipboard.writeText(formattedText).then(() => {
+            console.log('✅ Job copied to clipboard');
+            // Show brief success indicator
+            const btn = event.target.closest('.btn-copy');
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('❌ Failed to copy to clipboard:', err);
+        });
+    }
+
+    filterCards() {
+        const cards = document.querySelectorAll('.sidebar-job-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const jobNumber = card.dataset.jobNumber || '';
+            const clientName = card.dataset.clientName || '';
+            const itemDescription = card.dataset.itemDescription || '';
+            const priority = card.dataset.priority || 'medium';
+
+            const searchText = this.filters.search.toLowerCase();
+            const matchesSearch = !searchText ||
+                jobNumber.includes(searchText) ||
+                clientName.includes(searchText) ||
+                itemDescription.includes(searchText);
+
+            const matchesPriority = this.filters.priority === 'all' ||
+                priority === this.filters.priority;
+
+            const isVisible = matchesSearch && matchesPriority;
+            card.style.display = isVisible ? 'block' : 'none';
+
+            if (isVisible) visibleCount++;
+        });
+
+        console.log(`🔍 Filtered: ${visibleCount} of ${cards.length} cards visible`);
+    }
+
+    refreshAnalytics() {
+        console.log('📊 Refreshing analytics...');
+
+        // Get jobs for current workboard
+        const workboard = this.module.workboards[this.selectedWorkboard];
+        if (!workboard) return;
+
+        const workboardJobs = this.module.tickets.filter(ticket =>
+            workboard.stages.includes(ticket.current_stage_id)
+        );
+
+        // Calculate stats
+        const total = workboardJobs.length;
+        const inProgress = workboardJobs.filter(j => j.status !== 'completed').length;
+        const delayed = workboardJobs.filter(j => this.isDelayed(j.due_date)).length;
+        const completed = workboardJobs.filter(j => j.status === 'completed').length;
+
+        // Update quick stats
+        document.getElementById('analytics-total').textContent = total;
+        document.getElementById('analytics-in-progress').textContent = inProgress;
+        document.getElementById('analytics-delayed').textContent = delayed;
+        document.getElementById('analytics-completed').textContent = completed;
+
+        // Update priority distribution
+        const priorities = { critical: 0, high: 0, medium: 0, low: 0 };
+        workboardJobs.forEach(job => {
+            const priority = job.priority || 'medium';
+            if (priorities.hasOwnProperty(priority)) {
+                priorities[priority]++;
+            }
+        });
+
+        Object.keys(priorities).forEach(priority => {
+            const percentage = total > 0 ? (priorities[priority] / total * 100) : 0;
+            document.getElementById(`priority-bar-${priority}`).style.width = `${percentage}%`;
+            document.getElementById(`priority-val-${priority}`).textContent = priorities[priority];
+        });
+
+        console.log('✅ Analytics refreshed');
+    }
+
+    // Helper methods
+    getStageName(stageId) {
+        const stage = this.module.stages.find(s => s.id === stageId);
+        return stage ? stage.name : 'Unknown';
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    formatDueDate(dateString) {
+        if (!dateString) return 'No due date';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = date - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+        if (diffDays === 0) return 'Due today';
+        if (diffDays === 1) return 'Due tomorrow';
+        return `Due in ${diffDays} days`;
+    }
+
+    getDueDateClass(dateString) {
+        if (!dateString) return 'normal';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = date - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return 'overdue';
+        if (diffDays <= 1) return 'critical';
+        if (diffDays <= 3) return 'warning';
+        return 'normal';
+    }
+
+    isDelayed(dateString) {
+        if (!dateString) return false;
+        const date = new Date(dateString);
+        const now = new Date();
+        return date < now;
+    }
+
+    getPriorityEmoji(priority) {
+        const emojis = {
+            critical: '🔴',
+            high: '🟠',
+            medium: '🟡',
+            low: '🟢'
+        };
+        return emojis[priority] || '⚪';
+    }
+}
+
 // Module Registry Registration - NEW SIMPLIFIED PATTERN
 window.ModuleRegistry = window.ModuleRegistry || {};
 window.ModuleRegistry['inhouse-kanban'] = {
+    instance: null,
+    sidebar: null,
+
     init: async () => {
         console.log('🏭 Initializing InHouse Kanban Module...');
         try {
             const module = new InhouseKanbanModule('inhouse-kanban');
             await module.initialize();
+
+            // CRITICAL: Ensure data is loaded before sidebar initialization
+            if (!module.jobs || module.jobs.length === 0) {
+                console.log('⏳ Data not loaded during initialization, forcing refresh...');
+                try {
+                    await module.refreshData(); // Force refresh if not loaded
+                    console.log(`✅ Force refresh complete: ${module.jobs?.length || 0} jobs loaded`);
+                } catch (refreshError) {
+                    console.error('❌ Force refresh failed:', refreshError);
+                    // Don't throw - initialize sidebar anyway, it will show "Loading data..."
+                }
+            } else {
+                console.log(`✅ Data already loaded: ${module.jobs.length} jobs`);
+            }
+
+            // Store instance in registry for backward compatibility with onclick handlers
+            window.ModuleRegistry['inhouse-kanban'].instance = module;
+
+            // Initialize sidebar (with or without data - sidebar handles empty state)
+            window.ModuleRegistry['inhouse-kanban'].sidebar = new InhouseKanbanSidebar(module);
+            window.inhouseKanbanSidebar = window.ModuleRegistry['inhouse-kanban'].sidebar;
+
+            // Also store methods directly for easier access
+            window.ModuleRegistry['inhouse-kanban'].switchWorkboard = (boardKey) => module.switchWorkboard(boardKey);
+            window.ModuleRegistry['inhouse-kanban'].handleDrop = (event, stageId, stageName) => module.handleDrop(event, stageId, stageName);
+            window.ModuleRegistry['inhouse-kanban'].handleDragStart = (event, ticketId, stageId) => module.handleDragStart(event, ticketId, stageId);
+            window.ModuleRegistry['inhouse-kanban'].showJobDetailsModal = (ticketId) => module.showJobDetailsModal(ticketId);
+            window.ModuleRegistry['inhouse-kanban'].showClientNotificationDialog = (ticketId) => module.showClientNotificationDialog(ticketId);
+            window.ModuleRegistry['inhouse-kanban'].addProductionLogEntry = (ticketId) => module.addProductionLogEntry(ticketId);
+            window.ModuleRegistry['inhouse-kanban'].deleteProductionLogEntry = (logId, ticketId) => module.deleteProductionLogEntry(logId, ticketId);
+            window.ModuleRegistry['inhouse-kanban'].sendClientNotification = (ticketId) => module.sendClientNotification(ticketId);
+
             console.log('✅ InHouse Kanban Module initialized successfully');
             return module;
         } catch (error) {
@@ -4235,5 +4867,139 @@ window.ModuleRegistry['inhouse-kanban'] = {
 };
 
 console.log('📦 InHouse Kanban Module script loaded');
+
+// ============================================================================
+// DEBUG COMMAND: Force show sidebar with diagnostics
+// Usage in console: debugShowSidebar()
+// ============================================================================
+window.debugShowSidebar = function () {
+    console.log('🔍 ===== SIDEBAR DEBUG DIAGNOSTICS =====');
+
+    // Check if module exists
+    const registry = window.ModuleRegistry?.['inhouse-kanban'];
+    const module = registry?.instance;
+    const sidebar = registry?.sidebar;
+
+    console.log('1️⃣ Module Registry Check:');
+    console.log('   - Registry exists:', !!registry);
+    console.log('   - Module instance:', !!module);
+    console.log('   - Sidebar instance:', !!sidebar);
+
+    if (!registry) {
+        console.error('❌ Module registry not found! Module not initialized.');
+        return { error: 'Module not initialized', solution: 'Click the InHouse Kanban floating toggle first' };
+    }
+
+    console.log('\n2️⃣ Module Data Check:');
+    console.log('   - module.jobs:', module?.jobs?.length || 0, 'jobs');
+    console.log('   - module.stages:', module?.stages?.length || 0, 'stages');
+    console.log('   - module.workboards:', Object.keys(module?.workboards || {}).join(', '));
+
+    if (!module?.jobs || module.jobs.length === 0) {
+        console.warn('⚠️ No jobs data loaded!');
+        console.log('   Attempting to reload data...');
+        module?.refreshData().then(() => {
+            console.log('✅ Data reloaded:', module.jobs?.length, 'jobs');
+        }).catch(err => {
+            console.error('❌ Failed to reload data:', err);
+        });
+    }
+
+    console.log('\n3️⃣ Sidebar DOM Check:');
+    const sidebarContainer = document.getElementById('inhouse-kanban-sidebar');
+    const workboardSelector = document.getElementById('sidebar-workboard-selector');
+    const columnSelector = document.getElementById('sidebar-column-selector');
+    const cardsContainer = document.getElementById('sidebar-cards-container');
+
+    console.log('   - Sidebar container:', !!sidebarContainer);
+    console.log('   - Workboard selector:', !!workboardSelector);
+    console.log('   - Column selector:', !!columnSelector);
+    console.log('   - Cards container:', !!cardsContainer);
+
+    if (!sidebarContainer) {
+        console.error('❌ Sidebar HTML not found! DOM not loaded properly.');
+        return { error: 'Sidebar HTML missing', solution: 'Check if HTML was injected correctly' };
+    }
+
+    console.log('\n4️⃣ Sidebar State:');
+    if (sidebar) {
+        console.log('   - Selected workboard:', sidebar.selectedWorkboard);
+        console.log('   - Selected column:', sidebar.selectedColumn);
+        console.log('   - Expanded cards:', sidebar.expandedCards?.size || 0);
+        console.log('   - Filters:', JSON.stringify(sidebar.filters));
+    }
+
+    console.log('\n5️⃣ Sidebar Visibility:');
+    const computedStyle = sidebarContainer ? window.getComputedStyle(sidebarContainer) : null;
+    console.log('   - display:', computedStyle?.display);
+    console.log('   - visibility:', computedStyle?.visibility);
+    console.log('   - opacity:', computedStyle?.opacity);
+    console.log('   - transform:', computedStyle?.transform);
+    console.log('   - right:', computedStyle?.right);
+
+    // Force show sidebar
+    console.log('\n6️⃣ FORCING SIDEBAR TO SHOW...');
+    if (sidebarContainer) {
+        sidebarContainer.style.display = 'flex';
+        sidebarContainer.style.visibility = 'visible';
+        sidebarContainer.style.opacity = '1';
+        sidebarContainer.style.transform = 'translateX(0)';
+        sidebarContainer.style.right = '0';
+        console.log('✅ Sidebar forced visible with inline styles');
+
+        // Try to load cards if we have data
+        if (sidebar && module?.jobs?.length > 0) {
+            console.log('\n7️⃣ Attempting to load cards...');
+            try {
+                // Set default workboard if not set
+                if (!sidebar.selectedWorkboard) {
+                    sidebar.selectedWorkboard = 'main';
+                    console.log('   - Set workboard to: main');
+                }
+
+                // Trigger workboard column load
+                sidebar.loadWorkboardColumns(sidebar.selectedWorkboard);
+                console.log('✅ Loaded workboard columns');
+
+                // If no column selected, select first one
+                if (!sidebar.selectedColumn && columnSelector?.options?.length > 1) {
+                    const firstColumn = columnSelector.options[1].value;
+                    sidebar.selectedColumn = parseInt(firstColumn);
+                    columnSelector.value = firstColumn;
+                    console.log('   - Auto-selected column:', firstColumn);
+
+                    // Load cards for that column
+                    sidebar.loadColumnCards();
+                    console.log('✅ Loaded cards for column');
+                }
+            } catch (error) {
+                console.error('❌ Error loading cards:', error);
+            }
+        }
+    } else {
+        console.error('❌ Cannot force show - sidebar container not found!');
+    }
+
+    console.log('\n8️⃣ DIAGNOSTIC SUMMARY:');
+    const summary = {
+        moduleExists: !!module,
+        sidebarExists: !!sidebar,
+        dataLoaded: module?.jobs?.length > 0,
+        domReady: !!sidebarContainer,
+        visible: computedStyle?.display !== 'none',
+        jobCount: module?.jobs?.length || 0,
+        selectedWorkboard: sidebar?.selectedWorkboard || 'none',
+        selectedColumn: sidebar?.selectedColumn || 'none'
+    };
+
+    console.table(summary);
+    console.log('🔍 ===== END DIAGNOSTICS =====\n');
+
+    return summary;
+};
+
+console.log('💡 Debug command loaded: debugShowSidebar()');
+console.log('   Run this in console to force show sidebar and see diagnostics');
+
 
 

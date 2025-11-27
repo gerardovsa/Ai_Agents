@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "google_sheets_create",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_create', ...) - DO NOT call directly!\n\nExample response:\n✅ \"Created: **Sales Report Q4** | ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit | [Open Sales Report Q4](https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\"\n\n---\n\n🌟 Create a new Google Sheet with optional data, headers, and MARKDOWN FORMATTING v2.0!\n\n⚠️ IMPORTANT: Markdown formatting is SPECIFIC TO THIS TOOL ONLY (google_sheets_create). Do NOT use this syntax in other tools like google_docs_create, gmail_send_email, etc. This is exclusively for Google Sheets cell formatting.\n\n🎯 HOW IT WORKS:\n1. Set parse_markdown=True to enable formatting\n2. Add markdown codes to your data/headers\n3. Tool converts markdown → Professional Google Sheets formatting\n4. Result: Color-coded, aligned, formatted spreadsheet\n\n⚡ v2.0 SYNTAX (COMPACT - RECOMMENDED - 53% SHORTER!):\n\n📍 ALIGNMENT (parentheses at start of cell):\n  (L)text  → Left-align cell\n  (R)text  → Right-align cell\n  (C)text  → Center-align cell\n  Example: (R)$125,000  → Right-aligned number\n\n🎨 TEXT COLORS (shortened, NO closing tag):\n  [R]text   → Red 🔴 (errors, critical, blocked, negative)\n  [G]text   → Green 🟢 (success, active, complete, positive)\n  [B]text   → Blue 🔵 (info, neutral, standard)\n  [P]text   → Purple 🟣 (special, VIP, important)\n  [GR]text  → Gray ⚫ (inactive, archived, disabled)\n  [BK]text  → Black (default text)\n  Example: [G]Active  → Green text\n\n🎨 BACKGROUND COLORS (curly braces, NO closing tag):\n  {LR}text  → Light red background (errors, alerts, warnings)\n  {LG}text  → Light green background (success, approved, good)\n  {LB}text  → Light blue background (info, neutral, calm)\n  {LP}text  → Light purple background (special, featured)\n  {LGR}text → Light gray background (headers, inactive)\n  Example: {LG}Approved  → Light green background\n\n📏 STACKING ORDER (combine multiple formats):\n  Format order: (ALIGN)[COLOR]{BACKGROUND}text\n  \n  Examples:\n  • (R)[G]{LG}+16%         → Right-aligned, green text, light green bg\n  • (C)[R]{LR}BLOCKED      → Center-aligned, red text, light red bg\n  • (L)[B]Premium Widgets  → Left-aligned, blue text\n  • (R)$125,000            → Right-aligned (no color)\n  • [G]Active              → Green text (no alignment specified)\n\n📝 v1.2 SYNTAX (VERBOSE - STILL SUPPORTED FOR COMPATIBILITY):\n  **bold**                      → Bold text\n  *italic*                      → Italic text\n  # Header                      → Large header (18pt, bold)\n  [RED]text[/RED]               → Red text (verbose with closing tag)\n  [BG:LIGHTGREEN]text[/BG]      → Light green background (verbose)\n  \n  Note: v2.0 and v1.2 can be mixed in same sheet!\n\n🎛️ FORMATTING CONTROL PARAMETERS:\n  • parse_markdown: Enable/disable markdown (default: False)\n  • auto_borders: Auto borders on all cells (default: True)\n\n✅ WHEN TO USE MARKDOWN:\n  ✓ Sales/financial reports (green=profit, red=loss, alignment for numbers)\n  ✓ Status dashboards (color-coded states: active/blocked/pending)\n  ✓ Patient records (priority levels, status indicators)\n  ✓ Inventory alerts (stock levels: ok/low/critical)\n  ✓ Project tracking (task status with visual indicators)\n  ✓ Any spreadsheet needing visual emphasis or professional formatting\n\n💡 QUICK EXAMPLES:\n\n1. Sales Report with v2.0:\n   headers=['(C)# Product', '(R)**Q3**', '(R)**Q4**', '(R)**Change**']\n   data=[\n     ['(L)[G]Premium', '(R)$145K', '(R)$168K', '(R)[G]{LG}+16%'],\n     ['(L)Standard', '(R)$85K', '(R)$78K', '(R)[R]{LR}-8%']\n   ]\n\n2. Status Dashboard:\n   headers=['(L)# Task', '(C)**Status**', '(R)**Priority**']\n   data=[\n     ['(L)API Integration', '(C)[G]{LG}Complete', '(R)High'],\n     ['(L)UI Redesign', '(C)[R]{LR}Blocked', '(R)High']\n   ]\n\n3. Simple Color Coding (v1.2):\n   headers=['# Product', '**Status**']\n   data=[\n     ['Widget Pro', '[GREEN]In Stock[/GREEN]'],\n     ['Widget Lite', '[RED]Out of Stock[/RED]']\n   ]\n\n🎯 CHARACTER SAVINGS:\n  v1.2: [RED]Critical[/RED]    → 21 characters\n  v2.0: [R]Critical             → 11 characters (48% shorter!)\n  \n  v1.2: [BG:LIGHTGREEN]Active[/BG] → 29 characters  \n  v2.0: {LG}Active                   → 10 characters (66% shorter!)\n\n⚠️ REMEMBER: Only use markdown when parse_markdown=True. Default is False for backward compatibility.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_sheets_create', ...) - DO NOT call directly!\n\nExample response:\n✅ \"Created: **Sales Report Q4** | ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit | [Open Sales Report Q4](https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\"\n\n---\n\n🌟 Create a new Google Sheet with optional data, headers, and MARKDOWN FORMATTING v2.0!\n\n⚠️ IMPORTANT: Markdown formatting is SPECIFIC TO THIS TOOL ONLY (google_sheets_create). Do NOT use this syntax in other tools like google_docs_create, gmail_send_email, etc. This is exclusively for Google Sheets cell formatting.\n\n🎯 HOW IT WORKS:\n1. Set parse_markdown=True to enable formatting\n2. Add markdown codes to your data/headers\n3. Tool converts markdown → Professional Google Sheets formatting\n4. Result: Color-coded, aligned, formatted spreadsheet\n\n⚡ v2.0 SYNTAX (COMPACT - RECOMMENDED - 53% SHORTER!):\n\n📍 ALIGNMENT (parentheses at start of cell):\n  (L)text  → Left-align cell\n  (R)text  → Right-align cell\n  (C)text  → Center-align cell\n  Example: (R)$125,000  → Right-aligned number\n\n🎨 TEXT COLORS (shortened, NO closing tag):\n  [R]text   → Red 🔴 (errors, critical, blocked, negative)\n  [G]text   → Green 🟢 (success, active, complete, positive)\n  [B]text   → Blue 🔵 (info, neutral, standard)\n  [P]text   → Purple 🟣 (special, VIP, important)\n  [GR]text  → Gray ⚫ (inactive, archived, disabled)\n  [BK]text  → Black (default text)\n  Example: [G]Active  → Green text\n\n🎨 BACKGROUND COLORS (curly braces, NO closing tag):\n  {LR}text  → Light red background (errors, alerts, warnings)\n  {LG}text  → Light green background (success, approved, good)\n  {LB}text  → Light blue background (info, neutral, calm)\n  {LP}text  → Light purple background (special, featured)\n  {LGR}text → Light gray background (headers, inactive)\n  Example: {LG}Approved  → Light green background\n\n📏 STACKING ORDER (combine multiple formats):\n  Format order: (ALIGN)[COLOR]{BACKGROUND}text\n  \n  Examples:\n  • (R)[G]{LG}+16%         → Right-aligned, green text, light green bg\n  • (C)[R]{LR}BLOCKED      → Center-aligned, red text, light red bg\n  • (L)[B]Premium Widgets  → Left-aligned, blue text\n  • (R)$125,000            → Right-aligned (no color)\n  • [G]Active              → Green text (no alignment specified)\n\n📝 v1.2 SYNTAX (VERBOSE - STILL SUPPORTED FOR COMPATIBILITY):\n  **bold**                      → Bold text\n  *italic*                      → Italic text\n  # Header                      → Large header (18pt, bold)\n  [RED]text[/RED]               → Red text (verbose with closing tag)\n  [BG:LIGHTGREEN]text[/BG]      → Light green background (verbose)\n  \n  Note: v2.0 and v1.2 can be mixed in same sheet!\n\n🎛️ FORMATTING CONTROL PARAMETERS:\n  • parse_markdown: Enable/disable markdown (default: False)\n  • auto_borders: Auto borders on all cells (default: True)\n\n✅ WHEN TO USE MARKDOWN:\n  ✓ Sales/financial reports (green=profit, red=loss, alignment for numbers)\n  ✓ Status dashboards (color-coded states: active/blocked/pending)\n  ✓ Patient records (priority levels, status indicators)\n  ✓ Inventory alerts (stock levels: ok/low/critical)\n  ✓ Project tracking (task status with visual indicators)\n  ✓ Any spreadsheet needing visual emphasis or professional formatting\n\n💡 QUICK EXAMPLES:\n\n1. Sales Report with v2.0:\n   headers=['(C)# Product', '(R)**Q3**', '(R)**Q4**', '(R)**Change**']\n   data=[\n     ['(L)[G]Premium', '(R)$145K', '(R)$168K', '(R)[G]{LG}+16%'],\n     ['(L)Standard', '(R)$85K', '(R)$78K', '(R)[R]{LR}-8%']\n   ]\n\n2. Status Dashboard:\n   headers=['(L)# Task', '(C)**Status**', '(R)**Priority**']\n   data=[\n     ['(L)API Integration', '(C)[G]{LG}Complete', '(R)High'],\n     ['(L)UI Redesign', '(C)[R]{LR}Blocked', '(R)High']\n   ]\n\n3. Simple Color Coding (v1.2):\n   headers=['# Product', '**Status**']\n   data=[\n     ['Widget Pro', '[GREEN]In Stock[/GREEN]'],\n     ['Widget Lite', '[RED]Out of Stock[/RED]']\n   ]\n\n🎯 CHARACTER SAVINGS:\n  v1.2: [RED]Critical[/RED]    → 21 characters\n  v2.0: [R]Critical             → 11 characters (48% shorter!)\n  \n  v1.2: [BG:LIGHTGREEN]Active[/BG] → 29 characters  \n  v2.0: {LG}Active                   → 10 characters (66% shorter!)\n\n⚠️ REMEMBER: Only use markdown when parse_markdown=True. Default is False for backward compatibility.",
       "platform": "google_docs",
       "parameters": {
         "title": {
@@ -323,7 +323,7 @@
     },
     {
       "name": "google_sheets_create_multiple",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_create_multiple', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK CREATION: Create multiple Google Sheets at once (2-50 sheets). Much more efficient than creating sheets one by one. Supports v2.0 markdown syntax with alignment and shortened codes. Perfect for regional reports, department dashboards, or multi-entity tracking.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_sheets_create_multiple', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK CREATION: Create multiple Google Sheets at once (2-50 sheets). Much more efficient than creating sheets one by one. Supports v2.0 markdown syntax with alignment and shortened codes. Perfect for regional reports, department dashboards, or multi-entity tracking.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheets_config": {
@@ -460,7 +460,7 @@
     },
     {
       "name": "google_sheets_append_data",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_append_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend data to existing Google Sheet. Automatically finds last row and appends below existing data.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_sheets_append_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend data to existing Google Sheet. Automatically finds last row and appends below existing data.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {
@@ -487,7 +487,7 @@
     },
     {
       "name": "google_sheets_read_data",
-      "description": "⚠️ LEGACY - Use google_sheets_get_range instead!\n\nExample response:\n✅ \"Read 45 rows from **Sales Report 2024** (ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\nData: [show actual data read]\"\n\n❌ \"Failed to read spreadsheet ID: `1H7RpwSDHUF8hRpL0hjWEqCjvAkr-5wDAWHDOYySVaIc` - 404 Error: Not found or not shared with your account\"\n\n---\n\nRead data from Google Sheet. Returns 2D array of values.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ LEGACY - Use google_sheets_get_range instead!\n\nExample response:\n✅ \"Read 45 rows from **Sales Report 2024** (ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\nData: [show actual data read]\"\n\n❌ \"Failed to read spreadsheet ID: `1H7RpwSDHUF8hRpL0hjWEqCjvAkr-5wDAWHDOYySVaIc` - 404 Error: Not found or not shared with your account\"\n\n---\n\nRead data from Google Sheet. Returns 2D array of values.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {
@@ -509,7 +509,7 @@
     },
     {
       "name": "google_sheets_get_range",
-      "description": "⚠️ RECOMMENDED - Multi-format Google Sheets reader with 99.3% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (500 tokens): Title, headers, first 3 rows, row/col counts\n- values (20K tokens): Raw 2D array, no formatting\n- markdown (25K tokens): Table format with | Col1 | Col2 | structure\n- full (150K+ tokens): Complete JSON with cell formatting (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (99.6% reduction):\n\"Spreadsheet: **Sales Report Q4 2024** | Sheets: ['Sales', 'Expenses', 'Summary']\nHeaders: ['Date', 'Product', 'Revenue', 'Cost', 'Profit']\nFirst 3 rows shown (Total: 847 rows, 5 columns)\n[['2024-10-01', 'Widget A', '$1,245', '$500', '$745'], ...]\" (~500 tokens)\n\n✅ format='values' (85% reduction):\n[['Date', 'Product', 'Revenue'], ['2024-10-01', 'Widget A', '$1,245'], ...] (~20K tokens for 100 rows)\n\n✅ format='markdown' (83% reduction):\n\"| Date | Product | Revenue |\n|------|---------|----------|\n| 2024-10-01 | Widget A | $1,245 |\" (~25K tokens for 100 rows)\n\n❌ format='full' (AVOID - 150K+ tokens for 100 rows)\n\n---\n\nRead data from Google Sheets with format options. Prevents token overflow by defaulting to summary format. Auto-detects first sheet if range not specified.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ RECOMMENDED - Multi-format Google Sheets reader with 99.3% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (500 tokens): Title, headers, first 3 rows, row/col counts\n- values (20K tokens): Raw 2D array, no formatting\n- markdown (25K tokens): Table format with | Col1 | Col2 | structure\n- full (150K+ tokens): Complete JSON with cell formatting (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (99.6% reduction):\n\"Spreadsheet: **Sales Report Q4 2024** | Sheets: ['Sales', 'Expenses', 'Summary']\nHeaders: ['Date', 'Product', 'Revenue', 'Cost', 'Profit']\nFirst 3 rows shown (Total: 847 rows, 5 columns)\n[['2024-10-01', 'Widget A', '$1,245', '$500', '$745'], ...]\" (~500 tokens)\n\n✅ format='values' (85% reduction):\n[['Date', 'Product', 'Revenue'], ['2024-10-01', 'Widget A', '$1,245'], ...] (~20K tokens for 100 rows)\n\n✅ format='markdown' (83% reduction):\n\"| Date | Product | Revenue |\n|------|---------|----------|\n| 2024-10-01 | Widget A | $1,245 |\" (~25K tokens for 100 rows)\n\n❌ format='full' (AVOID - 150K+ tokens for 100 rows)\n\n---\n\nRead data from Google Sheets with format options. Prevents token overflow by defaulting to summary format. Auto-detects first sheet if range not specified.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {
@@ -577,7 +577,7 @@
     },
     {
       "name": "google_sheets_query_data",
-      "description": "Query/filter spreadsheet data by column values. Supports comparison operators (=, !=, >, <, >=, <=, contains) to filter rows.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nQuery/filter spreadsheet data by column values. Supports comparison operators (=, !=, >, <, >=, <=, contains) to filter rows.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {
@@ -664,7 +664,7 @@
     },
     {
       "name": "google_sheets_get_summary",
-      "description": "Get summary statistics from spreadsheet data. Supports aggregations (count, sum, average, min, max) with optional grouping by column.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet summary statistics from spreadsheet data. Supports aggregations (count, sum, average, min, max) with optional grouping by column.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {
@@ -753,6 +753,74 @@
           }
         }
       ]
+    },
+    {
+      "name": "google_sheets_update_range",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate Google Sheets data with multiple modes:\n\n**MODE: update (default)** - Overwrite specific range:\n  execute_tool('google_sheets_update_range', spreadsheet_id='abc123', range_name='A1:C10', data=[['a','b','c']], mode='update')\n\n**MODE: append** - Add rows to end of existing data:\n  execute_tool('google_sheets_update_range', spreadsheet_id='abc123', range_name='Sheet1!A:C', data=[['new','row','data']], mode='append')\n\n**MODE: clear** - Clear range first, then write new data:\n  execute_tool('google_sheets_update_range', spreadsheet_id='abc123', range_name='A1:C10', data=[['fresh','data','here']], mode='clear')",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID (required)",
+          "required": true
+        },
+        "range_name": {
+          "type": "string",
+          "description": "A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10') (required)",
+          "required": true
+        },
+        "data": {
+          "type": "array",
+          "description": "2D array of values to write [[row1], [row2], ...] (required)",
+          "required": true
+        },
+        "mode": {
+          "type": "string",
+          "description": "Update mode: 'update' (overwrite range), 'append' (add to end), 'clear' (clear then write)",
+          "required": false,
+          "default": "update",
+          "enum": [
+            "update",
+            "append",
+            "clear"
+          ]
+        },
+        "sheet_name": {
+          "type": "string",
+          "description": "Optional sheet name (if not included in range_name)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation with mode, updated_cells, updated_rows, updated_range"
+      }
+    },
+    {
+      "name": "google_sheets_clear_range",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nClear all data in a specific range (deletes content but keeps formatting).",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID (required)",
+          "required": true
+        },
+        "range_name": {
+          "type": "string",
+          "description": "A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10') (required)",
+          "required": true
+        },
+        "sheet_name": {
+          "type": "string",
+          "description": "Optional sheet name (if not included in range_name)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Clear confirmation with cleared_range"
+      }
     }
   ]
 }

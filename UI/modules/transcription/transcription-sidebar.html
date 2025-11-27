@@ -77,16 +77,19 @@
                     <!-- Right Column: Vertical Action Buttons -->
                     <div class="recording-actions-right">
                         <button id="transcription-record-toggle" class="recording-action-btn record-btn"
-                            onclick="TranscriptionSidebar.toggleRecording()" title="Start/Stop Recording">
-                            <i class="fas fa-microphone"></i>
+                            onclick="TranscriptionSidebar.toggleRecording()" title="Start Recording"
+                            aria-label="Start Recording">
+                            <i class="fas fa-microphone" aria-hidden="true"></i>
                         </button>
                         <button id="transcription-pause-btn" class="recording-action-btn pause-btn"
-                            onclick="TranscriptionSidebar.togglePause()" title="Pause/Resume" disabled>
-                            <i class="fas fa-pause"></i>
+                            onclick="TranscriptionSidebar.togglePause()" title="Pause Recording"
+                            aria-label="Pause Recording" disabled>
+                            <i class="fas fa-pause" aria-hidden="true"></i>
                         </button>
                         <button id="transcription-delete-btn" class="recording-action-btn delete-btn"
-                            onclick="TranscriptionSidebar.deleteCurrent()" title="Delete & Discard" disabled>
-                            <i class="fas fa-trash"></i>
+                            onclick="TranscriptionSidebar.deleteCurrent()" title="Delete Recording"
+                            aria-label="Delete Recording" disabled>
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>

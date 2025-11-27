@@ -1,670 +1,670 @@
 {
-    "platform": "user_interaction",
-    "description": "Tools for AI agent to request user confirmation, input, and provide interactive choices during conversations. These enable multi-turn workflows where the AI can pause and ask the user before proceeding.",
-    "tools": [
-        {
-            "name": "request_user_confirmation",
-            "description": "Request user confirmation before proceeding with an operation.\n\nUSE THIS when you:\n- Are about to perform an expensive operation (>10k tokens, >$0.03)\n- Need approval for a destructive action (delete, modify)\n- Want user to choose between different approaches\n- Detect a large/complex request that needs clarification\n\nThe conversation will PAUSE and wait for user response. The user's choice will be provided in the next turn.\n\nEXAMPLE USAGE:\n- Before fetching large email: 'Should I read 3 PDF attachments (25k tokens)?'\n- Before deleting files: 'Delete 47 files? This cannot be undone.'\n- Before expensive API call: 'Process 1000 records ($2.50 cost)?'\n\nDO NOT use this for trivial operations - only when confirmation truly needed.",
-            "platform": "user_interaction",
-            "category": "interaction",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": "The main question to ask the user (be clear and concise)"
-                    },
-                    "context": {
-                        "type": "string",
-                        "description": "Additional context about what will happen if user confirms"
-                    },
-                    "options": {
-                        "type": "array",
-                        "description": "User choices as array of objects with 'label', 'value', 'description'",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "label": {
-                                    "type": "string",
-                                    "description": "Button text"
-                                },
-                                "value": {
-                                    "type": "string",
-                                    "description": "Value returned when clicked"
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "Explanation of this choice"
-                                }
-                            },
-                            "required": [
-                                "label",
-                                "value"
-                            ]
-                        }
-                    },
-                    "default_option": {
-                        "type": "string",
-                        "description": "Recommended choice (should match one of the values in options)"
-                    },
-                    "level": {
-                        "type": "string",
-                        "description": "Risk/importance level: 'low', 'medium', 'high', 'critical'",
-                        "enum": [
-                            "low",
-                            "medium",
-                            "high",
-                            "critical"
-                        ],
-                        "default": "medium"
-                    },
-                    "estimated_tokens": {
-                        "type": "integer",
-                        "description": "Estimated token cost if user confirms"
-                    },
-                    "estimated_cost_usd": {
-                        "type": "number",
-                        "description": "Estimated dollar cost if user confirms"
-                    },
-                    "is_destructive": {
-                        "type": "boolean",
-                        "description": "Whether the operation is destructive/irreversible",
-                        "default": false
-                    },
-                    "affected_items": {
-                        "type": "array",
-                        "description": "List of items that will be affected (files, emails, records, etc.)",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "allow_custom_input": {
-                        "type": "boolean",
-                        "description": "If true, shows text field alongside buttons for custom user instructions. Enables HYBRID interaction: user can click a button OR type custom response. Both continue conversation naturally. Default: true",
-                        "default": true
-                    },
-                    "input_placeholder": {
-                        "type": "string",
-                        "description": "Placeholder text for custom input field. Example: 'Or type your own instructions...'. Only shown if allow_custom_input=true. Default: 'Or type your own response...'",
-                        "default": "Or type your own response..."
-                    }
+  "platform": "user_interaction",
+  "description": "Tools for AI agent to request user confirmation, input, and provide interactive choices during conversations. These enable multi-turn workflows where the AI can pause and ask the user before proceeding.",
+  "tools": [
+    {
+      "name": "request_user_confirmation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRequest user confirmation before proceeding with an operation.\n\nUSE THIS when you:\n- Are about to perform an expensive operation (>10k tokens, >$0.03)\n- Need approval for a destructive action (delete, modify)\n- Want user to choose between different approaches\n- Detect a large/complex request that needs clarification\n\nThe conversation will PAUSE and wait for user response. The user's choice will be provided in the next turn.\n\nEXAMPLE USAGE:\n- Before fetching large email: 'Should I read 3 PDF attachments (25k tokens)?'\n- Before deleting files: 'Delete 47 files? This cannot be undone.'\n- Before expensive API call: 'Process 1000 records ($2.50 cost)?'\n\nDO NOT use this for trivial operations - only when confirmation truly needed.",
+      "platform": "user_interaction",
+      "category": "interaction",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The main question to ask the user (be clear and concise)"
+          },
+          "context": {
+            "type": "string",
+            "description": "Additional context about what will happen if user confirms"
+          },
+          "options": {
+            "type": "array",
+            "description": "User choices as array of objects with 'label', 'value', 'description'",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Button text"
                 },
-                "required": [
-                    "question"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Confirmation request that pauses conversation. User can click a button OR type custom text - both continue conversation with SAME session context.",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "user_confirmation_request"
-                        ]
-                    },
-                    "question": {
-                        "type": "string"
-                    },
-                    "options": {
-                        "type": "array",
-                        "description": "Button options"
-                    },
-                    "allow_custom_input": {
-                        "type": "boolean"
-                    },
-                    "input_placeholder": {
-                        "type": "string"
-                    },
-                    "metadata": {
-                        "type": "object",
-                        "description": "Cost/risk information",
-                        "properties": {
-                            "level": {
-                                "type": "string"
-                            },
-                            "estimated_tokens": {
-                                "type": "integer"
-                            },
-                            "estimated_cost_usd": {
-                                "type": "number"
-                            },
-                            "is_destructive": {
-                                "type": "boolean"
-                            },
-                            "affected_items": {
-                                "type": "array"
-                            }
-                        }
-                    },
-                    "ui_config": {
-                        "type": "object",
-                        "description": "UI layout configuration",
-                        "properties": {
-                            "show_buttons": {
-                                "type": "boolean"
-                            },
-                            "show_text_input": {
-                                "type": "boolean"
-                            },
-                            "layout": {
-                                "type": "string",
-                                "enum": [
-                                    "buttons_only",
-                                    "buttons_with_input",
-                                    "input_only"
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            "examples": [
-                {
-                    "description": "Confirm before reading large email WITH hybrid input (buttons + text field)",
-                    "parameters": {
-                        "question": "Should I read the full email content with attachments?",
-                        "context": "Email from john@example.com has 3 PDF attachments (12 MB total)",
-                        "options": [
-                            {
-                                "label": "Read Full Content",
-                                "value": "confirm",
-                                "description": "Parse email and all PDFs (~25k tokens)"
-                            },
-                            {
-                                "label": "Metadata Only",
-                                "value": "metadata",
-                                "description": "Just show subject, sender, snippet (~500 tokens)"
-                            },
-                            {
-                                "label": "Cancel",
-                                "value": "cancel",
-                                "description": "Skip this email"
-                            }
-                        ],
-                        "estimated_tokens": 25000,
-                        "estimated_cost_usd": 0.075,
-                        "level": "high",
-                        "allow_custom_input": true,
-                        "input_placeholder": "Or type specific instructions..."
-                    },
-                    "user_can_respond": [
-                        "Click [Read Full Content] button → AI receives 'confirm'",
-                        "Click [Metadata Only] button → AI receives 'metadata'",
-                        "Type 'Read everything except the second PDF' → AI receives custom text",
-                        "All responses continue SAME conversation with full context preserved"
-                    ]
+                "value": {
+                  "type": "string",
+                  "description": "Value returned when clicked"
                 },
-                {
-                    "description": "Confirm destructive operation WITHOUT custom input (buttons only)",
-                    "parameters": {
-                        "question": "Delete 47 temporary files?",
-                        "context": "These files are in /temp directory and total 250 MB",
-                        "options": [
-                            {
-                                "label": "Delete All",
-                                "value": "confirm",
-                                "description": "Permanently delete all files"
-                            },
-                            {
-                                "label": "Cancel",
-                                "value": "cancel",
-                                "description": "Keep files"
-                            }
-                        ],
-                        "level": "critical",
-                        "is_destructive": true,
-                        "affected_items": [
-                            "file1.tmp",
-                            "file2.tmp",
-                            "... 45 more"
-                        ],
-                        "allow_custom_input": false
-                    }
+                "description": {
+                  "type": "string",
+                  "description": "Explanation of this choice"
                 }
-            ]
+              },
+              "required": [
+                "label",
+                "value"
+              ]
+            }
+          },
+          "default_option": {
+            "type": "string",
+            "description": "Recommended choice (should match one of the values in options)"
+          },
+          "level": {
+            "type": "string",
+            "description": "Risk/importance level: 'low', 'medium', 'high', 'critical'",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "default": "medium"
+          },
+          "estimated_tokens": {
+            "type": "integer",
+            "description": "Estimated token cost if user confirms"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "description": "Estimated dollar cost if user confirms"
+          },
+          "is_destructive": {
+            "type": "boolean",
+            "description": "Whether the operation is destructive/irreversible",
+            "default": false
+          },
+          "affected_items": {
+            "type": "array",
+            "description": "List of items that will be affected (files, emails, records, etc.)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allow_custom_input": {
+            "type": "boolean",
+            "description": "If true, shows text field alongside buttons for custom user instructions. Enables HYBRID interaction: user can click a button OR type custom response. Both continue conversation naturally. Default: true",
+            "default": true
+          },
+          "input_placeholder": {
+            "type": "string",
+            "description": "Placeholder text for custom input field. Example: 'Or type your own instructions...'. Only shown if allow_custom_input=true. Default: 'Or type your own response...'",
+            "default": "Or type your own response..."
+          }
         },
-        {
-            "name": "request_user_input",
-            "description": "Request text or number input from the user with optional suggestion buttons.\n\nUSE THIS when you need specific information that wasn't in the original message:\n- Email address for sending\n- Name for personalization\n- Number for calculations\n- URL for fetching\n- Search query\n\nOPTIONALLY provide suggestions (quick-click buttons) to speed up common inputs.\n\nThe conversation will PAUSE and show an input field. User can click a suggestion button OR type custom value. User's input will be in next turn.",
-            "platform": "user_interaction",
-            "category": "interaction",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "prompt": {
-                        "type": "string",
-                        "description": "Question/prompt to show the user"
-                    },
-                    "input_type": {
-                        "type": "string",
-                        "description": "Type of input: 'text', 'number', 'email', 'date'",
-                        "enum": [
-                            "text",
-                            "number",
-                            "email",
-                            "date"
-                        ],
-                        "default": "text"
-                    },
-                    "placeholder": {
-                        "type": "string",
-                        "description": "Placeholder text for the input field"
-                    },
-                    "validation": {
-                        "type": "object",
-                        "description": "Validation rules (optional)",
-                        "properties": {
-                            "required": {
-                                "type": "boolean"
-                            },
-                            "min": {
-                                "type": "number"
-                            },
-                            "max": {
-                                "type": "number"
-                            },
-                            "pattern": {
-                                "type": "string"
-                            },
-                            "error_message": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "suggestions": {
-                        "type": "array",
-                        "description": "Optional quick suggestion buttons shown above input field. Example: ['john@example.com', 'jane@example.com']. User can click a suggestion OR type custom value. Both continue conversation naturally.",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "required": [
-                    "prompt"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Input request that pauses conversation. User can click suggestion OR type custom text - both continue conversation.",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "user_input_request"
-                        ]
-                    },
-                    "prompt": {
-                        "type": "string"
-                    },
-                    "input_type": {
-                        "type": "string"
-                    },
-                    "placeholder": {
-                        "type": "string"
-                    },
-                    "validation": {
-                        "type": "object"
-                    },
-                    "suggestions": {
-                        "type": "array"
-                    },
-                    "ui_config": {
-                        "type": "object",
-                        "properties": {
-                            "show_suggestions": {
-                                "type": "boolean"
-                            },
-                            "show_text_input": {
-                                "type": "boolean"
-                            },
-                            "layout": {
-                                "type": "string",
-                                "enum": [
-                                    "suggestions_with_input",
-                                    "input_only"
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            "examples": [
-                {
-                    "description": "Email input with suggestions",
-                    "parameters": {
-                        "prompt": "Which sender should I search for?",
-                        "input_type": "email",
-                        "placeholder": "Enter email address...",
-                        "suggestions": [
-                            "john@example.com",
-                            "jane@example.com",
-                            "support@example.com"
-                        ],
-                        "validation": {
-                            "required": true,
-                            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
-                            "error_message": "Please enter a valid email address"
-                        }
-                    },
-                    "user_can_respond": [
-                        "Click [john@example.com] button → AI receives 'john@example.com'",
-                        "Type 'bob@different.com' → AI receives custom email",
-                        "Both continue conversation naturally"
-                    ]
-                },
-                {
-                    "description": "Number input with range validation (no suggestions)",
-                    "parameters": {
-                        "prompt": "How many emails should I retrieve?",
-                        "input_type": "number",
-                        "placeholder": "Enter number (1-100)...",
-                        "validation": {
-                            "required": true,
-                            "min": 1,
-                            "max": 100,
-                            "error_message": "Please enter a number between 1 and 100"
-                        }
-                    }
-                }
+        "required": [
+          "question"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Confirmation request that pauses conversation. User can click a button OR type custom text - both continue conversation with SAME session context.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "user_confirmation_request"
             ]
-        },
-        {
-            "name": "request_user_choice",
-            "description": "Request user to choose from a list of options. Supports single/multiple selection with optional custom input.\n\nUSE THIS for straightforward choices:\n- Which item from a list?\n- Which option to proceed with?\n- Which file to open?\n- Multiple selections (checkboxes)\n\nThe conversation will PAUSE and show choice buttons. User can select option(s) OR type custom response. User's choice will be in next turn.",
-            "platform": "user_interaction",
-            "category": "interaction",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": "Question to ask"
-                    },
-                    "choices": {
-                        "type": "array",
-                        "description": "List of choices as objects with 'label', 'value', 'description'",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "label": {
-                                    "type": "string",
-                                    "description": "Choice text"
-                                },
-                                "value": {
-                                    "type": "string",
-                                    "description": "Value returned if selected"
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "Additional info"
-                                }
-                            },
-                            "required": [
-                                "label",
-                                "value"
-                            ]
-                        }
-                    },
-                    "context": {
-                        "type": "string",
-                        "description": "Additional context for the choice"
-                    },
-                    "allow_multiple": {
-                        "type": "boolean",
-                        "description": "Whether user can select multiple choices (checkboxes). If false, single choice only (radio buttons). Default: false",
-                        "default": false
-                    },
-                    "allow_custom": {
-                        "type": "boolean",
-                        "description": "If true, shows text field for 'Other' or custom response. Enables user to type something not in the list. Default: true",
-                        "default": true
-                    }
-                },
-                "required": [
-                    "question",
-                    "choices"
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "description": "Button options"
+          },
+          "allow_custom_input": {
+            "type": "boolean"
+          },
+          "input_placeholder": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Cost/risk information",
+            "properties": {
+              "level": {
+                "type": "string"
+              },
+              "estimated_tokens": {
+                "type": "integer"
+              },
+              "estimated_cost_usd": {
+                "type": "number"
+              },
+              "is_destructive": {
+                "type": "boolean"
+              },
+              "affected_items": {
+                "type": "array"
+              }
+            }
+          },
+          "ui_config": {
+            "type": "object",
+            "description": "UI layout configuration",
+            "properties": {
+              "show_buttons": {
+                "type": "boolean"
+              },
+              "show_text_input": {
+                "type": "boolean"
+              },
+              "layout": {
+                "type": "string",
+                "enum": [
+                  "buttons_only",
+                  "buttons_with_input",
+                  "input_only"
                 ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Choice request that pauses conversation. User can select choice(s) OR type custom text - both continue conversation.",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "user_choice_request"
-                        ]
-                    },
-                    "question": {
-                        "type": "string"
-                    },
-                    "choices": {
-                        "type": "array"
-                    },
-                    "allow_multiple": {
-                        "type": "boolean"
-                    },
-                    "allow_custom": {
-                        "type": "boolean"
-                    },
-                    "ui_config": {
-                        "type": "object",
-                        "properties": {
-                            "selection_type": {
-                                "type": "string",
-                                "enum": [
-                                    "single",
-                                    "multiple"
-                                ]
-                            },
-                            "show_custom_input": {
-                                "type": "boolean"
-                            },
-                            "layout": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "examples": [
-                {
-                    "description": "Single choice with custom input option",
-                    "parameters": {
-                        "question": "How should I handle this email thread?",
-                        "choices": [
-                            {
-                                "label": "Read full thread (12 messages)",
-                                "value": "full",
-                                "description": "Parse all messages"
-                            },
-                            {
-                                "label": "Summarize only",
-                                "value": "summary",
-                                "description": "Quick overview"
-                            },
-                            {
-                                "label": "Show timeline",
-                                "value": "timeline",
-                                "description": "Chronological view"
-                            }
-                        ],
-                        "allow_multiple": false,
-                        "allow_custom": true
-                    },
-                    "user_can_respond": [
-                        "Click [Read full thread] → AI receives 'full'",
-                        "Type 'Summarize but include attachments' → AI receives custom text"
-                    ]
-                },
-                {
-                    "description": "Multiple selection for email prioritization",
-                    "parameters": {
-                        "question": "Which categories should I focus on?",
-                        "choices": [
-                            {
-                                "label": "Urgent",
-                                "value": "urgent"
-                            },
-                            {
-                                "label": "Projects",
-                                "value": "projects"
-                            },
-                            {
-                                "label": "Clients",
-                                "value": "clients"
-                            },
-                            {
-                                "label": "Internal",
-                                "value": "internal"
-                            }
-                        ],
-                        "allow_multiple": true,
-                        "allow_custom": false
-                    }
-                }
-            ]
-        },
-        {
-            "name": "inform_user",
-            "description": "Inform the user of something important WITHOUT pausing conversation.\n\nUSE THIS for:\n- Status updates ('Found 5 emails, analyzing most recent...')\n- Warnings ('API rate limit approaching')\n- Success messages ('Email sent successfully')\n- Progress updates ('Processing file 3 of 10...')\n\nConversation CONTINUES automatically (non-blocking).",
-            "platform": "user_interaction",
-            "category": "interaction",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "message": {
-                        "type": "string",
-                        "description": "The information to show"
-                    },
-                    "level": {
-                        "type": "string",
-                        "description": "Importance level: 'info', 'success', 'warning', 'error'",
-                        "enum": [
-                            "info",
-                            "success",
-                            "warning",
-                            "error"
-                        ],
-                        "default": "info"
-                    },
-                    "actions": {
-                        "type": "array",
-                        "description": "Optional quick actions user can take",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "label": {
-                                    "type": "string"
-                                },
-                                "value": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "required": [
-                    "message"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Information message (non-blocking, conversation continues)"
-            },
-            "examples": [
-                {
-                    "description": "Inform user of search results",
-                    "parameters": {
-                        "message": "Found 5 emails matching your search. Analyzing the most recent one.",
-                        "level": "info",
-                        "actions": [
-                            {
-                                "label": "Analyze All",
-                                "value": "analyze_all"
-                            },
-                            {
-                                "label": "Show List",
-                                "value": "show_list"
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        {
-            "name": "suggest_next_actions",
-            "description": "Suggest follow-up actions after completing a task.\n\nUSE THIS at the end of operations to guide users:\n- After analyzing email: [Reply] [Schedule Meeting] [Create Task]\n- After generating report: [Download] [Share] [Schedule Next]\n- After search: [Refine Search] [Export Results] [Save Query]\n\nProvides helpful next steps without being pushy.",
-            "platform": "user_interaction",
-            "category": "interaction",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "completed_action": {
-                        "type": "string",
-                        "description": "What was just completed"
-                    },
-                    "suggestions": {
-                        "type": "array",
-                        "description": "List of suggested next actions",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "label": {
-                                    "type": "string",
-                                    "description": "Action button text"
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "What this action does"
-                                },
-                                "value": {
-                                    "type": "string",
-                                    "description": "Value returned if clicked"
-                                }
-                            },
-                            "required": [
-                                "label",
-                                "value"
-                            ]
-                        }
-                    }
-                },
-                "required": [
-                    "completed_action",
-                    "suggestions"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Suggestion list shown to user"
-            },
-            "examples": [
-                {
-                    "description": "Suggest actions after email analysis",
-                    "parameters": {
-                        "completed_action": "Analyzed contract email",
-                        "suggestions": [
-                            {
-                                "label": "Reply to Email",
-                                "description": "Draft a response",
-                                "value": "reply"
-                            },
-                            {
-                                "label": "Schedule Meeting",
-                                "description": "Set up a call",
-                                "value": "schedule"
-                            },
-                            {
-                                "label": "Create Tasks",
-                                "description": "Add action items",
-                                "value": "tasks"
-                            }
-                        ]
-                    }
-                }
-            ]
+              }
+            }
+          }
         }
-    ]
+      },
+      "examples": [
+        {
+          "description": "Confirm before reading large email WITH hybrid input (buttons + text field)",
+          "parameters": {
+            "question": "Should I read the full email content with attachments?",
+            "context": "Email from john@example.com has 3 PDF attachments (12 MB total)",
+            "options": [
+              {
+                "label": "Read Full Content",
+                "value": "confirm",
+                "description": "Parse email and all PDFs (~25k tokens)"
+              },
+              {
+                "label": "Metadata Only",
+                "value": "metadata",
+                "description": "Just show subject, sender, snippet (~500 tokens)"
+              },
+              {
+                "label": "Cancel",
+                "value": "cancel",
+                "description": "Skip this email"
+              }
+            ],
+            "estimated_tokens": 25000,
+            "estimated_cost_usd": 0.075,
+            "level": "high",
+            "allow_custom_input": true,
+            "input_placeholder": "Or type specific instructions..."
+          },
+          "user_can_respond": [
+            "Click [Read Full Content] button → AI receives 'confirm'",
+            "Click [Metadata Only] button → AI receives 'metadata'",
+            "Type 'Read everything except the second PDF' → AI receives custom text",
+            "All responses continue SAME conversation with full context preserved"
+          ]
+        },
+        {
+          "description": "Confirm destructive operation WITHOUT custom input (buttons only)",
+          "parameters": {
+            "question": "Delete 47 temporary files?",
+            "context": "These files are in /temp directory and total 250 MB",
+            "options": [
+              {
+                "label": "Delete All",
+                "value": "confirm",
+                "description": "Permanently delete all files"
+              },
+              {
+                "label": "Cancel",
+                "value": "cancel",
+                "description": "Keep files"
+              }
+            ],
+            "level": "critical",
+            "is_destructive": true,
+            "affected_items": [
+              "file1.tmp",
+              "file2.tmp",
+              "... 45 more"
+            ],
+            "allow_custom_input": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "request_user_input",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRequest text or number input from the user with optional suggestion buttons.\n\nUSE THIS when you need specific information that wasn't in the original message:\n- Email address for sending\n- Name for personalization\n- Number for calculations\n- URL for fetching\n- Search query\n\nOPTIONALLY provide suggestions (quick-click buttons) to speed up common inputs.\n\nThe conversation will PAUSE and show an input field. User can click a suggestion button OR type custom value. User's input will be in next turn.",
+      "platform": "user_interaction",
+      "category": "interaction",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Question/prompt to show the user"
+          },
+          "input_type": {
+            "type": "string",
+            "description": "Type of input: 'text', 'number', 'email', 'date'",
+            "enum": [
+              "text",
+              "number",
+              "email",
+              "date"
+            ],
+            "default": "text"
+          },
+          "placeholder": {
+            "type": "string",
+            "description": "Placeholder text for the input field"
+          },
+          "validation": {
+            "type": "object",
+            "description": "Validation rules (optional)",
+            "properties": {
+              "required": {
+                "type": "boolean"
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "pattern": {
+                "type": "string"
+              },
+              "error_message": {
+                "type": "string"
+              }
+            }
+          },
+          "suggestions": {
+            "type": "array",
+            "description": "Optional quick suggestion buttons shown above input field. Example: ['john@example.com', 'jane@example.com']. User can click a suggestion OR type custom value. Both continue conversation naturally.",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Input request that pauses conversation. User can click suggestion OR type custom text - both continue conversation.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "user_input_request"
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "input_type": {
+            "type": "string"
+          },
+          "placeholder": {
+            "type": "string"
+          },
+          "validation": {
+            "type": "object"
+          },
+          "suggestions": {
+            "type": "array"
+          },
+          "ui_config": {
+            "type": "object",
+            "properties": {
+              "show_suggestions": {
+                "type": "boolean"
+              },
+              "show_text_input": {
+                "type": "boolean"
+              },
+              "layout": {
+                "type": "string",
+                "enum": [
+                  "suggestions_with_input",
+                  "input_only"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Email input with suggestions",
+          "parameters": {
+            "prompt": "Which sender should I search for?",
+            "input_type": "email",
+            "placeholder": "Enter email address...",
+            "suggestions": [
+              "john@example.com",
+              "jane@example.com",
+              "support@example.com"
+            ],
+            "validation": {
+              "required": true,
+              "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+              "error_message": "Please enter a valid email address"
+            }
+          },
+          "user_can_respond": [
+            "Click [john@example.com] button → AI receives 'john@example.com'",
+            "Type 'bob@different.com' → AI receives custom email",
+            "Both continue conversation naturally"
+          ]
+        },
+        {
+          "description": "Number input with range validation (no suggestions)",
+          "parameters": {
+            "prompt": "How many emails should I retrieve?",
+            "input_type": "number",
+            "placeholder": "Enter number (1-100)...",
+            "validation": {
+              "required": true,
+              "min": 1,
+              "max": 100,
+              "error_message": "Please enter a number between 1 and 100"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "request_user_choice",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRequest user to choose from a list of options. Supports single/multiple selection with optional custom input.\n\nUSE THIS for straightforward choices:\n- Which item from a list?\n- Which option to proceed with?\n- Which file to open?\n- Multiple selections (checkboxes)\n\nThe conversation will PAUSE and show choice buttons. User can select option(s) OR type custom response. User's choice will be in next turn.",
+      "platform": "user_interaction",
+      "category": "interaction",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Question to ask"
+          },
+          "choices": {
+            "type": "array",
+            "description": "List of choices as objects with 'label', 'value', 'description'",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Choice text"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Value returned if selected"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Additional info"
+                }
+              },
+              "required": [
+                "label",
+                "value"
+              ]
+            }
+          },
+          "context": {
+            "type": "string",
+            "description": "Additional context for the choice"
+          },
+          "allow_multiple": {
+            "type": "boolean",
+            "description": "Whether user can select multiple choices (checkboxes). If false, single choice only (radio buttons). Default: false",
+            "default": false
+          },
+          "allow_custom": {
+            "type": "boolean",
+            "description": "If true, shows text field for 'Other' or custom response. Enables user to type something not in the list. Default: true",
+            "default": true
+          }
+        },
+        "required": [
+          "question",
+          "choices"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Choice request that pauses conversation. User can select choice(s) OR type custom text - both continue conversation.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "user_choice_request"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array"
+          },
+          "allow_multiple": {
+            "type": "boolean"
+          },
+          "allow_custom": {
+            "type": "boolean"
+          },
+          "ui_config": {
+            "type": "object",
+            "properties": {
+              "selection_type": {
+                "type": "string",
+                "enum": [
+                  "single",
+                  "multiple"
+                ]
+              },
+              "show_custom_input": {
+                "type": "boolean"
+              },
+              "layout": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Single choice with custom input option",
+          "parameters": {
+            "question": "How should I handle this email thread?",
+            "choices": [
+              {
+                "label": "Read full thread (12 messages)",
+                "value": "full",
+                "description": "Parse all messages"
+              },
+              {
+                "label": "Summarize only",
+                "value": "summary",
+                "description": "Quick overview"
+              },
+              {
+                "label": "Show timeline",
+                "value": "timeline",
+                "description": "Chronological view"
+              }
+            ],
+            "allow_multiple": false,
+            "allow_custom": true
+          },
+          "user_can_respond": [
+            "Click [Read full thread] → AI receives 'full'",
+            "Type 'Summarize but include attachments' → AI receives custom text"
+          ]
+        },
+        {
+          "description": "Multiple selection for email prioritization",
+          "parameters": {
+            "question": "Which categories should I focus on?",
+            "choices": [
+              {
+                "label": "Urgent",
+                "value": "urgent"
+              },
+              {
+                "label": "Projects",
+                "value": "projects"
+              },
+              {
+                "label": "Clients",
+                "value": "clients"
+              },
+              {
+                "label": "Internal",
+                "value": "internal"
+              }
+            ],
+            "allow_multiple": true,
+            "allow_custom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "inform_user",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nInform the user of something important WITHOUT pausing conversation.\n\nUSE THIS for:\n- Status updates ('Found 5 emails, analyzing most recent...')\n- Warnings ('API rate limit approaching')\n- Success messages ('Email sent successfully')\n- Progress updates ('Processing file 3 of 10...')\n\nConversation CONTINUES automatically (non-blocking).",
+      "platform": "user_interaction",
+      "category": "interaction",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The information to show"
+          },
+          "level": {
+            "type": "string",
+            "description": "Importance level: 'info', 'success', 'warning', 'error'",
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "error"
+            ],
+            "default": "info"
+          },
+          "actions": {
+            "type": "array",
+            "description": "Optional quick actions user can take",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Information message (non-blocking, conversation continues)"
+      },
+      "examples": [
+        {
+          "description": "Inform user of search results",
+          "parameters": {
+            "message": "Found 5 emails matching your search. Analyzing the most recent one.",
+            "level": "info",
+            "actions": [
+              {
+                "label": "Analyze All",
+                "value": "analyze_all"
+              },
+              {
+                "label": "Show List",
+                "value": "show_list"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "suggest_next_actions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSuggest follow-up actions after completing a task.\n\nUSE THIS at the end of operations to guide users:\n- After analyzing email: [Reply] [Schedule Meeting] [Create Task]\n- After generating report: [Download] [Share] [Schedule Next]\n- After search: [Refine Search] [Export Results] [Save Query]\n\nProvides helpful next steps without being pushy.",
+      "platform": "user_interaction",
+      "category": "interaction",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "completed_action": {
+            "type": "string",
+            "description": "What was just completed"
+          },
+          "suggestions": {
+            "type": "array",
+            "description": "List of suggested next actions",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Action button text"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What this action does"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Value returned if clicked"
+                }
+              },
+              "required": [
+                "label",
+                "value"
+              ]
+            }
+          }
+        },
+        "required": [
+          "completed_action",
+          "suggestions"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Suggestion list shown to user"
+      },
+      "examples": [
+        {
+          "description": "Suggest actions after email analysis",
+          "parameters": {
+            "completed_action": "Analyzed contract email",
+            "suggestions": [
+              {
+                "label": "Reply to Email",
+                "description": "Draft a response",
+                "value": "reply"
+              },
+              {
+                "label": "Schedule Meeting",
+                "description": "Set up a call",
+                "value": "schedule"
+              },
+              {
+                "label": "Create Tasks",
+                "description": "Add action items",
+                "value": "tasks"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }

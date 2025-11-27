@@ -12,7 +12,7 @@
   "tools": [
     {
       "name": "google_forms_create_complete_form",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ PREFERRED METHOD: Create a complete Google Form with all questions in ONE operation. Much more efficient than calling create_form + add_question multiple times. Form is automatically shareable.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ PREFERRED METHOD: Create a complete Google Form with all questions in ONE operation. Much more efficient than calling create_form + add_question multiple times. Form is automatically shareable.",
       "platform": "google_forms",
       "category": "smart_bundled",
       "priority": "high",
@@ -78,7 +78,7 @@
     },
     {
       "name": "google_forms_ai_generate_form",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Generate a complete form from natural language description. AI determines appropriate questions, types, and options automatically. Perfect when you're not sure what questions to ask.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Generate a complete form from natural language description. AI determines appropriate questions, types, and options automatically. Perfect when you're not sure what questions to ask.",
       "platform": "google_forms",
       "category": "ai_powered",
       "priority": "high",
@@ -128,7 +128,7 @@
     },
     {
       "name": "google_forms_bulk_create_multiple",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Create multiple complete forms at once. Most efficient for creating many forms with similar structure (e.g., event registrations for different locations).",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Create multiple complete forms at once. Most efficient for creating many forms with similar structure (e.g., event registrations for different locations).",
       "platform": "google_forms",
       "category": "bulk",
       "priority": "high",
@@ -196,7 +196,7 @@
     },
     {
       "name": "google_forms_create_form",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a basic Google Form (empty, no questions). NOTE: Use google_forms_create_complete_form instead for better efficiency.\n\nIMPORTANT - API COMPLIANCE (Nov 2025 Fix):\n- Uses two-step process: (1) Create with title only, (2) Add description via batchUpdate\n- This complies with Google Forms API restriction: \"Only info.title can be set when creating a form\"\n- Description and documentTitle are added via separate batchUpdate call if provided",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a basic Google Form (empty, no questions). NOTE: Use google_forms_create_complete_form instead for better efficiency.\n\nIMPORTANT - API COMPLIANCE (Nov 2025 Fix):\n- Uses two-step process: (1) Create with title only, (2) Add description via batchUpdate\n- This complies with Google Forms API restriction: \"Only info.title can be set when creating a form\"\n- Description and documentTitle are added via separate batchUpdate call if provided",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -231,7 +231,7 @@
     },
     {
       "name": "google_forms_batch_add_questions",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Add multiple questions to a form at once. More efficient than adding questions one by one.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Add multiple questions to a form at once. More efficient than adding questions one by one.",
       "platform": "google_forms",
       "category": "bulk",
       "priority": "medium",
@@ -276,7 +276,7 @@
     },
     {
       "name": "google_forms_get_form",
-      "description": "⚠️ ENHANCED - Multi-format Google Forms reader with 98.4% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (1.5K tokens): Question list with types/options/required status\n- text (15K tokens): Readable plain text form\n- markdown (18K tokens): Formatted with ○ (radio) and ☐ (checkbox) symbols\n- full (95K tokens): Complete JSON with validation rules (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (98.4% reduction):\n\"Form: **Customer Feedback Survey** (12 questions)\nQuestions:\n1. Email (TEXT, required)\n2. Rating (SCALE 1-5, required)\n3. Preferred contact (RADIO: Email, Phone, Text)\n...\" (~1.5K tokens)\n\n✅ format='markdown' (81% reduction):\n\"# Customer Feedback Survey\n\n**Question 1:** What is your email? *(required)*\nType: Short answer\n\n**Question 2:** Rate your experience *(required)*\n○ 1\n○ 2\n○ 3\" (~18K tokens)\n\n❌ format='full' (AVOID - 95K tokens)\n\n---\n\nGet form structure with format options. Prevents token overflow by defaulting to summary format. Markdown uses ○ for radio buttons, ☐ for checkboxes.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ ENHANCED - Multi-format Google Forms reader with 98.4% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (1.5K tokens): Question list with types/options/required status\n- text (15K tokens): Readable plain text form\n- markdown (18K tokens): Formatted with ○ (radio) and ☐ (checkbox) symbols\n- full (95K tokens): Complete JSON with validation rules (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (98.4% reduction):\n\"Form: **Customer Feedback Survey** (12 questions)\nQuestions:\n1. Email (TEXT, required)\n2. Rating (SCALE 1-5, required)\n3. Preferred contact (RADIO: Email, Phone, Text)\n...\" (~1.5K tokens)\n\n✅ format='markdown' (81% reduction):\n\"# Customer Feedback Survey\n\n**Question 1:** What is your email? *(required)*\nType: Short answer\n\n**Question 2:** Rate your experience *(required)*\n○ 1\n○ 2\n○ 3\" (~18K tokens)\n\n❌ format='full' (AVOID - 95K tokens)\n\n---\n\nGet form structure with format options. Prevents token overflow by defaulting to summary format. Markdown uses ○ for radio buttons, ☐ for checkboxes.",
       "platform": "google_forms",
       "category": "basic",
       "priority": "medium",
@@ -324,7 +324,7 @@
     },
     {
       "name": "google_forms_get_responses",
-      "description": "⚠️ ENHANCED - Multi-format Google Forms response reader with 99.5% token reduction!\n\nCRITICAL: Forms can have thousands of responses! Use summary format to avoid 500K+ token overflow.\n\n- summary (3K tokens): Aggregated statistics with percentages by question\n- sample (5K tokens): First N responses (default 100, configurable with limit parameter)\n- full (500K+ tokens): ALL responses with metadata (AVOID - returns all 2847+ responses!)\n\nExample responses:\n✅ format='summary' (99.5% reduction for 2847 responses):\n\"Form responses: 2,847 total\n\nQuestion 1: Email address\n- Total responses: 2,847\n\nQuestion 2: Rating (Scale 1-5)\n- Answer '5': 1,234 (43.3%)\n- Answer '4': 987 (34.6%)\n...\" (~3K tokens)\n\n✅ format='sample' with limit=100 (99% reduction):\n\"Showing 100 of 2,847 responses:\n\nResponse 1 (2024-01-15):\n- Email: john@example.com\n- Rating: 5\n...\" (~5K tokens)\n\n❌ format='full' (AVOID - 500K+ tokens for 2847 responses!)\n\n---\n\nGet form responses with format options. Defaults to summary with aggregated statistics to prevent token overflow from thousands of individual responses.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ ENHANCED - Multi-format Google Forms response reader with 99.5% token reduction!\n\nCRITICAL: Forms can have thousands of responses! Use summary format to avoid 500K+ token overflow.\n\n- summary (3K tokens): Aggregated statistics with percentages by question\n- sample (5K tokens): First N responses (default 100, configurable with limit parameter)\n- full (500K+ tokens): ALL responses with metadata (AVOID - returns all 2847+ responses!)\n\nExample responses:\n✅ format='summary' (99.5% reduction for 2847 responses):\n\"Form responses: 2,847 total\n\nQuestion 1: Email address\n- Total responses: 2,847\n\nQuestion 2: Rating (Scale 1-5)\n- Answer '5': 1,234 (43.3%)\n- Answer '4': 987 (34.6%)\n...\" (~3K tokens)\n\n✅ format='sample' with limit=100 (99% reduction):\n\"Showing 100 of 2,847 responses:\n\nResponse 1 (2024-01-15):\n- Email: john@example.com\n- Rating: 5\n...\" (~5K tokens)\n\n❌ format='full' (AVOID - 500K+ tokens for 2847 responses!)\n\n---\n\nGet form responses with format options. Defaults to summary with aggregated statistics to prevent token overflow from thousands of individual responses.",
       "platform": "google_forms",
       "category": "responses",
       "priority": "high",
@@ -378,7 +378,7 @@
     },
     {
       "name": "google_forms_search_responses",
-      "description": "Search through form responses for a text query. Returns matching responses with answer context.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch through form responses for a text query. Returns matching responses with answer context.",
       "platform": "google_forms",
       "category": "responses",
       "priority": "medium",
@@ -410,7 +410,7 @@
     },
     {
       "name": "google_forms_export_responses_csv",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport form responses as CSV format",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport form responses as CSV format",
       "platform": "google_forms",
       "category": "export",
       "priority": "medium",
@@ -428,7 +428,7 @@
     },
     {
       "name": "google_forms_ai_analyze_responses",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Analyze form responses using AI. Get sentiment, insights, trends, or summary analysis.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Analyze form responses using AI. Get sentiment, insights, trends, or summary analysis.",
       "platform": "google_forms",
       "category": "ai_powered",
       "priority": "high",
@@ -466,7 +466,7 @@
     },
     {
       "name": "google_forms_clone_form",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nClone an existing form",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nClone an existing form",
       "platform": "google_forms",
       "category": "basic",
       "priority": "medium",
@@ -489,7 +489,7 @@
     },
     {
       "name": "google_forms_delete_form",
-      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a form permanently",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a form permanently",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -507,7 +507,7 @@
     },
     {
       "name": "google_forms_add_text_question",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a text question to a form. NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a text question to a form. NOTE: Use google_forms_batch_add_questions for multiple questions.",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -548,7 +548,7 @@
     },
     {
       "name": "google_forms_add_multiple_choice",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a multiple choice question (single selection). NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a multiple choice question (single selection). NOTE: Use google_forms_batch_add_questions for multiple questions.",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -593,7 +593,7 @@
     },
     {
       "name": "google_forms_add_checkbox",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a checkbox question (multiple selection)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a checkbox question (multiple selection)",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -633,7 +633,7 @@
     },
     {
       "name": "google_forms_add_linear_scale",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a linear scale rating question (e.g., 1-5 stars)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a linear scale rating question (e.g., 1-5 stars)",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -692,7 +692,7 @@
     },
     {
       "name": "google_forms_update_info",
-      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate form title and description",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate form title and description",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -720,7 +720,7 @@
     },
     {
       "name": "google_forms_get_summary_statistics",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet response statistics and counts",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet response statistics and counts",
       "platform": "google_forms",
       "category": "analytics",
       "priority": "medium",

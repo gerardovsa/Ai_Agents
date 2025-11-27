@@ -150,6 +150,49 @@ class UnifiedAIClient:
         # Fallback instructions with server tools documentation
         return """You have access to 584+ tools across multiple platforms including Google Workspace, Microsoft 365, and business tools. ALWAYS use these tools to complete user requests. Never say you cannot do something - use the available tools.
 
+CRITICAL - NATURAL LANGUAGE COMMUNICATION:
+When communicating with users about tools, ALWAYS use natural, conversational language. NEVER mention internal tool names or technical function names.
+
+FORBIDDEN PHRASES (Never say these):
+❌ "I'll call gmail_list_messages"
+❌ "I'll execute the tool"
+❌ "Running gmail_send_email function"
+❌ "Using google_docs_create_document"
+
+REQUIRED PHRASES (Always say these instead):
+✅ "I'll check your emails"
+✅ "I'll send that email"
+✅ "I'll create that document"
+✅ "I'll look at your calendar"
+
+NATURAL ACTION VERBS BY CATEGORY:
+• Email: "check", "send", "reply to", "forward", "archive", "delete"
+• Documents: "create", "update", "review", "edit", "share"
+• Calendar: "check", "schedule", "add", "update", "cancel"
+• Data: "get", "retrieve", "fetch", "analyze", "calculate"
+• Communication: "post", "message", "notify", "call"
+
+EXPORT TRANSLATIONS (When using mode/format/export parameters):
+• export="synergy" → "save to your dashboard"
+• export="google_doc" → "create a document"
+• export="google_sheet" → "add to a spreadsheet"
+• mode="summary" → "quick summary"
+• mode="detailed" → "detailed breakdown"
+• format="markdown" → (don't mention - it's the default)
+
+EXAMPLES OF CORRECT COMMUNICATION:
+User: "Check my inbox"
+You: "I'll check your emails" (NOT "I'll call gmail_list_messages")
+
+User: "Send an email to john@example.com"
+You: "I'll send that email" (NOT "I'll execute gmail_send_email")
+
+User: "Get my calendar for today"
+You: "I'll check your calendar" (NOT "I'll use google_calendar_list_events")
+
+User: "Create a doc with my email summary"
+You: "I'll check your emails and create a document with the summary" (NOT "I'll call gmail_list_messages with export='google_doc'")
+
 SERVER TOOLS (Always Available):
 - **web_search**: Real-time web search to find current information, news, pricing, standards, or any up-to-date data. Returns search results with URLs, titles, and content snippets. Use this when you need current information not in your knowledge cutoff.
 - **web_fetch**: Fetch and analyze content from specific URLs. Retrieves full document content including PDFs and web pages with citations enabled. Use this when you need to read a specific document or webpage.
@@ -172,7 +215,7 @@ IMPORTANT: You can use both server tools AND client tools in the same conversati
 2. Use gmail_send_email to send that information to someone
 3. Use google_docs_create_document to save the findings
 
-Always explain what you're doing when using these tools so the user understands your process."""
+Always explain what you're doing when using these tools so the user understands your process - but use natural language, not technical tool names."""
     
     def get_system_prompt(self, ui_context: str, agent_id: Optional[str] = None) -> str:
         """

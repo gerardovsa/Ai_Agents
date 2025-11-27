@@ -1779,10 +1779,10 @@ class AutomationCanvas {
                 // Calculate recommended Y position with 150px spacing
                 const baseY = shape.y || shape.position?.y || 100;
                 const recommendedY = index === 0 ? baseY : baseY + (index * 150);
-                
+
                 // CRITICAL FIX: Normalize shape IDs to ensure consistent format
                 let shapeId = shape.id;
-                
+
                 // Convert numeric IDs to string format
                 if (typeof shapeId === 'number') {
                     shapeId = `shape_${shapeId}`;
@@ -1791,7 +1791,7 @@ class AutomationCanvas {
                 else if (typeof shapeId === 'string' && /^\d+$/.test(shapeId)) {
                     shapeId = `shape_${shapeId}`;
                 }
-                
+
                 const shapeData = {
                     id: shapeId,
                     type: shape.type || 'rectangle',
@@ -1812,7 +1812,7 @@ class AutomationCanvas {
                 // If connections have numeric from/to (e.g., 1, 2, 3), convert to match shape format
                 let fromId = conn.from;
                 let toId = conn.to;
-                
+
                 // Convert numeric IDs to string format (matches shape ID normalization)
                 if (typeof fromId === 'number') {
                     fromId = `shape_${fromId}`;
@@ -1820,7 +1820,7 @@ class AutomationCanvas {
                 if (typeof toId === 'number') {
                     toId = `shape_${toId}`;
                 }
-                
+
                 // Convert string numeric IDs (e.g., "1", "2") to shape format
                 if (typeof fromId === 'string' && /^\d+$/.test(fromId)) {
                     fromId = `shape_${fromId}`;
@@ -1828,7 +1828,7 @@ class AutomationCanvas {
                 if (typeof toId === 'string' && /^\d+$/.test(toId)) {
                     toId = `shape_${toId}`;
                 }
-                
+
                 this.connections.push({
                     id: conn.id || `conn_${Date.now()}_${Math.random()}`,
                     from: fromId,

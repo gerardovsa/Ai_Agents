@@ -327,6 +327,185 @@ class MicrosoftWordTools:
         except Exception as e:
             return {"error": f"Document processing error: {str(e)}"}
     
+    def word_update_content(
+        self,
+        document_id: str,
+        content: str,
+        mode: str = 'replace_all',
+        find_text: str = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Update Word document content with multiple modes.
+        
+        Args:
+            document_id: Document ID
+            content: New content or replacement text
+            mode: Update mode:
+                - 'replace_all': Replace entire document content (default)
+                - 'append': Add content to end of document
+                - 'find_replace': Find and replace specific text (requires find_text)
+            find_text: Text to find (required when mode='find_replace')
+            
+        Returns:
+            Dict with success status and mode information
+        """
+        try:
+            if mode == 'replace_all':
+                # Replace entire document - create new document with content
+                doc = Document()
+                
+                # Split content by newlines and add as paragraphs
+                for line in content.split('\n'):
+                    doc.add_paragraph(line)
+                
+                # Save to bytes
+                doc_bytes = io.BytesIO()
+                doc.save(doc_bytes)
+                doc_bytes.seek(0)
+                
+                # Upload as replacement document
+                upload_endpoint = f"{self.base_url}/me/drive/items/{document_id}/content"
+                upload_headers = {
+                    "Authorization": self._get_headers(**kwargs)["Authorization"],
+                    "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+                
+                upload_response = requests.put(
+                    upload_endpoint,
+                    headers=upload_headers,
+                    data=doc_bytes.getvalue()
+                )
+                upload_response.raise_for_status()
+                
+                return {
+                    "success": True,
+                    "mode": "replace_all",
+                    "message": "Document content replaced successfully",
+                    "content_length": len(content),
+                    "document_id": document_id
+                }
+            
+            elif mode == 'append':
+                # Append to end of document
+                # Download existing document
+                download_endpoint = f"{self.base_url}/me/drive/items/{document_id}/content"
+                download_response = requests.get(
+                    download_endpoint,
+                    headers={'Authorization': self._get_headers(**kwargs)['Authorization']}
+                )
+                download_response.raise_for_status()
+                
+                # Load document with python-docx
+                doc = Document(io.BytesIO(download_response.content))
+                
+                # Append content as paragraphs
+                for line in content.split('\n'):
+                    doc.add_paragraph(line)
+                
+                # Save to bytes
+                doc_bytes = io.BytesIO()
+                doc.save(doc_bytes)
+                doc_bytes.seek(0)
+                
+                # Upload modified document
+                upload_endpoint = f"{self.base_url}/me/drive/items/{document_id}/content"
+                upload_headers = {
+                    "Authorization": self._get_headers(**kwargs)["Authorization"],
+                    "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+                
+                upload_response = requests.put(
+                    upload_endpoint,
+                    headers=upload_headers,
+                    data=doc_bytes.getvalue()
+                )
+                upload_response.raise_for_status()
+                
+                return {
+                    "success": True,
+                    "mode": "append",
+                    "message": "Content appended successfully",
+                    "content_length": len(content),
+                    "document_id": document_id
+                }
+            
+            elif mode == 'find_replace':
+                # Find and replace text in document
+                if not find_text:
+                    raise ValueError("find_text parameter required when mode='find_replace'")
+                
+                # Download existing document
+                download_endpoint = f"{self.base_url}/me/drive/items/{document_id}/content"
+                download_response = requests.get(
+                    download_endpoint,
+                    headers={'Authorization': self._get_headers(**kwargs)['Authorization']}
+                )
+                download_response.raise_for_status()
+                
+                # Load document with python-docx
+                doc = Document(io.BytesIO(download_response.content))
+                
+                # Find and replace in paragraphs
+                replacements_made = 0
+                for paragraph in doc.paragraphs:
+                    if find_text in paragraph.text:
+                        # Replace text in paragraph
+                        inline = paragraph.runs
+                        for run in inline:
+                            if find_text in run.text:
+                                run.text = run.text.replace(find_text, content)
+                                replacements_made += 1
+                
+                # Find and replace in tables
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            for paragraph in cell.paragraphs:
+                                if find_text in paragraph.text:
+                                    inline = paragraph.runs
+                                    for run in inline:
+                                        if find_text in run.text:
+                                            run.text = run.text.replace(find_text, content)
+                                            replacements_made += 1
+                
+                # Save to bytes
+                doc_bytes = io.BytesIO()
+                doc.save(doc_bytes)
+                doc_bytes.seek(0)
+                
+                # Upload modified document
+                upload_endpoint = f"{self.base_url}/me/drive/items/{document_id}/content"
+                upload_headers = {
+                    "Authorization": self._get_headers(**kwargs)["Authorization"],
+                    "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+                
+                upload_response = requests.put(
+                    upload_endpoint,
+                    headers=upload_headers,
+                    data=doc_bytes.getvalue()
+                )
+                upload_response.raise_for_status()
+                
+                return {
+                    "success": True,
+                    "mode": "find_replace",
+                    "message": f"Replaced {replacements_made} occurrences of '{find_text}'",
+                    "replacements_made": replacements_made,
+                    "find_text": find_text,
+                    "replace_with": content,
+                    "document_id": document_id
+                }
+            
+            else:
+                raise ValueError(f"Invalid mode: '{mode}'. Use 'replace_all', 'append', or 'find_replace'")
+            
+        except requests.exceptions.RequestException as e:
+            return {"error": f"Failed to update content: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Document processing error: {str(e)}"}
+    
     def word_search_text(
         self,
         document_id: str,

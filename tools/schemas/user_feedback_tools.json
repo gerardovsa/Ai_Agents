@@ -1,59 +1,59 @@
 {
-    "platform": "user_feedback",
-    "description": "Feature 2: Passive non-blocking user feedback - User sends instructions mid-execution. Automatically injected into next tool call by execute_tool(). Different from Feature 1 (user_interaction_tools) where AI asks user.",
-    "tools": [
-        {
-            "name": "show_feedback_area",
-            "description": "Show the feedback icon for non-blocking user guidance. Call at start of long operations. User can optionally click icon to type instructions and click SEND. Instructions automatically injected into next tool execution via execute_tool(). AI doesn't need to fetch - injection is automatic.\n\nUSE CASE:\nUser: 'Analyze 50 emails'\n→ Call show_feedback_area('Processing emails...')\n→ Icon appears (small, bottom-right)\n→ User clicks, types: 'Focus on legal emails'\n→ User clicks SEND\n→ AI continues working...\n→ Next tool call: AI automatically sees 'USER SAYS: Focus on legal emails'\n→ AI adjusts behavior\n\nDIFFERENCE FROM request_user_interaction():\n- request_user_interaction: AI ASKS user (blocking, modal, required)\n- show_feedback_area: User TELLS AI (non-blocking, icon, optional)",
-            "platform": "user_feedback",
-            "category": "ui",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "message": {
-                        "type": "string",
-                        "description": "Header text in feedback panel (e.g., 'Processing 50 emails...')",
-                        "default": "Working on your request..."
-                    },
-                    "show_buttons": {
-                        "type": "boolean",
-                        "description": "Show Pause/Stop/Explain quick buttons",
-                        "default": true
-                    }
-                },
-                "required": []
-            },
-            "returns": {
-                "type": "object",
-                "description": "UI instruction to show feedback icon"
-            },
-            "examples": [
-                {
-                    "description": "Show feedback at start of long task",
-                    "code": "show_feedback_area(\n    message='Analyzing 50 emails...',\n    show_buttons=True\n)"
-                }
-            ]
+  "platform": "user_feedback",
+  "description": "Feature 2: Passive non-blocking user feedback - User sends instructions mid-execution. Automatically injected into next tool call by execute_tool(). Different from Feature 1 (user_interaction_tools) where AI asks user.",
+  "tools": [
+    {
+      "name": "show_feedback_area",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nShow the feedback icon for non-blocking user guidance. Call at start of long operations. User can optionally click icon to type instructions and click SEND. Instructions automatically injected into next tool execution via execute_tool(). AI doesn't need to fetch - injection is automatic.\n\nUSE CASE:\nUser: 'Analyze 50 emails'\n→ Call show_feedback_area('Processing emails...')\n→ Icon appears (small, bottom-right)\n→ User clicks, types: 'Focus on legal emails'\n→ User clicks SEND\n→ AI continues working...\n→ Next tool call: AI automatically sees 'USER SAYS: Focus on legal emails'\n→ AI adjusts behavior\n\nDIFFERENCE FROM request_user_interaction():\n- request_user_interaction: AI ASKS user (blocking, modal, required)\n- show_feedback_area: User TELLS AI (non-blocking, icon, optional)",
+      "platform": "user_feedback",
+      "category": "ui",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Header text in feedback panel (e.g., 'Processing 50 emails...')",
+            "default": "Working on your request..."
+          },
+          "show_buttons": {
+            "type": "boolean",
+            "description": "Show Pause/Stop/Explain quick buttons",
+            "default": true
+          }
         },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "UI instruction to show feedback icon"
+      },
+      "examples": [
         {
-            "name": "hide_feedback_area",
-            "description": "Hide the feedback icon. Call when task is complete.",
-            "platform": "user_feedback",
-            "category": "ui",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            },
-            "returns": {
-                "type": "object",
-                "description": "UI instruction to hide feedback icon"
-            },
-            "examples": [
-                {
-                    "description": "Hide feedback after task complete",
-                    "code": "# Task complete\nhide_feedback_area()"
-                }
-            ]
+          "description": "Show feedback at start of long task",
+          "code": "show_feedback_area(\n    message='Analyzing 50 emails...',\n    show_buttons=True\n)"
         }
-    ]
+      ]
+    },
+    {
+      "name": "hide_feedback_area",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nHide the feedback icon. Call when task is complete.",
+      "platform": "user_feedback",
+      "category": "ui",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "UI instruction to hide feedback icon"
+      },
+      "examples": [
+        {
+          "description": "Hide feedback after task complete",
+          "code": "# Task complete\nhide_feedback_area()"
+        }
+      ]
+    }
+  ]
 }

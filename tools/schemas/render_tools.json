@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "render_deploy_service",
-      "description": "Deploy a Render service (web service, worker, cron job). Can deploy specific commit (Git) or image tag (Docker). Optionally wait for deploy to complete.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDeploy a Render service (web service, worker, cron job). Can deploy specific commit (Git) or image tag (Docker). Optionally wait for deploy to complete.",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -27,7 +27,9 @@
             "default": true
           }
         },
-        "required": ["service_id"]
+        "required": [
+          "service_id"
+        ]
       },
       "returns": {
         "type": "object",
@@ -46,7 +48,7 @@
     },
     {
       "name": "render_get_service_logs",
-      "description": "Get recent logs from a Render service. Supports filtering by time range and log level. Useful for debugging, monitoring, and troubleshooting.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet recent logs from a Render service. Supports filtering by time range and log level. Useful for debugging, monitoring, and troubleshooting.",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -65,7 +67,9 @@
             "description": "Filter logs by text pattern (case-insensitive). Optional."
           }
         },
-        "required": ["service_id"]
+        "required": [
+          "service_id"
+        ]
       },
       "returns": {
         "type": "array",
@@ -84,7 +88,7 @@
     },
     {
       "name": "render_restart_service",
-      "description": "Restart a Render service instance. Useful for recovering from errors, applying configuration changes, or clearing memory leaks. Triggers a rolling restart with zero downtime.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRestart a Render service instance. Useful for recovering from errors, applying configuration changes, or clearing memory leaks. Triggers a rolling restart with zero downtime.",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -99,7 +103,9 @@
             "default": true
           }
         },
-        "required": ["service_id"]
+        "required": [
+          "service_id"
+        ]
       },
       "returns": {
         "type": "object",
@@ -108,7 +114,7 @@
     },
     {
       "name": "render_list_services",
-      "description": "List all Render services in workspace with status, type, and URLs. Useful for inventory, monitoring, and service discovery.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all Render services in workspace with status, type, and URLs. Useful for inventory, monitoring, and service discovery.",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -116,12 +122,21 @@
           "service_type": {
             "type": "string",
             "description": "Filter by service type: web_service, private_service, background_worker, cron_job. Optional - returns all if omitted.",
-            "enum": ["web_service", "private_service", "background_worker", "cron_job"]
+            "enum": [
+              "web_service",
+              "private_service",
+              "background_worker",
+              "cron_job"
+            ]
           },
           "status": {
             "type": "string",
             "description": "Filter by status: live, suspended, failed. Optional.",
-            "enum": ["live", "suspended", "failed"]
+            "enum": [
+              "live",
+              "suspended",
+              "failed"
+            ]
           }
         },
         "required": []
@@ -133,7 +148,7 @@
     },
     {
       "name": "render_get_service_metrics",
-      "description": "Get current CPU, memory, and request metrics for a service. Useful for performance monitoring, capacity planning, and troubleshooting.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet current CPU, memory, and request metrics for a service. Useful for performance monitoring, capacity planning, and troubleshooting.",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -146,10 +161,17 @@
             "type": "string",
             "description": "Time range for metrics: 1h, 6h, 24h, 7d. Default: 1h",
             "default": "1h",
-            "enum": ["1h", "6h", "24h", "7d"]
+            "enum": [
+              "1h",
+              "6h",
+              "24h",
+              "7d"
+            ]
           }
         },
-        "required": ["service_id"]
+        "required": [
+          "service_id"
+        ]
       },
       "returns": {
         "type": "object",
@@ -158,7 +180,7 @@
     },
     {
       "name": "render_scale_service",
-      "description": "Scale a Render service (change instance count or type). Useful for handling traffic spikes or optimizing costs.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nScale a Render service (change instance count or type). Useful for handling traffic spikes or optimizing costs.",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -174,10 +196,19 @@
           "instance_type": {
             "type": "string",
             "description": "Instance type (e.g., standard, standard_plus, pro). Optional.",
-            "enum": ["free", "starter", "standard", "standard_plus", "pro", "pro_plus"]
+            "enum": [
+              "free",
+              "starter",
+              "standard",
+              "standard_plus",
+              "pro",
+              "pro_plus"
+            ]
           }
         },
-        "required": ["service_id"]
+        "required": [
+          "service_id"
+        ]
       },
       "returns": {
         "type": "object",
@@ -186,7 +217,7 @@
     },
     {
       "name": "render_get_deploys",
-      "description": "List recent deploys for a service with status, duration, and commit info. Useful for tracking deployment history and debugging failed deploys.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList recent deploys for a service with status, duration, and commit info. Useful for tracking deployment history and debugging failed deploys.",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -201,7 +232,9 @@
             "default": 10
           }
         },
-        "required": ["service_id"]
+        "required": [
+          "service_id"
+        ]
       },
       "returns": {
         "type": "array",
@@ -210,7 +243,7 @@
     },
     {
       "name": "render_postgres_backup",
-      "description": "Trigger a manual backup of a Render Postgres database. Backups are stored for 30 days (Standard tier).",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nTrigger a manual backup of a Render Postgres database. Backups are stored for 30 days (Standard tier).",
       "platform": "render",
       "parameters": {
         "type": "object",
@@ -220,7 +253,9 @@
             "description": "Render Postgres database ID (e.g., dpg-abc123). Required."
           }
         },
-        "required": ["database_id"]
+        "required": [
+          "database_id"
+        ]
       },
       "returns": {
         "type": "object",

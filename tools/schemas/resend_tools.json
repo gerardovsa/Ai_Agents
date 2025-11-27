@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "resend_send_email",
-      "description": "Send a plain text email via Resend. Use for simple transactional emails, notifications, and alerts. Returns email ID for tracking delivery status.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend a plain text email via Resend. Use for simple transactional emails, notifications, and alerts. Returns email ID for tracking delivery status.",
       "platform": "resend",
       "parameters": {
         "type": "object",
@@ -73,7 +73,7 @@
     },
     {
       "name": "resend_send_email_html",
-      "description": "Send an HTML email with rich formatting via Resend. Use for newsletters, marketing emails, invoices with styling, or any email requiring visual design. Includes automatic plain text fallback.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an HTML email with rich formatting via Resend. Use for newsletters, marketing emails, invoices with styling, or any email requiring visual design. Includes automatic plain text fallback.",
       "platform": "resend",
       "parameters": {
         "type": "object",
@@ -154,7 +154,7 @@
     },
     {
       "name": "resend_send_batch_emails",
-      "description": "Send multiple emails efficiently in batch. Use for bulk notifications, newsletters to multiple recipients, or mass transactional emails. More efficient than sending individually.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend multiple emails efficiently in batch. Use for bulk notifications, newsletters to multiple recipients, or mass transactional emails. More efficient than sending individually.",
       "platform": "resend",
       "parameters": {
         "type": "object",
@@ -226,7 +226,7 @@
     },
     {
       "name": "resend_get_email_status",
-      "description": "Check delivery status of a previously sent email. Use to track if email was delivered, bounced, or opened. Requires email_id from send operation.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCheck delivery status of a previously sent email. Use to track if email was delivered, bounced, or opened. Requires email_id from send operation.",
       "platform": "resend",
       "parameters": {
         "type": "object",

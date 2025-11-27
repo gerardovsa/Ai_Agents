@@ -1,61 +1,61 @@
 {
-    "platform": "synergy",
-    "description": "On-demand learning system for Synergy Dashboard - provides comprehensive workflow guidance, best practices, and troubleshooting help when AI agents need detailed instructions",
-    "tools": [
+  "platform": "synergy",
+  "description": "On-demand learning system for Synergy Dashboard - provides comprehensive workflow guidance, best practices, and troubleshooting help when AI agents need detailed instructions",
+  "tools": [
+    {
+      "name": "synergy_agent_instructions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet comprehensive Synergy Dashboard workflow instructions, best practices, and troubleshooting guide. Call this BEFORE using Synergy tools for the first time or when you need guidance on complex workflows, safe array updates, or troubleshooting issues.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "enum": [
+              "overview",
+              "quickstart",
+              "workflow",
+              "updating_arrays",
+              "field_reference",
+              "troubleshooting",
+              "examples"
+            ],
+            "description": "Which aspect of Synergy you need guidance on:\n- overview: What Synergy is, when to use it, available tools\n- quickstart: Step-by-step guide for creating your first project\n- workflow: Complete multi-platform project pattern with all phases\n- updating_arrays: CRITICAL - How to safely add/remove documents/links without data loss\n- field_reference: Complete list of all 22 fields with examples and correct naming\n- troubleshooting: Common errors and solutions (documents disappearing, wrong field names, etc.)\n- examples: Real-world use cases with complete code patterns",
+            "default": "overview"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Success status, requested topic, and comprehensive markdown guide with code examples, best practices, and detailed instructions"
+      },
+      "examples": [
         {
-            "name": "synergy_agent_instructions",
-            "description": "Get comprehensive Synergy Dashboard workflow instructions, best practices, and troubleshooting guide. Call this BEFORE using Synergy tools for the first time or when you need guidance on complex workflows, safe array updates, or troubleshooting issues.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "topic": {
-                        "type": "string",
-                        "enum": [
-                            "overview",
-                            "quickstart",
-                            "workflow",
-                            "updating_arrays",
-                            "field_reference",
-                            "troubleshooting",
-                            "examples"
-                        ],
-                        "description": "Which aspect of Synergy you need guidance on:\n- overview: What Synergy is, when to use it, available tools\n- quickstart: Step-by-step guide for creating your first project\n- workflow: Complete multi-platform project pattern with all phases\n- updating_arrays: CRITICAL - How to safely add/remove documents/links without data loss\n- field_reference: Complete list of all 22 fields with examples and correct naming\n- troubleshooting: Common errors and solutions (documents disappearing, wrong field names, etc.)\n- examples: Real-world use cases with complete code patterns",
-                        "default": "overview"
-                    }
-                },
-                "required": []
-            },
-            "returns": {
-                "type": "object",
-                "description": "Success status, requested topic, and comprehensive markdown guide with code examples, best practices, and detailed instructions"
-            },
-            "examples": [
-                {
-                    "description": "Get quick start guide before creating first Synergy project",
-                    "parameters": {
-                        "topic": "quickstart"
-                    }
-                },
-                {
-                    "description": "Learn how to safely update documents array without losing data",
-                    "parameters": {
-                        "topic": "updating_arrays"
-                    }
-                },
-                {
-                    "description": "Troubleshoot why documents aren't showing on dashboard",
-                    "parameters": {
-                        "topic": "troubleshooting"
-                    }
-                },
-                {
-                    "description": "See complete workflow pattern for multi-platform projects",
-                    "parameters": {
-                        "topic": "workflow"
-                    }
-                }
-            ]
+          "description": "Get quick start guide before creating first Synergy project",
+          "parameters": {
+            "topic": "quickstart"
+          }
+        },
+        {
+          "description": "Learn how to safely update documents array without losing data",
+          "parameters": {
+            "topic": "updating_arrays"
+          }
+        },
+        {
+          "description": "Troubleshoot why documents aren't showing on dashboard",
+          "parameters": {
+            "topic": "troubleshooting"
+          }
+        },
+        {
+          "description": "See complete workflow pattern for multi-platform projects",
+          "parameters": {
+            "topic": "workflow"
+          }
         }
-    ]
+      ]
+    }
+  ]
 }
