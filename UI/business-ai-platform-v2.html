@@ -458,7 +458,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(13, 17, 23, 0.97) 0%, rgba(22, 27, 34, 0.95) 100%);
+            background: linear-gradient(135deg, rgb(13, 17, 23) 0%, rgb(22, 27, 34) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -494,6 +494,7 @@
             height: 100%;
             z-index: 1;
             pointer-events: none;
+            opacity: 0.3;
         }
 
         .login-overlay .circuit-gradient {
@@ -522,7 +523,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, rgba(13, 17, 23, 0.98) 0%, rgba(22, 27, 34, 0.96) 100%);
+            background: linear-gradient(135deg, rgb(13, 17, 23) 0%, rgb(22, 27, 34) 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -585,6 +586,7 @@
             height: 100%;
             z-index: 1;
             pointer-events: none;
+            opacity: 0.3;
         }
 
         .auth-loading-overlay .circuit-gradient {
@@ -3821,6 +3823,19 @@
             text-overflow: ellipsis;
         }
 
+        .account-user-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 4px 0;
+            transition: all 0.2s ease;
+        }
+
+        .account-user-header:hover {
+            opacity: 0.8;
+        }
+
         .account-user-role .role-badge {
             font-size: 11px;
             padding: 3px 10px;
@@ -3832,10 +3847,138 @@
             letter-spacing: 0.5px;
         }
 
+        .account-user-email-container {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+
+        /* Auth status dot colors */
+        .auth-status-active {
+            color: var(--success, #22c55e) !important;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .auth-status-inactive {
+            color: var(--danger, #ef4444) !important;
+        }
+
+        .auth-status-unknown {
+            color: var(--text-muted) !important;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* OAuth Connections Expand */
+        .account-oauth-connections {
+            max-height: 400px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .account-oauth-connections.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        #userExpandChevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .oauth-connection-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .oauth-connection-item i.platform-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .oauth-connection-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .oauth-platform-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .oauth-platform-services {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .oauth-reconnect-btn {
+            padding: 4px 10px;
+            font-size: 10px;
+            background: var(--bg-warning-subtle, rgba(234, 179, 8, 0.1));
+            color: var(--warning, #eab308);
+            border: 1px solid var(--border-warning, rgba(234, 179, 8, 0.3));
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .oauth-reconnect-btn:hover {
+            background: var(--warning, #eab308);
+            color: white;
+        }
+
         .account-tabs {
             display: flex;
             flex-direction: column;
             gap: 4px;
+        }
+
+        .account-logout-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            border-left: 3px solid transparent;
+            border-top: 1px solid var(--border-default);
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--danger, #ef4444);
+            font-size: 14px;
+            font-weight: 600;
+            text-align: left;
+        }
+
+        .account-logout-btn i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .account-logout-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-left-color: var(--danger, #ef4444);
         }
 
         .account-tab {
@@ -15865,10 +16008,27 @@
                     <i class="fas fa-user-circle"></i>
                 </div>
                 <div class="account-user-details">
-                    <div class="account-user-name" id="sidebarUserName">Loading...</div>
-                    <div class="account-user-email" id="sidebarUserEmail">Loading...</div>
-                    <div class="account-user-role">
-                        <span class="role-badge" id="sidebarRoleBadge">User</span>
+                    <div class="account-user-header" onclick="AccountSidebar.toggleUserExpand()">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <div class="account-user-name" id="sidebarUserName">Loading...</div>
+                            <span class="role-badge" id="sidebarRoleBadge">User</span>
+                        </div>
+                        <i class="fas fa-chevron-down" id="userExpandChevron" style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
+                    </div>
+                    <div class="account-user-email-container">
+                        <i class="fas fa-circle" id="authStatusDot" style="font-size: 8px; color: var(--text-muted); margin-right: 6px;"></i>
+                        <div class="account-user-email" id="sidebarUserEmail">Loading...</div>
+                    </div>
+                    
+                    <!-- Expandable OAuth Connections -->
+                    <div class="account-oauth-connections collapsed" id="oauthConnectionsExpand" style="margin-top: 12px; border-top: 1px solid var(--border-default); padding-top: 12px;">
+                        <div id="oauthConnectionsList" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- OAuth connections will be loaded here -->
+                            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px;">
+                                <i class="fas fa-spinner fa-spin" style="margin-bottom: 6px;"></i>
+                                <div>Loading connections...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -15899,6 +16059,12 @@
                 <button class="account-tab" data-tab="security" onclick="AccountSidebar.switchTab('security')">
                     <i class="fas fa-shield-alt"></i>
                     <span>Security</span>
+                </button>
+                
+                <!-- Logout Button -->
+                <button class="account-logout-btn" onclick="logoutUser()" title="Log out from your account">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Log Out</span>
                 </button>
             </div>
         </div>
@@ -16229,7 +16395,11 @@
                 </div>
             </div>
             <div class="modal-footer"
-                style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default); justify-content: flex-end;">
+                style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default); justify-content: space-between;">
+                <button class="btn btn-danger" onclick="logoutUser()"
+                    style="background: var(--danger, #ef4444); color: white; border: none;">
+                    <i class="fas fa-sign-out-alt"></i> Log Out
+                </button>
                 <button class="btn btn-primary" onclick="closeSecurity()">
                     <i class="fas fa-check"></i> Close
                 </button>
@@ -21482,10 +21652,19 @@
                 console.error('[TRANSCRIPTION] Failed to load sidebar:', error);
             });
 
-        // Initialize STT Module with callbacks
+        // ✅ REMOVED: Duplicate STTModule initialization
+        // SharedTranscriptionState already handles recording via Browser Web Speech API
+        // This duplicate was causing microphone conflicts (audio-capture error)
         let sttModule = null;
 
         function initializeSTTModule() {
+            console.log('[TRANSCRIPTION] Using SharedTranscriptionState only (Browser STT)');
+            console.log('[TRANSCRIPTION] STTModule initialization skipped - no longer needed');
+            // SharedTranscriptionState is already initialized globally
+            // Chat button already wired to toggleTranscriptionRecording()
+            return;
+
+            /* ❌ COMMENTED OUT - DUPLICATE CAUSING CONFLICTS
             if (sttModule) return;
 
             sttModule = new STTModule({
@@ -21560,6 +21739,7 @@
             });
 
             console.log('[TRANSCRIPTION] STT Module initialized');
+            */ // ← END OF COMMENTED OUT CODE
         }
 
         // Note: toggleTranscriptionRecording() is defined in the sidebar initialization callback above
@@ -21802,6 +21982,25 @@
         }
 
         /**
+         * Log out the current user
+         */
+        function logoutUser() {
+            // Use the existing handleLogout function from account_profile.js
+            if (typeof handleLogout === 'function') {
+                // Close security modal first
+                closeSecurity();
+                // Call the logout handler
+                handleLogout();
+            } else {
+                console.error('[SECURITY] handleLogout function not available');
+                if (confirm('Log out from your account?')) {
+                    // Fallback logout
+                    UserAuth.logout();
+                }
+            }
+        }
+
+        /**
          * Revoke all sessions except current
          */
         async function revokeAllOtherSessions() {
@@ -21948,6 +22147,141 @@
 
                 // Load tab content
                 this.loadTabContent(tabName);
+            },
+
+            /**
+             * Toggle user OAuth connections expand/collapse
+             */
+            toggleUserExpand() {
+                const expandSection = document.getElementById('oauthConnectionsExpand');
+                const chevron = document.getElementById('userExpandChevron');
+                
+                if (expandSection && chevron) {
+                    expandSection.classList.toggle('collapsed');
+                    chevron.classList.toggle('expanded');
+                    
+                    // Load connections when expanding
+                    if (!expandSection.classList.contains('collapsed')) {
+                        this.loadOAuthConnections();
+                    }
+                }
+            },
+
+            /**
+             * Load OAuth connections into sidebar header
+             */
+            async loadOAuthConnections() {
+                const container = document.getElementById('oauthConnectionsList');
+                if (!container) return;
+                
+                try {
+                    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                    if (!token) return;
+
+                    const response = await fetch(`${API_BASE_URL}/api/connections`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) throw new Error('Failed to load connections');
+
+                    const data = await response.json();
+                    this.displayOAuthConnections(data.connections);
+                    
+                    // Update auth status dot
+                    this.updateAuthStatus(data.connections);
+                    
+                } catch (error) {
+                    console.error('[ACCOUNT SIDEBAR] Failed to load OAuth connections:', error);
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 11px;">
+                            Failed to load connections
+                        </div>
+                    `;
+                }
+            },
+
+            /**
+             * Display OAuth connections in sidebar header
+             */
+            displayOAuthConnections(connections) {
+                const container = document.getElementById('oauthConnectionsList');
+                if (!container) return;
+                
+                if (!connections || connections.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 11px;">
+                            <div style="margin-bottom: 6px;">No platform connections</div>
+                            <div style="font-size: 10px;">Go to Connections tab to link accounts</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const platformIcons = {
+                    'google': 'fab fa-google',
+                    'google_workspace': 'fab fa-google',
+                    'microsoft': 'fab fa-microsoft',
+                    'microsoft_365': 'fab fa-microsoft'
+                };
+                
+                const platformServices = {
+                    'google': 'Gmail, Docs, Sheets, Drive, Calendar',
+                    'google_workspace': 'Gmail, Docs, Sheets, Drive, Calendar',
+                    'microsoft': 'Outlook, OneDrive, Teams',
+                    'microsoft_365': 'Outlook, OneDrive, Teams'
+                };
+                
+                container.innerHTML = connections.map(conn => {
+                    const icon = platformIcons[conn.platform] || 'fas fa-plug';
+                    const services = platformServices[conn.platform] || 'Platform services';
+                    const platformName = conn.platform === 'google' || conn.platform === 'google_workspace' 
+                        ? 'Google Workspace' 
+                        : 'Microsoft 365';
+                    const isActive = conn.is_active;
+                    
+                    return `
+                        <div class="oauth-connection-item">
+                            <i class="${icon} platform-icon" style="color: ${isActive ? 'var(--accent-primary)' : 'var(--text-muted)'};"></i>
+                            <div class="oauth-connection-details">
+                                <div class="oauth-platform-name">${platformName}</div>
+                                <div class="oauth-platform-services">${services}</div>
+                            </div>
+                            ${!isActive ? `
+                                <button class="oauth-reconnect-btn" onclick="reauthenticatePlatform('${conn.platform}')">
+                                    <i class="fas fa-sync"></i> Reconnect
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            /**
+             * Update authentication status indicator
+             */
+            updateAuthStatus(connections) {
+                const statusDot = document.getElementById('authStatusDot');
+                if (!statusDot) return;
+                
+                // Remove all status classes
+                statusDot.classList.remove('auth-status-active', 'auth-status-inactive', 'auth-status-unknown');
+                
+                if (!connections || connections.length === 0) {
+                    statusDot.classList.add('auth-status-unknown');
+                    return;
+                }
+                
+                // Check if any connection is active
+                const hasActiveConnection = connections.some(c => c.is_active);
+                
+                if (hasActiveConnection) {
+                    statusDot.classList.add('auth-status-active');
+                } else {
+                    statusDot.classList.add('auth-status-inactive');
+                }
             },
 
             /**
@@ -22452,6 +22786,12 @@
                                     ${isActive ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
+                            ${!isActive ? `
+                                <button onclick="reauthenticatePlatform('${conn.platform}')" 
+                                    style="padding: 6px 12px; background: var(--bg-warning-subtle, rgba(234, 179, 8, 0.1)); color: var(--warning, #eab308); border: 1px solid var(--border-warning, rgba(234, 179, 8, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fas fa-sync"></i> Re-authenticate
+                                </button>
+                            ` : ''}
                             <button onclick="disconnectPlatformModal('${conn.platform}')" 
                                 style="padding: 6px 12px; background: var(--bg-danger-subtle, rgba(239, 68, 68, 0.1)); color: var(--danger, #ef4444); border: 1px solid var(--border-danger, rgba(239, 68, 68, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                                 <i class="fas fa-unlink"></i> Disconnect
@@ -22460,6 +22800,25 @@
                     </div>
                 `;
             }).join('');
+
+            // Add "Connect New Platform" button at the bottom
+            container.innerHTML += `
+                <div style="margin-top: 16px; padding: 16px; border: 2px dashed var(--border-default); border-radius: 8px; text-align: center; background: var(--bg-tertiary);">
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                        <i class="fas fa-plus-circle"></i> Connect additional platforms
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="connectGoogle()" 
+                            style="padding: 8px 16px; background: white; color: #4285f4; border: 1px solid #4285f4; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;">
+                            <i class="fab fa-google"></i> Google Workspace
+                        </button>
+                        <button onclick="connectMicrosoft()" 
+                            style="padding: 8px 16px; background: white; color: #00a4ef; border: 1px solid #00a4ef; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;">
+                            <i class="fab fa-microsoft"></i> Microsoft 365
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
         /**
@@ -22524,6 +22883,57 @@
                 console.error(`[CONNECTIONS MODAL] Error disconnecting ${platform}:`, error);
                 showToast(`Failed to disconnect ${platform}`, 'error');
             }
+        }
+
+        /**
+         * Re-authenticate an inactive/expired platform connection
+         */
+        function reauthenticatePlatform(platform) {
+            console.log(`[CONNECTIONS] Re-authenticating ${platform}...`);
+
+            if (platform === 'google' || platform === 'google_workspace') {
+                connectGoogle();
+            } else if (platform === 'microsoft' || platform === 'microsoft_365') {
+                connectMicrosoft();
+            } else {
+                showToast(`Re-authentication not available for ${platform}`, 'warning');
+            }
+        }
+
+        /**
+         * Connect Google Workspace account
+         */
+        function connectGoogle() {
+            console.log('[CONNECTIONS] Initiating Google OAuth...');
+
+            // Get current user ID from session
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+            if (!token) {
+                showToast('Please log in first', 'error');
+                return;
+            }
+
+            // Redirect to Google OAuth endpoint
+            window.location.href = `${API_BASE_URL}/api/oauth/google/login`;
+        }
+
+        /**
+         * Connect Microsoft 365 account
+         */
+        function connectMicrosoft() {
+            console.log('[CONNECTIONS] Initiating Microsoft OAuth...');
+
+            // Get current user ID from session
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+            if (!token) {
+                showToast('Please log in first', 'error');
+                return;
+            }
+
+            // Redirect to Microsoft OAuth endpoint
+            window.location.href = `${API_BASE_URL}/api/oauth/microsoft/login`;
         }
 
         // Load connections when Account Settings modal opens
