@@ -19093,66 +19093,66 @@
 
             console.log('? [AUTH] UserAuth is now available');
 
-            // ✅ SECURITY FIX (Nov 26, 2025): Clean URL IMMEDIATELY if token present
-            // This must happen BEFORE checkExistingSession to prevent token staying in URL
+            // ✅ CRITICAL FIX (Nov 27, 2025): Check for OAuth token FIRST before session check
+            // OAuth callback flow needs special handling because userProfile isn't stored yet
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('token')) {
+            const hasOAuthToken = urlParams.has('token');
+
+            if (hasOAuthToken) {
+                // OAuth callback detected - handle immediately without session check
                 const token = urlParams.get('token');
-                console.log('🔐 [AUTH INIT] OAuth token detected in URL');
+                console.log('🔐 [AUTH INIT] OAuth callback detected - token in URL');
                 console.log('🔐 [AUTH INIT] Token length:', token.length);
                 console.log('🔐 [AUTH INIT] Token preview:', token.substring(0, 50) + '...');
 
-                // Store token first
+                // Store token in localStorage
                 localStorage.setItem('authToken', token);
                 console.log('✅ [AUTH INIT] Token stored in localStorage');
                 
                 if (typeof UserAuth !== 'undefined') {
                     UserAuth.token = token;
                     console.log('✅ [AUTH INIT] Token set in UserAuth.token');
-                } else {
-                    console.warn('⚠️ [AUTH INIT] UserAuth not available yet - will be set by account_profile.js');
                 }
 
                 // Clean URL immediately (remove token from browser history)
                 window.history.replaceState({}, document.title, window.location.pathname);
                 console.log('✅ [AUTH INIT] URL cleaned (token removed from browser history)');
+
+                // Call initializeAccountProfile to handle OAuth flow
+                // This will load user profile, then call showMainApp()
+                console.log('🚀 [AUTH INIT] Calling initializeAccountProfile() for OAuth flow...');
+                if (typeof window.initializeAccountProfile === 'function') {
+                    await window.initializeAccountProfile();
+                } else {
+                    console.error('❌ [AUTH INIT] initializeAccountProfile not available!');
+                }
+                return; // ✅ CRITICAL: Exit early - don't run checkExistingSession()
             }
 
             try {
-                // Check if user is already logged in
+                // No OAuth token in URL - check for existing session (stored token + profile)
+                console.log('[AUTH INIT] No OAuth token - checking for existing session...');
                 const isAuthenticated = await UserAuth.checkExistingSession();
 
                 if (isAuthenticated) {
-                    console.log('[AUTH] Session found - Loading main app...');
+                    console.log('✅ [AUTH] Session found - Loading main app...');
                     await UserAuth.showMainApp();
-
-                    // ✅ FIXED (Nov 23, 2025): Module initialization handled by UserAuth.showMainApp()
-                    // No need to call initializeModuleSystem() here - it's already called inside showMainApp()
-                    console.log('[AUTH] Main app loaded (modules initialized by UserAuth)')
+                    console.log('✅ [AUTH] Main app loaded (modules initialized)')
                 } else {
-                    console.log('[AUTH] No active session - Checking for OAuth callback or showing login...');
+                    console.log('[AUTH] No active session - Showing login screen...');
 
-                    // ✅ FIXED (Nov 24, 2025): Call initializeAccountProfile() ONLY when NOT authenticated
-                    // This handles:
-                    //   1. OAuth callback processing (?token=... in URL)
-                    //   2. Login screen display (when no token in URL)
-                    //
-                    // The authenticated path (above) bypasses this to prevent double initialization
+                    // No existing session - show login screen
                     if (typeof window.initializeAccountProfile === 'function') {
-                        console.log('[AUTH] Processing OAuth callback or showing login screen...');
                         await window.initializeAccountProfile();
                     } else {
                         console.warn('⚠️ [AUTH] initializeAccountProfile not available - showing login screen manually');
-                        // Fallback: Show login screen manually
                         const loginOverlay = document.getElementById('loginOverlay');
                         if (loginOverlay) {
                             loginOverlay.style.display = 'flex';
                             loginOverlay.classList.remove('hidden');
                         }
                     }
-                }
-
-            } catch (error) {
+                }            } catch (error) {
                 console.error('? [AUTH ERROR] Failed during authentication check:', error);
                 // Show login screen as fallback
                 const loginOverlay = document.getElementById('loginOverlay');
@@ -22153,9 +22153,11 @@
                 if (sidebar) {
                     sidebar.classList.toggle('collapsed');
 
-                    // Load user info when opening
+                    // Load user info and OAuth connections when opening
                     if (!sidebar.classList.contains('collapsed')) {
+                        console.log('[ACCOUNT SIDEBAR] Sidebar opened - loading user info and OAuth connections');
                         this.loadUserInfo();
+                        this.loadOAuthConnections(); // ✅ Auto-load connections when sidebar opens
                         this.loadTabContent(this.currentTab);
                     }
                 }
@@ -22351,6 +22353,15 @@
                     return;
                 }
 
+                // ✅ Auto-expand OAuth section when connections are present
+                const expandSection = document.getElementById('oauthConnectionsExpand');
+                const chevron = document.getElementById('userExpandChevron');
+                if (expandSection && expandSection.classList.contains('collapsed')) {
+                    console.log('[ACCOUNT SIDEBAR] Auto-expanding OAuth connections section (connections found)');
+                    expandSection.classList.remove('collapsed');
+                    if (chevron) chevron.classList.add('expanded');
+                }
+
                 const platformIcons = {
                     'google': 'fab fa-google',
                     'google_workspace': 'fab fa-google',
@@ -22477,6 +22488,10 @@
                             email: emailEl?.textContent,
                             role: roleEl?.textContent
                         });
+
+                        // ✅ Auto-load OAuth connections after user info loads
+                        console.log('[ACCOUNT SIDEBAR] Auto-loading OAuth connections after profile load');
+                        this.loadOAuthConnections();
                     }
                 } catch (error) {
                     console.error('[ACCOUNT SIDEBAR] Failed to load user info:', error);
