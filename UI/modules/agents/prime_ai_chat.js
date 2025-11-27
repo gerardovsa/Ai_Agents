@@ -1736,7 +1736,7 @@ async function sendChatMessage() {
             console.log('📝 Error Message:', error.message);
             console.log('🔍 Error Type:', error.name);
             console.log('🎯 Is Recoverable:', isRecoverable);
-            console.log('📦 Request Payload:', requestBody);
+            // Note: requestBody not available in catch scope (defined in try block)
             console.log('🧵 Thread ID:', currentThreadId);
             console.log('⏰ Timestamp:', new Date().toISOString());
             console.groupEnd();
