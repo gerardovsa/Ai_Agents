@@ -960,7 +960,8 @@ function saveAndCloseSettings() {
     }
 }
 
-function toggleSettingsSection(headerElement) {
+// Expose to global scope for HTML inline handlers
+window.toggleSettingsSection = function toggleSettingsSection(headerElement) {
     const section = headerElement.closest('.settings-section');
     if (section) {
         section.classList.toggle('collapsed');
@@ -1053,9 +1054,10 @@ function loadAccountSettings() {
     }
 }
 
-function saveSettings() {
+// Expose to global scope so HTML inline handlers can call it
+window.saveSettings = async function saveSettings() {
     try {
-        console.log('saveSettings() called');
+        console.log('🔧 [ACCOUNT SETTINGS] saveSettings() called');
 
         // Get current values from UI with error checking
         const modelSelect = document.getElementById('modelSelect');
@@ -1269,8 +1271,8 @@ function updateCurrentTime(timezone) {
     }
 }
 
-// NEW: Toggle manual location override
-function toggleManualLocation() {
+// Expose to global scope for HTML inline handlers
+window.toggleManualLocation = function toggleManualLocation() {
     const checkbox = document.getElementById('useManualLocation');
     const input = document.getElementById('manualLocation');
     input.disabled = !checkbox.checked;
@@ -1280,8 +1282,8 @@ function toggleManualLocation() {
     saveSettings();
 }
 
-// NEW: Toggle manual timezone override
-function toggleManualTimezone() {
+// Expose to global scope for HTML inline handlers
+window.toggleManualTimezone = function toggleManualTimezone() {
     const checkbox = document.getElementById('useManualTimezone');
     const select = document.getElementById('manualTimezone');
     select.disabled = !checkbox.checked;
@@ -1291,7 +1293,8 @@ function toggleManualTimezone() {
     saveSettings();
 }
 
-function resetAccountSettings() {
+// Expose to global scope for HTML inline handlers
+window.resetAccountSettings = function resetAccountSettings() {
     UIComponents.showConfirmation({
         title: 'Reset Settings?',
         message: 'This will reset all settings to defaults. This action cannot be undone.',

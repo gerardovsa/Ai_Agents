@@ -52,11 +52,53 @@ class SharedTranscriptionState {
         console.log(`[SHARED STATE] Starting recording from ${source}...`);
         
         try {
-            // ✅ REMOVED: MediaRecorder (was causing audio-capture error)
-            // Browser Web Speech API needs exclusive microphone access
-            // MediaRecorder was blocking browserRecognition from starting
+            // 🔊 PRIORITY 1: Try to capture system audio (desktop/tab audio)
+            // This is what users usually want - transcribe meetings, videos, calls they're listening to
+            let audioStream = null;
+            let audioSource = 'unknown';
             
-            // Reset audio chunks (no longer using MediaRecorder)
+            try {
+                console.log('[SHARED STATE] Attempting to capture system audio...');
+                audioStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: false,
+                    audio: {
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 16000
+                    }
+                });
+                audioSource = 'system';
+                console.log('[SHARED STATE] ✅ System audio captured (desktop/tab audio)');
+            } catch (systemError) {
+                console.log('[SHARED STATE] System audio not available (user cancelled or not supported):', systemError.message);
+                
+                // 🎤 FALLBACK: Use microphone if system audio fails
+                try {
+                    console.log('[SHARED STATE] Falling back to microphone...');
+                    audioStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                            sampleRate: 16000
+                        }
+                    });
+                    audioSource = 'microphone';
+                    console.log('[SHARED STATE] ✅ Microphone captured');
+                } catch (micError) {
+                    console.error('[SHARED STATE] Failed to access any audio source:', micError);
+                    throw new Error('No audio source available. Please allow audio access.');
+                }
+            }
+            
+            // Store audio stream for cleanup
+            this.audioStream = audioStream;
+            this.currentAudioSource = audioSource;
+            
+            // Reset audio chunks (no longer using MediaRecorder for Whisper)
             this.audioChunks = [];
             this.audioRecorder = null;
             
@@ -170,14 +212,28 @@ class SharedTranscriptionState {
             }
         }
         
-        // ✅ REMOVED: MediaRecorder stop (no longer using it)
-        // Trigger onStop manually since we removed MediaRecorder.onstop
+        // Stop and cleanup audio stream (system audio or microphone)
+        if (this.audioStream) {
+            try {
+                this.audioStream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log(`[SHARED STATE] Stopped ${track.kind} track (${track.label})`);
+                });
+                this.audioStream = null;
+            } catch (e) {
+                console.error('[SHARED STATE] Failed to stop audio stream:', e);
+            }
+        }
+        
+        // Trigger onStop callback
         this.trigger('onStop');
         
         this.isRecording = false;
         const source = this.recordingSource;
+        const audioSource = this.currentAudioSource || 'unknown';
         this.recordingSource = null;
-        console.log(`[SHARED STATE] ✅ Recording stopped (was from ${source})`);
+        this.currentAudioSource = null;
+        console.log(`[SHARED STATE] ✅ Recording stopped (was from ${source}, audio: ${audioSource})`);
     }
     
     // ✅ REMOVED: getAudioBlob (no longer using MediaRecorder/Whisper)
@@ -247,6 +303,10 @@ class TranscriptionSidebarController {
      */
     async init() {
         console.log('[TRANSCRIPTION SIDEBAR] Initializing...');
+        
+        // Initialize state flags
+        this.isPaused = false;
+        this.shouldSaveOnStop = true; // Can be set to false by delete button
 
         // Show auto-detected backend URL hint
         if (window.TranscriptionConfig) {
@@ -277,11 +337,103 @@ class TranscriptionSidebarController {
 
         // Setup event listeners
         this.setupEventListeners();
+        
+        // Setup drag-and-drop drop zones
+        this.setupDropZones();
 
         // Test backend connection
         await this.testBackendConnection();
 
         console.log('[TRANSCRIPTION SIDEBAR] Initialization complete');
+    }
+    
+    /**
+     * Setup drag-and-drop drop zones for AI Prime and agent columns
+     */
+    setupDropZones() {
+        // AI Prime input drop zone
+        const primeInput = document.getElementById('ai-chat-input');
+        if (primeInput) {
+            this.makeDropZone(primeInput, 'AI Prime');
+        }
+        
+        // Agent column inputs - setup observer for dynamically created agents
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // Element node
+                        const agentInput = node.querySelector?.('.agent-column-input');
+                        if (agentInput) {
+                            const titleEl = node.querySelector('.agent-column-title');
+                            const agentName = titleEl ? titleEl.textContent.trim() : 'Agent';
+                            this.makeDropZone(agentInput, agentName);
+                        }
+                    }
+                });
+            });
+        });
+        
+        // Observe agent workspace for new columns
+        const workspace = document.getElementById('agent-workspace-container');
+        if (workspace) {
+            observer.observe(workspace, { childList: true, subtree: true });
+        }
+        
+        // Setup existing agent inputs
+        document.querySelectorAll('.agent-column-input').forEach((input, index) => {
+            this.makeDropZone(input, `Agent ${index + 1}`);
+        });
+        
+        console.log('[TRANSCRIPTION] Drop zones setup complete');
+    }
+    
+    /**
+     * Make an input element a drop zone for transcript cards
+     */
+    makeDropZone(element, name) {
+        element.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            element.style.background = 'rgba(88, 166, 255, 0.1)';
+            element.style.borderColor = '#58a6ff';
+        });
+        
+        element.addEventListener('dragleave', (e) => {
+            element.style.background = '';
+            element.style.borderColor = '';
+        });
+        
+        element.addEventListener('drop', (e) => {
+            e.preventDefault();
+            element.style.background = '';
+            element.style.borderColor = '';
+            
+            // Get transcript data
+            const transcriptJson = e.dataTransfer.getData('application/transcript');
+            if (transcriptJson) {
+                const transcript = JSON.parse(transcriptJson);
+                
+                // Insert text
+                const insertMode = this.config.insertMode || 'append';
+                if (insertMode === 'replace') {
+                    element.value = transcript.text;
+                } else {
+                    const currentText = element.value.trim();
+                    element.value = currentText ? currentText + ' ' + transcript.text : transcript.text;
+                }
+                
+                // Focus and trigger events
+                element.focus();
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                console.log(`[TRANSCRIPTION] Transcript dropped into ${name}:`, transcript.text.substring(0, 50));
+                
+                // Show notification
+                if (window.showNotification) {
+                    window.showNotification(`Transcript inserted to ${name}`, 'success');
+                }
+            }
+        });
     }
 
     /**
@@ -395,6 +547,84 @@ class TranscriptionSidebarController {
         }
     }
 
+    /**
+     * Toggle pause/resume recording
+     */
+    togglePause() {
+        if (!this.sharedState.isRecording) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Not recording, cannot pause');
+            return;
+        }
+        
+        this.isPaused = !this.isPaused;
+        const pauseBtn = document.getElementById('transcription-pause-btn');
+        const stateEl = document.getElementById('stt-state');
+        
+        if (this.isPaused) {
+            // Pause recording
+            if (this.sharedState.browserRecognition) {
+                this.sharedState.browserRecognition.stop();
+            }
+            
+            // Stop timer
+            if (this.recordingInterval) {
+                clearInterval(this.recordingInterval);
+                this.recordingInterval = null;
+            }
+            
+            if (pauseBtn) {
+                pauseBtn.classList.add('paused');
+                pauseBtn.querySelector('i').className = 'fas fa-play';
+                pauseBtn.title = 'Resume Recording';
+            }
+            if (stateEl) stateEl.textContent = 'Paused';
+            
+            console.log('[TRANSCRIPTION SIDEBAR] Recording paused');
+        } else {
+            // Resume recording
+            if (this.sharedState.browserRecognition) {
+                try {
+                    this.sharedState.browserRecognition.start();
+                } catch (e) {
+                    console.warn('[TRANSCRIPTION SIDEBAR] Failed to resume:', e);
+                }
+            }
+            
+            // Restart timer
+            this.recordingInterval = setInterval(() => {
+                const elapsed = Date.now() - this.recordingStartTime;
+                const duration = this.formatDuration(elapsed);
+                const durationEl = document.getElementById('stt-duration');
+                if (durationEl) durationEl.textContent = duration;
+            }, 1000);
+            
+            if (pauseBtn) {
+                pauseBtn.classList.remove('paused');
+                pauseBtn.querySelector('i').className = 'fas fa-pause';
+                pauseBtn.title = 'Pause Recording';
+            }
+            if (stateEl) stateEl.textContent = 'Recording';
+            
+            console.log('[TRANSCRIPTION SIDEBAR] Recording resumed');
+        }
+    }
+    
+    /**
+     * Delete current recording and discard transcript
+     */
+    deleteCurrent() {
+        if (!this.sharedState.isRecording) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Not recording, nothing to delete');
+            return;
+        }
+        
+        if (confirm('Delete this recording? The transcript will not be saved.')) {
+            this.shouldSaveOnStop = false;
+            this.sharedState.stopRecording();
+            console.log('[TRANSCRIPTION SIDEBAR] Recording deleted, will not save');
+        }
+    }
+    
     /**
      * Toggle sidebar visibility
      */
@@ -527,9 +757,20 @@ class TranscriptionSidebarController {
      */
     handleRecordingStop() {
         console.log('[TRANSCRIPTION SIDEBAR] Recording stopped callback');
+        
+        // ✅ NEW: Save live transcript to collection before clearing
+        const liveDisplay = document.getElementById('transcription-live-display');
+        if (liveDisplay && liveDisplay.textContent.trim()) {
+            const transcriptText = liveDisplay.textContent.trim();
+            const source = this.sharedState.recordingSource || 'unknown';
+            
+            console.log(`[TRANSCRIPTION SIDEBAR] Auto-saving transcript from ${source}:`, transcriptText.substring(0, 50) + '...');
+            this.addSTTTranscript(transcriptText, source);
+        }
+        
         this.handleSTTStop();
         
-        // Send audio to Whisper
+        // Send audio to Whisper (disabled, will do nothing)
         this.sendAudioToWhisper();
     }
     
@@ -766,15 +1007,34 @@ class TranscriptionSidebarController {
     handleSTTStart() {
         console.log('[TRANSCRIPTION SIDEBAR] STT recording started');
         
-        // Update UI
+        // Update UI - Record button
         const recordBtn = document.getElementById('transcription-record-toggle');
         if (recordBtn) {
             recordBtn.classList.add('recording');
-            recordBtn.innerHTML = '<i class="fas fa-stop"></i><span>Stop Recording</span>';
+            recordBtn.querySelector('i').className = 'fas fa-stop';
+            recordBtn.title = 'Stop Recording';
         }
+        
+        // Enable pause and delete buttons
+        const pauseBtn = document.getElementById('transcription-pause-btn');
+        const deleteBtn = document.getElementById('transcription-delete-btn');
+        if (pauseBtn) pauseBtn.disabled = false;
+        if (deleteBtn) deleteBtn.disabled = false;
 
-        document.getElementById('stt-state').textContent = 'Recording';
-        document.getElementById('stt-state').style.color = '#ef4444';
+        // Update state with audio source indicator
+        const stateEl = document.getElementById('stt-state');
+        if (stateEl) {
+            const audioSource = this.sharedState.currentAudioSource || 'unknown';
+            const sourceIcon = audioSource === 'system' ? '🔊' : audioSource === 'microphone' ? '🎤' : '🎙️';
+            const sourceText = audioSource === 'system' ? 'System Audio' : audioSource === 'microphone' ? 'Microphone' : 'Recording';
+            stateEl.innerHTML = `${sourceIcon} ${sourceText}`;
+            stateEl.style.color = '#ef4444';
+            stateEl.title = audioSource === 'system' 
+                ? 'Recording desktop/tab audio' 
+                : audioSource === 'microphone'
+                ? 'Recording from microphone'
+                : 'Recording active';
+        }
 
         // ✅ FIX: Clear any existing timer before starting new one
         if (this.recordingInterval) {
@@ -789,22 +1049,37 @@ class TranscriptionSidebarController {
             const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
             const minutes = Math.floor(elapsed / 60);
             const seconds = elapsed % 60;
-            document.getElementById('stt-duration').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            const durationEl = document.getElementById('stt-duration');
+            if (durationEl) durationEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }, 1000);
     }
 
     handleSTTStop() {
         console.log('[TRANSCRIPTION SIDEBAR] STT recording stopped');
         
-        // Update UI
+        // Update UI - Record button
         const recordBtn = document.getElementById('transcription-record-toggle');
         if (recordBtn) {
             recordBtn.classList.remove('recording');
-            recordBtn.innerHTML = '<i class="fas fa-microphone"></i><span>Start Recording</span>';
+            recordBtn.querySelector('i').className = 'fas fa-microphone';
+            recordBtn.title = 'Start Recording';
         }
+        
+        // Disable pause and delete buttons
+        const pauseBtn = document.getElementById('transcription-pause-btn');
+        const deleteBtn = document.getElementById('transcription-delete-btn');
+        if (pauseBtn) {
+            pauseBtn.disabled = true;
+            pauseBtn.classList.remove('paused');
+            pauseBtn.querySelector('i').className = 'fas fa-pause';
+        }
+        if (deleteBtn) deleteBtn.disabled = true;
 
-        document.getElementById('stt-state').textContent = 'Processing';
-        document.getElementById('stt-state').style.color = '#58a6ff';
+        const stateEl = document.getElementById('stt-state');
+        if (stateEl) {
+            stateEl.textContent = 'Processing';
+            stateEl.style.color = '#58a6ff';
+        }
 
         // Stop duration timer
         if (this.recordingInterval) {
@@ -946,11 +1221,13 @@ class TranscriptionSidebarController {
     /**
      * Add STT transcript to collection
      */
-    addSTTTranscript(text) {
+    addSTTTranscript(text, source = null) {
         const transcript = {
             timestamp: Date.now(),
             text: text,
-            type: 'stt'
+            type: 'stt',
+            source: source || this.sharedState.recordingSource || 'unknown', // 'sidebar' | 'chat' | 'unknown'
+            audioSource: this.sharedState.currentAudioSource || 'unknown' // 'system' | 'microphone' | 'unknown'
         };
         
         this.sttTranscripts.push(transcript);
@@ -1009,14 +1286,49 @@ class TranscriptionSidebarController {
     createTranscriptEntry(transcript) {
         const entry = document.createElement('div');
         entry.className = 'transcription-transcript-entry';
+        entry.dataset.source = transcript.source || 'unknown';
+        entry.dataset.timestamp = transcript.timestamp;
+        entry.dataset.text = transcript.text;
+        
+        // Make draggable
+        entry.draggable = true;
+        entry.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', transcript.text);
+            e.dataTransfer.setData('application/transcript', JSON.stringify(transcript));
+            entry.classList.add('dragging');
+            console.log('[TRANSCRIPTION] Drag started:', transcript.text.substring(0, 50));
+        });
+        entry.addEventListener('dragend', (e) => {
+            entry.classList.remove('dragging');
+        });
         
         const time = new Date(transcript.timestamp).toLocaleTimeString();
+        const date = new Date(transcript.timestamp).toLocaleDateString();
+        
+        // Source badge with color coding
+        const sourceBadge = transcript.source === 'sidebar' 
+            ? '<span class="transcript-source-badge sidebar" title="Recorded in sidebar"><i class="fas fa-sidebar"></i> Sidebar</span>'
+            : transcript.source === 'chat'
+            ? '<span class="transcript-source-badge chat" title="Recorded via chat button"><i class="fas fa-comments"></i> Chat</span>'
+            : '<span class="transcript-source-badge unknown"><i class="fas fa-question"></i> Unknown</span>';
+        
+        // Audio source badge
+        const audioSource = transcript.audioSource || 'unknown';
+        const audioBadge = audioSource === 'system'
+            ? '<span class="transcript-audio-badge system" title="Desktop/Tab audio"><i class="fas fa-desktop"></i> System</span>'
+            : audioSource === 'microphone'
+            ? '<span class="transcript-audio-badge microphone" title="Microphone input"><i class="fas fa-microphone"></i> Mic</span>'
+            : '';
         
         entry.innerHTML = `
             <div class="transcription-transcript-header">
-                <span class="transcription-transcript-time">${time}</span>
-                <div class="transcription-transcript-actions">
-                    <button onclick="TranscriptionSidebar.sendTranscriptToChat(${transcript.timestamp})" title="Send to Chat">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="transcription-transcript-time">${time}</span>
+                    ${sourceBadge}
+                    ${audioBadge}
+                </div>
+                <div class="transcription-transcript-actions" style="position: relative;">
+                    <button class="send-to-chat-btn" data-timestamp="${transcript.timestamp}" title="Send to Chat">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                     <button onclick="TranscriptionSidebar.copyTranscript(${transcript.timestamp})" title="Copy">
@@ -1029,6 +1341,71 @@ class TranscriptionSidebarController {
             </div>
             <div class="transcription-transcript-text">${transcript.text}</div>
         `;
+        
+        // Add click handler for send button to show dropdown
+        const sendBtn = entry.querySelector('.send-to-chat-btn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showDestinationDropdown(sendBtn, transcript);
+            });
+        }
+        
+        // Add inline styles for source badges (only once)
+        const style = document.createElement('style');
+        if (!document.getElementById('transcript-source-badge-styles')) {
+            style.id = 'transcript-source-badge-styles';
+            style.textContent = `
+                .transcript-source-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .transcript-source-badge.sidebar {
+                    background: rgba(56, 139, 253, 0.15);
+                    color: #58a6ff;
+                    border: 1px solid rgba(56, 139, 253, 0.3);
+                }
+                .transcript-source-badge.chat {
+                    background: rgba(35, 134, 54, 0.15);
+                    color: #3fb950;
+                    border: 1px solid rgba(35, 134, 54, 0.3);
+                }
+                .transcript-source-badge.unknown {
+                    background: rgba(255, 255, 255, 0.05);
+                    color: #8b949e;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                .transcript-audio-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .transcript-audio-badge.system {
+                    background: rgba(168, 85, 247, 0.15);
+                    color: #a855f7;
+                    border: 1px solid rgba(168, 85, 247, 0.3);
+                }
+                .transcript-audio-badge.microphone {
+                    background: rgba(249, 115, 22, 0.15);
+                    color: #f97316;
+                    border: 1px solid rgba(249, 115, 22, 0.3);
+                }
+            `;
+            document.head.appendChild(style);
+        }
         
         return entry;
     }
@@ -1077,6 +1454,119 @@ class TranscriptionSidebarController {
         }
     }
 
+    /**
+     * Show dropdown to choose destination (AI Prime or specific agent)
+     */
+    showDestinationDropdown(button, transcript) {
+        // Remove any existing dropdown
+        document.querySelectorAll('.transcript-destination-dropdown').forEach(d => d.remove());
+        
+        const dropdown = document.createElement('div');
+        dropdown.className = 'transcript-destination-dropdown show';
+        
+        // Get available agents
+        const agents = [];
+        
+        // Add AI Prime option
+        agents.push({
+            id: 'ai-prime',
+            name: 'AI Prime',
+            icon: 'fas fa-star',
+            inputId: 'ai-chat-input'
+        });
+        
+        // Get active agent columns
+        const agentColumns = document.querySelectorAll('.agent-column-container');
+        agentColumns.forEach((col, index) => {
+            const titleEl = col.querySelector('.agent-column-title');
+            const inputEl = col.querySelector('.agent-column-input');
+            if (titleEl && inputEl) {
+                agents.push({
+                    id: `agent-${index}`,
+                    name: titleEl.textContent.trim(),
+                    icon: 'fas fa-robot',
+                    inputId: inputEl.id
+                });
+            }
+        });
+        
+        // Build dropdown HTML
+        let html = '';
+        agents.forEach((agent, index) => {
+            if (index > 0) html += '<div class="transcript-destination-divider"></div>';
+            html += `
+                <div class="transcript-destination-option" data-input-id="${agent.inputId}">
+                    <i class="${agent.icon}"></i>
+                    <span>${agent.name}</span>
+                </div>
+            `;
+        });
+        
+        dropdown.innerHTML = html;
+        
+        // Add click handlers
+        dropdown.querySelectorAll('.transcript-destination-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const inputId = option.dataset.inputId;
+                this.insertTranscriptToInput(transcript, inputId, button);
+                dropdown.remove();
+            });
+        });
+        
+        // Position dropdown
+        button.parentElement.style.position = 'relative';
+        button.parentElement.appendChild(dropdown);
+        
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!dropdown.contains(e.target) && e.target !== button) {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }, 100);
+        
+        console.log(`[TRANSCRIPTION] Showing destination dropdown with ${agents.length} options`);
+    }
+    
+    /**
+     * Insert transcript to specific input element
+     */
+    insertTranscriptToInput(transcript, inputId, button) {
+        const input = document.getElementById(inputId);
+        if (!input) {
+            console.error(`[TRANSCRIPTION] Input not found: ${inputId}`);
+            alert('Target input not found. Please make sure the chat is visible.');
+            return;
+        }
+        
+        // Insert text
+        const insertMode = this.config.insertMode || 'append';
+        if (insertMode === 'replace') {
+            input.value = transcript.text;
+        } else {
+            const currentText = input.value.trim();
+            input.value = currentText ? currentText + ' ' + transcript.text : transcript.text;
+        }
+        
+        // Focus and trigger events
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Visual feedback
+        const icon = button.querySelector('i');
+        if (icon) {
+            icon.className = 'fas fa-check';
+            setTimeout(() => {
+                icon.className = 'fas fa-paper-plane';
+            }, 1000);
+        }
+        
+        console.log(`[TRANSCRIPTION] Transcript inserted to ${inputId}`);
+    }
+    
     /**
      * Copy transcript to clipboard
      */

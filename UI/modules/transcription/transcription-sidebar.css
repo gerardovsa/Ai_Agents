@@ -100,27 +100,28 @@
 }
 
 .transcription-tab {
-    padding: 8px 12px;
+    padding: 10px;
     border: 1px solid var(--border-default, #30363d);
     background: var(--bg-secondary, #1c1f26);
     color: var(--text-muted, #8b949e);
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 18px;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .transcription-tab i {
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .transcription-tab:hover {
     background: var(--bg-hover, #292e36);
     border-color: var(--accent-primary, #58a6ff);
+    transform: translateY(-2px);
 }
 
 .transcription-tab.active {
@@ -701,4 +702,204 @@
 
 .transcription-live-display .final {
     color: var(--text-primary, #c9d1d9);
+}
+
+/* ==================== RECORDING GRID LAYOUT ==================== */
+
+.transcription-recording-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: start;
+}
+
+.recording-status-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.recording-status-left .status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent-primary, #58a6ff);
+}
+
+.recording-status-left .status-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted, #8b949e);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.recording-status-left .status-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #c9d1d9);
+}
+
+/* Right column: Vertical action buttons */
+.recording-actions-right {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.recording-action-btn {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    background: var(--bg-secondary, #1c1f26);
+    color: var(--text-muted, #8b949e);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.recording-action-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.recording-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Record button (green) */
+.recording-action-btn.record-btn {
+    border-color: #2ea043;
+    color: #2ea043;
+}
+
+.recording-action-btn.record-btn:hover:not(:disabled) {
+    background: rgba(46, 160, 67, 0.1);
+    border-color: #3fb950;
+    color: #3fb950;
+}
+
+.recording-action-btn.record-btn.recording {
+    background: #2ea043;
+    color: white;
+    animation: pulse-record 2s infinite;
+}
+
+@keyframes pulse-record {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(46, 160, 67, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(46, 160, 67, 0);
+    }
+}
+
+/* Pause button (yellow) */
+.recording-action-btn.pause-btn {
+    border-color: #d29922;
+    color: #d29922;
+}
+
+.recording-action-btn.pause-btn:hover:not(:disabled) {
+    background: rgba(210, 153, 34, 0.1);
+    border-color: #e3b341;
+    color: #e3b341;
+}
+
+.recording-action-btn.pause-btn.paused {
+    background: #d29922;
+    color: white;
+}
+
+/* Delete button (red) */
+.recording-action-btn.delete-btn {
+    border-color: #da3633;
+    color: #da3633;
+}
+
+.recording-action-btn.delete-btn:hover:not(:disabled) {
+    background: rgba(218, 54, 51, 0.1);
+    border-color: #f85149;
+    color: #f85149;
+}
+
+/* ==================== DRAGGABLE TRANSCRIPT CARDS ==================== */
+
+.transcription-transcript-entry {
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.transcription-transcript-entry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.transcription-transcript-entry.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.transcription-transcript-entry[draggable="true"] {
+    border-left: 3px solid var(--accent-primary, #58a6ff);
+}
+
+/* Destination dropdown for Send to Chat */
+.transcript-destination-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg-tertiary, #161921);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    padding: 8px;
+    min-width: 200px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    display: none;
+}
+
+.transcript-destination-dropdown.show {
+    display: block;
+    animation: transcription-fade-in 0.2s ease;
+}
+
+.transcript-destination-option {
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: var(--text-primary, #c9d1d9);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    transition: background 0.2s ease;
+}
+
+.transcript-destination-option:hover {
+    background: var(--bg-hover, #292e36);
+}
+
+.transcript-destination-option i {
+    font-size: 14px;
+    color: var(--accent-primary, #58a6ff);
+}
+
+.transcript-destination-divider {
+    height: 1px;
+    background: var(--border-default, #30363d);
+    margin: 4px 0;
 }
