@@ -5,7 +5,7 @@
     "description": "InHousePrint production workflow Kanban board with AI priority scoring and real-time job tracking",
     "author": "InHouse Print",
     "icon": "fas fa-industry",
-    "html_file": "inhouse-kanban.html",
+    "html_file": "inhouse-kanban-SIDEBAR.html",
     "js_file": "inhouse-kanban.js",
     "css_file": "inhouse-kanban-NEW.css",
     "colors": {
@@ -41,5 +41,11 @@
         "backend_url": "http://localhost:5001",
         "default_timeframe": -6,
         "refresh_interval": 300
-    }
+    },
+    "sidebar": {
+        "enabled": true,
+        "width": 480,
+        "html_file": "inhouse-kanban-SIDEBAR.html"
+    },
+    "floating_toggle_opens_sidebar": true
 }

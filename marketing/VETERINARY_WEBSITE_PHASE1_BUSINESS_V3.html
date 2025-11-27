@@ -4282,9 +4282,9 @@
                     <canvas id="vetaiCircuitCanvas"
                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
 
-                    <!-- VetAI Center Hub (solid orange) -->
+                    <!-- VetAI Center Hub (hexagon orange) -->
                     <div class="arch-layer vetai-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="400"
-                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 50%; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 60px rgba(255,107,53,0.8), 0 0 120px rgba(255,107,53,0.4);">
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 60px rgba(255,107,53,0.8), 0 0 120px rgba(255,107,53,0.4);">
                         <div style="font-size: 48px; margin-bottom: var(--space-xs);">🧠</div>
                         <div style="font-size: var(--text-lg); font-weight: 700; color: white; text-align: center;">
                             VetAI</div>
@@ -4607,7 +4607,7 @@
         </p>
 
         <div
-            style="position: relative; max-width: 1000px; margin: 0 auto; background: linear-gradient(135deg, rgba(10,25,41,0.9) 0%, rgba(26,35,126,0.7) 50%, rgba(13,27,61,0.9) 100%); border-radius: 24px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.4); min-height: 800px; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
+            style="position: relative; max-width: 1000px; margin: 0 auto; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 50%, rgba(6,10,25,0.98) 100%); border-radius: 24px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.4); min-height: 800px; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
             <!-- Canvas for particle animation -->
             <canvas id="dataFlowCanvas"
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
@@ -4620,9 +4620,9 @@
                 <div style="font-size: 10px; color: rgba(255,255,255,0.9); text-align: center;">Your Team</div>
             </div>
 
-            <!-- VetAI Center Hub (solid orange) -->
+            <!-- VetAI Center Hub (hexagon orange) -->
             <div class="arch-layer vetai-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="400"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 50%; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
                 <div style="font-size: 56px; margin-bottom: var(--space-xs);">🧠</div>
                 <div style="font-size: var(--text-xl); font-weight: 700; color: white; text-align: center;">VetAI</div>
                 <div style="font-size: var(--text-xs); color: rgba(255,255,255,0.95); text-align: center;">Augmentation
@@ -4757,10 +4757,10 @@
                             this.color = { r: 255, g: 107, b: 53 }; // Orange (AI responses)
                         }
 
-                        this.speed = 0.6 + Math.random() * 0.4; // Slow (0.6-1.0)
+                        this.speed = 2.0 + Math.random() * 1.5; // FAST (2.0-3.5) - increased from 0.6-1.0
                         this.trail = [];
-                        this.maxTrail = 35;
-                        this.size = 4.5;
+                        this.maxTrail = 40; // LONG trails - increased from 15
+                        this.size = 2.0; // Reduced from 4.5
                     } else {
                         // VetAI <-> Layers (fast, many platforms within each layer)
                         const isLayerToAI = Math.random() > 0.25; // 75% layer->AI, 25% AI->layer
@@ -4804,10 +4804,10 @@
                             this.color = layer.color; // Use layer's color
                         }
 
-                        this.speed = 1.5 + Math.random() * 2.0; // Fast (1.5-3.5)
+                        this.speed = 3.0 + Math.random() * 2.5; // VERY FAST (3.0-5.5) - increased from 1.5-3.5
                         this.trail = [];
-                        this.maxTrail = 20;
-                        this.size = 3.0;
+                        this.maxTrail = 35; // LONG trails - increased from 10
+                        this.size = 1.5; // Reduced from 3.0
                     }
                 }
 
@@ -4848,8 +4848,8 @@
 
                     // Core
                     ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${brightness})`;
-                    ctx.shadowBlur = (this.isUserParticle ? 15 : 10) * brightness;
-                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.9)`;
+                    ctx.shadowBlur = (this.isUserParticle ? 6 : 4) * brightness; // Reduced from 15/10
+                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.6)`; // Reduced from 0.9
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
@@ -4857,58 +4857,24 @@
                 }
             }
 
-            // Initialize particles - 8 USER particles (slow) + 70 Layer particles (fast)
+            // Initialize particles - INCREASED for more visual density (static speed)
             const particles = [];
 
-            // USER <-> VetAI particles (slow, infrequent, prominent)
-            for (let i = 0; i < 8; i++) {
+            // USER <-> VetAI particles (slow, infrequent, prominent) - increased from 8 to 15
+            for (let i = 0; i < 15; i++) {
                 particles.push(new FlowParticle(canvas.width, canvas.height, true));
             }
 
-            // VetAI <-> Layers particles (fast, many, subtle)
-            for (let i = 0; i < 70; i++) {
+            // VetAI <-> Layers particles (fast, many, subtle) - increased from 70 to 135
+            for (let i = 0; i < 135; i++) {
                 particles.push(new FlowParticle(canvas.width, canvas.height, false));
             }
 
-            // Phase calculator
-            function getPhase() {
-                const elapsed = (Date.now() - startTime) / 1000;
-                const cycleTime = elapsed % 27;
-
-                let speed, brightness, phase;
-
-                if (cycleTime < 4) {
-                    phase = 'INITIALIZING';
-                    speed = 0.4;
-                    brightness = 0.3;
-                } else if (cycleTime < 13) {
-                    phase = 'ANALYZING';
-                    speed = 0.4 + ((cycleTime - 4) / 9) * 1.6;
-                    brightness = 0.3 + ((cycleTime - 4) / 9) * 0.7;
-                } else if (cycleTime < 17) {
-                    phase = 'CONNECTING';
-                    speed = 2.0 + ((cycleTime - 13) / 4) * 3.5;
-                    brightness = 1.0;
-                } else if (cycleTime < 25) {
-                    phase = 'HYPER-PROCESSING';
-                    speed = 6.5;
-                    brightness = 1.0;
-                } else {
-                    phase = 'CLEARING';
-                    speed = 6.5;
-                    brightness = 1.0 - ((cycleTime - 25) / 2);
-                }
-
-                return { speed, brightness, phase };
-            }
-
-            // Animation loop
+            // Animation loop - STATIC SPEED (no phase cycling)
             function animate() {
-                const phase = getPhase();
-
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Draw faint connection lines
+                // Draw faint connection lines (static brightness)
                 const user = { x: canvas.width * 0.5, y: canvas.height * 0.08 };
                 const vetai = { x: canvas.width * 0.5, y: canvas.height * 0.5 };
                 const layers = [
@@ -4918,8 +4884,8 @@
                     { x: canvas.width * 0.75, y: canvas.height * 0.82 }
                 ];
 
-                // User <-> VetAI lines
-                ctx.strokeStyle = `rgba(88, 166, 255, ${0.15 * phase.brightness})`;
+                // User <-> VetAI lines (static)
+                ctx.strokeStyle = `rgba(88, 166, 255, 0.15)`;
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath();
@@ -4936,10 +4902,10 @@
                 });
                 ctx.setLineDash([]);
 
-                // Update and draw particles
+                // Update and draw particles - FASTER SPEED (2.5x) and FULL BRIGHTNESS
                 particles.forEach(p => {
-                    p.update(phase.speed);
-                    p.draw(ctx, phase.brightness);
+                    p.update(2.5); // FASTER static speed - increased from 1.5x
+                    p.draw(ctx, 1.0); // Static full brightness
                 });
 
                 animationId = requestAnimationFrame(animate);
@@ -4976,7 +4942,7 @@
         </p>
 
         <div id="dataFlowV3Container"
-            style="position: relative; max-width: 1000px; margin: 0 auto; background: linear-gradient(135deg, rgba(10,25,41,0.9) 0%, rgba(26,35,126,0.7) 50%, rgba(13,27,61,0.9) 100%); border-radius: 24px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.4); height: 800px; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
+            style="position: relative; max-width: 1000px; margin: 0 auto; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 50%, rgba(6,10,25,0.98) 100%); border-radius: 24px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.4); height: 800px; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
             <!-- Canvas for particle animation -->
             <canvas id="dataFlowCanvasV3"
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;"></canvas>
@@ -4989,9 +4955,9 @@
                 <div style="font-size: 10px; color: rgba(255,255,255,0.9); text-align: center;">Your Team</div>
             </div>
 
-            <!-- VetAI Center Hub (solid orange) -->
+            <!-- VetAI Center Hub (hexagon orange) -->
             <div class="arch-layer vetai-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="400"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 50%; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%); width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
                 <div style="font-size: 56px; margin-bottom: var(--space-xs);">🧠</div>
                 <div style="font-size: var(--text-xl); font-weight: 700; color: white; text-align: center;">VetAI</div>
                 <div style="font-size: var(--text-xs); color: rgba(255,255,255,0.95); text-align: center;">Augmentation
@@ -5171,10 +5137,10 @@
                             this.color = { r: 255, g: 107, b: 53 };
                         }
 
-                        this.speed = 0.6 + Math.random() * 0.4;
+                        this.speed = 2.0 + Math.random() * 1.5; // FAST (2.0-3.5) - increased from 0.6-1.0
                         this.trail = [];
-                        this.maxTrail = 35;
-                        this.size = 4.5;
+                        this.maxTrail = 40; // LONG trails - increased from 15
+                        this.size = 2.0; // Reduced from 4.5
                     } else {
                         const isLayerToAI = Math.random() > 0.25;
 
@@ -5207,10 +5173,10 @@
                             this.color = layer.color;
                         }
 
-                        this.speed = 1.5 + Math.random() * 2.0;
+                        this.speed = 3.0 + Math.random() * 2.5; // VERY FAST (3.0-5.5) - increased from 1.5-3.5
                         this.trail = [];
-                        this.maxTrail = 20;
-                        this.size = 3.0;
+                        this.maxTrail = 35; // LONG trails - increased from 10
+                        this.size = 1.5; // Reduced from 3.0
                     }
                 }
 
@@ -5233,8 +5199,8 @@
                 }
 
                 draw(ctx, brightness) {
-                    const lineWidth = this.isUserParticle ? 3.0 : 2.0;
-                    const trailAlpha = this.isUserParticle ? 0.9 : 0.7;
+                    const lineWidth = this.isUserParticle ? 1.0 : 0.8; // Reduced from 3.0/2.0
+                    const trailAlpha = this.isUserParticle ? 1.0 : 0.95; // MAXIMUM BRIGHTNESS from 0.6/0.5
 
                     if (this.trail.length > 1) {
                         for (let i = 0; i < this.trail.length - 1; i++) {
@@ -5249,8 +5215,8 @@
                     }
 
                     ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${brightness})`;
-                    ctx.shadowBlur = (this.isUserParticle ? 15 : 10) * brightness;
-                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.9)`;
+                    ctx.shadowBlur = (this.isUserParticle ? 15 : 12) * brightness; // MAXIMUM glow - increased from 10/8
+                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`; // FULL BRIGHTNESS
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
@@ -5258,55 +5224,21 @@
                 }
             }
 
-            // Initialize particles after canvas is sized
+            // Initialize particles - INCREASED for more visual density (static speed)
             console.log('Initializing V3 particles with dimensions:', currentWidth, 'x', currentHeight);
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 20; i++) {
                 particles.push(new ResponsiveFlowParticle(currentWidth, currentHeight, true));
             }
-            for (let i = 0; i < 70; i++) {
+            for (let i = 0; i < 100; i++) {
                 particles.push(new ResponsiveFlowParticle(currentWidth, currentHeight, false));
             }
             console.log('V3 Particles initialized:', particles.length);
 
-            // Phase calculator
-            function getPhase() {
-                const elapsed = (Date.now() - startTime) / 1000;
-                const cycleTime = elapsed % 27;
-
-                let speed, brightness, phase;
-
-                if (cycleTime < 4) {
-                    phase = 'INITIALIZING';
-                    speed = 0.4;
-                    brightness = 0.3;
-                } else if (cycleTime < 13) {
-                    phase = 'ANALYZING';
-                    speed = 0.4 + ((cycleTime - 4) / 9) * 1.6;
-                    brightness = 0.3 + ((cycleTime - 4) / 9) * 0.7;
-                } else if (cycleTime < 17) {
-                    phase = 'CONNECTING';
-                    speed = 2.0 + ((cycleTime - 13) / 4) * 3.5;
-                    brightness = 1.0;
-                } else if (cycleTime < 25) {
-                    phase = 'HYPER-PROCESSING';
-                    speed = 6.5;
-                    brightness = 1.0;
-                } else {
-                    phase = 'CLEARING';
-                    speed = 6.5;
-                    brightness = 1.0 - ((cycleTime - 25) / 2);
-                }
-
-                return { speed, brightness, phase };
-            }
-
-            // Animation loop
+            // Animation loop - STATIC SPEED (no phase cycling)
             function animate() {
-                const phase = getPhase();
-
                 ctx.clearRect(0, 0, currentWidth, currentHeight);
 
-                // Draw faint connection lines (responsive)
+                // Draw faint connection lines (static brightness)
                 const user = { x: currentWidth * 0.5, y: currentHeight * 0.08 };
                 const vetai = { x: currentWidth * 0.5, y: currentHeight * 0.5 };
                 const layers = [
@@ -5316,7 +5248,7 @@
                     { x: currentWidth * 0.75, y: currentHeight * 0.82 }
                 ];
 
-                ctx.strokeStyle = `rgba(88, 166, 255, ${0.15 * phase.brightness})`;
+                ctx.strokeStyle = `rgba(88, 166, 255, 0.15)`;
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath();
@@ -5332,10 +5264,10 @@
                 });
                 ctx.setLineDash([]);
 
-                // Update and draw particles
+                // Update and draw particles - FASTER SPEED (2.5x) and FULL BRIGHTNESS
                 particles.forEach(p => {
-                    p.update(phase.speed);
-                    p.draw(ctx, phase.brightness);
+                    p.update(2.5); // FASTER static speed - increased from 1.5x
+                    p.draw(ctx, 1.0); // Static full brightness
                 });
 
                 animationId = requestAnimationFrame(animate);
@@ -5545,35 +5477,35 @@
                     const isUserToLayer = Math.random() > 0.5;
 
                     if (isUserToLayer) {
-                        // USER sends request to layer (very small spawn area - single point)
+                        // USER sends request to layer (WIDER spawn area for visual spread)
                         const userSpawnOffset = {
-                            x: (Math.random() - 0.5) * 20,
-                            y: (Math.random() - 0.5) * 20
+                            x: (Math.random() - 0.5) * 80, // INCREASED spread from 20 to 80
+                            y: (Math.random() - 0.5) * 80  // INCREASED spread from 20 to 80
                         };
                         this.x = userCenter.x + userSpawnOffset.x;
                         this.y = userCenter.y + userSpawnOffset.y;
 
-                        // Target exact center of layer box (specific platform)
-                        this.targetX = layer.box.x;
-                        this.targetY = layer.box.y;
+                        // Target with MORE SPREAD at layer box (wider target area)
+                        this.targetX = layer.box.x + (Math.random() - 0.5) * 60; // INCREASED from 0
+                        this.targetY = layer.box.y + (Math.random() - 0.5) * 60; // INCREASED from 0
 
                         this.color = { r: 59, g: 130, b: 246 }; // Blue for user requests
                     } else {
-                        // Layer sends response back to USER (from exact center)
-                        this.x = layer.box.x + (Math.random() - 0.5) * 15;
-                        this.y = layer.box.y + (Math.random() - 0.5) * 15;
+                        // Layer sends response back to USER (WIDER spawn from layer)
+                        this.x = layer.box.x + (Math.random() - 0.5) * 60; // INCREASED spread from 15 to 60
+                        this.y = layer.box.y + (Math.random() - 0.5) * 60; // INCREASED spread from 15 to 60
 
-                        // Target USER exact center (waiting for response)
-                        this.targetX = userCenter.x;
-                        this.targetY = userCenter.y;
+                        // Target USER with MORE SPREAD (wider arrival area)
+                        this.targetX = userCenter.x + (Math.random() - 0.5) * 80; // INCREASED from 0
+                        this.targetY = userCenter.y + (Math.random() - 0.5) * 80; // INCREASED from 0
 
                         this.color = layer.color; // Layer's color for responses
                     }
 
-                    this.speed = 0.8 + Math.random() * 0.6; // Increased speed - faster serial processing
+                    this.speed = 2.5 + Math.random() * 2.0; // VERY FAST (2.5-4.5) - increased from 0.8-1.4
                     this.trail = [];
-                    this.maxTrail = 30; // Shorter trail for faster movement
-                    this.size = 5.0; // Larger so you can see the few particles
+                    this.maxTrail = 45; // VERY LONG trails - increased from 12
+                    this.size = 2.0; // Reduced from 5.0 - thin data lines
                 }
 
                 update(speedMult) {
@@ -5595,8 +5527,8 @@
                 }
 
                 draw(ctx, brightness) {
-                    const lineWidth = 2.5;
-                    const trailAlpha = 0.8;
+                    const lineWidth = 0.8; // Reduced from 2.5
+                    const trailAlpha = 1.0; // FULL BRIGHTNESS - maximum visibility
 
                     if (this.trail.length > 1) {
                         for (let i = 0; i < this.trail.length - 1; i++) {
@@ -5611,8 +5543,8 @@
                     }
 
                     ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${brightness})`;
-                    ctx.shadowBlur = 12 * brightness;
-                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.9)`;
+                    ctx.shadowBlur = 18 * brightness; // MAXIMUM glow - increased from 12
+                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`; // FULL BRIGHTNESS
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
@@ -5620,52 +5552,19 @@
                 }
             }
 
-            // Initialize particles - VERY FEW for serial processing
+            // Initialize particles - MINIMAL for serial processing demonstration (one at a time)
             console.log('Initializing V4 particles with dimensions:', currentWidth, 'x', currentHeight);
-            for (let i = 0; i < 4; i++) { // Only 4 particles total - serial processing!
+            for (let i = 0; i < 4; i++) { // REDUCED to 4 particles - serial one-at-a-time processing
                 particles.push(new DirectUserParticle(currentWidth, currentHeight));
             }
             console.log('V4 Particles initialized:', particles.length);
 
-            // Phase calculator
-            function getPhase() {
-                const elapsed = (Date.now() - startTime) / 1000;
-                const cycleTime = elapsed % 27;
-
-                let speed, brightness, phase;
-
-                if (cycleTime < 4) {
-                    phase = 'INITIALIZING';
-                    speed = 0.4;
-                    brightness = 0.3;
-                } else if (cycleTime < 13) {
-                    phase = 'ANALYZING';
-                    speed = 0.4 + ((cycleTime - 4) / 9) * 1.6;
-                    brightness = 0.3 + ((cycleTime - 4) / 9) * 0.7;
-                } else if (cycleTime < 17) {
-                    phase = 'CONNECTING';
-                    speed = 2.0 + ((cycleTime - 13) / 4) * 3.5;
-                    brightness = 1.0;
-                } else if (cycleTime < 25) {
-                    phase = 'HYPER-PROCESSING';
-                    speed = 6.5;
-                    brightness = 1.0;
-                } else {
-                    phase = 'CLEARING';
-                    speed = 6.5;
-                    brightness = 1.0 - ((cycleTime - 25) / 2);
-                }
-
-                return { speed, brightness, phase };
-            }
-
-            // Animation loop
+            // Animation loop - STATIC SPEED (no phase cycling)
             function animate() {
-                const phase = getPhase();
 
                 ctx.clearRect(0, 0, currentWidth, currentHeight);
 
-                // Draw faint connection lines from USER to layers
+                // Draw faint connection lines from USER to layers (static brightness)
                 const user = { x: currentWidth * 0.5, y: currentHeight * 0.5 };
                 const layers = [
                     { x: currentWidth * 0.12, y: currentHeight * 0.12 },
@@ -5674,7 +5573,8 @@
                     { x: currentWidth * 0.88, y: currentHeight * 0.88 }
                 ];
 
-                ctx.strokeStyle = `rgba(88, 166, 255, 0.15)`; // Constant faint lines
+                // STATIC: Connection lines use constant brightness
+                ctx.strokeStyle = `rgba(88, 166, 255, 0.15)`;
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 4]);
 
@@ -5686,10 +5586,10 @@
                 });
                 ctx.setLineDash([]);
 
-                // Update and draw particles - CONSTANT SLOW SPEED (no phase acceleration)
+                // STATIC: Update and draw particles with FASTER speed (3.0x) and full brightness
                 particles.forEach(p => {
-                    p.update(1.0); // Always use base speed multiplier of 1.0
-                    p.draw(ctx, 1.0); // Always full brightness
+                    p.update(3.0); // VERY FAST static speed - increased from 1.5x
+                    p.draw(ctx, 1.0); // Static full brightness
                 });
 
                 animationId = requestAnimationFrame(animate);
@@ -5912,11 +5812,19 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
     <script>
-        // Initialize AOS
+        // FIXED: Initialize AOS with optimized settings
         AOS.init({
-            duration: 800,
-            once: true,
-            offset: 100
+            duration: 600, // Reduced from 800ms for snappier feel
+            once: true, // Animate only once for performance
+            offset: 120, // Increased from 100px - start animations earlier
+            delay: 0, // No default delay - individual elements control timing
+            easing: 'ease-out-cubic', // Smoother easing function
+            mirror: false, // Don't re-animate on scroll up
+            anchorPlacement: 'top-bottom', // Trigger when top of element hits bottom of viewport
+            disable: function() {
+                // Disable AOS on very small screens or low-performance devices
+                return window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            }
         });
 
         // Navigation scroll effect
@@ -5940,8 +5848,14 @@
             }
         });
 
-        // Animated counters
+        // FIXED: Animated counters with improved robustness
         function animateCounter(element, target, duration = 2000) {
+            // Validate inputs
+            if (!element || isNaN(target)) {
+                console.warn('Invalid counter element or target:', element, target);
+                return;
+            }
+
             const start = 0;
             const increment = target / (duration / 16);
             let current = start;
@@ -5957,38 +5871,64 @@
             }, 16);
         }
 
-        // Trigger counters when visible
-        const heroObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    document.querySelectorAll('.hero-trust-number').forEach(counter => {
-                        const target = parseInt(counter.dataset.count);
-                        animateCounter(counter, target);
-                    });
-                    heroObserver.disconnect();
-                }
+        // FIXED: Trigger counters when visible with better error handling and lower threshold
+        const heroSignals = document.querySelector('.hero-trust-signals');
+        if (heroSignals) {
+            const heroObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        document.querySelectorAll('.hero-trust-number').forEach(counter => {
+                            const target = parseInt(counter.dataset.count);
+                            if (!isNaN(target)) {
+                                animateCounter(counter, target);
+                            }
+                        });
+                        heroObserver.disconnect();
+                    }
+                });
+            }, { 
+                threshold: 0.2, // Reduced from 0.5 - triggers earlier
+                rootMargin: '50px' // Start animation 50px before element enters viewport
             });
-        }, { threshold: 0.5 });
 
-        heroObserver.observe(document.querySelector('.hero-trust-signals'));
+            heroObserver.observe(heroSignals);
+        } else {
+            console.warn('Hero trust signals element not found - counters disabled');
+        }
 
-        // Pain cards sliding animation
+        // FIXED: Pain cards sliding animation with improved sequencing
         const painCards = document.querySelectorAll('.pain-card');
-        const painObserver = new IntersectionObserver((entries) => {
-            entries.forEach((entry, index) => {
-                if (entry.isIntersecting) {
-                    const direction = entry.target.dataset.direction;
-                    setTimeout(() => {
-                        entry.target.classList.add(`slide-in-${direction}`);
-                    }, index * 150);
-                    painObserver.unobserve(entry.target);
-                }
+        
+        if (painCards.length > 0) {
+            // Track which cards have been animated
+            let animatedCount = 0;
+            
+            const painObserver = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && !entry.target.classList.contains('slide-in-left') && !entry.target.classList.contains('slide-in-right')) {
+                        const direction = entry.target.dataset.direction || 'left';
+                        
+                        // Stagger animations based on order in DOM
+                        const delay = animatedCount * 200; // Increased from 150ms for smoother effect
+                        
+                        setTimeout(() => {
+                            entry.target.classList.add(`slide-in-${direction}`);
+                            entry.target.style.opacity = '1'; // Ensure visibility
+                        }, delay);
+                        
+                        animatedCount++;
+                        painObserver.unobserve(entry.target);
+                    }
+                });
+            }, { 
+                threshold: 0.15, // Lower threshold for earlier trigger
+                rootMargin: '30px' // Add margin for smoother entry
             });
-        }, { threshold: 0.2 });
 
-        painCards.forEach(card => {
-            painObserver.observe(card);
-        });
+            painCards.forEach(card => {
+                painObserver.observe(card);
+            });
+        }
 
         // Feature tabs functionality
         const featureTabs = document.querySelectorAll('.feature-tab');

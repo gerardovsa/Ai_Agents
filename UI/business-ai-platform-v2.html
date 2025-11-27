@@ -19108,7 +19108,7 @@
                 // Store token in localStorage
                 localStorage.setItem('authToken', token);
                 console.log('✅ [AUTH INIT] Token stored in localStorage');
-                
+
                 if (typeof UserAuth !== 'undefined') {
                     UserAuth.token = token;
                     console.log('✅ [AUTH INIT] Token set in UserAuth.token');
@@ -19152,7 +19152,8 @@
                             loginOverlay.classList.remove('hidden');
                         }
                     }
-                }            } catch (error) {
+                }
+            } catch (error) {
                 console.error('? [AUTH ERROR] Failed during authentication check:', error);
                 // Show login screen as fallback
                 const loginOverlay = document.getElementById('loginOverlay');

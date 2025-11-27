@@ -29,25 +29,23 @@
             </div>
         </div>
 
-        <!-- Tab Navigation -->
+        <!-- Tab Navigation (Icon-only with tooltips) -->
         <div class="transcription-tabs">
             <button class="transcription-tab active" onclick="TranscriptionSidebar.switchTab('recording')"
-                data-tab="recording">
+                data-tab="recording" title="Record">
                 <i class="fas fa-microphone"></i>
-                <span>Record</span>
             </button>
-            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('tts')" data-tab="tts">
+            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('tts')" data-tab="tts"
+                title="Text-to-Speech">
                 <i class="fas fa-volume-up"></i>
-                <span>TTS</span>
             </button>
             <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('transcripts')"
-                data-tab="transcripts">
+                data-tab="transcripts" title="Transcripts">
                 <i class="fas fa-file-alt"></i>
-                <span>Transcripts</span>
             </button>
-            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('settings')" data-tab="settings">
+            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('settings')" data-tab="settings"
+                title="Settings">
                 <i class="fas fa-cog"></i>
-                <span>Settings</span>
             </button>
         </div>
     </div>
@@ -57,32 +55,39 @@
 
         <!-- ========== RECORDING TAB ========== -->
         <div class="transcription-tab-content active" id="recording-tab">
-            <!-- Recording Button -->
+            <!-- Recording Control Grid (Two Columns) -->
             <div class="transcription-section">
-                <div class="transcription-record-controls">
-                    <button id="transcription-record-toggle" class="transcription-record-btn"
-                        onclick="TranscriptionSidebar.toggleRecording()">
-                        <i class="fas fa-microphone"></i>
-                        <span>Start Recording</span>
-                    </button>
-                </div>
-            </div>
+                <div class="transcription-recording-grid">
+                    <!-- Left Column: Status Stats -->
+                    <div class="recording-status-left">
+                        <div class="status-item">
+                            <span class="status-label">State:</span>
+                            <span class="status-value" id="stt-state">Idle</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Duration:</span>
+                            <span class="status-value" id="stt-duration">0:00</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Chunks:</span>
+                            <span class="status-value" id="stt-chunks">0</span>
+                        </div>
+                    </div>
 
-            <!-- Recording Status -->
-            <div class="transcription-section">
-                <h3><i class="fas fa-info-circle"></i> Recording Status</h3>
-                <div class="transcription-recording-status" id="transcription-recording-status">
-                    <div class="status-item">
-                        <span class="status-label">State:</span>
-                        <span class="status-value" id="stt-state">Idle</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Duration:</span>
-                        <span class="status-value" id="stt-duration">0:00</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Chunks Sent:</span>
-                        <span class="status-value" id="stt-chunks">0</span>
+                    <!-- Right Column: Vertical Action Buttons -->
+                    <div class="recording-actions-right">
+                        <button id="transcription-record-toggle" class="recording-action-btn record-btn"
+                            onclick="TranscriptionSidebar.toggleRecording()" title="Start/Stop Recording">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button id="transcription-pause-btn" class="recording-action-btn pause-btn"
+                            onclick="TranscriptionSidebar.togglePause()" title="Pause/Resume" disabled>
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button id="transcription-delete-btn" class="recording-action-btn delete-btn"
+                            onclick="TranscriptionSidebar.deleteCurrent()" title="Delete & Discard" disabled>
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             </div>
