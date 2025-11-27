@@ -24,7 +24,7 @@ services:
     
     # Repository configuration (for reference only, image is pre-built)
     repo: https://github.com/gerardovsa/AI_agents
-    branch: v7
+    branch: v9  # ✅ Updated to v9 branch (OAuth fix)
     
     # Deployment settings
     autoDeploy: true  # Auto-deploy on git push
