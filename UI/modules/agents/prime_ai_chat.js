@@ -1867,17 +1867,17 @@ async function sendChatMessage() {
             return;
         }
 
-        let errorMsg = 'Sorry, I encountered an error. ';
+        let userErrorMsg = 'Sorry, I encountered an error. ';
         if (error.message.includes('Failed to fetch')) {
-            errorMsg += 'Could not connect to backend. Is Flask running on port 5001?';
+            userErrorMsg += 'Could not connect to backend. Is Flask running on port 5001?';
             console.error('❌ Fix: Run BISTART or start Flask manually');
         } else if (error.message.includes('NetworkError')) {
-            errorMsg += 'Network error. Check your connection.';
+            userErrorMsg += 'Network error. Check your connection.';
         } else {
-            errorMsg += error.message;
+            userErrorMsg += error.message;
         }
 
-        addChatMessage('assistant', errorMsg);
+        addChatMessage('assistant', userErrorMsg);
         showNotification('Chat Error: ' + error.message, 'error');
 
         if (!AppState.isConnected && error.message.includes('200')) {
