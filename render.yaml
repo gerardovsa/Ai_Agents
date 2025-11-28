@@ -18,13 +18,13 @@ services:
     # Images are built automatically on git push via GitHub Actions
     # This reduces deployment time from 10 minutes to 1-2 minutes
     image:
-      url: ghcr.io/gerardovsa/ai_agents:latest
-      # Alternatively, pin to specific commit:
-      # url: ghcr.io/gerardovsa/ai_agents:v7
+      url: ghcr.io/gerardovsa/ai_agents:v10
+      # Alternatively use latest:
+      # url: ghcr.io/gerardovsa/ai_agents:latest
     
     # Repository configuration (for reference only, image is pre-built)
     repo: https://github.com/gerardovsa/AI_agents
-    branch: v9  # ✅ Updated to v9 branch (OAuth fix)
+    branch: v10  # ✅ Updated to v10 branch
     
     # Deployment settings
     autoDeploy: true  # Auto-deploy on git push
