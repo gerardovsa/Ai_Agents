@@ -71,6 +71,11 @@ services:
       - key: PORT
         value: "10000"  # Render default port
       
+      # Optional: Frontend URL override (only if auto-detection fails)
+      # OAuth now auto-detects from browser headers - no need to set this!
+      # - key: FRONTEND_URL
+      #   value: "https://ai-agents-v10.onrender.com"
+      
       # ==================== AI Provider API Keys ====================
       # Note: Add these manually in Render dashboard after deployment
       # Dashboard: https://dashboard.render.com/web/srv-xxxxx/env

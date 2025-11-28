@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from google_workspace.oauth_manager import UNIFIED_SCOPES, get_oauth_config
 from AI_infrastructure.auth.user_auth import user_auth_manager
+from AI_infrastructure.utils.oauth_url_helper import get_frontend_url, capture_oauth_origin
 
 
 oauth_bp = Blueprint('oauth', __name__, url_prefix='/api/oauth')
@@ -73,6 +74,9 @@ def oauth_workspace_start():
         # Store state in session for verification
         session['oauth_state'] = state
         session['oauth_mode'] = mode  # Remember if signin or signup
+        
+        # CAPTURE ORIGIN URL: Store where user started OAuth (for redirect back)
+        capture_oauth_origin(request, session)
         
         print(f"🔐 OAuth flow started: {mode}")
         print(f"   Redirect URI: {flow.redirect_uri}")
@@ -230,10 +234,11 @@ def oauth_workspace_callback():
         })
         
         # Redirect to main app with JWT token
-        print(f" OAuth login successful, redirecting with JWT token")
-        frontend_url = request.url_root.rstrip('/')
-        if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
-            frontend_url = frontend_url.replace('http://', 'https://')
+        print(f"✅ OAuth login successful, redirecting with JWT token")
+        
+        # SMART URL DETECTION: Automatically detect frontend URL
+        frontend_url = get_frontend_url(request, session)
+        
         return redirect(f'{frontend_url}/?token={jwt_token}')
         
     except Exception as e:

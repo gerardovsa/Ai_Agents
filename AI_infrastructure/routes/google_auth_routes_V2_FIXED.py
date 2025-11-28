@@ -396,12 +396,14 @@ def google_login():
                 # If token is still valid (not expired), skip OAuth
                 if datetime.utcnow() < expires_at:
                     print('✅ 🔓🔓 [GOOGLE OAUTH] User already has valid tokens - skipping OAuth')
-                    frontend_url = request.url_root.rstrip('/')
+                    # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
+                    frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
                     if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
                         frontend_url = frontend_url.replace('http://', 'https://')
                     # Force HTTP for localhost to prevent browser HTTPS upgrade
                     if 'localhost' in request.host or '127.0.0.1' in request.host:
                         frontend_url = frontend_url.replace('https://', 'http://')
+                    print(f'🔀 [GOOGLE OAUTH] Redirecting to: {frontend_url}')
                     return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=already_connected')
                 
                 # If token expired but we have refresh_token, auto-refresh
@@ -529,7 +531,8 @@ def google_callback():
         stored_state = session.get('google_oauth_state')
     
     # Build frontend URL based on environment
-    frontend_url = request.url_root.rstrip('/')
+    # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
+    frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
     if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
         frontend_url = frontend_url.replace('http://', 'https://')
     if 'localhost' in request.host or '127.0.0.1' in request.host:
@@ -621,7 +624,8 @@ def google_callback():
             except Exception as e:
                 print(f'❌ [GOOGLE OAUTH] Failed to create user: {e}')
                 from urllib.parse import quote
-                frontend_url = request.url_root.rstrip('/')
+                # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
+                frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
                 if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
                     frontend_url = frontend_url.replace('http://', 'https://')
                 if 'localhost' in request.host or '127.0.0.1' in request.host:
@@ -768,7 +772,8 @@ def google_callback():
         print('✅ 🔓🔓 [GOOGLE OAUTH] OAuth flow complete - redirecting to app')
         
         # CRITICAL: Redirect to correct frontend URL based on environment
-        frontend_url = request.url_root.rstrip('/')
+        # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
+        frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
         if 'onrender.com' in request.host:
             frontend_url = frontend_url.replace('http://', 'https://')
         
@@ -776,13 +781,15 @@ def google_callback():
         if 'localhost' in request.host or '127.0.0.1' in request.host:
             frontend_url = frontend_url.replace('https://', 'http://')
         
+        print(f'🔀 [GOOGLE OAUTH] Redirecting to: {frontend_url}')
         return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=connected')
         
     except requests.exceptions.HTTPError as e:
         print(f' [GOOGLE OAUTH] HTTP error: {str(e)}')
         print(f'   Response: {e.response.text if hasattr(e, "response") else "No response"}')
         
-        frontend_url = request.url_root.rstrip('/')
+        # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
+        frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
         if 'onrender.com' in request.host:
             frontend_url = frontend_url.replace('http://', 'https://')
         if 'localhost' in request.host or '127.0.0.1' in request.host:
@@ -795,7 +802,8 @@ def google_callback():
         import traceback
         traceback.print_exc()
         
-        frontend_url = request.url_root.rstrip('/')
+        # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
+        frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
         if 'onrender.com' in request.host:
             frontend_url = frontend_url.replace('http://', 'https://')
         if 'localhost' in request.host or '127.0.0.1' in request.host:
