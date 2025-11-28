@@ -487,8 +487,16 @@ class ModuleLoader {
                 toggle.classList.remove('dragging');
 
                 if (!hasMoved) {
-                    // Click - switch to main tab if available, else toggle sidebar
-                    if (module.main_tab) {
+                    // Click - check if floating toggle should open sidebar or main tab
+                    if (module.floating_toggle_opens_sidebar && module.sidebar) {
+                        // Open sidebar instead of switching tab
+                        console.log(`[ModuleLoader] Opening sidebar for ${moduleId}`);
+                        if (window.inhouseKanbanSidebar && moduleId === 'inhouse-kanban') {
+                            window.inhouseKanbanSidebar.openSidebar();
+                        } else {
+                            this.toggleModule(moduleId);
+                        }
+                    } else if (module.main_tab) {
                         // Switch to main tab
                         if (typeof switchTab === 'function') {
                             switchTab(module.main_tab_id || moduleId);
@@ -702,48 +710,44 @@ class ModuleLoader {
                 console.log(`[ModuleLoader] Module ${moduleId} has no HTML file - will create UI in JavaScript`);
             }
 
-            // Load CSS via Flask API route
+            // Load CSS - use direct path (more reliable)
             if ((module.css_file || module.stylePath) && !document.querySelector(`link[data-module="${moduleId}"]`)) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
                 link.dataset.module = moduleId;
                 
-                // Try Flask API route first, fallback to direct path
-                link.href = `/api/modules/${moduleId}/css`;
+                // Use direct path from manifest
+                const cssPath = module.stylePath || `external/modules/${moduleId}/${module.css_file}`;
+                link.href = cssPath;
                 
-                // Add error handler to try fallback path
                 link.onerror = () => {
-                    console.warn(`[ModuleLoader] Flask CSS route failed, trying direct path for ${moduleId}`);
-                    link.href = module.stylePath || `external/modules/${moduleId}/${module.css_file}`;
+                    console.warn(`[ModuleLoader] ⚠️ Failed to load CSS for ${moduleId} from ${cssPath}`);
                 };
                 
                 document.head.appendChild(link);
-                console.log(`[ModuleLoader] Loaded CSS for ${moduleId} via Flask route`);
+                console.log(`[ModuleLoader] Loaded CSS for ${moduleId} from ${cssPath}`);
             }
 
-            // Load JS via Flask API route
+            // Load JS - try direct path first (more reliable than Flask API route)
             if ((module.js_file || module.scriptPath) && !document.querySelector(`script[data-module="${moduleId}"]`)) {
                 await new Promise((resolve, reject) => {
                     const script = document.createElement('script');
                     script.dataset.module = moduleId;
                     
-                    // Try Flask API route first
-                    script.src = `/api/modules/${moduleId}/js`;
+                    // Use direct path (scriptPath from manifest or construct from js_file)
+                    const jsPath = module.scriptPath || `external/modules/${moduleId}/${module.js_file}`;
+                    script.src = jsPath;
                     
                     script.onload = () => {
-                        console.log(`[ModuleLoader] ✅ Loaded JS for ${moduleId} via Flask route`);
+                        console.log(`[ModuleLoader] ✅ Loaded JS for ${moduleId} from ${jsPath}`);
                         resolve();
                     };
                     
                     script.onerror = () => {
-                        console.warn(`[ModuleLoader] Flask JS route failed, trying direct path for ${moduleId}`);
-                        // Try fallback path
-                        script.src = module.scriptPath || `external/modules/${moduleId}/${module.js_file}`;
-                        
-                        script.onerror = () => {
-                            console.error(`[ModuleLoader] ❌ Failed to load JS for ${moduleId} from all paths`);
-                            reject(new Error(`Failed to load JS for ${moduleId}`));
-                        };
+                        console.error(`[ModuleLoader] ❌ Failed to load JS for ${moduleId} from ${jsPath}`);
+                        // Don't reject - some modules create UI purely in their initialization code
+                        console.warn(`[ModuleLoader] ⚠️ Module ${moduleId} JS failed to load, continuing anyway...`);
+                        resolve(); // Resolve instead of reject to allow module to continue
                     };
                     
                     document.body.appendChild(script);

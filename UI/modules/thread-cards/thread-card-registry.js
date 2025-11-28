@@ -221,45 +221,54 @@ class ThreadCardRegistry {
     }
 
     /**
-     * Render all badges for a thread
+     * Render all badges for a thread (including placeholders for empty linkages)
      * 
      * @param {Object} thread - Thread object with linkage data
-     * @returns {string} HTML string with all applicable badges
+     * @param {string} location - Location identifier ('prime', 'synergy', etc.)
+     * @returns {string} HTML string with all applicable badges and placeholders
      */
-    renderBadgesForThread(thread) {
+    renderBadgesForThread(thread, location = 'prime') {
         if (!this.initialized) {
             console.warn('[ThreadCardRegistry] Not initialized - returning empty');
             return '';
         }
 
         const badges = [];
+        const placeholders = [];
 
-        // Collect all applicable badges
+        // Collect all applicable badges and placeholders
         for (const [moduleId, badgeConfig] of this.badgeRenderers) {
             try {
                 // Evaluate condition (if specified)
-                if (badgeConfig.condition) {
-                    const conditionMet = this.evaluateCondition(badgeConfig.condition, thread);
-                    if (!conditionMet) {
-                        continue; // Skip this badge
+                const hasLinkage = badgeConfig.condition ? 
+                    this.evaluateCondition(badgeConfig.condition, thread) : false;
+
+                if (hasLinkage) {
+                    // Render linked badge
+                    const renderFn = this.resolveFunction(badgeConfig.renderFunction);
+                    if (!renderFn) {
+                        console.warn(`[ThreadCardRegistry] Render function not found: ${badgeConfig.renderFunction}`);
+                        continue;
                     }
-                }
 
-                // Get render function
-                const renderFn = this.resolveFunction(badgeConfig.renderFunction);
-                if (!renderFn) {
-                    console.warn(`[ThreadCardRegistry] Render function not found: ${badgeConfig.renderFunction}`);
-                    continue;
-                }
-
-                // Call render function
-                const html = renderFn(thread, badgeConfig.config);
-                if (html) {
-                    badges.push({
-                        html,
-                        priority: badgeConfig.priority,
-                        moduleId
-                    });
+                    const html = renderFn(thread, badgeConfig.config);
+                    if (html) {
+                        badges.push({
+                            html,
+                            priority: badgeConfig.priority,
+                            moduleId
+                        });
+                    }
+                } else if (location !== 'synergy') {
+                    // Render placeholder for unlinking (skip in synergy location)
+                    const placeholderHtml = this.renderPlaceholder(moduleId, thread.id, badgeConfig.config);
+                    if (placeholderHtml) {
+                        placeholders.push({
+                            html: placeholderHtml,
+                            priority: badgeConfig.priority,
+                            moduleId
+                        });
+                    }
                 }
             } catch (error) {
                 console.error(`[ThreadCardRegistry] Error rendering badge for ${moduleId}:`, error);
@@ -268,11 +277,42 @@ class ThreadCardRegistry {
 
         // Sort by priority (lower number = higher priority)
         badges.sort((a, b) => a.priority - b.priority);
+        placeholders.sort((a, b) => a.priority - b.priority);
+
+        // Combine badges + placeholders
+        const allItems = [...badges, ...placeholders];
 
         // Combine HTML
         return `<div class="thread-ui-links-row" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-            ${badges.map(b => b.html).join('\n')}
+            ${allItems.map(item => item.html).join('\n')}
         </div>`;
+    }
+
+    /**
+     * Render placeholder badge for unlinking
+     * 
+     * @param {string} moduleId - Module identifier
+     * @param {string} threadId - Thread ID
+     * @param {Object} config - Badge configuration
+     * @returns {string} HTML for placeholder badge
+     */
+    renderPlaceholder(moduleId, threadId, config) {
+        const label = config.label || moduleId;
+        const icon = config.icon || 'fa-link';
+        
+        // Get module's linkage handler if available
+        const manifest = this.modules.get(moduleId);
+        const clickHandler = manifest?.thread_card_integration?.badge?.placeholder_click || 
+                           `ThreadManager.openLinkModal_${moduleId}`;
+
+        return `
+            <div class="thread-item-${moduleId} thread-item-${moduleId}-unlinked" 
+                 onclick="event.stopPropagation(); ${clickHandler}('${threadId}')" 
+                 title="Link thread to ${label}">
+                <i class="fas ${icon}"></i>
+                <span>Link ${label}</span>
+            </div>
+        `;
     }
 
     /**

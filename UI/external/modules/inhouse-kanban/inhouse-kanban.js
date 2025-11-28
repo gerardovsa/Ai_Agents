@@ -1011,6 +1011,12 @@ class InhouseKanbanModule extends BaseModule {
             for (const job of this.jobs) {
                 try {
                     const response = await fetch(`${this.analyticsApiBase}/transitions/${job.TicketID}`);
+                    
+                    // Skip 404s silently - analytics endpoint not implemented yet
+                    if (response.status === 404) {
+                        continue;
+                    }
+                    
                     if (response.ok) {
                         const data = await response.json();
                         if (data.success && data.transitions && data.transitions.length > 0) {
@@ -4273,6 +4279,10 @@ class InhouseKanbanSidebar {
     initializeSidebar() {
         console.log('🔧 Initializing sidebar functionality...');
 
+        // Initialize sidebar state
+        this.sidebarElement = document.getElementById('inhouse-kanban-sidebar');
+        this.isOpen = false;
+
         // Workboard selector
         const workboardSelector = document.getElementById('sidebar-workboard-selector');
         if (workboardSelector) {
@@ -4334,6 +4344,37 @@ class InhouseKanbanSidebar {
             }
             // Data will load via refreshData() - user can manually refresh or select column
         }
+    }
+
+    toggleSidebar() {
+        if (!this.sidebarElement) {
+            console.error('❌ Sidebar element not found');
+            return;
+        }
+
+        this.isOpen = !this.isOpen;
+        
+        if (this.isOpen) {
+            this.sidebarElement.classList.add('open');
+            console.log('✅ Kanban sidebar opened');
+        } else {
+            this.sidebarElement.classList.remove('open');
+            console.log('✅ Kanban sidebar closed');
+        }
+    }
+
+    openSidebar() {
+        if (!this.sidebarElement) return;
+        this.isOpen = true;
+        this.sidebarElement.classList.add('open');
+        console.log('✅ Kanban sidebar opened');
+    }
+
+    closeSidebar() {
+        if (!this.sidebarElement) return;
+        this.isOpen = false;
+        this.sidebarElement.classList.remove('open');
+        console.log('✅ Kanban sidebar closed');
     }
 
     onWorkboardChange(workboardKey) {
@@ -4874,7 +4915,7 @@ window.ModuleRegistry['inhouse-kanban'] = {
             // Load sidebar HTML before initializing sidebar class
             console.log('🔧 Loading sidebar HTML...');
             try {
-                const sidebarResponse = await fetch('UI/external/modules/inhouse-kanban/inhouse-kanban-SIDEBAR.html');
+                const sidebarResponse = await fetch('external/modules/inhouse-kanban/inhouse-kanban-SIDEBAR.html');
                 if (!sidebarResponse.ok) {
                     throw new Error(`Failed to load sidebar HTML: ${sidebarResponse.status}`);
                 }

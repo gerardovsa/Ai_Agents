@@ -2,7 +2,7 @@
 # AI Agents Platform v10 - Render.com Configuration
 # ========================================
 # Region: Singapore (optimized for Australia)
-# Deployment Type: Docker
+# Deployment Type: NATIVE (Build from source, NO Docker)
 # Repository: gerardovsa/AI_agents
 # Branch: v10 (Development/Testing Branch)
 
@@ -10,21 +10,21 @@ services:
   # ==================== AI Agents Backend Service (v10) ====================
   - type: web
     name: ai-agents-v10
-    env: docker
+    env: python
     region: singapore  # 🇸🇬 CLOSEST TO AUSTRALIA (~100-150ms latency)
     plan: starter  # $7/month (can downgrade to free after testing)
     
-    # Use pre-built Docker image from GitHub Container Registry
-    # Images are built automatically on git push via GitHub Actions
-    # This reduces deployment time from 10 minutes to 1-2 minutes
-    image:
-      url: ghcr.io/gerardovsa/ai_agents:v10
-      # Alternatively use latest from v10:
-      # url: ghcr.io/gerardovsa/ai_agents:latest-v10
+    # Build from source (NO Docker - avoid image confusion)
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r AI_infrastructure/requirements.txt
+    
+    # Start command
+    startCommand: python AI_infrastructure/flask_app.py
     
     # Repository configuration
     repo: https://github.com/gerardovsa/AI_agents
-    branch: v10  # ✅ v10 branch for development/testing
+    branch: v10  # ✅ v10 branch ONLY
     
     # Deployment settings
     autoDeploy: true  # Auto-deploy on git push to v10

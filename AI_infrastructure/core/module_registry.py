@@ -239,26 +239,16 @@ class ModuleRegistry:
     def _ensure_initialized(self):
         """Ensure modules are loaded (lazy initialization)"""
         if not self._modules_loaded:
-            # Scan ALL module directories on first load
+            # ONLY scan UI/external/modules (external plug-and-play modules)
+            # UI/modules and frontend/modules are hardcoded in HTML and NOT managed by module registry
             base_dir = Path(__file__).parent.parent.parent  # Go up to AI_agents root
             
-            # Scan UI/modules first (internal/core modules)
-            internal_dir = base_dir / "UI" / "modules"
-            if internal_dir.exists():
-                logger.info(f"[ModuleRegistry] Scanning internal modules: {internal_dir}")
-                self.initialize(str(internal_dir))
-            
-            # Scan frontend/modules second (legacy location)
-            frontend_dir = base_dir / "frontend" / "modules"
-            if frontend_dir.exists():
-                logger.info(f"[ModuleRegistry] Scanning frontend modules: {frontend_dir}")
-                self.initialize(str(frontend_dir))
-            
-            # Scan UI/external/modules third (external plug-and-play modules)
             external_dir = base_dir / "UI" / "external" / "modules"
             if external_dir.exists():
                 logger.info(f"[ModuleRegistry] Scanning external modules: {external_dir}")
                 self.initialize(str(external_dir))
+            else:
+                logger.warning(f"[ModuleRegistry] External modules directory not found: {external_dir}")
     
     def get_module(self, module_id: str) -> Optional[ModuleManifest]:
         """Get module manifest by ID"""

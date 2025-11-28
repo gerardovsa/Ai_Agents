@@ -15,7 +15,7 @@
  */
 
 const CACHE_NAME = 'ai-agents-v1.0.0';
-const CACHE_VERSION = '2025-11-28-v14';  // Fixed prime thread guard to check AppState.sessionId
+const CACHE_VERSION = '2025-11-28-v15-auto-detect';  // PURE auto-detection, NO hardcoded URLs
 
 // Libraries to cache (loaded post-auth)
 const HEAVY_LIBRARIES = [

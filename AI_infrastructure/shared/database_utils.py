@@ -697,7 +697,23 @@ class DatabaseConnection:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._wrapped_conn.__exit__(exc_type, exc_val, exc_tb)
+        """Ensure connection is properly closed/returned to pool"""
+        try:
+            if exc_type is not None:
+                # Exception occurred - rollback transaction
+                self.rollback()
+            else:
+                # No exception - commit transaction
+                self.commit()
+        except Exception as e:
+            print(f"⚠️  [DatabaseConnection] Error in __exit__ transaction handling: {e}")
+        finally:
+            # CRITICAL: Always close connection to return to pool
+            try:
+                self.close()
+            except Exception as e:
+                print(f"❌ [DatabaseConnection] Error closing connection in __exit__: {e}")
+        return False  # Don't suppress exceptions
     
     # Delegate other attributes to wrapped connection
     def __getattr__(self, name):

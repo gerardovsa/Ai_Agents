@@ -34,5 +34,9 @@
         "width": 480,
         "html_file": "inhouse-kanban-SIDEBAR.html"
     },
-    "floating_toggle_opens_sidebar": true
+    "floating_toggle": true,
+    "floating_toggle_position": "right",
+    "floating_toggle_default_top": 280,
+    "floating_toggle_opens_sidebar": true,
+    "show_in_sidebar": true
 }
