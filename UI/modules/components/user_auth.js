@@ -309,7 +309,7 @@ const UserAuth = {
         console.log(` [LOADING] ${percent}% - ${text}`);
     },
 
-    async showMainApp() {
+    async showMainApp(profileData = null) {
         //  PREVENT DOUBLE INITIALIZATION OF MAIN APP
         if (this.mainAppInitialized) {
             console.log(' [AUTH] Main app already initialized - BLOCKING duplicate call');
@@ -369,16 +369,26 @@ const UserAuth = {
         }
 
         try {
-            // ✅ PHASE 1: Load user profile FIRST (before anything else) - 15-30% progress
+            // ✅ PHASE 1: User profile (already loaded or load now) - 15-30% progress
             this.setLoadingProgress(15, 'Loading your profile...');
-            console.log('🔵 [AUTH] Loading user profile FIRST (before app initialization)...');
+            
+            if (profileData) {
+                // ✅ Profile already loaded - just use it
+                console.log('🔵 [AUTH] Using provided profile data (skipping duplicate load)');
+                console.log('✅ 🔓🔓 [AUTH] Profile data ready:', profileData.username);
+            } else {
+                // ⚠️ Profile not provided - load it now
+                console.log('⚠️ [AUTH] Profile not provided, loading from backend...');
+                try {
+                    profileData = await loadUserProfile();
+                    console.log('✅ 🔓🔓 [AUTH] User profile loaded');
+                } catch (error) {
+                    console.error('❌ [AUTH] User profile ERROR:', error);
+                    throw new Error('Failed to load user profile - cannot initialize app');
+                }
+            }
+            
             try {
-                await loadUserProfile();
-                console.log('✅ 🔓🔓 [AUTH] User profile loaded');
-
-                // Add authenticated visual indicator to profile button
-                const profileBtn = document.getElementById('userProfileBtn-sidebar');
-                if (profileBtn) {
                     profileBtn.classList.add('authenticated');
                     console.log('✅ 🔓🔓 [AUTH] Profile button marked as authenticated (green border)');
                 }
@@ -389,9 +399,8 @@ const UserAuth = {
                     console.log(' Gmail accounts:', this.user.gmail_accounts?.length || 0);
                 }
             } catch (error) {
-                console.error('❌ [AUTH] User profile ERROR:', error);
-                // CRITICAL: If profile fails to load, we can't proceed
-                throw new Error('Failed to load user profile - cannot initialize app');
+                console.error('❌ [AUTH] Profile display ERROR:', error);
+                // Continue with initialization even if display fails
             }
             this.setLoadingProgress(30, 'Profile loaded');
 

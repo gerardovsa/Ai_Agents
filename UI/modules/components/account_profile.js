@@ -577,8 +577,12 @@ async function loadUserProfile() {
             console.log('[SEARCH] Google Workspace section display:', googleWorkspaceSection ? window.getComputedStyle(googleWorkspaceSection).display : 'NOT FOUND');
             console.log('[SEARCH] Microsoft 365 section display:', microsoft365Section ? window.getComputedStyle(microsoft365Section).display : 'NOT FOUND');
             console.log('[SEARCH] Gmail SMTP section display:', gmailSmtpSection ? window.getComputedStyle(gmailSmtpSection).display : 'NOT FOUND');
+            
+            // ✅ Return profile data for caller
+            return profile;
         } else {
             console.error(' Profile API returned success=false');
+            return null;
         }
 
     } catch (error) {
@@ -2253,12 +2257,16 @@ async function initializeApp() {
         // Load user profile
         console.log('📋 [AUTH] Loading user profile from backend...');
         try {
-            await loadUserProfile();
+            const profile = await loadUserProfile();
+            if (!profile) {
+                console.error('❌ [AUTH] Failed to load profile');
+                throw new Error('Profile load failed');
+            }
             console.log('✅ [AUTH] User profile loaded successfully');
             
-            // Show main app
-            console.log('🚀 [AUTH] Calling UserAuth.showMainApp()...');
-            await UserAuth.showMainApp();
+            // Show main app with profile (don't reload)
+            console.log('🚀 [AUTH] Calling UserAuth.showMainApp() with profile data...');
+            await UserAuth.showMainApp(profile);
             console.log('✅ [AUTH] Main app initialized successfully');
             
             isInitialized = true;

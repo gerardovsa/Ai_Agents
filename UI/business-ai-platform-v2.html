@@ -307,10 +307,17 @@
         // 🔧 CONFIGURATION FLAGS - Set these to control backend connection
         const FORCE_LOCAL = false;   // Set to true: Always use localhost (even on Render domain)
         const FORCE_RENDER = false;  // Set to true: Always use Render (even from file:// protocol)
+        const FORCE_V10 = true;      // ⚠️ CRITICAL: Set to true for v10 branch, false for v9 branch
 
         // Auto-detect backend URL based on current hostname (dynamically detects v9/v10)
         let API_BASE_URL;
-        if (forceRender || FORCE_RENDER) {
+        if (FORCE_LOCAL || isLocalhost || isFileProtocol) {
+            // Local development
+            API_BASE_URL = 'http://localhost:5001';
+        } else if (FORCE_V10) {
+            // Force v10 backend (for v10 branch deployments)
+            API_BASE_URL = 'https://ai-agents-v10.onrender.com';
+        } else if (forceRender || FORCE_RENDER) {
             // Forced Render mode - detect v9 or v10 from current URL
             const currentHost = window.location.hostname;
             if (currentHost.includes('v10') || currentHost.includes('ai-agents-v10')) {
@@ -318,8 +325,6 @@
             } else {
                 API_BASE_URL = 'https://ai-agents-backend-singapore.onrender.com';  // v9 fallback
             }
-        } else if (FORCE_LOCAL || isLocalhost || isFileProtocol) {
-            API_BASE_URL = 'http://localhost:5001';
         } else {
             // Auto-detect from window.location.origin (works for both v9 and v10)
             API_BASE_URL = window.location.origin;
@@ -359,22 +364,23 @@
 
     <!-- Initialize after authentication -->
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof UserAuth !== 'undefined' && UserAuth.token) {
-                console.log('?? Initializing ThreadManager...');
-                try {
-                    await ThreadManager.init();
-                    console.log('? ThreadManager initialized successfully');
-                } catch (error) {
-                    console.error('? ThreadManager initialization failed:', error);
-                }
-            } else {
-                console.warn('?? Waiting for authentication before initializing ThreadManager');
-                document.addEventListener('authComplete', async () => {
-                    await ThreadManager.init();
-                });
-            }
-        });
+        // ❌ REMOVED (Nov 28, 2025): Early ThreadManager.init() call from DOMContentLoaded
+        // Problem: This runs BEFORE initMultiAgent() creates agent DOM containers
+        // Solution: ThreadManager.init() is called at proper time in initializeMainApp()
+        //           after initMultiAgent() completes (line ~19284)
+        //
+        // REMOVED CODE:
+        // document.addEventListener('DOMContentLoaded', async () => {
+        //     if (typeof UserAuth !== 'undefined' && UserAuth.token) {
+        //         await ThreadManager.init(); // ← TOO EARLY!
+        //     }
+        // });
+        //
+        // ThreadManager.init() now called in correct sequence:
+        // 1. user_auth.js → showMainApp()
+        // 2. business-ai-platform-v2.html → initializeMainApp()
+        // 3. initMultiAgent() creates DOM
+        // 4. ThreadManager.init() loads threads (line 19284)
     </script>
 
     <!-- ==================== AGENT MODULES (Nov 2025) ==================== -->
