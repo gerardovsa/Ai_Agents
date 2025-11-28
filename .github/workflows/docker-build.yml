@@ -2,7 +2,7 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [v5]
+    branches: [v5, v10]  # Build for both v5 and v10 branches
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
@@ -44,6 +44,7 @@ jobs:
           tags: |
             ghcr.io/gerardovsa/ai_agents:latest
             ghcr.io/gerardovsa/ai_agents:v5
+            ghcr.io/gerardovsa/ai_agents:v10
             ghcr.io/gerardovsa/ai_agents:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=ghcr.io/gerardovsa/ai_agents:buildcache
