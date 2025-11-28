@@ -515,6 +515,20 @@ Object.assign(window.ThreadManager, {
 
         console.log(`📍 [Interactions] Thread "${threadId}" (length: ${threadId.length}) dropped on ${targetLocation}`);
 
+        // NEW: Check ThreadCardRegistry for registered MIME type handlers
+        // This enables workflow slugs, automation slugs, documents, etc. to be dropped
+        if (window.ThreadCardRegistry && window.ThreadCardRegistry.initialized) {
+            const handled = await window.ThreadCardRegistry.handleDrop(event, threadId, targetLocation);
+            if (handled) {
+                console.log('✅ [Drop] Handled by ThreadCardRegistry');
+                // Refresh thread card to show new badge
+                if (typeof this.refreshThreadCard === 'function') {
+                    this.refreshThreadCard(threadId);
+                }
+                return;
+            }
+        }
+
         // Check if dropping in same location - no action needed (EXCEPT for Prime)
         // Prime should always load the thread when dropped, even if already marked as in Prime
         if (sourceLocation === targetLocation && targetLocation !== 'prime') {

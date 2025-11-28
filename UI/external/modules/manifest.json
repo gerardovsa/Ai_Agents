@@ -111,8 +111,18 @@
       "manifestPath": "external/modules/settings-sidebar/manifest.json",
       "scriptPath": "external/modules/settings-sidebar/settings-sidebar.js",
       "enabled": true
+    },
+    {
+      "id": "synergy_sessions",
+      "name": "Synergy Projects",
+      "icon": "fas fa-project-diagram",
+      "color": "#10b981",
+      "description": "Project management with documents, sheets, milestones, and AI agent integration",
+      "manifestPath": "external/modules/synergy/manifest.json",
+      "scriptPath": "external/modules/synergy/synergy-thread-integration.js",
+      "enabled": true
     }
   ],
-  "version": "1.0.11",
-  "lastUpdated": "2025-11-23"
+  "version": "1.0.12",
+  "lastUpdated": "2025-11-28"
 }

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication Hub Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="UI/external/modules/communication-hub/communication-hub.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0B0E13;
+            color: #E5E7EB;
+        }
+
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .test-header {
+            background: #1a1f2e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .test-header h1 {
+            margin: 0 0 10px 0;
+            color: #6366f1;
+        }
+
+        .test-section {
+            background: #1a1f2e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #818cf8;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .console-output {
+            background: #0B0E13;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        .btn-secondary {
+            background: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background: #374151;
+        }
+
+        /* Module container */
+        #tab-communication {
+            background: #1a1f2e;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 600px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1><i class="fas fa-comments"></i> Communication Hub Module - Diagnostic Test</h1>
+            <p>This page tests the Communication Hub module initialization and functionality.</p>
+        </div>
+
+        <div class="test-section">
+            <h2><i class="fas fa-flask"></i> Test Controls</h2>
+            <button class="btn" onclick="runFullTest()">
+                <i class="fas fa-play"></i> Run Full Test
+            </button>
+            <button class="btn btn-secondary" onclick="initializeModule()">
+                <i class="fas fa-power-off"></i> Initialize Module
+            </button>
+            <button class="btn btn-secondary" onclick="clearConsole()">
+                <i class="fas fa-eraser"></i> Clear Console
+            </button>
+            <button class="btn btn-secondary" onclick="window.debugCommunicationHub()">
+                <i class="fas fa-bug"></i> Debug Module
+            </button>
+        </div>
+
+        <div class="test-section">
+            <h2><i class="fas fa-clipboard-check"></i> Test Results</h2>
+            <div id="test-results">
+                <p class="status-pending">Waiting for test to run...</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2><i class="fas fa-terminal"></i> Console Output</h2>
+            <div class="console-output" id="console-output">
+                <span style="color: #10b981;">✓</span> Console initialized<br>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2><i class="fas fa-window-maximize"></i> Module Container</h2>
+            <div id="tab-communication">
+                <div style="text-align: center; padding: 40px; color: #6b7280;">
+                    <i class="fas fa-inbox"
+                        style="font-size: 48px; color: #6366f1; margin-bottom: 20px; display: block;"></i>
+                    <p style="font-size: 18px; margin: 0;">Module not initialized</p>
+                    <p style="font-size: 14px; margin: 10px 0 0 0;">Click "Initialize Module" to load</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Override console methods to capture output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addToConsole(message, type = 'log') {
+            const output = document.getElementById('console-output');
+            const prefix = type === 'error' ? '<span style="color: #ef4444;">✗</span>' :
+                type === 'warn' ? '<span style="color: #f59e0b;">⚠</span>' :
+                    '<span style="color: #10b981;">✓</span>';
+            output.innerHTML += `${prefix} ${message}<br>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+
+        console.error = function (...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        console.warn = function (...args) {
+            originalWarn.apply(console, args);
+            addToConsole(args.join(' '), 'warn');
+        };
+
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<span style="color: #10b981;">✓</span> Console cleared<br>';
+        }
+
+        async function initializeModule() {
+            console.log('🚀 Starting module initialization...');
+
+            try {
+                if (!window.ModuleRegistry || !window.ModuleRegistry['communication-hub']) {
+                    throw new Error('Module not registered in window.ModuleRegistry');
+                }
+
+                console.log('✓ Module found in registry');
+
+                if (window.ModuleRegistry['communication-hub'].instance) {
+                    console.log('⚠ Module already initialized, re-initializing...');
+                    window.ModuleRegistry['communication-hub'].instance = null;
+                }
+
+                await window.ModuleRegistry['communication-hub'].init();
+                console.log('✅ Module initialized successfully!');
+
+                updateTestResults(true);
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                updateTestResults(false, error.message);
+            }
+        }
+
+        async function runFullTest() {
+            console.log('🔍 Running full diagnostic test...');
+            const results = [];
+
+            // Test 1: Check if script loaded
+            console.log('\n📋 Test 1: Script Loading');
+            if (window.ModuleRegistry && window.ModuleRegistry['communication-hub']) {
+                console.log('✅ Module script loaded and registered');
+                results.push({ name: 'Script Loading', status: 'success' });
+            } else {
+                console.error('❌ Module script not loaded or registered');
+                results.push({ name: 'Script Loading', status: 'error' });
+            }
+
+            // Test 2: Check container exists
+            console.log('\n📋 Test 2: Container Check');
+            const container = document.getElementById('tab-communication');
+            if (container) {
+                console.log('✅ Container #tab-communication exists');
+                results.push({ name: 'Container Exists', status: 'success' });
+            } else {
+                console.error('❌ Container #tab-communication not found');
+                results.push({ name: 'Container Exists', status: 'error' });
+            }
+
+            // Test 3: Check manifest
+            console.log('\n📋 Test 3: Manifest Check');
+            try {
+                const response = await fetch('/api/modules/communication-hub');
+                if (response.ok) {
+                    const manifest = await response.json();
+                    console.log('✅ Manifest loaded:', manifest.name);
+                    console.log('   Main tab ID:', manifest.main_tab_id);
+                    console.log('   Tabs:', manifest.tabs?.length || 0);
+                    results.push({ name: 'Manifest Loading', status: 'success' });
+                } else {
+                    console.warn('⚠ Manifest endpoint returned:', response.status);
+                    results.push({ name: 'Manifest Loading', status: 'warning' });
+                }
+            } catch (error) {
+                console.error('❌ Failed to load manifest:', error.message);
+                results.push({ name: 'Manifest Loading', status: 'error' });
+            }
+
+            // Test 4: Initialize module
+            console.log('\n📋 Test 4: Module Initialization');
+            try {
+                await initializeModule();
+                results.push({ name: 'Module Initialization', status: 'success' });
+            } catch (error) {
+                results.push({ name: 'Module Initialization', status: 'error' });
+            }
+
+            // Test 5: Check UI structure
+            console.log('\n📋 Test 5: UI Structure Check');
+            setTimeout(() => {
+                const hasHeader = !!container.querySelector('.module-header');
+                const hasSubTabs = !!container.querySelector('.module-subtabs-nav');
+                const hasContent = !!container.querySelector('.module-subtabs-content');
+
+                if (hasHeader && hasSubTabs && hasContent) {
+                    console.log('✅ UI structure created successfully');
+                    console.log('   - Header:', hasHeader);
+                    console.log('   - Sub-tabs nav:', hasSubTabs);
+                    console.log('   - Content area:', hasContent);
+                    results.push({ name: 'UI Structure', status: 'success' });
+                } else {
+                    console.error('❌ UI structure incomplete');
+                    results.push({ name: 'UI Structure', status: 'error' });
+                }
+
+                displayTestResults(results);
+            }, 1000);
+        }
+
+        function displayTestResults(results) {
+            const resultsDiv = document.getElementById('test-results');
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="border-bottom: 1px solid #2a3142;"><th style="text-align: left; padding: 10px;">Test</th><th style="text-align: left; padding: 10px;">Status</th></tr>';
+
+            results.forEach(result => {
+                const statusClass = result.status === 'success' ? 'status-success' :
+                    result.status === 'warning' ? 'status-pending' : 'status-error';
+                const statusIcon = result.status === 'success' ? '✅' :
+                    result.status === 'warning' ? '⚠️' : '❌';
+
+                html += `<tr style="border-bottom: 1px solid #2a3142;">
+                    <td style="padding: 10px;">${result.name}</td>
+                    <td style="padding: 10px;"><span class="${statusClass}">${statusIcon} ${result.status.toUpperCase()}</span></td>
+                </tr>`;
+            });
+
+            html += '</table>';
+            resultsDiv.innerHTML = html;
+        }
+
+        function updateTestResults(success, errorMessage = '') {
+            const resultsDiv = document.getElementById('test-results');
+            if (success) {
+                resultsDiv.innerHTML = `
+                    <div class="status-success" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-check-circle" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
+                        <h3 style="margin: 0;">Module Working!</h3>
+                        <p style="margin: 10px 0 0 0;">Communication Hub module initialized successfully.</p>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="status-error" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-times-circle" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
+                        <h3 style="margin: 0;">Module Failed!</h3>
+                        <p style="margin: 10px 0 0 0;">${errorMessage || 'Unknown error occurred'}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load module script
+        console.log('📦 Loading Communication Hub module script...');
+    </script>
+
+    <!-- Load module script -->
+    <script src="UI/external/modules/communication-hub/communication-hub.js"></script>
+
+    <script>
+        // Auto-run test after script loads
+        setTimeout(() => {
+            console.log('\n🎯 Module script loaded, ready for testing');
+            console.log('💡 Click "Run Full Test" to begin diagnostics');
+        }, 500);
+    </script>
+</body>
+
+</html>

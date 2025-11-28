@@ -252,7 +252,11 @@ def init_database():
                 google_calendar_id TEXT,
                 microsoft_todo_id TEXT,
                 thread_ids TEXT,
-                assigned_agents TEXT
+                assigned_agents TEXT,
+                owner_user_id INTEGER,
+                permission_level TEXT DEFAULT 'private',
+                shared_with_users TEXT,
+                allow_public_view BOOLEAN DEFAULT FALSE
             )
         ''')
         cursor.execute(sql, params)
@@ -284,6 +288,39 @@ def init_database():
         except (sqlite3.OperationalError, Exception):
             pass  # Column already exists
         
+        # Add permission columns
+        try:
+            if is_using_supabase():
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS owner_user_id INTEGER')
+            else:
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN owner_user_id INTEGER')
+        except (sqlite3.OperationalError, Exception):
+            pass
+        
+        try:
+            if is_using_supabase():
+                cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS permission_level TEXT DEFAULT 'private'")
+            else:
+                cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN permission_level TEXT DEFAULT 'private'")
+        except (sqlite3.OperationalError, Exception):
+            pass
+        
+        try:
+            if is_using_supabase():
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS shared_with_users TEXT')
+            else:
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN shared_with_users TEXT')
+        except (sqlite3.OperationalError, Exception):
+            pass
+        
+        try:
+            if is_using_supabase():
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS allow_public_view BOOLEAN DEFAULT FALSE')
+            else:
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN allow_public_view INTEGER DEFAULT 0')
+        except (sqlite3.OperationalError, Exception):
+            pass
+        
         conn.commit()
         
     finally:
@@ -295,14 +332,69 @@ def init_database():
 init_database()
 
 
+def check_session_permission(session_data, user_id, require_write=False):
+    """
+    Check if user has permission to access a session
+    
+    Args:
+        session_data: Session dict with owner_user_id, permission_level, shared_with_users
+        user_id: User ID making the request (int or None)
+        require_write: If True, checks for edit permission (default: False for read-only)
+    
+    Returns:
+        tuple: (has_permission: bool, permission_type: str)
+        
+    Permission Levels:
+        - 'private': Only owner can access
+        - 'shared': Owner + shared_with_users can access
+        - 'public_view': Anyone can view (read-only), only owner can edit
+        - 'public_edit': Anyone can view and edit
+    """
+    owner_id = session_data.get('owner_user_id')
+    permission_level = session_data.get('permission_level', 'private')
+    shared_with = session_data.get('shared_with_users', '[]')
+    
+    # Parse shared_with_users JSON
+    try:
+        shared_users = json.loads(shared_with) if isinstance(shared_with, str) else shared_with or []
+    except:
+        shared_users = []
+    
+    # Owner always has full access
+    if user_id and owner_id and user_id == owner_id:
+        return True, 'owner'
+    
+    # Check permission level
+    if permission_level == 'private':
+        return False, 'no_access'
+    
+    elif permission_level == 'shared':
+        if user_id and user_id in shared_users:
+            return True, 'shared'
+        return False, 'no_access'
+    
+    elif permission_level == 'public_view':
+        if require_write:
+            # Only owner can edit
+            return False, 'read_only'
+        return True, 'public_view'
+    
+    elif permission_level == 'public_edit':
+        return True, 'public_edit'
+    
+    # Default: no access
+    return False, 'no_access'
+
+
 @synergy_bp.route('/list', methods=['GET'])
 def list_sessions():
-    """List all sessions with optional filtering"""
+    """List all sessions with optional filtering and permission checking"""
     conn = None
     try:
         status = request.args.get('status')
         priority = request.args.get('priority')
         column = request.args.get('kanban_column')
+        user_id = request.args.get('user_id', type=int)  # Optional user_id for filtering
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -331,14 +423,23 @@ def list_sessions():
         sessions = []
         for row in rows:
             session = dict(row)
+            
+            # Check permission for this session
+            has_permission, perm_type = check_session_permission(session, user_id, require_write=False)
+            if not has_permission:
+                continue  # Skip sessions user doesn't have access to
+            
             # Parse JSON fields
             for field in ['platforms_involved', 'tags', 'documents', 'links', 
-                         'next_steps', 'assignees', 'recent_activity', 'checklist']:
+                         'next_steps', 'assignees', 'recent_activity', 'checklist', 'shared_with_users']:
                 if session.get(field):
                     try:
                         session[field] = json.loads(session[field])
                     except:
                         session[field] = []
+            
+            # Add permission info to response
+            session['user_permission'] = perm_type
             sessions.append(session)
         
         return jsonify({
@@ -695,6 +796,12 @@ def create_session():
         thread_ids = json.dumps(thread_ids_list)
         assigned_agents = json.dumps(data.get('assigned_agents', []))
         
+        # Handle permissions
+        owner_user_id = data.get('owner_user_id')
+        permission_level = data.get('permission_level', 'private')
+        shared_with_users = json.dumps(data.get('shared_with_users', []))
+        allow_public_view = data.get('allow_public_view', False)
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -703,8 +810,9 @@ def create_session():
                 session_id, title, description, platforms_involved, status,
                 priority, kanban_column, tags, documents, links, next_steps,
                 assignees, recent_activity, checklist, due_date, created_at, last_active,
-                thread_ids, assigned_agents, uses_milestones
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                thread_ids, assigned_agents, uses_milestones,
+                owner_user_id, permission_level, shared_with_users, allow_public_view
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             session_id,
             data.get('title', 'Untitled Session'),
@@ -725,7 +833,11 @@ def create_session():
             datetime.now().isoformat(),
             thread_ids,
             assigned_agents,
-            data.get('uses_milestones', False)
+            data.get('uses_milestones', False),
+            owner_user_id,
+            permission_level,
+            shared_with_users,
+            allow_public_view
         ))
         
         conn.commit()
@@ -788,6 +900,8 @@ def get_session(session_id):
     """Get session by ID - includes milestones if uses_milestones=TRUE"""
     conn = None
     try:
+        user_id = request.args.get('user_id', type=int)
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -802,15 +916,26 @@ def get_session(session_id):
         
         session = dict(row)
         
+        # Check permission
+        has_permission, perm_type = check_session_permission(session, user_id, require_write=False)
+        if not has_permission:
+            return jsonify({
+                'success': False,
+                'error': 'Access denied: You do not have permission to view this session'
+            }), 403
+        
         # Parse JSON fields
         for field in ['platforms_involved', 'tags', 'documents', 'links', 
                      'next_steps', 'assignees', 'recent_activity', 'checklist',
-                     'thread_ids', 'assigned_agents']:
+                     'thread_ids', 'assigned_agents', 'shared_with_users']:
             if session.get(field):
                 try:
                     session[field] = json.loads(session[field])
                 except:
                     session[field] = []
+        
+        # Add permission info to response
+        session['user_permission'] = perm_type
         
         # If session uses milestones, fetch milestone data
         if session.get('uses_milestones'):
@@ -931,12 +1056,118 @@ def get_session(session_id):
             conn.close()
 
 
+@synergy_bp.route('/<session_id>/permissions', methods=['PATCH'])
+def update_session_permissions(session_id):
+    """Update session permission settings"""
+    conn = None
+    try:
+        data = request.json
+        user_id = data.get('user_id', type=int)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current session
+        cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({
+                'success': False,
+                'error': 'Session not found'
+            }), 404
+        
+        session = dict(row)
+        
+        # Only owner can change permissions
+        has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
+        if perm_type != 'owner':
+            return jsonify({
+                'success': False,
+                'error': 'Only the session owner can change permissions'
+            }), 403
+        
+        # Build update query
+        updates = []
+        params = []
+        
+        if 'permission_level' in data:
+            updates.append('permission_level = %s')
+            params.append(data['permission_level'])
+        
+        if 'shared_with_users' in data:
+            updates.append('shared_with_users = %s')
+            params.append(json.dumps(data['shared_with_users']))
+        
+        if 'allow_public_view' in data:
+            updates.append('allow_public_view = %s')
+            params.append(data['allow_public_view'])
+        
+        if not updates:
+            return jsonify({
+                'success': False,
+                'error': 'No permission fields provided'
+            }), 400
+        
+        # Update timestamp
+        updates.append('last_active = %s')
+        params.append(datetime.now().isoformat())
+        
+        # Add session_id to params
+        params.append(session_id)
+        
+        query = f"UPDATE synergy_sessions.synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
+        cursor.execute(query, params)
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Permissions updated successfully',
+            'session_id': session_id
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+
 @synergy_bp.route('/<session_id>', methods=['PATCH'])
 def update_session(session_id):
     """Update session"""
     conn = None
     try:
         data = request.json
+        user_id = data.get('user_id', type=int)
+        print(f"[DEBUG] Received data: {data}")  # DEBUG
+        
+        # Check write permission
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({
+                'success': False,
+                'error': 'Session not found'
+            }), 404
+        
+        session = dict(row)
+        has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
+        
+        if not has_permission:
+            return jsonify({
+                'success': False,
+                'error': 'Access denied: You do not have permission to edit this session'
+            }), 403
+        
         print(f"[DEBUG] Received data: {data}")  # DEBUG
         
         # Handle both direct fields and nested 'updates' object
@@ -1669,6 +1900,302 @@ def delete_internal_doc(doc_id):
     
     except Exception as e:
         print(f"[INTERNAL DOC ERROR] Failed to delete {doc_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/document/<int:doc_index>', methods=['DELETE'])
+def remove_document(session_id, doc_index):
+    """
+    Remove a document from session by index
+    
+    Args:
+        session_id: Session ID
+        doc_index: Index of document to remove (0-based)
+    
+    Returns:
+        {"success": true, "documents": [...], "count": 2}
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current documents
+        cursor.execute('SELECT documents FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        documents = json.loads(row['documents'] or '[]')
+        
+        if doc_index < 0 or doc_index >= len(documents):
+            conn.close()
+            return jsonify({'success': False, 'error': f'Invalid index {doc_index}'}), 400
+        
+        # Remove document at index
+        removed_doc = documents.pop(doc_index)
+        
+        # Update database
+        cursor.execute(
+            'UPDATE synergy_sessions.synergy_sessions SET documents = %s WHERE session_id = %s',
+            (json.dumps(documents), session_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'documents': documents,
+            'count': len(documents),
+            'removed': removed_doc
+        })
+    
+    except Exception as e:
+        print(f"[SESSION ERROR] Failed to remove document: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/link/<int:link_index>', methods=['DELETE'])
+def remove_link(session_id, link_index):
+    """
+    Remove a link from session by index
+    
+    Args:
+        session_id: Session ID
+        link_index: Index of link to remove (0-based)
+    
+    Returns:
+        {"success": true, "links": [...], "count": 3}
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current links
+        cursor.execute('SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        links = json.loads(row['links'] or '[]')
+        
+        if link_index < 0 or link_index >= len(links):
+            conn.close()
+            return jsonify({'success': False, 'error': f'Invalid index {link_index}'}), 400
+        
+        # Remove link at index
+        removed_link = links.pop(link_index)
+        
+        # Update database
+        cursor.execute(
+            'UPDATE synergy_sessions.synergy_sessions SET links = %s WHERE session_id = %s',
+            (json.dumps(links), session_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'links': links,
+            'count': len(links),
+            'removed': removed_link
+        })
+    
+    except Exception as e:
+        print(f"[SESSION ERROR] Failed to remove link: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/tag/<tag_name>', methods=['DELETE'])
+def remove_tag(session_id, tag_name):
+    """
+    Remove a tag from session by name
+    
+    Args:
+        session_id: Session ID
+        tag_name: Tag name to remove
+    
+    Returns:
+        {"success": true, "tags": [...], "count": 4}
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current tags
+        cursor.execute('SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        tags = json.loads(row['tags'] or '[]')
+        
+        # Remove tag by name (case-insensitive)
+        original_count = len(tags)
+        tags = [t for t in tags if t.lower() != tag_name.lower()]
+        
+        if len(tags) == original_count:
+            conn.close()
+            return jsonify({'success': False, 'error': f'Tag "{tag_name}" not found'}), 404
+        
+        # Update database
+        cursor.execute(
+            'UPDATE synergy_sessions.synergy_sessions SET tags = %s WHERE session_id = %s',
+            (json.dumps(tags), session_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'tags': tags,
+            'count': len(tags),
+            'removed': tag_name
+        })
+    
+    except Exception as e:
+        print(f"[SESSION ERROR] Failed to remove tag: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>', methods=['DELETE'])
+def delete_milestone(milestone_id):
+    """
+    Delete a milestone and all its tasks/subtasks
+    
+    Args:
+        milestone_id: Milestone ID to delete
+    
+    Returns:
+        {"success": true, "milestone_id": "ms_xxx", "tasks_deleted": 5, "subtasks_deleted": 12}
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Count tasks and subtasks before deleting
+        cursor.execute('SELECT COUNT(*) as count FROM synergy_sessions.tasks WHERE milestone_id = %s', (milestone_id,))
+        tasks_count = cursor.fetchone()['count']
+        
+        cursor.execute('''
+            SELECT COUNT(*) as count FROM synergy_sessions.subtasks 
+            WHERE task_id IN (SELECT task_id FROM synergy_sessions.tasks WHERE milestone_id = %s)
+        ''', (milestone_id,))
+        subtasks_count = cursor.fetchone()['count']
+        
+        # Delete subtasks first (foreign key constraint)
+        cursor.execute('''
+            DELETE FROM synergy_sessions.subtasks 
+            WHERE task_id IN (SELECT task_id FROM synergy_sessions.tasks WHERE milestone_id = %s)
+        ''', (milestone_id,))
+        
+        # Delete tasks
+        cursor.execute('DELETE FROM synergy_sessions.tasks WHERE milestone_id = %s', (milestone_id,))
+        
+        # Delete milestone
+        cursor.execute('DELETE FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'tasks_deleted': tasks_count,
+            'subtasks_deleted': subtasks_count,
+            'message': f'Deleted milestone with {tasks_count} tasks and {subtasks_count} subtasks'
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to delete milestone: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/task/<task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    """
+    Delete a task and all its subtasks
+    
+    Args:
+        task_id: Task ID to delete
+    
+    Returns:
+        {"success": true, "task_id": "task_xxx", "subtasks_deleted": 3}
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Count subtasks before deleting
+        cursor.execute('SELECT COUNT(*) as count FROM synergy_sessions.subtasks WHERE task_id = %s', (task_id,))
+        subtasks_count = cursor.fetchone()['count']
+        
+        # Delete subtasks first (foreign key constraint)
+        cursor.execute('DELETE FROM synergy_sessions.subtasks WHERE task_id = %s', (task_id,))
+        
+        # Delete task
+        cursor.execute('DELETE FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'subtasks_deleted': subtasks_count,
+            'message': f'Deleted task with {subtasks_count} subtasks'
+        })
+    
+    except Exception as e:
+        print(f"[TASK ERROR] Failed to delete task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/subtask/<subtask_id>', methods=['DELETE'])
+def delete_subtask(subtask_id):
+    """
+    Delete a subtask
+    
+    Args:
+        subtask_id: Subtask ID to delete
+    
+    Returns:
+        {"success": true, "subtask_id": "sub_xxx"}
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM synergy_sessions.subtasks WHERE subtask_id = %s', (subtask_id,))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id,
+            'message': 'Subtask deleted successfully'
+        })
+    
+    except Exception as e:
+        print(f"[SUBTASK ERROR] Failed to delete subtask: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

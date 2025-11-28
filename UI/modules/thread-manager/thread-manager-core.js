@@ -48,6 +48,8 @@ const ThreadManager = {
     threads: [],
     threadsLoaded: false,
     autoSaveInterval: null,
+    _initialized: false,  // ✅ NEW: Flag to prevent duplicate initialization
+    _initializationPromise: null,  // ✅ NEW: Track ongoing initialization
 
     /**
      * Sanitize thread ID by removing whitespace and newlines
@@ -117,39 +119,87 @@ const ThreadManager = {
 
     // REPLACE the existing init() with this enhanced version:
     async init() {
+        // ✅ GUARD: Prevent duplicate initialization
+        if (this._initialized) {
+            console.log('⏭️ [ThreadManager] Already initialized, skipping duplicate init');
+            return;
+        }
+
+        // ✅ GUARD: If initialization is in progress, wait for it
+        if (this._initializationPromise) {
+            console.log('⏳ [ThreadManager] Initialization in progress, waiting...');
+            return await this._initializationPromise;
+        }
+
         console.log('🚀 [ThreadManager] Initializing...');
 
-        try {
-            await this.loadModules();
-            await this.ensureCorrectUserData();
-            await this.loadThreadsFromBackend();
-            await this.restoreThreadAssignments();
-            await this.initRealtimeSubscription();
-            this.initWelcomeMessage('prime');
-            this.startAutoSave();
-            this.renderThreadList();
-            await this.autoLoadPrimeThread();
+        // Store initialization promise to prevent concurrent calls
+        this._initializationPromise = (async () => {
+            try {
+                await this.loadModules();
+                await this.ensureCorrectUserData();
+                
+                // ✅ SMART: Only load threads if not already loaded by initMultiAgent
+                if (!this.threadsLoaded || this.threads.length === 0) {
+                    console.log('📥 [ThreadManager] Loading threads (not yet loaded)...');
+                    await this.loadThreadsFromBackend();
+                } else {
+                    console.log('✅ [ThreadManager] Threads already loaded (count: ' + this.threads.length + '), skipping reload');
+                }
+                
+                // ✅ SMART: Only restore assignments if not already done by initMultiAgent
+                if (typeof MultiAgent !== 'undefined' && MultiAgent.loadedThreads && Object.keys(MultiAgent.loadedThreads).length > 0) {
+                    console.log('✅ [ThreadManager] Threads already assigned by initMultiAgent, skipping restoreThreadAssignments');
+                } else {
+                    console.log('📥 [ThreadManager] Restoring thread assignments...');
+                    await this.restoreThreadAssignments();
+                }
+                
+                await this.initRealtimeSubscription();
+                this.initWelcomeMessage('prime');
+                this.startAutoSave();
+                this.renderThreadList();
+                
+                // ✅ SMART: Only auto-load prime if not already loaded
+                const primeThreadId = this.threads.find(t => t.location === 'prime-loaded')?.id;
+                const primeAlreadyLoaded = typeof AppState !== 'undefined' && AppState.currentThreadId === primeThreadId;
+                
+                if (!primeAlreadyLoaded && primeThreadId) {
+                    console.log('📥 [ThreadManager] Auto-loading prime thread...');
+                    await this.autoLoadPrimeThread();
+                } else {
+                    console.log('✅ [ThreadManager] Prime thread already loaded, skipping auto-load');
+                }
 
-            // ✅ ENHANCED: Initialize tooltips and menu handlers
-            this.initTooltips();
-            this.initMenuHandlers();
+                // ✅ ENHANCED: Initialize tooltips and menu handlers
+                this.initTooltips();
+                this.initMenuHandlers();
 
-            // ✅ NEW: Initialize thread selectors for agents and Prime
-            setTimeout(() => {
-                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.refreshAllAgentThreadInfos === 'function') {
-                    AgentColumn.refreshAllAgentThreadInfos();
+                // ✅ NEW: Initialize thread selectors for agents and Prime
+                setTimeout(() => {
+                    if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.refreshAllAgentThreadInfos === 'function') {
+                        AgentColumn.refreshAllAgentThreadInfos();
                     console.log('✅ [ThreadManager] Thread selectors initialized');
                 }
             }, 500);
 
             console.log('✅ [ThreadManager] Initialization complete');
             console.log(`📊 [ThreadManager] Loaded ${this.threads.length} threads`);
+            
+            // Mark as initialized
+            this._initialized = true;
 
         } catch (error) {
             console.error('❌ [ThreadManager] Initialization failed:', error);
             throw error;
+        } finally {
+            // Clear the initialization promise
+            this._initializationPromise = null;
         }
-    },
+    })();
+    
+    return this._initializationPromise;
+},
 
 
 

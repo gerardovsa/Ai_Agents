@@ -288,13 +288,17 @@
     height: calc(100vh - 60px);
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
     box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
-    z-index: 10000;
+    z-index: 25000;
+    /* Above module-sidebar (20000) and other elements */
+    pointer-events: all;
+    /* Ensure clicks are captured */
 }
 
 #settings-sidebar.show {
     right: 60px;
     display: flex !important;
     visibility: visible;
+    pointer-events: all;
 }
 
 /* ==================== RESPONSIVE ADJUSTMENTS ==================== */

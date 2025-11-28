@@ -5,31 +5,40 @@
 
 .debug-sidebar {
     position: fixed;
-    right: -450px;
-    top: 0;
-    width: 450px;
-    height: 100vh;
+    top: 60px;
+    right: 60px;
+    height: calc(100vh - 60px);
+    width: 600px;
     background: var(--bg-primary);
-    border-left: 1px solid var(--border-color);
-    z-index: 10000;
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+    z-index: 9000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 1px solid var(--border-color);
     overflow: hidden;
 }
 
-.debug-sidebar.open {
-    right: 0;
+.debug-sidebar.collapsed {
+    transform: translateX(calc(100% + 60px));
+    box-shadow: none;
+}
+
+.debug-sidebar:not(.collapsed) {
+    transform: translateX(0);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
 }
 
 .debug-sidebar.expanded {
     width: 900px;
-    right: -900px;
 }
 
-.debug-sidebar.expanded.open {
-    right: 0;
+/* Legacy compatibility */
+.debug-sidebar.open {
+    transform: translateX(0);
+}
+
+.debug-sidebar:not(.open):not(.collapsed) {
+    transform: translateX(calc(100% + 60px));
 }
 
 /* Header */

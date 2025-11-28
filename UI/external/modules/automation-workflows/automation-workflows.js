@@ -268,8 +268,8 @@ class AutomationCanvas {
             const workflowData = {
                 automation_id: this.currentWorkflow.automation_id,
                 slug: this.workflowSlug,
-                title: this.workflowTitle,
-                description: this.workflowDescription,
+                title: this.workflowTitle || 'Untitled Workflow', // ✅ FIX: Ensure title is never null
+                description: this.workflowDescription || '',
                 status: this.workflowStatus,
                 ui_json: ui_json,
                 execution_json: this.currentWorkflow.execution_json || { steps: [] }
@@ -1167,7 +1167,7 @@ class AutomationCanvas {
         // Reset workflow metadata
         this.automationId = null;
         this.automationTitle = 'Untitled Automation';
-        this.workflowTitle = null;
+        this.workflowTitle = 'Untitled Workflow'; // ✅ FIX: Never set to null (database constraint)
         this.workflowSlug = null;
         this.workflowDescription = '';
         this.updateWorkflowNameDisplay();
@@ -1944,8 +1944,8 @@ class AutomationCanvas {
         // Prepare workflow data
         const workflowData = {
             slug: this.workflowSlug,
-            title: this.workflowTitle,
-            description: this.workflowDescription,
+            title: this.workflowTitle || 'Untitled Workflow', // ✅ FIX: Ensure title is never null
+            description: this.workflowDescription || '',
             status: this.workflowStatus,
             ui_json: ui_json,
             execution_json: this.currentWorkflow.execution_json || { steps: [] }

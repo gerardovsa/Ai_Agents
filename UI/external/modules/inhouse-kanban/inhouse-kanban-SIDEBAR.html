@@ -1,5 +1,5 @@
 <!-- InHouse Kanban Module Sidebar -->
-<div id="inhouse-kanban-sidebar" class="module-sidebar kanban-sidebar" style="display: none; width: 480px;">
+<div id="inhouse-kanban-sidebar" class="module-sidebar kanban-sidebar" style="width: 480px;">
     <div class="module-sidebar-header">
         <h2>
             <i class="fas fa-industry"></i>
@@ -206,6 +206,15 @@
 </div>
 
 <style>
+    /* CRITICAL: Sidebar visibility control */
+    #inhouse-kanban-sidebar {
+        display: none;
+    }
+
+    #inhouse-kanban-sidebar.active {
+        display: flex !important;
+    }
+
     /* Sidebar-specific styles (480px width) */
     .kanban-sidebar {
         width: 480px !important;

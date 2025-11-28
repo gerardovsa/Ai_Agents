@@ -17,10 +17,11 @@
               "workflow",
               "updating_arrays",
               "field_reference",
+              "references",
               "troubleshooting",
               "examples"
             ],
-            "description": "Which aspect of Synergy you need guidance on:\n- overview: What Synergy is, when to use it, available tools\n- quickstart: Step-by-step guide for creating your first project\n- workflow: Complete multi-platform project pattern with all phases\n- updating_arrays: CRITICAL - How to safely add/remove documents/links without data loss\n- field_reference: Complete list of all 22 fields with examples and correct naming\n- troubleshooting: Common errors and solutions (documents disappearing, wrong field names, etc.)\n- examples: Real-world use cases with complete code patterns",
+            "description": "Which aspect of Synergy you need guidance on:\n- overview: What Synergy is, when to use it, available tools\n- quickstart: Step-by-step guide for creating your first project\n- workflow: Complete multi-platform project pattern with all phases\n- updating_arrays: CRITICAL - How to safely add/remove documents/links without data loss\n- field_reference: Complete list of all 22 fields with examples and correct naming\n- references: LEGACY - Understanding old flat-structure references (N4, C2.1, D1) - NOTE: Frontend uses milestone structure (M1/T1/S1), these references are deprecated\n- troubleshooting: Common errors and solutions (documents disappearing, wrong field names, etc.)\n- examples: Real-world use cases with complete code patterns",
             "default": "overview"
           }
         },

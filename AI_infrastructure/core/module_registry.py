@@ -78,6 +78,7 @@ class ModuleManifest:
     sidebar_width: int = 450  # Default width in pixels
     auto_load: bool = False  # Load at startup vs on-demand
     requires_auth: bool = True  # Require user authentication
+    show_in_sidebar: bool = True  # Show module button in sidebar navigation
     
     # UI configuration
     floating_toggle: bool = False  # Show floating toggle button
@@ -201,6 +202,7 @@ class ModuleRegistry:
                     sidebar_width=manifest_data.get('sidebar_width', 450),
                     auto_load=manifest_data.get('auto_load', False),
                     requires_auth=manifest_data.get('requires_auth', True),
+                    show_in_sidebar=manifest_data.get('show_in_sidebar', True),
                     floating_toggle=manifest_data.get('floating_toggle', False),
                     floating_toggle_position=manifest_data.get('floating_toggle_position', 'right'),
                     floating_toggle_default_top=manifest_data.get('floating_toggle_default_top', 280),
@@ -237,7 +239,18 @@ class ModuleRegistry:
     def _ensure_initialized(self):
         """Ensure modules are loaded (lazy initialization)"""
         if not self._modules_loaded:
-            self.initialize()  # Now synchronous!
+            # Scan BOTH module directories on first load
+            base_dir = Path(__file__).parent.parent.parent  # Go up to AI_agents root
+            
+            # Scan frontend/modules first
+            frontend_dir = base_dir / "frontend" / "modules"
+            if frontend_dir.exists():
+                self.initialize(str(frontend_dir))
+            
+            # Scan UI/external/modules second
+            external_dir = base_dir / "UI" / "external" / "modules"
+            if external_dir.exists():
+                self.initialize(str(external_dir))
     
     def get_module(self, module_id: str) -> Optional[ModuleManifest]:
         """Get module manifest by ID"""

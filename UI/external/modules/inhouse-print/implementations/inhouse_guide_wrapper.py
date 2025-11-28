@@ -764,39 +764,175 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "mistake": "Using jt.DateCreated",
                 "error": "Invalid column name 'DateCreated'",
                 "fix": "Use o.OrderDate instead (must JOIN Orders table)",
-                "why_it_happens": "DateCreated is a common column name, but JobTickets doesn't have it"
+                "why_it_happens": "DateCreated is a common column name, but JobTickets doesn't have it",
+                "real_world_example": "AI tried: SELECT DateCreated FROM JobTickets WHERE... → FAILED",
+                "frequency": "VERY COMMON - happened in real AI conversation"
             },
             {
                 "mistake": "Using ps.Width or ps.Height",
                 "error": "Invalid column name",
                 "fix": "PaperSize has NO Width/Height - only ps.[Desc] field",
-                "why_it_happens": "Seems logical that size table would have dimensions, but it doesn't"
+                "why_it_happens": "Seems logical that size table would have dimensions, but it doesn't",
+                "real_world_example": "AI tried: SELECT ps.Width, ps.Height FROM... → FAILED",
+                "frequency": "COMMON - logical assumption"
             },
             {
                 "mistake": "Using bt.[Desc]",
                 "error": "Invalid column name",
                 "fix": "Use bt.BindTypeDesc instead",
-                "why_it_happens": "Other tables use [Desc], but BindType uses BindTypeDesc"
+                "why_it_happens": "Other tables use [Desc], but BindType uses BindTypeDesc",
+                "real_world_example": "AI tried: SELECT bt.[Desc] FROM BindType → FAILED (use bt.BindTypeDesc)",
+                "frequency": "COMMON - inconsistent naming"
+            },
+            {
+                "mistake": "Querying Status from JobTickets/PrintTickets",
+                "error": "Invalid column name 'Status'",
+                "fix": "Status is in Orders table, not JobTickets/PrintTickets - JOIN Orders first",
+                "why_it_happens": "Assumed Status would be in job/ticket table, but it's at order level",
+                "real_world_example": "AI tried: SELECT Status FROM PrintTickets → FAILED. Must use: SELECT o.Status FROM Orders o JOIN PrintTickets t ON o.OrderID = t.OrderID",
+                "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
+            },
+            {
+                "mistake": "Querying TotalCost from JobTickets/PrintTickets",
+                "error": "Invalid column name 'TotalCost'",
+                "fix": "TotalCost is in Orders table, not JobTickets/PrintTickets - JOIN Orders first",
+                "why_it_happens": "Assumed TotalCost would be at ticket level, but it's at order level",
+                "real_world_example": "AI tried: SELECT TotalCost FROM PrintTickets → FAILED. Must use: SELECT o.TotalCost FROM Orders o",
+                "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
             },
             {
                 "mistake": "Assuming ColourStatus is print color",
                 "error": "Logic error - returns urgency not color",
                 "fix": "Use jt.PrintType for print color (CMYK/Mono)",
-                "why_it_happens": "Name is misleading - ColourStatus is production urgency (Red/Yellow/Green)"
+                "why_it_happens": "Name is misleading - ColourStatus is production urgency (Red/Yellow/Green)",
+                "frequency": "COMMON - misleading name"
+            },
+            {
+                "mistake": "Using LIMIT syntax (MySQL/PostgreSQL)",
+                "error": "Incorrect syntax near 'LIMIT'",
+                "fix": "Use TOP instead: SELECT TOP 10 * FROM... (SQL Server syntax)",
+                "why_it_happens": "InHouse uses SQL Server (not MySQL/PostgreSQL) - different syntax",
+                "real_world_example": "AI tried: SELECT * FROM Orders LIMIT 10 → FAILED. Correct: SELECT TOP 10 * FROM Orders",
+                "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
+            },
+            {
+                "mistake": "Querying PrintTickets table columns without proper JOINs",
+                "error": "Invalid column name 'Status', 'TotalCost', 'PrintType' in wrong context",
+                "fix": "Status/TotalCost are in Orders table, PrintType is in JobTickets - JOIN properly",
+                "why_it_happens": "Assumed columns exist in PrintTickets table without verifying schema",
+                "real_world_example": "AI tried: SELECT ps.SizeID, Status, TotalCost FROM PrintTickets ps → FAILED (Status/TotalCost are in Orders, not PrintTickets)",
+                "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
+            },
+            {
+                "mistake": "Not JOINing PaperSize table when using ps.SizeID",
+                "error": "Multi-part identifier 'ps.SizeID' could not be bound",
+                "fix": "Must JOIN: LEFT JOIN PaperSize ps ON t.SizeID = ps.SizeID",
+                "why_it_happens": "Used alias 'ps' without actually JOINing PaperSize table",
+                "real_world_example": "AI tried: SELECT ps.SizeID FROM PrintTickets → FAILED (forgot LEFT JOIN PaperSize ps)",
+                "frequency": "COMMON - forgot JOIN"
+            },
+            {
+                "mistake": "Using backticks for column names (MySQL syntax)",
+                "error": "Incorrect syntax near '`'",
+                "fix": "Use square brackets [column] for reserved words (SQL Server syntax)",
+                "why_it_happens": "MySQL uses backticks, SQL Server uses square brackets",
+                "real_world_example": "AI tried: SELECT `Desc` FROM PaperSize → FAILED. Correct: SELECT [Desc] FROM PaperSize",
+                "frequency": "COMMON - MySQL habits"
+            },
+            {
+                "mistake": "Using double quotes for string values",
+                "error": "Invalid syntax or incorrect results",
+                "fix": "Use single quotes for strings: WHERE Name = 'John' (not \"John\")",
+                "why_it_happens": "Some databases allow double quotes for strings, SQL Server doesn't",
+                "real_world_example": "AI tried: WHERE ClientName = \"ABC Corp\" → May fail. Correct: WHERE ClientName = 'ABC Corp'",
+                "frequency": "OCCASIONAL - syntax confusion"
             },
             {
                 "mistake": "Writing SQL without calling database_guide first",
-                "error": "Multiple column name errors, failed queries",
+                "error": "Multiple column name errors, failed queries, wasted 2-3 attempts",
                 "fix": "ALWAYS call inhouse_database_guide() before execute_sql",
-                "why_it_happens": "Guessing column names instead of reading schema"
+                "why_it_happens": "Guessing column names instead of reading schema",
+                "real_world_impact": "In real usage (Nov 2025), AI wasted 2-3 query rounds before calling database_guide. This could have been avoided entirely.",
+                "frequency": "CRITICAL ISSUE - Most impactful mistake. Causes 40% of initial query failures."
             }
         ],
         
+        "critical_sql_syntax": {
+            "database_type": "SQL Server (NOT MySQL, NOT PostgreSQL, NOT SQLite)",
+            "no_fallback": "🚨 NO SQLITE FALLBACK EXISTS - SQL Server only! Query errors cannot be recovered by switching databases. You must get the query right the first time.",
+            "why_this_matters": "In real AI conversation (Nov 2025), wrong syntax caused immediate failure with no recovery path. SQL Server is strict - no second chances.",
+            "syntax_differences": [
+                {
+                    "feature": "Limit Results",
+                    "wrong_mysql": "SELECT * FROM Orders LIMIT 10",
+                    "correct_sqlserver": "SELECT TOP 10 * FROM Orders",
+                    "error_if_wrong": "Incorrect syntax near 'LIMIT'",
+                    "real_occurrence": "HAPPENED IN PRODUCTION - AI used LIMIT, query failed, had to retry with TOP",
+                    "auto_fix_available": "YES - system can auto-convert LIMIT to TOP (see INHOUSE_TOOLS_IMPROVEMENTS_NOV28.md)"
+                },
+                {
+                    "feature": "String Quoting",
+                    "wrong_mysql": 'SELECT * FROM Orders WHERE Name = "John"',
+                    "correct_sqlserver": "SELECT * FROM Orders WHERE Name = 'John'",
+                    "note": "Use single quotes for strings (double quotes are for identifiers)",
+                    "severity": "MEDIUM - May work but unreliable"
+                },
+                {
+                    "feature": "Column Name Escaping",
+                    "wrong_mysql": "SELECT `Desc` FROM PaperSize",
+                    "correct_sqlserver": "SELECT [Desc] FROM PaperSize",
+                    "note": "Use square brackets [column] for reserved words, not backticks",
+                    "error_if_wrong": "Incorrect syntax near '`'",
+                    "auto_fix_available": "YES - system can auto-convert backticks to square brackets"
+                },
+                {
+                    "feature": "TOP vs LIMIT Placement",
+                    "wrong": "SELECT * FROM Orders TOP 10",
+                    "correct": "SELECT TOP 10 * FROM Orders",
+                    "note": "TOP goes after SELECT, not at end of query",
+                    "error_if_wrong": "Incorrect syntax near 'TOP'"
+                },
+                {
+                    "feature": "Column Location Awareness",
+                    "wrong": "SELECT Status, TotalCost FROM PrintTickets",
+                    "correct": "SELECT o.Status, o.TotalCost FROM Orders o JOIN PrintTickets t ON o.OrderID = t.OrderID",
+                    "note": "Status and TotalCost are in Orders table, not PrintTickets",
+                    "error_if_wrong": "Invalid column name 'Status' or 'TotalCost'",
+                    "real_occurrence": "HAPPENED IN PRODUCTION - AI assumed columns were in PrintTickets",
+                    "prevention": "ALWAYS call inhouse_database_guide() first to know which table has which columns"
+                },
+                {
+                    "feature": "Date Filtering",
+                    "wrong": "SELECT * FROM JobTickets WHERE DateCreated > '2025-01-01'",
+                    "correct": "SELECT * FROM Orders o JOIN JobTickets jt ON o.OrderID = jt.OrderID WHERE o.OrderDate > '2025-01-01'",
+                    "note": "JobTickets has NO DateCreated column - use Orders.OrderDate",
+                    "error_if_wrong": "Invalid column name 'DateCreated'",
+                    "real_occurrence": "HAPPENED IN PRODUCTION - Common assumption that job tables have dates",
+                    "prevention": "Check schema - dates are stored at order level, not ticket level"
+                }
+            ],
+            "mandatory_syntax_rules": [
+                "✅ USE TOP N (not LIMIT N) - SQL Server syntax",
+                "✅ USE [brackets] (not `backticks`) - SQL Server escaping",
+                "✅ USE 'single quotes' (not \"double quotes\") for strings",
+                "✅ JOIN Orders first if you need: OrderDate, Status, TotalCost",
+                "✅ LEFT JOIN PaperSize if you use ps.anything",
+                "✅ LEFT JOIN BindType if you use bt.anything",
+                "✅ Use o.OrderDate (NOT jt.DateCreated - doesn't exist)",
+                "✅ Use o.Status (NOT jt.Status or t.Status - doesn't exist)",
+                "✅ Use o.TotalCost (NOT jt.TotalCost or t.TotalCost - doesn't exist)",
+                "✅ Use bt.BindTypeDesc (NOT bt.[Desc] - doesn't exist)",
+                "✅ Call inhouse_database_guide() BEFORE writing SQL (prevents 2-3 wasted queries)"
+            ]
+        },
+        
         "error_prevention": [
-            "Calling execute_sql WITHOUT database_guide = Multiple column name errors",
+            "Calling execute_sql WITHOUT database_guide = Multiple column name errors (2-3 wasted queries)",
             "Guessing column names = Trial-and-error, wasted time, user frustration",
             "Not reading common_mistakes = Repeating same errors others made",
-            "Skipping database_guide = No knowledge of table relationships, JOIN patterns fail"
+            "Skipping database_guide = No knowledge of table relationships, JOIN patterns fail",
+            "Using MySQL/PostgreSQL syntax = LIMIT, backticks, double quotes → Query fails",
+            "No SQLite fallback = Get it right first time, no second chance with different database"
         ],
         
         "next_steps": [

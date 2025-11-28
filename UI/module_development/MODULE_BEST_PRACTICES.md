@@ -259,10 +259,375 @@ stock-management/
 **Optional Fields:**
 - `scriptPath` - Explicit script path (auto-detected if omitted)
 - `stylePath` - Explicit CSS path (auto-detected if omitted)
+- `html_file` - Separate HTML template file (see HTML Patterns section below)
 - `dependencies` - External libraries or additional scripts
 - `settings` - Module-specific configuration
 - `enhancedScript` - Progressive enhancement version
 - `has_database` - Boolean indicating database requirement
+
+---
+
+## HTML Patterns: Two Approaches
+
+### 🎯 Critical Choice: HTML File vs. JavaScript-Generated UI
+
+**Every module must choose ONE of these patterns:**
+
+---
+
+### Pattern 1: JavaScript-Generated UI (Recommended for Complex Modules)
+
+**When to Use:**
+- ✅ Dynamic, interactive UIs with frequent updates
+- ✅ Complex state management requirements
+- ✅ Modules with conditional rendering
+- ✅ AI chat integration with live data updates
+- ✅ Tabs with different content types
+
+**Advantages:**
+- Full programmatic control over UI
+- Easy to update UI based on state changes
+- No separate HTML file to maintain
+- Better for data-driven interfaces
+- Cleaner separation of concerns
+
+**Example: Communication Hub Module**
+
+```javascript
+// communication-hub/manifest.json
+{
+  "id": "communication-hub",
+  "name": "Communication Hub",
+  "js_file": "communication-hub.js",
+  "css_file": "communication-hub.css"
+  // NOTE: NO html_file field - UI is created in JavaScript!
+}
+```
+
+```javascript
+// communication-hub/communication-hub.js
+class CommunicationHubModule extends BaseModule {
+    constructor(moduleId) {
+        super(moduleId);
+    }
+
+    async initialize() {
+        console.log('🔧 Initializing Communication Hub...');
+        
+        // Create UI programmatically
+        await this.createModuleStructure();
+        
+        // Load data and render
+        await this.loadEmails();
+        this.renderEmailList();
+        
+        console.log('✅ Communication Hub ready');
+    }
+
+    async createModuleStructure() {
+        // Get container (created by module loader)
+        const container = document.getElementById(`tab-${this.manifest.main_tab_id || this.moduleId}`);
+        
+        if (!container) {
+            console.error('Container not found!');
+            return;
+        }
+
+        // Build UI with template literals
+        container.innerHTML = `
+            <div class="comm-hub-container">
+                <!-- Header -->
+                <div class="comm-hub-header">
+                    <h2><i class="fas fa-inbox"></i> Unified Inbox</h2>
+                    <div class="comm-hub-actions">
+                        <button id="refresh-emails" class="btn-icon">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button id="compose-email" class="btn-primary">
+                            <i class="fas fa-pen"></i> Compose
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="comm-hub-filters">
+                    <select id="account-filter">
+                        <option value="all">All Accounts</option>
+                        <option value="gmail">Gmail</option>
+                        <option value="outlook">Outlook</option>
+                    </select>
+                    <input type="search" id="email-search" placeholder="Search emails...">
+                </div>
+
+                <!-- Email List -->
+                <div id="email-list" class="comm-hub-email-list">
+                    <!-- Emails will be rendered here dynamically -->
+                </div>
+
+                <!-- Email Detail Pane -->
+                <div id="email-detail" class="comm-hub-detail">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Select an email to view</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Attach event listeners
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        document.getElementById('refresh-emails')?.addEventListener('click', () => {
+            this.loadEmails();
+        });
+
+        document.getElementById('compose-email')?.addEventListener('click', () => {
+            this.openComposeDialog();
+        });
+
+        document.getElementById('email-search')?.addEventListener('input', (e) => {
+            this.filterEmails(e.target.value);
+        });
+    }
+
+    async loadEmails() {
+        try {
+            const response = await fetch('/api/emails/list');
+            this.emails = await response.json();
+            this.renderEmailList();
+        } catch (error) {
+            console.error('Failed to load emails:', error);
+        }
+    }
+
+    renderEmailList() {
+        const listContainer = document.getElementById('email-list');
+        
+        listContainer.innerHTML = this.emails.map(email => `
+            <div class="email-item" data-id="${email.id}">
+                <div class="email-sender">${email.from}</div>
+                <div class="email-subject">${email.subject}</div>
+                <div class="email-preview">${email.preview}</div>
+                <div class="email-time">${this.formatTime(email.timestamp)}</div>
+            </div>
+        `).join('');
+
+        // Add click handlers to email items
+        listContainer.querySelectorAll('.email-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.showEmailDetail(item.dataset.id);
+            });
+        });
+    }
+}
+
+// Register module
+window.ModuleRegistry['communication-hub'] = {
+    init: () => new CommunicationHubModule('communication-hub')
+};
+```
+
+**Key Points for JavaScript-Generated UI:**
+1. **NO `html_file` in manifest** - Module loader will skip HTML loading
+2. **Create UI in `initialize()` method** - Build DOM programmatically
+3. **Use template literals** - Clean, readable HTML strings
+4. **Attach event listeners after DOM creation** - In `setupEventListeners()`
+5. **Store references to key elements** - For efficient updates
+
+---
+
+### Pattern 2: Separate HTML Template File (Recommended for Static Modules)
+
+**When to Use:**
+- ✅ Static or semi-static content layouts
+- ✅ Simple modules with minimal interaction
+- ✅ Designer-friendly templates (non-developers can edit)
+- ✅ Modules with complex, nested HTML structures
+- ✅ Legacy modules being migrated
+
+**Advantages:**
+- Clean separation of HTML structure from logic
+- Easier for designers to modify layout
+- Better for complex nested structures
+- IDE syntax highlighting for HTML
+- Can include inline styles/scripts if needed
+
+**Example: InHouse Kanban Module**
+
+```javascript
+// inhouse-kanban/manifest.json
+{
+  "id": "inhouse-kanban",
+  "name": "InHouse Kanban",
+  "html_file": "inhouse-kanban-SIDEBAR.html",  // ← HTML file specified!
+  "js_file": "inhouse-kanban.js",
+  "css_file": "inhouse-kanban.css"
+}
+```
+
+```html
+<!-- inhouse-kanban/inhouse-kanban-SIDEBAR.html -->
+<div class="kanban-sidebar-container">
+    <!-- Sidebar Header -->
+    <div class="kanban-sidebar-header">
+        <h3>
+            <i class="fas fa-briefcase"></i>
+            Production Workflow
+        </h3>
+        <div class="kanban-header-actions">
+            <button id="kanban-refresh" class="btn-icon" title="Refresh">
+                <i class="fas fa-sync"></i>
+            </button>
+            <button id="kanban-settings" class="btn-icon" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="kanban-filters">
+        <select id="kanban-stage-filter" class="filter-select">
+            <option value="all">All Stages</option>
+            <option value="new">New Orders</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+        </select>
+        <input type="search" id="kanban-search" placeholder="Search jobs..." class="filter-search">
+    </div>
+
+    <!-- Kanban Board -->
+    <div id="kanban-board" class="kanban-board">
+        <!-- Columns will be rendered here by JavaScript -->
+    </div>
+
+    <!-- Footer Stats -->
+    <div class="kanban-footer">
+        <div class="stat">
+            <span class="stat-label">Total Jobs:</span>
+            <span id="total-jobs" class="stat-value">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">In Progress:</span>
+            <span id="in-progress-jobs" class="stat-value">0</span>
+        </div>
+    </div>
+</div>
+```
+
+```javascript
+// inhouse-kanban/inhouse-kanban.js
+class InHouseKanbanModule extends BaseModule {
+    constructor(moduleId) {
+        super(moduleId);
+    }
+
+    async initialize() {
+        console.log('🔧 Initializing InHouse Kanban...');
+        
+        // HTML is already loaded by module loader!
+        // Just need to attach event listeners and load data
+        
+        this.setupEventListeners();
+        await this.loadKanbanData();
+        this.renderBoard();
+        
+        console.log('✅ InHouse Kanban ready');
+    }
+
+    setupEventListeners() {
+        // Elements from HTML file are already in DOM
+        document.getElementById('kanban-refresh')?.addEventListener('click', () => {
+            this.loadKanbanData();
+        });
+
+        document.getElementById('kanban-search')?.addEventListener('input', (e) => {
+            this.filterJobs(e.target.value);
+        });
+
+        document.getElementById('kanban-stage-filter')?.addEventListener('change', (e) => {
+            this.filterByStage(e.target.value);
+        });
+    }
+
+    async loadKanbanData() {
+        try {
+            const response = await fetch('/api/kanban/jobs');
+            this.jobs = await response.json();
+            this.renderBoard();
+            this.updateStats();
+        } catch (error) {
+            console.error('Failed to load kanban data:', error);
+        }
+    }
+
+    renderBoard() {
+        const board = document.getElementById('kanban-board');
+        // Render kanban columns and cards dynamically
+        // HTML structure is already there, just populate data
+    }
+
+    updateStats() {
+        document.getElementById('total-jobs').textContent = this.jobs.length;
+        document.getElementById('in-progress-jobs').textContent = 
+            this.jobs.filter(j => j.stage === 'in-progress').length;
+    }
+}
+
+// Register module
+window.ModuleRegistry['inhouse-kanban'] = {
+    init: () => new InHouseKanbanModule('inhouse-kanban')
+};
+```
+
+**Key Points for HTML Template Files:**
+1. **Include `html_file` in manifest** - Module loader will fetch and inject HTML
+2. **HTML loads BEFORE JavaScript** - DOM elements ready in `initialize()`
+3. **Use IDs for key elements** - Easy to target from JavaScript
+4. **Keep HTML semantic** - Use proper structure and accessibility
+5. **Minimize inline JavaScript** - Keep logic in .js file
+
+---
+
+### Comparison Table
+
+| Feature | JavaScript-Generated | HTML Template File |
+|---------|---------------------|-------------------|
+| **Flexibility** | ⭐⭐⭐⭐⭐ Very high | ⭐⭐⭐ Moderate |
+| **Maintainability** | ⭐⭐⭐⭐ Good | ⭐⭐⭐⭐⭐ Excellent |
+| **Performance** | ⭐⭐⭐⭐ Fast render | ⭐⭐⭐⭐⭐ Pre-loaded |
+| **Designer-Friendly** | ⭐⭐ Needs JS skills | ⭐⭐⭐⭐⭐ Pure HTML |
+| **Dynamic Updates** | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐⭐ Manual updates |
+| **File Count** | 2 files (JS + CSS) | 3 files (HTML + JS + CSS) |
+| **Example Modules** | communication-hub, automation-workflows | inhouse-kanban, stock-management |
+
+---
+
+### Migration Path: HTML File → JavaScript
+
+If you have an existing module with an HTML file and want to convert to JavaScript-generated UI:
+
+```javascript
+// Step 1: Copy your HTML file content
+// Step 2: Create a method that generates the HTML
+
+createModuleStructure() {
+    const container = this.getContainer();
+    
+    // Paste your HTML here as template literal
+    container.innerHTML = `
+        <!-- Your HTML content from the .html file -->
+        <div class="your-module-container">
+            <!-- ... -->
+        </div>
+    `;
+}
+
+// Step 3: Remove html_file from manifest.json
+// Step 4: Call createModuleStructure() in initialize()
+// Step 5: Test and delete the old .html file
+```
 
 ---
 

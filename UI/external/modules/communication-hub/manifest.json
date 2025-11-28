@@ -12,6 +12,7 @@
     "stylePath": "external/modules/communication-hub/communication-hub.css?v=2.0.0",
     "main_tab": true,
     "main_tab_id": "communication",
+    "show_in_sidebar": true,
     "colors": {
         "primary": "#6366f1",
         "secondary": "#818cf8",
@@ -59,5 +60,11 @@
         "Email composition",
         "Thread grouping",
         "Full-text search"
-    ]
+    ],
+    "required_platforms": [],
+    "optional_platforms": [
+        "google_workspace",
+        "microsoft_365"
+    ],
+    "credentials_required": false
 }

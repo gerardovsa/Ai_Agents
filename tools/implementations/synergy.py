@@ -781,6 +781,176 @@ def synergy_update_session(
         raise SynergyError(f"Failed to update session {session_id}: {str(e)}")
 
 
+def synergy_update_session_permissions(
+    session_id: str,
+    user_id: int,
+    permission_level: Optional[str] = None,
+    shared_with_users: Optional[List[int]] = None,
+    allow_public_view: Optional[bool] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Update permission settings for a Synergy session (owner-only operation)
+    
+    This tool controls who can access and edit a session. Four permission levels:
+    
+    1. 'private' (default): Owner-only access (most secure)
+    2. 'shared': Owner + specified users can edit
+    3. 'public_view': Anyone can view, only owner can edit
+    4. 'public_edit': Anyone can view and edit (least secure)
+    
+    SECURITY NOTES:
+    - Only session OWNER can change permissions
+    - Owner always has full access regardless of permission_level
+    - Changing to 'private' clears shared_with_users automatically
+    - public_edit allows ANYONE to modify - use with caution
+    
+    Args:
+        session_id: Session ID to update permissions for (required)
+        user_id: User ID of person making change (for ownership verification - required)
+        permission_level: New permission level (optional):
+            - 'private': Owner only
+            - 'shared': Owner + specified users
+            - 'public_view': Public read, owner edit
+            - 'public_edit': Public read/write
+        shared_with_users: Array of user IDs to share with (optional, only for 'shared' level)
+            Pass empty array [] to remove all shared users
+        allow_public_view: Enable public link sharing (optional, for public levels)
+        
+    Returns:
+        Dict with success status, updated permissions, and confirmation message
+        
+    Raises:
+        SynergyError: If API call fails or user is not owner
+        
+    Examples:
+        # Make session private (remove all sharing)
+        synergy_update_session_permissions(
+            session_id="sess_123",
+            user_id=1,
+            permission_level="private",
+            shared_with_users=[]
+        )
+        
+        # Share with team members
+        synergy_update_session_permissions(
+            session_id="sess_123",
+            user_id=1,
+            permission_level="shared",
+            shared_with_users=[2, 5, 8, 12]
+        )
+        
+        # Make publicly viewable (portfolio)
+        synergy_update_session_permissions(
+            session_id="sess_123",
+            user_id=1,
+            permission_level="public_view",
+            allow_public_view=True
+        )
+        
+        # Open for community editing
+        synergy_update_session_permissions(
+            session_id="sess_123",
+            user_id=1,
+            permission_level="public_edit",
+            allow_public_view=True
+        )
+    """
+    try:
+        # Build permission updates dict from provided parameters
+        permission_updates = {}
+        
+        if permission_level is not None:
+            # Validate permission level
+            valid_levels = ['private', 'shared', 'public_view', 'public_edit']
+            if permission_level not in valid_levels:
+                raise SynergyError(
+                    f"Invalid permission_level '{permission_level}'. "
+                    f"Must be one of: {', '.join(valid_levels)}"
+                )
+            permission_updates["permission_level"] = permission_level
+        
+        if shared_with_users is not None:
+            # Parse JSON string if needed
+            if isinstance(shared_with_users, str):
+                try:
+                    shared_with_users = json.loads(shared_with_users)
+                except json.JSONDecodeError:
+                    raise SynergyError(f"Invalid JSON for shared_with_users parameter: {shared_with_users}")
+            
+            # Validate it's a list of integers
+            if not isinstance(shared_with_users, list):
+                raise SynergyError(f"shared_with_users must be an array of user IDs")
+            
+            for uid in shared_with_users:
+                if not isinstance(uid, int):
+                    raise SynergyError(f"shared_with_users must contain only integers (user IDs), got: {uid}")
+            
+            permission_updates["shared_with_users"] = shared_with_users
+        
+        if allow_public_view is not None:
+            permission_updates["allow_public_view"] = allow_public_view
+        
+        # Build payload
+        payload = {
+            "user_id": user_id,
+            "permission_updates": permission_updates
+        }
+        
+        # Make API call to permission update endpoint
+        response = requests.patch(
+            f"{SYNERGY_API_BASE}/{session_id}/permissions",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        # Build user-friendly message
+        permission_summary = []
+        
+        if permission_level:
+            level_names = {
+                'private': '🔒 Private (owner only)',
+                'shared': '👥 Shared (team collaboration)',
+                'public_view': '👁️ Public View (read-only)',
+                'public_edit': '🌍 Public Edit (open collaboration)'
+            }
+            permission_summary.append(level_names.get(permission_level, permission_level))
+        
+        if shared_with_users is not None:
+            user_count = len(shared_with_users)
+            if user_count > 0:
+                permission_summary.append(f"Shared with {user_count} user(s)")
+            else:
+                permission_summary.append("Sharing removed")
+        
+        if allow_public_view is not None:
+            permission_summary.append(f"Public link: {'enabled' if allow_public_view else 'disabled'}")
+        
+        summary_str = ", ".join(permission_summary) if permission_summary else "permissions updated"
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "message": f"✅ Updated permissions: {summary_str}",
+            "updated_permissions": result.get("updated_permissions", permission_updates),
+            "result": result
+        }
+        
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 403:
+            raise SynergyError(
+                f"Permission denied: Only the session owner can change permissions. "
+                f"User {user_id} is not the owner of session {session_id}."
+            )
+        raise SynergyError(f"Failed to update permissions for session {session_id}: {str(e)}")
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update permissions for session {session_id}: {str(e)}")
+
+
 def synergy_move_session(
     session_id: str,
     target_column: str,
@@ -2830,3 +3000,384 @@ def synergy_update_subtask(
         
     except requests.exceptions.RequestException as e:
         raise SynergyError(f"Failed to update subtask {subtask_id}: {str(e)}")
+
+
+# ============================================================================
+# DELETE OPERATIONS
+# ============================================================================
+
+def synergy_remove_document(
+    session_id: str,
+    doc_index: int,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Remove a document from session by index position
+    
+    More efficient than synergy_update_session for removing a single document.
+    
+    Args:
+        session_id: Session ID (required)
+        doc_index: Index of document to remove (0-based)
+                   Example: 0 = first document, 1 = second document
+        
+    Returns:
+        Dict with updated documents array and removed document info
+        
+    Raises:
+        SynergyError: If API call fails or index out of range
+        
+    Example:
+        # Remove the second document (index 1)
+        result = synergy_remove_document(
+            session_id="sess_abc123",
+            doc_index=1
+        )
+        # Returns: {"success": True, "documents": [...], "count": 2, "removed": {...}}
+    """
+    try:
+        response = requests.delete(
+            f"{SYNERGY_API_BASE}/{session_id}/document/{doc_index}",
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "documents": result.get("documents", []),
+            "count": result.get("count", 0),
+            "removed": result.get("removed"),
+            "message": f"✅ Removed document: {result.get('removed', {}).get('title', 'Unknown')}"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to remove document from session {session_id}: {str(e)}")
+
+
+def synergy_remove_link(
+    session_id: str,
+    link_index: int,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Remove a link from session by index position
+    
+    Args:
+        session_id: Session ID (required)
+        link_index: Index of link to remove (0-based)
+        
+    Returns:
+        Dict with updated links array and removed link info
+        
+    Raises:
+        SynergyError: If API call fails or index out of range
+        
+    Example:
+        result = synergy_remove_link(
+            session_id="sess_abc123",
+            link_index=0
+        )
+    """
+    try:
+        response = requests.delete(
+            f"{SYNERGY_API_BASE}/{session_id}/link/{link_index}",
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "links": result.get("links", []),
+            "count": result.get("count", 0),
+            "removed": result.get("removed"),
+            "message": f"✅ Removed link: {result.get('removed', {}).get('title', 'Unknown')}"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to remove link from session {session_id}: {str(e)}")
+
+
+def synergy_remove_tag(
+    session_id: str,
+    tag_name: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Remove a tag from session by name
+    
+    Args:
+        session_id: Session ID (required)
+        tag_name: Tag name to remove (case-insensitive)
+        
+    Returns:
+        Dict with updated tags array
+        
+    Raises:
+        SynergyError: If API call fails or tag not found
+        
+    Example:
+        result = synergy_remove_tag(
+            session_id="sess_abc123",
+            tag_name="urgent"
+        )
+    """
+    try:
+        response = requests.delete(
+            f"{SYNERGY_API_BASE}/{session_id}/tag/{tag_name}",
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "tags": result.get("tags", []),
+            "count": result.get("count", 0),
+            "removed": tag_name,
+            "message": f"✅ Removed tag: {tag_name}"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to remove tag from session {session_id}: {str(e)}")
+
+
+def synergy_delete_milestone(
+    milestone_id: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Delete a milestone and all its tasks/subtasks permanently
+    
+    CRITICAL: This is a destructive operation. All tasks and subtasks
+    under this milestone will also be deleted (cascade delete).
+    
+    Args:
+        milestone_id: Milestone ID to delete (required)
+        
+    Returns:
+        Dict with deletion counts for milestone, tasks, and subtasks
+        
+    Raises:
+        SynergyError: If API call fails or milestone not found
+        
+    Example:
+        result = synergy_delete_milestone(
+            milestone_id="ms_20251124120000"
+        )
+        # Returns: {
+        #   "success": True,
+        #   "milestone_id": "ms_20251124120000",
+        #   "tasks_deleted": 5,
+        #   "subtasks_deleted": 12
+        # }
+    """
+    try:
+        response = requests.delete(
+            f"{SYNERGY_API_BASE}/milestone/{milestone_id}",
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "milestone_id": milestone_id,
+            "tasks_deleted": result.get("tasks_deleted", 0),
+            "subtasks_deleted": result.get("subtasks_deleted", 0),
+            "message": result.get("message", f"✅ Deleted milestone {milestone_id}")
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to delete milestone {milestone_id}: {str(e)}")
+
+
+def synergy_delete_task(
+    task_id: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Delete a task and all its subtasks permanently
+    
+    CRITICAL: This is a destructive operation. All subtasks under this
+    task will also be deleted (cascade delete).
+    
+    Args:
+        task_id: Task ID to delete (required)
+        
+    Returns:
+        Dict with deletion count for subtasks
+        
+    Raises:
+        SynergyError: If API call fails or task not found
+        
+    Example:
+        result = synergy_delete_task(
+            task_id="task_20251124120000"
+        )
+        # Returns: {
+        #   "success": True,
+        #   "task_id": "task_20251124120000",
+        #   "subtasks_deleted": 3
+        # }
+    """
+    try:
+        response = requests.delete(
+            f"{SYNERGY_API_BASE}/task/{task_id}",
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "task_id": task_id,
+            "subtasks_deleted": result.get("subtasks_deleted", 0),
+            "message": result.get("message", f"✅ Deleted task {task_id}")
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to delete task {task_id}: {str(e)}")
+
+
+def synergy_delete_subtask(
+    subtask_id: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Delete a subtask permanently
+    
+    Args:
+        subtask_id: Subtask ID to delete (required)
+        
+    Returns:
+        Dict with success status
+        
+    Raises:
+        SynergyError: If API call fails or subtask not found
+        
+    Example:
+        result = synergy_delete_subtask(
+            subtask_id="sub_20251124120000"
+        )
+    """
+    try:
+        response = requests.delete(
+            f"{SYNERGY_API_BASE}/subtask/{subtask_id}",
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "subtask_id": subtask_id,
+            "message": f"✅ Deleted subtask {subtask_id}"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to delete subtask {subtask_id}: {str(e)}")
+
+
+def synergy_set_milestone_blocker(
+    milestone_id: str,
+    blocked: bool,
+    blocker_reason: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Mark a milestone as blocked or unblocked
+    
+    This is a convenience wrapper around synergy_update_milestone().
+    
+    Args:
+        milestone_id: Milestone ID (required)
+        blocked: True to block, False to unblock (required)
+        blocker_reason: Reason for blocking (required if blocked=True)
+        
+    Returns:
+        Dict with success status
+        
+    Raises:
+        SynergyError: If API call fails
+        
+    Example:
+        # Block a milestone
+        synergy_set_milestone_blocker(
+            milestone_id="ms_20251124120000",
+            blocked=True,
+            blocker_reason="Waiting for API credentials"
+        )
+        
+        # Unblock a milestone
+        synergy_set_milestone_blocker(
+            milestone_id="ms_20251124120000",
+            blocked=False
+        )
+    """
+    if blocked and not blocker_reason:
+        raise SynergyError("blocker_reason is required when blocked=True")
+    
+    return synergy_update_milestone(
+        milestone_id=milestone_id,
+        blocked=blocked,
+        blocker_reason=blocker_reason if blocked else None,
+        **kwargs
+    )
+
+
+def synergy_set_task_blocker(
+    task_id: str,
+    blocked: bool,
+    blocker_reason: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Mark a task as blocked or unblocked
+    
+    This is a convenience wrapper around synergy_update_task().
+    
+    Args:
+        task_id: Task ID (required)
+        blocked: True to block, False to unblock (required)
+        blocker_reason: Reason for blocking (required if blocked=True)
+        
+    Returns:
+        Dict with success status
+        
+    Raises:
+        SynergyError: If API call fails
+        
+    Example:
+        # Block a task
+        synergy_set_task_blocker(
+            task_id="task_20251124120000",
+            blocked=True,
+            blocker_reason="Waiting for database access"
+        )
+        
+        # Unblock a task
+        synergy_set_task_blocker(
+            task_id="task_20251124120000",
+            blocked=False
+        )
+    """
+    if blocked and not blocker_reason:
+        raise SynergyError("blocker_reason is required when blocked=True")
+    
+    return synergy_update_task(
+        task_id=task_id,
+        blocked=blocked,
+        blocker_reason=blocker_reason if blocked else None,
+        **kwargs
+    )

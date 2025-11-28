@@ -23,6 +23,7 @@ def synergy_agent_instructions(topic: str = "overview", **kwargs) -> Dict[str, A
             - smart_tool_milestones: Using synergy_smart_project_tracker() with milestone structure
             - workflow: Complete multi-platform project pattern
             - milestones: Detailed milestone/task/subtask system guide
+            - permissions: Session access control and sharing (NEW!)
             - updating_arrays: How to safely add/remove items without data loss
             - field_reference: All 22 fields explained with examples
             - troubleshooting: Common errors and solutions
@@ -99,29 +100,43 @@ sheet = google_sheets_create(title="Email Tracker")
 form = google_forms_create(title="Response Form")
 ```
 
-### 3. Update Session with Resource Links
+### 3. Update Session with CLICKABLE Resource Links
 ⚠️ CRITICAL: Do this after EACH resource creation!
 
 ```python
-# Get current session first
+# BEST METHOD: Use synergy_add_document (automatically appends)
+synergy_add_document(
+    session_id=session_id,
+    title="Email Tracker Spreadsheet",  # ← Descriptive name, NOT "Document 1"
+    url=sheet["url"],  # ← FULL URL from creation response
+    type="google_sheet"  # ← Proper type for icon
+)
+
+# ALTERNATIVE: Manual update (requires fetch first)
 session = synergy_get_session(session_id)
 existing_docs = session["session"]["documents"]
 
-# Add new resource
 new_doc = {
-    "name": "Email Tracker Spreadsheet",
-    "url": sheet["url"],
-    "type": "google_sheet"
+    "name": "Email Tracker Spreadsheet",  # ← Use "name" not "title"
+    "url": sheet["url"],  # ← MUST be full URL (https://docs.google.com/...)
+    "type": "google_sheet"  # ← Required for proper rendering
 }
 
-# Combine existing + new
-all_docs = existing_docs + [new_doc]
-
-# Update session
 synergy_update_session(
     session_id=session_id,
-    documents=all_docs  # ← ALL documents, not just new one
+    documents=existing_docs + [new_doc]  # ← ALL documents, not just new one
 )
+```
+
+🔗 **URL REQUIREMENTS FOR CLICKABLE LINKS:**
+✅ MUST use FULL URL from creation response (https://docs.google.com/spreadsheets/d/...)
+✅ MUST include "type" field (google_sheet, google_doc, google_form, etc.)
+✅ MUST use descriptive "title" or "name" (not "Document 1" or "Untitled")
+❌ DON'T use shortened URLs or IDs only
+❌ DON'T omit the "type" field (won't show proper icon)
+
+📌 **Result:** Documents appear as CLICKABLE links in UI that open in new browser tabs
+📌 **Exception:** Internal docs (type='internal_doc') open in modal popup, not new tab
 ```
 
 ### 4. Move Through Workflow
@@ -1682,6 +1697,54 @@ session_id = matching[0]["session_id"]
 
 ---
 
+### Issue 11: Documents/Links Not Clickable
+**Symptoms:** Documents show in dashboard but aren't clickable, or show broken icon
+
+**Cause:** Missing or incorrect URL format, missing type field
+
+**Solution:**
+```python
+# ✅ CORRECT - Full URL with type
+synergy_add_document(
+    session_id=session_id,
+    title="Customer Database",  # Descriptive name
+    url="https://docs.google.com/spreadsheets/d/abc123xyz/edit",  # FULL URL
+    type="google_sheet"  # Required for icon
+)
+
+# ❌ WRONG - Short ID only
+synergy_add_document(
+    session_id=session_id,
+    title="Document 1",  # Vague name
+    url="abc123xyz",  # Not a full URL!
+    type=None  # Missing type!
+)
+```
+
+**URL Format Requirements:**
+- Google Sheets: `https://docs.google.com/spreadsheets/d/{id}/edit`
+- Google Docs: `https://docs.google.com/document/d/{id}/edit`
+- Google Forms: `https://docs.google.com/forms/d/{id}/edit`
+- Google Slides: `https://docs.google.com/presentation/d/{id}/edit`
+- External links: Full URL starting with `https://`
+
+**Document Types:**
+- `google_sheet` - Shows spreadsheet icon
+- `google_doc` - Shows document icon
+- `google_form` - Shows form icon
+- `google_slides` - Shows slides icon
+- `internal_doc` - Opens in modal (not new tab)
+- `internal_sheet` - Opens in modal (not new tab)
+- `pdf`, `word_doc`, `excel_sheet` - Shows generic file icon
+
+**Verify Fix:**
+1. Check document has `url` field with full HTTPS URL
+2. Check document has `type` field
+3. Refresh dashboard (Ctrl+Shift+R)
+4. Click document - should open in new tab (except internal docs)
+
+---
+
 ## Debugging Checklist
 
 When Synergy isn't working:
@@ -2014,6 +2077,467 @@ else:
 ---
 
 End of Instructions. Call synergy_agent_instructions("overview") to return to main menu.
+        """,
+        
+        "references": """
+# Legacy Reference System (DEPRECATED)
+
+## ⚠️ IMPORTANT NOTICE
+This reference system (N4, C2.1, D1) is **DEPRECATED** and no longer supported by the frontend.
+
+**Current System:** The frontend now uses **milestone-based structure**:
+- M1 = Milestone 1
+- T1.2 = Task 2 in Milestone 1  
+- S1.2.1 = Subtask 1 in Task 2 of Milestone 1
+
+The tools for resolving these old references (`synergy_resolve_reference`, `synergy_list_all_references`, `synergy_update_by_reference`) have been **removed**.
+
+---
+
+## Historical Reference Format (For Understanding Old Data)
+
+### Reference Types
+- **N#** - Next Steps (N1, N2, N3...)
+- **C#** - Checklist Items (C1, C2...)
+- **C#.#** - Checklist Sub-items (C1.1, C1.2...)
+- **D#** - Documents (D1, D2, D3...)
+
+### Example Legacy References
+- N4 = "Process MGR Roofing - 100 Corflute signs order"
+- C2.1 = "Read full email for specifications (500 + 1,500 Arch DLs)"
+- D1 = "MBE Eight Mile Plains Quote"
+
+### When Users Mention Old References
+If a user says "continue N4" or "check C2.1":
+
+1. **Explain the change:**
+   "The reference system has been updated. Synergy now uses milestones (M1), tasks (T1.2), and subtasks (S1.2.1) instead of N4/C2.1 references."
+
+2. **Help them find the item:**
+   ```python
+   # List all current items
+   session = synergy_get_session(session_id)
+   milestones = synergy_get_milestones(session_id)
+   
+   # Show them the new structure
+   # M1: Milestone name
+   #   T1.1: Task name
+   #     S1.1.1: Subtask name
+   ```
+
+3. **Explain migration:**
+   - Old "Next Steps" → Now "Tasks" in milestones
+   - Old "Checklist" → Now "Subtasks" in tasks
+   - Documents still work the same way
+
+### Why The Change?
+The old flat structure (N1-N7, C1-C2) didn't support:
+- Task hierarchy (parent-child relationships)
+- Progress tracking per milestone
+- Task dependencies
+- Better organization for complex projects
+
+The new milestone structure provides:
+- ✅ Clear hierarchy: Milestone → Task → Subtask
+- ✅ Progress percentages per milestone
+- ✅ Task dependencies and blockers
+- ✅ Better visual organization on Kanban board
+
+---
+
+## Migration Guide
+
+### Old Structure → New Structure
+
+**Before (Flat):**
+```python
+{
+  "next_steps": ["Step 1", "Step 2", "Step 3"],
+  "checklist": [
+    {"task": "Item 1", "completed": false},
+    {"task": "Item 2", "completed": false}
+  ]
+}
+```
+
+**After (Milestone):**
+```python
+synergy_create_milestone(
+    session_id=session_id,
+    milestone_name="Phase 1",
+    due_date="2025-12-01"
+)
+
+synergy_create_task(
+    milestone_id=milestone_id,
+    task_name="Step 1",
+    priority="high"
+)
+
+synergy_create_subtask(
+    task_id=task_id,
+    subtask_name="Item 1",
+    status="pending"
+)
+```
+
+### Benefits of Migration
+1. **Better Organization:** Group related tasks under milestones
+2. **Progress Tracking:** See % complete per milestone
+3. **Dependencies:** Mark tasks as blocked or dependent
+4. **Scalability:** Handle large projects with 50+ tasks
+5. **Visual Clarity:** Kanban board shows milestone cards
+
+---
+
+End of Legacy Reference Guide. Use synergy_agent_instructions("milestones") to learn the new system.
+        """,
+        
+        "permissions": """
+# Synergy Session Permissions & Sharing
+
+## Overview
+Control who can access and edit your Synergy sessions with 4 permission levels:
+- **private** (DEFAULT): Owner-only access
+- **shared**: Owner + specific team members
+- **public_view**: Anyone can view, only owner edits
+- **public_edit**: Full public collaboration
+
+## Permission Levels
+
+### 1. Private (Default - Most Secure)
+**Use when:**
+- Personal projects
+- Confidential work
+- Client projects
+- Sensitive business plans
+
+**Who has access:**
+- Only the session owner (user who created it)
+
+**Example:**
+```python
+# Creating a private session (default behavior)
+result = synergy_smart_project_tracker(
+    title="Confidential Client Project",
+    owner_user_id=1,  # Your user ID
+    # permission_level='private' is DEFAULT
+)
+```
+
+### 2. Shared (Team Collaboration)
+**Use when:**
+- Team projects
+- Department initiatives
+- Collaborative work
+- Multi-person assignments
+
+**Who has access:**
+- Session owner
+- Specific users you specify (by user ID)
+
+**Example:**
+```python
+# Creating a shared team project
+result = synergy_smart_project_tracker(
+    title="Marketing Campaign Q4",
+    owner_user_id=1,
+    permission_level='shared',
+    shared_with_users=[2, 5, 8, 12],  # Marketing team user IDs
+)
+
+# Later, add more team members
+synergy_update_session_permissions(
+    session_id=session_id,
+    user_id=1,  # Your user ID (owner)
+    shared_with_users=[2, 5, 8, 12, 15, 18]  # Added 2 more people
+)
+```
+
+### 3. Public View (Portfolio Showcase)
+**Use when:**
+- Portfolio projects
+- Public documentation
+- Showcase work
+- Read-only sharing
+
+**Who has access:**
+- Anyone with the link can VIEW
+- Only owner can EDIT
+
+**Example:**
+```python
+# Creating a public portfolio project
+result = synergy_smart_project_tracker(
+    title="My Portfolio - E-commerce Platform",
+    owner_user_id=1,
+    permission_level='public_view',
+    allow_public_view=True  # Enable public link
+)
+
+# Others can view but NOT modify
+# Great for job applications or client showcases
+```
+
+### 4. Public Edit (Open Collaboration)
+**Use when:**
+- Community projects
+- Hackathons
+- Open-source initiatives
+- Wiki-style collaboration
+
+**Who has access:**
+- Anyone with the link can VIEW AND EDIT
+
+**Security warning:** Use with caution! Anyone can modify.
+
+**Example:**
+```python
+# Creating an open community project
+result = synergy_smart_project_tracker(
+    title="Community Knowledge Base",
+    owner_user_id=1,
+    permission_level='public_edit',
+    allow_public_view=True
+)
+
+# Anyone can contribute - great for hackathons
+```
+
+## Changing Permissions
+
+### Make Session Private (Remove Sharing)
+```python
+synergy_update_session_permissions(
+    session_id="sess_20251128_project_alpha",
+    user_id=1,  # Must be owner
+    permission_level='private',
+    shared_with_users=[]  # Clear all shared users
+)
+```
+
+### Share with Team
+```python
+synergy_update_session_permissions(
+    session_id="sess_20251128_project_alpha",
+    user_id=1,
+    permission_level='shared',
+    shared_with_users=[2, 5, 8]  # Team member user IDs
+)
+```
+
+### Make Publicly Viewable
+```python
+synergy_update_session_permissions(
+    session_id="sess_20251128_project_alpha",
+    user_id=1,
+    permission_level='public_view',
+    allow_public_view=True
+)
+```
+
+## Permission Rules (CRITICAL)
+
+### Owner Always Has Full Access
+- The `owner_user_id` (person who created session) ALWAYS has full access
+- Owner can read, edit, and change permissions
+- Even if permission_level changes, owner retains control
+
+### Only Owner Can Change Permissions
+- `synergy_update_session_permissions()` requires `user_id` to match `owner_user_id`
+- If user tries to change permissions and they're not owner: **403 Forbidden**
+
+### Permission Hierarchy
+```
+private → shared → public_view → public_edit
+Most Secure         ←          Least Secure
+```
+
+### User Isolation
+- Each user only sees sessions they have access to
+- `synergy_list_sessions()` automatically filters by permission
+- Private sessions are invisible to other users
+
+## Common Use Cases
+
+### Case 1: Personal Project → Team Project
+```python
+# Start private
+result = synergy_smart_project_tracker(
+    title="API Integration Project",
+    owner_user_id=1
+    # Default: private
+)
+
+# Later, need team help
+synergy_update_session_permissions(
+    session_id=session_id,
+    user_id=1,
+    permission_level='shared',
+    shared_with_users=[5, 8]  # Add developers
+)
+```
+
+### Case 2: Team Project → Public Showcase
+```python
+# Team project complete, show it off
+synergy_update_session_permissions(
+    session_id=session_id,
+    user_id=1,
+    permission_level='public_view',  # Others can view
+    allow_public_view=True
+)
+# Team members retain edit access as owner
+```
+
+### Case 3: Remove Team Member Access
+```python
+# Remove user 8 from shared list
+synergy_update_session_permissions(
+    session_id=session_id,
+    user_id=1,
+    shared_with_users=[2, 5]  # User 8 removed
+)
+```
+
+### Case 4: Emergency Lock-Down
+```python
+# Make sensitive project private immediately
+synergy_update_session_permissions(
+    session_id=session_id,
+    user_id=1,
+    permission_level='private',
+    shared_with_users=[]
+)
+```
+
+## How Permissions Affect Tools
+
+### synergy_list_sessions()
+- Automatically filters results by user permission
+- User only sees: owned sessions + shared sessions + public sessions
+- Private sessions by others are HIDDEN
+
+### synergy_get_session()
+- Checks read permission before returning data
+- Returns **403 Forbidden** if user lacks access
+- Adds `user_permission` field showing user's access level
+
+### synergy_update_session()
+- Checks write permission before allowing edits
+- Returns **403 Forbidden** if user lacks edit access
+- Owner always allowed
+- Shared users allowed
+- Public edit users allowed
+- Public view users DENIED (read-only)
+
+### synergy_update_session_permissions()
+- **Owner-only operation**
+- Returns **403 Forbidden** if caller is not owner
+- Use to change permission level, add/remove shared users, enable public access
+
+## Best Practices
+
+✅ **DO:**
+- Default to 'private' for new projects
+- Use 'shared' for team collaboration
+- Document who has access in session description
+- Use 'public_view' for portfolios (not 'public_edit')
+- Remove users from shared_with_users when they leave team
+
+❌ **DON'T:**
+- Use 'public_edit' for sensitive data
+- Share credentials or API keys in public sessions
+- Forget to update permissions when team changes
+- Assume everyone can see your private projects
+
+## Troubleshooting
+
+### Error: "Permission denied: Only the session owner can change permissions"
+**Cause:** User trying to change permissions is not the session owner
+
+**Solution:**
+```python
+# Check who owns the session first
+result = synergy_get_session(session_id=session_id, user_id=YOUR_USER_ID)
+owner_id = result['session']['owner_user_id']
+
+# Only owner can change permissions
+if YOUR_USER_ID == owner_id:
+    synergy_update_session_permissions(...)
+else:
+    # Ask owner to change permissions
+```
+
+### Error: "403 Forbidden"
+**Cause:** User lacks required permission level
+
+**Solution:**
+- For read access: Need at least 'shared', 'public_view', or 'public_edit'
+- For write access: Need to be owner, in shared_with_users, or 'public_edit' enabled
+- Check current permission: Call `synergy_get_session()` and look at `user_permission` field
+
+### Can't See Expected Sessions
+**Cause:** Sessions are private and you're not the owner
+
+**Solution:**
+- Ask session owner to add you to `shared_with_users`
+- Or ask owner to change to 'public_view' or 'public_edit'
+
+## Security Notes
+
+🔒 **Data Protection:**
+- Private sessions are completely isolated
+- Shared user lists are NOT visible to non-owners
+- Public sessions can be crawled/indexed - don't put secrets there
+
+🔐 **Access Control:**
+- Permission checks happen on EVERY operation
+- Database enforces user isolation
+- API validates user_id on all requests
+
+⚠️ **Public Sessions Warning:**
+- 'public_edit' means ANYONE can modify
+- No authentication required for public access
+- Use for non-sensitive, community content only
+
+## Quick Reference
+
+**Creating with Permissions:**
+```python
+synergy_smart_project_tracker(
+    owner_user_id=<YOUR_USER_ID>,      # Required
+    permission_level='private|shared|public_view|public_edit',  # Optional (default: private)
+    shared_with_users=[2, 5, 8],       # Optional (for shared level)
+    allow_public_view=True             # Optional (for public levels)
+)
+```
+
+**Changing Permissions:**
+```python
+synergy_update_session_permissions(
+    session_id=<SESSION_ID>,
+    user_id=<YOUR_USER_ID>,            # Must be owner
+    permission_level='...',            # Optional
+    shared_with_users=[...],           # Optional
+    allow_public_view=True/False       # Optional
+)
+```
+
+**Permission Levels Decision Tree:**
+```
+Is it personal/confidential?
+├─ YES → Use 'private' (default)
+└─ NO → Need team collaboration?
+    ├─ YES → Use 'shared' with shared_with_users=[...]
+    └─ NO → Want public viewing?
+        ├─ YES, read-only → Use 'public_view'
+        └─ YES, allow edits → Use 'public_edit' (careful!)
+```
+
+---
+
+End of Permissions Guide. Session sharing is now easy and secure!
         """
     }
     

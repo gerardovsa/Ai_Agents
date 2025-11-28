@@ -1862,6 +1862,18 @@ async function initMultiAgent() {
     // STEP 4.5: GUARANTEE DOM container existence before loading threads
     // Wait for all agent column DOM elements to be fully created and inserted
     console.log(`⏳ [initMultiAgent] Verifying DOM containers for ${maxAgentId} agents...`);
+
+    // 🔍 DEBUG: Check parent container state
+    const multiAgentContainer = document.getElementById('multi-agent-container');
+    console.log('🔍 [initMultiAgent] Parent container state:', {
+        exists: !!multiAgentContainer,
+        isConnected: multiAgentContainer?.isConnected,
+        offsetWidth: multiAgentContainer?.offsetWidth,
+        offsetHeight: multiAgentContainer?.offsetHeight,
+        computedDisplay: multiAgentContainer ? window.getComputedStyle(multiAgentContainer).display : 'N/A',
+        childrenCount: multiAgentContainer?.children.length || 0
+    });
+
     const containerVerificationPromises = [];
 
     for (let i = 1; i <= maxAgentId; i++) {
@@ -1870,23 +1882,43 @@ async function initMultiAgent() {
             let container = document.getElementById(`thread-info-${i}`);
             if (container) {
                 console.log(`✅ [initMultiAgent] Agent-${i} container ready (immediate)`);
+                console.log(`   ├─ Container ID: ${container.id}`);
+                console.log(`   ├─ IsConnected: ${container.isConnected}`);
+                console.log(`   ├─ OffsetWidth: ${container.offsetWidth}px`);
+                console.log(`   └─ Parent: ${container.parentElement?.id || 'unknown'}`);
                 resolve();
                 return;
             }
 
             // If not found, wait with short timeout for DOM insertion
             let attempts = 0;
-            const maxAttempts = 10;
+            const maxAttempts = 20; // Increased from 10 to 20 (1 second total)
             const checkInterval = setInterval(() => {
                 container = document.getElementById(`thread-info-${i}`);
                 attempts++;
 
                 if (container) {
                     console.log(`✅ [initMultiAgent] Agent-${i} container ready (after ${attempts * 50}ms)`);
+                    console.log(`   ├─ Container ID: ${container.id}`);
+                    console.log(`   ├─ IsConnected: ${container.isConnected}`);
+                    console.log(`   ├─ OffsetWidth: ${container.offsetWidth}px`);
+                    console.log(`   └─ Parent: ${container.parentElement?.id || 'unknown'}`);
                     clearInterval(checkInterval);
                     resolve();
                 } else if (attempts >= maxAttempts) {
                     console.error(`❌ [initMultiAgent] Agent-${i} container NOT created after ${maxAttempts * 50}ms!`);
+                    console.error(`   └─ This will cause thread loading to fail!`);
+
+                    // Try to find the agent column itself
+                    const agentColumn = document.getElementById(`agent-${i}`);
+                    if (agentColumn) {
+                        console.error(`   ├─ Agent column exists: agent-${i}`);
+                        console.error(`   ├─ Column innerHTML length: ${agentColumn.innerHTML.length}`);
+                        console.error(`   └─ But thread-info-${i} is missing from it!`);
+                    } else {
+                        console.error(`   └─ Agent column agent-${i} doesn't exist either!`);
+                    }
+
                     clearInterval(checkInterval);
                     resolve(); // Don't block - continue anyway
                 }
@@ -1899,6 +1931,24 @@ async function initMultiAgent() {
     // Wait for all containers to be ready
     await Promise.all(containerVerificationPromises);
     console.log(`✅ [initMultiAgent] All agent column containers verified and ready`);
+
+    // Final verification: Check all containers one more time
+    const missingContainers = [];
+    for (let i = 1; i <= maxAgentId; i++) {
+        const container = document.getElementById(`thread-info-${i}`);
+        if (!container) {
+            missingContainers.push(i);
+        }
+    }
+
+    if (missingContainers.length > 0) {
+        console.error(`❌ [initMultiAgent] CRITICAL: ${missingContainers.length} containers still missing after verification!`);
+        console.error(`   Missing: thread-info-${missingContainers.join(', thread-info-')}`);
+        console.error(`   This will cause thread loading failures. Aborting initialization.`);
+        throw new Error(`Multi-agent initialization failed: ${missingContainers.length} DOM containers missing`);
+    } else {
+        console.log(`✅ [initMultiAgent] Final check: All ${maxAgentId} containers confirmed present`);
+    }
 
     // STEP 5: LOAD threads on page initialization (not just restore to memory)
     // CRITICAL: Load prime-loaded thread FIRST, then agent threads

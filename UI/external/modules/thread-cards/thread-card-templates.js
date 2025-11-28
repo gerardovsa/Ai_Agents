@@ -526,6 +526,7 @@ window.ThreadCardTemplates = {
 
     /**
      * UI Links Row (Row 4) - Synergy (green) and Workflow (orange) pills
+     * NOW USES ThreadCardRegistry for dynamic badge rendering
      * 
      * @param {Object} thread - Thread object
      * @param {string} location - Location identifier
@@ -533,6 +534,28 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for UI links row
      */
     uiLinksRow(thread, location, synergyMeta = null) {
+        // Check if ThreadCardRegistry is initialized
+        if (window.ThreadCardRegistry && window.ThreadCardRegistry.initialized) {
+            // Use dynamic registry-based rendering
+            return window.ThreadCardRegistry.renderBadgesForThread(thread);
+        }
+
+        // FALLBACK: Use hardcoded rendering during initialization
+        // This ensures badges still appear while registry loads
+        console.log('[ThreadCardTemplates] Using fallback badge rendering (registry not ready)');
+        return this._fallbackBadgeRendering(thread, location, synergyMeta);
+    },
+
+    /**
+     * Fallback badge rendering (used during initialization)
+     * Maintains backward compatibility while ThreadCardRegistry loads
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} location - Location identifier
+     * @param {Object} synergyMeta - Synergy session metadata (optional)
+     * @returns {string} HTML string for UI links row
+     */
+    _fallbackBadgeRendering(thread, location, synergyMeta = null) {
         const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
 

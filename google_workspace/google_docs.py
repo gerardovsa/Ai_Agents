@@ -1274,6 +1274,9 @@ def google_docs_smart_create_from_markdown(title, markdown_content, _user_id=Non
                     6: 11   # H6
                 }
                 
+                # FIX Nov 28, 2025: Removed namedStyleType to prevent Google Docs from 
+                # overriding custom fontSize. Now using ONLY custom formatting for full control.
+                # Apply paragraph spacing (without namedStyleType)
                 requests.append({
                     'updateParagraphStyle': {
                         'range': {
@@ -1281,13 +1284,15 @@ def google_docs_smart_create_from_markdown(title, markdown_content, _user_id=Non
                             'endIndex': current_index + len(heading_text)
                         },
                         'paragraphStyle': {
-                            'namedStyleType': f'HEADING_{level}'
+                            'spaceAbove': {'magnitude': 12, 'unit': 'PT'},
+                            'spaceBelow': {'magnitude': 6, 'unit': 'PT'}
                         },
-                        'fields': 'namedStyleType'
+                        'fields': 'spaceAbove,spaceBelow'
                     }
                 })
                 
-                # Apply custom font size and formatting for ALL heading levels
+                # Apply custom font size and formatting for ALL heading levels (H1-H6)
+                # This ensures H2, H3, H4, H5 render with correct sizes
                 requests.append({
                     'updateTextStyle': {
                         'range': {
@@ -1301,9 +1306,10 @@ def google_docs_smart_create_from_markdown(title, markdown_content, _user_id=Non
                                 'color': {
                                     'rgbColor': {'red': 0.0, 'green': 0.0, 'blue': 0.0}
                                 }
-                            }
+                            },
+                            'weightedFontFamily': {'fontFamily': 'Arial'}
                         },
-                        'fields': 'fontSize,bold,foregroundColor'
+                        'fields': 'fontSize,bold,foregroundColor,weightedFontFamily'
                     }
                 })
                 
@@ -2019,43 +2025,71 @@ def google_docs_smart_update(document_id, markdown_content, insertion_position='
                     text = re.sub(r'\{#[0-9a-fA-F]{6}\}\s*$', '', text).rstrip()
                 text = text + '\n'
                 
+                # Heading sizes (consistent with smart_create_from_markdown)
+                heading_sizes = {
+                    1: 20,  # H1 - Main title
+                    2: 18,  # H2 - Major sections
+                    3: 16,  # H3 - Sub-sections
+                    4: 14,  # H4 - List headers
+                    5: 12,  # H5
+                    6: 11   # H6
+                }
+                
                 requests.append({
                     'insertText': {
                         'text': text,
                         'location': {'index': current_index}
                     }
                 })
+                
+                # FIX Nov 28, 2025: Removed namedStyleType, apply spacing only
                 requests.append({
                     'updateParagraphStyle': {
                         'range': {'startIndex': current_index, 'endIndex': current_index + len(text)},
-                        'paragraphStyle': {'namedStyleType': f'HEADING_{heading_level}'},
-                        'fields': 'namedStyleType'
+                        'paragraphStyle': {
+                            'spaceAbove': {'magnitude': 12, 'unit': 'PT'},
+                            'spaceBelow': {'magnitude': 6, 'unit': 'PT'}
+                        },
+                        'fields': 'spaceAbove,spaceBelow'
                     }
                 })
                 
-                # Apply color if specified
+                # Apply custom font size and formatting
+                # Build text style with fontSize, bold, font family, and optional color
+                text_style = {
+                    'fontSize': {'magnitude': heading_sizes[heading_level], 'unit': 'PT'},
+                    'bold': True,
+                    'weightedFontFamily': {'fontFamily': 'Arial'}
+                }
+                
+                # Apply color if specified, otherwise default to black
                 if color_hex:
                     # Convert hex to RGB (0-1 range for Google Docs)
                     r = int(color_hex[0:2], 16) / 255.0
                     g = int(color_hex[2:4], 16) / 255.0
                     b = int(color_hex[4:6], 16) / 255.0
-                    
-                    requests.append({
-                        'updateTextStyle': {
-                            'range': {
-                                'startIndex': current_index,
-                                'endIndex': current_index + len(text) - 1  # Exclude newline
-                            },
-                            'textStyle': {
-                                'foregroundColor': {
-                                    'color': {
-                                        'rgbColor': {'red': r, 'green': g, 'blue': b}
-                                    }
-                                }
-                            },
-                            'fields': 'foregroundColor'
+                    text_style['foregroundColor'] = {
+                        'color': {
+                            'rgbColor': {'red': r, 'green': g, 'blue': b}
                         }
-                    })
+                    }
+                else:
+                    text_style['foregroundColor'] = {
+                        'color': {
+                            'rgbColor': {'red': 0.0, 'green': 0.0, 'blue': 0.0}
+                        }
+                    }
+                
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {
+                            'startIndex': current_index,
+                            'endIndex': current_index + len(text) - 1  # Exclude newline
+                        },
+                        'textStyle': text_style,
+                        'fields': 'fontSize,bold,foregroundColor,weightedFontFamily'
+                    }
+                })
                 
                 current_index += len(text)
                 i += 1
@@ -2878,7 +2912,17 @@ def google_docs_format_text(document_id, start_index, end_index, bold=None, ital
 # ==================== STRUCTURAL ELEMENTS ====================
 
 def google_docs_create_heading(document_id, text, heading_level=1, index=1, _user_id=None, _injected_credentials=None, **kwargs):
-    """Create a heading"""
+    """Create a heading with proper formatting (FIX Nov 28, 2025)"""
+    # Heading sizes
+    heading_sizes = {
+        1: 20,  # H1 - Main title
+        2: 18,  # H2 - Major sections
+        3: 16,  # H3 - Sub-sections
+        4: 14,  # H4 - List headers
+        5: 12,  # H5
+        6: 11   # H6
+    }
+    
     requests = [
         # Insert text
         {
@@ -2887,7 +2931,7 @@ def google_docs_create_heading(document_id, text, heading_level=1, index=1, _use
                 'location': {'index': index}
             }
         },
-        # Apply heading style
+        # Apply paragraph spacing (no namedStyleType)
         {
             'updateParagraphStyle': {
                 'range': {
@@ -2895,9 +2939,30 @@ def google_docs_create_heading(document_id, text, heading_level=1, index=1, _use
                     'endIndex': index + len(text) + 1
                 },
                 'paragraphStyle': {
-                    'namedStyleType': f'HEADING_{heading_level}'
+                    'spaceAbove': {'magnitude': 12, 'unit': 'PT'},
+                    'spaceBelow': {'magnitude': 6, 'unit': 'PT'}
                 },
-                'fields': 'namedStyleType'
+                'fields': 'spaceAbove,spaceBelow'
+            }
+        },
+        # Apply custom formatting (fontSize, bold, Arial font)
+        {
+            'updateTextStyle': {
+                'range': {
+                    'startIndex': index,
+                    'endIndex': index + len(text)  # Exclude newline
+                },
+                'textStyle': {
+                    'fontSize': {'magnitude': heading_sizes.get(heading_level, 11), 'unit': 'PT'},
+                    'bold': True,
+                    'foregroundColor': {
+                        'color': {
+                            'rgbColor': {'red': 0.0, 'green': 0.0, 'blue': 0.0}
+                        }
+                    },
+                    'weightedFontFamily': {'fontFamily': 'Arial'}
+                },
+                'fields': 'fontSize,bold,foregroundColor,weightedFontFamily'
             }
         }
     ]
@@ -3048,9 +3113,25 @@ def google_docs_add_formatted_content(document_id, **kwargs):
                     'endIndex': current_index + len(heading1_text)
                 },
                 'paragraphStyle': {
-                    'namedStyleType': 'HEADING_1'
+                    'spaceAbove': {'magnitude': 12, 'unit': 'PT'},
+                    'spaceBelow': {'magnitude': 6, 'unit': 'PT'}
                 },
-                'fields': 'namedStyleType'
+                'fields': 'spaceAbove,spaceBelow'
+            }
+        })
+        requests.append({
+            'updateTextStyle': {
+                'range': {
+                    'startIndex': current_index,
+                    'endIndex': current_index + len(heading1_text) - 1
+                },
+                'textStyle': {
+                    'fontSize': {'magnitude': 20, 'unit': 'PT'},
+                    'bold': True,
+                    'foregroundColor': {'color': {'rgbColor': {'red': 0.0, 'green': 0.0, 'blue': 0.0}}},
+                    'weightedFontFamily': {'fontFamily': 'Arial'}
+                },
+                'fields': 'fontSize,bold,foregroundColor,weightedFontFamily'
             }
         })
         current_index += len(heading1_text)
@@ -3070,9 +3151,25 @@ def google_docs_add_formatted_content(document_id, **kwargs):
                     'endIndex': current_index + len(heading2_text)
                 },
                 'paragraphStyle': {
-                    'namedStyleType': 'HEADING_2'
+                    'spaceAbove': {'magnitude': 12, 'unit': 'PT'},
+                    'spaceBelow': {'magnitude': 6, 'unit': 'PT'}
                 },
-                'fields': 'namedStyleType'
+                'fields': 'spaceAbove,spaceBelow'
+            }
+        })
+        requests.append({
+            'updateTextStyle': {
+                'range': {
+                    'startIndex': current_index,
+                    'endIndex': current_index + len(heading2_text) - 1
+                },
+                'textStyle': {
+                    'fontSize': {'magnitude': 18, 'unit': 'PT'},
+                    'bold': True,
+                    'foregroundColor': {'color': {'rgbColor': {'red': 0.0, 'green': 0.0, 'blue': 0.0}}},
+                    'weightedFontFamily': {'fontFamily': 'Arial'}
+                },
+                'fields': 'fontSize,bold,foregroundColor,weightedFontFamily'
             }
         })
         current_index += len(heading2_text)
@@ -3161,9 +3258,25 @@ def google_docs_add_formatted_content(document_id, **kwargs):
                     'endIndex': current_index + len(heading3_text)
                 },
                 'paragraphStyle': {
-                    'namedStyleType': 'HEADING_3'
+                    'spaceAbove': {'magnitude': 12, 'unit': 'PT'},
+                    'spaceBelow': {'magnitude': 6, 'unit': 'PT'}
                 },
-                'fields': 'namedStyleType'
+                'fields': 'spaceAbove,spaceBelow'
+            }
+        })
+        requests.append({
+            'updateTextStyle': {
+                'range': {
+                    'startIndex': current_index,
+                    'endIndex': current_index + len(heading3_text) - 1
+                },
+                'textStyle': {
+                    'fontSize': {'magnitude': 16, 'unit': 'PT'},
+                    'bold': True,
+                    'foregroundColor': {'color': {'rgbColor': {'red': 0.0, 'green': 0.0, 'blue': 0.0}}},
+                    'weightedFontFamily': {'fontFamily': 'Arial'}
+                },
+                'fields': 'fontSize,bold,foregroundColor,weightedFontFamily'
             }
         })
         current_index += len(heading3_text)
@@ -3218,9 +3331,25 @@ def google_docs_add_formatted_content(document_id, **kwargs):
                     'endIndex': current_index + len(heading3_numbered)
                 },
                 'paragraphStyle': {
-                    'namedStyleType': 'HEADING_3'
+                    'spaceAbove': {'magnitude': 12, 'unit': 'PT'},
+                    'spaceBelow': {'magnitude': 6, 'unit': 'PT'}
                 },
-                'fields': 'namedStyleType'
+                'fields': 'spaceAbove,spaceBelow'
+            }
+        })
+        requests.append({
+            'updateTextStyle': {
+                'range': {
+                    'startIndex': current_index,
+                    'endIndex': current_index + len(heading3_numbered) - 1
+                },
+                'textStyle': {
+                    'fontSize': {'magnitude': 16, 'unit': 'PT'},
+                    'bold': True,
+                    'foregroundColor': {'color': {'rgbColor': {'red': 0.0, 'green': 0.0, 'blue': 0.0}}},
+                    'weightedFontFamily': {'fontFamily': 'Arial'}
+                },
+                'fields': 'fontSize,bold,foregroundColor,weightedFontFamily'
             }
         })
         current_index += len(heading3_numbered)

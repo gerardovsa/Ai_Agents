@@ -1436,75 +1436,399 @@ SYMPTOMS: Module loads but shows blank/empty container
 DEBUG STEPS:
 1. Check browser console for JavaScript errors
 2. Verify container exists: `document.getElementById('tab-${moduleId}')`
-3. Check if HTML generation method called (e.g., `initializeKanbanBoard()`, `renderDashboard()`)
-4. Verify `this.container.innerHTML = ...` executed
-5. Check if helper methods exist (e.g., `getSubTabContainer()`)
-6. Check if data loaded before rendering
-7. Look for template literal syntax errors
+3. **CRITICAL CHECK**: Search for HTML generation method definition (e.g., `initializeKanbanBoard()`, `renderDashboard()`)
+4. **CRITICAL CHECK**: Verify that method is CALLED in `initialize()` - search for method name
+5. Verify `this.container.innerHTML = ...` or `container.innerHTML = ...` executed
+6. **CRITICAL CHECK**: Search for all helper methods called (e.g., `getSubTabContainer()`) and verify they are DEFINED
+7. Check if data loaded before rendering (look for `await` statements)
+8. Look for template literal syntax errors (unclosed backticks, unescaped quotes)
+9. Use browser Elements inspector to see if any HTML was injected
+10. Add console.log statements in initialize() to trace execution flow
 
-COMMON CAUSES:
-❌ Container not found (wrong ID)
-❌ **HTML generation method NEVER CALLED in initialize()** ⚠️ CRITICAL
-❌ **Helper methods called but NOT DEFINED** ⚠️ CRITICAL (e.g., `getSubTabContainer()`)
+**STEP-BY-STEP VERIFICATION PROCESS:**
+
+Step 1: Find the HTML generation method
+```bash
+# Search for method definition
+grep -n "initializeKanbanBoard\|renderDashboard\|generateUI" module.js
+# Look for lines like: initializeKanbanBoard() { or renderDashboard() {
+```
+
+Step 2: Verify the method is called
+```bash
+# Search for method call in initialize()
+grep -A 20 "async initialize()" module.js | grep "initializeKanbanBoard\|renderDashboard"
+# Should see: this.initializeKanbanBoard(); or similar
+```
+
+Step 3: Find all helper methods called
+```bash
+# Search for method calls with 'this.'
+grep -n "this\.\w*(" module.js | grep -v "console\|if\|for\|return"
+# Look for: this.getSubTabContainer(), this.applyColors(), etc.
+```
+
+Step 4: Verify each helper method exists
+```bash
+# For each method found, search for its definition
+grep -n "getSubTabContainer\s*(" module.js
+grep -n "applyModuleColors\s*(" module.js
+# Should find definitions like: getSubTabContainer(tabName) {
+```
+
+Step 5: Check container access pattern
+```javascript
+// In browser console after module loads:
+const moduleId = 'inhouse-kanban';  // Replace with your module ID
+const container = document.getElementById(`tab-${moduleId}`);
+console.log('Tab container exists:', !!container);
+const mainContainer = document.getElementById(`${moduleId}-main-container`);
+console.log('Main container exists:', !!mainContainer);
+console.log('Container HTML length:', container?.innerHTML?.length || 0);
+```
+
+Step 6: Trace initialization flow
+```javascript
+// Add these console logs to your initialize() method:
+async initialize() {
+    console.log('1️⃣ Initialize started');
+    this.injectCriticalStyles();
+    console.log('2️⃣ Styles injected');
+    await super.initialize();
+    console.log('3️⃣ BaseModule initialized');
+    this.applyModuleColors();
+    console.log('4️⃣ Colors applied');
+    this.initializeKanbanBoard();  // ← ADD THIS if missing!
+    console.log('5️⃣ HTML generated');
+    this.setupEventListeners();
+    console.log('6️⃣ Listeners attached');
+}
+```
+
+COMMON CAUSES (RANKED BY FREQUENCY):
+❌ **#1 MOST COMMON: HTML generation method NEVER CALLED in initialize()** ⚠️ CRITICAL
+   - Method exists with perfect HTML generation code
+   - But initialize() never calls it
+   - Result: Code sits there unused, blank screen
+   - Fix: Add `this.initializeKanbanBoard();` (or equivalent) to initialize()
+
+❌ **#2 COMMON: Helper methods called but NOT DEFINED** ⚠️ CRITICAL
+   - Code calls: `const container = this.getSubTabContainer('board')`
+   - But method `getSubTabContainer()` doesn't exist anywhere
+   - Result: container = undefined, innerHTML fails silently
+   - Fix: Add missing helper method (see Container Access Pattern above)
+
+❌ **#3 COMMON: Wrong container ID used**
+   - Code looks for: `document.getElementById('tab-my-module')`
+   - But platform creates: `document.getElementById('my-module-main-container')`
+   - Result: Container not found, cannot inject HTML
+   - Fix: Use correct container ID pattern (see Platform Container Structure)
+
 ❌ Data not loaded yet (async timing issue)
-❌ Template literal syntax error (unclosed backticks)
-❌ Missing return statement in render methods
-❌ Undefined variables in template literals
+   - HTML generation happens before data fetch completes
+   - Template literals reference undefined data
+   - Fix: Ensure `await this.loadData()` before rendering
 
-**CRITICAL CASE STUDY: InHouse Kanban Module**
+❌ Template literal syntax error (unclosed backticks)
+   - Missing closing backtick breaks entire template
+   - No error message, just blank output
+   - Fix: Verify all backticks paired, check nested templates
+
+❌ Missing return statement in render methods
+   - Method generates HTML but doesn't return it
+   - Caller gets undefined instead of HTML string
+   - Fix: Add `return` statement
+
+❌ Undefined variables in template literals
+   - Template uses `${job.name}` but job is undefined
+   - Results in "undefined" text or empty string
+   - Fix: Add null checks: `${job?.name || 'N/A'}`
+
+**CRITICAL CASE STUDY: InHouse Kanban Module - Complete Debugging Journey**
+
 ```
 PROBLEM: Module loaded but showed empty container despite having 1,365 lines of perfect HTML generation code
 
-ROOT CAUSE #1: Missing Helper Function
-- Code called: `const container = this.getSubTabContainer('kanban-board')`
-- But function: NEVER DEFINED anywhere in 4,195 lines!
-- Result: container = undefined
-- Result: `container.innerHTML = ...` failed silently
-- NO HTML EVER INJECTED
+DEBUGGING SESSION TIMELINE:
 
-ROOT CAUSE #2: Method Never Called
-- Method existed: `initializeKanbanBoard()` (lines 1191-1556)
-- Contained: ALL the HTML generation code (filters, toggles, legend, metrics, board)
-- But: NEVER called during `initialize()`
-- Result: Perfect code sat there unused
+🕐 T+0 min: User reports "Kanban sidebar not showing"
+- Symptom: Click floating toggle → empty container appears
+- No JavaScript errors in console
+- All files loaded successfully (Network tab 200 OK)
 
-THE FIX:
-1. Add missing helper method (18 lines):
-   ```javascript
-   getSubTabContainer(tabName) {
-       const container = document.getElementById(`${this.manifest.id}-main-container`);
-       if (!container) {
-           console.error(`Main container not found!`);
-           const fallback = document.getElementById(`tab-${this.manifest.id}`);
-           if (fallback) return fallback;
-           throw new Error(`Cannot find container for module ${this.manifest.id}`);
-       }
-       return container;
-   }
+🕑 T+10 min: Initial Investigation
+✅ Checked: manifest.json configuration → All correct
+✅ Checked: Module in sidebar list → Appears correctly  
+✅ Checked: Floating toggle works → Opens container
+✅ Checked: CSS loaded → Styles applied
+❌ Found: Container exists but innerHTML is empty
+
+🕒 T+20 min: Deep Code Review
+- Searched: "innerHTML =" across entire file (4,195 lines)
+- Found: Multiple HTML generation sections
+- Discovered: `initializeKanbanBoard()` method exists (365 lines of HTML!)
+- Questioned: "Is this method being called?"
+
+🕓 T+30 min: ROOT CAUSE #1 DISCOVERED - Missing Helper Function
+WHAT HAPPENED:
+```javascript
+// In initializeKanbanBoard() method:
+const container = this.getSubTabContainer('kanban-board');  // ← Called here
+container.innerHTML = `<!-- 1365 lines of HTML -->`;
+
+// But search for "getSubTabContainer" definition:
+grep -n "getSubTabContainer\s*(" inhouse-kanban.js
+// Result: NO MATCHES FOUND!
+```
+
+WHY THIS FAILED SILENTLY:
+- JavaScript doesn't error when calling undefined method on `this`
+- Returns `undefined` instead
+- `undefined.innerHTML = ...` fails silently (no error thrown!)
+- Container never gets HTML
+
+THE FIX - Added missing helper:
+```javascript
+getSubTabContainer(tabName) {
+    const container = document.getElementById(`${this.manifest.id}-main-container`);
+    if (!container) {
+        console.error(`❌ Main container #${this.manifest.id}-main-container not found!`);
+        const fallback = document.getElementById(`tab-${this.manifest.id}`);
+        if (fallback) {
+            console.warn(`⚠️ Using fallback container #tab-${this.manifest.id}`);
+            return fallback;
+        }
+        throw new Error(`Cannot find container for module ${this.manifest.id}`);
+    }
+    console.log(`✅ Container found:`, container.id);
+    return container;
+}
+```
+
+🕔 T+45 min: ROOT CAUSE #2 DISCOVERED - Method Never Called
+ANALYSIS:
+```javascript
+// The perfect HTML generation method EXISTS:
+initializeKanbanBoard() {  // Lines 1191-1556 (365 lines!)
+    const container = this.getSubTabContainer('kanban-board');
+    container.innerHTML = `
+        <!-- Filters section (50 lines) -->
+        <!-- Toggle buttons (30 lines) -->
+        <!-- Legend (40 lines) -->
+        <!-- Metrics (60 lines) -->
+        <!-- Kanban board (185 lines) -->
+    `;
+    // Perfect template literals, clean code, proper escaping
+}
+
+// But in initialize() method:
+async initialize() {
+    console.log('Initializing module...');
+    this.injectCriticalStyles();
+    await super.initialize();
+    this.applyModuleColors();
+    // ❌ NOWHERE DOES IT CALL: this.initializeKanbanBoard();
+    this.setupEventListeners();
+}
+```
+
+VERIFICATION PROCESS:
+```bash
+# Search for method call:
+grep -A 30 "async initialize()" inhouse-kanban.js | grep "initializeKanbanBoard"
+# Result: NO MATCHES
+
+# Search entire file for ANY call:
+grep "\.initializeKanbanBoard()" inhouse-kanban.js
+# Result: NO MATCHES
+
+# Conclusion: 365 lines of perfect code NEVER EXECUTED!
+```
+
+THE FIX - Added ONE line:
+```javascript
+async initialize() {
+    console.log('🔧 Initializing InHouse Print Production Workflow module...');
+    window.currentKanbanModule = this;
+    this.injectCriticalStyles();
+    await super.initialize();
+    this.applyModuleColors();
+    
+    this.initializeKanbanBoard();  // ✅ ADDED THIS LINE!
+    
+    this.setupEventListeners();
+    this.startAutoRefresh();
+    console.log('✅ InHouse Print Production Workflow module ready');
+}
+```
+
+🕕 T+60 min: Testing - New Issue Discovered
+SYMPTOM: Sidebar shows but "Cannot read properties of undefined (reading 'filter')"
+- HTML now renders correctly ✅
+- But cards show "Loading data..." indefinitely
+- Console error when changing workboard
+
+🕖 T+75 min: ROOT CAUSE #3 DISCOVERED - Data Race Condition
+ANALYSIS:
+```javascript
+// Module initialization:
+await module.initialize();  // Calls await this.refreshData()
+
+// Sidebar creation (runs IMMEDIATELY after):
+const sidebar = new InhouseKanbanSidebar(module);  // Constructor runs
+
+// Inside sidebar constructor:
+constructor(module) {
+    this.module = module;
+    this.initializeSidebar();  // Called synchronously
+}
+
+// Inside initializeSidebar():
+loadWorkboardColumns() {
+    this.loadColumnCards();
+}
+
+// Inside loadColumnCards():
+const jobs = this.module.jobs.filter(job => ...);  // ❌ jobs is undefined!
+```
+
+WHY THIS HAPPENED:
+- `module.initialize()` calls `await this.refreshData()`
+- But `refreshData()` might not complete if error occurs
+- Sidebar constructor runs before data fully loaded
+- Accessing `this.module.jobs` returns undefined
+
+THE FIX - Triple safety net:
+```javascript
+// Fix 1: Verify data before sidebar creation
+init: async () => {
+    const module = new InhouseKanbanModule('inhouse-kanban');
+    await module.initialize();
+    
+    if (!module.jobs || module.jobs.length === 0) {
+        console.log('⏳ Data not loaded during initialization, forcing refresh...');
+        await module.refreshData();
+        console.log(`✅ Force refresh complete: ${module.jobs?.length || 0} jobs loaded`);
+    }
+    
+    const sidebar = new InhouseKanbanSidebar(module);
+}
+
+// Fix 2: Safety check before array operations
+loadColumnCards() {
+    if (!this.module.jobs || !Array.isArray(this.module.jobs)) {
+        console.warn('⚠️ Jobs data not loaded yet');
+        container.innerHTML = '<div class="sidebar-empty">Loading data...</div>';
+        return;
+    }
+    
+    const jobs = this.module.jobs.filter(job => 
+        job.current_stage_id === this.selectedColumn
+    );
+}
+
+// Fix 3: Fix method name typo
+async refreshData() {
+    // ❌ WRONG: await this.module.loadTickets();
+    await this.module.loadJobs();  // ✅ CORRECT method name
+}
+```
+
+🕗 T+90 min: Testing - Sidebar Invisible Issue
+SYMPTOM: Sidebar exists in DOM but not visible
+- Browser inspector shows: `<div id="sidebar" class="active" style="display:none">`
+- JavaScript adds 'active' class correctly
+- But element still hidden
+
+🕘 T+105 min: ROOT CAUSE #4 DISCOVERED - Missing CSS Rule
+ANALYSIS:
+```css
+/* CSS had this: */
+#inhouse-kanban-sidebar {
+    /* NO display rule */
+}
+
+/* But inline style overrode everything: */
+<div id="inhouse-kanban-sidebar" style="display: none;">
+
+/* JavaScript added 'active' class: */
+element.classList.add('active');  // ✅ Works
+
+/* But NO CSS rule responded to .active: */
+/* MISSING: #inhouse-kanban-sidebar.active { display: flex; } */
+```
+
+THE FIX - Complete CSS control:
+```css
+/* Hide by default via CSS (not inline style) */
+#inhouse-kanban-sidebar {
+    display: none;
+}
+
+/* Show when active class added */
+#inhouse-kanban-sidebar.active {
+    display: flex !important;  /* Override inline styles if any */
+}
+```
+
+🕙 T+120 min: COMPLETE RESOLUTION
+✅ HTML generation method defined
+✅ HTML generation method called in initialize()
+✅ Helper methods all defined
+✅ Data loading verified before access
+✅ CSS rules respond to active class
+✅ Sidebar shows/hides correctly
+✅ Cards display with data
+✅ All workboards functional
+
+RESULT: 1,365 lines of perfect HTML finally rendered after fixing 4 critical issues!
+
+KEY LESSONS LEARNED:
+
+1. **Systematic Method Verification**
+   ```bash
+   # For EVERY method called, verify it exists:
+   grep -n "methodName\s*(" filename.js
+   
+   # For EVERY render method, verify it's called:
+   grep "\.renderMethod()" filename.js
    ```
 
-2. Call the HTML generation method (1 line in initialize()):
-   ```javascript
-   async initialize() {
-       console.log('Initializing module...');
-       window.currentModule = this;
-       this.injectCriticalStyles();
-       await super.initialize();
-       this.applyModuleColors();
-       
-       // ⚠️ CRITICAL: Actually call the method that creates HTML!
-       this.initializeKanbanBoard();  // ← THIS WAS MISSING!
-       
-       this.setupEventListeners();
-       this.startAutoRefresh();
-   }
-   ```
+2. **JavaScript Silent Failures**
+   - `this.undefinedMethod()` → returns undefined (no error)
+   - `undefined.innerHTML = ...` → fails silently (no error)
+   - `undefined.filter(...)` → throws error (finally!)
+   - Always use defensive checks
 
-RESULT: 1,365 lines of perfect HTML finally rendered!
+3. **Async Data Loading**
+   - `await` doesn't guarantee data loaded (errors can occur)
+   - Always check data exists before accessing
+   - Add safety checks in every data access method
 
-KEY LESSON:
-- If you generate HTML in a separate method, YOU MUST CALL IT in initialize()
-- If you call helper methods, THEY MUST BE DEFINED
+4. **CSS Active States**
+   - Adding 'active' class doesn't auto-show element
+   - Need explicit CSS: `.active { display: flex; }`
+   - Inline styles need !important to override
+
+5. **Debugging Workflow**
+   - Check container exists
+   - Check HTML generation method exists AND is called
+   - Check helper methods defined
+   - Check data loaded
+   - Check CSS rules active
+   - Trace execution flow with console.logs
+
+DEBUGGING CHECKLIST (FROM THIS CASE STUDY):
+□ Search for HTML generation method definition
+□ Verify method is called in initialize()
+□ Search for all methods called (grep for "this.")
+□ Verify each method is defined
+□ Check container exists in DOM
+□ Verify data loaded before access
+□ Check CSS rules for .active state
+□ Add console.logs to trace execution
+□ Test in browser after each fix
+□ Clear cache (Ctrl+Shift+R) between tests
 - JavaScript fails SILENTLY when calling undefined functions or setting innerHTML on undefined
 - Always verify: "Is this method called? Does this function exist?"
 ```

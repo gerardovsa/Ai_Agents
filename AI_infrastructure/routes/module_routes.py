@@ -114,7 +114,8 @@ def list_modules():
             'floating_toggle_position': getattr(m, 'floating_toggle_position', 'right'),
             'floating_toggle_default_top': getattr(m, 'floating_toggle_default_top', 280),
             'main_tab': getattr(m, 'main_tab', False),
-            'main_tab_id': getattr(m, 'main_tab_id', m.id)
+            'main_tab_id': getattr(m, 'main_tab_id', m.id),
+            'show_in_sidebar': getattr(m, 'show_in_sidebar', True)  # NEW: Include sidebar visibility
         } for m in modules]
         
         return jsonify({

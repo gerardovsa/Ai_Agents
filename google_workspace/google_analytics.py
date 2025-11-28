@@ -35,7 +35,7 @@ def _get_analytics_service():
 
 # ==================== ACCOUNT & PROPERTY ====================
 
-def google_analytics_list_accounts():
+def google_analytics_list_accounts(**kwargs):
     """List all Analytics accounts"""
     try:
         service = _get_analytics_service()
@@ -54,7 +54,7 @@ def google_analytics_list_accounts():
         raise
 
 
-def google_analytics_list_properties(account_id=None):
+def google_analytics_list_properties(account_id=None, **kwargs):
     """List Analytics properties"""
     try:
         service = _get_analytics_service()
@@ -79,7 +79,7 @@ def google_analytics_list_properties(account_id=None):
 
 # ==================== REPORTS ====================
 
-def google_analytics_get_realtime_report(property_id, metrics=None, dimensions=None):
+def google_analytics_get_realtime_report(property_id, metrics=None, dimensions=None, **kwargs):
     """Get realtime analytics report"""
     try:
         service = _get_analytics_service()
@@ -109,7 +109,7 @@ def google_analytics_get_realtime_report(property_id, metrics=None, dimensions=N
 
 
 def google_analytics_run_report(property_id, start_date, end_date, metrics, dimensions=None, 
-                                dimension_filter=None, metric_filter=None, limit=10):
+                                dimension_filter=None, metric_filter=None, limit=10, **kwargs):
     """Run a custom analytics report"""
     try:
         service = _get_analytics_service()
@@ -141,7 +141,7 @@ def google_analytics_run_report(property_id, start_date, end_date, metrics, dime
 
 # ==================== SPECIFIC METRICS ====================
 
-def google_analytics_get_page_views(property_id, start_date='7daysAgo', end_date='today'):
+def google_analytics_get_page_views(property_id, start_date='7daysAgo', end_date='today', **kwargs):
     """Get page views for date range"""
     metrics = [
         {'name': 'screenPageViews'},
@@ -157,7 +157,7 @@ def google_analytics_get_page_views(property_id, start_date='7daysAgo', end_date
     )
 
 
-def google_analytics_get_user_behavior(property_id, start_date='7daysAgo', end_date='today'):
+def google_analytics_get_user_behavior(property_id, start_date='7daysAgo', end_date='today', **kwargs):
     """Get user behavior metrics"""
     metrics = [
         {'name': 'activeUsers'},
@@ -175,7 +175,7 @@ def google_analytics_get_user_behavior(property_id, start_date='7daysAgo', end_d
     )
 
 
-def google_analytics_get_conversions(property_id, start_date='7daysAgo', end_date='today'):
+def google_analytics_get_conversions(property_id, start_date='7daysAgo', end_date='today', **kwargs):
     """Get conversion metrics"""
     metrics = [
         {'name': 'conversions'},
@@ -191,7 +191,7 @@ def google_analytics_get_conversions(property_id, start_date='7daysAgo', end_dat
     )
 
 
-def google_analytics_get_traffic_sources(property_id, start_date='7daysAgo', end_date='today'):
+def google_analytics_get_traffic_sources(property_id, start_date='7daysAgo', end_date='today', **kwargs):
     """Get traffic source breakdown"""
     metrics = [
         {'name': 'sessions'},
@@ -208,7 +208,7 @@ def google_analytics_get_traffic_sources(property_id, start_date='7daysAgo', end
     )
 
 
-def google_analytics_get_demographics(property_id, start_date='7daysAgo', end_date='today'):
+def google_analytics_get_demographics(property_id, start_date='7daysAgo', end_date='today', **kwargs):
     """Get demographic data"""
     metrics = [
         {'name': 'activeUsers'}
@@ -224,7 +224,7 @@ def google_analytics_get_demographics(property_id, start_date='7daysAgo', end_da
     )
 
 
-def google_analytics_get_device_data(property_id, start_date='7daysAgo', end_date='today'):
+def google_analytics_get_device_data(property_id, start_date='7daysAgo', end_date='today', **kwargs):
     """Get device and browser data"""
     metrics = [
         {'name': 'activeUsers'},
@@ -241,7 +241,7 @@ def google_analytics_get_device_data(property_id, start_date='7daysAgo', end_dat
     )
 
 
-def google_analytics_get_top_pages(property_id, start_date='7daysAgo', end_date='today', limit=20):
+def google_analytics_get_top_pages(property_id, start_date='7daysAgo', end_date='today', limit=20, **kwargs):
     """Get top performing pages"""
     metrics = [
         {'name': 'screenPageViews'},
@@ -258,7 +258,7 @@ def google_analytics_get_top_pages(property_id, start_date='7daysAgo', end_date=
     )
 
 
-def google_analytics_get_events(property_id, start_date='7daysAgo', end_date='today'):
+def google_analytics_get_events(property_id, start_date='7daysAgo', end_date='today', **kwargs):
     """Get custom event data"""
     metrics = [
         {'name': 'eventCount'},

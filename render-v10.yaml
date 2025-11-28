@@ -1,0 +1,78 @@
+# ========================================
+# AI Agents Platform v10 - Render.com Configuration
+# ========================================
+# Region: Singapore (optimized for Australia)
+# Deployment Type: Docker
+# Repository: gerardovsa/AI_agents
+# Branch: v10 (Development/Testing Branch)
+
+services:
+  # ==================== AI Agents Backend Service (v10) ====================
+  - type: web
+    name: ai-agents-v10
+    env: docker
+    region: singapore  # 🇸🇬 CLOSEST TO AUSTRALIA (~100-150ms latency)
+    plan: starter  # $7/month (can downgrade to free after testing)
+    
+    # Use pre-built Docker image from GitHub Container Registry
+    # Images are built automatically on git push via GitHub Actions
+    # This reduces deployment time from 10 minutes to 1-2 minutes
+    image:
+      url: ghcr.io/gerardovsa/ai_agents:v10
+      # Alternatively use latest from v10:
+      # url: ghcr.io/gerardovsa/ai_agents:latest-v10
+    
+    # Repository configuration
+    repo: https://github.com/gerardovsa/AI_agents
+    branch: v10  # ✅ v10 branch for development/testing
+    
+    # Deployment settings
+    autoDeploy: true  # Auto-deploy on git push to v10
+    
+    # Health check endpoint
+    healthCheckPath: /health
+    
+    # ==================== Persistent Disk (10GB) ====================
+    # Separate disk for v10 (won't interfere with v9 data)
+    # Cost: $2.50/month (10GB @ $0.25/GB)
+    disk:
+      name: ai-agents-v10-data
+      mountPath: /data
+      sizeGB: 10
+    
+    # ==================== Environment Variables ====================
+    # Copy all environment variables from your v9 deployment
+    # Go to v9 deployment → Settings → Environment → Copy each variable
+    envVars:
+      # Flask configuration
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      
+      # UTF-8 encoding for emoji support
+      - key: PYTHONIOENCODING
+        value: "utf-8"
+      
+      # Port configuration
+      - key: PORT
+        value: "5001"
+      
+      # ⚠️ ADD ALL YOUR ENVIRONMENT VARIABLES FROM V9 HERE
+      # Including:
+      # - API keys (Anthropic, OpenAI, DeepSeek, etc.)
+      # - OAuth credentials (Google, Microsoft)
+      # - Database credentials
+      # - Any other secrets
+      
+      # Example (replace with your actual values):
+      # - key: ANTHROPIC_API_KEY
+      #   sync: false  # Use Render secret
+      # - key: OPENAI_API_KEY
+      #   sync: false
+      # - key: GOOGLE_CLIENT_ID
+      #   sync: false
+      # - key: GOOGLE_CLIENT_SECRET
+      #   sync: false
+      # - key: MICROSOFT_CLIENT_ID
+      #   sync: false
+      # - key: MICROSOFT_CLIENT_SECRET
+      #   sync: false

@@ -611,18 +611,21 @@
     padding: 0;
     background: var(--bg-tertiary);
     border-left: 1px solid var(--border-default);
-    z-index: 10000;
+    z-index: 25000;
+    /* Above module-sidebar (20000) */
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
     box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+    pointer-events: all;
 }
 
 .prompt-sidebar.show {
     right: 60px;
     display: flex !important;
     visibility: visible;
+    pointer-events: all;
 }
 
 .prompt-sidebar-header {

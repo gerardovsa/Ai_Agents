@@ -34,29 +34,39 @@ class BaseModule {
 
     async initialize() {
         console.log(`✅ BaseModule.initialize() called for ${this.moduleId}`);
-        // Load manifest from backend
+        // Try to load manifest from backend (optional - graceful fallback)
         try {
             const response = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
             if (response.ok) {
                 this.manifest = await response.json();
                 console.log(`✅ Manifest loaded for ${this.moduleId}:`, this.manifest);
             } else {
-                console.warn(`⚠️ Failed to load manifest (HTTP ${response.status})`);
+                console.warn(`⚠️ Manifest not available (HTTP ${response.status}) - using standalone mode`);
+                this.manifest = null;
             }
         } catch (error) {
-            console.warn(`⚠️ Failed to load manifest for ${this.moduleId}:`, error);
+            console.warn(`⚠️ Manifest not available (${error.message}) - using standalone mode`);
+            this.manifest = null;
         }
     }
 
     // Create standard module UI structure (header + sub-tabs + content containers)
     async createModuleStructure() {
-        // Ensure container exists - respect manifest.main_tab_id fallback
+        // Try multiple container ID patterns (order matters!)
+        // 1. manifest.main_tab_id (e.g., "communication" -> #tab-communication)
+        // 2. moduleId (e.g., "communication-hub" -> #tab-communication-hub)
+        // 3. moduleId without hyphens (e.g., "communicationhub" -> #tab-communicationhub)
         const preferredTabId = this.manifest?.main_tab_id || this.moduleId;
-        this.container = document.getElementById(`tab-${preferredTabId}`) || document.getElementById(`tab-${this.moduleId}`);
+        this.container = document.getElementById(`tab-${preferredTabId}`) ||
+            document.getElementById(`tab-${this.moduleId}`) ||
+            document.getElementById(`tab-${this.moduleId.replace(/-/g, '')}`);
+
         if (!this.container) {
-            console.warn(`[BaseModule] Container #tab-${this.moduleId} not found - createModuleStructure skipped`);
+            console.warn(`[BaseModule] Container not found. Tried: #tab-${preferredTabId}, #tab-${this.moduleId}`);
             return;
         }
+
+        console.log(`[BaseModule] Using container: #${this.container.id}`);
 
         // If already created, skip
         if (this.container.querySelector('.module-header')) {
@@ -202,6 +212,25 @@ class CommunicationHubModule extends BaseModule {
 
         // Call parent initialize
         await super.initialize();
+
+        // Fallback: If manifest not loaded from backend, use hardcoded version
+        if (!this.manifest) {
+            console.log('[Communication Hub] Using hardcoded manifest (standalone mode)');
+            this.manifest = {
+                id: 'communication-hub',
+                name: 'Communication Hub',
+                main_tab_id: 'communication',
+                icon: 'fas fa-comments',
+                color: '#6366f1',
+                description: 'Unified inbox for Gmail and Outlook with AI agent integration',
+                tabs: [
+                    { id: 'unified-inbox', name: 'Unified Inbox', icon: 'fas fa-inbox', default: true },
+                    { id: 'compose', name: 'Compose', icon: 'fas fa-pen' },
+                    { id: 'threads', name: 'Threads', icon: 'fas fa-comments' },
+                    { id: 'search', name: 'Search', icon: 'fas fa-search' }
+                ]
+            };
+        }
 
         // Ensure base UI structure (header + sub-tabs) exists
         try {
@@ -1736,30 +1765,40 @@ Please analyze these emails and provide:
     // ==================== UTILITY METHODS ====================
 
     getSubTabContainer(tabName) {
-        // Try to get main container first (new pattern)
+        // Try multiple container ID patterns
         const moduleId = this.manifest?.id || this.moduleId;
-        const mainContainer = document.getElementById(`${moduleId}-main-container`);
+        const mainTabId = this.manifest?.main_tab_id || this.moduleId;
 
+        // Pattern 1: Module main container (created by createModuleStructure)
+        const mainContainer = document.getElementById(`${moduleId}-main-container`);
         if (mainContainer) {
             console.log(`[Communication Hub] Using main container #${moduleId}-main-container`);
             return mainContainer;
         }
 
-        // Fallback: Try subtab container (old pattern)
+        // Pattern 2: Subtab container with moduleId
         const subtabContainer = document.getElementById(`${moduleId}-subtab-${tabName}`);
         if (subtabContainer) {
             console.log(`[Communication Hub] Using subtab container #${moduleId}-subtab-${tabName}`);
             return subtabContainer;
         }
 
-        // Fallback: Try tab container
+        // Pattern 3: Tab container with manifest.main_tab_id (e.g., #tab-communication)
+        const tabContainerMain = document.getElementById(`tab-${mainTabId}`);
+        if (tabContainerMain) {
+            console.log(`[Communication Hub] Using tab container #tab-${mainTabId}`);
+            return tabContainerMain;
+        }
+
+        // Pattern 4: Tab container with moduleId (e.g., #tab-communication-hub)
         const tabContainer = document.getElementById(`tab-${moduleId}`);
         if (tabContainer) {
-            console.warn(`[Communication Hub] Using fallback tab container #tab-${moduleId}`);
+            console.log(`[Communication Hub] Using tab container #tab-${moduleId}`);
             return tabContainer;
         }
 
         console.error(`[Communication Hub] Cannot find container for module ${moduleId}, tab ${tabName}`);
+        console.error(`   Tried: #${moduleId}-main-container, #${moduleId}-subtab-${tabName}, #tab-${mainTabId}, #tab-${moduleId}`);
         return null;
     }
 

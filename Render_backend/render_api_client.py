@@ -90,7 +90,17 @@ class RenderAPIClient:
         """
         url = f"{self.BASE_URL}/{endpoint.lstrip('/')}"
         response = requests.request(method, url, headers=self.headers, **kwargs)
-        response.raise_for_status()
+        
+        # Enhanced error handling with response body
+        if not response.ok:
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('message', response.text)
+            except:
+                error_msg = response.text
+            
+            raise requests.HTTPError(f"{response.status_code} - {error_msg}", response=response)
+        
         return response.json()
     
     # ==================== Services ====================

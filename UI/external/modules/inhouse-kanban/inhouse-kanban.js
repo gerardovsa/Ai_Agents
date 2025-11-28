@@ -4327,14 +4327,29 @@ class InhouseKanbanSidebar {
             console.log('✅ Sidebar initialized with data');
         } else {
             console.log('⏳ Sidebar initialized - waiting for data to load');
-            // Data will load via refreshData() in main module
-            // Sidebar will update when user selects a column
+            // Show "Loading data..." message in the cards container
+            const container = document.getElementById('sidebar-cards-container');
+            if (container) {
+                container.innerHTML = '<div class="sidebar-empty"><i class="fas fa-sync fa-spin"></i><p>Loading data...</p></div>';
+            }
+            // Data will load via refreshData() - user can manually refresh or select column
         }
     }
 
     onWorkboardChange(workboardKey) {
         console.log(`📋 Workboard changed to: ${workboardKey}`);
         this.selectedWorkboard = workboardKey;
+        
+        // Check if data is loaded before proceeding
+        if (!this.module.jobs || !Array.isArray(this.module.jobs)) {
+            console.warn('⚠️ Data not loaded yet, cannot switch workboard');
+            const container = document.getElementById('sidebar-cards-container');
+            if (container) {
+                container.innerHTML = '<div class="sidebar-empty"><i class="fas fa-sync fa-spin"></i><p>Loading data...</p></div>';
+            }
+            return;
+        }
+        
         this.loadWorkboardColumns(workboardKey);
     }
 
@@ -4365,10 +4380,13 @@ class InhouseKanbanSidebar {
             }
         });
 
-        // Select first column and load cards
+        // Select first column and load cards (only if data is loaded)
         if (stages.length > 0) {
             this.selectedColumn = stages[0];
-            this.loadColumnCards();
+            // Only load cards if data is available
+            if (this.module.jobs && Array.isArray(this.module.jobs)) {
+                this.loadColumnCards();
+            }
         }
 
         // Update analytics workboard display
@@ -4415,9 +4433,14 @@ class InhouseKanbanSidebar {
 
     async refreshData() {
         console.log('🔄 Refreshing sidebar data...');
-        await this.module.loadTickets();
-        this.loadColumnCards();
-        this.refreshAnalytics();
+        try {
+            await this.module.loadJobs();
+            console.log('✅ Sidebar data refreshed:', this.module.jobs?.length || 0, 'jobs');
+            this.loadColumnCards();
+            this.refreshAnalytics();
+        } catch (error) {
+            console.error('❌ Failed to refresh sidebar data:', error);
+        }
     }
 
     loadColumnCards() {
@@ -4437,11 +4460,16 @@ class InhouseKanbanSidebar {
         }
 
         // Get jobs for selected column (use this.module.jobs, NOT tickets)
-        const jobs = this.module.jobs.filter(job =>
-            job.current_stage_id === this.selectedColumn
-        );
-
-        console.log(`📦 Loading ${jobs.length} cards for column ${this.selectedColumn}`);
+        let jobs = [];
+        try {
+            jobs = this.module.jobs.filter(job =>
+                job.current_stage_id === this.selectedColumn
+            );
+        } catch (error) {
+            console.error('❌ Error filtering jobs:', error);
+            container.innerHTML = '<div class="sidebar-empty"><i class="fas fa-exclamation-triangle"></i><p>Error loading cards</p></div>';
+            return;
+        } console.log(`📦 Loading ${jobs.length} cards for column ${this.selectedColumn}`);
 
         // Clear container
         container.innerHTML = '';
@@ -4843,6 +4871,25 @@ window.ModuleRegistry['inhouse-kanban'] = {
             // Store instance in registry for backward compatibility with onclick handlers
             window.ModuleRegistry['inhouse-kanban'].instance = module;
 
+            // Load sidebar HTML before initializing sidebar class
+            console.log('🔧 Loading sidebar HTML...');
+            try {
+                const sidebarResponse = await fetch('UI/external/modules/inhouse-kanban/inhouse-kanban-SIDEBAR.html');
+                if (!sidebarResponse.ok) {
+                    throw new Error(`Failed to load sidebar HTML: ${sidebarResponse.status}`);
+                }
+                const sidebarHTML = await sidebarResponse.text();
+
+                // Inject sidebar HTML into document body
+                const sidebarContainer = document.createElement('div');
+                sidebarContainer.innerHTML = sidebarHTML;
+                document.body.appendChild(sidebarContainer.firstElementChild);
+                console.log('✅ Sidebar HTML loaded and injected');
+            } catch (htmlError) {
+                console.error('❌ Failed to load sidebar HTML:', htmlError);
+                throw htmlError;
+            }
+
             // Initialize sidebar (with or without data - sidebar handles empty state)
             window.ModuleRegistry['inhouse-kanban'].sidebar = new InhouseKanbanSidebar(module);
             window.inhouseKanbanSidebar = window.ModuleRegistry['inhouse-kanban'].sidebar;
@@ -5000,6 +5047,48 @@ window.debugShowSidebar = function () {
 
 console.log('💡 Debug command loaded: debugShowSidebar()');
 console.log('   Run this in console to force show sidebar and see diagnostics');
+
+// ============================================================================
+// SIMPLE DEBUG COMMANDS (easier to use)
+// ============================================================================
+
+window.checkSidebar = () => {
+    const el = document.getElementById('inhouse-kanban-sidebar');
+    console.log('Sidebar element:', el);
+    console.log('Classes:', el?.className);
+    console.log('Display:', el?.style.display);
+    console.log('Has active class:', el?.classList.contains('active'));
+    return el;
+};
+
+window.showSidebar = () => {
+    const el = document.getElementById('inhouse-kanban-sidebar');
+    if (!el) {
+        console.error('❌ Sidebar not found in DOM!');
+        return false;
+    }
+    el.classList.add('active');
+    el.style.display = 'flex';
+    console.log('✅ Sidebar shown');
+    return true;
+};
+
+window.checkModule = () => {
+    const mod = window.ModuleRegistry?.['inhouse-kanban']?.instance;
+    console.log('Module:', mod);
+    console.log('Jobs:', mod?.jobs?.length || 0);
+    console.log('Stages:', mod?.stages?.length || 0);
+    return mod;
+};
+
+console.log('');
+console.log('💡 SIMPLE DEBUG COMMANDS:');
+console.log('   checkSidebar() - Check if sidebar exists in DOM');
+console.log('   showSidebar() - Force show the sidebar');
+console.log('   checkModule() - Check module data status');
+
+
+
 
 
 

@@ -124,6 +124,12 @@
     <!-- Standardized UI components: metrics, subtabs, buttons, badges -->
     <link rel="stylesheet" href="css/ui-standardization.css">
 
+    <!-- ==================== UNIVERSAL SIDEBAR FRAMEWORK ==================== -->
+    <!-- Centralized system for all module sidebars with consistent behavior -->
+    <link rel="stylesheet" href="modules/sidebar-framework/sidebar-manager.css">
+    <script src="modules/sidebar-framework/sidebar-manager.js"></script>
+    <script src="modules/sidebar-framework/sidebar-init.js"></script>
+
     <!-- ==================== PROMPT LIBRARY MODULE ==================== -->
     <!-- Modular prompt library feature with Font Awesome icons -->
     <link rel="stylesheet" href="modules/prompt-library/prompt-library.css">
@@ -132,7 +138,7 @@
     <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
     <!-- Error recovery control system with toggles and statistics -->
     <!-- v2: Dynamic HTML loading, toast notifications, hover tooltips -->
-    <!-- NOTE: Settings Sidebar temporarily disabled - needs migration to new module system -->
+    <!-- NOTE: Using Universal Sidebar Framework for consistent behavior -->
     <!-- Depends on BaseModule which was archived - will migrate to new module system -->
     <!-- <script src="js/module-base.js?v=20251124d"></script> -->
     <!-- <link rel="stylesheet" href="external/modules/settings-sidebar/settings-sidebar.css?v=20251124d"> -->
@@ -200,6 +206,10 @@
     <!-- Core thread management styles (menus, modals, filters, etc.) -->
     <link rel="stylesheet" href="modules/thread-manager/thread.css">
 
+    <!-- ==================== THREAD CARD REGISTRY MODULE ==================== -->
+    <!-- Central registry for thread card integrations from all modules (NEW - Nov 28, 2025) -->
+    <script src="modules/thread-cards/thread-card-registry.js?v=20251128"></script>
+
     <!-- ==================== THREAD CARD TEMPLATES MODULE ==================== -->
     <!-- HTML template generation for thread cards (Phase 2: Template Extraction) -->
     <script src="external/modules/thread-cards/thread-card-templates.js?v=20251124141959"></script>
@@ -242,6 +252,8 @@
     <link rel="stylesheet" href="external/modules/synergy/synergy-doc-picker.css?v=20251124">
     <!-- NEW: Document picker -->
     <script src="external/modules/synergy/synergy-doc-picker.js?v=20251124"></script> <!-- NEW: Document picker -->
+    <script src="external/modules/synergy/synergy-thread-integration.js?v=20251128"></script>
+    <!-- NEW: Thread card integration handlers -->
 
     <!-- ==================== SHARED MODULES (Nov 2025) ==================== -->
     <!-- Unified message rendering for Prime and Agent columns -->
@@ -296,10 +308,22 @@
         const FORCE_LOCAL = false;   // Set to true: Always use localhost (even on Render domain)
         const FORCE_RENDER = false;  // Set to true: Always use Render (even from file:// protocol)
 
-        // Auto-detect backend URL based on current hostname
-        const API_BASE_URL = (forceRender || FORCE_RENDER) ? 'https://ai-agents-backend-singapore.onrender.com' :
-            ((FORCE_LOCAL || isLocalhost || isFileProtocol) ? 'http://localhost:5001' :
-                window.location.origin);  // Use same domain as frontend (auto-detect Render URL)
+        // Auto-detect backend URL based on current hostname (dynamically detects v9/v10)
+        let API_BASE_URL;
+        if (forceRender || FORCE_RENDER) {
+            // Forced Render mode - detect v9 or v10 from current URL
+            const currentHost = window.location.hostname;
+            if (currentHost.includes('v10') || currentHost.includes('ai-agents-v10')) {
+                API_BASE_URL = 'https://ai-agents-v10.onrender.com';
+            } else {
+                API_BASE_URL = 'https://ai-agents-backend-singapore.onrender.com';  // v9 fallback
+            }
+        } else if (FORCE_LOCAL || isLocalhost || isFileProtocol) {
+            API_BASE_URL = 'http://localhost:5001';
+        } else {
+            // Auto-detect from window.location.origin (works for both v9 and v10)
+            API_BASE_URL = window.location.origin;
+        }
 
         const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5300' :
             'https://vsa-agent-service.onrender.com';  // VSA Agent separate service
@@ -308,7 +332,9 @@
         window.API_BASE_URL = API_BASE_URL;
         window.VSA_API_BASE_URL = VSA_API_BASE_URL;
 
-        console.log('🌐 [API CONFIG] Environment:', (isLocalhost || isFileProtocol) ? '🔧 DEVELOPMENT (localhost)' : '🚀 PRODUCTION (Render)');
+        // Detect version from URL
+        const detectedVersion = API_BASE_URL.includes('v10') ? 'v10' : API_BASE_URL.includes('backend-singapore') ? 'v9' : 'auto';
+        console.log('🌐 [API CONFIG] Environment:', (isLocalhost || isFileProtocol) ? '🔧 DEVELOPMENT (localhost)' : `🚀 PRODUCTION (Render ${detectedVersion})`);
         console.log('🌐 [API CONFIG] API Base URL:', API_BASE_URL);
         console.log('🌐 [API CONFIG] VSA API URL:', VSA_API_BASE_URL);
     </script>
@@ -9088,6 +9114,34 @@
         .btn-secondary {
             background: var(--bg-tertiary);
             border-color: var(--border-default);
+        }
+
+        .platform-connect-btn {
+            padding: 12px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            text-align: left;
+        }
+
+        .platform-connect-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .platform-connect-btn i {
+            font-size: 16px;
+            flex-shrink: 0;
             color: var(--text-primary);
         }
 
@@ -16816,6 +16870,277 @@
         </div>
     </div>
 
+    <!-- ==================== ADD CONNECTION MODAL ==================== -->
+    <div class="edit-card-modal" id="add-connection-modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 700px; max-height: 85vh;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-plug"></i> Add New Platform Connection
+                </h3>
+                <button class="modal-close-btn" onclick="closeAddConnectionModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Platform Selection -->
+                <div id="platformSelectionView">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                        Select a platform to connect. AI agents will use these credentials to perform actions on your
+                        behalf.
+                    </p>
+
+                    <!-- OAuth Platforms -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-shield-alt" style="color: #4F46E5;"></i> OAuth 2.0 Platforms
+                            <span
+                                style="font-size: 10px; background: #E0E7FF; color: #4F46E5; padding: 2px 6px; border-radius: 4px;">Secure
+                                Browser Auth</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;">
+                            <button onclick="connectGoogle()" class="platform-connect-btn">
+                                <i class="fab fa-google" style="color: #4285f4;"></i> Google Workspace
+                            </button>
+                            <button onclick="connectMicrosoft()" class="platform-connect-btn">
+                                <i class="fab fa-microsoft" style="color: #00a4ef;"></i> Microsoft 365
+                            </button>
+                            <button onclick="showComingSoon('GitHub')" class="platform-connect-btn"
+                                style="opacity: 0.6;">
+                                <i class="fab fa-github" style="color: #333;"></i> GitHub <small
+                                    style="font-size: 9px;">(Soon)</small>
+                            </button>
+                            <button onclick="showComingSoon('Slack')" class="platform-connect-btn"
+                                style="opacity: 0.6;">
+                                <i class="fab fa-slack" style="color: #4A154B;"></i> Slack <small
+                                    style="font-size: 9px;">(Soon)</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- API Key Platforms -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-key" style="color: #92400E;"></i> API Key Platforms
+                            <span
+                                style="font-size: 10px; background: #FEF3C7; color: #92400E; padding: 2px 6px; border-radius: 4px;">API
+                                Key Required</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;">
+                            <button onclick="showApiKeyForm('stripe', 'Stripe', 'fab fa-stripe', '#635BFF')"
+                                class="platform-connect-btn">
+                                <i class="fab fa-stripe" style="color: #635BFF;"></i> Stripe
+                            </button>
+                            <button onclick="showApiKeyForm('openai', 'OpenAI', 'fas fa-robot', '#10a37f')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-robot" style="color: #10a37f;"></i> OpenAI
+                            </button>
+                            <button onclick="showApiKeyForm('anthropic', 'Anthropic Claude', 'fas fa-brain', '#6366f1')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-brain" style="color: #6366f1;"></i> Anthropic
+                            </button>
+                            <button onclick="showApiKeyForm('pinecone', 'Pinecone', 'fas fa-database', '#7C3AED')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-database" style="color: #7C3AED;"></i> Pinecone
+                            </button>
+                            <button onclick="showApiKeyForm('voyager', 'Voyager AI', 'fas fa-vector-square', '#8B5CF6')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-vector-square" style="color: #8B5CF6;"></i> Voyager AI
+                            </button>
+                            <button onclick="showApiKeyForm('twilio', 'Twilio', 'fas fa-phone', '#F22F46')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-phone" style="color: #F22F46;"></i> Twilio
+                            </button>
+                            <button onclick="showApiKeyForm('shopify', 'Shopify', 'fab fa-shopify', '#96bf48')"
+                                class="platform-connect-btn">
+                                <i class="fab fa-shopify" style="color: #96bf48;"></i> Shopify
+                            </button>
+                            <button onclick="showApiKeyForm('xero', 'Xero', 'fas fa-receipt', '#13B5EA')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-receipt" style="color: #13B5EA;"></i> Xero
+                            </button>
+                            <button onclick="showApiKeyForm('paypal', 'PayPal', 'fab fa-paypal', '#00457C')"
+                                class="platform-connect-btn">
+                                <i class="fab fa-paypal" style="color: #00457C;"></i> PayPal
+                            </button>
+                            <button onclick="showApiKeyForm('assemblyai', 'AssemblyAI', 'fas fa-microphone', '#FF6B6B')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-microphone" style="color: #FF6B6B;"></i> AssemblyAI
+                            </button>
+                            <button onclick="showApiKeyForm('cloudflare', 'Cloudflare', 'fab fa-cloudflare', '#F38020')"
+                                class="platform-connect-btn">
+                                <i class="fab fa-cloudflare" style="color: #F38020;"></i> Cloudflare
+                            </button>
+                            <button onclick="showApiKeyForm('render', 'Render', 'fas fa-server', '#46E3B7')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-server" style="color: #46E3B7;"></i> Render
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Database Platforms -->
+                    <div style="margin-bottom: 12px;">
+                        <div
+                            style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-database" style="color: #1E40AF;"></i> Database Platforms
+                            <span
+                                style="font-size: 10px; background: #DBEAFE; color: #1E40AF; padding: 2px 6px; border-radius: 4px;">Connection
+                                Details</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;">
+                            <button
+                                onclick="showDatabaseForm('sql_database', 'SQL Database', 'fas fa-database', '#0078D4')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-database" style="color: #0078D4;"></i> SQL Database
+                            </button>
+                            <button onclick="showDatabaseForm('supabase', 'Supabase', 'fas fa-database', '#3ECF8E')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-database" style="color: #3ECF8E;"></i> Supabase
+                            </button>
+                            <button
+                                onclick="showDatabaseForm('inhouseprint_sql', 'InHousePrint SQL', 'fas fa-print', '#FF6B35')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-print" style="color: #FF6B35;"></i> InHousePrint SQL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Key Form (Hidden by default) -->
+                <div id="apiKeyFormView" style="display: none;">
+                    <button onclick="backToPlatformSelection()"
+                        style="margin-bottom: 12px; padding: 6px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 12px; cursor: pointer;">
+                        <i class="fas fa-arrow-left"></i> Back to Platforms
+                    </button>
+
+                    <div id="apiKeyFormHeader"
+                        style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                        <div id="apiKeyFormIcon"
+                            style="width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white;">
+                        </div>
+                        <div>
+                            <div id="apiKeyFormTitle" style="font-weight: 600; font-size: 15px;"></div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Enter your API credentials</div>
+                        </div>
+                    </div>
+
+                    <form id="apiKeyForm" onsubmit="submitApiKeyForm(event)">
+                        <input type="hidden" id="apiKeyPlatform">
+
+                        <div class="settings-field">
+                            <label>Credential Name <span style="color: var(--danger);">*</span></label>
+                            <input type="text" id="apiKeyName" placeholder="e.g., Production API Key, Main Account"
+                                required
+                                style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                                A friendly name to identify this credential
+                            </div>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>API Key <span style="color: var(--danger);">*</span></label>
+                            <input type="password" id="apiKeyValue" placeholder="sk-..." required
+                                style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                                Your API key will be securely encrypted
+                            </div>
+                        </div>
+
+                        <div id="additionalApiFields"></div>
+
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                                <i class="fas fa-check"></i> Save Credential
+                            </button>
+                            <button type="button" onclick="backToPlatformSelection()" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Database Form (Hidden by default) -->
+                <div id="databaseFormView" style="display: none;">
+                    <button onclick="backToPlatformSelection()"
+                        style="margin-bottom: 12px; padding: 6px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 12px; cursor: pointer;">
+                        <i class="fas fa-arrow-left"></i> Back to Platforms
+                    </button>
+
+                    <div id="databaseFormHeader"
+                        style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                        <div id="databaseFormIcon"
+                            style="width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white;">
+                        </div>
+                        <div>
+                            <div id="databaseFormTitle" style="font-weight: 600; font-size: 15px;"></div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Enter your database connection
+                                details</div>
+                        </div>
+                    </div>
+
+                    <form id="databaseForm" onsubmit="submitDatabaseForm(event)">
+                        <input type="hidden" id="databasePlatform">
+
+                        <div class="settings-field">
+                            <label>Connection Name <span style="color: var(--danger);">*</span></label>
+                            <input type="text" id="databaseName" placeholder="e.g., Production DB, Staging Server"
+                                required
+                                style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="settings-field">
+                                <label>Host <span style="color: var(--danger);">*</span></label>
+                                <input type="text" id="databaseHost" placeholder="localhost or IP" required
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                            </div>
+
+                            <div class="settings-field">
+                                <label>Port <span style="color: var(--danger);">*</span></label>
+                                <input type="number" id="databasePort" placeholder="1433" required
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                            </div>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Database Name <span style="color: var(--danger);">*</span></label>
+                            <input type="text" id="databaseDbName" placeholder="my_database" required
+                                style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="settings-field">
+                                <label>Username <span style="color: var(--danger);">*</span></label>
+                                <input type="text" id="databaseUsername" placeholder="sa" required
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                            </div>
+
+                            <div class="settings-field">
+                                <label>Password <span style="color: var(--danger);">*</span></label>
+                                <input type="password" id="databasePassword" placeholder="••••••••" required
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                                <i class="fas fa-check"></i> Save Connection
+                            </button>
+                            <button type="button" onclick="backToPlatformSelection()" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== ACCOUNT SETTINGS MODAL ==================== -->
     <div class="edit-card-modal" id="account-settings-modal" style="display: none;">
         <div class="modal-overlay"></div>
@@ -16824,9 +17149,15 @@
                 <h3>
                     <i class="fas fa-sliders-h"></i> Account Settings
                 </h3>
-                <button class="modal-close-btn" onclick="closeAccountSettings()">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="modal-close-btn" onclick="saveAccountSettings()" title="Save All Changes"
+                        style="background: var(--success, #22c55e); color: white;">
+                        <i class="fas fa-save"></i>
+                    </button>
+                    <button class="modal-close-btn" onclick="closeAccountSettings()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="modal-body">
                 <!-- Personalisation Section -->
@@ -17545,7 +17876,8 @@
     </div><!-- End debug-sidebar -->
 
     <!-- Debug Toggle Button (floating) -->
-    <button class="debug-toggle-btn" onclick="DebugSidebar.toggleSidebar()" title="Toggle Debug Console">
+    <button class="debug-toggle-btn" id="debug-toggle-btn" onclick="DebugSidebar.toggleSidebar()"
+        title="Toggle Debug Console">
         <i class="fas fa-bug"></i>
     </button>
 
@@ -18917,7 +19249,26 @@
 
             if (typeof window.initMultiAgent === 'function') {
                 console.log('? [INIT] initMultiAgent found, initializing...');
+
+                // ✅ FIX: Ensure multi-agent tab is active before creating columns
+                // This prevents DOM elements from being created in a hidden state
+                const multiAgentTab = document.getElementById('tab-multi-agent');
+                if (multiAgentTab && !multiAgentTab.classList.contains('active')) {
+                    console.log('⚠️ [INIT] Multi-agent tab is hidden, activating for DOM initialization...');
+                    multiAgentTab.classList.add('active');
+
+                    // Also hide home tab temporarily
+                    const homeTab = document.getElementById('tab-home');
+                    if (homeTab) {
+                        homeTab.classList.remove('active');
+                    }
+
+                    console.log('✅ [INIT] Multi-agent tab activated (DOM elements will be visible during creation)');
+                }
+
                 await window.initMultiAgent(); // WAIT for agent columns to be created before restoring threads
+
+                console.log('✅ [INIT] initMultiAgent completed successfully');
             } else {
                 console.error('? [INIT] initMultiAgent is not defined - agent-js.js may not have loaded');
                 console.error('? [INIT] Available window properties:', Object.keys(window).filter(k => k.includes('Multi') || k.includes('Agent')));
@@ -18926,14 +19277,14 @@
 
             await loadPlatformStatus();
 
-            // ? INITIALIZE THREADMANAGER (Post-Authentication)
-            // Must happen AFTER login so UserAuth.token is available for /api/auth/profile
-            if (typeof ThreadManager !== 'undefined') {
-                console.log('? ThreadManager loaded via module system');
-
-                // Initialize ThreadManager - this loads threads from backend AND restores assignments
+            // ✅ NOW SAFE: ThreadManager.init() has duplicate prevention with _initialized flag
+            // It will automatically skip if already initialized by initMultiAgent()
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.init === 'function') {
+                console.log('🔧 [INIT] Calling ThreadManager.init() (duplicate-safe)...');
                 await ThreadManager.init();
-                console.log('? ThreadManager initialized (threads loaded + assignments restored)');
+                console.log('✅ [INIT] ThreadManager.init() completed');
+            } else {
+                console.error('❌ [INIT] ThreadManager.init() not available');
             }
 
             // DISPLAY TOOL STATISTICS
@@ -22636,6 +22987,117 @@
             AccountSidebar.switchTab('profile');
         }
 
+        /**
+         * Save all account settings (auto-save on field change)
+         */
+        function saveSettings() {
+            console.log('[ACCOUNT SETTINGS] Auto-saving settings to localStorage...');
+
+            // Collect all settings from UI
+            const settings = {
+                // Personalization
+                nickname: document.getElementById('userNickname')?.value || '',
+                communication_style: document.getElementById('communicationStyle')?.value || 'professional',
+                detail_level: document.querySelector('input[name="detailLevel"]:checked')?.value || 'standard',
+                auth_platform: document.getElementById('authPlatform')?.value || 'auto',
+
+                // AI Settings
+                ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
+                ai_temperature: parseFloat(document.getElementById('temperature')?.value || 1.0),
+                ai_top_p: parseFloat(document.getElementById('topP')?.value || 1.0),
+                ai_max_tokens: parseInt(document.getElementById('maxTokens')?.value || 16000),
+                ai_thinking_enabled: document.getElementById('enableThinking')?.checked ? 1 : 0,
+                ai_thinking_budget: parseInt(document.getElementById('thinkingBudgetSlider')?.value || 10000),
+                ai_streaming_enabled: document.getElementById('enableStreaming')?.checked ? 1 : 0,
+
+                // Round Parameters
+                max_rounds: parseInt(document.getElementById('maxRounds')?.value || 20),
+                round_timeout: parseInt(document.getElementById('roundTimeout')?.value || 30),
+
+                // Timestamps
+                updated_at: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            localStorage.setItem('accountSettings', JSON.stringify(settings));
+            console.log('[ACCOUNT SETTINGS] Settings saved to localStorage');
+        }
+
+        /**
+         * Save all settings and sync to backend
+         */
+        async function saveAccountSettings() {
+            console.log('[ACCOUNT SETTINGS] Saving all settings to backend...');
+
+            try {
+                // First save to localStorage
+                saveSettings();
+
+                // Get auth token
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                if (!token) {
+                    console.warn('[ACCOUNT SETTINGS] No auth token - cannot save to backend');
+                    alert('Please log in to save settings');
+                    return;
+                }
+
+                // Collect all settings
+                const settings = {
+                    // Personalization
+                    nickname: document.getElementById('userNickname')?.value || '',
+                    communication_style: document.getElementById('communicationStyle')?.value || 'professional',
+                    detail_level: document.querySelector('input[name="detailLevel"]:checked')?.value || 'standard',
+                    auth_platform: document.getElementById('authPlatform')?.value || 'auto',
+
+                    // AI Settings
+                    ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
+                    ai_temperature: parseFloat(document.getElementById('temperature')?.value || 1.0),
+                    ai_top_p: parseFloat(document.getElementById('topP')?.value || 1.0),
+                    ai_max_tokens: parseInt(document.getElementById('maxTokens')?.value || 16000),
+                    ai_thinking_enabled: document.getElementById('enableThinking')?.checked ? 1 : 0,
+                    ai_thinking_budget: parseInt(document.getElementById('thinkingBudgetSlider')?.value || 10000),
+                    ai_streaming_enabled: document.getElementById('enableStreaming')?.checked ? 1 : 0
+                };
+
+                console.log('[ACCOUNT SETTINGS] Sending to backend:', settings);
+
+                // Send to backend
+                const response = await fetch(`${API_BASE_URL}/api/user/preferences`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                if (response.ok) {
+                    console.log('[ACCOUNT SETTINGS] Settings saved successfully to backend');
+
+                    // Show success feedback
+                    const saveBtn = document.querySelector('.modal-close-btn[onclick="saveAccountSettings()"]');
+                    if (saveBtn) {
+                        const originalHTML = saveBtn.innerHTML;
+                        saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+                        saveBtn.style.background = 'var(--success, #22c55e)';
+
+                        setTimeout(() => {
+                            saveBtn.innerHTML = originalHTML;
+                        }, 2000);
+                    }
+
+                } else {
+                    const error = await response.json();
+                    console.error('[ACCOUNT SETTINGS] Failed to save:', error);
+                    alert('Failed to save settings: ' + (error.error || 'Unknown error'));
+                }
+
+            } catch (error) {
+                console.error('[ACCOUNT SETTINGS] Error saving settings:', error);
+                alert('Error saving settings. Please try again.');
+            }
+        }
+
         function closeAccountSettings() {
             const sidebar = document.getElementById('account-sidebar');
             if (sidebar && !sidebar.classList.contains('collapsed')) {
@@ -22951,92 +23413,152 @@
             const container = document.getElementById('connectionsModalContainer');
             if (!container) return;
 
-            if (connections.length === 0) {
-                container.innerHTML = `
-                        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-                            <i class="fas fa-plug" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
-                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">No Connections Found</div>
-                            <div style="font-size: 13px;">Connect your platforms to enable AI agent access</div>
-                        </div>
-                    `;
-                return;
-            }
+            // Platform metadata including icons, colors, and auth types
+            const platformMeta = {
+                // OAuth platforms
+                'google_workspace': { icon: 'fab fa-google', color: '#4285f4', authType: 'oauth', displayName: 'Google Workspace' },
+                'microsoft_365': { icon: 'fab fa-microsoft', color: '#00a4ef', authType: 'oauth', displayName: 'Microsoft 365' },
+                'github': { icon: 'fab fa-github', color: '#333', authType: 'oauth', displayName: 'GitHub' },
+                'slack': { icon: 'fab fa-slack', color: '#4A154B', authType: 'oauth', displayName: 'Slack' },
+                'instagram': { icon: 'fab fa-instagram', color: '#E4405F', authType: 'oauth', displayName: 'Instagram' },
 
-            const platformIcons = {
-                'google_workspace': 'fab fa-google',
-                'microsoft_365': 'fab fa-microsoft',
-                'shopify': 'fab fa-shopify',
-                'stripe': 'fab fa-stripe',
-                'default': 'fas fa-plug'
+                // API Key platforms
+                'stripe': { icon: 'fab fa-stripe', color: '#635BFF', authType: 'api_key', displayName: 'Stripe' },
+                'twilio': { icon: 'fas fa-phone', color: '#F22F46', authType: 'api_key', displayName: 'Twilio' },
+                'openai': { icon: 'fas fa-robot', color: '#10a37f', authType: 'api_key', displayName: 'OpenAI' },
+                'anthropic': { icon: 'fas fa-brain', color: '#6366f1', authType: 'api_key', displayName: 'Anthropic Claude' },
+                'pinecone': { icon: 'fas fa-database', color: '#7C3AED', authType: 'api_key', displayName: 'Pinecone' },
+                'voyager': { icon: 'fas fa-vector-square', color: '#8B5CF6', authType: 'api_key', displayName: 'Voyager AI' },
+                'assemblyai': { icon: 'fas fa-microphone', color: '#FF6B6B', authType: 'api_key', displayName: 'AssemblyAI' },
+                'cloudflare': { icon: 'fab fa-cloudflare', color: '#F38020', authType: 'api_key', displayName: 'Cloudflare' },
+                'cloudconvert': { icon: 'fas fa-cloud', color: '#4A90E2', authType: 'api_key', displayName: 'CloudConvert' },
+                'google_analytics': { icon: 'fab fa-google', color: '#E37400', authType: 'api_key', displayName: 'Google Analytics' },
+                'google_cloud_run': { icon: 'fab fa-google', color: '#4285f4', authType: 'api_key', displayName: 'Google Cloud Run' },
+                'ngrok': { icon: 'fas fa-network-wired', color: '#1F1E1E', authType: 'api_key', displayName: 'Ngrok' },
+                'paypal': { icon: 'fab fa-paypal', color: '#00457C', authType: 'api_key', displayName: 'PayPal' },
+                'render': { icon: 'fas fa-server', color: '#46E3B7', authType: 'api_key', displayName: 'Render' },
+                'resend': { icon: 'fas fa-envelope', color: '#000', authType: 'api_key', displayName: 'Resend' },
+                'woocommerce': { icon: 'fab fa-wordpress', color: '#96588A', authType: 'api_key', displayName: 'WooCommerce' },
+                'xero': { icon: 'fas fa-receipt', color: '#13B5EA', authType: 'api_key', displayName: 'Xero' },
+                'shopify': { icon: 'fab fa-shopify', color: '#96bf48', authType: 'api_key', displayName: 'Shopify' },
+
+                // Database platforms
+                'sql_database': { icon: 'fas fa-database', color: '#0078D4', authType: 'database', displayName: 'SQL Database' },
+                'supabase': { icon: 'fas fa-database', color: '#3ECF8E', authType: 'database', displayName: 'Supabase' },
+                'inhouseprint_sql': { icon: 'fas fa-print', color: '#FF6B35', authType: 'database', displayName: 'InHousePrint SQL' },
+
+                // No auth platforms
+                'synergy': { icon: 'fas fa-users', color: '#667EEA', authType: 'none', displayName: 'Synergy' },
+                'automation': { icon: 'fas fa-robot', color: '#48BB78', authType: 'none', displayName: 'Automation' },
+                'memory': { icon: 'fas fa-brain', color: '#9F7AEA', authType: 'none', displayName: 'Memory' },
+                'scheduler': { icon: 'fas fa-clock', color: '#ED8936', authType: 'none', displayName: 'Scheduler' },
+                'user_feedback': { icon: 'fas fa-comments', color: '#38B2AC', authType: 'none', displayName: 'User Feedback' },
+                'calculator': { icon: 'fas fa-calculator', color: '#F687B3', authType: 'none', displayName: 'Calculator' },
+                'data_analysis': { icon: 'fas fa-chart-bar', color: '#4FD1C5', authType: 'none', displayName: 'Data Analysis' },
+
+                'default': { icon: 'fas fa-plug', color: '#64748b', authType: 'api_key', displayName: 'Unknown Platform' }
             };
 
-            container.innerHTML = connections.map(conn => {
-                const icon = platformIcons[conn.platform] || platformIcons['default'];
-                const platformName = conn.platform.split('_').map(word =>
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ');
+            // Sort connections: active first, then by platform name
+            const sortedConnections = [...connections].sort((a, b) => {
+                if (a.is_active !== b.is_active) return b.is_active ? 1 : -1;
+                return a.platform.localeCompare(b.platform);
+            });
 
-                const isActive = conn.is_active;
-                const createdDate = new Date(conn.created_at).toLocaleDateString();
+            let html = '';
 
-                return `
-                    <div style="padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 8px; display: flex; align-items: center; gap: 16px;">
-                        <div style="width: 48px; height: 48px; background: var(--accent-primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                            <i class="${icon}"></i>
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; color: var(--text-primary); font-size: 15px; margin-bottom: 4px;">
-                                ${platformName}
-                            </div>
-                            <div style="font-size: 12px; color: var(--text-secondary);">
-                                <i class="fas fa-calendar" style="font-size: 10px;"></i> Connected ${createdDate}
-                            </div>
-                            ${conn.metadata && conn.metadata.email ? `
-                                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">
-                                    <i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}
+            // Display existing connections
+            if (sortedConnections.length > 0) {
+                html += '<div style="margin-bottom: 16px;">';
+                html += sortedConnections.map(conn => {
+                    const meta = platformMeta[conn.platform] || platformMeta['default'];
+                    const isActive = conn.is_active;
+                    const createdDate = new Date(conn.created_at).toLocaleDateString();
+
+                    // Get credential type badge
+                    let typeBadge = '';
+                    if (conn.credential_type === 'oauth') {
+                        typeBadge = '<span style="font-size: 10px; background: #E0E7FF; color: #4F46E5; padding: 2px 6px; border-radius: 4px; font-weight: 600;">OAuth</span>';
+                    } else if (conn.credential_type === 'api_key') {
+                        typeBadge = '<span style="font-size: 10px; background: #FEF3C7; color: #92400E; padding: 2px 6px; border-radius: 4px; font-weight: 600;">API Key</span>';
+                    } else if (conn.credential_type === 'database') {
+                        typeBadge = '<span style="font-size: 10px; background: #DBEAFE; color: #1E40AF; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Database</span>';
+                    }
+
+                    return `
+                        <div style="padding: 14px; background: var(--bg-secondary); border: 1px solid ${isActive ? meta.color + '40' : 'var(--border-default)'}; border-left: 3px solid ${meta.color}; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 40px; height: 40px; background: ${meta.color}; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                                    <i class="${meta.icon}"></i>
                                 </div>
-                            ` : ''}
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <div style="width: 8px; height: 8px; border-radius: 50%; background: ${isActive ? 'var(--success, #22c55e)' : 'var(--danger, #ef4444)'};"></div>
-                                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">
-                                    ${isActive ? 'Active' : 'Inactive'}
-                                </span>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                        <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${meta.displayName}</span>
+                                        ${typeBadge}
+                                        <div style="display: flex; align-items: center; gap: 4px; margin-left: auto;">
+                                            <div style="width: 6px; height: 6px; border-radius: 50%; background: ${isActive ? '#22c55e' : '#ef4444'};"></div>
+                                            <span style="font-size: 11px; color: ${isActive ? '#22c55e' : '#ef4444'}; font-weight: 600;">
+                                                ${isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); display: flex; gap: 12px;">
+                                        <span><i class="fas fa-calendar" style="font-size: 9px;"></i> ${createdDate}</span>
+                                        ${conn.metadata && conn.metadata.email ? `<span><i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}</span>` : ''}
+                                        ${conn.credential_key ? `<span><i class="fas fa-key" style="font-size: 9px;"></i> ${conn.credential_key}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                                    <button onclick="testPlatformConnection('${conn.id}')" title="Test Connection"
+                                        style="padding: 6px 10px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;">
+                                        <i class="fas fa-flask"></i>
+                                    </button>
+                                    ${conn.credential_type !== 'oauth' ? `
+                                        <button onclick="editPlatformConnection('${conn.id}')" title="Edit"
+                                            style="padding: 6px 10px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    ` : ''}
+                                    <button onclick="disconnectPlatformModal('${conn.id}')" title="Disconnect"
+                                        style="padding: 6px 10px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
-                            ${!isActive ? `
-                                <button onclick="reauthenticatePlatform('${conn.platform}')" 
-                                    style="padding: 6px 12px; background: var(--bg-warning-subtle, rgba(234, 179, 8, 0.1)); color: var(--warning, #eab308); border: 1px solid var(--border-warning, rgba(234, 179, 8, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                                    <i class="fas fa-sync"></i> Re-authenticate
-                                </button>
-                            ` : ''}
-                            <button onclick="disconnectPlatformModal('${conn.platform}')" 
-                                style="padding: 6px 12px; background: var(--bg-danger-subtle, rgba(239, 68, 68, 0.1)); color: var(--danger, #ef4444); border: 1px solid var(--border-danger, rgba(239, 68, 68, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                                <i class="fas fa-unlink"></i> Disconnect
-                            </button>
                         </div>
+                    `;
+                }).join('');
+                html += '</div>';
+            } else {
+                html += `
+                    <div style="text-align: center; padding: 30px 20px; color: var(--text-muted); background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 16px;">
+                        <i class="fas fa-plug" style="font-size: 40px; margin-bottom: 12px; opacity: 0.3;"></i>
+                        <div style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">No Connections Yet</div>
+                        <div style="font-size: 12px;">Connect platforms below to enable AI agent access</div>
                     </div>
                 `;
-            }).join('');
+            }
 
-            // Add "Connect New Platform" button at the bottom
-            container.innerHTML += `
-                <div style="margin-top: 16px; padding: 16px; border: 2px dashed var(--border-default); border-radius: 8px; text-align: center; background: var(--bg-tertiary);">
-                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                        <i class="fas fa-plus-circle"></i> Connect additional platforms
+            // Add new connection button
+            html += `
+                <div style="padding: 16px; border: 2px dashed var(--border-default); border-radius: 8px; background: var(--bg-tertiary);">
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; font-weight: 600;">
+                        <i class="fas fa-plus-circle"></i> Add New Connection
                     </div>
-                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <button onclick="connectGoogle()" 
-                            style="padding: 8px 16px; background: white; color: #4285f4; border: 1px solid #4285f4; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;">
-                            <i class="fab fa-google"></i> Google Workspace
-                        </button>
-                        <button onclick="connectMicrosoft()" 
-                            style="padding: 8px 16px; background: white; color: #00a4ef; border: 1px solid #00a4ef; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;">
-                            <i class="fab fa-microsoft"></i> Microsoft 365
-                        </button>
-                    </div>
+                    <button onclick="showAddConnectionModal()" 
+                        style="width: 100%; padding: 10px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-plug"></i> Connect Platform
+                    </button>
                 </div>
             `;
+
+            container.innerHTML = html;
+
+            // Update connection count badge
+            const badge = document.getElementById('connectionsCount');
+            if (badge) {
+                badge.textContent = connections.filter(c => c.is_active).length;
+            }
         }
 
         /**
@@ -23069,6 +23591,307 @@
                 `;
             }
             loadConnectionsModal();
+        }
+
+        /**
+         * Show Add Connection Modal
+         */
+        function showAddConnectionModal() {
+            document.getElementById('add-connection-modal').style.display = 'flex';
+            document.getElementById('platformSelectionView').style.display = 'block';
+            document.getElementById('apiKeyFormView').style.display = 'none';
+            document.getElementById('databaseFormView').style.display = 'none';
+        }
+
+        /**
+         * Close Add Connection Modal
+         */
+        function closeAddConnectionModal() {
+            document.getElementById('add-connection-modal').style.display = 'none';
+            // Reset forms
+            document.getElementById('apiKeyForm').reset();
+            document.getElementById('databaseForm').reset();
+        }
+
+        /**
+         * Back to platform selection
+         */
+        function backToPlatformSelection() {
+            document.getElementById('platformSelectionView').style.display = 'block';
+            document.getElementById('apiKeyFormView').style.display = 'none';
+            document.getElementById('databaseFormView').style.display = 'none';
+        }
+
+        /**
+         * Show API Key Form
+         */
+        function showApiKeyForm(platform, displayName, icon, color) {
+            // Hide platform selection, show API key form
+            document.getElementById('platformSelectionView').style.display = 'none';
+            document.getElementById('apiKeyFormView').style.display = 'block';
+
+            // Set platform
+            document.getElementById('apiKeyPlatform').value = platform;
+
+            // Update header
+            document.getElementById('apiKeyFormTitle').textContent = displayName;
+            const iconEl = document.getElementById('apiKeyFormIcon');
+            iconEl.innerHTML = `<i class="${icon}"></i>`;
+            iconEl.style.background = color;
+
+            // Clear additional fields
+            document.getElementById('additionalApiFields').innerHTML = '';
+
+            // Add platform-specific fields
+            if (platform === 'twilio') {
+                document.getElementById('additionalApiFields').innerHTML = `
+                    <div class="settings-field">
+                        <label>Account SID <span style="color: var(--danger);">*</span></label>
+                        <input type="text" id="twilioSid" placeholder="ACxxxxxxxxxxxxx" required
+                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                    </div>
+                `;
+            } else if (platform === 'shopify') {
+                document.getElementById('additionalApiFields').innerHTML = `
+                    <div class="settings-field">
+                        <label>Store URL <span style="color: var(--danger);">*</span></label>
+                        <input type="text" id="shopifyUrl" placeholder="your-store.myshopify.com" required
+                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                    </div>
+                `;
+            } else if (platform === 'stripe') {
+                document.getElementById('additionalApiFields').innerHTML = `
+                    <div class="settings-field">
+                        <label>Environment</label>
+                        <select id="stripeEnv" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%;">
+                            <option value="production">Production</option>
+                            <option value="test">Test/Development</option>
+                        </select>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Show Database Form
+         */
+        function showDatabaseForm(platform, displayName, icon, color) {
+            // Hide platform selection, show database form
+            document.getElementById('platformSelectionView').style.display = 'none';
+            document.getElementById('databaseFormView').style.display = 'block';
+
+            // Set platform
+            document.getElementById('databasePlatform').value = platform;
+
+            // Update header
+            document.getElementById('databaseFormTitle').textContent = displayName;
+            const iconEl = document.getElementById('databaseFormIcon');
+            iconEl.innerHTML = `<i class="${icon}"></i>`;
+            iconEl.style.background = color;
+
+            // Set default port based on platform
+            if (platform === 'sql_database' || platform === 'inhouseprint_sql') {
+                document.getElementById('databasePort').value = 1433; // SQL Server
+            } else if (platform === 'supabase') {
+                document.getElementById('databasePort').value = 5432; // PostgreSQL
+            }
+        }
+
+        /**
+         * Submit API Key Form
+         */
+        async function submitApiKeyForm(event) {
+            event.preventDefault();
+
+            const platform = document.getElementById('apiKeyPlatform').value;
+            const credentialKey = document.getElementById('apiKeyName').value;
+            const credentialValue = document.getElementById('apiKeyValue').value;
+
+            // Build credentials object with platform-specific fields
+            const credentials = {
+                api_key: credentialValue
+            };
+
+            const metadata = {};
+
+            // Add platform-specific fields
+            if (platform === 'twilio') {
+                const sid = document.getElementById('twilioSid')?.value;
+                if (sid) credentials.account_sid = sid;
+            } else if (platform === 'shopify') {
+                const url = document.getElementById('shopifyUrl')?.value;
+                if (url) metadata.store_url = url;
+            } else if (platform === 'stripe') {
+                const env = document.getElementById('stripeEnv')?.value;
+                if (env) metadata.environment = env;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/connections`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        platform,
+                        credential_type: 'api_key',
+                        credential_key: credentialKey,
+                        credential_value: credentialValue,
+                        credentials,
+                        metadata
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('[ADD CONNECTION] API key added successfully');
+                    closeAddConnectionModal();
+                    refreshConnectionsModal();
+                    showNotification('Connection added successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to add connection');
+                }
+            } catch (error) {
+                console.error('[ADD CONNECTION] Error:', error);
+                showNotification('Failed to add connection: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Submit Database Form
+         */
+        async function submitDatabaseForm(event) {
+            event.preventDefault();
+
+            const platform = document.getElementById('databasePlatform').value;
+            const credentialKey = document.getElementById('databaseName').value;
+            const host = document.getElementById('databaseHost').value;
+            const port = document.getElementById('databasePort').value;
+            const dbName = document.getElementById('databaseDbName').value;
+            const username = document.getElementById('databaseUsername').value;
+            const password = document.getElementById('databasePassword').value;
+
+            // Build credentials object
+            const credentials = {
+                host,
+                port: parseInt(port),
+                database: dbName,
+                username,
+                password
+            };
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/connections`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        platform,
+                        credential_type: 'database',
+                        credential_key: credentialKey,
+                        credential_value: `${username}@${host}:${port}/${dbName}`,
+                        credentials,
+                        metadata: { host, port, database: dbName }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('[ADD CONNECTION] Database connection added successfully');
+                    closeAddConnectionModal();
+                    refreshConnectionsModal();
+                    showNotification('Database connection added successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to add connection');
+                }
+            } catch (error) {
+                console.error('[ADD CONNECTION] Error:', error);
+                showNotification('Failed to add database connection: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Test platform connection
+         */
+        async function testPlatformConnection(credentialId) {
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                showNotification('Testing connection...', 'info');
+
+                const response = await fetch(`${API_BASE_URL}/api/connections/${credentialId}/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.valid) {
+                    showNotification('Connection test successful', 'success');
+                } else {
+                    showNotification('Connection test failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('[TEST CONNECTION] Error:', error);
+                showNotification('Failed to test connection: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Edit platform connection (placeholder - opens edit form)
+         */
+        function editPlatformConnection(credentialId) {
+            showNotification('Edit functionality coming soon!', 'info');
+            // TODO: Implement edit form similar to add form
+        }
+
+        /**
+         * Disconnect platform (with confirmation)
+         */
+        async function disconnectPlatformModal(credentialId) {
+            if (!confirm('Are you sure you want to disconnect this platform? This will disable all AI agent access to this service.')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/connections/${credentialId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('[DISCONNECT] Platform disconnected successfully');
+                    refreshConnectionsModal();
+                    showNotification('Platform disconnected successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to disconnect');
+                }
+            } catch (error) {
+                console.error('[DISCONNECT] Error:', error);
+                showNotification('Failed to disconnect platform: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Show coming soon notification
+         */
+        function showComingSoon(platformName) {
+            showNotification(`${platformName} OAuth integration coming soon!`, 'info');
         }
 
         /**

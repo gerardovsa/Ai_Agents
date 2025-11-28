@@ -177,6 +177,13 @@ def get_preferences():
                 last_location_check,
                 ai_memories,
                 memory_updated_at,
+                ai_model,
+                ai_temperature,
+                ai_top_p,
+                ai_max_tokens,
+                ai_thinking_enabled,
+                ai_thinking_budget,
+                ai_streaming_enabled,
                 updated_at
             FROM ai_infrastructure.user_preferences
             WHERE user_id = %s
@@ -220,6 +227,13 @@ def get_preferences():
                     'last_location_check': None,
                     'ai_memories': '[]',
                     'memory_updated_at': None,
+                    'ai_model': 'claude-sonnet-4-5-20250929',
+                    'ai_temperature': 1.0,
+                    'ai_top_p': 1.0,
+                    'ai_max_tokens': 4096,
+                    'ai_thinking_enabled': 0,
+                    'ai_thinking_budget': 10000,
+                    'ai_streaming_enabled': 1,
                     'updated_at': None
                 }
             }), 200
@@ -286,6 +300,13 @@ def get_preferences():
                 'last_location_check': row['last_location_check'],
                 'ai_memories': row['ai_memories'] or '[]',
                 'memory_updated_at': row['memory_updated_at'],
+                'ai_model': row['ai_model'] or 'claude-sonnet-4-5-20250929',
+                'ai_temperature': row['ai_temperature'] if row['ai_temperature'] is not None else 1.0,
+                'ai_top_p': row['ai_top_p'] if row['ai_top_p'] is not None else 1.0,
+                'ai_max_tokens': row['ai_max_tokens'] or 4096,
+                'ai_thinking_enabled': row['ai_thinking_enabled'] or 0,
+                'ai_thinking_budget': row['ai_thinking_budget'] or 10000,
+                'ai_streaming_enabled': row['ai_streaming_enabled'] if row['ai_streaming_enabled'] is not None else 1,
                 'updated_at': row['updated_at']
             }
         }), 200
@@ -414,6 +435,15 @@ def save_preferences():
         use_manual_timezone = 1 if data.get('use_manual_timezone', False) else 0
         ai_memories = data.get('ai_memories', '[]')
         
+        # AI Settings (NEW!)
+        ai_model = data.get('ai_model', 'claude-sonnet-4-5-20250929')
+        ai_temperature = float(data.get('ai_temperature', 1.0))
+        ai_top_p = float(data.get('ai_top_p', 1.0))
+        ai_max_tokens = int(data.get('ai_max_tokens', 4096))
+        ai_thinking_enabled = 1 if data.get('ai_thinking_enabled', False) else 0
+        ai_thinking_budget = int(data.get('ai_thinking_budget', 10000))
+        ai_streaming_enabled = 1 if data.get('ai_streaming_enabled', True) else 0
+        
         # Auto-detect location from IP if not manually set
         if not use_manual_location:
             try:
@@ -459,6 +489,7 @@ def save_preferences():
             cursor.execute("""
                 UPDATE ai_infrastructure.user_preferences
                 SET communication_style = %s, detail_level = %s, auth_platform = %s, preferred_tools = %s, custom_preferences = %s, nickname = %s, detected_country = %s, detected_city = %s, detected_timezone = %s, detected_ip_address = %s, manual_location_override = %s, manual_timezone_override = %s, use_manual_location = %s, use_manual_timezone = %s, ai_memories = %s,
+                    ai_model = %s, ai_temperature = %s, ai_top_p = %s, ai_max_tokens = %s, ai_thinking_enabled = %s, ai_thinking_budget = %s, ai_streaming_enabled = %s,
                     memory_updated_at = CURRENT_TIMESTAMP,
                     last_location_check = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
@@ -466,7 +497,7 @@ def save_preferences():
             """, (communication_style, detail_level, auth_platform, preferred_tools, custom_preferences, 
                   nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                   manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
-                  ai_memories, user_id))
+                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled, user_id))
         else:
             # Insert new preferences
             cursor.execute("""
@@ -474,12 +505,13 @@ def save_preferences():
                 (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                  nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                  manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
-                 ai_memories, memory_updated_at, last_location_check)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                 ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled,
+                 memory_updated_at, last_location_check)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """, (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                   nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                   manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
-                  ai_memories))
+                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled))
         
         conn.commit()
         

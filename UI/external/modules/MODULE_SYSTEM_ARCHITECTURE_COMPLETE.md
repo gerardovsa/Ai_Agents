@@ -2,6 +2,7 @@
 
 **Status:** ✅ COMPLETE - Production Ready  
 **Date:** November 25, 2025  
+**Updated:** November 28, 2025 - Added Universal Sidebar Framework Integration  
 **Pattern:** Mirrors Tool Registry - Automatic Discovery & Dynamic Loading
 
 ---
@@ -13,6 +14,7 @@
 - Duplicate credential storage logic per module
 - No central module registry
 - Credential requirements buried in code
+- Inconsistent sidebar implementations across modules ⭐ **NEW**
 
 **Solution:**
 ```
@@ -24,10 +26,54 @@ Frontend dynamically generates UI from manifests
 ↓
 Credentials auto-injected at runtime (like tools)
 ↓
+Module sidebars auto-register with Universal Sidebar Framework ⭐ **NEW**
+↓
 Add new module = drop folder in modules/ directory
 ```
 
 **Time Savings:** 95% reduction (2 hours → 5 minutes per module)
+
+---
+
+## 🆕 Universal Sidebar Framework Integration (November 28, 2025)
+
+**New Feature:** Modules with sidebars now automatically integrate with the Universal Sidebar Framework!
+
+### What Changed
+
+**Before (Manual):**
+```javascript
+// ❌ Each module had custom sidebar toggle code
+function toggleMySidebar() {
+    const sidebar = document.getElementById('my-sidebar');
+    sidebar.classList.toggle('active');
+    // Custom z-index, animations, state management...
+}
+```
+
+**After (Automatic):**
+```json
+// ✅ Just configure in manifest.json
+{
+  "sidebar": {
+    "enabled": true,
+    "position": "left",
+    "width": 480
+  },
+  "floating_toggle": true
+}
+```
+
+**Benefits:**
+- ✅ Automatic sidebar registration with framework
+- ✅ Consistent animations (transform-based)
+- ✅ Automatic z-index management (no conflicts)
+- ✅ Built-in state persistence
+- ✅ Draggable toggle buttons
+- ✅ Lazy loading support
+- ✅ Module controller auto-initialization
+
+**See:** [modules/SIDEBAR_MODULE_SYSTEM_INTEGRATION.md](../../modules/SIDEBAR_MODULE_SYSTEM_INTEGRATION.md) for complete integration details.
 
 ---
 
@@ -990,7 +1036,198 @@ BISTART
 
 ---
 
-**Last Updated:** November 25, 2025  
+## 🔗 Thread Card Integration (NEW - November 28, 2025)
+
+Modules can now integrate with **thread info cards** (the single source of truth for thread linkages) by adding a `thread_card_integration` section to their manifest.json.
+
+### What Thread Card Integration Provides:
+
+1. **Drag-and-Drop**: Users can drag your module items onto thread cards to link them
+2. **Badge Display**: Thread cards automatically show badges for linked items
+3. **Real-Time Updates**: WebSocket events trigger automatic badge refreshes
+4. **Zero Touch**: No changes to thread card code required
+5. **Future-Proof**: Unlimited modules can integrate via manifest
+
+### Architecture Overview
+
+**ThreadCardRegistry** - Central registry that auto-discovers module integrations:
+- **Location:** `UI/modules/thread-cards/thread-card-registry.js`
+- **Pattern:** Lightweight consumer of ModuleLoader data (no duplicate scanning)
+- **Initialization:** Waits for ModuleLoader, then reads `thread_card_integration` from manifests
+- **Features:** Dynamic badge rendering, multi-MIME-type drop handling, real-time subscriptions
+
+**Data Flow:**
+```
+ModuleLoader.initialize()
+    ↓
+ThreadCardRegistry.initialize()
+    ↓
+For each module with thread_card_integration.enabled:
+  - Register drag handlers (accepts/provides)
+  - Register badge renderer (condition + render function)
+  - Register realtime event handlers
+    ↓
+Thread card rendered:
+  - ThreadCardRegistry.renderBadgesForThread() → Dynamic HTML
+    ↓
+User drops item:
+  - ThreadCardRegistry.handleDrop() → Call module handler → Create link
+    ↓
+WebSocket event:
+  - ThreadCardRegistry.handleRealtimeEvent() → Refresh thread card
+```
+
+### Quick Example:
+
+Add to your `manifest.json`:
+```json
+{
+  "id": "your_module",
+  "name": "Your Module",
+  ...existing fields...,
+  
+  "thread_card_integration": {
+    "enabled": true,
+    
+    "drag_and_drop": {
+      "accepts": [{
+        "data_type": "your-item",
+        "mime_type": "application/x-your-item",
+        "handler": "window.YourModule.linkToThread",
+        "description": "Link your item to thread"
+      }],
+      "provides": [{
+        "data_type": "your-item",
+        "mime_type": "application/x-your-item",
+        "handler": "window.YourModule.startDrag",
+        "description": "Drag your item to other components"
+      }]
+    },
+    
+    "badge": {
+      "enabled": true,
+      "condition": "thread.your_module_id !== null",
+      "render_function": "window.YourModule.renderThreadBadge",
+      "config": {
+        "icon": "fa-your-icon",
+        "color": "#10b981",
+        "label": "Your Module",
+        "tooltip_template": "Linked to: {item_title}",
+        "priority": 10,
+        "click_action": "window.YourModule.handleBadgeClick"
+      }
+    },
+    
+    "realtime_events": {
+      "enabled": true,
+      "events": [
+        "thread_linked_to_your_module",
+        "thread_unlinked_from_your_module",
+        "your_module_item_updated"
+      ],
+      "handler": "window.YourModule.handleRealtimeUpdate"
+    }
+  }
+}
+```
+
+Implement 3 handler functions in your module's JavaScript:
+
+```javascript
+window.YourModule = {
+    // Drop handler - called when user drops your item on thread card
+    async linkToThread(itemDataJson, threadId, location) {
+        const itemData = JSON.parse(itemDataJson);
+        const response = await fetch('/api/your-module/link-to-thread', {
+            method: 'POST',
+            body: JSON.stringify({item_id: itemData.id, thread_id: threadId})
+        });
+        if (response.ok) {
+            window.ThreadManager.refreshThreadCard(threadId);
+        }
+    },
+    
+    // Badge renderer - generates HTML for thread card badge
+    renderThreadBadge(thread, config) {
+        if (!thread.your_module_id) return '';
+        return `<div class="badge" style="background: ${config.color}">
+            <i class="fas ${config.icon}"></i> ${thread.your_module_title}
+        </div>`;
+    },
+    
+    // Realtime handler - called when WebSocket event received
+    async handleRealtimeUpdate(eventData) {
+        if (eventData.thread_id) {
+            window.ThreadManager.refreshThreadCard(eventData.thread_id);
+        }
+    }
+};
+```
+
+**That's it!** Your module now integrates with thread cards. Total time: ~5 minutes.
+
+### Real-World Example: Synergy Module
+
+**Files:**
+- `UI/external/modules/synergy/manifest.json` - Manifest with thread_card_integration
+- `UI/external/modules/synergy/synergy-thread-integration.js` - Handler functions
+
+**Result:**
+- Drag Synergy sessions onto thread cards → Link created
+- Thread cards show green "Synergy" badge when linked
+- Real-time updates refresh badges automatically
+- Click badge → Copy Synergy info to clipboard
+
+### Time Savings
+
+**Before (Hardcoded):**
+1. Edit `thread-card-templates.js` - Add if/else block (30 min)
+2. Edit `thread-manager-interactions.js` - Add drop handler (20 min)
+3. Add backend API endpoint (30 min)
+4. Add realtime subscriptions (15 min)
+5. Test integration (45 min)
+**Total: ~2-3 hours per module**
+
+**After (Manifest-Driven):**
+1. Add `thread_card_integration` to manifest (2 min)
+2. Implement 3 handler functions (3 min)
+3. Test (1 min)
+**Total: ~5 minutes per module**
+
+**Time Savings: 96% reduction** (2-3 hours → 5 minutes)
+
+### Key Features
+
+✅ **100% Backward Compatible** - Fallback rendering preserves existing badges  
+✅ **Dynamic Badge Rendering** - No hardcoded if/else chains  
+✅ **Multi-MIME-Type Drops** - Workflows, automations, documents all work  
+✅ **Priority Sorting** - Control badge display order via `priority` field  
+✅ **Real-Time by Default** - Auto-subscribes to WebSocket events  
+✅ **Lightweight** - Registry piggybacks on ModuleLoader (no duplication)  
+✅ **Self-Documenting** - Integration defined declaratively in manifest  
+
+### Documentation Files
+
+- **`THREAD_CARD_INTEGRATION_GUIDE.md`** - Complete step-by-step developer guide (600+ lines)
+- **`THREAD_CARD_MODULE_REGISTRY_ARCHITECTURE.md`** - Technical architecture design
+- **`MANIFEST_SCHEMA_THREAD_CARD_EXTENSION.md`** - Complete schema specification (500+ lines)
+- **`THREAD_CARD_REGISTRY_IMPLEMENTATION_COMPLETE.md`** - Implementation summary
+
+### Implementation Status
+
+✅ **Core Registry:** `thread-card-registry.js` (450 lines) - COMPLETE  
+✅ **Template Updates:** Dynamic rendering enabled - COMPLETE  
+✅ **Drop Handler:** Multi-MIME-type support - COMPLETE  
+✅ **Synergy Migration:** Proof-of-concept validated - COMPLETE  
+✅ **Real-Time:** WebSocket integration - COMPLETE  
+⏳ **Example Docs:** Kanban integration example - PENDING  
+
+**Production Ready:** November 28, 2025
+
+---
+
+**Last Updated:** November 28, 2025  
 **Status:** Production Ready  
-**Pattern:** Tool Registry Architecture  
-**Time Savings:** 95% (2 hours → 5 minutes per module)
+**Pattern:** Tool Registry Architecture (mirrors RegistryV3 success)  
+**Time Savings:** 95% per module (2 hours → 5 minutes) | 96% per integration  
+**New Features:** Thread Card Integration (manifest-driven, real-time, unlimited modules)

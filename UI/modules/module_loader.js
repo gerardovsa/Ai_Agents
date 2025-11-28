@@ -355,8 +355,66 @@ class ModuleLoader {
             // Initialize draggable and click behavior
             this.initializeFloatingToggle(toggle, module);
 
+            // Register with Universal Sidebar Framework if available
+            if (window.SidebarManager && module.sidebar && module.sidebar.enabled) {
+                this.registerModuleSidebarWithFramework(moduleId, module);
+            }
+
             console.log(`[ModuleLoader] Created floating toggle for ${module.name}`);
         }
+    }
+
+    /**
+     * Register module sidebar with Universal Sidebar Framework
+     * AUTO-INTEGRATION: Called when module has sidebar configuration
+     * 
+     * @param {string} moduleId - Module ID
+     * @param {object} module - Module manifest
+     */
+    registerModuleSidebarWithFramework(moduleId, module) {
+        if (!window.SidebarManager) {
+            console.warn('[ModuleLoader] SidebarManager not available');
+            return;
+        }
+
+        const sidebarConfig = module.sidebar || {};
+        const toggleButtonId = `${moduleId}-floating-toggle`;
+
+        // Build registration config from manifest
+        const config = {
+            id: `${moduleId}-sidebar`,
+            side: sidebarConfig.position || sidebarConfig.side || 'left',
+            toggleButtonId: toggleButtonId,
+            width: sidebarConfig.width ? `${sidebarConfig.width}px` : '450px',
+            icon: module.icon || 'fa-cube',
+            title: module.name,
+            onInit: async () => {
+                console.log(`[${moduleId.toUpperCase()}] First open - initializing via framework...`);
+                
+                // Initialize module controller (if exists)
+                const controllerName = `${moduleId.replace(/-/g, '')}Controller`;
+                if (window[controllerName]) {
+                    if (typeof window[controllerName].init === 'function' && !window[controllerName].initialized) {
+                        await window[controllerName].init();
+                        window[controllerName].initialized = true;
+                    }
+                }
+            },
+            onOpen: () => {
+                console.log(`[${moduleId.toUpperCase()}] Sidebar opened via framework`);
+                this.activeModule = moduleId;
+            },
+            onClose: () => {
+                console.log(`[${moduleId.toUpperCase()}] Sidebar closed via framework`);
+                if (this.activeModule === moduleId) {
+                    this.activeModule = null;
+                }
+            }
+        };
+
+        // Register with framework
+        window.SidebarManager.register(config);
+        console.log(`[ModuleLoader] ✅ Registered ${moduleId} with Universal Sidebar Framework`);
     }
 
     /**
@@ -584,32 +642,39 @@ class ModuleLoader {
         }
 
         try {
-            // Determine HTML path - try htmlPath from manifest first, then external/modules, then backend API
-            let htmlPath = module.htmlPath || (module.html_file ? `external/modules/${moduleId}/${module.html_file}` : null);
+            // Check if module has HTML file - some modules create UI purely in JavaScript
+            const hasHtmlFile = module.html_file || module.htmlPath;
             
-            // Try external/modules path first (for external modules) - only if path is defined
-            let htmlResponse = htmlPath ? await fetch(htmlPath) : null;
-            
-            // Fallback to backend API if external path fails or wasn't attempted
-            if (!htmlResponse || !htmlResponse.ok) {
-                if (htmlPath) {
-                    console.log(`[ModuleLoader] External path failed, trying backend API for ${moduleId}`);
+            if (hasHtmlFile) {
+                // Determine HTML path - try htmlPath from manifest first, then external/modules, then backend API
+                let htmlPath = module.htmlPath || (module.html_file ? `external/modules/${moduleId}/${module.html_file}` : null);
+                
+                // Try external/modules path first (for external modules) - only if path is defined
+                let htmlResponse = htmlPath ? await fetch(htmlPath) : null;
+                
+                // Fallback to backend API if external path fails or wasn't attempted
+                if (!htmlResponse || !htmlResponse.ok) {
+                    if (htmlPath) {
+                        console.log(`[ModuleLoader] External path failed, trying backend API for ${moduleId}`);
+                    }
+                    htmlResponse = await fetch(`/api/modules/${moduleId}/html`);
                 }
-                htmlResponse = await fetch(`/api/modules/${moduleId}/html`);
-            }
-            
-            if (!htmlResponse.ok) {
-                throw new Error(`Failed to load HTML for ${moduleId}: ${htmlResponse.status}`);
-            }
-            
-            const html = await htmlResponse.text();
+                
+                if (!htmlResponse.ok) {
+                    throw new Error(`Failed to load HTML for ${moduleId}: ${htmlResponse.status}`);
+                }
+                
+                const html = await htmlResponse.text();
 
-            // Inject HTML into DOM
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = html;
-            document.body.appendChild(tempContainer.firstElementChild);
+                // Inject HTML into DOM
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = html;
+                document.body.appendChild(tempContainer.firstElementChild);
 
-            console.log(`[ModuleLoader] Injected HTML for ${moduleId}`);
+                console.log(`[ModuleLoader] Injected HTML for ${moduleId}`);
+            } else {
+                console.log(`[ModuleLoader] Module ${moduleId} has no HTML file - will create UI in JavaScript`);
+            }
 
             // Load CSS via Flask API route
             if ((module.css_file || module.stylePath) && !document.querySelector(`link[data-module="${moduleId}"]`)) {

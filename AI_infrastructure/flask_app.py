@@ -269,11 +269,19 @@ try:
     from pathlib import Path
     
     log_init(logger, "Initializing Module Registry...")
-    modules_dir = Path(__file__).parent.parent / 'frontend' / 'modules'
+    base_dir = Path(__file__).parent.parent
     registry = get_module_registry()
     
-    # Initialize registry (now synchronous)
-    registry.initialize(modules_dir)
+    # Scan frontend/modules directory
+    frontend_modules_dir = base_dir / 'frontend' / 'modules'
+    log_init(logger, f"Scanning {frontend_modules_dir}...")
+    registry.initialize(frontend_modules_dir)
+    
+    # Scan UI/external/modules directory (additional modules)
+    external_modules_dir = base_dir / 'UI' / 'external' / 'modules'
+    log_init(logger, f"Scanning {external_modules_dir}...")
+    registry.initialize(external_modules_dir)
+    
     log_success(logger, f"Module Registry initialized: {len(registry.modules)} modules discovered")
     
     # List discovered modules
