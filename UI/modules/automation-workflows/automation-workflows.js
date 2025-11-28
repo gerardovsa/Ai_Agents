@@ -347,6 +347,7 @@ class AutomationCanvas {
             'export-workflow-btn': () => this.exportToJSON(),
             'print-workflow-btn': () => this.printWorkflow(),
             'automation-clear-btn': () => this.clearCanvas(),
+            'automation-settings-btn': () => this.showSettingsPanel(),
             'automation-send-ai-btn': () => this.sendToAI(),
             'zoom-in-btn': () => this.zoomIn(),
             'zoom-out-btn': () => this.zoomOut(),
@@ -3265,6 +3266,267 @@ window.initializeAutomationCanvas = function () {
     }
 
     return window.automationCanvas;
+};
+
+// ========== CANVAS SETTINGS OVERLAY ==========
+/**
+ * Show floating settings panel on canvas
+ */
+AutomationCanvas.prototype.showSettingsPanel = async function() {
+    if (!this.workflowSlug) {
+        this.showToast('No workflow loaded', 'warning');
+        return;
+    }
+
+    try {
+        // Load settings into sync manager
+        await AutomationSettingsSync.loadSettings(this.workflowSlug);
+
+        // Subscribe to settings changes
+        if (this.settingsSyncUnsubscribe) {
+            this.settingsSyncUnsubscribe();
+        }
+        this.settingsSyncUnsubscribe = AutomationSettingsSync.subscribe((eventType, data) => {
+            if (eventType === 'update' || eventType === 'save') {
+                // Re-render settings panel with updated data
+                this.refreshCanvasSettingsPanel();
+            }
+        });
+
+        // Create or update settings panel
+        let panel = document.getElementById('canvas-settings-overlay');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'canvas-settings-overlay';
+            panel.className = 'canvas-settings-overlay';
+            document.getElementById('automationCanvasContainer').appendChild(panel);
+        }
+
+        panel.innerHTML = this.createCanvasSettingsPanel(AutomationSettingsSync.getCurrentAutomation());
+        panel.style.display = 'flex';
+
+    } catch (error) {
+        console.error('[CANVAS] Failed to show settings panel:', error);
+        this.showToast(`Failed to load settings: ${error.message}`, 'error');
+    }
+};
+
+/**
+ * Close canvas settings overlay
+ */
+AutomationCanvas.prototype.closeSettingsPanel = function() {
+    const panel = document.getElementById('canvas-settings-overlay');
+    if (panel) {
+        // Check for unsaved changes
+        if (AutomationSettingsSync.hasUnsavedChanges()) {
+            const confirmed = confirm('You have unsaved changes. Do you want to save before closing?');
+            if (confirmed) {
+                AutomationSettingsSync.save();
+            }
+        }
+
+        panel.style.display = 'none';
+
+        // Unsubscribe from settings sync
+        if (this.settingsSyncUnsubscribe) {
+            this.settingsSyncUnsubscribe();
+            this.settingsSyncUnsubscribe = null;
+        }
+    }
+};
+
+/**
+ * Refresh canvas settings panel with current data
+ */
+AutomationCanvas.prototype.refreshCanvasSettingsPanel = function() {
+    const automation = AutomationSettingsSync.getCurrentAutomation();
+    if (!automation) return;
+
+    const panel = document.getElementById('canvas-settings-overlay');
+    if (panel) {
+        panel.innerHTML = this.createCanvasSettingsPanel(automation);
+    }
+};
+
+/**
+ * Create canvas settings panel HTML
+ */
+AutomationCanvas.prototype.createCanvasSettingsPanel = function(automation) {
+    const isDraft = AutomationSettingsSync.isDraft();
+
+    return `
+        <div class="canvas-settings-content">
+            <div class="canvas-settings-header">
+                <div>
+                    <h3><i class="fas fa-cog"></i> Automation Settings</h3>
+                    <div class="canvas-settings-subtitle">${automation.name} - ${automation.slug}</div>
+                </div>
+                <button class="canvas-settings-close-btn" onclick="automationCanvas.closeSettingsPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            ${isDraft ? `
+                <div class="draft-mode-banner canvas-draft-banner">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Draft Mode</strong>
+                        <p>Automation settings disabled. Convert to automation to enable scheduling.</p>
+                    </div>
+                    <button class="btn-promote" onclick="automationCanvas.promoteToAutomation('${automation.slug}')">
+                        <i class="fas fa-rocket"></i> Convert
+                    </button>
+                </div>
+            ` : ''}
+
+            <div class="canvas-settings-body">
+                ${AutomationsSidebar.renderSchedulingSettings(automation, isDraft)}
+                ${AutomationsSidebar.renderTriggerSettings(automation, isDraft)}
+                ${AutomationsSidebar.renderExecutionSettings(automation, isDraft)}
+                ${AutomationsSidebar.renderNotificationSettings(automation, isDraft)}
+            </div>
+
+            <div class="canvas-settings-footer">
+                ${AutomationSettingsSync.hasUnsavedChanges() ? `
+                    <button class="btn-secondary" onclick="AutomationSettingsSync.revert()">
+                        <i class="fas fa-undo"></i> Revert
+                    </button>
+                ` : ''}
+                <button class="btn-primary" onclick="AutomationSettingsSync.save()" ${isDraft ? 'disabled' : ''}>
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    `;
+};
+
+/**
+ * Promote draft workflow to automation (with scheduling modal)
+ */
+AutomationCanvas.prototype.promoteToAutomation = async function(slug) {
+    try {
+        console.log('[CANVAS] Promoting workflow to automation:', slug);
+
+        // Show promotion modal with scheduling configuration
+        const scheduleType = await this.showPromotionModal();
+        if (!scheduleType) {
+            console.log('[CANVAS] Promotion cancelled by user');
+            return;
+        }
+
+        // Call backend API to promote workflow
+        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+        const response = await fetch(`${API_BASE_URL}/api/automation/${slug}/promote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+            },
+            body: JSON.stringify({
+                schedule: scheduleType
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Promotion failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to promote workflow');
+        }
+
+        console.log('[CANVAS] Workflow promoted successfully:', data.automation);
+        this.showToast('Workflow promoted to automation!', 'success');
+
+        // Reload settings to show production mode
+        if (AutomationSettingsSync.getCurrentAutomation()) {
+            await AutomationSettingsSync.loadSettings(slug);
+            this.refreshCanvasSettingsPanel();
+        }
+
+        // Refresh automation sidebar if open
+        if (window.AutomationsSidebar && window.AutomationsSidebar.automationsLoaded) {
+            await window.AutomationsSidebar.loadAutomations();
+        }
+
+    } catch (error) {
+        console.error('[CANVAS] Promotion failed:', error);
+        this.showToast(`Failed to promote workflow: ${error.message}`, 'error');
+    }
+};
+
+/**
+ * Show promotion modal for scheduling configuration
+ */
+AutomationCanvas.prototype.showPromotionModal = function() {
+    return new Promise((resolve) => {
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'promotion-modal-overlay';
+        modal.innerHTML = `
+            <div class="promotion-modal">
+                <div class="promotion-modal-header">
+                    <h3><i class="fas fa-rocket"></i> Convert to Automation</h3>
+                    <button class="modal-close-btn" onclick="this.closest('.promotion-modal-overlay').remove(); window.promotionModalResolve(null);">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="promotion-modal-body">
+                    <p>Choose how this automation will be triggered:</p>
+                    <div class="promotion-options">
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="manual" checked>
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-hand-pointer"></i> Manual</strong>
+                                <span>Run on demand only</span>
+                            </div>
+                        </label>
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="cron">
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-clock"></i> Scheduled (Cron)</strong>
+                                <span>Run on a schedule (configure after conversion)</span>
+                            </div>
+                        </label>
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="interval">
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-hourglass-half"></i> Interval</strong>
+                                <span>Run at regular intervals</span>
+                            </div>
+                        </label>
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="webhook">
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-link"></i> Webhook</strong>
+                                <span>Trigger via external HTTP request</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <div class="promotion-modal-footer">
+                    <button class="btn-secondary" onclick="this.closest('.promotion-modal-overlay').remove(); window.promotionModalResolve(null);">
+                        Cancel
+                    </button>
+                    <button class="btn-primary" onclick="
+                        const selected = document.querySelector('input[name=schedule-type]:checked');
+                        const value = selected ? { type: selected.value } : null;
+                        this.closest('.promotion-modal-overlay').remove();
+                        window.promotionModalResolve(value);
+                    ">
+                        <i class="fas fa-check"></i> Convert to Automation
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Store resolve function globally for onclick handlers
+        window.promotionModalResolve = resolve;
+    });
 };
 
 // Test function for debugging

@@ -4985,25 +4985,25 @@
 
             <!-- Client Care (Left of Vet) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="350"
-                style="position: absolute; top: 60px; left: 50%; transform: translateX(-120px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                style="position: absolute; top: 60px; left: 38%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
                 <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Client<br>Care</div>
             </div>
 
             <!-- Admin (Right of Vet) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="400"
-                style="position: absolute; top: 60px; left: 50%; transform: translateX(120px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                style="position: absolute; top: 60px; left: 62%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
                 <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Admin</div>
             </div>
 
             <!-- Managers (Far Left) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="450"
-                style="position: absolute; top: 60px; left: 50%; transform: translateX(-240px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                style="position: absolute; top: 60px; left: 27.5%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
                 <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Managers</div>
             </div>
 
             <!-- Techs (Far Right) -->
             <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="500"
-                style="position: absolute; top: 60px; left: 50%; transform: translateX(240px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
+                style="position: absolute; top: 60px; left: 72.5%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5);">
                 <div style="font-size: 15px; font-weight: 700; color: white; text-align: center;">Techs</div>
             </div>
 
@@ -5145,13 +5145,13 @@
                 }
 
                 reset() {
-                    // Multiple TEAM members along top - mathematically spaced (120px intervals)
+                    // Multiple TEAM members along top - tighter spacing (27.5%, 38%, 50%, 62%, 72.5%)
                     const teamMembers = [
-                        { x: this.width * 0.50, y: this.height * 0.095, name: 'Vet' },         // Center (0px)
-                        { x: this.width * 0.38, y: this.height * 0.095, name: 'Client Care' }, // -120px from center
-                        { x: this.width * 0.62, y: this.height * 0.095, name: 'Admin' },       // +120px from center
-                        { x: this.width * 0.26, y: this.height * 0.095, name: 'Managers' },    // -240px from center
-                        { x: this.width * 0.74, y: this.height * 0.095, name: 'Techs' }        // +240px from center
+                        { x: this.width * 0.50, y: this.height * 0.095, name: 'Vet' },         // Center 50%
+                        { x: this.width * 0.38, y: this.height * 0.095, name: 'Client Care' },  // 38%
+                        { x: this.width * 0.62, y: this.height * 0.095, name: 'Admin' },        // 62%
+                        { x: this.width * 0.275, y: this.height * 0.095, name: 'Managers' },    // 27.5%
+                        { x: this.width * 0.725, y: this.height * 0.095, name: 'Techs' }        // 72.5%
                     ];
                     
                     // Pick a random team member for this particle

@@ -847,6 +847,256 @@ def get_inhouse_print_db_credentials(user_id: Optional[int] = None, **kwargs) ->
         }
 
 
+# ==================== GLOBAL PLATFORM CREDENTIAL INJECTION ====================
+
+def get_platform_credentials(user_id: int, platform: str, **kwargs) -> dict:
+    """
+    Universal platform credential getter for API key platforms
+    
+    Supports: slack, pinecone, stripe, twilio, shopify, openai, anthropic, 
+              paypal, assemblyai, cloudflare, render, cloudconvert, 
+              google_analytics, google_cloud_run, ngrok, resend, woocommerce, xero
+    
+    Args:
+        user_id: User ID
+        platform: Platform name (e.g., 'slack', 'pinecone', 'stripe')
+        **kwargs: Additional parameters
+    
+    Returns:
+        Dict with platform-specific credentials from JSONB column
+        
+    Example:
+        slack_creds = get_platform_credentials(user_id=14, platform='slack')
+        # Returns: {'bot_token': 'xoxb-...', 'app_id': 'A123', 'workspace_id': 'T123'}
+    
+    Raises:
+        Exception: If credentials not found or invalid
+    """
+    from AI_infrastructure.auth.user_auth import UserAuthManager
+    
+    auth_manager = UserAuthManager()
+    creds = auth_manager.get_platform_credentials(user_id, platform)
+    
+    if not creds:
+        raise Exception(
+            f"{platform.title()} credentials not found for user {user_id}. "
+            f"Please add credentials in Account Settings -> Connections."
+        )
+    
+    print(f"[CREDENTIALS] Loaded {platform} credentials for user {user_id}")
+    return creds
+
+
+def get_slack_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Slack bot token and workspace info
+    
+    Returns:
+        {
+            'bot_token': 'xoxb-...',
+            'app_id': 'A1234567890',
+            'workspace_id': 'T1234567890',
+            'workspace_name': 'My Company'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Slack tools.")
+    
+    return get_platform_credentials(user_id, 'slack')
+
+
+def get_stripe_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Stripe API key and environment
+    
+    Returns:
+        {
+            'api_key': 'sk_test_... or sk_live_...',
+            'environment': 'test' or 'production',
+            'webhook_secret': 'whsec_...'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Stripe tools.")
+    
+    return get_platform_credentials(user_id, 'stripe')
+
+
+def get_twilio_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Twilio Account SID and Auth Token
+    
+    Returns:
+        {
+            'account_sid': 'ACxxxxxxxxxxxxx',
+            'auth_token': 'your_auth_token',
+            'phone_number': '+1234567890'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Twilio tools.")
+    
+    return get_platform_credentials(user_id, 'twilio')
+
+
+def get_shopify_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Shopify API key and store URL
+    
+    Returns:
+        {
+            'api_key': 'shpat_...',
+            'store_url': 'yourstore.myshopify.com',
+            'api_version': '2024-01'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Shopify tools.")
+    
+    return get_platform_credentials(user_id, 'shopify')
+
+
+def get_openai_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get OpenAI API key
+    
+    Returns:
+        {
+            'api_key': 'sk-proj-...',
+            'model': 'gpt-4',
+            'organization_id': 'org-...'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use OpenAI tools.")
+    
+    return get_platform_credentials(user_id, 'openai')
+
+
+def get_anthropic_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Anthropic/Claude API key
+    
+    Returns:
+        {
+            'api_key': 'sk-ant-...',
+            'model': 'claude-3-opus-20240229'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Anthropic tools.")
+    
+    return get_platform_credentials(user_id, 'anthropic')
+
+
+def get_pinecone_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Pinecone API key, index name, and environment
+    
+    Returns:
+        {
+            'api_key': 'pcsk_...',
+            'index_name': 'inhouseprint',
+            'environment': 'us-east-1',
+            'namespace': ''
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Pinecone tools.")
+    
+    return get_platform_credentials(user_id, 'pinecone')
+
+
+def get_xero_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Xero OAuth credentials (if using API key method instead of OAuth)
+    
+    NOTE: Xero primarily uses OAuth 2.0 stored in oauth_tokens table.
+    This function is for alternative API key authentication if configured.
+    
+    Returns:
+        {
+            'client_id': '...',
+            'client_secret': '...',
+            'tenant_id': '...'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Xero tools.")
+    
+    # First try oauth_tokens table
+    from AI_infrastructure.auth.user_auth import UserAuthManager
+    auth_manager = UserAuthManager()
+    
+    # Check if user has OAuth token
+    conn = get_connection('ai_infrastructure')
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT access_token, refresh_token, expires_at
+        FROM ai_infrastructure.oauth_tokens
+        WHERE user_id = %s AND platform = 'xero' AND is_active = TRUE
+    """, (user_id,))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        # User has OAuth token (preferred method)
+        return {
+            'auth_type': 'oauth',
+            'access_token': row[0],
+            'refresh_token': row[1],
+            'expires_at': row[2]
+        }
+    else:
+        # Fall back to API key credentials
+        return get_platform_credentials(user_id, 'xero')
+
+
+def get_github_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get GitHub Personal Access Token credentials
+    
+    Returns:
+        dict: {
+            'access_token': 'ghp_...',
+            'username': 'github_username',
+            'email': 'user@example.com'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use GitHub tools.")
+    
+    return get_platform_credentials(user_id, 'github')
+
+
 # ==================== EXPORT FOR TOOL IMPLEMENTATIONS ====================
 
 __all__ = [
@@ -855,7 +1105,7 @@ __all__ = [
     'create_google_service_with_user_credentials',
     'create_microsoft_service_with_user_credentials',
     
-    # Google Workspace helper functions
+    # Google Workspace helper functions (DO NOT MODIFY - WORKING)
     'get_user_gmail_service',
     'get_user_calendar_service',
     'get_user_tasks_service',
@@ -866,10 +1116,22 @@ __all__ = [
     'get_user_slides_service',
     'get_user_meet_service',
     
-    # Microsoft 365 helper functions
+    # Microsoft 365 helper functions (DO NOT MODIFY - WORKING)
     'get_microsoft_access_token',
     'get_microsoft_headers',
     
     # InHouse Print database credentials
-    'get_inhouse_print_db_credentials'
+    'get_inhouse_print_db_credentials',
+    
+    # Global platform credential injection (NEW)
+    'get_platform_credentials',
+    'get_slack_credentials',
+    'get_stripe_credentials',
+    'get_twilio_credentials',
+    'get_shopify_credentials',
+    'get_openai_credentials',
+    'get_anthropic_credentials',
+    'get_pinecone_credentials',
+    'get_xero_credentials',
+    'get_github_credentials'
 ]

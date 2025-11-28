@@ -42,18 +42,24 @@ The handler **automatically chooses** the best method based on file characterist
 |-----------|-----------|--------|------------|----------|
 | **Supported** (PNG, JPEG, PDF) | < 5MB | **Direct Base64** | ~800/MB | Small images/PDFs |
 | **Supported** (PNG, JPEG, PDF) | 5-100MB | **Files API** | ~50 tokens | Large files, repeated use |
-| **Any Type** | > 100MB | **Cloud URL** | 0 tokens | Huge files, unsupported types (DOCX, XLSX) |
+| **Text-Extractable** (DOCX, XLSX, PPTX, CSV, JSON) | Any size | **Markdown Extraction** | ~1-5 tokens/KB | Documents, spreadsheets 🆕 |
+| **Any Type** | > 100MB | **Cloud URL** | 0 tokens | Huge files, unsupported types |
 
-**Anthropic-Supported Types:**
+**Anthropic-Supported Types (Direct/Files API):**
 - Images: PNG, JPEG, GIF, WebP
 - Documents: PDF
 
-**Unsupported Types (auto-uploaded to cloud):**
-- Microsoft Office: DOCX, XLSX, PPTX
+**Text-Extractable Types (Markdown Extraction) 🆕:**
+- Microsoft Office: **DOCX**, **XLSX**, **PPTX**
+- Data: **CSV**, **JSON**, **XML**, **YAML**
+- Text: **TXT**, **MD**, **HTML**
+- Code: **PY**, **JS**, **TS**, **SQL**, etc.
+
+**Cloud URL Fallback:**
 - Archives: ZIP, RAR
 - Videos: MP4, MOV
 - Audio: MP3, WAV
-- etc.
+- Other binary files
 
 ---
 

@@ -3,36 +3,58 @@ GitHub Tool Implementations
 ============================
 
 This module provides tool implementations for GitHub repository management.
+
+NOTE: Uses per-user GitHub credentials from database.
+Each user connects their own GitHub Personal Access Token via Account Settings.
 """
 
+import sys
 import os
+from pathlib import Path
+
+# Add parent directory to path for credential injection
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 from github import Github
-
-try:
-    from config import get_api_key_enhanced
-    github_token = get_api_key_enhanced('GITHUB_TOKEN') or get_api_key_enhanced('GITHUB_PASSWORD')
-except ImportError:
-    github_token = os.getenv('GITHUB_TOKEN') or os.getenv('GITHUB_PASSWORD')
-
-# Initialize GitHub client
-g = Github(github_token)
+from AI_infrastructure.auth.credential_injector import get_github_credentials
 
 
-def github_create_repo(name: str, description: str = None, private: bool = False):
+def _get_github_client(user_id: int, **kwargs) -> Github:
     """
-    Create a new GitHub repository.
+    Get user-specific GitHub client with their Personal Access Token
+    
+    Args:
+        user_id: User ID for credential lookup
+        **kwargs: Additional parameters (for credential injection)
+    
+    Returns:
+        Github: Authenticated GitHub client for this user
+    """
+    github_creds = get_github_credentials(user_id=user_id, **kwargs)
+    return Github(github_creds['access_token'])
+
+
+def github_create_repo(name: str, description: str = None, private: bool = False, **kwargs):
+    """
+    Create a new GitHub repository under the authenticated user's account.
     
     Args:
         name: Repository name
         description: Repository description
         private: Make repository private
+        **kwargs: Credential injection parameters (_user_id)
     
     Returns:
         Created repository details
     """
-    print(f"🔧 Creating GitHub repository: {name}")
+    user_id = kwargs.get('_user_id')
+    if not user_id:
+        raise Exception("User authentication required for GitHub tools. Please log in.")
+    
+    print(f"🔧 [User {user_id}] Creating GitHub repository: {name}")
     
     try:
+        g = _get_github_client(user_id, **kwargs)
         user = g.get_user()
         repo = user.create_repo(
             name=name,
@@ -46,30 +68,37 @@ def github_create_repo(name: str, description: str = None, private: bool = False
             'clone_url': repo.clone_url,
             'html_url': repo.html_url,
             'private': repo.private,
+            'owner': user.login,
             'created': True
         }
         
     except Exception as e:
-        print(f" Failed to create repository: {e}")
+        print(f"❌ Failed to create repository: {e}")
         raise
 
 
-def github_commit_file(repo: str, file_path: str, content: str, message: str):
+def github_commit_file(repo: str, file_path: str, content: str, message: str, **kwargs):
     """
-    Commit a file to a GitHub repository.
+    Commit a file to a GitHub repository under the authenticated user's account.
     
     Args:
         repo: Repository name (owner/repo)
         file_path: Path within repository
         content: File content
         message: Commit message
+        **kwargs: Credential injection parameters (_user_id)
     
     Returns:
         Commit details
     """
-    print(f"🔧 Committing file to {repo}: {file_path}")
+    user_id = kwargs.get('_user_id')
+    if not user_id:
+        raise Exception("User authentication required for GitHub tools. Please log in.")
+    
+    print(f"🔧 [User {user_id}] Committing file to {repo}: {file_path}")
     
     try:
+        g = _get_github_client(user_id, **kwargs)
         repository = g.get_repo(repo)
         
         # Try to get existing file
@@ -97,13 +126,13 @@ def github_commit_file(repo: str, file_path: str, content: str, message: str):
         }
         
     except Exception as e:
-        print(f" Failed to commit file: {e}")
+        print(f"❌ Failed to commit file: {e}")
         raise
 
 
-def github_create_pr(repo: str, title: str, head: str, base: str, body: str = None):
+def github_create_pr(repo: str, title: str, head: str, base: str, body: str = None, **kwargs):
     """
-    Create a pull request.
+    Create a pull request under the authenticated user's account.
     
     Args:
         repo: Repository name (owner/repo)
@@ -111,13 +140,19 @@ def github_create_pr(repo: str, title: str, head: str, base: str, body: str = No
         head: Head branch
         base: Base branch
         body: PR description
+        **kwargs: Credential injection parameters (_user_id)
     
     Returns:
         Created PR details
     """
-    print(f"🔧 Creating pull request in {repo}: {title}")
+    user_id = kwargs.get('_user_id')
+    if not user_id:
+        raise Exception("User authentication required for GitHub tools. Please log in.")
+    
+    print(f"🔧 [User {user_id}] Creating pull request in {repo}: {title}")
     
     try:
+        g = _get_github_client(user_id, **kwargs)
         repository = g.get_repo(repo)
         pr = repository.create_pull(
             title=title,
@@ -135,25 +170,31 @@ def github_create_pr(repo: str, title: str, head: str, base: str, body: str = No
         }
         
     except Exception as e:
-        print(f" Failed to create PR: {e}")
+        print(f"❌ Failed to create PR: {e}")
         raise
 
 
-def github_get_issues(repo: str, state: str = "open", limit: int = 30):
+def github_get_issues(repo: str, state: str = "open", limit: int = 30, **kwargs):
     """
-    List issues from a repository.
+    List issues from a repository using the authenticated user's access.
     
     Args:
         repo: Repository name (owner/repo)
         state: Issue state ('open', 'closed', 'all')
         limit: Maximum number of issues
+        **kwargs: Credential injection parameters (_user_id)
     
     Returns:
         List of issues
     """
-    print(f"🔧 Fetching issues from {repo} (state: {state})")
+    user_id = kwargs.get('_user_id')
+    if not user_id:
+        raise Exception("User authentication required for GitHub tools. Please log in.")
+    
+    print(f"🔧 [User {user_id}] Fetching issues from {repo} (state: {state})")
     
     try:
+        g = _get_github_client(user_id, **kwargs)
         repository = g.get_repo(repo)
         issues = repository.get_issues(state=state)
         
@@ -177,7 +218,7 @@ def github_get_issues(repo: str, state: str = "open", limit: int = 30):
         }
         
     except Exception as e:
-        print(f" Failed to fetch issues: {e}")
+        print(f"❌ Failed to fetch issues: {e}")
         raise
 
 

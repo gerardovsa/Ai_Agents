@@ -75,8 +75,14 @@ class ModuleLoader {
 
             console.log(`[ModuleLoader] Found ${data.count} registered modules`);
 
-            // Store module manifests
+            // Store module manifests (filter out disabled modules)
             for (const module of data.modules) {
+                // Check if module is explicitly disabled
+                if (module.enabled === false) {
+                    console.log(`[ModuleLoader] Skipping disabled module: ${module.id}`);
+                    continue;
+                }
+                
                 this.modules.set(module.id, module);
                 console.log(`[ModuleLoader] Registered module: ${module.id}`);
             }
@@ -578,6 +584,26 @@ class ModuleLoader {
                         
                         <!-- Kanban Board -->
                         <div id="kanban-board" style="flex: 1; overflow-x: auto; overflow-y: hidden; padding: 20px;"></div>
+                    </div>
+                `;
+            } else if (moduleId === 'quote-calculator') {
+                // Create Quote Calculator main tab container
+                tabContainer.innerHTML = `
+                    <div id="${moduleId}-main-container" class="active" style="height: 100%; display: flex; flex-direction: column; background: #0B0E13; padding: 20px; overflow: auto;">
+                        <div style="max-width: 1200px; margin: 0 auto; width: 100%;">
+                            <h1 style="color: #fff; margin-bottom: 20px;">
+                                <i class="fas fa-calculator" style="color: ${module.color || '#ffb347'};"></i>
+                                Quote Calculator
+                            </h1>
+                            
+                            <!-- Quote calculator content will be injected here by quote-calculator.js -->
+                            <div id="quote-calculator-main-content">
+                                <div style="text-align: center; padding: 40px; color: #9CA3AF;">
+                                    <i class="fas fa-calculator" style="font-size: 3rem; color: ${module.color || '#ffb347'}; margin-bottom: 16px;"></i>
+                                    <p style="font-size: 16px;">Loading Quote Calculator...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
             } else {

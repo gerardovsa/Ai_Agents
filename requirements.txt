@@ -49,18 +49,25 @@ pinecone-client>=3.0.0
 # Scheduler
 apscheduler>=3.10.0
 
-# Document Processing
-python-docx==1.1.0
+# Document Processing & Text Extraction (Markdown Support)
+python-docx==1.1.0      # DOCX extraction with formatting
+openpyxl>=3.1.0         # XLSX/XLS extraction with tables
+python-pptx>=1.0.0      # PPTX extraction with slides
 pypdf>=3.17.0
 PyPDF2>=3.0.0
-openpyxl>=3.1.0
-reportlab>=4.0.0
-Pillow>=10.0.0
+reportlab>=4.0.0        # PDF generation from documents
+Pillow>=10.0.0          # Image conversion and manipulation
 pytesseract>=0.3.10
+
+# Document Conversion (PDF/Image Generation - NEW Dec 2025)
+# docx2pdf>=0.1.8       # DOCX to PDF (Windows only - optional)
+pdf2image>=1.16.0       # PDF to images (requires poppler)
+img2pdf>=0.5.0          # Images to PDF
 
 # Text/HTML Processing
 html2text>=2020.1.16
-beautifulsoup4>=4.12.0
+beautifulsoup4>=4.12.0  # HTML extraction
+lxml>=4.9.0             # XML/HTML parsing
 
 # Geolocation (optional) - removed maxminddb-geolite2 due to slow download
 # geoip2>=4.7.0

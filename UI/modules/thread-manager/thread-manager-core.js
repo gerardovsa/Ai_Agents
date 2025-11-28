@@ -150,12 +150,22 @@ const ThreadManager = {
                 // ✅ SMART: Only restore assignments if not already done by initMultiAgent
                 if (typeof MultiAgent !== 'undefined' && MultiAgent.loadedThreads && Object.keys(MultiAgent.loadedThreads).length > 0) {
                     console.log('✅ [ThreadManager] Threads already assigned by initMultiAgent, skipping restoreThreadAssignments');
-                } else {
+                } else if (typeof this.restoreThreadAssignments === 'function') {
                     console.log('📥 [ThreadManager] Restoring thread assignments...');
                     await this.restoreThreadAssignments();
+                } else {
+                    console.warn('⚠️ [ThreadManager] restoreThreadAssignments not loaded yet (assignment module loading asynchronously)');
+                    console.warn('This is expected if modules load asynchronously - assignments will be handled by initMultiAgent');
                 }
                 
-                await this.initRealtimeSubscription();
+                // ✅ FIX: Make realtime subscription optional (loads asynchronously)
+                if (typeof this.initRealtimeSubscription === 'function') {
+                    await this.initRealtimeSubscription();
+                } else {
+                    console.warn('⚠️ [ThreadManager] initRealtimeSubscription not loaded yet (realtime module loading asynchronously)');
+                    console.warn('This is expected if modules load asynchronously - realtime will initialize when module loads');
+                }
+                
                 this.initWelcomeMessage('prime');
                 this.startAutoSave();
                 this.renderThreadList();
@@ -166,6 +176,8 @@ const ThreadManager = {
                 
                 if (!primeAlreadyLoaded && primeThreadId) {
                     console.log('📥 [ThreadManager] Auto-loading prime thread...');
+                    // Wait for assignment module to load (it extends ThreadManager with assignThread)
+                    await this.waitForAssignmentModule();
                     await this.autoLoadPrimeThread();
                 } else {
                     console.log('✅ [ThreadManager] Prime thread already loaded, skipping auto-load');
@@ -206,6 +218,22 @@ const ThreadManager = {
 
 
 
+
+    async waitForAssignmentModule() {
+        // Wait for assignment module to load (max 5 seconds)
+        const maxWait = 5000;
+        const startTime = Date.now();
+        
+        while (!this._assignmentModuleLoaded && (Date.now() - startTime) < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        if (!this._assignmentModuleLoaded) {
+            throw new Error('Assignment module failed to load within 5 seconds');
+        }
+        
+        console.log('✅ [ThreadManager] Assignment module ready');
+    },
 
     async loadModules() {
         console.log('📦 [ThreadManager] Loading modules...');
@@ -393,6 +421,12 @@ const ThreadManager = {
         const primeLoadedThread = this.threads.find(t => t.location === 'prime-loaded');
 
         if (primeLoadedThread) {
+            // ✅ CHECK: Skip if already loaded (by initMultiAgent or previous call)
+            if (typeof AppState !== 'undefined' && AppState.sessionId === primeLoadedThread.id) {
+                console.log(`⏭️ [ThreadManager] Prime thread "${primeLoadedThread.title}" already loaded (ID: ${primeLoadedThread.id}), skipping auto-load`);
+                return;
+            }
+            
             console.log(`🎯 [ThreadManager] Auto-loading PRIME-LOADED thread: ${primeLoadedThread.title}`);
             await this.loadThreadInPrime(primeLoadedThread.id);
 

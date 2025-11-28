@@ -389,6 +389,9 @@ const UserAuth = {
             }
             
             try {
+                // Add authenticated visual indicator to profile button
+                const profileBtn = document.getElementById('userProfileBtn-sidebar');
+                if (profileBtn) {
                     profileBtn.classList.add('authenticated');
                     console.log('✅ 🔓🔓 [AUTH] Profile button marked as authenticated (green border)');
                 }

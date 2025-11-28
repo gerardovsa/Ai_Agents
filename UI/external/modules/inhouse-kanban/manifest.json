@@ -21,7 +21,8 @@
         "storage:local"
     ],
     "dependencies": [],
-    "main_tab": false,
+    "main_tab": true,
+    "main_tab_id": "inhouse-kanban",
     "settings": {
         "api_endpoint": "/api/inhouse-kanban",
         "backend_url": "http://localhost:5001",

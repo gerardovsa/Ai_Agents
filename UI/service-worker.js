@@ -15,7 +15,7 @@
  */
 
 const CACHE_NAME = 'ai-agents-v1.0.0';
-const CACHE_VERSION = '2025-11-28-v10';  // Updated for v10 backend URL fix
+const CACHE_VERSION = '2025-11-28-v14';  // Fixed prime thread guard to check AppState.sessionId
 
 // Libraries to cache (loaded post-auth)
 const HEAVY_LIBRARIES = [

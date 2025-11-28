@@ -359,7 +359,7 @@ const AutomationsSidebar = {
 
         return `
                     <div class="automation-item ${automation.enabled ? 'enabled' : 'disabled'}" 
-                        onclick="AutomationsSidebar.openAutomation('${automation.slug}')">
+                        onclick="AutomationsSidebar.openSettingsPanel(${JSON.stringify(automation).replace(/"/g, '&quot;')})">
                         <div class="automation-item-header">
                             <div>
                                 <div class="automation-item-title">${this.escapeHtml(automation.name)}</div>
@@ -590,6 +590,496 @@ const AutomationsSidebar = {
         return div.innerHTML;
     },
 
+    /**
+     * Open settings panel for an automation
+     * @param {Object} automation - Automation data
+     */
+    async openSettingsPanel(automation) {
+        try {
+            console.log('[AUTOMATIONS] Opening settings panel for:', automation.slug);
+
+            // Load settings into sync manager
+            await AutomationSettingsSync.loadSettings(automation.slug);
+
+            // Subscribe to settings changes
+            if (this.settingsSyncUnsubscribe) {
+                this.settingsSyncUnsubscribe();
+            }
+            this.settingsSyncUnsubscribe = AutomationSettingsSync.subscribe((eventType, data) => {
+                if (eventType === 'update' || eventType === 'save') {
+                    // Re-render settings panel with updated data
+                    this.refreshSettingsPanel();
+                }
+            });
+
+            // Render settings panel
+            const content = document.getElementById('automations-content');
+            content.innerHTML = this.createSettingsPanel(AutomationSettingsSync.getCurrentAutomation());
+
+        } catch (error) {
+            console.error('[AUTOMATIONS] Failed to open settings panel:', error);
+            showNotification(`Failed to open settings: ${error.message}`, 'error');
+        }
+    },
+
+    /**
+     * Close settings panel and return to automation list
+     */
+    closeSettingsPanel() {
+        console.log('[AUTOMATIONS] Closing settings panel');
+
+        // Check for unsaved changes
+        if (AutomationSettingsSync.hasUnsavedChanges()) {
+            const confirmed = confirm('You have unsaved changes. Do you want to save before closing?');
+            if (confirmed) {
+                AutomationSettingsSync.save();
+            }
+        }
+
+        // Unsubscribe from settings sync
+        if (this.settingsSyncUnsubscribe) {
+            this.settingsSyncUnsubscribe();
+            this.settingsSyncUnsubscribe = null;
+        }
+
+        // Return to automation list
+        this.renderAutomations();
+    },
+
+    /**
+     * Refresh settings panel with current data
+     */
+    refreshSettingsPanel() {
+        const automation = AutomationSettingsSync.getCurrentAutomation();
+        if (!automation) return;
+
+        const content = document.getElementById('automations-content');
+        if (content && content.querySelector('.automation-settings-panel')) {
+            content.innerHTML = this.createSettingsPanel(automation);
+        }
+    },
+
+    /**
+     * Create settings panel HTML
+     * @param {Object} automation - Automation data
+     * @returns {string} HTML string
+     */
+    createSettingsPanel(automation) {
+        const isDraft = AutomationSettingsSync.isDraft();
+
+        return `
+            <div class="automation-settings-panel">
+                <div class="settings-panel-header">
+                    <button class="settings-back-btn" onclick="AutomationsSidebar.closeSettingsPanel()">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </button>
+                    <div class="settings-panel-title">
+                        <h3>${this.escapeHtml(automation.name)}</h3>
+                        <span class="automation-status-badge ${automation.enabled ? 'enabled' : 'disabled'}">
+                            ${automation.enabled ? 'ENABLED' : 'DISABLED'}
+                        </span>
+                    </div>
+                    <div class="settings-panel-slug">${automation.slug}</div>
+                </div>
+
+                ${isDraft ? `
+                    <div class="draft-mode-banner">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Draft Mode</strong>
+                            <p>This workflow is in draft mode. Automation settings are disabled until you convert it to an automation.</p>
+                        </div>
+                        <button class="btn-promote" onclick="AutomationCanvas.promoteToAutomation('${automation.slug}')">
+                            <i class="fas fa-rocket"></i> Convert to Automation
+                        </button>
+                    </div>
+                ` : ''}
+
+                <div class="settings-panel-content">
+                    <!-- Scheduling Section -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-calendar-alt"></i>
+                            <h4>Scheduling</h4>
+                        </div>
+                        ${this.renderSchedulingSettings(automation, isDraft)}
+                    </div>
+
+                    <!-- Trigger Section -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-bolt"></i>
+                            <h4>Trigger</h4>
+                        </div>
+                        ${this.renderTriggerSettings(automation, isDraft)}
+                    </div>
+
+                    <!-- Execution Options -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-cogs"></i>
+                            <h4>Execution Options</h4>
+                        </div>
+                        ${this.renderExecutionSettings(automation, isDraft)}
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-bell"></i>
+                            <h4>Notifications</h4>
+                        </div>
+                        ${this.renderNotificationSettings(automation, isDraft)}
+                    </div>
+
+                    <!-- Execution History -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-history"></i>
+                            <h4>Recent Executions</h4>
+                        </div>
+                        ${this.renderExecutionHistory(automation)}
+                    </div>
+                </div>
+
+                <div class="settings-panel-footer">
+                    ${AutomationSettingsSync.hasUnsavedChanges() ? `
+                        <button class="btn-secondary" onclick="AutomationSettingsSync.revert()">
+                            <i class="fas fa-undo"></i> Revert Changes
+                        </button>
+                    ` : ''}
+                    <button class="btn-secondary" onclick="AutomationsSidebar.openInCanvas('${automation.slug}')">
+                        <i class="fas fa-edit"></i> Edit in Canvas
+                    </button>
+                    <button class="btn-primary" onclick="AutomationSettingsSync.save()" ${isDraft ? 'disabled' : ''}>
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render scheduling settings section
+     */
+    renderSchedulingSettings(automation, isDraft) {
+        const schedule = automation.schedule || { type: 'manual' };
+
+        return `
+            <div class="settings-form ${isDraft ? 'settings-disabled' : ''}">
+                <div class="form-group">
+                    <label>Schedule Type</label>
+                    <select id="schedule-type" ${isDraft ? 'disabled' : ''}
+                        onchange="AutomationSettingsSync.updateSetting('schedule.type', this.value)">
+                        <option value="manual" ${schedule.type === 'manual' ? 'selected' : ''}>Manual (Run on demand)</option>
+                        <option value="cron" ${schedule.type === 'cron' ? 'selected' : ''}>Cron Expression</option>
+                        <option value="interval" ${schedule.type === 'interval' ? 'selected' : ''}>Interval</option>
+                        <option value="one-time" ${schedule.type === 'one-time' ? 'selected' : ''}>One-Time</option>
+                    </select>
+                </div>
+
+                ${schedule.type === 'cron' ? `
+                    <div class="form-group">
+                        <label>Cron Expression</label>
+                        <input type="text" id="schedule-cron" value="${schedule.cron || ''}"
+                            ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('schedule.cron', this.value)"
+                            placeholder="0 9 * * * (Daily at 9am)">
+                        <small class="form-hint">
+                            Examples: <code>0 9 * * *</code> (9am daily), <code>0 */2 * * *</code> (every 2 hours)
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>Timezone</label>
+                        <select id="schedule-timezone" ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('schedule.timezone', this.value)">
+                            <option value="UTC" ${schedule.timezone === 'UTC' ? 'selected' : ''}>UTC</option>
+                            <option value="America/New_York" ${schedule.timezone === 'America/New_York' ? 'selected' : ''}>America/New_York</option>
+                            <option value="America/Los_Angeles" ${schedule.timezone === 'America/Los_Angeles' ? 'selected' : ''}>America/Los_Angeles</option>
+                            <option value="Europe/London" ${schedule.timezone === 'Europe/London' ? 'selected' : ''}>Europe/London</option>
+                            <option value="Australia/Sydney" ${schedule.timezone === 'Australia/Sydney' ? 'selected' : ''}>Australia/Sydney</option>
+                        </select>
+                    </div>
+                ` : ''}
+
+                ${schedule.type === 'interval' ? `
+                    <div class="form-group">
+                        <label>Interval</label>
+                        <div class="interval-input">
+                            <input type="number" id="schedule-interval-value" value="${schedule.interval_value || 1}"
+                                min="1" ${isDraft ? 'disabled' : ''}
+                                onchange="AutomationSettingsSync.updateSetting('schedule.interval_value', parseInt(this.value))">
+                            <select id="schedule-interval-unit" ${isDraft ? 'disabled' : ''}
+                                onchange="AutomationSettingsSync.updateSetting('schedule.interval_unit', this.value)">
+                                <option value="minutes" ${schedule.interval_unit === 'minutes' ? 'selected' : ''}>Minutes</option>
+                                <option value="hours" ${schedule.interval_unit === 'hours' ? 'selected' : ''}>Hours</option>
+                                <option value="days" ${schedule.interval_unit === 'days' ? 'selected' : ''}>Days</option>
+                            </select>
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${schedule.type === 'one-time' ? `
+                    <div class="form-group">
+                        <label>Run Date & Time</label>
+                        <input type="datetime-local" id="schedule-datetime" value="${schedule.run_at || ''}"
+                            ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('schedule.run_at', this.value)">
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    /**
+     * Render trigger settings section
+     */
+    renderTriggerSettings(automation, isDraft) {
+        const trigger = automation.trigger || { type: 'manual' };
+
+        return `
+            <div class="settings-form ${isDraft ? 'settings-disabled' : ''}">
+                <div class="form-group">
+                    <label>Trigger Type</label>
+                    <select id="trigger-type" ${isDraft ? 'disabled' : ''}
+                        onchange="AutomationSettingsSync.updateSetting('trigger.type', this.value)">
+                        <option value="manual" ${trigger.type === 'manual' ? 'selected' : ''}>Manual</option>
+                        <option value="schedule" ${trigger.type === 'schedule' ? 'selected' : ''}>Schedule</option>
+                        <option value="webhook" ${trigger.type === 'webhook' ? 'selected' : ''}>Webhook</option>
+                        <option value="event" ${trigger.type === 'event' ? 'selected' : ''}>Platform Event</option>
+                    </select>
+                </div>
+
+                ${trigger.type === 'webhook' ? `
+                    <div class="form-group">
+                        <label>Webhook URL</label>
+                        <div class="webhook-url-container">
+                            <input type="text" class="webhook-url-input" readonly
+                                value="${window.location.origin}/api/webhook/${automation.slug}" />
+                            <button class="btn-copy" title="Copy webhook URL"
+                                onclick="navigator.clipboard.writeText(this.previousElementSibling.value); showNotification('Webhook URL copied', 'success')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="form-hint">POST requests to this URL will trigger the automation</small>
+                    </div>
+                ` : ''}
+
+                ${trigger.type === 'event' ? `
+                    <div class="form-group">
+                        <label>Event Type</label>
+                        <select id="trigger-event" ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('trigger.event_type', this.value)">
+                            <option value="gmail_new_message" ${trigger.event_type === 'gmail_new_message' ? 'selected' : ''}>Gmail - New Message</option>
+                            <option value="shopify_new_order" ${trigger.event_type === 'shopify_new_order' ? 'selected' : ''}>Shopify - New Order</option>
+                            <option value="google_drive_new_file" ${trigger.event_type === 'google_drive_new_file' ? 'selected' : ''}>Google Drive - New File</option>
+                            <option value="stripe_payment_success" ${trigger.event_type === 'stripe_payment_success' ? 'selected' : ''}>Stripe - Payment Success</option>
+                        </select>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    /**
+     * Render execution options section
+     */
+    renderExecutionSettings(automation, isDraft) {
+        const execution = automation.execution_options || {
+            retry_policy: 'none',
+            max_retries: 3,
+            timeout: 300,
+            error_handling: 'stop',
+            allow_concurrent: false
+        };
+
+        return `
+            <div class="settings-form ${isDraft ? 'settings-disabled' : ''}">
+                <div class="form-group">
+                    <label>Retry Policy</label>
+                    <select id="execution-retry-policy" ${isDraft ? 'disabled' : ''}
+                        onchange="AutomationSettingsSync.updateSetting('execution_options.retry_policy', this.value)">
+                        <option value="none" ${execution.retry_policy === 'none' ? 'selected' : ''}>No Retry</option>
+                        <option value="exponential" ${execution.retry_policy === 'exponential' ? 'selected' : ''}>Exponential Backoff</option>
+                        <option value="fixed" ${execution.retry_policy === 'fixed' ? 'selected' : ''}>Fixed Interval</option>
+                    </select>
+                    <small class="form-hint">Handle transient failures automatically</small>
+                </div>
+
+                ${execution.retry_policy !== 'none' ? `
+                    <div class="form-group">
+                        <label>Max Retries</label>
+                        <input type="number" id="execution-max-retries" value="${execution.max_retries || 3}"
+                            min="1" max="10" ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('execution_options.max_retries', parseInt(this.value))">
+                        <small class="form-hint">Maximum number of retry attempts</small>
+                    </div>
+                ` : ''}
+
+                <div class="form-group">
+                    <label>Timeout (seconds)</label>
+                    <input type="number" id="execution-timeout" value="${execution.timeout || 300}"
+                        min="10" max="3600" ${isDraft ? 'disabled' : ''}
+                        onchange="AutomationSettingsSync.updateSetting('execution_options.timeout', parseInt(this.value))">
+                    <small class="form-hint">Prevent infinite loops (10-3600 seconds)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Error Handling</label>
+                    <select id="execution-error-handling" ${isDraft ? 'disabled' : ''}
+                        onchange="AutomationSettingsSync.updateSetting('execution_options.error_handling', this.value)">
+                        <option value="stop" ${execution.error_handling === 'stop' ? 'selected' : ''}>Stop on First Error</option>
+                        <option value="continue" ${execution.error_handling === 'continue' ? 'selected' : ''}>Continue on Error</option>
+                        <option value="rollback" ${execution.error_handling === 'rollback' ? 'selected' : ''}>Rollback on Error</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="execution-allow-concurrent"
+                            ${execution.allow_concurrent ? 'checked' : ''}
+                            ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('execution_options.allow_concurrent', this.checked)">
+                        <span>Allow Concurrent Executions</span>
+                    </label>
+                    <small class="form-hint">Allow multiple instances to run simultaneously</small>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render notification settings section
+     */
+    renderNotificationSettings(automation, isDraft) {
+        const notifications = automation.notifications || {
+            on_success: false,
+            on_failure: true,
+            channels: [],
+            emails: '',
+            daily_summary: false
+        };
+
+        return `
+            <div class="settings-form ${isDraft ? 'settings-disabled' : ''}">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="notify-on-success"
+                            ${notifications.on_success ? 'checked' : ''}
+                            ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('notifications.on_success', this.checked)">
+                        <span>Notify on Success</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="notify-on-failure"
+                            ${notifications.on_failure ? 'checked' : ''}
+                            ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('notifications.on_failure', this.checked)">
+                        <span>Notify on Failure</span>
+                    </label>
+                </div>
+
+                ${(notifications.on_success || notifications.on_failure) ? `
+                    <div class="form-group">
+                        <label>Notification Channels</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" ${notifications.channels?.includes('email') ? 'checked' : ''}
+                                    ${isDraft ? 'disabled' : ''}
+                                    onchange="AutomationSettingsSync.toggleNotificationChannel('email', this.checked)">
+                                <span><i class="fas fa-envelope"></i> Email</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" ${notifications.channels?.includes('slack') ? 'checked' : ''}
+                                    ${isDraft ? 'disabled' : ''}
+                                    onchange="AutomationSettingsSync.toggleNotificationChannel('slack', this.checked)">
+                                <span><i class="fab fa-slack"></i> Slack</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" ${notifications.channels?.includes('webhook') ? 'checked' : ''}
+                                    ${isDraft ? 'disabled' : ''}
+                                    onchange="AutomationSettingsSync.toggleNotificationChannel('webhook', this.checked)">
+                                <span><i class="fas fa-link"></i> Webhook</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    ${notifications.channels?.includes('email') ? `
+                        <div class="form-group">
+                            <label>Email Recipients</label>
+                            <input type="text" id="notify-emails" value="${notifications.emails || ''}"
+                                ${isDraft ? 'disabled' : ''}
+                                onchange="AutomationSettingsSync.updateSetting('notifications.emails', this.value)"
+                                placeholder="user@example.com, team@example.com">
+                            <small class="form-hint">Comma-separated email addresses</small>
+                        </div>
+                    ` : ''}
+                ` : ''}
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="notify-daily-summary"
+                            ${notifications.daily_summary ? 'checked' : ''}
+                            ${isDraft ? 'disabled' : ''}
+                            onchange="AutomationSettingsSync.updateSetting('notifications.daily_summary', this.checked)">
+                        <span>Daily Summary Report</span>
+                    </label>
+                    <small class="form-hint">Receive a daily summary of all executions</small>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render execution history section
+     */
+    renderExecutionHistory(automation) {
+        // TODO: Fetch execution history from backend
+        return `
+            <div class="execution-history-placeholder">
+                <div class="execution-stat-card">
+                    <i class="fas fa-play-circle"></i>
+                    <div>
+                        <strong>${automation.run_count || 0}</strong>
+                        <span>Total Runs</span>
+                    </div>
+                </div>
+                <div class="execution-stat-card success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>${automation.success_count || 0}</strong>
+                        <span>Successful</span>
+                    </div>
+                </div>
+                <div class="execution-stat-card error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>
+                        <strong>${automation.error_count || 0}</strong>
+                        <span>Errors</span>
+                    </div>
+                </div>
+                <div class="execution-stat-card">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <strong>${automation.last_run_at ? new Date(automation.last_run_at).toLocaleString() : 'Never'}</strong>
+                        <span>Last Run</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Open automation in canvas editor
+     */
+    async openInCanvas(slug) {
+        await this.openAutomation(slug);
+        this.closeSettingsPanel();
+    },
+
     cleanup() {
         // Unsubscribe from realtime channels when needed
         if (this.realtimeChannel) {
@@ -597,6 +1087,12 @@ const AutomationsSidebar = {
         }
         if (this.executionsChannel) {
             this.supabaseClient.removeChannel(this.executionsChannel);
+        }
+        
+        // Unsubscribe from settings sync
+        if (this.settingsSyncUnsubscribe) {
+            this.settingsSyncUnsubscribe();
+            this.settingsSyncUnsubscribe = null;
         }
     }
 };

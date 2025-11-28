@@ -196,20 +196,29 @@ Object.assign(window.ThreadManager, {
             this.refreshAllThreadInfoCards(threadId);
         }
 
-        // STEP 6: REFRESH threads array from backend to fix stale location
-        console.log(`🔄 [CASCADE] Refreshing threads[] from backend to verify location update`);
-        try {
-            await this.loadThreadsFromBackend();
-
-            // Verify thread location updated correctly
-            const updatedThread = this.threads.find(t => t.id === threadId);
-            if (updatedThread && updatedThread.location === newLocation) {
-                console.log(`✅ [CASCADE] Thread location verified in memory: ${updatedThread.location}`);
-            } else {
-                console.warn(`⚠️ [CASCADE] Location mismatch! Expected: ${newLocation}, Got: ${updatedThread?.location || 'NOT FOUND'}`);
+        // NOTE: Thread location already updated at line 148-151 above
+        // No need for redundant update here (removed duplicate 'const thread' declaration)
+        
+        // ✅ OPTIMIZATION (Nov 28, 2025): Only verify from backend every 10th update
+        // This saves 90% of unnecessary API calls while still catching sync issues
+        if (!window._cascadeUpdateCount) window._cascadeUpdateCount = 0;
+        window._cascadeUpdateCount++;
+        
+        if (window._cascadeUpdateCount % 10 === 0) {
+            console.log(`🔍 [CASCADE] Periodic verification (every 10th update): Refreshing from backend`);
+            try {
+                await this.loadThreadsFromBackend();
+                const verifiedThread = this.threads.find(t => t.id === threadId);
+                if (verifiedThread && verifiedThread.location === newLocation) {
+                    console.log(`✅ [CASCADE] Periodic verification passed: ${verifiedThread.location}`);
+                } else {
+                    console.warn(`⚠️ [CASCADE] Verification failed! Expected: ${newLocation}, Got: ${verifiedThread?.location || 'NOT FOUND'}`);
+                }
+            } catch (error) {
+                console.error(`❌ [CASCADE] Verification failed:`, error);
             }
-        } catch (error) {
-            console.error(`❌ [CASCADE] Failed to refresh threads from backend:`, error);
+        } else {
+            console.log(`⏭️ [CASCADE] Skipping backend verification (${window._cascadeUpdateCount % 10}/10)`);
         }
 
         console.log(`✅ [CASCADE] Complete for thread ${threadId}`);
@@ -641,12 +650,10 @@ Object.assign(window.ThreadManager, {
             assignments: assignments
         };
     }
-
-
-
-
 });
 
+// Signal that assignment module is fully loaded
+window.ThreadManager._assignmentModuleLoaded = true;
 console.log('✅ ThreadManager-Assignment module loaded');
 console.log('🔍 [Assignment] restoreThreadAssignments exists?', typeof window.ThreadManager.restoreThreadAssignments === 'function');
 

@@ -8,6 +8,8 @@
   "html_file": "quote-calculator.html",
   "js_file": "quote-calculator.js",
   "css_file": "quote-calculator.css",
+  "main_tab": true,
+  "main_tab_id": "quote-calculator",
   "module": {
     "main": "quote-calculator.js",
     "class": "QuoteCalculatorModule",

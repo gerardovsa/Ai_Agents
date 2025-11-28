@@ -1,9 +1,15 @@
 """
-UNIVERSAL FILE HANDLER - Core AI Infrastructure
-================================================
+UNIVERSAL FILE HANDLER - Core AI Infrastructure (Enhanced v2.0 - Nov 2025)
+===========================================================================
 
-Universal file processor for ANY file source (email attachments, cloud storage, local files).
+Universal file processor for ANY file source AND file type.
 Automatically chooses optimal method to deliver files to Anthropic Claude.
+
+✨ NEW: Text Extraction for Office Documents (Nov 2025)
+- DOCX, XLSX, PPTX, CSV, JSON, XML, MD, TXT, HTML support
+- NO BASE64 in chat (extracts text instead)
+- Token-optimized: Returns structured text content
+- Avoids token overflow from large documents
 
 Supported Sources:
 - Outlook/Exchange attachments
@@ -11,12 +17,13 @@ Supported Sources:
 - OneDrive files
 - Google Drive files
 - Local filesystem files
-- Direct file uploads
+- Direct file uploads (bytes)
 
 Delivery Methods (auto-selected):
 1. Direct Base64 (< 5MB images/PDFs) → ~800 tokens/MB
-2. Anthropic Files API (5-100MB) → ~50 tokens/file
-3. Cloud Storage URL (>100MB or unsupported) → 0 tokens
+2. Anthropic Files API (5-100MB images/PDFs) → ~50 tokens/file
+3. Text Extraction (DOCX/XLSX/etc.) → ~0.75 words/token, NO BASE64!
+4. Cloud Storage URL (>100MB or unsupported) → 0 tokens
 
 This is the SINGLE SOURCE OF TRUTH for file processing across the entire platform.
 
@@ -75,7 +82,7 @@ class UniversalFileHandler:
     Universal file processor for ANY source, optimized for Anthropic Claude
     """
     
-    # Anthropic-supported content types
+    # Anthropic-supported content types (base64/Files API)
     SUPPORTED_IMAGES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
     SUPPORTED_DOCUMENTS = ['application/pdf']
     
@@ -86,6 +93,28 @@ class UniversalFileHandler:
     
     # Max file size (Anthropic limit)
     MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+    
+    # Text-extractable types (NEW - November 2025)
+    TEXT_EXTRACTABLE_TYPES = [
+        # Documents
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # DOCX
+        'application/msword',  # DOC
+        # Spreadsheets
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  # XLSX
+        'application/vnd.ms-excel',  # XLS
+        'text/csv',
+        # Presentations
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',  # PPTX
+        'application/vnd.ms-powerpoint',  # PPT
+        # Data formats
+        'application/json',
+        'application/xml',
+        'text/xml',
+        # Text formats
+        'text/plain',
+        'text/markdown',
+        'text/html'
+    ]
     
     
     def __init__(self, user_id: Optional[int] = None, **kwargs):
@@ -98,6 +127,9 @@ class UniversalFileHandler:
         """
         self.user_id = user_id
         self.config = kwargs
+        
+        # Initialize text extractor (lazy load)
+        self._text_extractor = None
     
     
     def process_file(self,
@@ -129,20 +161,31 @@ class UniversalFileHandler:
                 - 'auto' (default): Smart detection based on size/type
                 - 'direct': Force base64 content block
                 - 'files_api': Force Anthropic Files API
+                - 'extract': Force text extraction (DOCX, XLSX, etc.)
+                - 'convert_pdf': Convert office documents to PDF
+                - 'convert_image': Convert documents to images (PNG/JPEG)
+                - 'hybrid': Extract text AND create visual (best of both)
                 - 'url': Force cloud storage URL
+            
+            **kwargs: Additional options
+                - image_format: 'png' (default) or 'jpeg' for convert_image
+                - image_dpi: Resolution for images (default: 150)
         
         Returns:
             {
                 'success': bool,
-                'method': 'direct' | 'files_api' | 'url',
-                'content_block': dict | None,  # For direct/files_api
-                'url': str | None,              # For url method
+                'method': 'direct' | 'files_api' | 'extract' | 'convert_pdf' | 'convert_image' | 'hybrid' | 'url',
+                'content_block': dict | None,      # For direct/files_api/extract
+                'content_blocks': list | None,     # For hybrid (multiple blocks)
+                'url': str | None,                 # For url method
                 'metadata': {
                     'name': str,
                     'size': int,
                     'type': str,
                     'token_estimate': int,
-                    'source': str
+                    'source': str,
+                    'extraction_metadata': dict | None,  # For extract method
+                    'conversion_metadata': dict | None   # For convert methods
                 }
             }
         """
@@ -164,12 +207,20 @@ class UniversalFileHandler:
             return self._process_direct_base64(file_data)
         elif mode == 'files_api':
             return self._process_files_api(file_data)
+        elif mode == 'extract':
+            return self._process_text_extraction(file_data)
+        elif mode == 'convert_pdf':
+            return self._process_convert_to_pdf(file_data, **kwargs)
+        elif mode == 'convert_image':
+            return self._process_convert_to_images(file_data, **kwargs)
+        elif mode == 'hybrid':
+            return self._process_hybrid(file_data, **kwargs)
         elif mode == 'url':
             return self._process_cloud_url(file_data, source)
         else:
             return {
                 'success': False,
-                'error': f"Invalid mode: {mode}. Use 'auto', 'direct', 'files_api', or 'url'"
+                'error': f"Invalid mode: {mode}. Use 'auto', 'direct', 'files_api', 'extract', 'convert_pdf', 'convert_image', 'hybrid', or 'url'"
             }
     
     
@@ -430,6 +481,8 @@ class UniversalFileHandler:
                                   size: int) -> str:
         """
         Auto-detect best delivery method based on file type and size
+        
+        NEW (Nov 2025): Text-extractable types use 'extract' mode
         """
         # Check if file is supported by Anthropic directly
         is_supported = (
@@ -437,7 +490,10 @@ class UniversalFileHandler:
             content_type in self.SUPPORTED_DOCUMENTS
         )
         
-        # Size-based decision tree
+        # Check if text extraction is available
+        is_extractable = content_type in self.TEXT_EXTRACTABLE_TYPES
+        
+        # Decision tree
         if is_supported:
             if size < self.DIRECT_THRESHOLD:
                 return 'direct'  # Small, supported → Direct base64
@@ -445,8 +501,11 @@ class UniversalFileHandler:
                 return 'files_api'  # Large, supported → Files API
             else:
                 return 'url'  # Too large → Cloud URL
+        elif is_extractable:
+            # NEW: Text-extractable documents
+            return 'extract'  # Extract text (no base64)
         else:
-            # Unsupported type → Always use URL
+            # Unsupported type → Upload to cloud
             return 'url'
     
     
@@ -500,6 +559,77 @@ class UniversalFileHandler:
                 'source': file_data['source']
             }
         }
+    
+    
+    def _process_text_extraction(self, file_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Method 4 (NEW): Extract text from document (DOCX, XLSX, etc.)
+        ✅ Best for unsupported types - NO BASE64 in chat!
+        
+        Token optimization: Returns structured text instead of base64
+        """
+        try:
+            # Lazy load text extractor
+            if self._text_extractor is None:
+                from AI_infrastructure.core.text_extractor import get_text_extractor
+                self._text_extractor = get_text_extractor()
+            
+            # Extract text with Markdown formatting
+            result = self._text_extractor.extract_text(
+                file_data=file_data['data'],
+                content_type=file_data['content_type'],
+                filename=file_data['name'],
+                max_chars=50000,  # Limit to 50K chars (~12,500 tokens)
+                output_format='markdown'  # Extract with Markdown formatting
+            )
+            
+            if not result['success']:
+                return {
+                    'success': False,
+                    'error': f"Text extraction failed: {result.get('error', 'Unknown error')}"
+                }
+            
+            # Build text content block (no base64!)
+            extracted_text = result['text']
+            metadata = result['metadata']
+            output_format = result.get('format', 'markdown')
+            
+            # Format as readable Markdown text block
+            formatted_text = f"""# 📄 {file_data['name']}
+
+**Type:** {file_data['content_type']}  
+**Size:** {file_data['size']:,} bytes  
+**Words:** {metadata['word_count']:,}  
+**Format:** {output_format.title()}
+
+---
+
+{extracted_text}
+""".strip()
+            
+            return {
+                'success': True,
+                'method': 'extract',
+                'content_block': {
+                    'type': 'text',
+                    'text': formatted_text
+                },
+                'url': None,
+                'metadata': {
+                    'name': file_data['name'],
+                    'size': file_data['size'],
+                    'type': file_data['content_type'],
+                    'token_estimate': metadata['word_count'] // 0.75,  # ~0.75 words per token
+                    'source': file_data['source'],
+                    'extraction_metadata': metadata
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Text extraction error: {str(e)}'
+            }
     
     
     def _process_files_api(self, file_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -668,6 +798,180 @@ class UniversalFileHandler:
             }
         except Exception as e:
             return {'success': False, 'error': f'Google Drive upload error: {str(e)}'}
+    
+    
+    # ==================== DOCUMENT CONVERSION METHODS ====================
+    
+    def _process_convert_to_pdf(self, file_data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        """Convert office document to PDF"""
+        try:
+            from AI_infrastructure.core.document_converter import get_document_converter
+            
+            converter = get_document_converter()
+            
+            # Convert to PDF
+            result = converter.convert_to_pdf(
+                file_data=file_data['data'],
+                content_type=file_data['content_type'],
+                filename=file_data['name']
+            )
+            
+            if not result['success']:
+                return result
+            
+            # Get PDF data
+            pdf_file = result['files'][0]
+            
+            # Determine delivery method for PDF
+            if pdf_file['size'] < self.DIRECT_THRESHOLD:
+                # Small PDF - send as base64
+                pdf_base64 = base64.b64encode(pdf_file['data']).decode('utf-8')
+                
+                return {
+                    'success': True,
+                    'method': 'convert_pdf',
+                    'content_block': {
+                        'type': 'document',
+                        'source': {
+                            'type': 'base64',
+                            'media_type': 'application/pdf',
+                            'data': pdf_base64
+                        }
+                    },
+                    'metadata': {
+                        'name': pdf_file['name'],
+                        'size': pdf_file['size'],
+                        'type': 'application/pdf',
+                        'token_estimate': self._estimate_tokens(pdf_file['size'], 'document'),
+                        'source': file_data.get('source', 'unknown'),
+                        'conversion_metadata': result.get('metadata')
+                    }
+                }
+            else:
+                # Large PDF - use Files API
+                return self._process_files_api({
+                    'success': True,
+                    'name': pdf_file['name'],
+                    'data': pdf_file['data'],
+                    'size': pdf_file['size'],
+                    'content_type': 'application/pdf'
+                })
+        
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'PDF conversion failed: {str(e)}'
+            }
+    
+    
+    def _process_convert_to_images(self, file_data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        """Convert office document to images"""
+        try:
+            from AI_infrastructure.core.document_converter import get_document_converter
+            
+            converter = get_document_converter()
+            
+            # Get options
+            image_format = kwargs.get('image_format', 'png')
+            image_dpi = kwargs.get('image_dpi', 150)
+            
+            # Convert to images
+            result = converter.convert_to_images(
+                file_data=file_data['data'],
+                content_type=file_data['content_type'],
+                filename=file_data['name'],
+                format=image_format,
+                dpi=image_dpi
+            )
+            
+            if not result['success']:
+                return result
+            
+            # Process each image
+            content_blocks = []
+            total_tokens = 0
+            
+            for img in result['files']:
+                img_base64 = base64.b64encode(img['data']).decode('utf-8')
+                
+                content_blocks.append({
+                    'type': 'image',
+                    'source': {
+                        'type': 'base64',
+                        'media_type': img['content_type'],
+                        'data': img_base64
+                    }
+                })
+                
+                total_tokens += self._estimate_tokens(img['size'], 'image')
+            
+            return {
+                'success': True,
+                'method': 'convert_image',
+                'content_blocks': content_blocks,
+                'metadata': {
+                    'name': file_data['name'],
+                    'size': file_data['size'],
+                    'type': file_data['content_type'],
+                    'image_count': len(content_blocks),
+                    'image_format': image_format,
+                    'token_estimate': total_tokens,
+                    'source': file_data.get('source', 'unknown'),
+                    'conversion_metadata': result.get('metadata')
+                }
+            }
+        
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Image conversion failed: {str(e)}'
+            }
+    
+    
+    def _process_hybrid(self, file_data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        """Hybrid: Extract text AND create visual (best of both worlds)"""
+        try:
+            # Step 1: Extract text
+            text_result = self._process_text_extraction(file_data)
+            
+            if not text_result['success']:
+                return text_result
+            
+            # Step 2: Create visual (convert to image)
+            visual_result = self._process_convert_to_images(file_data, **kwargs)
+            
+            if not visual_result['success']:
+                # Fallback to text only if visual conversion fails
+                return text_result
+            
+            # Step 3: Combine both
+            # Return text content block + image content blocks
+            content_blocks = [text_result['content_block']] + visual_result['content_blocks']
+            
+            return {
+                'success': True,
+                'method': 'hybrid',
+                'content_blocks': content_blocks,
+                'metadata': {
+                    'name': file_data['name'],
+                    'size': file_data['size'],
+                    'type': file_data['content_type'],
+                    'token_estimate': (
+                        text_result['metadata']['token_estimate'] +
+                        visual_result['metadata']['token_estimate']
+                    ),
+                    'source': file_data.get('source', 'unknown'),
+                    'extraction_metadata': text_result['metadata'].get('extraction_metadata'),
+                    'conversion_metadata': visual_result['metadata'].get('conversion_metadata'),
+                    'mode': 'hybrid (text + visual)'
+                }
+            }
+        
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Hybrid processing failed: {str(e)}'
+            }
     
     
     # ==================== UTILITY FUNCTIONS ====================

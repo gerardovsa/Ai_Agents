@@ -343,7 +343,22 @@ def get_module_info(module_id: str):
             'requires_auth': module.requires_auth,
             'dependencies': module.dependencies,
             'api_routes': module.api_routes,
-            'features': module.features
+            'features': module.features,
+            # File paths for loading assets
+            'html_file': module.html_file,
+            'js_file': module.js_file,
+            'css_file': module.css_file,
+            'htmlPath': module.htmlPath,
+            'scriptPath': module.scriptPath,
+            'stylePath': module.stylePath,
+            # UI configuration
+            'floating_toggle': getattr(module, 'floating_toggle', False),
+            'floating_toggle_position': getattr(module, 'floating_toggle_position', 'right'),
+            'floating_toggle_default_top': getattr(module, 'floating_toggle_default_top', 280),
+            'main_tab': getattr(module, 'main_tab', False),
+            'main_tab_id': getattr(module, 'main_tab_id', module.id),
+            'show_in_sidebar': getattr(module, 'show_in_sidebar', True),
+            'module_path': module.module_path
         })
     
     except Exception as e:
