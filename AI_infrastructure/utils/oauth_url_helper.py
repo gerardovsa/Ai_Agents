@@ -11,7 +11,8 @@ Detection Priority:
 2. Referer header - Where user came from
 3. Origin header - Browser-provided origin
 4. FRONTEND_URL env var - Manual override
-5. request.url_root - Fallback (service name)
+5. Version detection (v10, v11, etc.) - Auto-constructed URL
+6. request.url_root - Fallback (service name)
 
 Usage:
     from AI_infrastructure.utils.oauth_url_helper import get_frontend_url, capture_oauth_origin
@@ -27,6 +28,14 @@ Usage:
 import os
 from urllib.parse import urlparse
 from flask import request, session
+
+# Import version detector for fallback
+try:
+    from AI_infrastructure.utils.version_detector import get_version_detector
+    VERSION_DETECTION_AVAILABLE = True
+except ImportError:
+    VERSION_DETECTION_AVAILABLE = False
+    print("⚠️  [OAuth URL] version_detector not available - version fallback disabled")
 
 
 def capture_oauth_origin(request_obj, session_obj):
@@ -106,7 +115,18 @@ def get_frontend_url(request_obj, session_obj=None):
         frontend_url = os.getenv('FRONTEND_URL')
         detection_method = "FRONTEND_URL env var"
     
-    # Priority 5: request.url_root (fallback - may return service name)
+    # Priority 5: Version detection (auto-construct URL from branch name)
+    if not frontend_url and VERSION_DETECTION_AVAILABLE:
+        try:
+            detector = get_version_detector()
+            expected_url = detector.get_expected_frontend_url()
+            if expected_url:
+                frontend_url = expected_url
+                detection_method = f"version detector (v{detector.get_version_number()})"
+        except Exception as e:
+            print(f"⚠️  [OAuth URL] Version detection failed: {e}")
+    
+    # Priority 6: request.url_root (fallback - may return service name)
     if not frontend_url:
         frontend_url = request_obj.url_root.rstrip('/')
         detection_method = "request.url_root (fallback)"
