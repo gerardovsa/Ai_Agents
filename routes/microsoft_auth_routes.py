@@ -15,8 +15,18 @@ microsoft_auth_bp = Blueprint('microsoft_auth', __name__)
 # Microsoft OAuth Configuration
 MICROSOFT_CLIENT_ID = os.getenv('MICROSOFT_CLIENT_ID')
 MICROSOFT_CLIENT_SECRET = os.getenv('MICROSOFT_CLIENT_SECRET')
-MICROSOFT_REDIRECT_URI = os.getenv('MICROSOFT_REDIRECT_URI', 'http://localhost:5001/api/auth/microsoft/callback')
 MICROSOFT_TENANT = os.getenv('MICROSOFT_TENANT', 'common')  # 'common', 'organizations', or tenant ID
+
+def get_dynamic_redirect_uri(path='/api/auth/microsoft/callback'):
+    """Build redirect URI dynamically from incoming request"""
+    # Detect base URL from request
+    base_url = request.url_root.rstrip('/')
+    
+    # Force HTTPS on Render.com
+    if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
+        base_url = base_url.replace('http://', 'https://')
+    
+    return base_url + path
 
 # Microsoft OAuth Endpoints
 MICROSOFT_AUTH_URL = f'https://login.microsoftonline.com/{MICROSOFT_TENANT}/oauth2/v2.0/authorize'
@@ -76,11 +86,19 @@ def microsoft_login():
     # Store user_id in session for callback
     session['microsoft_auth_user_id'] = user_id
     
+    # Build redirect URI dynamically from current request
+    redirect_uri = get_dynamic_redirect_uri()
+    
+    # Store redirect URI in session for callback verification
+    session['microsoft_redirect_uri'] = redirect_uri
+    
+    print(f"🔄 [Microsoft OAuth] Dynamic redirect URI: {redirect_uri}")
+    
     # Build authorization URL
     params = {
         'client_id': MICROSOFT_CLIENT_ID,
         'response_type': 'code',
-        'redirect_uri': MICROSOFT_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'scope': ' '.join(MICROSOFT_SCOPES),
         'response_mode': 'query',
         'state': user_id  # Pass user_id as state for verification
@@ -123,12 +141,17 @@ def microsoft_callback():
     
     user_id = state
     
+    # Get redirect URI from session (set during login)
+    redirect_uri = session.get('microsoft_redirect_uri') or get_dynamic_redirect_uri()
+    
+    print(f"🔄 [Microsoft Callback] Using redirect URI: {redirect_uri}")
+    
     # Exchange code for tokens
     token_data = {
         'client_id': MICROSOFT_CLIENT_ID,
         'client_secret': MICROSOFT_CLIENT_SECRET,
         'code': code,
-        'redirect_uri': MICROSOFT_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'grant_type': 'authorization_code'
     }
     

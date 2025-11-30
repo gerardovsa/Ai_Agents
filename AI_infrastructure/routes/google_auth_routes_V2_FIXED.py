@@ -39,6 +39,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.db_path_helper import get_ai_infrastructure_db_path
 from shared.database_utils import get_database_connection, convert_sql_placeholders, is_using_supabase
+from AI_infrastructure.utils.oauth_url_helper import get_frontend_url, capture_oauth_origin
 
 google_auth_bp = Blueprint('google_auth', __name__, url_prefix='/api/auth/google')
 
@@ -104,7 +105,11 @@ GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/forms.body',
     'https://www.googleapis.com/auth/forms.responses.readonly',
     # Tasks
-    'https://www.googleapis.com/auth/tasks'
+    'https://www.googleapis.com/auth/tasks',
+    # Google Apps Script API - full access
+    'https://www.googleapis.com/auth/script.projects',
+    'https://www.googleapis.com/auth/script.processes',
+    'https://www.googleapis.com/auth/script.deployments'
 ]
 
 # ============================================================================
@@ -262,16 +267,18 @@ def create_user(email, username=None):
             username = f"{username}_{random.randint(1000, 9999)}"
             print(f'ℹ️ Username collision, using: {username}')
         
+        # Create user with all necessary fields including is_active and permissions
         cursor.execute('''
-            INSERT INTO ai_infrastructure.users (username, email, password_hash, role) 
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO ai_infrastructure.users 
+            (username, email, password_hash, role, is_active, permissions, has_google_oauth) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (username, email, 'oauth_google', 'user'))
+        ''', (username, email, 'oauth_google', 'user', True, 'user', True))
         
         user_id = cursor.fetchone()['id']
         conn.commit()
         
-        print(f'✅ Created new user: {username} (ID: {user_id})')
+        print(f'✅ Created new user: {username} (ID: {user_id}) with active=TRUE, permissions=user')
         return user_id
     except sqlite3.IntegrityError as e:
         print(f'❌ [DB ERROR] Integrity constraint violation: {e}')
@@ -396,14 +403,8 @@ def google_login():
                 # If token is still valid (not expired), skip OAuth
                 if datetime.utcnow() < expires_at:
                     print('✅ 🔓🔓 [GOOGLE OAUTH] User already has valid tokens - skipping OAuth')
-                    # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
-                    frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
-                    if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
-                        frontend_url = frontend_url.replace('http://', 'https://')
-                    # Force HTTP for localhost to prevent browser HTTPS upgrade
-                    if 'localhost' in request.host or '127.0.0.1' in request.host:
-                        frontend_url = frontend_url.replace('https://', 'http://')
-                    print(f'🔀 [GOOGLE OAUTH] Redirecting to: {frontend_url}')
+                    # SMART URL DETECTION: Automatically detect frontend URL
+                    frontend_url = get_frontend_url(request, session)
                     return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=already_connected')
                 
                 # If token expired but we have refresh_token, auto-refresh
@@ -417,6 +418,8 @@ def google_login():
     # ====================================================================
     # PROCEED WITH OAUTH FLOW
     # ====================================================================
+    # CAPTURE ORIGIN URL: Store where user started OAuth (for redirect back)
+    capture_oauth_origin(request, session)
     # Generate CSRF protection state
     state = secrets.token_urlsafe(32)
     
@@ -493,11 +496,12 @@ def google_callback():
     state = request.args.get('state')
     stored_state = None
     
+    conn_state = None  # CRITICAL FIX: Initialize connection variable for finally block
     try:
         from shared.database_utils import convert_sql_placeholders, is_using_supabase
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        conn_state = get_db_connection()
+        cursor = conn_state.cursor()
         
         # Use database-agnostic SQL
         if is_using_supabase():
@@ -521,14 +525,20 @@ def google_callback():
             )
             cursor.execute(delete_sql, delete_params)
         
-        conn.commit()
-        conn.close()
+        conn_state.commit()
     except Exception as e:
         print(f'⚠️ Failed to retrieve OAuth state from database: {e}')
         import traceback
         traceback.print_exc()
         # Fallback to Flask session
         stored_state = session.get('google_oauth_state')
+    finally:
+        # CRITICAL FIX: Always close connection, even if exception occurs
+        if conn_state:
+            try:
+                conn_state.close()
+            except:
+                pass
     
     # Build frontend URL based on environment
     # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
@@ -549,6 +559,7 @@ def google_callback():
         print(f' [GOOGLE OAUTH] No authorization code: {error}')
         return redirect(f'{frontend_url}/?error={error}')
     
+    conn = None  # CRITICAL FIX: Initialize connection variable for finally block
     try:
         # ====================================================================
         # STEP 1: Exchange code for tokens
@@ -624,12 +635,8 @@ def google_callback():
             except Exception as e:
                 print(f'❌ [GOOGLE OAUTH] Failed to create user: {e}')
                 from urllib.parse import quote
-                # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
-                frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
-                if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
-                    frontend_url = frontend_url.replace('http://', 'https://')
-                if 'localhost' in request.host or '127.0.0.1' in request.host:
-                    frontend_url = frontend_url.replace('https://', 'http://')
+                # SMART URL DETECTION: Automatically detect frontend URL
+                frontend_url = get_frontend_url(request, session)
                 error_msg = quote(str(e).replace('\n', ' '))
                 return redirect(f'{frontend_url}/?error=user_creation_failed&message={error_msg}')
         
@@ -771,30 +778,16 @@ def google_callback():
         # ====================================================================
         print('✅ 🔓🔓 [GOOGLE OAUTH] OAuth flow complete - redirecting to app')
         
-        # CRITICAL: Redirect to correct frontend URL based on environment
-        # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
-        frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
-        if 'onrender.com' in request.host:
-            frontend_url = frontend_url.replace('http://', 'https://')
-        
-        # Force HTTP for localhost to prevent browser HTTPS upgrade
-        if 'localhost' in request.host or '127.0.0.1' in request.host:
-            frontend_url = frontend_url.replace('https://', 'http://')
-        
-        print(f'🔀 [GOOGLE OAUTH] Redirecting to: {frontend_url}')
+        # SMART URL DETECTION: Automatically detect frontend URL
+        frontend_url = get_frontend_url(request, session)
         return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=connected')
         
     except requests.exceptions.HTTPError as e:
         print(f' [GOOGLE OAUTH] HTTP error: {str(e)}')
         print(f'   Response: {e.response.text if hasattr(e, "response") else "No response"}')
         
-        # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
-        frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
-        if 'onrender.com' in request.host:
-            frontend_url = frontend_url.replace('http://', 'https://')
-        if 'localhost' in request.host or '127.0.0.1' in request.host:
-            frontend_url = frontend_url.replace('https://', 'http://')
-        
+        # SMART URL DETECTION: Automatically detect frontend URL
+        frontend_url = get_frontend_url(request, session)
         return redirect(f'{frontend_url}/?error=http_error')
     
     except Exception as e:
@@ -802,14 +795,16 @@ def google_callback():
         import traceback
         traceback.print_exc()
         
-        # Use FRONTEND_URL env var if set (for custom Render URLs like v10)
-        frontend_url = os.getenv('FRONTEND_URL') or request.url_root.rstrip('/')
-        if 'onrender.com' in request.host:
-            frontend_url = frontend_url.replace('http://', 'https://')
-        if 'localhost' in request.host or '127.0.0.1' in request.host:
-            frontend_url = frontend_url.replace('https://', 'http://')
-        
+        # SMART URL DETECTION: Automatically detect frontend URL
+        frontend_url = get_frontend_url(request, session)
         return redirect(f'{frontend_url}/?error=oauth_failed')
+    finally:
+        # CRITICAL FIX: Always close connection, even if exception occurs
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 @google_auth_bp.route('/status')
 def google_status():
