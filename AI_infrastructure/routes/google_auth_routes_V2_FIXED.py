@@ -105,11 +105,7 @@ GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/forms.body',
     'https://www.googleapis.com/auth/forms.responses.readonly',
     # Tasks
-    'https://www.googleapis.com/auth/tasks',
-    # Google Apps Script API - full access
-    'https://www.googleapis.com/auth/script.projects',
-    'https://www.googleapis.com/auth/script.processes',
-    'https://www.googleapis.com/auth/script.deployments'
+    'https://www.googleapis.com/auth/tasks'
 ]
 
 # ============================================================================

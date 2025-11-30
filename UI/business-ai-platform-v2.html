@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -80,31 +80,31 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- ✨ Status Indicator - Bottom-left loading/connection status -->
-    <link rel="stylesheet" href="css/status-indicator.css">
-    <script src="js/status-indicator.js"></script>
+    <link rel="stylesheet" href="shared/css/status-indicator.css">
+    <script src="shared/js/status-indicator.js"></script>
 
     <!-- ✨ NEW: Supabase Connection Manager - MUST LOAD BEFORE REALTIME MODULES -->
     <!-- Prevents duplicate connections, adds health monitoring and auto-reconnect -->
-    <script src="js/supabase-connection-manager.js?v=20251124O"></script>
+    <script src="shared/js/supabase-connection-manager.js?v=20251124O"></script>
 
     <!-- ✨ NEW: Supabase Heartbeat Listener - Server-side heartbeat system -->
     <!-- Listens to pg_cron broadcasts every 60s, detects stale connections -->
-    <script src="js/supabase-heartbeat-listener.js?v=20251124A"></script>
+    <script src="shared/js/supabase-heartbeat-listener.js?v=20251124A"></script>
 
     <!-- Socket.IO Client for Real-Time WebSocket Communication -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" crossorigin="anonymous"></script>
 
     <!-- Data Loader - Centralized data loading with caching and batching -->
-    <script src="js/data-loader.js"></script>
+    <script src="shared/js/data-loader.js"></script>
 
     <!-- ✨ VOICE TRANSCRIPTION MODULES -->
-    <link rel="stylesheet" href="modules/transcription/transcription-streaming-container.css">
-    <link rel="stylesheet" href="modules/transcription/transcription-sidebar.css">
-    <link rel="stylesheet" href="modules/transcription/stt-module.css">
-    <link rel="stylesheet" href="modules/transcription/tts-module.css">
+    <link rel="stylesheet" href="modules_internal/transcription/transcription-streaming-container.css">
+    <link rel="stylesheet" href="modules_internal/transcription/transcription-sidebar.css">
+    <link rel="stylesheet" href="modules_internal/transcription/stt-module.css">
+    <link rel="stylesheet" href="modules_internal/transcription/tts-module.css">
 
     <!-- Synergy Real-Time WebSocket Manager -->
-    <script src="js/synergy-realtime.js"></script>
+    <script src="shared/js/synergy-realtime.js"></script>
 
     <!-- ==================== RENDER CONFIGURATION (LOAD FIRST) ==================== -->
     <!-- Auto-detect environment and use appropriate API endpoints -->
@@ -122,18 +122,18 @@
 
     <!-- ==================== UI STANDARDIZATION ==================== -->
     <!-- Standardized UI components: metrics, subtabs, buttons, badges -->
-    <link rel="stylesheet" href="css/ui-standardization.css">
+    <link rel="stylesheet" href="shared/css/ui-standardization.css">
 
     <!-- ==================== UNIVERSAL SIDEBAR FRAMEWORK ==================== -->
     <!-- Centralized system for all module sidebars with consistent behavior -->
-    <link rel="stylesheet" href="modules/sidebar-framework/sidebar-manager.css">
-    <script src="modules/sidebar-framework/sidebar-manager.js"></script>
-    <script src="modules/sidebar-framework/sidebar-init.js"></script>
+    <link rel="stylesheet" href="shared/sidebar-framework/sidebar-manager.css">
+    <script src="shared/sidebar-framework/sidebar-manager.js"></script>
+    <script src="shared/sidebar-framework/sidebar-init.js"></script>
 
     <!-- ==================== PROMPT LIBRARY MODULE ==================== -->
     <!-- Modular prompt library feature with Font Awesome icons -->
-    <link rel="stylesheet" href="modules/prompt-library/prompt-library.css">
-    <script src="modules/prompt-library/prompt-library.js"></script>
+    <link rel="stylesheet" href="modules_internal/prompt-library/prompt-library.css">
+    <script src="modules_internal/prompt-library/prompt-library.js"></script>
 
     <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
     <!-- Error recovery control system with toggles and statistics -->
@@ -141,8 +141,8 @@
     <!-- NOTE: Using Universal Sidebar Framework for consistent behavior -->
     <!-- Depends on BaseModule which was archived - will migrate to new module system -->
     <!-- <script src="js/module-base.js?v=20251124d"></script> -->
-    <!-- <link rel="stylesheet" href="external/modules/settings-sidebar/settings-sidebar.css?v=20251124d"> -->
-    <!-- <script src="external/modules/settings-sidebar/settings-sidebar.js?v=20251124d"></script> -->
+    <!-- <link rel="stylesheet" href="modules_internal/settings-sidebar/settings-sidebar.css?v=20251124d"> -->
+    <!-- <script src="modules_internal/settings-sidebar/settings-sidebar.js?v=20251124d"></script> -->
 
     <!-- Initialize Settings Sidebar Module -->
     <!-- DISABLED - Settings Sidebar depends on BaseModule which was archived -->
@@ -171,27 +171,29 @@
 
     <!-- ==================== AUTOMATION WORKFLOWS MODULE ==================== -->
     <!-- Visual automation canvas with drag-and-drop flow builder -->
-    <link rel="stylesheet" href="modules/automation-workflows/automation-workflows.css">
-    <script src="modules/automation-workflows/automation-workflows.js" defer></script>
-    <script src="modules/automation-workflows/automation-canvas-extensions.js" defer></script>
+    <link rel="stylesheet" href="modules_internal/automation-workflows/automation-workflows.css">
+    <script src="modules_internal/automation-workflows/automation-workflows.js" defer></script>
+    <script src="modules_internal/automation-workflows/automation-canvas-extensions.js" defer></script>
+
+    <!-- Automation auto-initializes via window.automationCanvas -->
 
     <!-- ==================== VECTOR DATABASE MODULE ==================== -->
     <!-- Built-in vector database management with Pinecone + OpenAI -->
-    <link rel="stylesheet" href="modules/vector_database/vector_database.css">
-    <script src="modules/vector_database/vector_database.js" defer></script>
+    <!-- REMOVED: Now loaded via ModuleLoaderV4 (framework: v4) -->
+    <!-- CSS and JS loaded dynamically on demand -->
 
-    <!-- ==================== DEBUG MODULE ==================== -->
+    <!-- ==================== DEBUG MODULE - DEACTIVATED ==================== -->
     <!-- Advanced debugging tools for thread persistence and message tracking -->
-    <link rel="stylesheet" href="external/modules/debug-module/debug-module.css">
-    <script src="external/modules/debug-module/debug-module.js"></script>
+    <!-- DEACTIVATED: Debug module temporarily disabled for testing -->
+    <!-- <link rel="stylesheet" href="modules_internal/debug-module/debug-module.css"> -->
+    <!-- <script src="modules_internal/debug-module/debug-module.js"></script> -->
 
-    <!-- Initialize Debug Module -->
-    <script>
+    <!-- Initialize Debug Module - DEACTIVATED -->
+    <!-- <script>
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof DebugModule !== 'undefined') {
                 console.log('[Debug] Initializing DebugModule...');
                 try {
-                    // Initialize module (loads HTML template dynamically)
                     await DebugModule.init();
                     console.log('[Debug] DebugModule ready');
                 } catch (error) {
@@ -201,104 +203,244 @@
                 console.error('[Debug] DebugModule not found!');
             }
         });
-    </script>
+    </script> -->
 
     <!-- ==================== THREAD CARD STYLES MODULE ==================== -->
     <!-- Unified thread card styling for Prime, Agents, Synergy (Phase 1: CSS Extraction) -->
-    <link rel="stylesheet" href="modules/thread-cards/thread-card-styles.css?v=20251124143423">
+    <link rel="stylesheet" href="modules_internal/thread-cards/thread-card-styles.css?v=20251124143423">
 
     <!-- ==================== THREAD MANAGER STYLES ==================== -->
     <!-- Core thread management styles (menus, modals, filters, etc.) -->
-    <link rel="stylesheet" href="modules/thread-manager/thread.css">
+    <link rel="stylesheet" href="modules_internal/thread-manager/thread.css">
 
     <!-- ==================== THREAD CARD REGISTRY MODULE ==================== -->
     <!-- Central registry for thread card integrations from all modules (NEW - Nov 28, 2025) -->
-    <script src="modules/thread-cards/thread-card-registry.js?v=20251128"></script>
+    <script src="modules_internal/thread-cards/thread-card-registry.js?v=20251128"></script>
 
     <!-- ==================== THREAD CARD TEMPLATES MODULE ==================== -->
     <!-- HTML template generation for thread cards (Phase 2: Template Extraction) -->
-    <script src="modules/thread-cards/thread-card-templates.js?v=20251124141959"></script>
+    <script src="modules_internal/thread-cards/thread-card-templates.js?v=20251201"></script>
 
     <!-- ==================== THREAD CARD EXPANSION MODULE ==================== -->
     <!-- Click-based expansion controller (replaces hover behavior) -->
-    <script src="modules/thread-cards/thread-card-expansion.js?v=20251124141959"></script>
+    <script src="modules_internal/thread-cards/thread-card-expansion.js?v=20251124141959"></script>
 
     <!-- ==================== THREAD LOCK TOGGLE MODULE ==================== -->
     <!-- Lock/Unlock toggle button functionality for thread cards -->
-    <script src="modules/thread-cards/thread-lock-toggle.js?v=20251120"></script>
+    <script src="modules_internal/thread-cards/thread-lock-toggle.js?v=20251120"></script>
 
     <!-- ==================== THREAD CARD REALTIME MODULE ==================== -->
     <!-- Supabase Realtime subscriptions for auto-refresh (Phase 3: Realtime Integration) -->
-    <script src="modules/thread-cards/thread-card-realtime.js"></script>
+    <script src="modules_internal/thread-cards/thread-card-realtime.js"></script>
 
     <!-- ==================== THREAD CARD ACTIONS MODULE ==================== -->
     <!-- Action handlers for thread operations (Phase 4: Action Handler Extraction) -->
-    <script src="modules/thread-cards/thread-card-actions.js"></script>
+    <script src="modules_internal/thread-cards/thread-card-actions.js"></script>
+
+    <!-- Thread Cards auto-initialize via window.ThreadCardRegistry, window.ThreadCardTemplates, etc. -->
 
     <!-- ==================== SYNERGY MODULE (Nov 2025) ==================== -->
     <!-- Synergy session management with milestone-based task hierarchy -->
-    <script src="modules/synergy/synergy-board-init.js"></script>
-    <script src="modules/synergy/synergy-functions.js"></script>
+    <script src="modules_internal/synergy/synergy-board-init.js"></script>
+    <script src="modules_internal/synergy/synergy-functions.js"></script>
     <!-- FLAT SPACING RENDERER V2 (Nov 24, 2025) - Two-row structure, inline editing -->
-    <script src="modules/synergy/synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445"></script>
-    <script src="modules/synergy/synergy-inline-edit.js?v=20251124_1445"></script>
-    <script src="modules/synergy/synergy-card-renderer.js"></script>
-    <script src="modules/synergy/synergy-milestone-renderer.js"></script>
-    <script src="modules/synergy/synergy-milestone-interactions.js"></script>
-    <script src="modules/synergy/synergy-sidebar-controller.js"></script>
-    <script src="modules/synergy/synergy-popup-modal.js"></script>
+    <script src="modules_internal/synergy/synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445"></script>
+    <script src="modules_internal/synergy/synergy-inline-edit.js?v=20251124_1445"></script>
+    <script src="modules_internal/synergy/synergy-card-renderer.js"></script>
+    <script src="modules_internal/synergy/synergy-milestone-renderer.js"></script>
+    <script src="modules_internal/synergy/synergy-milestone-interactions.js"></script>
+    <script src="modules_internal/synergy/synergy-sidebar-controller.js"></script>
+    <script src="modules_internal/synergy/synergy-popup-modal.js"></script>
     <!-- REQUIRED: Popup modal for creating/editing sessions -->
-    <script src="modules/synergy/thread_synergy.js"></script>
+    <script src="modules_internal/synergy/thread_synergy.js"></script>
     <!-- FLAT SPACING CSS V2 (Nov 24, 2025) - Two-row structure, 400px width -->
-    <link rel="stylesheet" href="modules/synergy/synergy-flat-spacing.css?v=20251124_1500">
-    <link rel="stylesheet" href="modules/synergy/synergy-milestone-styles.css">
-    <link rel="stylesheet" href="modules/synergy/synergy-popup-modal.css">
+    <link rel="stylesheet" href="modules_internal/synergy/synergy-flat-spacing.css?v=20251124_1500">
+    <link rel="stylesheet" href="modules_internal/synergy/synergy-milestone-styles.css">
+    <link rel="stylesheet" href="modules_internal/synergy/synergy-popup-modal.css">
     <!-- REQUIRED: Popup modal styling -->
-    <link rel="stylesheet" href="modules/synergy/synergy-doc-picker.css?v=20251124">
+    <link rel="stylesheet" href="modules_internal/synergy/synergy-doc-picker.css?v=20251124">
     <!-- NEW: Document picker -->
-    <script src="modules/synergy/synergy-doc-picker.js?v=20251124"></script> <!-- NEW: Document picker -->
-    <script src="modules/synergy/synergy-thread-integration.js?v=20251128"></script>
+    <script src="modules_internal/synergy/synergy-doc-picker.js?v=20251124"></script> <!-- NEW: Document picker -->
+    <script src="modules_internal/synergy/synergy-thread-integration.js?v=20251128"></script>
+
+    <!-- Initialize Synergy -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof SynergyManager !== 'undefined') {
+                window.synergyManager = new SynergyManager();
+                console.log('✅ [INIT] SynergyManager initialized');
+            } else {
+                console.warn('⚠️ [INIT] SynergyManager not found');
+            }
+        });
+    </script>
+
+    <script src="modules_internal/workflow/workflow-thread-integration.js?v=20251129"></script>
+    <script src="modules_internal/automation-workflows/automation-thread-integration.js?v=20251129"></script>
+
+    <!-- NEW: Enhanced Modal Interfaces (matching synergy-sync-modal UX) -->
+    <script src="modules_internal/workflow/workflow-link-modal.js?v=20251129"></script>
+    <script src="modules_internal/automation/automation-link-modal.js?v=20251129"></script>
+    <script src="modules_internal/internal-docs/internal-docs-link-modal.js?v=20251129"></script>
+    <!-- NEW: Automation badge integration -->
+    <script src="modules_internal/internal_docs/docs-thread-integration.js?v=20251129"></script>
+    <!-- NEW: Internal docs badge integration -->
     <!-- NEW: Thread card integration handlers -->
+
+    <!-- Initialize Workflow -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof WorkflowManager !== 'undefined') {
+                window.workflowManager = new WorkflowManager();
+                console.log('✅ [INIT] WorkflowManager initialized');
+            } else {
+                console.warn('⚠️ [INIT] WorkflowManager not found');
+            }
+        });
+    </script>
+
+    <!-- ==================== COMMUNICATION HUB (CORE COMPONENT - Dec 2025) ==================== -->
+    <!-- Communication Hub: Thread management, messaging, and collaboration hub -->
+    <link rel="stylesheet" href="modules_internal/communication-hub/communication-hub.css?v=20251201">
+    <script type="module">
+        // Load Communication Hub as core component (not lazy-loaded module)
+        import CommunicationHub from './modules_internal/communication-hub/communication-hub-v4-modern.js?v=20251201';
+
+        // Initialize when DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => initCommunicationHub());
+        } else {
+            initCommunicationHub();
+        }
+
+        function initCommunicationHub() {
+            console.log('🔷 [CORE] Initializing Communication Hub...');
+
+            // Make globally accessible
+            window.communicationHub = CommunicationHub;
+
+            // Auto-initialize dashboard if container exists
+            const container = document.getElementById('communication-main-container');
+            if (container && typeof CommunicationHub.initialize === 'function') {
+                try {
+                    CommunicationHub.initialize('communication-main-container');
+                    console.log('✅ [CORE] Communication Hub initialized');
+                } catch (error) {
+                    console.error('❌ [CORE] Communication Hub init failed:', error);
+                }
+            }
+        }
+    </script>
 
     <!-- ==================== SHARED MODULES (Nov 2025) ==================== -->
     <!-- Unified message rendering for Prime and Agent columns -->
-    <script src="modules/shared/message_renderer.js?v=20251121"></script>
+    <script src="shared/utilities/message_renderer.js?v=20251121"></script>
 
     <!-- ==================== USER AUTHENTICATION (Must Load FIRST) ==================== -->
     <!-- Defines window.UserAuth object required by thread_manager.js and other modules -->
-    <script src="modules/components/user_auth.js?v=20251128b"></script>
+    <script src="modules_internal/components/user_auth.js?v=20251128b"></script>
 
     <!-- ==================== THREAD COMPONENTS (Load After UserAuth) ==================== -->
     <!-- Additional thread system components -->
-    <script src="modules/components/device_lock_manager.js"></script>
-    <script src="modules/components/message_store.js"></script>
-    <script src="modules/components/thread_loader.js?v=20251122q"></script>
-    <script src="modules/components/account_profile.js?v=20251124j"></script>
+    <script src="modules_internal/components/device_lock_manager.js"></script>
+    <script src="modules_internal/components/message_store.js"></script>
+    <script src="modules_internal/components/thread_loader.js?v=20251122q"></script>
+    <script src="modules_internal/components/account_profile.js?v=20251124j"></script>
 
     <!-- ==================== AUTOMATION SETTINGS SYSTEM (Nov 28, 2025) ==================== -->
-    <link rel="stylesheet" href="modules/components/automation-settings.css">
-    <script src="modules/components/automation-settings-sync.js"></script>
-    <script src="modules/components/automations.js"></script>
+    <link rel="stylesheet" href="modules_internal/components/automation-settings.css">
+    <script src="modules_internal/components/automation-settings-sync.js"></script>
+    <script src="modules_internal/components/automations.js"></script>
 
-    <!-- ==================== NEW MODULE SYSTEM (Self-Registering - Nov 25, 2025) ==================== -->
-    <!-- Automatic module discovery from frontend/modules/ directory -->
-    <script src="modules/module_loader.js"></script>
+    <!-- ==================== MODULE SYSTEM V4 (Composition-Based - Nov 30, 2025) ==================== -->
+    <!-- Pre-loader: Define window.initializeModuleSystem BEFORE module loads -->
     <script>
+        // CRITICAL: This runs synchronously BEFORE the ES6 module loads
+        // Creates a promise-based queue so user_auth.js can call it immediately
+        (function () {
+            let moduleLoaderReady = false;
+            let pendingInitializations = [];
+
+            // Public API that works even before module loads
+            window.initializeModuleSystem = async function (forceReload = false) {
+                console.log('🔷 [initializeModuleSystem] Called (moduleLoaderReady:', moduleLoaderReady, ', forceReload:', forceReload, ')');
+
+                // ✅ FIX: Use window.moduleLoader (instance) instead of window.ModuleLoaderV4 (class)
+                if (moduleLoaderReady && window.moduleLoader) {
+                    // Module is ready, initialize directly
+                    if (window.moduleLoader.initialized && !forceReload) {
+                        console.log('✅ [initializeModuleSystem] Already initialized');
+                        return;
+                    }
+
+                    const userId = window.UserAuth?.user?.id || window.UserAuth?.user?.user_id || parseInt(localStorage.getItem('user_id')) || 1;
+                    console.log(`🔷 [initializeModuleSystem] Initializing for user ${userId}...`);
+                    await window.moduleLoader.initialize(userId);
+                    console.log('✅ [initializeModuleSystem] Complete');
+                } else {
+                    // Module not ready yet, queue the initialization
+                    console.log('⏳ [initializeModuleSystem] Module not ready, queuing initialization...');
+                    return new Promise((resolve) => {
+                        pendingInitializations.push({ forceReload, resolve });
+                    });
+                }
+            };
+
+            // Internal function called by ES6 module when it loads
+            window._moduleLoaderReady = function () {
+                console.log('✅ [ModuleLoaderV4] Module loaded, processing', pendingInitializations.length, 'queued initializations');
+                moduleLoaderReady = true;
+
+                // Process any queued initializations
+                pendingInitializations.forEach(async ({ forceReload, resolve }) => {
+                    await window.initializeModuleSystem(forceReload);
+                    resolve();
+                });
+                pendingInitializations = [];
+            };
+
+            console.log('✅ [Pre-loader] window.initializeModuleSystem defined (synchronous)');
+        })();
+    </script>
+
+    <!-- Modern ES6 module loader with composition pattern -->
+    <script type="module">
+        // ✅ FIX: module-loader-v4.js exports an INSTANCE, not a class
+        // Cache-busting timestamp added to force reload
+        import moduleLoader from './shared/js/module-loader-v4.js?v=20251130235959';
+
+        // Make available globally (it's already an instance!)
+        window.moduleLoader = moduleLoader;
+        window.ModuleLoaderV4 = moduleLoader; // Alias for backward compatibility
+
+        console.log('🔷 ModuleLoaderV4 loaded, notifying pre-loader...');
+
+        // Notify the pre-loader that the module is ready
+        if (window._moduleLoaderReady) {
+            window._moduleLoaderReady();
+        }
+
         // ✅ FIX: Wait for authentication BEFORE initializing module loader
         document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof UserAuth !== 'undefined' && UserAuth.token && UserAuth.user) {
-                console.log('✅ [ModuleLoader] Auth complete, initializing modules...');
-                const userId = UserAuth.user.id || UserAuth.user.user_id || parseInt(localStorage.getItem('user_id')) || 1;
-                await window.moduleLoader.initialize(userId);
-                console.log('Module system initialized');
-            } else {
-                console.log('⏳ [ModuleLoader] Waiting for authentication...');
+            console.log('⏳ [ModuleLoaderV4] Module system will initialize after authentication via user_auth.js');
+
+            // Keep authComplete listener as backup (defensive programming)
+            if (!UserAuth || !UserAuth.token) {
+                console.log('⏳ [ModuleLoaderV4] Setting up authComplete listener as fallback...');
                 document.addEventListener('authComplete', async () => {
-                    console.log('✅ [ModuleLoader] Auth complete, initializing modules...');
-                    const userId = UserAuth.user.id || UserAuth.user.user_id || parseInt(localStorage.getItem('user_id')) || 1;
-                    await window.moduleLoader.initialize(userId);
-                    console.log('Module system initialized');
-                });
+                    console.log('✅ [ModuleLoaderV4] Auth complete event received (fallback path)');
+                    // ✅ FIX: Use moduleLoader from import or window.moduleLoader (global scope)
+                    // Only initialize if not already done by user_auth.js
+                    if (moduleLoader && !moduleLoader.initialized && !moduleLoader.initializing) {
+                        console.log('⚠️ [ModuleLoaderV4] user_auth.js did not initialize modules, using fallback path');
+                        const userId = UserAuth.user.id || UserAuth.user.user_id || parseInt(localStorage.getItem('user_id')) || 1;
+                        await moduleLoader.initialize(userId);
+                    } else if (!moduleLoader) {
+                        console.error('❌ [ModuleLoaderV4] moduleLoader instance not found - module system failed to load');
+                    } else {
+                        console.log('✅ [ModuleLoaderV4] Modules already initialized by user_auth.js');
+                    }
+                }, { once: true });
             }
         });
     </script>
@@ -309,16 +451,16 @@
     <script>
         // Detect environment
         const isFileProtocol = window.location.protocol === 'file:';
-        const isLocalhost = window.location.hostname === 'localhost' || 
-                          window.location.hostname === '127.0.0.1' || 
-                          window.location.hostname === '';
+        const isLocalhost = window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1' ||
+            window.location.hostname === '';
 
         // 🔧 CONFIGURATION FLAGS (for testing only)
         const FORCE_LOCAL = false;   // Override: Force localhost backend
-        
+
         // 🎯 PURE AUTO-DETECTION: Use current URL as backend
         let API_BASE_URL;
-        
+
         if (FORCE_LOCAL || isLocalhost || isFileProtocol) {
             // Local development mode
             API_BASE_URL = 'http://localhost:5001';
@@ -334,8 +476,8 @@
         }
 
         // VSA Agent (separate service)
-        const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 
-            'http://localhost:5300' : 
+        const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ?
+            'http://localhost:5300' :
             'https://vsa-agent-service.onrender.com';
 
         // ✅ CRITICAL: Make API URLs globally accessible IMMEDIATELY (before any modules load)
@@ -351,21 +493,21 @@
 
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
     <!-- ThreadManager Core - Load FIRST (creates base object) -->
-    <script src="modules/thread-manager/thread-manager-core.js?v=20251128e"></script>
+    <script src="modules_internal/thread-manager/thread-manager-core.js?v=20251128e"></script>
 
     <!-- ThreadManager Modules - Load after core in dependency order -->
-    <script src="modules/thread-manager/thread-manager-welcome.js"></script>
-    <script src="modules/thread-manager/thread-manager-assignment.js?v=20251128d"></script>
-    <script src="modules/thread-manager/thread-manager-crud.js"></script>
-    <script src="modules/thread-manager/thread-manager-ui.js"></script>
-    <script src="modules/thread-manager/thread-manager-messages.js"></script>
-    <script src="modules/thread-manager/thread-manager-interactions.js"></script>
-    <script src="modules/thread-manager/thread-manager-filters.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-welcome.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-assignment.js?v=20251128d"></script>
+    <script src="modules_internal/thread-manager/thread-manager-crud.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-ui.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-messages.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-interactions.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-filters.js"></script>
 
     <!-- ? NEW MODULES -->
-    <script src="modules/thread-manager/thread-manager-sync.js"></script>
-    <script src="modules/thread-manager/thread-manager-synergy.js"></script>
-    <script src="modules/thread-manager/thread-manager-workflows.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-sync.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-synergy.js"></script>
+    <script src="modules_internal/thread-manager/thread-manager-workflows.js"></script>
 
     <!-- Initialize after authentication -->
     <script>
@@ -390,18 +532,18 @@
 
     <!-- ==================== AGENT MODULES (Nov 2025) ==================== -->
     <!-- Multi-agent system components extracted for modularity -->
-    <!-- Note: Message renderer loaded from modules/shared/message_renderer.js above -->
-    <link rel="stylesheet" href="modules/agents/agent-ui.css?v=20251121">
-    <script src="modules/agents/error_recovery_manager.js?v=20251122k"></script>
-    <script src="modules/agents/agent-column.js?v=20251122k"></script>
-    <script src="modules/agents/agent-input.js?v=20251122k"></script>
-    <script src="modules/agents/agent-js.js?v=20251122r"></script>
-    <script src="modules/agents/agent-ui.js?v=20251122k"></script>
-    <script src="modules/agents/prime_ai_chat.js?v=20251122k"></script>
+    <!-- Note: Message renderer loaded from shared/utilities/message_renderer.js above -->
+    <link rel="stylesheet" href="modules_internal/agents/agent-ui.css?v=20251121">
+    <script src="modules_internal/agents/error_recovery_manager.js?v=20251122k"></script>
+    <script src="modules_internal/agents/agent-column.js?v=20251122k"></script>
+    <script src="modules_internal/agents/agent-input.js?v=20251122k"></script>
+    <script src="modules_internal/agents/agent-js.js?v=20251122r"></script>
+    <script src="modules_internal/agents/agent-ui.js?v=20251122k"></script>
+    <script src="modules_internal/agents/prime_ai_chat.js?v=20251122k"></script>
 
     <!-- ==================== WOOCOMMERCE MODULE ==================== -->
     <!-- WooCommerce integration for order management and product sync -->
-    <script src="modules/woocommerce/woocommerce.js"></script>
+    <script src="modules_internal/woocommerce/woocommerce.js"></script>
 
     <style>
         /* ==================== ROOT VARIABLES ==================== */
@@ -1298,21 +1440,38 @@
         /* ==================== MODULE SIDEBARS ==================== */
         .module-sidebar {
             position: fixed;
-            top: 0;
+            top: 60px;
             right: 0;
-            width: 600px;
-            height: 100vh;
+            width: 480px;
+            height: calc(100vh - 60px);
             background: var(--bg-secondary);
             border-left: 1px solid var(--border-default);
-            z-index: 20000;
+            z-index: 9999;
             transform: translateX(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
             display: flex;
             flex-direction: column;
-            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
         }
 
         .module-sidebar.active {
+            transform: translateX(0);
+        }
+
+        /* InHouse Kanban sidebar - default to left side, 60px offset */
+        #inhouse-kanban-sidebar {
+            left: 60px;
+            right: auto;
+            width: 480px;
+            top: 60px;
+            height: calc(100vh - 60px);
+            border-right: 1px solid var(--border-default);
+            border-left: none;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+            transform: translateX(-100%);
+        }
+
+        #inhouse-kanban-sidebar.active {
             transform: translateX(0);
         }
 
@@ -1895,7 +2054,7 @@
         }
 
         /* ==================== SYNERGY STYLES ==================== */
-        /* ALL SYNERGY CSS MOVED TO: UI/external/modules/synergy/ (Nov 2025) */
+        /* ALL SYNERGY CSS MOVED TO: UI/external/modules_internal/synergy/ (Nov 2025) */
         /* - synergy-sidebar.css (sidebar styling) */
         /* - synergy-milestone-styles.css (card/milestone styling) */
         /* Internal Synergy Links - Keep minimal styles */
@@ -2948,9 +3107,10 @@
             transform: scale(1.1) rotate(5deg);
         }
 
-        /* ==================== MODULE FLOATING TOGGLE (Dynamic) ==================== */
+        /* ==================== MODULE FLOATING TOGGLE (Dynamic) - Matches Synergy Sidebar Toggle ==================== */
         .module-floating-toggle {
             position: fixed;
+            background: var(--accent-primary);
             color: white;
             border: none;
             cursor: grab;
@@ -2962,16 +3122,40 @@
             height: 64px;
             user-select: none;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 0.7;
+            opacity: 0.6;
+        }
+
+        /* Left side: sits at 60px from edge, slides out on hover */
+        .module-floating-toggle[data-side="left"] {
+            left: 60px;
+            border-radius: 0 12px 12px 0;
+            padding: 8px 8px 8px 4px;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .module-floating-toggle[data-side="left"]:hover {
+            left: 60px;
+            padding: 8px 12px 8px 8px;
+            opacity: 1;
+            box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
+            background: var(--accent-primary-hover, #79c0ff);
+        }
+
+        /* Right side: sits at 60px from edge, slides out on hover */
+        .module-floating-toggle[data-side="right"] {
+            right: 60px;
+            left: auto;
+            border-radius: 12px 0 0 12px;
             padding: 8px 4px 8px 8px;
             box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
         }
 
-        .module-floating-toggle:hover {
-            opacity: 1;
-            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+        .module-floating-toggle[data-side="right"]:hover {
+            right: 60px;
             padding: 8px 8px 8px 12px;
-            filter: brightness(1.2);
+            opacity: 1;
+            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.25);
+            background: var(--accent-primary-hover, #79c0ff);
         }
 
         .module-floating-toggle:active {
@@ -2982,7 +3166,7 @@
             cursor: grabbing;
             opacity: 0.9;
             transition: none;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         .module-floating-toggle i {
@@ -3359,14 +3543,14 @@
         }
 
         .automation-item-title {
-            font-size: 15px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 5px;
         }
 
         .automation-item-slug {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-primary)
         }
 
@@ -3409,7 +3593,7 @@
         }
 
         .automation-item-description {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-secondary);
             line-height: 1.4;
             margin-bottom: var(--space-2);
@@ -4166,7 +4350,7 @@
         }
 
         /* ==================== SYNERGY CARD STYLES ==================== */
-        /* MOVED TO: UI/external/modules/synergy/synergy-milestone-styles.css (Nov 2025) */
+        /* MOVED TO: UI/external/modules_internal/synergy/synergy-milestone-styles.css (Nov 2025) */
         /* All .synergy-card-* and milestone-related CSS is now in the external module */
         /* See: SYNERGY_MODULE_MIGRATION_COMPLETE.md for details */
 
@@ -4190,7 +4374,7 @@
 
         /* REMOVED - Now using external CSS from thread-card-styles.css */
         /* Old nth-child rules conflicted with new .thread-expand-on-hover container */
-        /* See: UI/external/modules/thread-cards/thread-card-styles.css lines 1210-1270 */
+        /* See: UI/external/modules_internal/thread-cards/thread-card-styles.css lines 1210-1270 */
 
         /* Row 1: Title + AI Badge */
         .thread-info-row-1 {
@@ -7035,6 +7219,40 @@
 
         .thread-item.dragging {
             cursor: grabbing;
+        }
+
+        /* Email drag styles (Added Nov 30, 2025 - Communication Hub) */
+        .tabulator-row[draggable="true"] {
+            transition: opacity 0.2s ease;
+        }
+
+        .tabulator-row[draggable="true"]:active {
+            cursor: grabbing !important;
+        }
+
+        /* Toast notification animations */
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
         }
 
         /* Thread card dragging styles (Added Nov 21, 2025) */
@@ -11835,7 +12053,7 @@
             margin: 0;
             font-size: 18px;
             font-weight: 600;
-            color: #111827;
+            color: var(--text-primary);
         }
 
         .modal-close {
@@ -12493,6 +12711,917 @@
             margin: 8px 0;
         }
 
+        /* ==================== WORKFLOW LINK MODAL (Automated Workflows) ==================== */
+        /* Matches synergy-sync-modal structure for consistency */
+
+        .workflow-link-modal {
+            background: var(--bg-secondary, #161b22);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 12px;
+            width: 650px;
+            max-width: 90%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .workflow-link-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-default, #30363d);
+        }
+
+        .workflow-link-modal .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .workflow-link-modal .modal-body {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .workflow-link-thread-info {
+            padding: 12px 16px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--text-secondary, #9ca3af);
+        }
+
+        .workflow-link-thread-info strong {
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        /* Tab Navigation */
+        .workflow-link-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-default, #30363d);
+        }
+
+        .workflow-link-tab {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary, #9ca3af);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: -2px;
+        }
+
+        .workflow-link-tab:hover {
+            color: var(--text-primary, #f3f4f6);
+            background: var(--bg-tertiary, #1c2128);
+        }
+
+        .workflow-link-tab.active {
+            color: #8b5cf6;
+            border-bottom-color: #8b5cf6;
+        }
+
+        /* Tab Content */
+        .workflow-link-tab-content {
+            display: none;
+        }
+
+        .workflow-link-tab-content.active {
+            display: block;
+        }
+
+        /* Search and Sort Controls */
+        .workflow-link-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .workflow-link-search {
+            flex: 1;
+            position: relative;
+        }
+
+        .workflow-link-search i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary, #6b7280);
+            font-size: 12px;
+        }
+
+        .workflow-link-search input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .workflow-link-search input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        #workflowLinkSort {
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 13px;
+            cursor: pointer;
+            min-width: 130px;
+        }
+
+        /* Workflow List */
+        .workflow-link-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+        }
+
+        .workflow-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-default, #30363d);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .workflow-item:hover {
+            background: var(--bg-tertiary, #1c2128);
+            border-color: #8b5cf6;
+        }
+
+        .workflow-item:last-child {
+            border-bottom: none;
+        }
+
+        .workflow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .workflow-name {
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+        }
+
+        .workflow-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .workflow-status.status-active {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .workflow-status.status-inactive {
+            background: rgba(156, 163, 175, 0.15);
+            color: #9ca3af;
+        }
+
+        .workflow-desc {
+            color: var(--text-secondary, #9ca3af);
+            font-size: 13px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .workflow-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-tertiary, #6b7280);
+        }
+
+        .workflow-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .workflow-meta i {
+            font-size: 11px;
+        }
+
+        /* Quick Create Form */
+        .workflow-quick-create .form-group {
+            margin-bottom: 20px;
+        }
+
+        .workflow-quick-create .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        .workflow-quick-create input,
+        .workflow-quick-create textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .workflow-quick-create input:focus,
+        .workflow-quick-create textarea:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .workflow-quick-create textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .workflow-quick-create .btn-primary {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        /* Full Create */
+        .workflow-full-create {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .workflow-full-create p {
+            margin-bottom: 20px;
+        }
+
+        .workflow-full-create .btn-primary {
+            min-width: 200px;
+        }
+
+        /* Empty State */
+        .workflow-link-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted, #9ca3af);
+        }
+
+        .workflow-link-empty i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .workflow-link-empty p {
+            margin: 8px 0;
+        }
+
+        /* ==================== AUTOMATION LINK MODAL (Visual Workflows) ==================== */
+        /* Matches synergy-sync-modal structure for consistency */
+
+        .automation-link-modal {
+            background: var(--bg-secondary, #161b22);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 12px;
+            width: 650px;
+            max-width: 90%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .automation-link-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-default, #30363d);
+        }
+
+        .automation-link-modal .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .automation-link-modal .modal-body {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .automation-link-thread-info {
+            padding: 12px 16px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--text-secondary, #9ca3af);
+        }
+
+        .automation-link-thread-info strong {
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        /* Tab Navigation */
+        .automation-link-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-default, #30363d);
+        }
+
+        .automation-link-tab {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary, #9ca3af);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: -2px;
+        }
+
+        .automation-link-tab:hover {
+            color: var(--text-primary, #f3f4f6);
+            background: var(--bg-tertiary, #1c2128);
+        }
+
+        .automation-link-tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        /* Tab Content */
+        .automation-link-tab-content {
+            display: none;
+        }
+
+        .automation-link-tab-content.active {
+            display: block;
+        }
+
+        /* Search and Sort Controls */
+        .automation-link-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .automation-link-search {
+            flex: 1;
+            position: relative;
+        }
+
+        .automation-link-search i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary, #6b7280);
+            font-size: 12px;
+        }
+
+        .automation-link-search input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .automation-link-search input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        #automationLinkSort {
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 13px;
+            cursor: pointer;
+            min-width: 130px;
+        }
+
+        /* Automation List */
+        .automation-link-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+        }
+
+        .automation-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-default, #30363d);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .automation-item:hover {
+            background: var(--bg-tertiary, #1c2128);
+            border-color: #3b82f6;
+        }
+
+        .automation-item:last-child {
+            border-bottom: none;
+        }
+
+        .automation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .automation-title {
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+        }
+
+        .automation-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .automation-status.status-active {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .automation-status.status-inactive {
+            background: rgba(156, 163, 175, 0.15);
+            color: #9ca3af;
+        }
+
+        .automation-desc {
+            color: var(--text-secondary, #9ca3af);
+            font-size: 13px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .automation-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-tertiary, #6b7280);
+        }
+
+        .automation-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .automation-meta i {
+            font-size: 11px;
+        }
+
+        /* Quick Create Form */
+        .automation-quick-create .form-group {
+            margin-bottom: 20px;
+        }
+
+        .automation-quick-create .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        .automation-quick-create input,
+        .automation-quick-create textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .automation-quick-create input:focus,
+        .automation-quick-create textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .automation-quick-create textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .automation-quick-create .btn-primary {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        /* Full Create */
+        .automation-full-create {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .automation-full-create p {
+            margin-bottom: 20px;
+        }
+
+        .automation-full-create .btn-primary {
+            min-width: 200px;
+        }
+
+        /* Empty State */
+        .automation-link-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted, #9ca3af);
+        }
+
+        .automation-link-empty i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .automation-link-empty p {
+            margin: 8px 0;
+        }
+
+        /* ==================== INTERNAL DOCS LINK MODAL ==================== */
+        /* Matches synergy-sync-modal structure for consistency */
+
+        .internal-docs-link-modal {
+            background: var(--bg-secondary, #161b22);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 12px;
+            width: 650px;
+            max-width: 90%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .internal-docs-link-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-default, #30363d);
+        }
+
+        .internal-docs-link-modal .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .internal-docs-link-modal .modal-body {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .internal-docs-link-thread-info {
+            padding: 12px 16px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--text-secondary, #9ca3af);
+        }
+
+        .internal-docs-link-thread-info strong {
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        /* Tab Navigation */
+        .internal-docs-link-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-default, #30363d);
+        }
+
+        .internal-docs-link-tab {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary, #9ca3af);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: -2px;
+        }
+
+        .internal-docs-link-tab:hover {
+            color: var(--text-primary, #f3f4f6);
+            background: var(--bg-tertiary, #1c2128);
+        }
+
+        .internal-docs-link-tab.active {
+            color: #f59e0b;
+            border-bottom-color: #f59e0b;
+        }
+
+        /* Tab Content */
+        .internal-docs-link-tab-content {
+            display: none;
+        }
+
+        .internal-docs-link-tab-content.active {
+            display: block;
+        }
+
+        /* Search and Sort Controls */
+        .internal-docs-link-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .internal-docs-link-search {
+            flex: 1;
+            position: relative;
+        }
+
+        .internal-docs-link-search i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary, #6b7280);
+            font-size: 12px;
+        }
+
+        .internal-docs-link-search input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .internal-docs-link-search input:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        #internalDocsLinkSort {
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 13px;
+            cursor: pointer;
+            min-width: 130px;
+        }
+
+        /* Internal Docs List */
+        .internal-docs-link-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+        }
+
+        .internal-doc-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-default, #30363d);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .internal-doc-item:hover {
+            background: var(--bg-tertiary, #1c2128);
+            border-color: #f59e0b;
+        }
+
+        .internal-doc-item:last-child {
+            border-bottom: none;
+        }
+
+        .internal-doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .internal-doc-title {
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+        }
+
+        .internal-doc-type {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .internal-doc-type.type-doc {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .internal-doc-type.type-sheet {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .internal-doc-desc {
+            color: var(--text-secondary, #9ca3af);
+            font-size: 13px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .internal-doc-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-tertiary, #6b7280);
+        }
+
+        .internal-doc-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .internal-doc-meta i {
+            font-size: 11px;
+        }
+
+        /* Quick Create Form */
+        .internal-docs-quick-create .form-group {
+            margin-bottom: 20px;
+        }
+
+        .internal-docs-quick-create .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        .internal-docs-quick-create input,
+        .internal-docs-quick-create textarea,
+        .internal-docs-quick-create select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .internal-docs-quick-create input:focus,
+        .internal-docs-quick-create textarea:focus,
+        .internal-docs-quick-create select:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .internal-docs-quick-create textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .internal-docs-quick-create .btn-primary {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        /* Full Create */
+        .internal-docs-full-create {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .internal-docs-full-create p {
+            margin-bottom: 20px;
+        }
+
+        .internal-docs-full-create .btn-primary {
+            min-width: 200px;
+        }
+
+        /* Empty State */
+        .internal-docs-link-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted, #9ca3af);
+        }
+
+        .internal-docs-link-empty i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .internal-docs-link-empty p {
+            margin: 8px 0;
+        }
+
         /* Thread Picker Modal (for Resume Session) */
         .thread-picker-modal {
             background: var(--bg-secondary, #161b22);
@@ -12630,21 +13759,97 @@
             border-bottom: none;
         }
 
-        .card-title {
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: var(--text-primary);
+        .card-header {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            margin-bottom: 8px;
+        }
+
+        .card-priority {
+            width: 40px;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
 
         .card-meta {
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 6px;
             font-size: 13px;
             color: #6b7280;
+            margin-bottom: 8px;
         }
 
         .card-project {
-            font-weight: 500;
+            font-size: 16px;
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+
+        .card-description {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+
+        .card-quantity {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .card-stage-time {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            flex-wrap: wrap;
+            padding: 6px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-time-info {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #9ca3af;
+        }
+
+        .stage-time-text {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #00d9ff;
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.status-active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-badge.status-delayed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-badge.status-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
         }
 
         .card-column {
@@ -13616,7 +14821,7 @@
     </style>
 
     <!-- Agent Status Indicator Module -->
-    <script src="modules/agent-status-indicator.js?v=20251122"></script>
+    <script src="modules_internal/agent-status-indicator.js?v=20251122"></script>
 </head>
 
 <body>
@@ -13725,7 +14930,7 @@
             <div class="sidebar-divider"></div>
 
             <!-- Communication Hub button removed - now auto-generated by module_loader.js -->
-            <!-- Module loader reads from UI/external/modules/communication-hub/manifest.json -->
+            <!-- Module loader reads from UI/modules_external/communication-hub/manifest.json -->
             <!-- Button created dynamically with proper data-module-id and click handlers -->
 
             <button class="sidebar-icon-btn" data-tab="sales" title="Sales & E-Commerce">
@@ -13736,8 +14941,9 @@
                 <i class="fas fa-chart-line"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="documents" title="Document Management">
-                <i class="fas fa-file-alt"></i>
+            <button class="sidebar-icon-btn" data-action="universal-search"
+                title="Universal Search - Search All Platforms">
+                <i class="fas fa-search"></i>
             </button>
 
             <!-- <button class="sidebar-icon-btn" data-tab="stock" title="Stock Management">
@@ -14337,20 +15543,24 @@
                 </div>
 
                 <!-- ==================== COMMUNICATION TAB ==================== -->
+                <!-- Communication Hub module injects content here via module_loader.js -->
                 <div class="tab-content" id="tab-communication">
-                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
-                        <i class="fas fa-comments"></i> Communication Hub
-                    </h2>
+                    <!-- Dynamic content loaded from UI/modules_external/communication-hub/ -->
+                    <div id="communication-hub-main-container" style="height: 100%; width: 100%;"></div>
+                </div>
 
-                    <div class="dashboard-card">
-                        <div class="card-header">
-                            <h3 class="card-title">Slack Integration</h3>
-                            <button class="btn btn-primary">
-                                <i class="fas fa-paper-plane"></i> Send Message
-                            </button>
-                        </div>
-                        <p style="color: var(--text-secondary);">Slack integration content coming soon...</p>
-                    </div>
+                <!-- ==================== INHOUSE KANBAN TAB ==================== -->
+                <!-- InHouse Kanban module injects content here via module_loader.js -->
+                <div class="tab-content" id="tab-inhouse-kanban">
+                    <!-- Dynamic content loaded from UI/modules_external/inhouse-kanban/ -->
+                    <div id="inhouse-kanban-main-container" style="height: 100%; width: 100%;"></div>
+                </div>
+
+                <!-- ==================== VSA VETERINARY ALERTS TAB ==================== -->
+                <!-- VSA Veterinary Alerts module injects content here via module_loader.js -->
+                <div class="tab-content" id="tab-vsa-alerts">
+                    <!-- Dynamic content loaded from UI/modules_external/vsa-veterinary-alerts/ -->
+                    <div id="vsa-alerts-main-container" style="height: 100%; width: 100%;"></div>
                 </div>
 
                 <!-- ==================== SALES TAB ==================== -->
@@ -16170,7 +17380,7 @@
     </div>
 
     <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
-    <!-- Settings Sidebar HTML loaded dynamically from external/modules/settings-sidebar/settings-sidebar.html -->
+    <!-- Settings Sidebar HTML loaded dynamically from modules_internal/settings-sidebar/settings-sidebar.html -->
 
     <!-- ==================== NOTIFICATION CONTAINER ==================== -->
     <div class="notification-container" id="notification-container"></div>
@@ -17170,14 +18380,14 @@
                         behalf. Each platform has specific requirements and setup steps explained below.
                     </p>
 
-                    <!-- OAuth Platforms -->
+                    <!-- Team Platforms -->
                     <div style="margin-bottom: 20px;">
                         <div
-                            style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-shield-alt" style="color: #4F46E5;"></i> OAuth 2.0 Platforms
+                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-users" style="color: #4F46E5;"></i> Team Platforms
                             <span
-                                style="font-size: 10px; background: #E0E7FF; color: #4F46E5; padding: 2px 6px; border-radius: 4px;">Secure
-                                Browser Auth</span>
+                                style="font-size: 11px; background: #E0E7FF; color: #4F46E5; padding: 3px 8px; border-radius: 4px;">OAuth
+                                2.0</span>
                         </div>
                         <div
                             style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;">
@@ -17187,54 +18397,30 @@
                             <button onclick="connectMicrosoft()" class="platform-connect-btn">
                                 <i class="fab fa-microsoft" style="color: #00a4ef;"></i> Microsoft 365
                             </button>
-                            <button onclick="showComingSoon('GitHub')" class="platform-connect-btn"
-                                style="opacity: 0.6;">
-                                <i class="fab fa-github" style="color: #333;"></i> GitHub <small
-                                    style="font-size: 9px;">(Soon)</small>
-                            </button>
                             <button onclick="showComingSoon('Slack')" class="platform-connect-btn"
                                 style="opacity: 0.6;">
                                 <i class="fab fa-slack" style="color: #4A154B;"></i> Slack <small
                                     style="font-size: 9px;">(Soon)</small>
                             </button>
+                            <button onclick="showComingSoon('GitHub')" class="platform-connect-btn"
+                                style="opacity: 0.6;">
+                                <i class="fab fa-github" style="color: #333;"></i> GitHub <small
+                                    style="font-size: 9px;">(Soon)</small>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- API Key Platforms -->
-                    <div style="margin-bottom: 24px;">
+                    <!-- AI Providers -->
+                    <div style="margin-bottom: 20px;">
                         <div
                             style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-key" style="color: #92400E;"></i> API Key Platforms
+                            <i class="fas fa-brain" style="color: #10a37f;"></i> AI Providers
                             <span
-                                style="font-size: 11px; background: #FEF3C7; color: #92400E; padding: 3px 8px; border-radius: 4px;">API
-                                Key Required</span>
-                        </div>
-                        <div
-                            style="padding: 12px; background: #FFFBEB; border-left: 3px solid #F59E0B; border-radius: 6px; margin-bottom: 14px;">
-                            <div style="font-size: 13px; color: #92400E; line-height: 1.6;">
-                                <strong>📋 Setup Steps:</strong> Most API platforms require you to:
-                                <ol style="margin: 8px 0 0 20px; padding: 0;">
-                                    <li>Create an account on the platform's website</li>
-                                    <li>Navigate to Developer/API settings (usually under Account or Settings)</li>
-                                    <li>Generate a new API key (keep this secure - treat it like a password)</li>
-                                    <li>Some platforms require additional setup:
-                                        <ul style="margin: 4px 0 0 20px;">
-                                            <li><strong>Stripe:</strong> Use test keys for development, live keys for
-                                                production</li>
-                                            <li><strong>Twilio:</strong> Also need Account SID (shown in dashboard)</li>
-                                            <li><strong>Shopify:</strong> Need store URL + API key from private app
-                                                settings</li>
-                                        </ul>
-                                    </li>
-                                </ol>
-                            </div>
+                                style="font-size: 11px; background: #D1FAE5; color: #065F46; padding: 3px 8px; border-radius: 4px;">API
+                                Key</span>
                         </div>
                         <div
                             style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('stripe', 'Stripe', 'fab fa-stripe', '#635BFF')"
-                                class="platform-connect-btn">
-                                <i class="fab fa-stripe" style="color: #635BFF;"></i> Stripe
-                            </button>
                             <button onclick="showApiKeyForm('openai', 'OpenAI', 'fas fa-robot', '#10a37f')"
                                 class="platform-connect-btn">
                                 <i class="fas fa-robot" style="color: #10a37f;"></i> OpenAI
@@ -17243,6 +18429,24 @@
                                 class="platform-connect-btn">
                                 <i class="fas fa-brain" style="color: #6366f1;"></i> Anthropic
                             </button>
+                            <button onclick="showApiKeyForm('assemblyai', 'AssemblyAI', 'fas fa-microphone', '#FF6B6B')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-microphone" style="color: #FF6B6B;"></i> AssemblyAI
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vector Database & Embedding Providers -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-database" style="color: #7C3AED;"></i> Vector Database & Embedding AI
+                            <span
+                                style="font-size: 11px; background: #EDE9FE; color: #5B21B6; padding: 3px 8px; border-radius: 4px;">API
+                                Key</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
                             <button onclick="showApiKeyForm('pinecone', 'Pinecone', 'fas fa-database', '#7C3AED')"
                                 class="platform-connect-btn">
                                 <i class="fas fa-database" style="color: #7C3AED;"></i> Pinecone
@@ -17251,33 +18455,103 @@
                                 class="platform-connect-btn">
                                 <i class="fas fa-vector-square" style="color: #8B5CF6;"></i> Voyager AI
                             </button>
-                            <button onclick="showApiKeyForm('twilio', 'Twilio', 'fas fa-phone', '#F22F46')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-phone" style="color: #F22F46;"></i> Twilio
-                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Online Stores -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-shopping-cart" style="color: #96bf48;"></i> Online Stores
+                            <span
+                                style="font-size: 11px; background: #ECFCCB; color: #3F6212; padding: 3px 8px; border-radius: 4px;">API
+                                Key</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
                             <button onclick="showApiKeyForm('shopify', 'Shopify', 'fab fa-shopify', '#96bf48')"
                                 class="platform-connect-btn">
                                 <i class="fab fa-shopify" style="color: #96bf48;"></i> Shopify
                             </button>
-                            <button onclick="showApiKeyForm('xero', 'Xero', 'fas fa-receipt', '#13B5EA')"
+                        </div>
+                    </div>
+
+                    <!-- Hosting & Servers -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-server" style="color: #46E3B7;"></i> Hosting & Servers
+                            <span
+                                style="font-size: 11px; background: #CCFBF1; color: #0F766E; padding: 3px 8px; border-radius: 4px;">API
+                                Key</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                            <button onclick="showApiKeyForm('render', 'Render', 'fas fa-server', '#46E3B7')"
                                 class="platform-connect-btn">
-                                <i class="fas fa-receipt" style="color: #13B5EA;"></i> Xero
-                            </button>
-                            <button onclick="showApiKeyForm('paypal', 'PayPal', 'fab fa-paypal', '#00457C')"
-                                class="platform-connect-btn">
-                                <i class="fab fa-paypal" style="color: #00457C;"></i> PayPal
-                            </button>
-                            <button onclick="showApiKeyForm('assemblyai', 'AssemblyAI', 'fas fa-microphone', '#FF6B6B')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-microphone" style="color: #FF6B6B;"></i> AssemblyAI
+                                <i class="fas fa-server" style="color: #46E3B7;"></i> Render
                             </button>
                             <button onclick="showApiKeyForm('cloudflare', 'Cloudflare', 'fab fa-cloudflare', '#F38020')"
                                 class="platform-connect-btn">
                                 <i class="fab fa-cloudflare" style="color: #F38020;"></i> Cloudflare
                             </button>
-                            <button onclick="showApiKeyForm('render', 'Render', 'fas fa-server', '#46E3B7')"
+                        </div>
+                    </div>
+
+                    <!-- Payment Services -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-credit-card" style="color: #635BFF;"></i> Payment Services
+                            <span
+                                style="font-size: 11px; background: #EEF2FF; color: #4338CA; padding: 3px 8px; border-radius: 4px;">API
+                                Key</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                            <button onclick="showApiKeyForm('stripe', 'Stripe', 'fab fa-stripe', '#635BFF')"
                                 class="platform-connect-btn">
-                                <i class="fas fa-server" style="color: #46E3B7;"></i> Render
+                                <i class="fab fa-stripe" style="color: #635BFF;"></i> Stripe
+                            </button>
+                            <button onclick="showApiKeyForm('paypal', 'PayPal', 'fab fa-paypal', '#00457C')"
+                                class="platform-connect-btn">
+                                <i class="fab fa-paypal" style="color: #00457C;"></i> PayPal
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Financial & Accounting -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-receipt" style="color: #13B5EA;"></i> Financial & Accounting
+                            <span
+                                style="font-size: 11px; background: #CFFAFE; color: #0E7490; padding: 3px 8px; border-radius: 4px;">API
+                                Key</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                            <button onclick="showApiKeyForm('xero', 'Xero', 'fas fa-receipt', '#13B5EA')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-receipt" style="color: #13B5EA;"></i> Xero
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Communication -->
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-phone" style="color: #F22F46;"></i> Communication
+                            <span
+                                style="font-size: 11px; background: #FEE2E2; color: #991B1B; padding: 3px 8px; border-radius: 4px;">API
+                                Key</span>
+                        </div>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                            <button onclick="showApiKeyForm('twilio', 'Twilio', 'fas fa-phone', '#F22F46')"
+                                class="platform-connect-btn">
+                                <i class="fas fa-phone" style="color: #F22F46;"></i> Twilio
                             </button>
                         </div>
                     </div>
@@ -17336,7 +18610,7 @@
                 <!-- API Key Form (Hidden by default) -->
                 <div id="apiKeyFormView" style="display: none;">
                     <button onclick="backToPlatformSelection()"
-                        style="margin-bottom: 14px; padding: 8px 14px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; cursor: pointer;">
+                        style="margin-bottom: 14px; padding: 8px 14px; color: var(--text-primary); background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; cursor: pointer;">
                         <i class="fas fa-arrow-left"></i> Back to Platforms
                     </button>
 
@@ -17358,13 +18632,38 @@
                         </div>
                     </div>
 
+                    <!-- Existing Credentials Display -->
+                    <div id="existingCredentialsContainer"></div>
+
+                    <div
+                        style="padding: 12px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 16px; border: 2px dashed var(--border-default);">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">
+                            <i class="fas fa-plus-circle"></i> Add New Credential
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            You can add multiple credentials for the same platform (e.g., Production and Testing
+                            accounts)
+                        </div>
+                    </div>
+
                     <form id="apiKeyForm" onsubmit="submitApiKeyForm(event)">
                         <input type="hidden" id="apiKeyPlatform">
 
                         <div class="settings-field">
+                            <label style="font-size: 14px; font-weight: 600;">Account Name/Email <span
+                                    style="color: var(--danger);">*</span></label>
+                            <input type="text" id="apiKeyAccountName" placeholder="e.g., user@example.com, Main Account"
+                                required
+                                style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
+                            <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
+                                Email address or account identifier (will be shown in credential list)
+                            </div>
+                        </div>
+
+                        <div class="settings-field">
                             <label style="font-size: 14px; font-weight: 600;">Credential Name <span
                                     style="color: var(--danger);">*</span></label>
-                            <input type="text" id="apiKeyName" placeholder="e.g., Production API Key, Main Account"
+                            <input type="text" id="apiKeyName" placeholder="e.g., Production API Key, Testing Key"
                                 required
                                 style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
                             <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
@@ -17378,7 +18677,7 @@
                             <input type="password" id="apiKeyValue" placeholder="sk-..." required
                                 style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
                             <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                                Your API key will be securely encrypted
+                                Your API key will be securely encrypted and masked as ••••• when displayed
                             </div>
                         </div>
 
@@ -17743,7 +19042,7 @@
     </div> <!-- Close account-settings-modal -->
 
     <!-- ==================== DEBUG SIDEBAR ==================== -->
-    <!-- Debug Sidebar HTML loaded dynamically from external/modules/debug-module/debug-module.html -->
+    <!-- Debug Sidebar HTML loaded dynamically from modules_external/debug-module/debug-module.html -->
     <div class="debug-header">
         <div class="debug-title">
             <i class="fas fa-bug"></i>
@@ -18296,13 +19595,43 @@
         window.updatePrimeProcessingText = updatePrimeProcessingText;
 
         function signInWithMicrosoft() {
-            console.log(' Initiating Microsoft 365 OAuth login...');
-            window.location.href = `${window.API_BASE_URL || 'http://localhost:5001'}/api/auth/microsoft/login`;
+            console.log('🔐 Initiating Microsoft 365 OAuth login...');
+
+            // Use API_BASE_URL which is already set correctly for Render or localhost
+            const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
+
+            // Build OAuth URL with redirect_uri parameter
+            // This tells the backend where to redirect AFTER OAuth completes
+            const currentUrl = window.location.href.split('?')[0].split('#')[0]; // Clean URL without params
+            const redirectUri = encodeURIComponent(currentUrl);
+
+            const oauthUrl = `${baseUrl}/api/auth/microsoft/login?redirect_uri=${redirectUri}`;
+
+            console.log('📍 OAuth Base URL:', baseUrl);
+            console.log('🔙 Redirect URI:', currentUrl);
+            console.log('🌐 Full OAuth URL:', oauthUrl);
+
+            window.location.href = oauthUrl;
         }
 
         function signInWithGoogle() {
-            console.log(' Initiating Google OAuth login...');
-            window.location.href = `${window.API_BASE_URL || 'http://localhost:5001'}/api/auth/google/login`;
+            console.log('🔐 Initiating Google OAuth login...');
+
+            // Use API_BASE_URL which is already set correctly for Render or localhost
+            const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
+
+            // Build OAuth URL with redirect_uri parameter
+            // This tells the backend where to redirect AFTER OAuth completes
+            const currentUrl = window.location.href.split('?')[0].split('#')[0]; // Clean URL without params
+            const redirectUri = encodeURIComponent(currentUrl);
+
+            const oauthUrl = `${baseUrl}/api/auth/google/login?redirect_uri=${redirectUri}`;
+
+            console.log('📍 OAuth Base URL:', baseUrl);
+            console.log('🔙 Redirect URI:', currentUrl);
+            console.log('🌐 Full OAuth URL:', oauthUrl);
+
+            window.location.href = oauthUrl;
         }
 
         // ==================== CONFIRMATION MODAL FUNCTIONS ====================
@@ -20373,22 +21702,60 @@
                 document.querySelector('.sidebar-icon-btn[data-action="home"]').classList.add('active');
             });
 
-            // Vector Database button
+            // Universal Search button (Internal Module - Direct Call)
+            const universalSearchBtn = document.querySelector('.sidebar-icon-btn[data-action="universal-search"]');
+            if (universalSearchBtn) {
+                universalSearchBtn.addEventListener('click', () => {
+                    console.log('[UNIVERSAL SEARCH] Button clicked - Opening sidebar');
+                    if (window.SidebarManager) {
+                        // Universal Search is internal module, already loaded in HTML
+                        window.SidebarManager.openSidebar('universal-search');
+                        console.log('[UNIVERSAL SEARCH] Sidebar opened');
+                    } else {
+                        console.error('[UNIVERSAL SEARCH] SidebarManager not available');
+                    }
+                });
+            }
+
+            // Vector Database button (Internal Module - Direct Call)
             const vectorDbBtn = document.querySelector('.sidebar-icon-btn[data-action="vectordb"]');
             if (vectorDbBtn) {
                 vectorDbBtn.addEventListener('click', () => {
-                    console.log('[VECTOR DB] Button clicked');
-                    if (window.vectorDbSidebar) {
-                        window.vectorDbSidebar.toggleSidebar();
+                    console.log('[VECTOR DB] Button clicked - Opening sidebar');
+                    if (window.SidebarManager) {
+                        // Vector Database is internal module, already loaded in HTML
+                        window.SidebarManager.openSidebar('vector-database');
+                        console.log('[VECTOR DB] Sidebar opened');
                     } else {
-                        console.error('[VECTOR DB] Controller not loaded');
+                        console.error('[VECTOR DB] SidebarManager not available');
                     }
                 });
             }
         }
 
         function switchTab(tabId) {
-            console.log(` Switching to tab: ${tabId}`);
+            console.log(`🔍 [DIAGNOSTIC] ========== SWITCH TAB CALLED ==========`);
+            console.log(`🔍 [DIAGNOSTIC] Target tabId: "${tabId}"`);
+            console.log(`🔍 [DIAGNOSTIC] Looking for element ID: "tab-${tabId}"`);
+
+            // 🔍 DIAGNOSTIC: Check main-content container
+            const mainContent = document.querySelector('.main-content');
+            console.log(`🔍 [DIAGNOSTIC] .main-content exists:`, !!mainContent);
+            if (mainContent) {
+                console.log(`🔍 [DIAGNOSTIC] .main-content children count:`, mainContent.children.length);
+                console.log(`🔍 [DIAGNOSTIC] .main-content display style:`, window.getComputedStyle(mainContent).display);
+            } else {
+                console.error(`❌ [CRITICAL] .main-content container MISSING!`);
+            }
+
+            // 🔍 DIAGNOSTIC: List all tab-content elements
+            const allTabs = document.querySelectorAll('.tab-content');
+            console.log(`🔍 [DIAGNOSTIC] Total .tab-content elements found:`, allTabs.length);
+            console.log(`🔍 [DIAGNOSTIC] All tab IDs:`, Array.from(allTabs).map(t => t.id));
+            console.log(`🔍 [DIAGNOSTIC] Active tabs before switch:`,
+                Array.from(allTabs).filter(t => t.classList.contains('active')).map(t => t.id));
+
+            console.log(`📍 Switching to tab: ${tabId}`);
 
             // Disconnect WebSocket if leaving Synergy tab
             if (AppState.currentTab === 'synergy' && tabId !== 'synergy') {
@@ -20402,126 +21769,159 @@
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
+            console.log(`🔍 [DIAGNOSTIC] All tabs hidden (active class removed)`);
 
             // Show selected tab
             const targetTab = document.getElementById(`tab-${tabId}`);
+            console.log(`🔍 [DIAGNOSTIC] getElementById("tab-${tabId}") result:`, !!targetTab);
+
             if (targetTab) {
+                console.log(`✅ [DIAGNOSTIC] Target tab FOUND! Adding active class...`);
                 targetTab.classList.add('active');
                 AppState.currentTab = tabId;
 
-                // SPECIAL HANDLING: Lazy load synergy sessions when switching to synergy tab
-                if (tabId === 'synergy') {
-                    console.log('[SYNERGY] Dashboard tab activated - LAZY LOADING sessions...');
-                    // DO NOT open sidebar - only load dashboard
+                // Verify tab is actually visible
+                const computedDisplay = window.getComputedStyle(targetTab).display;
+                console.log(`🔍 [DIAGNOSTIC] Target tab display after activation:`, computedDisplay);
+                console.log(`🔍 [DIAGNOSTIC] Target tab classes:`, targetTab.className);
 
-                    // Load sessions into KANBAN BOARD ONLY (lazy load on first access)
-                    // Wait for synergyBoard to be defined (it's loaded later in the page)
-                    let retryCount = 0;
-                    const maxRetries = 50; // Max 5 seconds (50 * 100ms)
+                // ✅ FIX: Notify ModuleLoader about tab switch
+                if (window.moduleLoader) {
+                    console.log('[ModuleLoader] Switching to main tab:', tabId);
+                    // ModuleLoader will handle showing the module's content
+                }
+            } else {
+                console.error(`❌ [CRITICAL] Tab not found: tab-${tabId}`);
+                console.error(`❌ [CRITICAL] This tab does not exist in the DOM!`);
+                console.error(`❌ [CRITICAL] Available tabs:`, Array.from(allTabs).map(t => t.id));
+            }
 
-                    const initSynergyBoard = async () => {
-                        if (typeof window.synergyBoard !== 'undefined' && window.synergyBoard) {
-                            console.log('✅ [SYNERGY] synergyBoard available immediately');
-                            try {
-                                await window.synergyBoard.ensureInitialized();
-                                console.log('✅ [SYNERGY] Board initialized and sessions loaded');
+            console.log(`🔍 [DIAGNOSTIC] Active tabs after switch:`,
+                Array.from(document.querySelectorAll('.tab-content'))
+                    .filter(t => t.classList.contains('active')).map(t => t.id));
+            console.log(`🔍 [DIAGNOSTIC] ========== SWITCH TAB COMPLETE ==========`);
+
+            // Update sidebar button active states
+            document.querySelectorAll('.sidebar-icon-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId || btn.dataset.moduleId === tabId) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // SPECIAL HANDLING: Lazy load synergy sessions when switching to synergy tab
+            if (tabId === 'synergy') {
+                console.log('[SYNERGY] Dashboard tab activated - LAZY LOADING sessions...');
+                // DO NOT open sidebar - only load dashboard
+
+                // Load sessions into KANBAN BOARD ONLY (lazy load on first access)
+                // Wait for synergyBoard to be defined (it's loaded later in the page)
+                let retryCount = 0;
+                const maxRetries = 50; // Max 5 seconds (50 * 100ms)
+
+                const initSynergyBoard = async () => {
+                    if (typeof window.synergyBoard !== 'undefined' && window.synergyBoard) {
+                        console.log('✅ [SYNERGY] synergyBoard available immediately');
+                        try {
+                            await window.synergyBoard.ensureInitialized();
+                            console.log('✅ [SYNERGY] Board initialized and sessions loaded');
+                            window.synergyBoard.refreshBoard();
+                        } catch (err) {
+                            console.error('❌ [SYNERGY] Error initializing board:', err);
+                            // Try refreshBoard anyway
+                            if (typeof window.synergyBoard.refreshBoard === 'function') {
                                 window.synergyBoard.refreshBoard();
-                            } catch (err) {
-                                console.error('❌ [SYNERGY] Error initializing board:', err);
-                                // Try refreshBoard anyway
-                                if (typeof window.synergyBoard.refreshBoard === 'function') {
-                                    window.synergyBoard.refreshBoard();
-                                }
                             }
-                        } else if (retryCount < maxRetries) {
-                            retryCount++;
-                            if (retryCount === 1 || retryCount % 10 === 0) {
-                                console.log(`⏳ [SYNERGY] Waiting for synergyBoard to load... (${retryCount}/${maxRetries})`);
-                            }
-                            setTimeout(initSynergyBoard, 100);
-                        } else {
-                            console.error('❌ [SYNERGY] Timeout: window.synergyBoard not loaded after 5 seconds');
-                            console.error('   Check if <script> defining synergyBoard is present in HTML');
                         }
-                    };
+                    } else if (retryCount < maxRetries) {
+                        retryCount++;
+                        if (retryCount === 1 || retryCount % 10 === 0) {
+                            console.log(`⏳ [SYNERGY] Waiting for synergyBoard to load... (${retryCount}/${maxRetries})`);
+                        }
+                        setTimeout(initSynergyBoard, 100);
+                    } else {
+                        console.error('❌ [SYNERGY] Timeout: window.synergyBoard not loaded after 5 seconds');
+                        console.error('   Check if <script> defining synergyBoard is present in HTML');
+                    }
+                };
 
-                    initSynergyBoard();
+                initSynergyBoard();
+            }
+
+            // SPECIAL HANDLING: Initialize Automation Canvas when automation tab is activated
+            if (tabId === 'automation') {
+                console.log('[AUTOMATION] Tab activated - checking canvas initialization...');
+
+                // Defensive: Ensure canvas wrapper is visible
+                const canvasWrapper = document.getElementById('automation-canvas-wrapper');
+                if (canvasWrapper) {
+                    canvasWrapper.style.display = 'block';
+                    console.log('[AUTOMATION] Canvas wrapper set to visible');
+                } else {
+                    console.error('[AUTOMATION] CRITICAL: Canvas wrapper not found in DOM');
+                    return;
                 }
 
-                // SPECIAL HANDLING: Initialize Automation Canvas when automation tab is activated
-                if (tabId === 'automation') {
-                    console.log('[AUTOMATION] Tab activated - checking canvas initialization...');
+                // Defensive: Check if AutomationCanvas class is defined
+                if (typeof AutomationCanvas === 'undefined') {
+                    console.error('[AUTOMATION] CRITICAL: AutomationCanvas class not loaded. Check if automation-workflows.js is included.');
+                    return;
+                }
 
-                    // Defensive: Ensure canvas wrapper is visible
-                    const canvasWrapper = document.getElementById('automation-canvas-wrapper');
-                    if (canvasWrapper) {
-                        canvasWrapper.style.display = 'block';
-                        console.log('[AUTOMATION] Canvas wrapper set to visible');
-                    } else {
-                        console.error('[AUTOMATION] CRITICAL: Canvas wrapper not found in DOM');
-                        return;
-                    }
-
-                    // Defensive: Check if AutomationCanvas class is defined
-                    if (typeof AutomationCanvas === 'undefined') {
-                        console.error('[AUTOMATION] CRITICAL: AutomationCanvas class not loaded. Check if automation-workflows.js is included.');
-                        return;
-                    }
-
-                    // Initialize if not already done
-                    if (typeof window.automationCanvas === 'undefined' || !window.automationCanvas) {
-                        console.log('[AUTOMATION] Canvas not initialized, attempting lazy init...');
-                        if (typeof window.initializeAutomationCanvas === 'function') {
-                            try {
-                                window.initializeAutomationCanvas();
-                                console.log('[AUTOMATION] Lazy initialization successful');
-                            } catch (error) {
-                                console.error('[AUTOMATION] Initialization failed:', error);
-                                return;
-                            }
-                        } else {
-                            console.error('[AUTOMATION] CRITICAL: initializeAutomationCanvas function not defined. Check script load order.');
+                // Initialize if not already done
+                if (typeof window.automationCanvas === 'undefined' || !window.automationCanvas) {
+                    console.log('[AUTOMATION] Canvas not initialized, attempting lazy init...');
+                    if (typeof window.initializeAutomationCanvas === 'function') {
+                        try {
+                            window.initializeAutomationCanvas();
+                            console.log('[AUTOMATION] Lazy initialization successful');
+                        } catch (error) {
+                            console.error('[AUTOMATION] Initialization failed:', error);
                             return;
                         }
                     } else {
-                        console.log('[AUTOMATION] Canvas already initialized');
-
-                        // ✅ FIX: Always verify and re-attach event listeners when tab becomes active
-                        console.log('[AUTOMATION] ⚡ Verifying event listeners...');
-                        if (typeof window.automationCanvas.verifyEventListeners === 'function') {
-                            const result = window.automationCanvas.verifyEventListeners();
-                            console.log(`[AUTOMATION] ✅ Event listeners ready (${result.attached} attached, ${result.missing} missing)`);
-                        } else {
-                            console.warn('[AUTOMATION] ⚠️ verifyEventListeners() not found - using fallback');
-                            if (typeof window.automationCanvas.setupEventListeners === 'function') {
-                                window.automationCanvas.setupEventListeners();
-                            }
-                        }
-
-                        // Refresh display if already initialized
-                        if (typeof window.automationCanvas.renderWorkflowList === 'function') {
-                            window.automationCanvas.renderWorkflowList();
-                        }
+                        console.error('[AUTOMATION] CRITICAL: initializeAutomationCanvas function not defined. Check script load order.');
+                        return;
                     }
-                }
+                } else {
+                    console.log('[AUTOMATION] Canvas already initialized');
 
-                // LAZY LOADING: Initialize module if not yet loaded
-                if (window.ModuleManager) {
-                    window.ModuleManager.lazyInitModule(tabId);
-                }
-
-                // Update AI chat context
-                updateAIChatContext(tabId);
-
-                // Show/hide add-agent-bar based on active tab
-                const addAgentBar = document.querySelector('.add-agent-bar');
-
-                if (addAgentBar) {
-                    if (tabId === 'multi-agent') {
-                        addAgentBar.classList.add('visible');
+                    // ✅ FIX: Always verify and re-attach event listeners when tab becomes active
+                    console.log('[AUTOMATION] ⚡ Verifying event listeners...');
+                    if (typeof window.automationCanvas.verifyEventListeners === 'function') {
+                        const result = window.automationCanvas.verifyEventListeners();
+                        console.log(`[AUTOMATION] ✅ Event listeners ready (${result.attached} attached, ${result.missing} missing)`);
                     } else {
-                        addAgentBar.classList.remove('visible');
+                        console.warn('[AUTOMATION] ⚠️ verifyEventListeners() not found - using fallback');
+                        if (typeof window.automationCanvas.setupEventListeners === 'function') {
+                            window.automationCanvas.setupEventListeners();
+                        }
                     }
+
+                    // Refresh display if already initialized
+                    if (typeof window.automationCanvas.renderWorkflowList === 'function') {
+                        window.automationCanvas.renderWorkflowList();
+                    }
+                }
+            }
+
+            // LAZY LOADING: Initialize module if not yet loaded
+            if (window.ModuleManager) {
+                window.ModuleManager.lazyInitModule(tabId);
+            }
+
+            // Update AI chat context
+            updateAIChatContext(tabId);
+
+            // Show/hide add-agent-bar based on active tab
+            const addAgentBar = document.querySelector('.add-agent-bar');
+
+            if (addAgentBar) {
+                if (tabId === 'multi-agent') {
+                    addAgentBar.classList.add('visible');
+                } else {
+                    addAgentBar.classList.remove('visible');
                 }
             }
         }
@@ -21350,8 +22750,8 @@
     </script>
 
     <!-- ==================== WORKFLOW SLUG INTEGRATION ==================== -->
-    <link rel="stylesheet" href="external/modules/workflow-slug-integration.css">
-    <script src="external/modules/workflow-slug-integration.js?v=20251124j"></script>
+    <link rel="stylesheet" href="modules_internal/workflow/workflow-slug-integration.css">
+    <script src="modules_internal/workflow/workflow-slug-integration.js?v=20251124j"></script>
 
     <!-- ==================== CIRCUIT BOARD ANIMATION ==================== -->
     <script>
@@ -22001,7 +23401,7 @@
                 // TEST 4: Try to fetch manifest.json
                 console.log('%c▶ TEST 4: Manifest Access', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 try {
-                    const response = await fetch('external/modules/manifest.json');
+                    const response = await fetch('modules_external/manifest.json');
                     console.log('  HTTP Status:', response.status === 200 ? '✅ 200 OK' : `❌ ${response.status}`);
                     if (response.ok) {
                         const data = await response.json();
@@ -22309,16 +23709,16 @@
 
     <!-- ==================== VOICE TRANSCRIPTION INTEGRATION ==================== -->
     <!-- CRITICAL: Load config.js FIRST - provides centralized API endpoint management -->
-    <script src="modules/transcription/config.js"></script>
+    <script src="modules_internal/transcription/config.js"></script>
     <!-- ❌ STT-MODULE.JS DISABLED - CAUSES WHISPER BACKEND ERRORS -->
     <!-- This module creates MediaRecorder that conflicts with Browser STT -->
-    <!-- <script src="modules/transcription/stt-module.js"></script> -->
-    <script src="modules/transcription/tts-module.js"></script>
-    <script src="modules/transcription/transcription-streaming-container.js"></script>
-    <script src="modules/transcription/transcription-sidebar.js"></script>
+    <!-- <script src="modules_internal/transcription/stt-module.js"></script> -->
+    <script src="modules_internal/transcription/tts-module.js"></script>
+    <script src="modules_internal/transcription/transcription-streaming-container.js"></script>
+    <script src="modules_internal/transcription/transcription-sidebar.js"></script>
     <script>
         // Load and initialize transcription streaming container
-        fetch('modules/transcription/transcription-streaming-container.html')
+        fetch('modules_internal/transcription/transcription-streaming-container.html')
             .then(response => response.text())
             .then(html => {
                 // Insert container into page
@@ -22335,7 +23735,7 @@
             });
 
         // Load transcription sidebar (Settings & Controls - SEPARATE from chat)
-        fetch('modules/transcription/transcription-sidebar.html')
+        fetch('modules_internal/transcription/transcription-sidebar.html')
             .then(response => response.text())
             .then(html => {
                 // Insert sidebar into page
@@ -23868,10 +25268,22 @@
                                             </span>
                                         </div>
                                     </div>
-                                    <div style="font-size: 11px; color: var(--text-secondary); display: flex; gap: 12px;">
-                                        <span><i class="fas fa-calendar" style="font-size: 9px;"></i> ${createdDate}</span>
-                                        ${conn.metadata && conn.metadata.email ? `<span><i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}</span>` : ''}
-                                        ${conn.credential_key ? `<span><i class="fas fa-key" style="font-size: 9px;"></i> ${conn.credential_key}</span>` : ''}
+                                    <div style="font-size: 11px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+                                        <div style="display: flex; gap: 12px;">
+                                            <span><i class="fas fa-calendar" style="font-size: 9px;"></i> ${createdDate}</span>
+                                            ${conn.metadata && conn.metadata.email ? `<span><i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}</span>` : ''}
+                                            ${conn.account_name ? `<span><i class="fas fa-user-circle" style="font-size: 9px;"></i> ${conn.account_name}</span>` : ''}
+                                        </div>
+                                        ${conn.credential_value_masked || conn.credential_key ? `
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                ${conn.credential_value_masked ? `
+                                                    <span style="font-family: monospace; background: var(--bg-tertiary); padding: 3px 8px; border-radius: 4px; font-size: 10px; border: 1px solid var(--border-default);">
+                                                        <i class="fas fa-key" style="font-size: 8px; margin-right: 4px;"></i>${conn.credential_value_masked}
+                                                    </span>
+                                                ` : ''}
+                                                ${conn.credential_key ? `<span style="opacity: 0.7; font-size: 10px;">(${conn.credential_key})</span>` : ''}
+                                            </div>
+                                        ` : ''}
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 6px; flex-shrink: 0;">
@@ -24086,12 +25498,39 @@
                     <strong>Setup Process:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
                         <li><strong>Account:</strong> Visit <a href="https://app.pinecone.io/" target="_blank" style="color: #3B82F6;">Pinecone Console</a></li>
-                        <li><strong>Create Index:</strong> Set up index with appropriate dimensions (e.g., 1536 for OpenAI embeddings)</li>
-                        <li><strong>Get Keys:</strong> Go to API Keys → Copy your API key and environment (e.g., us-west1-gcp)</li>
-                        <li><strong>Note Environment:</strong> You'll need both API key AND environment name</li>
+                        <li><strong>Create Index:</strong> Set up index with appropriate dimensions:
+                            <ul style="margin: 4px 0 0 20px;">
+                                <li>1536 dimensions - OpenAI text-embedding-3-small, Voyager voyage-large-2/voyage-code-2</li>
+                                <li>1024 dimensions - Voyager voyage-2</li>
+                                <li>3072 dimensions - OpenAI text-embedding-3-large</li>
+                            </ul>
+                        </li>
+                        <li><strong>Get Credentials:</strong> Go to API Keys → Copy your API key and environment (e.g., us-west1-gcp, us-east-1-aws)</li>
+                        <li><strong>Index Details:</strong> Note your index name and optionally create namespaces for multi-tenant isolation</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        💡 <strong>Use Case:</strong> Pinecone stores vector embeddings for semantic search, RAG, and similarity matching.
+                        💡 <strong>Use Case:</strong> Pinecone stores vector embeddings for semantic search, RAG (Retrieval-Augmented Generation), and document similarity matching. Namespace field is optional - use for organizing vectors by user, project, or category.
+                    </div>
+                `
+            },
+            'voyager': {
+                title: '🚀 Voyager AI Embedding Provider',
+                content: `
+                    <strong>Getting Started:</strong>
+                    <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
+                        <li><strong>Account:</strong> Visit <a href="https://www.voyageai.com/" target="_blank" style="color: #3B82F6;">Voyager AI Website</a> and sign up</li>
+                        <li><strong>API Key:</strong> Access your dashboard to generate API key</li>
+                        <li><strong>Choose Model:</strong> Select based on your use case:
+                            <ul style="margin: 4px 0 0 20px;">
+                                <li><strong>voyage-2</strong> - General purpose, 1024 dimensions (fastest)</li>
+                                <li><strong>voyage-large-2</strong> - High quality, 1536 dimensions (balanced)</li>
+                                <li><strong>voyage-code-2</strong> - Code optimized, 1536 dimensions (technical content)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Pricing:</strong> Pay-as-you-go based on tokens processed</li>
+                    </ol>
+                    <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
+                        💡 <strong>Use Case:</strong> Voyager AI generates vector embeddings for text. Use with Pinecone for semantic search. Model selection affects embedding quality and dimensions - ensure your Pinecone index matches model dimensions!
                     </div>
                 `
             },
@@ -24116,7 +25555,7 @@
         /**
          * Show API Key Form
          */
-        function showApiKeyForm(platform, displayName, icon, color) {
+        async function showApiKeyForm(platform, displayName, icon, color) {
             // Hide platform selection, show API key form
             document.getElementById('platformSelectionView').style.display = 'none';
             document.getElementById('apiKeyFormView').style.display = 'block';
@@ -24144,6 +25583,9 @@
             } else {
                 guidancePanel.style.display = 'none';
             }
+
+            // Load existing credentials for this platform
+            await loadExistingCredentials(platform);
 
             // Clear additional fields
             document.getElementById('additionalApiFields').innerHTML = '';
@@ -24187,11 +25629,51 @@
             } else if (platform === 'pinecone') {
                 document.getElementById('additionalApiFields').innerHTML = `
                     <div class="settings-field">
+                        <label style="font-size: 14px; font-weight: 600;">Index Name <span style="color: var(--danger);">*</span></label>
+                        <input type="text" id="pineconeIndex" placeholder="my-vector-index" required
+                            style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
+                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
+                            Your Pinecone index name (found in Pinecone Console)
+                        </div>
+                    </div>
+                    <div class="settings-field">
                         <label style="font-size: 14px; font-weight: 600;">Environment <span style="color: var(--danger);">*</span></label>
                         <input type="text" id="pineconeEnv" placeholder="us-west1-gcp" required
                             style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
                         <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Found in Pinecone Console (e.g., us-west1-gcp, us-east-1-aws)
+                            Cloud environment (e.g., us-west1-gcp, us-east-1-aws)
+                        </div>
+                    </div>
+                    <div class="settings-field">
+                        <label style="font-size: 14px; font-weight: 600;">Namespace</label>
+                        <input type="text" id="pineconeNamespace" placeholder="default (optional)"
+                            style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
+                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
+                            Optional namespace for organizing vectors (leave empty for default)
+                        </div>
+                    </div>
+                `;
+            } else if (platform === 'voyager') {
+                document.getElementById('additionalApiFields').innerHTML = `
+                    <div class="settings-field">
+                        <label style="font-size: 14px; font-weight: 600;">Model <span style="color: var(--danger);">*</span></label>
+                        <select id="voyagerModel" required
+                            style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
+                            <option value="">-- Select Embedding Model --</option>
+                            <option value="voyage-2">voyage-2 (1024 dimensions, general purpose)</option>
+                            <option value="voyage-large-2">voyage-large-2 (1536 dimensions, high quality)</option>
+                            <option value="voyage-code-2">voyage-code-2 (1536 dimensions, optimized for code)</option>
+                        </select>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
+                            Select embedding model based on your use case
+                        </div>
+                    </div>
+                    <div style="padding: 10px; background: #F0F9FF; border-left: 3px solid #3B82F6; border-radius: 6px; margin-top: 10px;">
+                        <div style="font-size: 12px; color: #1E40AF; line-height: 1.6;">
+                            <strong>Model Selection Guide:</strong><br>
+                            • <strong>voyage-2</strong>: Best for general text, documents, and semantic search (1024 dims)<br>
+                            • <strong>voyage-large-2</strong>: Higher quality embeddings, better accuracy (1536 dims)<br>
+                            • <strong>voyage-code-2</strong>: Optimized for code, technical documentation, and programming content (1536 dims)
                         </div>
                     </div>
                 `;
@@ -24250,6 +25732,24 @@
             } else if (platform === 'stripe') {
                 const env = document.getElementById('stripeEnv')?.value;
                 if (env) metadata.environment = env;
+            } else if (platform === 'pinecone') {
+                const indexName = document.getElementById('pineconeIndex')?.value;
+                const environment = document.getElementById('pineconeEnv')?.value;
+                const namespace = document.getElementById('pineconeNamespace')?.value;
+                if (indexName) credentials.index_name = indexName;
+                if (environment) credentials.environment = environment;
+                if (namespace) credentials.namespace = namespace;
+            } else if (platform === 'voyager') {
+                const model = document.getElementById('voyagerModel')?.value;
+                if (model) {
+                    credentials.model = model;
+                    // Set dimensions based on model
+                    if (model === 'voyage-2') {
+                        credentials.dimensions = 1024;
+                    } else if (model === 'voyage-large-2' || model === 'voyage-code-2') {
+                        credentials.dimensions = 1536;
+                    }
+                }
             }
 
             try {
@@ -24501,6 +26001,166 @@
 
             // Redirect to Microsoft OAuth endpoint
             window.location.href = `${API_BASE_URL}/api/oauth/microsoft/login`;
+        }
+
+        /**
+         * Load existing credentials for a platform
+         */
+        async function loadExistingCredentials(platform) {
+            console.log(`[CREDENTIALS] Loading existing credentials for platform: ${platform}`);
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                if (!token) {
+                    console.warn('[CREDENTIALS] No auth token found');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/auth/credentials/${platform}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log(`[CREDENTIALS] Loaded ${data.credentials?.length || 0} credential(s) for ${platform}`);
+
+                // Display existing credentials
+                displayExistingCredentials(platform, data.credentials || []);
+
+            } catch (error) {
+                console.error('[CREDENTIALS] Error loading credentials:', error);
+            }
+        }
+
+        /**
+         * Display existing credentials in the form
+         */
+        function displayExistingCredentials(platform, credentials) {
+            const container = document.getElementById('existingCredentialsContainer');
+            if (!container) {
+                console.warn('[CREDENTIALS] existingCredentialsContainer not found in DOM');
+                return;
+            }
+
+            if (!credentials || credentials.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border: 2px dashed var(--border-default); margin-bottom: 16px;">
+                        <div style="text-align: center; color: var(--text-muted); font-size: 13px;">
+                            <i class="fas fa-info-circle" style="font-size: 18px; margin-bottom: 8px; display: block;"></i>
+                            No existing credentials for this platform. Add your first credential below.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div style="margin-bottom: 20px;">';
+            html += '<div style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">';
+            html += `<i class="fas fa-key"></i> Existing Credentials (${credentials.length})`;
+            html += '</div>';
+
+            credentials.forEach((cred, index) => {
+                const isActive = cred.is_active;
+                const createdDate = cred.created_at ? new Date(cred.created_at).toLocaleDateString() : 'Unknown';
+
+                html += `
+                    <div style="padding: 12px; background: var(--bg-secondary); border: 1px solid ${isActive ? 'rgba(34, 197, 94, 0.3)' : 'var(--border-default)'}; border-left: 3px solid ${isActive ? '#22c55e' : '#6b7280'}; border-radius: 6px; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <div style="flex: 1;">
+                                ${cred.account_name ? `
+                                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">
+                                        <i class="fas fa-user-circle" style="font-size: 12px; color: var(--text-secondary);"></i>
+                                        ${cred.account_name}
+                                    </div>
+                                ` : ''}
+                                <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-family: monospace; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 11px;">
+                                        ${cred.credential_value_masked || '••••••••'}
+                                    </span>
+                                    ${cred.credential_key ? `<span style="opacity: 0.7;">(${cred.credential_key})</span>` : ''}
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 6px; height: 6px; border-radius: 50%; background: ${isActive ? '#22c55e' : '#ef4444'};"></div>
+                                <span style="font-size: 11px; color: ${isActive ? '#22c55e' : '#ef4444'}; font-weight: 600;">
+                                    ${isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                            <span><i class="fas fa-calendar" style="font-size: 9px;"></i> ${createdDate}</span>
+                            <div style="display: flex; gap: 6px;">
+                                <button onclick="editCredential('${cred.id}', '${platform}')" 
+                                    style="padding: 4px 8px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-default); border-radius: 4px; font-size: 10px; cursor: pointer;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button onclick="deleteCredential('${cred.id}', '${platform}')" 
+                                    style="padding: 4px 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; font-size: 10px; cursor: pointer;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        /**
+         * Edit existing credential
+         */
+        function editCredential(credentialId, platform) {
+            console.log(`[CREDENTIALS] Edit credential ${credentialId} for platform ${platform}`);
+            // TODO: Implement edit functionality
+            showToast('Edit functionality coming soon', 'info');
+        }
+
+        /**
+         * Delete credential
+         */
+        async function deleteCredential(credentialId, platform) {
+            if (!confirm('Are you sure you want to delete this credential? This action cannot be undone.')) {
+                return;
+            }
+
+            console.log(`[CREDENTIALS] Deleting credential ${credentialId}`);
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                if (!token) {
+                    showToast('Please log in first', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/auth/credentials/${credentialId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                showToast('Credential deleted successfully', 'success');
+
+                // Reload credentials
+                await loadExistingCredentials(platform);
+
+            } catch (error) {
+                console.error('[CREDENTIALS] Error deleting credential:', error);
+                showToast('Failed to delete credential', 'error');
+            }
         }
 
         // Load connections when Account Settings modal opens
