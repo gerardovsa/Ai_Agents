@@ -565,6 +565,18 @@ export default {
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 8px;
+                gap: 8px;
+            }
+            
+            #tab-inhouse-kanban .card-header-left,
+            #tab-inhouse-kanban .card-header-right {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            
+            #tab-inhouse-kanban .card-header-center {
+                flex: 0 0 auto;
             }
             
             #tab-inhouse-kanban .card-priority {
@@ -608,19 +620,72 @@ export default {
                 margin-bottom: 8px;
             }
             
-            #tab-inhouse-kanban .card-project {
+            #tab-inhouse-kanban .card-client-name {
                 font-size: 12px;
                 color: #8b949e;
                 display: flex;
                 align-items: center;
                 gap: 6px;
+                font-weight: 500;
             }
             
-            #tab-inhouse-kanban .card-status-row {
+            #tab-inhouse-kanban .card-qty-label {
+                font-size: 12px;
+                color: #8b949e;
+                font-weight: 500;
+            }
+            
+            #tab-inhouse-kanban .card-specs-row {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                font-size: 11px;
+                color: #6e7681;
+            }
+            
+            #tab-inhouse-kanban .card-specs-row .spec-item {
+                display: inline-flex;
+                align-items: center;
+                padding: 2px 6px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 3px;
+            }
+            
+            #tab-inhouse-kanban .card-finish-row {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            
+            #tab-inhouse-kanban .card-timing-row {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 gap: 8px;
+                padding: 6px 8px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.03);
+            }
+            
+            #tab-inhouse-kanban .timing-item {
+                font-size: 11px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-weight: 600;
+            }
+            
+            #tab-inhouse-kanban .timing-item.stage-normal {
+                color: #9ca3af;
+            }
+            
+            #tab-inhouse-kanban .timing-item.stage-warning {
+                color: #fbbf24;
+            }
+            
+            #tab-inhouse-kanban .timing-item.stage-overdue {
+                color: #fca5a5;
             }
             
             #tab-inhouse-kanban .status-badge {
@@ -788,6 +853,28 @@ export default {
             #tab-inhouse-kanban .finishing-icon:hover {
                 background: rgba(59, 130, 246, 0.25);
                 border-color: rgba(59, 130, 246, 0.5);
+            }
+            
+            /* Modal Badge Styles */
+            #tab-inhouse-kanban .badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            #tab-inhouse-kanban .kanban-notes-text {
+                color: #d1d5db;
+                line-height: 1.6;
+                font-size: 13px;
+            }
+            
+            #tab-inhouse-kanban .kanban-modal-footer {
+                display: flex;
+                justify-content: flex-end;
+                padding: 16px 24px;
+                border-top: 1px solid #30363d;
+                background: #0d1117;
+                border-radius: 0 0 12px 12px;
             }
         `;
         document.head.appendChild(style);
@@ -1522,54 +1609,63 @@ export default {
                 ${bannerHtml}
                 
                 <div class="card-header">
-                    <div class="card-priority">
-                        ${priorityIcon}
+                    <div class="card-header-left">
+                        <div class="card-priority">
+                            ${priorityIcon}
+                        </div>
+                        <span class="tier-badge" style="background-color: ${tierInfo.color};" title="${tierInfo.label}">
+                            <i class="fas ${tierInfo.icon}"></i>
+                        </span>
                     </div>
-                    <span class="tier-badge" style="background-color: ${tierInfo.color};" title="${tierInfo.label}">
-                        <i class="fas ${tierInfo.icon}"></i>
-                    </span>
-                    <button 
-                        class="card-mute-btn" 
-                        onclick="event.stopPropagation(); window.currentKanbanModule.toggleCardMute(event, ${job.id})"
-                        title="${isMuted ? 'Unmute card' : 'Mute card'}"
-                    >
-                        <i class="fas ${isMuted ? 'fa-bell-slash' : 'fa-bell'}"></i>
-                    </button>
+                    <div class="card-header-center">
+                        <span class="status-badge ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </div>
+                    <div class="card-header-right">
+                        <button 
+                            class="card-mute-btn" 
+                            onclick="event.stopPropagation(); window.currentKanbanModule.toggleCardMute(event, ${job.id})"
+                            title="${isMuted ? 'Unmute card' : 'Mute card'}"
+                        >
+                            <i class="fas ${isMuted ? 'fa-bell-slash' : 'fa-bell'}"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="card-title">${this.escapeHtml(description)}</div>
                 
                 <div class="card-meta">
-                    <div class="card-client-header">
-                        <div class="card-project">
-                            <i class="fas fa-user"></i>
-                            ${this.escapeHtml(job.ClientName || job.client_name || 'Unknown Client')}
-                        </div>
-                        ${businessBadge}
+                    <div class="card-client-name">
+                        <i class="fas fa-user"></i>
+                        ${this.escapeHtml(job.ClientName || job.client_name || 'Unknown Client')}
                     </div>
-                    ${quantity > 0 ? `<div class="card-quantity"><i class="fas fa-boxes"></i> Qty: ${quantity}${paperSpecs ? ` <span class="paper-specs">${paperSpecs}</span>` : ''}</div>` : ''}
-                    ${finishingIcons ? `<div class="finishing-icons">${finishingIcons}</div>` : ''}
-                    <div class="card-status-row">
-                        <span class="status-badge ${statusClass}">
-                            ${statusText}
-                        </span>
-                        <span class="card-time">${daysInSystem}d in system</span>
+                    ${quantity > 0 ? `<div class="card-qty-label">Qty: ${quantity}</div>` : ''}
+                    <div class="card-specs-row">
+                        ${job.PaperSize ? `<span class="spec-item">${this.escapeHtml(job.PaperSize)}</span>` : ''}
+                        ${job.PaperType ? `<span class="spec-item">${this.escapeHtml(job.PaperType)}</span>` : ''}
+                        ${job.GSM ? `<span class="spec-item">${this.escapeHtml(job.GSM)}</span>` : ''}
                     </div>
+                    ${this.getFinishingText(job) ? `<div class="card-finish-text" style="font-size: 11px; color: #9ca3af;">${this.getFinishingText(job)}</div>` : ''}
                 </div>
                 
-                <div class="card-stage-time ${stageTimeInfo.cssClass}">
-                    <i class="fas fa-clock"></i>
-                    <span class="stage-time-text">${stageTimeInfo.display}</span>
+                <div class="card-timing-row">
+                    <span class="timing-item">
+                        <i class="fas fa-hourglass-half"></i> ${daysInSystem}d in system
+                    </span>
+                    <span class="timing-item ${stageTimeInfo.cssClass}">
+                        <i class="fas fa-clock"></i> ${stageTimeInfo.display}
+                    </span>
                 </div>
                 
                 <div class="card-footer">
                     <div class="card-tags">
                         <span class="card-tag">
-                            <i class="fas fa-ticket-alt"></i> Job: ${job.TicketID || job.ticket_number || job.id}
+                            <i class="fas fa-ticket-alt"></i> ${job.TicketID || job.ticket_number || job.id}
                         </span>
                         ${job.OrderID ? `
                             <span class="card-tag">
-                                <i class="fas fa-file-invoice"></i> Order: ${job.OrderID}
+                                <i class="fas fa-file-invoice"></i> ${job.OrderID}
                             </span>
                         ` : ''}
                         ${cost > 0 ? `
@@ -1588,8 +1684,11 @@ export default {
     // ========================================================================
 
     calculateDaysInSystem(job) {
-        if (!job.created_at) return 0;
-        const created = new Date(job.created_at);
+        // Try multiple date fields from database
+        const dateField = job.OrderDate || job.DateCreated || job.created_at || job.CreatedDate;
+        if (!dateField) return 0;
+        
+        const created = new Date(dateField);
         const now = new Date();
         const diffTime = Math.abs(now - created);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -1597,11 +1696,40 @@ export default {
     },
 
     calculateStageTimeInfo(job, stage, daysInStage) {
-        const stageName = stage?.name || 'this stage';
+        // Get stage entry time from job data
+        const stageEntryTime = job.stage_entered_at || job.StageEnteredAt || job.LastUpdated;
+        
+        if (stageEntryTime) {
+            const entered = new Date(stageEntryTime);
+            const now = new Date();
+            const diffMs = now - entered;
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const days = Math.floor(hours / 24);
+            const remainingHours = hours % 24;
+            
+            let cssClass = 'stage-normal';
+            let display = '';
+            
+            if (days > 0) {
+                display = `${days}d ${remainingHours}h`;
+                if (days > 7) cssClass = 'stage-overdue';
+                else if (days > 3) cssClass = 'stage-warning';
+            } else if (hours > 0) {
+                display = `${hours}h`;
+                if (hours > 48) cssClass = 'stage-warning';
+            } else {
+                const minutes = Math.floor(diffMs / (1000 * 60));
+                display = `${minutes}m`;
+            }
+            
+            return { cssClass, display };
+        }
+        
+        // Fallback to old calculation
+        const stageName = stage?.name || 'stage';
         let cssClass = 'stage-normal';
-        let display = `${daysInStage}d in ${stageName}`;
+        let display = `${daysInStage}d`;
 
-        // Color coding based on duration
         if (daysInStage > 7) {
             cssClass = 'stage-overdue';  // Red - over 7 days
         } else if (daysInStage > 3) {
@@ -1697,6 +1825,42 @@ export default {
         }
         
         return specs.length > 0 ? `| ${specs.join(' • ')}` : '';
+    },
+
+    /**
+     * Get finishing options as readable text
+     * @param {Object} job - Job object
+     * @returns {string} - Formatted finishing text
+     */
+    getFinishingText(job) {
+        const finishes = [];
+        
+        if (job.CelloYes || job.FrontCelloGloss || job.FrontCelloMatt || job.BackCelloGloss || job.BackCelloMatt) {
+            const celloTypes = [];
+            if (job.FrontCelloGloss) celloTypes.push('Front Gloss');
+            if (job.FrontCelloMatt) celloTypes.push('Front Matt');
+            if (job.BackCelloGloss) celloTypes.push('Back Gloss');
+            if (job.BackCelloMatt) celloTypes.push('Back Matt');
+            finishes.push(celloTypes.length > 0 ? `Cello: ${celloTypes.join(', ')}` : 'Cello');
+        }
+        
+        if (job.FoldYes || job.FoldDesc) {
+            finishes.push(job.FoldDesc ? `Fold: ${job.FoldDesc}` : 'Folding');
+        }
+        
+        if (job.StitchYes) {
+            finishes.push('Stitching');
+        }
+        
+        if (job.RingBind) {
+            finishes.push('Ring Binding');
+        }
+        
+        if (job.PerfectBind) {
+            finishes.push('Perfect Binding');
+        }
+        
+        return finishes.join(' | ');
     },
 
     getStatusBadgeClass(status) {
@@ -2627,6 +2791,10 @@ export default {
 
         const stage = this.state.stages.find(s => s.id === job.current_stage_id);
         const stageInfo = this.stageMapping[stage?.name] || { icon: 'fa-cube', color: '#6c757d' };
+        
+        // Get tier info and priority
+        const tierInfo = this.getCustomerTierInfo(job.CustomerOrderCount || 0);
+        const priorityIcon = this.getPriorityIcon(job.Priority || 'Normal');
 
         const modalHtml = `
             <div class="modal-overlay" id="job-details-modal">
@@ -2634,7 +2802,7 @@ export default {
                     <div class="kanban-modal-header" id="modal-header-drag">
                         <div class="kanban-modal-title">
                             <i class="fas fa-clipboard-list"></i>
-                            <span>Job Details - Ticket #${job.ticket_number}</span>
+                            <span>Job Details - Ticket #${job.TicketID || job.ticket_number}</span>
                         </div>
                         <button class="kanban-modal-close-btn" onclick="document.getElementById('job-details-modal').remove();">
                             <i class="fas fa-times"></i>
@@ -2642,6 +2810,29 @@ export default {
                     </div>
 
                     <div class="kanban-modal-body" id="modal-body-scroll">
+                        <!-- JOB STATUS SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-tags"></i>
+                                <span>Job Status</span>
+                            </div>
+                            <div class="kanban-section-content">
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    <span class="badge badge-priority" style="background-color: ${job.PriorityColorHex || '#6c757d'}; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                        ${priorityIcon} ${job.Priority || 'Normal'} Priority ${job.AIPriorityScore ? `(Score: ${job.AIPriorityScore})` : ''}
+                                    </span>
+                                    <span class="badge badge-tier" style="background-color: ${tierInfo.color}; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                        <i class="fas ${tierInfo.icon}"></i> ${tierInfo.label} Customer
+                                    </span>
+                                    ${job.WIPStatus ? `
+                                    <span class="badge badge-wip" style="background-color: ${job.WIPColorHex || '#6c757d'}; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                        ${job.WIPStatus}
+                                    </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- CLIENT INFORMATION SECTION -->
                         <div class="kanban-content-section">
                             <div class="kanban-section-title">
@@ -2652,65 +2843,25 @@ export default {
                                 <div class="kanban-detail-grid">
                                     <div class="kanban-detail-item">
                                         <span class="kanban-detail-label">Client Name</span>
-                                        <span class="kanban-detail-value">${this.escapeHtml(job.client_name || 'Unknown')}</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.ClientName || job.client_name || 'Unknown')}</span>
                                     </div>
                                     <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Job Name</span>
-                                        <span class="kanban-detail-value">${this.escapeHtml(job.job_name || 'N/A')}</span>
+                                        <span class="kanban-detail-label">Order ID</span>
+                                        <span class="kanban-detail-value">${job.OrderID || 'N/A'}</span>
                                     </div>
                                     <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Priority</span>
-                                        <span class="kanban-detail-value">${this.getPriorityIcon(job.priority)} ${job.priority || 'Normal'}</span>
+                                        <span class="kanban-detail-label">Order Date</span>
+                                        <span class="kanban-detail-value">${job.OrderDate ? this.formatDate(job.OrderDate) : 'N/A'}</span>
                                     </div>
                                     <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Current Stage</span>
-                                        <span class="kanban-detail-value"><i class="fas ${stageInfo.icon}" style="color: ${stageInfo.color};"></i> ${stage?.name || 'Unknown'}</span>
+                                        <span class="kanban-detail-label">Business Division</span>
+                                        <span class="kanban-detail-value">${job.BusinessDivision || 'InHousePrint'}</span>
                                     </div>
-                                    <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Due Date</span>
-                                        <span class="kanban-detail-value" style="color: ${this.isOverdue(job.due_date) ? '#f85149' : '#f0f6fc'};">${job.due_date ? this.formatDate(job.due_date) : 'Not set'}</span>
-                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        ${job.cost ? `
-                        <!-- COST SECTION -->
-                        <div class="kanban-content-section">
-                            <div class="kanban-section-title">
-                                <i class="fas fa-dollar-sign"></i>
-                                <span>Cost</span>
-                            </div>
-                            <div class="kanban-section-content">
-                                <div class="kanban-detail-value" style="color: #10b981; font-size: 24px; font-weight: 700;">$${this.formatCurrency(job.cost)}</div>
-                            </div>
-                        </div>
-                        ` : ''}
-
-                        <!-- DESCRIPTION SECTION -->
-                        <div class="kanban-content-section">
-                            <div class="kanban-section-title">
-                                <i class="fas fa-align-left"></i>
-                                <span>Description</span>
-                            </div>
-                            <div class="kanban-section-content">
-                                <div class="kanban-detail-value">${this.escapeHtml(job.description || job.job_name || 'No description available')}</div>
-                            </div>
-                        </div>
-                        
-                        ${job.notes ? `
-                        <!-- NOTES SECTION -->
-                        <div class="kanban-content-section">
-                            <div class="kanban-section-title">
-                                <i class="fas fa-sticky-note"></i>
-                                <span>Production Notes</span>
-                            </div>
-                            <div class="kanban-section-content">
-                                <div class="kanban-detail-value" style="white-space: pre-wrap;">${this.escapeHtml(job.notes)}</div>
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        ${(job.quantity || job.paper || job.size || job.finishing) ? `
-                        <!-- SPECIFICATIONS SECTION -->
+                        <!-- JOB SPECIFICATIONS SECTION -->
                         <div class="kanban-content-section">
                             <div class="kanban-section-title">
                                 <i class="fas fa-file-alt"></i>
@@ -2718,57 +2869,248 @@ export default {
                             </div>
                             <div class="kanban-section-content">
                                 <div class="kanban-detail-grid">
-                                    ${job.quantity ? `
                                     <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Quantity</span>
-                                        <span class="kanban-detail-value">${job.quantity}</span>
+                                        <span class="kanban-detail-label"><i class="fas fa-align-left"></i> Description</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.ProductionNotes || job.TicketNotes || job.ShortJobDesc || job.description || 'N/A')}</span>
                                     </div>
-                                    ` : ''}
-                                    ${job.paper ? `
                                     <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Paper</span>
-                                        <span class="kanban-detail-value">${this.escapeHtml(job.paper)}</span>
+                                        <span class="kanban-detail-label"><i class="fas fa-boxes"></i> Quantity</span>
+                                        <span class="kanban-detail-value">${job.QTY || job.quantity || 0}</span>
                                     </div>
-                                    ` : ''}
-                                    ${job.size ? `
                                     <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Size</span>
-                                        <span class="kanban-detail-value">${this.escapeHtml(job.size)}</span>
+                                        <span class="kanban-detail-label"><i class="fas fa-dollar-sign"></i> Job Cost</span>
+                                        <span class="kanban-detail-value">$${this.formatCurrency(job.Cost || job.cost || 0)}</span>
                                     </div>
-                                    ` : ''}
-                                    ${job.finishing ? `
+                                    ${job.JobType ? `
                                     <div class="kanban-detail-item">
-                                        <span class="kanban-detail-label">Finishing</span>
-                                        <span class="kanban-detail-value">${this.escapeHtml(job.finishing)}</span>
-                                    </div>
-                                    ` : ''}
+                                        <span class="kanban-detail-label"><i class="fas fa-tag"></i> Job Type</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.JobType)}</span>
+                                    </div>` : ''}
+                                    ${job.ClientOrderNum ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-hashtag"></i> Client PO</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.ClientOrderNum)}</span>
+                                    </div>` : ''}
                                 </div>
                             </div>
                         </div>
-                        ` : ''}
-
+                        
+                        ${(job.PaperType || job.GSM || job.PaperSize || job.Pages) ? `
+                        <!-- PAPER & MATERIALS SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-copy"></i>
+                                <span>Paper & Materials</span>
+                            </div>
+                            <div class="kanban-section-content">
+                                <div class="kanban-detail-grid">
+                                    ${job.PaperType ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-file"></i> Paper Type</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.PaperType)}</span>
+                                    </div>` : ''}
+                                    ${job.GSM ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-weight"></i> GSM/Weight</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.GSM)}</span>
+                                    </div>` : ''}
+                                    ${job.PaperSize ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-ruler-combined"></i> Size</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.PaperSize)}</span>
+                                    </div>` : ''}
+                                    ${job.Pages ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-book"></i> Pages</span>
+                                        <span class="kanban-detail-value">${job.Pages}</span>
+                                    </div>` : ''}
+                                    ${job.BindType ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-book-open"></i> Binding</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.BindType)}</span>
+                                    </div>` : ''}
+                                </div>
+                            </div>
+                        </div>` : ''}
+                        
+                        ${(job.CelloYes || job.FoldYes || job.StitchYes || job.RingBind || job.PerfectBind) ? `
+                        <!-- FINISHING OPTIONS SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-magic"></i>
+                                <span>Finishing Options</span>
+                            </div>
+                            <div class="kanban-section-content">
+                                <div class="kanban-detail-grid">
+                                    ${job.FrontCelloGloss || job.FrontCelloMatt ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-star"></i> Front Cello</span>
+                                        <span class="kanban-detail-value">${job.FrontCelloGloss ? 'Gloss' : ''} ${job.FrontCelloMatt ? 'Matt' : ''}</span>
+                                    </div>` : ''}
+                                    ${job.BackCelloGloss || job.BackCelloMatt ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-star-half-alt"></i> Back Cello</span>
+                                        <span class="kanban-detail-value">${job.BackCelloGloss ? 'Gloss' : ''} ${job.BackCelloMatt ? 'Matt' : ''}</span>
+                                    </div>` : ''}
+                                    ${job.FoldDesc ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-folder"></i> Folding</span>
+                                        <span class="kanban-detail-value">${this.escapeHtml(job.FoldDesc)}</span>
+                                    </div>` : ''}
+                                    ${job.StitchYes ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-compress-alt"></i> Stitching</span>
+                                        <span class="kanban-detail-value">Yes</span>
+                                    </div>` : ''}
+                                    ${job.RingBind ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-ring"></i> Ring Binding</span>
+                                        <span class="kanban-detail-value">Yes</span>
+                                    </div>` : ''}
+                                    ${job.PerfectBind ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-book-open"></i> Perfect Bind</span>
+                                        <span class="kanban-detail-value">Yes</span>
+                                    </div>` : ''}
+                                    ${job.Books ? `
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-books"></i> Books</span>
+                                        <span class="kanban-detail-value">${job.Books}</span>
+                                    </div>` : ''}
+                                </div>
+                            </div>
+                        </div>` : ''}
+                        
+                        ${job.TicketNotes ? `
+                        <!-- PRODUCTION NOTES SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-sticky-note"></i>
+                                <span>Production Notes</span>
+                            </div>
+                            <div class="kanban-section-content">
+                                <div class="kanban-notes-text" style="white-space: pre-wrap;">${this.escapeHtml(job.TicketNotes)}</div>
+                            </div>
+                        </div>` : ''}
+                        
+                        <!-- STATUS INFORMATION SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Status Information</span>
+                            </div>
+                            <div class="kanban-section-content">
+                                <div class="kanban-detail-grid">
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label">Current Stage</span>
+                                        <span class="kanban-detail-value"><i class="fas ${stageInfo.icon}" style="color: ${stageInfo.color};"></i> ${stage?.name || job.StageDescription || 'Unknown'}</span>
+                                    </div>
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label">Due Date</span>
+                                        <span class="kanban-detail-value" style="color: ${this.isOverdue(job.DateRequired || job.due_date) ? '#f85149' : '#f0f6fc'};">${job.DateRequired ? this.formatDate(job.DateRequired) : (job.due_date ? this.formatDate(job.due_date) : 'Not set')}</span>
+                                    </div>
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label">Days in System</span>
+                                        <span class="kanban-detail-value">${job.DaysInSystem || 0} days</span>
+                                    </div>
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label">Urgency Level</span>
+                                        <span class="kanban-detail-value">${job.UrgencyLevel || 'Normal'}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- ACTION BUTTONS -->
-                        <div class="kanban-modal-actions">
-                            <button class="btn btn-primary" onclick="window.currentKanbanModule.notifyClient(${job.id}); document.getElementById('job-details-modal').remove();">
-                                <i class="fas fa-paper-plane"></i> Notify Client
-                            </button>
-                            <button class="btn btn-success" onclick="window.currentKanbanModule.viewProductionLog(${job.id})">
-                                <i class="fas fa-history"></i> Production Log
-                            </button>
-                            <button class="btn btn-secondary" onclick="document.getElementById('job-details-modal').remove();">
-                                <i class="fas fa-times"></i> Close
-                            </button>
+                        
+                        <!-- CUSTOMER METRICS SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Customer Metrics</span>
+                            </div>
+                            <div class="kanban-section-content">
+                                <div class="kanban-detail-grid">
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-trophy"></i> Customer Tier</span>
+                                        <span class="kanban-detail-value">${tierInfo.label}</span>
+                                    </div>
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-shopping-cart"></i> Orders (12mo)</span>
+                                        <span class="kanban-detail-value">${job.CustomerOrderCount || 0}</span>
+                                    </div>
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-dollar-sign"></i> Lifetime Value</span>
+                                        <span class="kanban-detail-value">$${this.formatCurrency(job.CustomerLifetimeValue || 0)}</span>
+                                    </div>
+                                    <div class="kanban-detail-item">
+                                        <span class="kanban-detail-label"><i class="fas fa-star"></i> Priority Score</span>
+                                        <span class="kanban-detail-value">${job.AIPriorityScore || 0}/999</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        
+                        ${job.Shipping ? `
+                        <!-- SHIPPING SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-shipping-fast"></i>
+                                <span>Shipping</span>
+                            </div>
+                            <div class="kanban-section-content">
+                                <div class="kanban-notes-text">${this.escapeHtml(job.Shipping)}</div>
+                            </div>
+                        </div>` : ''}
+                        
+                        <!-- PRODUCTION LOG SECTION -->
+                        <div class="kanban-content-section">
+                            <div class="kanban-section-title">
+                                <i class="fas fa-history"></i>
+                                <span>Production Log</span>
+                                <button class="btn btn-sm btn-primary" style="margin-left: auto; padding: 4px 12px;" onclick="window.currentKanbanModule.showClientNotificationDialog(${job.TicketID})">
+                                    <i class="fas fa-envelope"></i> Notify Client
+                                </button>
+                            </div>
+                            <div class="kanban-section-content" style="padding: 0;">
+                                <div id="production-log-entries-${job.TicketID}" style="max-height: 300px; overflow-y: auto; padding: 12px;">
+                                    <div style="text-align: center; padding: 20px; color: #9ca3af;">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading production log...
+                                    </div>
+                                </div>
+                                
+                                <!-- Add Entry Form -->
+                                <div style="border-top: 1px solid #30363d; padding: 12px; background: #0d1117;">
+                                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                        <input type="text" id="log-initials-${job.TicketID}" placeholder="Initials" maxlength="3" style="width: 70px; padding: 6px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 13px;" />
+                                        <select id="log-type-${job.TicketID}" style="flex: 1; padding: 6px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 13px;">
+                                            <option value="note">Note</option>
+                                            <option value="wastage">Wastage</option>
+                                            <option value="delay">Delay</option>
+                                            <option value="stock_change">Stock Change</option>
+                                        </select>
+                                    </div>
+                                    <textarea id="log-note-${job.TicketID}" placeholder="Enter note, wastage details, or delay reason..." rows="2" style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 13px; margin-bottom: 8px; resize: vertical;"></textarea>
+                                    <button class="btn btn-primary btn-sm" onclick="window.currentKanbanModule.addProductionLogEntry(${job.TicketID})" style="width: 100%;">
+                                        <i class="fas fa-plus"></i> Add Log Entry
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- FOOTER -->
+                    <div class="kanban-modal-footer">
+                        <button class="btn btn-secondary" onclick="document.getElementById('job-details-modal').remove();">
+                            <i class="fas fa-times"></i> Close
+                        </button>
                     </div>
                 </div>
             </div>
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Load production log entries after modal is added to DOM
+        setTimeout(() => this.loadProductionLogEntries(job.TicketID), 100);
     },
 
     // ========================================================================
@@ -2910,7 +3252,353 @@ export default {
     },
 
     // ========================================================================
-    // PRODUCTION LOG
+    // PRODUCTION LOG - V10 ADDITIONS
+    // ========================================================================
+
+    /**
+     * Load and display production log entries in the job details modal
+     */
+    async loadProductionLogEntries(ticketId) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/${ticketId}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to load production log');
+            }
+
+            this.renderProductionLogEntries(ticketId, data.entries || []);
+
+        } catch (error) {
+            console.error('Failed to load production log:', error);
+            const container = document.getElementById(`production-log-entries-${ticketId}`);
+            if (container) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p style="margin: 8px 0 0 0;">Failed to load production log</p>
+                    </div>
+                `;
+            }
+        }
+    },
+
+    /**
+     * Render production log entries in the display area
+     */
+    renderProductionLogEntries(ticketId, entries) {
+        const container = document.getElementById(`production-log-entries-${ticketId}`);
+        if (!container) return;
+
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #9ca3af;">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p style="margin: 8px 0 0 0;">No production log entries yet</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort entries by date/time (newest first)
+        entries.sort((a, b) => {
+            const dateA = new Date(a.log_date + ' ' + a.log_time);
+            const dateB = new Date(b.log_date + ' ' + b.log_time);
+            return dateB - dateA;
+        });
+
+        const entryTypeIcons = {
+            stage_change: 'fa-exchange-alt',
+            note: 'fa-sticky-note',
+            wastage: 'fa-trash-alt',
+            delay: 'fa-clock',
+            stock_change: 'fa-boxes',
+            client_notification: 'fa-envelope'
+        };
+
+        const entryTypeColors = {
+            stage_change: '#3b82f6',
+            note: '#fbbf24',
+            wastage: '#ef4444',
+            delay: '#f97316',
+            stock_change: '#8b5cf6',
+            client_notification: '#10b981'
+        };
+
+        container.innerHTML = entries.map(entry => {
+            const icon = entryTypeIcons[entry.entry_type] || 'fa-info-circle';
+            const color = entryTypeColors[entry.entry_type] || '#6b7280';
+            const dateTime = new Date(entry.log_date + ' ' + entry.log_time);
+            const formattedDate = dateTime.toLocaleDateString() + ' ' + dateTime.toLocaleTimeString();
+
+            return `
+                <div style="display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid #30363d; align-items: start;">
+                    <div style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: ${color}20; display: flex; align-items: center; justify-content: center; color: ${color};">
+                        <i class="fas ${icon}" style="font-size: 14px;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 4px;">
+                            <div>
+                                <span style="font-weight: 600; color: #f3f4f6; font-size: 13px;">${entry.user_initials || 'N/A'}</span>
+                                <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">${entry.entry_type.replace('_', ' ')}</span>
+                            </div>
+                            <span style="color: #6b7280; font-size: 11px;">${formattedDate}</span>
+                        </div>
+                        <p style="margin: 0; color: #d1d5db; font-size: 13px; line-height: 1.5;">${this.escapeHtml(entry.note_text)}</p>
+                        ${entry.wastage_amount ? `<p style="margin: 4px 0 0 0; color: #ef4444; font-size: 12px;">Wastage: ${entry.wastage_amount} ${entry.wastage_unit}</p>` : ''}
+                        ${entry.delay_hours ? `<p style="margin: 4px 0 0 0; color: #f97316; font-size: 12px;">Delay: ${entry.delay_hours} hours</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    /**
+     * Add a new production log entry
+     */
+    async addProductionLogEntry(ticketId) {
+        const initials = document.getElementById(`log-initials-${ticketId}`)?.value.trim();
+        const type = document.getElementById(`log-type-${ticketId}`)?.value;
+        const note = document.getElementById(`log-note-${ticketId}`)?.value.trim();
+
+        if (!initials) {
+            alert('Please enter your initials');
+            return;
+        }
+
+        if (!note) {
+            alert('Please enter a note');
+            return;
+        }
+
+        try {
+            const payload = {
+                user_initials: initials.toUpperCase(),
+                entry_type: type,
+                note_text: note
+            };
+
+            // Add type-specific fields based on entry type
+            if (type === 'wastage') {
+                const wastageAmount = prompt('Wastage amount:');
+                const wastageUnit = prompt('Unit (sheets/meters/etc):') || 'sheets';
+                if (wastageAmount) {
+                    payload.wastage_amount = parseFloat(wastageAmount);
+                    payload.wastage_unit = wastageUnit;
+                    payload.wastage_reason = note;
+                }
+            } else if (type === 'delay') {
+                const delayHours = prompt('Delay duration (hours):');
+                if (delayHours) {
+                    payload.delay_hours = parseFloat(delayHours);
+                    payload.delay_reason = note;
+                }
+            }
+
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/${ticketId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to add log entry');
+            }
+
+            // Clear form
+            document.getElementById(`log-initials-${ticketId}`).value = '';
+            document.getElementById(`log-note-${ticketId}`).value = '';
+
+            // Reload entries
+            this.loadProductionLogEntries(ticketId);
+
+            this.showSuccessToast('Log entry added successfully');
+
+        } catch (error) {
+            console.error('Failed to add log entry:', error);
+            alert('Failed to add log entry: ' + error.message);
+        }
+    },
+
+    /**
+     * Show client notification dialog
+     */
+    showClientNotificationDialog(ticketId) {
+        // Find job to get client info
+        const job = Array.from(this.jobsCache.values()).find(j => j.TicketID === ticketId);
+        const clientName = job ? (job.ClientName || job.client_name) : 'Client';
+
+        const dialogHtml = `
+            <div class="modal-overlay" id="notification-dialog" style="z-index: 10002;">
+                <div class="kanban-job-modal" style="width: 600px; max-width: 90%;">
+                    <div class="kanban-modal-header">
+                        <div class="kanban-modal-title">
+                            <i class="fas fa-envelope"></i>
+                            <span>Send Client Notification - Ticket #${ticketId}</span>
+                        </div>
+                        <button class="kanban-modal-close-btn" onclick="document.getElementById('notification-dialog').remove();">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="kanban-modal-body" style="padding: 20px;">
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 6px;">
+                                <i class="fas fa-user"></i> Client Name
+                            </label>
+                            <input type="text" id="notif-client-name" value="${this.escapeHtml(clientName)}" 
+                                   style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6;" readonly />
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 6px;">
+                                <i class="fas fa-bell"></i> Notification Type
+                            </label>
+                            <select id="notif-type" style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6;">
+                                <option value="email">Email</option>
+                                <option value="sms">SMS</option>
+                                <option value="phone">Phone Call</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="client_portal">Client Portal</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 6px;">
+                                <i class="fas fa-envelope"></i> Email Address
+                            </label>
+                            <input type="email" id="notif-email" placeholder="client@example.com" 
+                                   style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6;" />
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 6px;">
+                                <i class="fas fa-phone"></i> Phone Number
+                            </label>
+                            <input type="tel" id="notif-phone" placeholder="+61 4XX XXX XXX" 
+                                   style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6;" />
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 6px;">
+                                <i class="fas fa-heading"></i> Subject
+                            </label>
+                            <input type="text" id="notif-subject" placeholder="Your print job update" 
+                                   style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6;" />
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 6px;">
+                                <i class="fas fa-comment-alt"></i> Message
+                            </label>
+                            <textarea id="notif-message" rows="4" placeholder="Enter your message to the client..." 
+                                      style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 6px;">
+                                <i class="fas fa-user"></i> Your Initials
+                            </label>
+                            <input type="text" id="notif-initials" placeholder="JD" maxlength="3" 
+                                   style="width: 100px; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6;" />
+                        </div>
+
+                        <div style="padding: 12px; background: #1c2128; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 16px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="notif-auto-send" style="width: 18px; height: 18px;" />
+                                <label for="notif-auto-send" style="font-size: 13px; font-weight: 600; color: #f3f4f6; cursor: pointer;">
+                                    <i class="fas fa-paper-plane"></i> Auto-send notification
+                                </label>
+                            </div>
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af; padding-left: 26px;">
+                                If unchecked, notification will be logged only (not sent automatically)
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="kanban-modal-footer" style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('notification-dialog').remove();">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="btn btn-primary" onclick="window.currentKanbanModule.sendNotificationToClient(${ticketId});">
+                            <i class="fas fa-check"></i> Send & Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', dialogHtml);
+    },
+
+    /**
+     * Send client notification from dialog
+     */
+    async sendNotificationToClient(ticketId) {
+        const type = document.getElementById('notif-type')?.value;
+        const email = document.getElementById('notif-email')?.value.trim();
+        const phone = document.getElementById('notif-phone')?.value.trim();
+        const subject = document.getElementById('notif-subject')?.value.trim();
+        const message = document.getElementById('notif-message')?.value.trim();
+        const initials = document.getElementById('notif-initials')?.value.trim();
+        const autoSend = document.getElementById('notif-auto-send')?.checked;
+
+        if (!initials) {
+            alert('Please enter your initials');
+            return;
+        }
+
+        if (!message) {
+            alert('Please enter a message');
+            return;
+        }
+
+        const recipient = type === 'email' ? email : phone;
+        if (!recipient) {
+            alert(`Please enter a ${type === 'email' ? 'email address' : 'phone number'}`);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/${ticketId}/notification`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_initials: initials.toUpperCase(),
+                    notification_type: type,
+                    notification_recipient: recipient,
+                    notification_subject: subject || 'Print Job Update',
+                    notification_message: message,
+                    notification_status: autoSend ? 'sent' : 'pending',
+                    auto_send: autoSend
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to log notification');
+            }
+
+            // Close dialog
+            document.getElementById('notification-dialog')?.remove();
+
+            // Reload production log if modal is open
+            this.loadProductionLogEntries(ticketId);
+
+            const action = autoSend ? 'sent and logged' : 'logged (not sent)';
+            this.showSuccessToast(`Client notification ${action}`);
+
+        } catch (error) {
+            console.error('Failed to send notification:', error);
+            alert('Failed to send notification: ' + error.message);
+        }
+    },
+
+    // ========================================================================
+    // PRODUCTION LOG - LEGACY METHOD
     // ========================================================================
 
     async viewProductionLog(jobId) {
