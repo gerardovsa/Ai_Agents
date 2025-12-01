@@ -80,52 +80,91 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
     displaced_thread = None
     
     with get_db_connection() as conn:
-        cursor = conn.cursor()
-        
-        # CRITICAL FIX: Ensure user row exists before UPDATE
-        sql, params = convert_sql_placeholders(
-            "SELECT id FROM ai_infrastructure.users WHERE id = %s",
-            (user_id,)
-        )
-        cursor.execute(sql, params)
-        
-        if not cursor.fetchone():
-            logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
-                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
-            """, (user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'))
+        cursor = None  # ✅ FIX: Initialize outside try to ensure cleanup
+        try:
+            cursor = conn.cursor()
+            
+            # CRITICAL FIX: Ensure user row exists before UPDATE
+            sql, params = convert_sql_placeholders(
+                "SELECT id FROM ai_infrastructure.users WHERE id = %s",
+                (user_id,)
+            )
             cursor.execute(sql, params)
-        
-        # Get existing metadata
-        sql, params = convert_sql_placeholders(
-            "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
-            (user_id,)
-        )
-        cursor.execute(sql, params)
-        row = cursor.fetchone()
-        
-        # Parse metadata (PostgreSQL with pooling returns dict-like object)
-        metadata_value = row['metadata'] if row else None
-        if metadata_value:
-            try:
-                metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
-            except (json.JSONDecodeError, TypeError):
+            
+            if not cursor.fetchone():
+                logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+                """, (user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'))
+                cursor.execute(sql, params)
+            
+            # Get existing metadata
+            sql, params = convert_sql_placeholders(
+                "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
+                (user_id,)
+            )
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            
+            # Parse metadata (PostgreSQL with pooling returns dict-like object)
+            metadata_value = row['metadata'] if row else None
+            if metadata_value:
+                try:
+                    metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
+                except (json.JSONDecodeError, TypeError):
+                    metadata = {}
+            else:
                 metadata = {}
-        else:
-            metadata = {}
-        
-        assignments = metadata.get('thread_assignments', {})
-        
-        # RULE 1: Remove thread from ANY previous location (thread can only be in one place)
-        for loc, tid in list(assignments.items()):
-            if tid == session_id:
-                previous_location = loc
-                del assignments[loc]
-                logger.info(f"🔄 [RULE 1] Removed thread {session_id} from {loc} (thread can only be in one location)")
-        
-        # If moving to Prime, we're done (Prime is implicit - not stored in metadata)
-        if location == 'prime':
+            
+            assignments = metadata.get('thread_assignments', {})
+            
+            # RULE 1: Remove thread from ANY previous location (thread can only be in one place)
+            for loc, tid in list(assignments.items()):
+                if tid == session_id:
+                    previous_location = loc
+                    del assignments[loc]
+                    logger.info(f"🔄 [RULE 1] Removed thread {session_id} from {loc} (thread can only be in one location)")
+            
+            # If moving to Prime, we're done (Prime is implicit - not stored in metadata)
+            if location == 'prime':
+                metadata['thread_assignments'] = assignments
+                
+                sql, params = convert_sql_placeholders("""
+                    UPDATE ai_infrastructure.users 
+                    SET metadata = %s, last_active = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (json.dumps(metadata), user_id))
+                cursor.execute(sql, params)
+            
+                # CRITICAL: Also update sessions.threads.location to 'prime'
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                    WHERE thread_slug = %s::text AND user_id = %s
+                """, (str(session_id), user_id))
+                cursor.execute(sql, params)
+                conn.commit()
+                
+                logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
+                
+                # ✅ FIX: Return immediately - don't fall through to agent assignment logic
+                return {
+                    'previous_location': previous_location,
+                    'displaced_thread': None
+                }
+            
+            # RULE 2: Agent can only have ONE thread - remove existing thread from target location
+            if location in assignments:
+                displaced_thread = assignments[location]
+                del assignments[location]
+                logger.info(f"🔄 [RULE 2] Displaced thread {displaced_thread} from {location} (agent can only have one thread)")
+            
+            # RULE 3: Assign thread to new location (most recent assignment wins)
+            assignments[location] = session_id
+            logger.info(f"✅ [RULE 3] Assigned thread {session_id} to {location} (most recent assignment)")
+            
+            # Save back to database (LEGACY metadata - keep for backward compatibility)
             metadata['thread_assignments'] = assignments
             
             sql, params = convert_sql_placeholders("""
@@ -135,69 +174,41 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             """, (json.dumps(metadata), user_id))
             cursor.execute(sql, params)
             
-            # CRITICAL: Also update sessions.threads.location to 'prime'
+            # CRITICAL: Also update sessions.threads.location (NEW SINGLE SOURCE OF TRUTH)
             sql, params = convert_sql_placeholders("""
                 UPDATE sessions.threads 
-                SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                SET location = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE thread_slug = %s::text AND user_id = %s
-            """, (str(session_id), user_id))
+            """, (location, str(session_id), user_id))
             cursor.execute(sql, params)
             conn.commit()
             
-            logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
+            # If thread was displaced, move it to Prime
+            if displaced_thread:
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                    WHERE thread_slug = %s::text AND user_id = %s
+                """, (str(displaced_thread), user_id))
+                cursor.execute(sql, params)
+                conn.commit()
+                logger.info(f"🔄 Moved displaced thread {displaced_thread} to Prime in sessions.threads")
             
-            # ✅ FIX: Return immediately - don't fall through to agent assignment logic
-            return {
+            logger.info(f"✅ Updated sessions.threads.location for thread {session_id} → {location}")
+            
+            result_data = {
                 'previous_location': previous_location,
-                'displaced_thread': None
+                'displaced_thread': displaced_thread
             }
         
-        # RULE 2: Agent can only have ONE thread - remove existing thread from target location
-        if location in assignments:
-            displaced_thread = assignments[location]
-            del assignments[location]
-            logger.info(f"🔄 [RULE 2] Displaced thread {displaced_thread} from {location} (agent can only have one thread)")
-        
-        # RULE 3: Assign thread to new location (most recent assignment wins)
-        assignments[location] = session_id
-        logger.info(f"✅ [RULE 3] Assigned thread {session_id} to {location} (most recent assignment)")
-        
-        # Save back to database (LEGACY metadata - keep for backward compatibility)
-        metadata['thread_assignments'] = assignments
-        
-        sql, params = convert_sql_placeholders("""
-            UPDATE ai_infrastructure.users 
-            SET metadata = %s, last_active = CURRENT_TIMESTAMP
-            WHERE id = %s
-        """, (json.dumps(metadata), user_id))
-        cursor.execute(sql, params)
-        
-        # CRITICAL: Also update sessions.threads.location (NEW SINGLE SOURCE OF TRUTH)
-        sql, params = convert_sql_placeholders("""
-            UPDATE sessions.threads 
-            SET location = %s, updated_at = CURRENT_TIMESTAMP
-            WHERE thread_slug = %s::text AND user_id = %s
-        """, (location, str(session_id), user_id))
-        cursor.execute(sql, params)
-        conn.commit()
-        
-        # If thread was displaced, move it to Prime
-        if displaced_thread:
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads 
-                SET location = 'prime', updated_at = CURRENT_TIMESTAMP
-                WHERE thread_slug = %s::text AND user_id = %s
-            """, (str(displaced_thread), user_id))
-            cursor.execute(sql, params)
-            conn.commit()
-            logger.info(f"🔄 Moved displaced thread {displaced_thread} to Prime in sessions.threads")
-        
-        logger.info(f"✅ Updated sessions.threads.location for thread {session_id} → {location}")
-        
-        result_data = {
-            'previous_location': previous_location,
-            'displaced_thread': displaced_thread
-        }
+        finally:
+            # ✅ FIX: ALWAYS close cursor, even on exception (prevents connection leaks)
+            if cursor is not None:
+                try:
+                    cursor.close()
+                    logger.debug(f"✅ Cursor closed for enforce_thread_assignment_rules")
+                except Exception as cursor_error:
+                    logger.error(f"⚠️ Error closing cursor: {cursor_error}")
     
     return result_data
 

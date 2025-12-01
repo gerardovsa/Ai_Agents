@@ -150,7 +150,12 @@
                           },
                           "priority": {
                             "type": "string",
-                            "enum": ["low", "medium", "high", "critical"],
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "critical"
+                            ],
                             "default": "medium",
                             "description": "Task priority level: low (🟢), medium (🟡), high (🟠), critical (🔴)"
                           },
@@ -171,12 +176,19 @@
                                     },
                                     "priority": {
                                       "type": "string",
-                                      "enum": ["low", "medium", "high", "critical"],
+                                      "enum": [
+                                        "low",
+                                        "medium",
+                                        "high",
+                                        "critical"
+                                      ],
                                       "default": "medium",
                                       "description": "Subtask priority level"
                                     }
                                   },
-                                  "required": ["task"]
+                                  "required": [
+                                    "task"
+                                  ]
                                 }
                               ]
                             },
@@ -1223,7 +1235,12 @@
                     },
                     "priority": {
                       "type": "string",
-                      "enum": ["low", "medium", "high", "critical"],
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                      ],
                       "default": "medium",
                       "description": "Task priority level"
                     },
@@ -1242,11 +1259,18 @@
                               },
                               "priority": {
                                 "type": "string",
-                                "enum": ["low", "medium", "high", "critical"],
+                                "enum": [
+                                  "low",
+                                  "medium",
+                                  "high",
+                                  "critical"
+                                ],
                                 "default": "medium"
                               }
                             },
-                            "required": ["task"]
+                            "required": [
+                              "task"
+                            ]
                           }
                         ]
                       }
@@ -1314,12 +1338,19 @@
                     },
                     "priority": {
                       "type": "string",
-                      "enum": ["low", "medium", "high", "critical"],
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                      ],
                       "default": "medium",
                       "description": "Subtask priority level"
                     }
                   },
-                  "required": ["task"]
+                  "required": [
+                    "task"
+                  ]
                 }
               ]
             },

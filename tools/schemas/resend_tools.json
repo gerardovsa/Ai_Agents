@@ -3,7 +3,7 @@
   "description": "Production-grade email sending via Resend API. Send transactional emails with excellent deliverability from your custom domain.",
   "tools": [
     {
-      "name": "resend_send_email",
+      "name": "resend_send_email_DISABLED_TESTING",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend a plain text email via Resend. Use for simple transactional emails, notifications, and alerts. Returns email ID for tracking delivery status.",
       "platform": "resend",
       "parameters": {
@@ -72,7 +72,7 @@
       ]
     },
     {
-      "name": "resend_send_email_html",
+      "name": "resend_send_email_html_DISABLED_TESTING",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an HTML email with rich formatting via Resend. Use for newsletters, marketing emails, invoices with styling, or any email requiring visual design. Includes automatic plain text fallback.",
       "platform": "resend",
       "parameters": {
@@ -153,7 +153,7 @@
       ]
     },
     {
-      "name": "resend_send_batch_emails",
+      "name": "resend_send_batch_emails_DISABLED_TESTING",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend multiple emails efficiently in batch. Use for bulk notifications, newsletters to multiple recipients, or mass transactional emails. More efficient than sending individually.",
       "platform": "resend",
       "parameters": {

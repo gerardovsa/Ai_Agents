@@ -2179,11 +2179,19 @@ async function initMultiAgent() {
         }
     });
 
-    // Wait for all agent threads to finish loading
+    // ✅ FIX: Load threads sequentially to prevent connection pool exhaustion
+    // OLD: await Promise.all(agentLoadPromises) - caused 5 parallel connections
+    // NEW: Sequential loading with connection reuse
     if (agentLoadPromises.length > 0) {
-        console.log(`⏳ [initMultiAgent] Waiting for ${agentLoadPromises.length} agent threads to load...`);
-        await Promise.all(agentLoadPromises);
-        console.log(`✅ [initMultiAgent] All agent threads loaded successfully`);
+        console.log(`⏳ [initMultiAgent] Loading ${agentLoadPromises.length} agent threads sequentially...`);
+
+        for (let i = 0; i < agentLoadPromises.length; i++) {
+            const promise = agentLoadPromises[i];
+            await promise;  // Wait for each agent before starting next
+            console.log(`✅ [initMultiAgent] Agent ${i + 1}/${agentLoadPromises.length} loaded (sequential mode)`);
+        }
+
+        console.log(`✅ [initMultiAgent] All ${agentLoadPromises.length} agent threads loaded successfully`);
     }
 
     // Legacy fallback: Restore threads from old MultiAgent.loadedThreads if not in assignments

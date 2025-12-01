@@ -20,11 +20,55 @@
  * - Implements CASCADE pattern for agent assignment
  * - Updated module from previous version
  * - Handles agent selection and assignment flow
+ * - ✅ 2025-12-02: Added deduplication to prevent triple assignment calls
  * 
- * LAST MODIFIED: 2025-11-20 - Initial file creation
+ * LAST MODIFIED: 2025-12-02 - Added assignment deduplication
  */
 
 // ==================== THREAD MANAGER - ASSIGNMENT MODULE ====================
+
+/**
+ * ✅ FIX: Assignment Deduplication System
+ * Prevents duplicate API calls within 1 second window
+ * Fixes issue where same thread assigned 3x in 4 seconds
+ */
+const AssignmentQueue = {
+    pending: new Map(),  // key: "threadId-location" → {timestamp, promise}
+
+    isRecentDuplicate(threadId, location) {
+        const key = `${threadId}-${location}`;
+        const pending = this.pending.get(key);
+
+        if (pending) {
+            const timeSince = Date.now() - pending.timestamp;
+            if (timeSince < 1000) {
+                console.warn(`⏭️ [Assignment Queue] Skipping duplicate: ${threadId} → ${location} (${timeSince}ms ago)`);
+                return true;
+            }
+        }
+        return false;
+    },
+
+    register(threadId, location, promise) {
+        const key = `${threadId}-${location}`;
+        this.pending.set(key, {
+            timestamp: Date.now(),
+            promise: promise
+        });
+
+        // Auto-cleanup after 2 seconds
+        setTimeout(() => {
+            this.pending.delete(key);
+        }, 2000);
+    },
+
+    clear() {
+        this.pending.clear();
+    }
+};
+
+// Export for debugging
+window.AssignmentQueue = AssignmentQueue;
 /**
  * Thread Assignment System - CASCADE Pattern
  * Database-first approach prevents UI/DB mismatches
@@ -48,6 +92,12 @@ Object.assign(window.ThreadManager, {
      */
     async assignThread(threadId, location) {
         console.log(`🔄 [Assignment] START: ${threadId} → ${location}`);
+
+        // ✅ FIX: Check for duplicate assignment within 1 second
+        if (AssignmentQueue.isRecentDuplicate(threadId, location)) {
+            console.warn(`⏭️ [Assignment] Skipping duplicate assignment (within 1s window)`);
+            return { skipped: true, reason: 'duplicate_within_1s' };
+        }
 
         // CRITICAL: Enforce single prime-loaded thread
         if (location === 'prime-loaded') {
@@ -84,7 +134,9 @@ Object.assign(window.ThreadManager, {
 
             // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
             const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
-            const response = await fetch(`${apiUrl}/api/thread-assignments/assign`, {
+
+            // ✅ FIX: Register assignment start to prevent duplicates (wrapping fetch in promise)
+            const assignmentPromise = fetch(`${apiUrl}/api/thread-assignments/assign`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -93,6 +145,10 @@ Object.assign(window.ThreadManager, {
                     user_id: userId
                 })
             });
+
+            AssignmentQueue.register(threadId, location, assignmentPromise);
+
+            const response = await assignmentPromise;
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -198,12 +254,12 @@ Object.assign(window.ThreadManager, {
 
         // NOTE: Thread location already updated at line 148-151 above
         // No need for redundant update here (removed duplicate 'const thread' declaration)
-        
+
         // ✅ OPTIMIZATION (Nov 28, 2025): Only verify from backend every 10th update
         // This saves 90% of unnecessary API calls while still catching sync issues
         if (!window._cascadeUpdateCount) window._cascadeUpdateCount = 0;
         window._cascadeUpdateCount++;
-        
+
         if (window._cascadeUpdateCount % 10 === 0) {
             console.log(`🔍 [CASCADE] Periodic verification (every 10th update): Refreshing from backend`);
             try {

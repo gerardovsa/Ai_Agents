@@ -139,10 +139,21 @@ const ThreadManager = {
                 await this.loadModules();
                 await this.ensureCorrectUserData();
 
+                // ✅ FIX: Check if MultiAgent already loaded threads (prevents duplicate load + assignment query)
+                const multiAgentAlreadyLoaded = typeof MultiAgent !== 'undefined' &&
+                    MultiAgent.loadedThreads && Object.keys(MultiAgent.loadedThreads).length > 0;
+
                 // ✅ SMART: Only load threads if not already loaded by initMultiAgent
                 if (!this.threadsLoaded || this.threads.length === 0) {
-                    console.log('📥 [ThreadManager] Loading threads (not yet loaded)...');
-                    await this.loadThreadsFromBackend();
+                    if (multiAgentAlreadyLoaded) {
+                        console.log('⏭️ [ThreadManager] Skipping loadThreadsFromBackend (MultiAgent already loaded ' +
+                            Object.keys(MultiAgent.loadedThreads).length + ' threads)');
+                        this.threads = Object.values(MultiAgent.loadedThreads);
+                        this.threadsLoaded = true;
+                    } else {
+                        console.log('📥 [ThreadManager] Loading threads (not yet loaded)...');
+                        await this.loadThreadsFromBackend();
+                    }
                 } else {
                     console.log('✅ [ThreadManager] Threads already loaded (count: ' + this.threads.length + '), skipping reload');
                 }
@@ -421,7 +432,16 @@ const ThreadManager = {
         const primeLoadedThread = this.threads.find(t => t.location === 'prime-loaded');
 
         if (primeLoadedThread) {
-            // ✅ CHECK: Skip if already loaded (by initMultiAgent or previous call)
+            // ✅ FIX: Skip if already loaded AND assigned by initMultiAgent (prevents duplicate assignment query)
+            const alreadyLoadedByMultiAgent = typeof MultiAgent !== 'undefined' &&
+                MultiAgent.loadedThreads && MultiAgent.loadedThreads[primeLoadedThread.id];
+
+            if (alreadyLoadedByMultiAgent) {
+                console.log(`⏭️ [ThreadManager] Prime thread "${primeLoadedThread.title}" already loaded by initMultiAgent, skipping auto-load`);
+                return;
+            }
+
+            // ✅ CHECK: Skip if already loaded (by previous call)
             if (typeof AppState !== 'undefined' && AppState.currentThreadId === primeLoadedThread.id) {
                 console.log(`⏭️ [ThreadManager] Prime thread "${primeLoadedThread.title}" already loaded (ID: ${primeLoadedThread.id}), skipping auto-load`);
                 return;

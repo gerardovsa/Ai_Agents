@@ -25,10 +25,12 @@ class KajabiTools:
         """
         Get OAuth access token using client credentials flow
         Kajabi requires OAuth 2.0 client_credentials grant type
+        
+        Note: Always fetches fresh token to avoid stale token issues
+        after credential rotation or permission changes
         """
-        # Check cache first (keyed by client_id)
-        if client_id in self.access_token_cache:
-            return self.access_token_cache[client_id]
+        # Always get fresh token (bypasses cache)
+        # Kajabi caches tokens server-side, so minimal overhead
         
         try:
             response = requests.post(
@@ -48,8 +50,7 @@ class KajabiTools:
             if not access_token:
                 raise KajabiError("No access_token in OAuth response")
             
-            # Cache the token (expires in 7 days per Kajabi docs)
-            self.access_token_cache[client_id] = access_token
+            # Return fresh token (cache disabled to prevent stale token issues)
             return access_token
             
         except requests.exceptions.RequestException as e:
@@ -119,7 +120,12 @@ class KajabiTools:
     
     def list_products(self, page: int = 1, per_page: int = 25, type: Optional[str] = None, **kwargs) -> Dict:
         """List all products (courses, memberships, coaching programs)"""
-        params = {'page': page, 'per_page': min(per_page, 100)}
+        # Kajabi API bug: sending page=1 causes 500 error, so only include if page > 1
+        params = {}
+        if page > 1:
+            params['page'] = page
+        if per_page != 25:  # Only include if not default
+            params['per_page'] = min(per_page, 100)
         if type:
             params['type'] = type
         
@@ -132,8 +138,12 @@ class KajabiTools:
     # ==================== OFFERS ====================
     
     def list_offers(self, page: int = 1, per_page: int = 25, product_id: Optional[str] = None, **kwargs) -> Dict:
-        """List all offers (payment plans)"""
-        params = {'page': page, 'per_page': min(per_page, 100)}
+        """List all offers for products"""
+        params = {}
+        if page > 1:
+            params['page'] = page
+        if per_page != 25:
+            params['per_page'] = min(per_page, 100)
         if product_id:
             params['product_id'] = product_id
         
@@ -148,7 +158,11 @@ class KajabiTools:
     def list_members(self, page: int = 1, per_page: int = 25, email: Optional[str] = None, 
                     status: Optional[str] = None, **kwargs) -> Dict:
         """List all members (customers/students)"""
-        params = {'page': page, 'per_page': min(per_page, 100)}
+        params = {}
+        if page > 1:
+            params['page'] = page
+        if per_page != 25:
+            params['per_page'] = min(per_page, 100)
         if email:
             params['email'] = email
         if status:
@@ -162,11 +176,11 @@ class KajabiTools:
     
     def search_members(self, query: str, page: int = 1, per_page: int = 25, **kwargs) -> Dict:
         """Search members by email, name, or custom fields"""
-        params = {
-            'query': query,
-            'page': page,
-            'per_page': min(per_page, 100)
-        }
+        params = {'query': query}
+        if page > 1:
+            params['page'] = page
+        if per_page != 25:
+            params['per_page'] = min(per_page, 100)
         return self._make_request('GET', '/v1/members/search', params=params, **kwargs)
     
     # ==================== MEMBER ACCESS ====================
@@ -190,7 +204,11 @@ class KajabiTools:
     
     def list_webhooks(self, page: int = 1, per_page: int = 25, **kwargs) -> Dict:
         """List all webhooks"""
-        params = {'page': page, 'per_page': min(per_page, 100)}
+        params = {}
+        if page > 1:
+            params['page'] = page
+        if per_page != 25:
+            params['per_page'] = min(per_page, 100)
         return self._make_request('GET', '/v1/webhooks', params=params, **kwargs)
     
     def create_webhook(self, url: str, events: List[str], active: bool = True, **kwargs) -> Dict:
@@ -211,7 +229,11 @@ class KajabiTools:
     def list_form_submissions(self, form_id: Optional[str] = None, page: int = 1, per_page: int = 25,
                              start_date: Optional[str] = None, end_date: Optional[str] = None, **kwargs) -> Dict:
         """List form submissions"""
-        params = {'page': page, 'per_page': min(per_page, 100)}
+        params = {}
+        if page > 1:
+            params['page'] = page
+        if per_page != 25:
+            params['per_page'] = min(per_page, 100)
         if form_id:
             params['form_id'] = form_id
         if start_date:
