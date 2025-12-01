@@ -33,6 +33,8 @@ They return structured dictionaries suitable for AI consumption.
 from typing import Any, Dict, Optional, List
 import re
 import traceback
+import json
+import io
 from datetime import datetime
 
 # Try to import the Xero client from the UI module. If it isn't available
@@ -42,6 +44,20 @@ try:
 except Exception:
     # Defer import error to runtime to avoid import-time failures of the registry
     XeroAPIClient = None
+
+# Import pandas for Excel export (optional)
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+
+# Import Google Sheets integration (optional)
+try:
+    from google_workspace.google_docs import create_spreadsheet, append_rows_to_sheet
+    GOOGLE_SHEETS_AVAILABLE = True
+except ImportError:
+    GOOGLE_SHEETS_AVAILABLE = False
 
 
 def _get_client(business_id: int):
@@ -201,6 +217,267 @@ def _parse_xero_date(date_str: str) -> Optional[str]:
         return None
 
 
+def _format_currency(value: Any) -> str:
+    """Format numeric value as currency string"""
+    try:
+        return f"${float(value):,.2f}"
+    except (ValueError, TypeError):
+        return str(value)
+
+
+def _render_invoices_markdown(invoices: List[Dict], business_name: str) -> str:
+    """
+    Render invoices as detailed Markdown table (no summarization)
+    """
+    if not invoices:
+        return "**No invoices found**"
+    
+    lines = [
+        f"## {business_name} - Invoices ({len(invoices)} records)",
+        "",
+        "| Invoice # | Contact | Date | Due Date | Status | Total | Amount Due | Currency |",
+        "|-----------|---------|------|----------|--------|-------|------------|----------|"
+    ]
+    
+    for inv in invoices:
+        lines.append(
+            f"| {inv.get('invoice_number', 'N/A')} | "
+            f"{inv.get('contact_name', 'N/A')} | "
+            f"{inv.get('date', 'N/A')} | "
+            f"{inv.get('due_date', 'N/A')} | "
+            f"{inv.get('status', 'N/A')} | "
+            f"{_format_currency(inv.get('total', 0))} | "
+            f"{_format_currency(inv.get('amount_due', 0))} | "
+            f"{inv.get('currency', 'NZD')} |"
+        )
+    
+    return "\n".join(lines)
+
+
+def _render_contacts_markdown(contacts: List[Dict], business_name: str) -> str:
+    """
+    Render contacts as detailed Markdown table (no summarization)
+    """
+    if not contacts:
+        return "**No contacts found**"
+    
+    lines = [
+        f"## {business_name} - Contacts ({len(contacts)} records)",
+        "",
+        "| Name | Email | Phone | Type | Updated |",
+        "|------|-------|-------|------|---------| "
+    ]
+    
+    for contact in contacts:
+        contact_type = []
+        if contact.get('is_customer'):
+            contact_type.append('Customer')
+        if contact.get('is_supplier'):
+            contact_type.append('Supplier')
+        type_str = ', '.join(contact_type) if contact_type else 'N/A'
+        
+        lines.append(
+            f"| {contact.get('name', 'N/A')} | "
+            f"{contact.get('email', 'N/A')} | "
+            f"{contact.get('phone', 'N/A')} | "
+            f"{type_str} | "
+            f"{contact.get('updated_date', 'N/A')} |"
+        )
+    
+    return "\n".join(lines)
+
+
+def _render_payments_markdown(payments: List[Dict], business_name: str) -> str:
+    """
+    Render payments as detailed Markdown table (no summarization)
+    """
+    if not payments:
+        return "**No payments found**"
+    
+    lines = [
+        f"## {business_name} - Payments ({len(payments)} records)",
+        "",
+        "| Date | Amount | Invoice # | Status |",
+        "|------|--------|-----------|--------|"
+    ]
+    
+    for payment in payments:
+        lines.append(
+            f"| {payment.get('date', 'N/A')} | "
+            f"{_format_currency(payment.get('amount', 0))} | "
+            f"{payment.get('invoice_number', 'N/A')} | "
+            f"{payment.get('status', 'N/A')} |"
+        )
+    
+    return "\n".join(lines)
+
+
+def _render_accounts_markdown(accounts: List[Dict], business_name: str) -> str:
+    """
+    Render accounts as detailed Markdown table (no summarization)
+    """
+    if not accounts:
+        return "**No accounts found**"
+    
+    lines = [
+        f"## {business_name} - Chart of Accounts ({len(accounts)} records)",
+        "",
+        "| Code | Name | Type | Tax Type | Payments Enabled |",
+        "|------|------|------|----------|------------------|"
+    ]
+    
+    for account in accounts:
+        lines.append(
+            f"| {account.get('code', 'N/A')} | "
+            f"{account.get('name', 'N/A')} | "
+            f"{account.get('type', 'N/A')} | "
+            f"{account.get('tax_type', 'N/A')} | "
+            f"{account.get('enable_payments', False)} |"
+        )
+    
+    return "\n".join(lines)
+
+
+def _render_bank_transactions_markdown(transactions: List[Dict], business_name: str, summary: Dict = None) -> str:
+    """
+    Render bank transactions as detailed Markdown table (no summarization)
+    """
+    if not transactions:
+        return "**No transactions found**"
+    
+    lines = [
+        f"## {business_name} - Bank Transactions ({len(transactions)} records)",
+        ""
+    ]
+    
+    # Add summary if provided
+    if summary:
+        lines.extend([
+            "### Cash Flow Summary",
+            f"- **Total Spend**: {_format_currency(summary.get('total_spend', 0))}",
+            f"- **Total Receive**: {_format_currency(summary.get('total_receive', 0))}",
+            f"- **Net Cash Flow**: {_format_currency(summary.get('net_cash_flow', 0))}",
+            ""
+        ])
+    
+    lines.extend([
+        "### Transactions",
+        "",
+        "| Date | Type | Contact | Reference | Amount | Status | Bank Account |",
+        "|------|------|---------|-----------|--------|--------|--------------|"
+    ])
+    
+    for txn in transactions:
+        lines.append(
+            f"| {txn.get('date', 'N/A')} | "
+            f"{txn.get('type', 'N/A')} | "
+            f"{txn.get('contact_name', 'N/A')} | "
+            f"{txn.get('reference', 'N/A')} | "
+            f"{_format_currency(txn.get('total', 0))} | "
+            f"{txn.get('status', 'N/A')} | "
+            f"{txn.get('bank_account', 'N/A')} |"
+        )
+    
+    return "\n".join(lines)
+
+
+def _export_to_google_sheets(data: List[Dict], title: str, headers: List[str], user_id: int = None, **kwargs) -> Dict[str, Any]:
+    """
+    Export data to Google Sheets
+    Returns spreadsheet URL and ID
+    """
+    if not GOOGLE_SHEETS_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Google Sheets integration not available. Install required dependencies."
+        }
+    
+    try:
+        # Create new spreadsheet
+        sheet_result = create_spreadsheet(
+            title=title,
+            _user_id=user_id,
+            **kwargs
+        )
+        
+        if not sheet_result.get('success'):
+            return sheet_result
+        
+        spreadsheet_id = sheet_result.get('spreadsheet_id')
+        
+        # Prepare rows (headers + data)
+        rows = [headers]
+        for item in data:
+            row = [str(item.get(key, '')) for key in headers]
+            rows.append(row)
+        
+        # Append data
+        append_result = append_rows_to_sheet(
+            spreadsheet_id=spreadsheet_id,
+            range_name='Sheet1!A1',
+            values=rows,
+            _user_id=user_id,
+            **kwargs
+        )
+        
+        return {
+            "success": True,
+            "spreadsheet_id": spreadsheet_id,
+            "spreadsheet_url": sheet_result.get('spreadsheet_url'),
+            "rows_added": len(rows)
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to export to Google Sheets: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+
+def _export_to_excel(data: List[Dict], title: str, headers: List[str]) -> Dict[str, Any]:
+    """
+    Export data to Excel file (returns base64 encoded file)
+    """
+    if not PANDAS_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Pandas not available. Install pandas and openpyxl for Excel export."
+        }
+    
+    try:
+        # Create DataFrame
+        df = pd.DataFrame(data)
+        
+        # Reorder columns to match headers
+        df = df[[col for col in headers if col in df.columns]]
+        
+        # Export to Excel in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Data', index=False)
+        
+        # Get bytes
+        excel_bytes = output.getvalue()
+        
+        # Encode as base64 for transmission
+        import base64
+        excel_base64 = base64.b64encode(excel_bytes).decode('utf-8')
+        
+        return {
+            "success": True,
+            "filename": f"{title.replace(' ', '_')}.xlsx",
+            "excel_base64": excel_base64,
+            "size_bytes": len(excel_bytes),
+            "rows": len(df)
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to export to Excel: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+
 def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
                       contact_name: Optional[str] = None, invoice_number: Optional[str] = None,
                       **kwargs) -> Dict[str, Any]:
@@ -240,12 +517,20 @@ def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
                 'currency': inv.get('CurrencyCode')
             })
         
+        # Render as Markdown table
+        markdown_output = _render_invoices_markdown(formatted_invoices, client.config['name'])
+        
         return {
             "success": True, 
             "business_id": business_id, 
             "business_name": client.config['name'],
             "invoice_count": len(formatted_invoices),
-            "invoices": formatted_invoices
+            "invoices": formatted_invoices,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {
@@ -321,12 +606,20 @@ def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, **kwar
                 'is_supplier': contact.get('IsSupplier')
             })
         
+        # Render as Markdown table
+        markdown_output = _render_contacts_markdown(formatted_contacts, client.config['name'])
+        
         return {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "contact_count": len(formatted_contacts),
-            "contacts": formatted_contacts
+            "contacts": formatted_contacts,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
@@ -353,12 +646,20 @@ def xero_get_accounts(business_id: int = 1, **kwargs) -> Dict[str, Any]:
                 'enable_payments': account.get('EnablePaymentsToAccount')
             })
         
+        # Render as Markdown table
+        markdown_output = _render_accounts_markdown(formatted_accounts, client.config['name'])
+        
         return {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "account_count": len(formatted_accounts),
-            "accounts": formatted_accounts
+            "accounts": formatted_accounts,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
@@ -396,12 +697,20 @@ def xero_get_bank_transactions(business_id: int = 1, from_date: Optional[str] = 
                 'status': txn.get('Status')
             })
         
+        # Render as Markdown table
+        markdown_output = _render_bank_transactions_markdown(formatted_transactions, client.config['name'])
+        
         return {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "transaction_count": len(formatted_transactions),
-            "transactions": formatted_transactions
+            "transactions": formatted_transactions,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
@@ -431,12 +740,20 @@ def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, **
                 'status': payment.get('Status')
             })
         
+        # Render as Markdown table
+        markdown_output = _render_payments_markdown(formatted_payments, client.config['name'])
+        
         return {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "payment_count": len(formatted_payments),
-            "payments": formatted_payments
+            "payments": formatted_payments,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
@@ -628,6 +945,9 @@ def xero_get_contacts_by_date_range(business_id: int = 1, from_date: str = None,
                 'updated_date': _parse_xero_date(contact.get('UpdatedDateUTC'))
             })
         
+        # Render as Markdown table
+        markdown_output = _render_contacts_markdown(formatted_contacts, client.config['name'])
+        
         return {
             "success": True,
             "business_id": business_id,
@@ -640,7 +960,12 @@ def xero_get_contacts_by_date_range(business_id: int = 1, from_date: str = None,
             "truncated": truncated,
             "limit_applied": limit,
             "estimated_size_kb": round(len(formatted_contacts) * 0.5, 2),
-            "contacts": formatted_contacts
+            "contacts": formatted_contacts,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
@@ -692,6 +1017,9 @@ def xero_get_invoices_by_date_range(business_id: int = 1, from_date: str = None,
                 'currency': inv.get('CurrencyCode')
             })
         
+        # Render as Markdown table
+        markdown_output = _render_invoices_markdown(formatted_invoices, client.config['name'])
+        
         return {
             "success": True,
             "business_id": business_id,
@@ -705,7 +1033,12 @@ def xero_get_invoices_by_date_range(business_id: int = 1, from_date: str = None,
             "truncated": truncated,
             "limit_applied": limit,
             "estimated_size_kb": round(len(formatted_invoices) * 2.0, 2),
-            "invoices": formatted_invoices
+            "invoices": formatted_invoices,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
@@ -750,6 +1083,9 @@ def xero_get_payments_by_date_range(business_id: int = 1, from_date: str = None,
                 'status': payment.get('Status')
             })
         
+        # Render as Markdown table
+        markdown_output = _render_payments_markdown(formatted_payments, client.config['name'])
+        
         return {
             "success": True,
             "business_id": business_id,
@@ -762,7 +1098,12 @@ def xero_get_payments_by_date_range(business_id: int = 1, from_date: str = None,
             "truncated": truncated,
             "limit_applied": limit,
             "estimated_size_kb": round(len(formatted_payments) * 0.3, 2),
-            "payments": formatted_payments
+            "payments": formatted_payments,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
@@ -972,6 +1313,15 @@ def xero_get_bank_transactions_by_date_range(business_id: int = 1, from_date: st
                 'bank_account': txn.get('BankAccount', {}).get('Name')
             })
         
+        # Render as Markdown table with cash flow summary
+        summary_dict = {
+            "total_spend": round(abs(total_spend), 2),
+            "total_receive": round(total_receive, 2),
+            "net_cash_flow": round(total_receive - abs(total_spend), 2),
+            "by_type": type_breakdown
+        }
+        markdown_output = _render_bank_transactions_markdown(formatted_transactions, client.config['name'], summary_dict)
+        
         return {
             "success": True,
             "business_id": business_id,
@@ -987,14 +1337,14 @@ def xero_get_bank_transactions_by_date_range(business_id: int = 1, from_date: st
             "transaction_count": len(formatted_transactions),
             "truncated": truncated,
             "limit_applied": limit,
-            "summary": {
-                "total_spend": round(abs(total_spend), 2),
-                "total_receive": round(total_receive, 2),
-                "net_cash_flow": round(total_receive - abs(total_spend), 2),
-                "by_type": type_breakdown
-            },
+            "summary": summary_dict,
             "estimated_size_kb": round(len(formatted_transactions) * 0.5, 2),
-            "transactions": formatted_transactions
+            "transactions": formatted_transactions,
+            "markdown_table": markdown_output,
+            "export_options": {
+                "google_sheets": GOOGLE_SHEETS_AVAILABLE,
+                "excel": PANDAS_AVAILABLE
+            }
         }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
