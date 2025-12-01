@@ -35,6 +35,10 @@
                 data-tab="recording" title="Record">
                 <i class="fas fa-microphone"></i>
             </button>
+            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('upload')" data-tab="upload"
+                title="Upload Audio/Video">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </button>
             <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('tts')" data-tab="tts"
                 title="Text-to-Speech">
                 <i class="fas fa-volume-up"></i>
@@ -131,33 +135,7 @@
                 </div>
             </div>
 
-            <!-- File Upload Section -->
-            <div class="transcription-section">
-                <h3><i class="fas fa-file-upload"></i> Upload Audio/Video</h3>
-                <div class="transcription-upload-zone" id="transcription-upload-zone"
-                    onclick="document.getElementById('transcription-file-input').click()"
-                    ondragover="TranscriptionSidebar.handleDragOver(event)"
-                    ondrop="TranscriptionSidebar.handleFileDrop(event)"
-                    ondragleave="TranscriptionSidebar.handleDragLeave(event)"
-                    style="border: 2px dashed #30363d; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s;">
-                    <i class="fas fa-cloud-upload-alt" style="font-size: 36px; color: #58a6ff; margin-bottom: 8px;"></i>
-                    <p style="color: #c9d1d9; margin-bottom: 4px;">Click or drag files here</p>
-                    <small style="color: #8b949e;">Supports: MP3, WAV, MP4, WebM, OGG (max 25MB)</small>
-                    <input type="file" id="transcription-file-input" accept="audio/*,video/*" style="display: none;"
-                        onchange="TranscriptionSidebar.handleFileSelect(event)">
-                </div>
-                <div id="transcription-upload-progress" style="display: none; margin-top: 12px;">
-                    <div class="status-item">
-                        <span class="status-label">Processing:</span>
-                        <span class="status-value" id="upload-status">Uploading...</span>
-                    </div>
-                    <div
-                        style="width: 100%; height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; margin-top: 8px;">
-                        <div id="upload-progress-bar"
-                            style="height: 100%; background: #58a6ff; width: 0%; transition: width 0.3s;"></div>
-                    </div>
-                </div>
-            </div>
+            <!-- Upload Tab content moved to separate Upload Tab -->
 
             <!-- Live Transcript Display -->
             <div class="transcription-section" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
@@ -172,6 +150,43 @@
                 </div>
             </div>
         </div>
+        <!-- ========== UPLOAD TAB ========== -->
+        <div class="transcription-tab-content" id="upload-tab">
+            <div class="transcription-section">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload Audio / Video</h3>
+
+                <div class="transcription-upload-zone" id="upload-zone"
+                    onclick="document.getElementById('transcription-file-input').click()"
+                    ondragover="TranscriptionSidebar.handleDragOver(event)"
+                    ondrop="TranscriptionSidebar.handleFileDrop(event)"
+                    ondragleave="TranscriptionSidebar.handleDragLeave(event)"
+                    style="border: 2px dashed #30363d; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s;">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 36px; color: #58a6ff; margin-bottom: 8px;"></i>
+                    <p style="color: #c9d1d9; margin-bottom: 4px;">Click or drag files here</p>
+                    <small style="color: #8b949e;">Supports: MP3, WAV, MP4, WebM, OGG (max 25MB)</small>
+                    <input type="file" id="transcription-file-input" accept="audio/*,video/*" style="display: none;"
+                        onchange="TranscriptionSidebar.handleFileSelect(event)">
+                </div>
+
+                <div id="upload-status-panel" style="display: none; margin-top: 12px;">
+                    <div class="status-item">
+                        <span class="status-label">Processing:</span>
+                        <span class="status-value" id="upload-status">Uploading...</span>
+                    </div>
+                    <div style="width: 100%; height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; margin-top: 8px;">
+                        <div id="upload-progress-bar" style="height: 100%; background: #58a6ff; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="transcription-section">
+                <h3><i class="fas fa-history"></i> Upload History</h3>
+                <div style="margin-bottom:8px; display:flex; gap:8px;">
+                    <input type="text" id="transcription-history-search" placeholder="Search transcripts" style="flex:1; padding:6px; border-radius:4px; border:1px solid #30363d; background:transparent; color:var(--text-primary)">
+                    <button class="transcription-btn" onclick="TranscriptionSidebar.loadTranscriptionHistory()">Refresh</button>
+                </div>
+                <div id="transcription-history-list" style="max-height:260px; overflow:auto; border:1px solid var(--border-primary); padding:8px; border-radius:6px; background:var(--bg-secondary);"></div>
+            </div>
 
         <!-- ========== TTS TAB ========== -->
         <div class="transcription-tab-content" id="tts-tab">

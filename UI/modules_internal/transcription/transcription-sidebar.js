@@ -778,6 +778,26 @@ class TranscriptionSidebarController {
             if (transcript && transcript.trim()) {
                 this.displayFileTranscript(transcript, file.name);
                 this.addSTTTranscript(transcript, 'file-upload');
+                // Persist upload record with file metadata
+                try {
+                    this.saveTranscriptionToServer({
+                        transcript: transcript,
+                        source_type: 'upload',
+                        file_info: {
+                            filename: file.name,
+                            size: file.size,
+                            format: file.name.split('.').pop(),
+                            mime_type: file.type
+                        },
+                        model_used: null,
+                        confidence: null,
+                        language: null,
+                        duration_seconds: null,
+                        metadata: {origin: 'upload'}
+                    });
+                } catch (err) {
+                    console.warn('[TRANSCRIPTION] Failed to save uploaded transcription:', err);
+                }
                 if (statusSpan) statusSpan.textContent = 'Complete!';
 
                 setTimeout(() => {
@@ -854,10 +874,13 @@ class TranscriptionSidebarController {
 
     async sendFileToWhisper(audioBlob, filename) {
         const settings = this.getSTTSettings();
-        const endpoint = settings.whisperEndpoint || 'http://localhost:5000/transcribe';
+
+        // Use configured endpoint or default API route
+        const endpoint = settings.whisperEndpoint || '/api/transcribe';
 
         const formData = new FormData();
-        formData.append('audio', audioBlob, filename);
+        // Backend accepts 'file' (and older 'audio') field names
+        formData.append('file', audioBlob, filename);
 
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -1177,6 +1200,14 @@ class TranscriptionSidebarController {
         });
 
         console.log(`[TRANSCRIPTION SIDEBAR] Switched to tab: ${tabName}`);
+        // If user opened Upload tab, load persistent history
+        if (tabName === 'upload') {
+            try {
+                this.loadTranscriptionHistory();
+            } catch (e) {
+                console.warn('[TRANSCRIPTION SIDEBAR] Failed to load history:', e);
+            }
+        }
     }
 
     /**
@@ -1828,6 +1859,22 @@ class TranscriptionSidebarController {
             // Scroll to bottom
             container.scrollTop = container.scrollHeight;
         }
+
+        // Save to server in background for persistence
+        try {
+            this.saveTranscriptionToServer({
+                transcript: text,
+                source_type: transcript.source,
+                file_info: null,
+                model_used: null,
+                confidence: null,
+                language: null,
+                duration_seconds: null,
+                metadata: {audioSource: transcript.audioSource}
+            });
+        } catch (err) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Failed to enqueue save to server:', err);
+        }
     }
 
     /**
@@ -1857,6 +1904,88 @@ class TranscriptionSidebarController {
 
             // Scroll to bottom
             container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    /**
+     * Save transcription record to server for persistence
+     */
+    async saveTranscriptionToServer(payload) {
+        try {
+            const resp = await fetch('/api/transcriptions/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                console.warn('[TRANSCRIPTION] Save API responded with', resp.status);
+                return null;
+            }
+
+            const data = await resp.json();
+            return data;
+        } catch (err) {
+            console.error('[TRANSCRIPTION] Failed to save transcription to server:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Load transcription history from server and render in Upload tab
+     */
+    async loadTranscriptionHistory() {
+        try {
+            const container = document.getElementById('transcription-history-list');
+            if (!container) return;
+            container.innerHTML = '<div style="color:#8b949e">Loading...</div>';
+
+            const q = document.getElementById('transcription-history-search')?.value || '';
+            const resp = await fetch(`/api/transcriptions/history?limit=100`);
+            if (!resp.ok) {
+                container.innerHTML = `<div style="color:#f85149">Failed to load history (${resp.status})</div>`;
+                return;
+            }
+
+            const json = await resp.json();
+            if (!json.success) {
+                container.innerHTML = `<div style="color:#f85149">${json.error || 'Failed to load history'}</div>`;
+                return;
+            }
+
+            let items = json.history || [];
+            if (q) {
+                const ql = q.toLowerCase();
+                items = items.filter(i => (i.transcript || '').toLowerCase().includes(ql) || (i.model_used || '').toLowerCase().includes(ql));
+            }
+
+            if (items.length === 0) {
+                container.innerHTML = '<div style="color:#8b949e">No transcriptions yet.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            items.forEach(it => {
+                const div = document.createElement('div');
+                div.style.cssText = 'padding:8px; border-bottom:1px solid rgba(48,54,61,0.6);';
+                const dt = new Date(it.created_at);
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <div style="font-size:13px; color:var(--text-primary);">${(it.transcript||'').slice(0,200)}</div>
+                        <div style="font-size:11px; color:#8b949e; text-align:right; min-width:120px;">${it.model_used || ''}<br>${dt.toLocaleString()}</div>
+                    </div>
+                `;
+                div.addEventListener('click', () => {
+                    // Show full transcript in live display
+                    this.displayFileTranscript(it.transcript || '', `Transcript ${it.id}`);
+                });
+                container.appendChild(div);
+            });
+
+        } catch (err) {
+            console.error('[TRANSCRIPTION] loadTranscriptionHistory error:', err);
         }
     }
 
