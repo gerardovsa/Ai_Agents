@@ -46,11 +46,15 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
-# Import Pinecone
+# Import Pinecone (handle both old and new package names)
 try:
     from pinecone import Pinecone
     PINECONE_AVAILABLE = True
 except ImportError:
+    PINECONE_AVAILABLE = False
+except Exception as e:
+    # Handle pinecone-client conflict gracefully
+    print(f"⚠️  Pinecone import error: {e}")
     PINECONE_AVAILABLE = False
 
 # Create blueprint

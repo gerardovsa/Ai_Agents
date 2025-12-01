@@ -44,7 +44,7 @@ pyodbc>=5.0.0
 pymssql>=2.2.0
 
 # Vector Database
-pinecone-client>=3.0.0
+pinecone>=3.0.0
 
 # Scheduler
 apscheduler>=3.10.0
