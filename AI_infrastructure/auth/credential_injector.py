@@ -108,6 +108,12 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
             f"Please sign in with Google at /api/auth/google/login"
         )
     
+    # SECURITY: Auto-decrypt credentials if encrypted
+    from AI_infrastructure.auth.credential_encryptor import get_encryptor
+    encryptor = get_encryptor()
+    cred_dict = encryptor.decrypt_dict(cred_dict)
+    print(f"🔓 Decrypted Google credentials for user {user_id}")
+    
     # Create Google OAuth Credentials object
     credentials = Credentials(
         token=cred_dict['access_token'],
@@ -263,6 +269,12 @@ def create_microsoft_service_with_user_credentials(user_id: int, service_type: s
             f"Please sign in with Microsoft at /api/auth/microsoft/login"
         )
     
+    # SECURITY: Auto-decrypt credentials if encrypted
+    from AI_infrastructure.auth.credential_encryptor import get_encryptor
+    encryptor = get_encryptor()
+    cred_dict = encryptor.decrypt_dict(cred_dict)
+    print(f"🔓 Decrypted Microsoft credentials for user {user_id}")
+    
     # ✅ AUTO-REFRESH: Check if token is expired and refresh if needed
     from datetime import datetime, timezone
     import requests
@@ -392,8 +404,12 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
     microsoft_tools_prefixes = ['microsoft_', 'outlook_', 'teams_', 'onedrive_', 
                                 'sharepoint_', 'onenote_', 'planner_', 'todo_', 'word_']
     
+    # Determine if this is a Xero accounting tool
+    xero_tools_prefixes = ['xero_']
+    
     is_google_tool = any(tool_name.startswith(prefix) for prefix in google_tools_prefixes)
     is_microsoft_tool = any(tool_name.startswith(prefix) for prefix in microsoft_tools_prefixes)
+    is_xero_tool = any(tool_name.startswith(prefix) for prefix in xero_tools_prefixes)
     
     if is_google_tool:
         print(f"🔑 Injecting Google credentials for user {user_id} into tool: {tool_name}")
@@ -423,6 +439,27 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
             return result
         except Exception as e:
             print(f" Tool {tool_name} failed: {e}")
+            raise
+    
+    elif is_xero_tool:
+        print(f"🔑 Injecting Xero credentials for user {user_id} into tool: {tool_name}")
+        
+        # Xero tools use environment-based credentials from XeroAPIClient
+        # The client reads from .env.master (XERO_PRINT_CLIENT_ID, etc.)
+        # We still pass user_id for audit logging and future user-specific OAuth
+        tool_params['_user_id'] = user_id
+        tool_params['_injected_credentials'] = True
+        
+        # NOTE: Current Xero implementation uses OAuth2 Client Credentials flow
+        # from environment variables. For user-specific OAuth, credentials would
+        # be retrieved from oauth_tokens table and injected here.
+        
+        try:
+            result = tool_function(**tool_params)
+            print(f"✅ Tool {tool_name} executed successfully")
+            return result
+        except Exception as e:
+            print(f"❌ Tool {tool_name} failed: {e}")
             raise
     
     else:
@@ -1028,6 +1065,46 @@ def get_pinecone_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
     return get_platform_credentials(user_id, 'pinecone')
 
 
+def get_voyager_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Voyager AI API key and model configuration
+    
+    Returns:
+        {
+            'api_key': 'pa-...',
+            'model': 'voyage-2' or 'voyage-large-2' or 'voyage-code-2',
+            'dimensions': 1536
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Voyager AI tools.")
+    
+    return get_platform_credentials(user_id, 'voyager')
+
+
+def get_openai_embeddings_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get OpenAI Embeddings API key and model configuration
+    
+    Returns:
+        {
+            'api_key': 'sk-proj-...',
+            'model': 'text-embedding-ada-002' or 'text-embedding-3-small' or 'text-embedding-3-large',
+            'dimensions': 1536
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use OpenAI Embeddings tools.")
+    
+    return get_platform_credentials(user_id, 'openai_embeddings')
+
+
 def get_xero_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
     """
     Get Xero OAuth credentials (if using API key method instead of OAuth)
@@ -1132,6 +1209,8 @@ __all__ = [
     'get_openai_credentials',
     'get_anthropic_credentials',
     'get_pinecone_credentials',
+    'get_voyager_credentials',
+    'get_openai_embeddings_credentials',
     'get_xero_credentials',
     'get_github_credentials'
 ]

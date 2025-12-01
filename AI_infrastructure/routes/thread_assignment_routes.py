@@ -146,7 +146,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             
             logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
             
-            result_data = {
+            # ✅ FIX: Return immediately - don't fall through to agent assignment logic
+            return {
                 'previous_location': previous_location,
                 'displaced_thread': None
             }
@@ -736,6 +737,141 @@ def validate_assignments():
         
     except Exception as e:
         logger.error(f"Error validating assignments: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================================
+# EMAIL THREAD ASSIGNMENT ENDPOINTS
+# ============================================================================
+
+@thread_assignment_bp.route('/api/thread-assignments/email', methods=['POST'])
+def assign_email_thread():
+    """
+    Link email thread to AI conversation thread
+    
+    Request body:
+        {
+            "user_id": 14,
+            "thread_slug": "1763816340198",
+            "email_thread_id": "msg_abc123xyz", 
+            "email_subject": "Quote Request - John Doe",
+            "email_participants": ["john@example.com", "support@company.com"]
+        }
+    
+    Updates sessions.threads with email metadata (columns: email_thread_id, email_subject, email_participants)
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        thread_slug = data.get('thread_slug')
+        email_thread_id = data.get('email_thread_id')
+        email_subject = data.get('email_subject')
+        email_participants = data.get('email_participants', [])
+        
+        if not user_id or not thread_slug or not email_thread_id:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields: user_id, thread_slug, email_thread_id'
+            }), 400
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Update thread with email metadata
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.threads 
+                SET email_thread_id = %s,
+                    email_subject = %s,
+                    email_participants = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE thread_slug = %s AND user_id = %s
+            """, (email_thread_id, email_subject, json.dumps(email_participants), thread_slug, user_id))
+            
+            cursor.execute(sql, params)
+            
+            if cursor.rowcount == 0:
+                return jsonify({
+                    'success': False,
+                    'error': f'Thread {thread_slug} not found for user {user_id}'
+                }), 404
+            
+            conn.commit()
+            
+            logger.info(f"📧 [EMAIL-THREAD] Linked email '{email_subject}' to thread {thread_slug}")
+            
+            return jsonify({
+                'success': True,
+                'thread_slug': thread_slug,
+                'email_thread_id': email_thread_id,
+                'email_subject': email_subject
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"❌ [EMAIL-THREAD] Failed to link: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@thread_assignment_bp.route('/api/thread-assignments/email/unlink', methods=['POST'])
+def unlink_email_thread():
+    """
+    Remove email thread linkage from conversation thread
+    
+    Request body:
+        {
+            "user_id": 14,
+            "thread_slug": "1763816340198"
+        }
+    
+    Sets email_thread_id, email_subject, email_participants to NULL
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        thread_slug = data.get('thread_slug')
+        
+        if not user_id or not thread_slug:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields: user_id, thread_slug'
+            }), 400
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.threads 
+                SET email_thread_id = NULL,
+                    email_subject = NULL,
+                    email_participants = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE thread_slug = %s AND user_id = %s
+            """, (thread_slug, user_id))
+            
+            cursor.execute(sql, params)
+            
+            if cursor.rowcount == 0:
+                return jsonify({
+                    'success': False,
+                    'error': f'Thread {thread_slug} not found for user {user_id}'
+                }), 404
+            
+            conn.commit()
+            
+            logger.info(f"📧 [EMAIL-THREAD] Unlinked email from thread {thread_slug}")
+            
+            return jsonify({
+                'success': True,
+                'thread_slug': thread_slug
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"❌ [EMAIL-THREAD] Unlink failed: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

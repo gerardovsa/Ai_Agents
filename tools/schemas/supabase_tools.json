@@ -9,8 +9,7 @@
       "parameters": {
         "table": {
           "type": "string",
-          "description": "Name of the table to query",
-          "required": true
+          "description": "Name of the table to query"
         },
         "select": {
           "type": "string",
@@ -83,13 +82,11 @@
       "parameters": {
         "table": {
           "type": "string",
-          "description": "Name of the table to insert into",
-          "required": true
+          "description": "Name of the table to insert into"
         },
         "data": {
           "type": "object",
-          "description": "Data to insert as object or array of objects for bulk insert",
-          "required": true
+          "description": "Data to insert as object or array of objects for bulk insert"
         },
         "returning": {
           "type": "string",
@@ -150,18 +147,15 @@
       "parameters": {
         "table": {
           "type": "string",
-          "description": "Name of the table to update",
-          "required": true
+          "description": "Name of the table to update"
         },
         "data": {
           "type": "object",
-          "description": "Data to update as key-value pairs",
-          "required": true
+          "description": "Data to update as key-value pairs"
         },
         "filters": {
           "type": "object",
-          "description": "Filter conditions to match records (e.g., {'id': 123})",
-          "required": true
+          "description": "Filter conditions to match records (e.g., {'id': 123})"
         },
         "returning": {
           "type": "string",
@@ -197,13 +191,11 @@
       "parameters": {
         "table": {
           "type": "string",
-          "description": "Name of the table to delete from",
-          "required": true
+          "description": "Name of the table to delete from"
         },
         "filters": {
           "type": "object",
-          "description": "Filter conditions to match records to delete",
-          "required": true
+          "description": "Filter conditions to match records to delete"
         },
         "returning": {
           "type": "string",
@@ -235,8 +227,7 @@
       "parameters": {
         "function_name": {
           "type": "string",
-          "description": "Name of the stored procedure/function",
-          "required": true
+          "description": "Name of the stored procedure/function"
         },
         "params": {
           "type": "object",
@@ -268,8 +259,7 @@
       "parameters": {
         "table": {
           "type": "string",
-          "description": "Name of the table",
-          "required": true
+          "description": "Name of the table"
         },
         "filters": {
           "type": "object",
@@ -295,13 +285,11 @@
       "parameters": {
         "email": {
           "type": "string",
-          "description": "User email address",
-          "required": true
+          "description": "User email address"
         },
         "password": {
           "type": "string",
-          "description": "User password (minimum 6 characters)",
-          "required": true
+          "description": "User password (minimum 6 characters)"
         },
         "options": {
           "type": "object",
@@ -321,13 +309,11 @@
       "parameters": {
         "email": {
           "type": "string",
-          "description": "User email address",
-          "required": true
+          "description": "User email address"
         },
         "password": {
           "type": "string",
-          "description": "User password",
-          "required": true
+          "description": "User password"
         }
       },
       "returns": {
@@ -369,8 +355,7 @@
       "parameters": {
         "updates": {
           "type": "object",
-          "description": "Updates to apply (email, password, data, etc.)",
-          "required": true
+          "description": "Updates to apply (email, password, data, etc.)"
         }
       },
       "returns": {
@@ -385,8 +370,7 @@
       "parameters": {
         "email": {
           "type": "string",
-          "description": "User email address",
-          "required": true
+          "description": "User email address"
         },
         "redirect_to": {
           "type": "string",
@@ -406,8 +390,7 @@
       "parameters": {
         "email": {
           "type": "string",
-          "description": "Email address to invite",
-          "required": true
+          "description": "Email address to invite"
         },
         "options": {
           "type": "object",
@@ -427,18 +410,15 @@
       "parameters": {
         "bucket": {
           "type": "string",
-          "description": "Name of the storage bucket",
-          "required": true
+          "description": "Name of the storage bucket"
         },
         "file_path": {
           "type": "string",
-          "description": "Path within the bucket (e.g., 'avatars/user123.jpg')",
-          "required": true
+          "description": "Path within the bucket (e.g., 'avatars/user123.jpg')"
         },
         "file_content": {
           "type": "string",
-          "description": "File content as bytes, base64 string, or local file path",
-          "required": true
+          "description": "File content as bytes, base64 string, or local file path"
         },
         "content_type": {
           "type": "string",
@@ -464,13 +444,11 @@
       "parameters": {
         "bucket": {
           "type": "string",
-          "description": "Name of the storage bucket",
-          "required": true
+          "description": "Name of the storage bucket"
         },
         "file_path": {
           "type": "string",
-          "description": "Path to the file in the bucket",
-          "required": true
+          "description": "Path to the file in the bucket"
         },
         "download_to": {
           "type": "string",
@@ -490,13 +468,11 @@
       "parameters": {
         "bucket": {
           "type": "string",
-          "description": "Name of the storage bucket",
-          "required": true
+          "description": "Name of the storage bucket"
         },
         "file_paths": {
           "type": "array",
-          "description": "Array of file paths to delete",
-          "required": true
+          "description": "Array of file paths to delete"
         }
       },
       "returns": {
@@ -511,8 +487,7 @@
       "parameters": {
         "bucket": {
           "type": "string",
-          "description": "Name of the storage bucket",
-          "required": true
+          "description": "Name of the storage bucket"
         },
         "path": {
           "type": "string",
@@ -545,13 +520,11 @@
       "parameters": {
         "bucket": {
           "type": "string",
-          "description": "Name of the storage bucket",
-          "required": true
+          "description": "Name of the storage bucket"
         },
         "file_path": {
           "type": "string",
-          "description": "Path to the file",
-          "required": true
+          "description": "Path to the file"
         },
         "download": {
           "type": "boolean",
@@ -572,18 +545,15 @@
       "parameters": {
         "bucket": {
           "type": "string",
-          "description": "Name of the storage bucket",
-          "required": true
+          "description": "Name of the storage bucket"
         },
         "file_path": {
           "type": "string",
-          "description": "Path to the file",
-          "required": true
+          "description": "Path to the file"
         },
         "expires_in": {
           "type": "integer",
-          "description": "Expiration time in seconds (max 31536000 = 1 year)",
-          "required": true
+          "description": "Expiration time in seconds (max 31536000 = 1 year)"
         }
       },
       "returns": {
@@ -598,23 +568,19 @@
       "parameters": {
         "from_bucket": {
           "type": "string",
-          "description": "Source bucket name",
-          "required": true
+          "description": "Source bucket name"
         },
         "from_path": {
           "type": "string",
-          "description": "Source file path",
-          "required": true
+          "description": "Source file path"
         },
         "to_bucket": {
           "type": "string",
-          "description": "Destination bucket name",
-          "required": true
+          "description": "Destination bucket name"
         },
         "to_path": {
           "type": "string",
-          "description": "Destination file path",
-          "required": true
+          "description": "Destination file path"
         }
       },
       "returns": {
@@ -629,8 +595,7 @@
       "parameters": {
         "table": {
           "type": "string",
-          "description": "Table name to subscribe to",
-          "required": true
+          "description": "Table name to subscribe to"
         },
         "event": {
           "type": "string",
@@ -645,8 +610,7 @@
         },
         "callback": {
           "type": "string",
-          "description": "Callback function name for handling changes",
-          "required": true
+          "description": "Callback function name for handling changes"
         }
       },
       "returns": {
@@ -661,8 +625,7 @@
       "parameters": {
         "bucket_name": {
           "type": "string",
-          "description": "Name for the new bucket",
-          "required": true
+          "description": "Name for the new bucket"
         },
         "public": {
           "type": "boolean",
@@ -703,8 +666,7 @@
       "parameters": {
         "bucket_name": {
           "type": "string",
-          "description": "Name of bucket to delete",
-          "required": true
+          "description": "Name of bucket to delete"
         }
       },
       "returns": {

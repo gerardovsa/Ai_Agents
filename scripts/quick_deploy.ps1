@@ -20,7 +20,7 @@
 #>
 
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$Message = ""
 )
 
@@ -63,8 +63,9 @@ $Version = "unknown"
 if ($CurrentBranch -match '^v(\d+)$') {
     $Version = $Matches[1]
     Write-Step "Detected version: v$Version"
-} else {
-    Write-Fail "Not on a version branch (v10, v11, etc.)"
+}
+else {
+    Write-Fail "Not on a version branch (e.g. v10)"
     Write-Host "Current branch: $CurrentBranch"
     exit 1
 }
@@ -115,12 +116,14 @@ Write-Host "4. Monitor progress:"
 Write-Host "   - GitHub: https://github.com/gerardovsa/AI_agents/actions"
 Write-Host "   - Render: https://dashboard.render.com"
 
-Write-Host "`n⏱️  Estimated Time:" -ForegroundColor $InfoColor
+Write-Host ""
+Write-Host "Estimated Time:" -ForegroundColor $InfoColor
 Write-Host "   - Docker build: 5-8 minutes"
 Write-Host "   - Render deploy: 2-3 minutes"
-Write-Host "   - Total: ~10 minutes"
+Write-Host "   - Total: approximately 10 minutes"
 
-Write-Host "`n🔗 Test URLs (after deployment):" -ForegroundColor $InfoColor
+Write-Host ""
+Write-Host "Test URLs (after deployment):" -ForegroundColor $InfoColor
 Write-Host "   Health: https://ai-agents-v$Version.onrender.com/api/v1/system/check"
 Write-Host "   Login: https://ai-agents-v$Version.onrender.com"
 

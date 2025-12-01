@@ -27,13 +27,13 @@
 #>
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [int]$Version,
     
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$BaseBranch = "",
     
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [bool]$Push = $true
 )
 
@@ -86,7 +86,8 @@ Write-Success "In directory: $ProjectRoot"
 if ([string]::IsNullOrEmpty($BaseBranch)) {
     $BaseBranch = git rev-parse --abbrev-ref HEAD
     Write-Step "Using current branch as base: $BaseBranch"
-} else {
+}
+else {
     Write-Step "Using specified base branch: $BaseBranch"
 }
 
@@ -112,10 +113,10 @@ Write-Success "Branch created and checked out"
 # Step 5: Create version_info.json
 Write-Step "Creating version_info.json..."
 $VersionInfo = @{
-    branch = $VersionBranch
-    version = $Version.ToString()
+    branch       = $VersionBranch
+    version      = $Version.ToString()
     expected_url = "https://ai-agents-v$Version.onrender.com"
-    commit = (git rev-parse --short HEAD)
+    commit       = (git rev-parse --short HEAD)
 } | ConvertTo-Json
 
 $VersionInfo | Out-File -FilePath "$ProjectRoot\AI_infrastructure\version_info.json" -Encoding UTF8
@@ -138,7 +139,8 @@ if (Test-Path $RenderYaml) {
     
     $Content | Set-Content $RenderYaml -NoNewline
     Write-Success "render.yaml updated"
-} else {
+}
+else {
     Write-Warn "render.yaml not found - skipping"
 }
 
@@ -153,10 +155,12 @@ if (Test-Path $WorkflowFile) {
         $Content = $Content -replace "branches:\s*\[\s*'?v\d+'?\s*\]", "branches: ['$VersionBranch']"
         $Content | Set-Content $WorkflowFile -NoNewline
         Write-Success "GitHub Actions workflow updated"
-    } else {
+    }
+    else {
         Write-Warn "Could not find branch filter in workflow - may need manual update"
     }
-} else {
+}
+else {
     Write-Warn "GitHub Actions workflow not found - skipping"
 }
 
@@ -187,7 +191,8 @@ if ($Push) {
         exit 1
     }
     Write-Success "Pushed to remote: origin/$VersionBranch"
-} else {
+}
+else {
     Write-Warn "Push skipped - push manually with: git push origin $VersionBranch"
 }
 

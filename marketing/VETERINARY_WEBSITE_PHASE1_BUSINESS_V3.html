@@ -470,6 +470,132 @@
         }
 
         /* ========================================
+           ANIMATION CONTROLS & PROGRESS INDICATORS
+           ======================================== */
+
+        .animation-controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .animation-toggle-btn {
+            background: rgba(59, 130, 246, 0.95);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .animation-toggle-btn:hover {
+            background: rgba(59, 130, 246, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .animation-toggle-btn.paused {
+            background: rgba(220, 38, 38, 0.95);
+        }
+
+        .animation-toggle-btn.paused:hover {
+            background: rgba(220, 38, 38, 1);
+        }
+
+        .progress-dots {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 8px;
+            padding: 4px;
+        }
+
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .progress-dot:hover {
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(1.2);
+        }
+
+        .progress-dot.active {
+            background: rgba(255, 255, 255, 0.9);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .box-controls {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .arch-layer:hover .box-controls,
+        .team-box:hover .box-controls {
+            opacity: 1;
+        }
+
+        .nav-arrow {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(1.1);
+        }
+
+        .paused-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(220, 38, 38, 0.9);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .arch-layer.paused .paused-indicator,
+        .team-box.paused .paused-indicator {
+            opacity: 1;
+        }
+
+        /* ========================================
            HERO SECTION (StoryBrand: Character + Problem)
            ======================================== */
 
@@ -4593,7 +4719,7 @@
         })();
     </script>
 
-    <!-- Today's Reality: Sequential Task Processing (TEAM Only - No VetAI) -->
+    <!-- Today's Reality: Sequential Task Processing -->
     <div class="data-flow-v4" data-aos="fade-up" data-aos-delay="700"
         style="margin-top: var(--space-4xl); background: linear-gradient(135deg, #0a1929 0%, #1a237e 50%, #0d1b3d 100%); border-radius: 32px; padding: var(--space-3xl); border: 1px solid rgba(88,166,255,0.3);">
         <h3
@@ -4605,10 +4731,17 @@
             One Task, One Platform, One Step at a Time
         </p>
         <p
-            style="text-align: center; max-width: 800px; margin: 0 auto var(--space-2xl); color: rgba(255,255,255,0.9); font-size: var(--text-md);">
-            Team members access platforms one at a time—manually switching systems, searching for information, reading,
-            thinking and processing sequentially within their bandwidth and capability. This creates productivity
-            bottlenecks and limits what your team can accomplish as each step takes time.
+            style="text-align: center; max-width: 950px; margin: 0 auto var(--space-md); color: rgba(255,255,255,0.9); font-size: var(--text-md); line-height: 1.6;">
+            Team members manually switch between systems one at a time—logging in, searching for data, reviewing
+            results, and processing information sequentially.
+        </p>
+        <p
+            style="text-align: center; max-width: 1000px; margin: 0 auto var(--space-2xl); color: rgba(255,255,255,0.8); font-size: var(--text-sm); line-height: 1.7;">
+            Each platform requires separate access, knowledge of the platform, where information is, how to access it or
+            export it, leading to copy and paste and manual typing, leading to time wastage, repetition, key staff
+            dependencies as systems are disconnected. This time-consuming multi-step process <span
+                style="color: var(--color-accent); font-weight: 600;">(access platform → perform manual task → create
+                output)</span> limits productivity, impacts business operations, client experience and patient care.
         </p>
 
         <div id="dataFlowV4Container"
@@ -4617,86 +4750,184 @@
             <canvas id="dataFlowCanvasV4"
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;"></canvas>
 
-            <!-- TEAM Members: Middle column showing sequential bottleneck -->
-
-            <!-- Vet (Center) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="300"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 12; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 60px rgba(59,130,246,0.7), 0 0 100px rgba(59,130,246,0.3);">
-                <div style="font-size: 14px; font-weight: 700; color: white; text-align: center;">Vet</div>
-            </div>
-
-            <!-- Client Care (Above Vet) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="350"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -180px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
-                <div style="font-size: 12px; font-weight: 700; color: white; text-align: center;">Client<br>Care</div>
-            </div>
-
-            <!-- Admin (Below Vet) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-up" data-aos-delay="400"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 130px); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
-                <div style="font-size: 12px; font-weight: 700; color: white; text-align: center;">Admin</div>
-            </div>
+            <!-- TEAM Members in vertical center column - Sequential bottleneck -->
 
             <!-- Managers (Top) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-down" data-aos-delay="450"
-                style="position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
-                <div style="font-size: 11px; font-weight: 700; color: white; text-align: center;">Managers</div>
+            <div
+                style="position: absolute; top: 2%; left: 50%; transform: translateX(-50%); z-index: 12; width: 190px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    MANAGERS
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="250"
+                    id="teamManagersV4"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3); height: 100px;">
+                    <div class="team-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 105px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 500;">
+                        <div style="font-weight: 700; color: #3B82F6; margin-bottom: 4px; font-size: 14px;">Email Triage
+                        </div>
+                        <div style="font-size: 14px; line-height: 1.2;">1. Check email<br>2. Update status<br>3. Report
+                            progress</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Care (Second from top) -->
+            <div
+                style="position: absolute; top: 22%; left: 50%; transform: translateX(-50%); z-index: 12; width: 190px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    CLIENT CARE
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="300"
+                    id="teamClientCareV4"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3); height: 100px;">
+                    <div class="team-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 105px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 500;">
+                        <div style="font-weight: 700; color: #3B82F6; margin-bottom: 4px; font-size: 14px;">Appointment
+                            Booking</div>
+                        <div style="font-size: 14px; line-height: 1.2;">1. Answer phone<br>2. Check availability<br>3.
+                            Book appointment</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vet (Center) -->
+            <div
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 13; width: 190px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    VET
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="zoom-in" data-aos-delay="350"
+                    id="teamVetV4"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 50px rgba(59,130,246,0.4); height: 100px;">
+                    <div class="team-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 105px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 500;">
+                        <div style="font-weight: 700; color: #3B82F6; margin-bottom: 4px; font-size: 14px;">Patient
+                            Examination</div>
+                        <div style="font-size: 14px; line-height: 1.2;">1. Examine patient<br>2. Type diagnosis<br>3.
+                            Write prescription</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin (Second from bottom) -->
+            <div
+                style="position: absolute; top: 62%; left: 50%; transform: translateX(-50%); z-index: 12; width: 190px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    ADMIN
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-up" data-aos-delay="400"
+                    id="teamAdminV4"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3); height: 100px;">
+                    <div class="team-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 105px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 500;">
+                        <div style="font-weight: 700; color: #3B82F6; margin-bottom: 4px; font-size: 14px;">Invoice
+                            Processing</div>
+                        <div style="font-size: 14px; line-height: 1.2;">1. Enter invoice data<br>2. Match payment<br>3.
+                            Update ledger</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Techs (Bottom) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-up" data-aos-delay="500"
-                style="position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 11; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 80px rgba(59,130,246,0.2);">
-                <div style="font-size: 12px; font-weight: 700; color: white; text-align: center;">Techs</div>
+            <div
+                style="position: absolute; top: 82%; left: 50%; transform: translateX(-50%); z-index: 12; width: 190px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    TECHS
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-up" data-aos-delay="450"
+                    id="teamTechsV4"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3); height: 100px;">
+                    <div class="team-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 105px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 500;">
+                        <div style="font-weight: 700; color: #3B82F6; margin-bottom: 4px; font-size: 14px;">Lab Testing
+                        </div>
+                        <div style="font-size: 14px; line-height: 1.2;">1. Draw blood sample<br>2. Run test<br>3. Record
+                            results</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- 3 Layers on LEFT column -->
+            <!-- 3 PLATFORM/SYSTEM Layers on LEFT - Manual tasks users must perform -->
 
-            <!-- Layer 1: Top-Left (Yellow - Collaboration) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="600"
-                style="position: absolute; top: 50%; left: 40px; transform: translateY(-240px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
+            <!-- Layer 1: Top Left (Yellow - Collaboration Platforms) -->
+            <div style="position: absolute; top: 100px; left: 5%; z-index: 10; width: 240px;">
+                <!-- Layer Title Above Box -->
                 <div
-                    style="background: #FACC15; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 1</div>
-                <h5
-                    style="color: #FACC15; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
-                    Collaboration</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Platforms</p>
+                    style="background: #D4A017; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    TEAM COLLABORATION PLATFORM
+                </div>
+                <!-- Layer Box -->
+                <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="500" id="layer1BoxV4"
+                    style="background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 4px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Open and find emails manually</div>
+                </div>
             </div>
 
-            <!-- Layer 2: Middle-Left (Red - Business Software) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="650"
-                style="position: absolute; top: 50%; left: 40px; transform: translateY(-50%); z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
+            <!-- Layer 2: Middle Left (Red - Business Software) - AT HALFWAY -->
+            <div
+                style="position: absolute; top: 50%; left: 5%; transform: translateY(-50%); z-index: 10; width: 240px;">
+                <!-- Layer Title Above Box -->
                 <div
-                    style="background: #DC2626; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 2</div>
-                <h5
-                    style="color: #DC2626; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
-                    Business</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Software</p>
+                    style="background: #DC2626; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    BUSINESS SOFTWARE & VENDOR SYSTEMS
+                </div>
+                <!-- Layer Box -->
+                <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="600" id="layer2BoxV4"
+                    style="background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 4px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Login and search patient records</div>
+                </div>
             </div>
 
-            <!-- Layer 3: Bottom-Left (Purple - Information & Knowledge) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="700"
-                style="position: absolute; top: 50%; left: 40px; transform: translateY(120px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
+            <!-- Layer 3: Bottom Left (Purple - Information & Knowledge) -->
+            <div style="position: absolute; bottom: 80px; left: 5%; z-index: 10; width: 240px;">
+                <!-- Layer Title Above Box -->
                 <div
-                    style="background: #A855F7; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    LAYER 3</div>
-                <h5
-                    style="color: #A855F7; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
-                    Information</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">& Knowledge</p>
+                    style="background: #A855F7; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    CLOUD STORAGE & INDEXED DATABASE
+                </div>
+                <!-- Layer Box -->
+                <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="700" id="layer3BoxV4"
+                    style="background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 4px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Search and download files manually</div>
+                </div>
             </div>
 
-            <!-- Outputs on RIGHT column -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="750"
-                style="position: absolute; top: 50%; right: 40px; transform: translateY(-50%); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 16px; padding: var(--space-lg); width: 140px; backdrop-filter: blur(10px);">
+            <!-- Business Outputs: Right Column (Green) - AT HALFWAY -->
+            <div
+                style="position: absolute; top: 50%; left: 70%; transform: translateY(-50%); z-index: 10; width: 240px;">
+                <!-- Outputs Header Above Box -->
                 <div
-                    style="background: #22C55E; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    OUTPUTS</div>
-                <h5
-                    style="color: #22C55E; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
-                    Business</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Outputs</p>
+                    style="background: #22C55E; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    BUSINESS OUTPUTS
+                </div>
+                <!-- Outputs Box -->
+                <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="800" id="outputsBoxV4"
+                    style="background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example-v4"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 4px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Manually typed discharge notes</div>
+                </div>
             </div>
         </div>
     </div>
@@ -4791,12 +5022,12 @@
                         { box: { x: this.width * 0.12, y: this.height * 0.5, w: 140, h: 110 }, color: { r: 220, g: 38, b: 38 }, platforms: 12 },   // Middle-Left (Red - was green)
                         { box: { x: this.width * 0.12, y: this.height * 0.75, w: 140, h: 110 }, color: { r: 168, g: 85, b: 247 }, platforms: 10 }  // Bottom-Left (Purple) - moved down 20px
                     ];
-                    
+
                     // Output box on right column
                     const outputBox = { x: this.width * 0.88, y: this.height * 0.5, w: 140, h: 110 };
 
                     const layer = layers[Math.floor(Math.random() * layers.length)];
-                    
+
                     const flowType = Math.random();
 
                     if (flowType < 0.25) {
@@ -4976,108 +5207,177 @@
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;"></canvas>
 
             <!-- TEAM Members along top - Rectangles with rotating examples -->
-            
+
             <!-- Managers (Far Left) -->
-            <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="250" id="teamManagers"
-                style="position: absolute; top: 40px; left: 15%; transform: translateX(-50%); z-index: 12; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; width: 140px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5); padding: 8px;">
-                <div style="font-size: 14px; font-weight: 700; color: white; text-align: center; margin-bottom: 4px;">Managers</div>
-                <div class="team-example" style="font-size: 11px; color: rgba(255,255,255,0.9); text-align: center; line-height: 1.3; height: 32px; display: flex; align-items: center; justify-content: center;">Show quarterly KPI dashboard</div>
+            <div
+                style="position: absolute; top: 40px; left: 15%; transform: translateX(-50%); z-index: 12; width: 140px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    MANAGERS
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="250"
+                    id="teamManagers"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; padding: 8px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3);">
+                    <div class="team-example"
+                        style="font-size: 12px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 56px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Show quarterly KPI dashboard</div>
+                </div>
             </div>
 
             <!-- Client Care (Left of Center) -->
-            <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="300" id="teamClientCare"
-                style="position: absolute; top: 40px; left: 32.5%; transform: translateX(-50%); z-index: 12; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; width: 140px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5); padding: 8px;">
-                <div style="font-size: 14px; font-weight: 700; color: white; text-align: center; margin-bottom: 4px;">Client Care</div>
-                <div class="team-example" style="font-size: 11px; color: rgba(255,255,255,0.9); text-align: center; line-height: 1.3; height: 32px; display: flex; align-items: center; justify-content: center;">Show today's appointment schedule</div>
+            <div
+                style="position: absolute; top: 40px; left: 32.5%; transform: translateX(-50%); z-index: 12; width: 140px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    CLIENT CARE
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="300"
+                    id="teamClientCare"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; padding: 8px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3);">
+                    <div class="team-example"
+                        style="font-size: 12px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 56px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Show today's appointment schedule</div>
+                </div>
             </div>
 
             <!-- Vet (Center Top) -->
-            <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="350" id="teamVet"
-                style="position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 13; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; width: 140px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 50px rgba(59,130,246,0.6); padding: 8px;">
-                <div style="font-size: 14px; font-weight: 700; color: white; text-align: center; margin-bottom: 4px;">Vet</div>
-                <div class="team-example" style="font-size: 11px; color: rgba(255,255,255,0.9); text-align: center; line-height: 1.3; height: 32px; display: flex; align-items: center; justify-content: center;">Show patient medical history</div>
+            <div
+                style="position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 13; width: 140px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    VET
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="350"
+                    id="teamVet"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; padding: 8px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 50px rgba(59,130,246,0.4);">
+                    <div class="team-example"
+                        style="font-size: 12px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 56px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Show patient medical history</div>
+                </div>
             </div>
 
             <!-- Admin (Right of Center) -->
-            <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="400" id="teamAdmin"
-                style="position: absolute; top: 40px; left: 67.5%; transform: translateX(-50%); z-index: 12; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; width: 140px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5); padding: 8px;">
-                <div style="font-size: 14px; font-weight: 700; color: white; text-align: center; margin-bottom: 4px;">Admin</div>
-                <div class="team-example" style="font-size: 11px; color: rgba(255,255,255,0.9); text-align: center; line-height: 1.3; height: 32px; display: flex; align-items: center; justify-content: center;">Generate monthly revenue report</div>
+            <div
+                style="position: absolute; top: 40px; left: 67.5%; transform: translateX(-50%); z-index: 12; width: 140px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    ADMIN
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="400"
+                    id="teamAdmin"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; padding: 8px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3);">
+                    <div class="team-example"
+                        style="font-size: 12px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 56px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Generate monthly revenue report</div>
+                </div>
             </div>
 
             <!-- Techs (Far Right) -->
-            <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="450" id="teamTechs"
-                style="position: absolute; top: 40px; left: 85%; transform: translateX(-50%); z-index: 12; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; width: 140px; height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 40px rgba(59,130,246,0.5); padding: 8px;">
-                <div style="font-size: 14px; font-weight: 700; color: white; text-align: center; margin-bottom: 4px;">Techs</div>
-                <div class="team-example" style="font-size: 11px; color: rgba(255,255,255,0.9); text-align: center; line-height: 1.3; height: 32px; display: flex; align-items: center; justify-content: center;">Check surgical supply stock</div>
+            <div
+                style="position: absolute; top: 40px; left: 85%; transform: translateX(-50%); z-index: 12; width: 140px;">
+                <!-- Header Above Box -->
+                <div
+                    style="background: #3B82F6; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0;">
+                    TECHS
+                </div>
+                <!-- Box -->
+                <div class="arch-layer team-box aos-init aos-animate" data-aos="fade-down" data-aos-delay="450"
+                    id="teamTechs"
+                    style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-top: none; border-radius: 0 0 8px 8px; padding: 8px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 0 40px rgba(59,130,246,0.3);">
+                    <div class="team-example"
+                        style="font-size: 12px; color: rgb(255,255,255); text-align: center; line-height: 1.3; height: 56px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Check surgical supply stock</div>
+                </div>
             </div>
 
-            <!-- VetAI Center Hub (square orange) -->
+            <!-- VetAI Center Hub (square orange) - moved down 10% -->
             <div class="arch-layer vetai-layer aos-init aos-animate" data-aos="zoom-in" data-aos-delay="400"
-                style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 16px; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4);">
-                <div style="font-size: var(--text-xl); font-weight: 700; color: white; text-align: center;">VetAI</div>
-                <div style="font-size: var(--text-xs); color: rgba(255,255,255,0.95); text-align: center;">Augmentation
-                    Layer</div>
+                id="vetaiBox"
+                style="position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%); border-radius: 16px; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 80px rgba(255,107,53,0.8), 0 0 140px rgba(255,107,53,0.4); padding: 16px; overflow: hidden;">
+                <div style="font-size: 24px; font-weight: 700; color: white; text-align: center; margin-bottom: 4px;">
+                    VetAI</div>
+                <div
+                    style="font-size: 11px; color: rgba(255,255,255,0.9); text-align: center; line-height: 1.3; margin-bottom: 10px;">
+                    Orchestration Hub</div>
+                <div class="vetai-example"
+                    style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.4; font-weight: 500; height: 52px; display: flex; align-items: center; justify-content: center; padding: 0 8px;">
+                    Performing statistics analysis</div>
             </div>
 
             <!-- 4 Layers around VetAI -->
 
-            <!-- Layer 1: Top Left (Yellow - Collaboration) -->
-            <div style="position: absolute; top: 180px; left: 70px; z-index: 10; width: 160px;">
-                <!-- Layer Number Above Box -->
-                <div style="background: #D4A017; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 10px; font-weight: 700; text-align: center; margin-bottom: 0;">
-                    LAYER 1
+            <!-- Layer 1: Top Left (Yellow - Collaboration) - moved down 10% -->
+            <div style="position: absolute; top: 260px; left: 30px; z-index: 10; width: 240px;">
+                <!-- Layer Title Above Box -->
+                <div
+                    style="background: #D4A017; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    TEAM COLLABORATION PLATFORM
                 </div>
                 <!-- Layer Box -->
                 <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="500" id="layer1Box"
-                    style="background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px);">
-                    <h5 style="color: #FACC15; margin-bottom: 4px; font-size: 13px; font-weight: 700; text-align: center; margin-top: 0; line-height: 1.2;">
-                        Team Collaboration Platform</h5>
-                    <div class="layer-example" style="font-size: 10px; color: rgba(255,255,255,0.95); text-align: center; line-height: 1.3; margin-top: 8px; height: 26px; display: flex; align-items: center; justify-content: center;">Summarize unread emails</div>
+                    style="background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 4px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Summarize unread emails</div>
                 </div>
             </div>
 
-            <!-- Layer 2: Middle Left (Red - Business Software) -->
-            <div style="position: absolute; top: 54%; left: 70px; transform: translateY(-50%); z-index: 10; width: 160px;">
-                <!-- Layer Number Above Box -->
-                <div style="background: #DC2626; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 10px; font-weight: 700; text-align: center; margin-bottom: 0;">
-                    LAYER 2
+            <!-- Layer 2: Middle Left (Red - Business Software) - moved down 10% -->
+            <div
+                style="position: absolute; top: 64%; left: 30px; transform: translateY(-50%); z-index: 10; width: 240px;">
+                <!-- Layer Title Above Box -->
+                <div
+                    style="background: #DC2626; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    BUSINESS SOFTWARE & VENDOR SYSTEMS
                 </div>
                 <!-- Layer Box -->
                 <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="600" id="layer2Box"
-                    style="background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px);">
-                    <h5 style="color: #DC2626; margin-bottom: 4px; font-size: 13px; font-weight: 700; text-align: center; margin-top: 0; line-height: 1.2;">
-                        Business Software & Vendor Systems</h5>
-                    <div class="layer-example" style="font-size: 10px; color: rgba(255,255,255,0.95); text-align: center; line-height: 1.3; margin-top: 8px; height: 26px; display: flex; align-items: center; justify-content: center;">Show patient clinical history</div>
+                    style="background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 4px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Show patient clinical history</div>
                 </div>
             </div>
 
-            <!-- Layer 3: Bottom Left (Purple - Information & Knowledge) -->
-            <div style="position: absolute; bottom: 125px; left: 70px; z-index: 10; width: 160px;">
-                <!-- Layer Number Above Box -->
-                <div style="background: #A855F7; color: white; padding: 4px 12px; border-radius: 8px 8px 0 0; font-size: 10px; font-weight: 700; text-align: center; margin-bottom: 0;">
-                    LAYER 3
+            <!-- Layer 3: Bottom Left (Purple - Information & Knowledge) - moved down 10% -->
+            <div style="position: absolute; bottom: 45px; left: 30px; z-index: 10; width: 240px;">
+                <!-- Layer Title Above Box -->
+                <div
+                    style="background: #A855F7; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    CLOUD STORAGE & INDEXED DATABASE
                 </div>
                 <!-- Layer Box -->
                 <div class="arch-layer aos-init aos-animate" data-aos="fade-right" data-aos-delay="700" id="layer3Box"
-                    style="background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px);">
-                    <h5 style="color: #A855F7; margin-bottom: 4px; font-size: 13px; font-weight: 700; text-align: center; margin-top: 0; line-height: 1.2;">
-                        Cloud Storage & Indexed Database</h5>
-                    <div class="layer-example" style="font-size: 10px; color: rgba(255,255,255,0.95); text-align: center; line-height: 1.3; margin-top: 8px; height: 26px; display: flex; align-items: center; justify-content: center;">Find diabetes research papers</div>
+                    style="background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 4px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Find diabetes research papers</div>
                 </div>
             </div>
 
-            <!-- Business Outputs: Right Column (Green - System Results) -->
-            <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="800" id="outputsBox"
-                style="position: absolute; top: 55%; right: 40px; transform: translateY(-50%); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 16px; padding: var(--space-lg); width: 160px; backdrop-filter: blur(10px);">
+            <!-- Business Outputs: Right Column (Green - System Results) - moved down 10% and restyled to match layer boxes -->
+            <div
+                style="position: absolute; top: 65%; right: 40px; transform: translateY(-50%); z-index: 10; width: 240px;">
+                <!-- Outputs Header Above Box -->
                 <div
-                    style="background: #22C55E; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 10px; font-weight: 700; margin-bottom: var(--space-xs);">
-                    OUTPUTS</div>
-                <h5
-                    style="color: #22C55E; margin-bottom: var(--space-xs); font-size: var(--text-sm); font-weight: 700; text-align: center; margin-top: var(--space-md);">
-                    Business</h5>
-                <p style="font-size: 11px; color: rgba(255,255,255,0.8); margin: 0; text-align: center;">Outputs</p>
-                <div class="layer-example" style="font-size: 10px; color: rgba(255,255,255,0.95); text-align: center; line-height: 1.3; margin-top: 8px; height: 26px; display: flex; align-items: center; justify-content: center;">Create discharge care instructions</div>
+                    style="background: #22C55E; color: white; padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 0; line-height: 1.3;">
+                    BUSINESS OUTPUTS
+                </div>
+                <!-- Outputs Box -->
+                <div class="arch-layer aos-init aos-animate" data-aos="fade-left" data-aos-delay="800" id="outputsBox"
+                    style="background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-top: none; border-radius: 0 0 16px 16px; padding: 12px; padding-top: 6px; backdrop-filter: blur(10px); overflow: hidden;">
+                    <div class="layer-example"
+                        style="font-size: 14px; color: rgb(255,255,255); text-align: center; line-height: 1.3; margin-top: 8px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: 500;">
+                        Create discharge care instructions</div>
+                </div>
             </div>
         </div>
     </div>
@@ -5160,27 +5460,27 @@
                 }
 
                 reset() {
-                    // Multiple TEAM members along top - tighter spacing (27.5%, 38%, 50%, 62%, 72.5%)
+                    // Multiple TEAM members along top - matching HTML positions (15%, 32.5%, 50%, 67.5%, 85%)
                     const teamMembers = [
                         { x: this.width * 0.50, y: this.height * 0.095, name: 'Vet' },         // Center 50%
-                        { x: this.width * 0.38, y: this.height * 0.095, name: 'Client Care' },  // 38%
-                        { x: this.width * 0.62, y: this.height * 0.095, name: 'Admin' },        // 62%
-                        { x: this.width * 0.275, y: this.height * 0.095, name: 'Managers' },    // 27.5%
-                        { x: this.width * 0.725, y: this.height * 0.095, name: 'Techs' }        // 72.5%
+                        { x: this.width * 0.325, y: this.height * 0.095, name: 'Client Care' },  // 32.5%
+                        { x: this.width * 0.675, y: this.height * 0.095, name: 'Admin' },        // 67.5%
+                        { x: this.width * 0.15, y: this.height * 0.095, name: 'Managers' },    // 15%
+                        { x: this.width * 0.85, y: this.height * 0.095, name: 'Techs' }        // 85%
                     ];
-                    
+
                     // Pick a random team member for this particle
                     const teamMember = teamMembers[Math.floor(Math.random() * teamMembers.length)];
-                    
-                    const vetaiCenter = { x: this.width * 0.5, y: this.height * 0.55 };
 
-                    // Layer boxes - LEFT column (3 layers vertically) - moved right 30px
-                    const layer1Box = { x: this.width * 0.145, y: this.height * 0.31, w: 160, h: 120 };  // Top Left (moved right)
-                    const layer2Box = { x: this.width * 0.145, y: this.height * 0.54, w: 160, h: 120 };   // Middle Left (moved right)
-                    const layer3Box = { x: this.width * 0.145, y: this.height * 0.74, w: 160, h: 120 };  // Bottom Left (moved right)
-                    
-                    // Business Outputs - RIGHT column
-                    const outputBox = { x: this.width * 0.88, y: this.height * 0.55, w: 160, h: 120 };   // Right Middle
+                    const vetaiCenter = { x: this.width * 0.5, y: this.height * 0.65 };
+
+                    // Layer boxes - LEFT column (3 layers vertically) - moved down 10%
+                    const layer1Box = { x: this.width * 0.145, y: this.height * 0.41, w: 160, h: 120 };  // Top Left
+                    const layer2Box = { x: this.width * 0.145, y: this.height * 0.64, w: 160, h: 120 };   // Middle Left
+                    const layer3Box = { x: this.width * 0.145, y: this.height * 0.84, w: 160, h: 120 };  // Bottom Left
+
+                    // Business Outputs - RIGHT column - moved down 10%
+                    const outputBox = { x: this.width * 0.88, y: this.height * 0.65, w: 160, h: 120 };   // Right Middle
 
                     if (this.isUserParticle) {
                         const isTeamToAI = Math.random() > 0.15;
@@ -5219,7 +5519,7 @@
                         ];
 
                         const layer = layers[Math.floor(Math.random() * layers.length)];
-                        
+
                         // 20% chance: AI → Outputs (showing results being generated)
                         const isAIToOutput = Math.random() < 0.2;
 
@@ -5371,276 +5671,760 @@
         })();
 
         // Team box rotating examples
-        (function() {
+        (function () {
             const teamExamples = {
                 teamManagers: [
-                    "Show quarterly KPI dashboard",
-                    "Generate staff performance metrics",
-                    "Pull compliance audit checklist",
-                    "Find policy documents",
-                    "Create strategic planning report",
-                    "Show client retention stats",
-                    "Generate competitor analysis",
-                    "Pull training completion records",
-                    "Create goal tracking report",
-                    "Show capacity utilization",
-                    "Draft job description",
-                    "Analyze appointment no-shows",
-                    "Create staff meeting agenda",
-                    "Pull satisfaction survey results",
-                    "Generate marketing ROI report"
+                    "Can you draft a job description?",
+                    "How were our financials last week?",
+                    "Which staff need training updates?",
+                    "What's our capacity utilization?",
+                    "Can you create the staff meeting agenda?",
+                    "Show me client retention trends",
+                    "What are our quarterly KPIs?",
+                    "Which policies need review?",
+                    "Can you analyze appointment no-shows?",
+                    "What's our marketing ROI?",
+                    "Which compliance items are due?",
+                    "Can you create the strategic plan?",
+                    "What's our competitor doing?",
+                    "Show me staff performance metrics",
+                    "Can you pull satisfaction survey results?"
                 ],
                 teamClientCare: [
-                    "Show today's appointment schedule",
-                    "Find client contact information",
-                    "Draft reminder messages",
-                    "Pull outstanding balance report",
-                    "Create today's visit invoice",
-                    "Find all client's pets",
-                    "Check urgent care availability",
-                    "Send appointment confirmations",
-                    "Pull client payment history",
-                    "Generate cancellation waitlist",
-                    "Draft response about vaccines",
-                    "Find dental cleaning clients",
-                    "Calculate dental estimate",
-                    "Check cancellation policy",
-                    "Pull insurance verification records"
+                    "Which clients have outstanding invoices?",
+                    "Can you help me with this complaint?",
+                    "What's the cancellation policy?",
+                    "Who needs appointment reminders?",
+                    "Can you find client contact info?",
+                    "Show me today's schedule",
+                    "Which clients need dental cleaning?",
+                    "Can you calculate this estimate?",
+                    "What pets does this client have?",
+                    "Is there urgent care availability?",
+                    "Can you draft a vaccine response?",
+                    "Show me payment history",
+                    "Who's on the cancellation waitlist?",
+                    "Can you create today's invoice?",
+                    "What's the insurance verification status?"
                 ],
                 teamVet: [
-                    "Show patient medical history",
-                    "Find latest research",
-                    "Draft discharge surgery notes",
-                    "Pull lab results imaging",
-                    "Find clinical treatment protocol",
-                    "Create anesthetic regime",
-                    "Write consultation notes",
-                    "Review next five consults",
-                    "What should I ask",
-                    "How to explain treatment",
-                    "Summarize patient history",
-                    "What are complications",
-                    "Other antibiotic options",
-                    "What are differentials",
-                    "Pull treatment success rates"
+                    "What are the treatment updates for Max?",
+                    "Can you summarize this patient history?",
+                    "What should I ask in this consult?",
+                    "What are the differential diagnoses?",
+                    "How do I explain this treatment?",
+                    "What are the potential complications?",
+                    "Are there other antibiotic options?",
+                    "Can you draft discharge notes?",
+                    "What's the clinical protocol for this?",
+                    "Show me the latest research",
+                    "What's in the next five consults?",
+                    "Can you create anesthetic regime?",
+                    "What are the treatment success rates?",
+                    "Can you write consultation notes?",
+                    "What are the lab results showing?"
                 ],
                 teamAdmin: [
-                    "Generate monthly revenue report",
-                    "Show staff payroll timesheets",
-                    "Pull inventory reorder list",
-                    "Find vendor invoices",
-                    "Create budget owner summary",
-                    "Show expense breakdown",
-                    "Generate quarterly tax documents",
-                    "Pull insurance reimbursement tracking",
-                    "Create year-end financial summary",
-                    "Show profit margins",
-                    "Reconcile credit card payments",
-                    "Generate petty cash report",
-                    "Pull vendor payment history",
-                    "Create equipment cost analysis",
-                    "Show payroll tax liability"
+                    "How were our financials last week?",
+                    "Can you see what we need to reorder?",
+                    "Which vendor invoices are due?",
+                    "What's our profit margin?",
+                    "Can you create monthly revenue report?",
+                    "Show me staff payroll timesheets",
+                    "What's our expense breakdown?",
+                    "Can you reconcile credit card payments?",
+                    "Which insurance claims are pending?",
+                    "What's the year-end summary?",
+                    "Can you generate tax documents?",
+                    "Show me the budget vs actual",
+                    "What's the vendor payment history?",
+                    "Can you analyze equipment costs?",
+                    "What's our payroll tax liability?"
                 ],
                 teamTechs: [
-                    "Check surgical supply stock",
-                    "Find equipment maintenance schedule",
-                    "Show surgery prep checklist",
-                    "Pull medication dosing charts",
-                    "Create lab submission form",
-                    "Talk through TPLO setup",
-                    "How to run chemistry",
-                    "What does error mean",
-                    "Show anesthesia monitoring protocol",
-                    "What's dental nerve protocol",
-                    "Troubleshoot autoclave failure",
-                    "Find safety data sheets",
-                    "Show restraint techniques",
-                    "IV catheter placement steps",
-                    "Generate equipment calibration log"
+                    "Can you help me setup for a TPLO?",
+                    "What do we need to reorder?",
+                    "How do I run the chemistry analyzer?",
+                    "What does this error code mean?",
+                    "What's the dental nerve block protocol?",
+                    "Can you show surgery prep checklist?",
+                    "Where are the safety data sheets?",
+                    "What's the anesthesia monitoring protocol?",
+                    "How do I troubleshoot autoclave failure?",
+                    "What are the restraint techniques?",
+                    "Can you show IV catheter placement steps?",
+                    "What's the equipment maintenance schedule?",
+                    "Can you pull medication dosing charts?",
+                    "Can you create lab submission form?",
+                    "What's the equipment calibration log?"
                 ]
             };
 
             const indices = {};
-            Object.keys(teamExamples).forEach(id => indices[id] = 0);
+            const isHovered = {};
+            Object.keys(teamExamples).forEach(id => {
+                indices[id] = 0;
+                isHovered[id] = false;
+
+                // Add hover listeners
+                const box = document.getElementById(id);
+                if (box) {
+                    box.addEventListener('mouseenter', () => isHovered[id] = true);
+                    box.addEventListener('mouseleave', () => isHovered[id] = false);
+                }
+            });
 
             function rotateTeamExamples() {
+                // Check global pause state
+                if (window.animationsPaused) return;
+
                 Object.keys(teamExamples).forEach(id => {
+                    // Skip if box is hovered
+                    if (isHovered[id]) return;
+
                     const box = document.getElementById(id);
                     if (box) {
                         const exampleDiv = box.querySelector('.team-example');
                         if (exampleDiv) {
-                            // Fade out
-                            exampleDiv.style.opacity = '0';
-                            exampleDiv.style.transition = 'opacity 0.3s ease-in-out';
-                            
+                            // Slide current text DOWN and hide
+                            // Ensure current is at neutral before animating
+                            exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                            exampleDiv.style.transform = 'translateY(0)';
+                            exampleDiv.style.opacity = '1';
+
+                            // Small delay to start slide down
                             setTimeout(() => {
-                                // Update text
+                                exampleDiv.style.transform = 'translateY(100%)';
+                                exampleDiv.style.opacity = '0';
+                            }, 10);
+
+                            // After slide-down completes, replace text and prepare it off-top
+                            setTimeout(() => {
                                 indices[id] = (indices[id] + 1) % teamExamples[id].length;
                                 exampleDiv.textContent = teamExamples[id][indices[id]];
-                                
-                                // Fade in
+
+                                // Immediately move to above the box (no transition), visible
+                                exampleDiv.style.transition = 'none';
+                                exampleDiv.style.transform = 'translateY(-100%)';
                                 exampleDiv.style.opacity = '1';
-                            }, 300);
+
+                                // Force reflow then animate into place from top
+                                setTimeout(() => {
+                                    exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                                    exampleDiv.style.transform = 'translateY(0)';
+                                }, 30);
+                            }, 850);
                         }
                     }
                 });
             }
 
-            // Start rotation every 3 seconds
-            setInterval(rotateTeamExamples, 3000);
+            // Start rotation every 5 seconds
+            setInterval(rotateTeamExamples, 5000);
         })();
 
         // Layer box rotating examples
-        (function() {
+        (function () {
             const layerExamples = {
                 layer1Box: [
-                    "Summarize unread emails",
-                    "Schedule urgent meeting",
-                    "Draft client proposal",
-                    "Update project timeline",
-                    "Share lab results",
-                    "Create task assignment",
-                    "Send team announcement",
-                    "Find shared document",
-                    "Coordinate with specialist",
-                    "Generate meeting notes",
-                    "Track action items",
-                    "Schedule follow-up call",
-                    "Share presentation slides",
-                    "Create collaboration board",
-                    "Send calendar invite",
-                    "Update team status",
-                    "Organize file sharing",
-                    "Draft team message",
-                    "Create video conference",
-                    "Share screen recording"
+                    "Get team contact list",
+                    "Pull project details",
+                    "Open urgent emails",
+                    "Retrieve shared documents",
+                    "Get meeting notes",
+                    "Pull task assignments",
+                    "Open calendar invites",
+                    "Get team status updates",
+                    "Pull collaboration threads",
+                    "Open action items",
+                    "Get presentation slides",
+                    "Pull specialist messages",
+                    "Open file attachments",
+                    "Get video conference links",
+                    "Pull announcement history",
+                    "Open project timeline",
+                    "Get client proposals",
+                    "Pull follow-up reminders",
+                    "Open screen recordings",
+                    "Get collaboration board updates"
                 ],
                 layer2Box: [
-                    "Show patient clinical history",
-                    "Generate monthly invoice report",
+                    "Download lab results",
+                    "Retrieve patient clinical history",
                     "Pull inventory stock levels",
-                    "Check appointment availability",
-                    "Create payment receipt",
-                    "Find client account balance",
-                    "Generate sales tax summary",
-                    "Pull employee timesheet",
-                    "Show revenue by service",
-                    "Create expense report",
-                    "Find vendor payment due",
-                    "Generate budget vs actual",
-                    "Pull lab result history",
-                    "Create refund transaction",
-                    "Show product usage stats",
-                    "Generate payroll summary",
-                    "Pull insurance claims",
-                    "Create financial forecast",
-                    "Show treatment pricing",
-                    "Generate profit margins"
+                    "Download appointment schedules",
+                    "Retrieve payment receipts",
+                    "Pull client account balances",
+                    "Download invoice reports",
+                    "Retrieve employee timesheets",
+                    "Pull revenue by service",
+                    "Download expense reports",
+                    "Retrieve vendor invoices",
+                    "Pull budget data",
+                    "Download insurance claims",
+                    "Retrieve treatment pricing",
+                    "Pull product usage stats",
+                    "Download payroll summaries",
+                    "Retrieve refund transactions",
+                    "Pull financial forecasts",
+                    "Download profit margins",
+                    "Retrieve sales tax data"
                 ],
                 layer3Box: [
-                    "Find diabetes research papers",
-                    "Lookup drug interaction data",
-                    "Show treatment success rates",
-                    "Find clinical guidelines",
-                    "Research breed-specific conditions",
-                    "Pull medical literature review",
-                    "Find surgical protocol steps",
-                    "Show medication dosing charts",
-                    "Research diagnostic differentials",
+                    "Search clinical protocols",
                     "Find emergency procedures",
-                    "Lookup vaccine schedules",
-                    "Show nutritional guidelines",
-                    "Research pain management",
-                    "Find regulatory compliance",
-                    "Lookup equipment specifications",
-                    "Show safety data sheets",
-                    "Research anesthesia protocols",
-                    "Find continuing education",
-                    "Lookup industry standards",
-                    "Show best practice guidelines"
+                    "Search diabetes research papers",
+                    "Find drug interaction data",
+                    "Search treatment success rates",
+                    "Find clinical guidelines",
+                    "Search breed-specific conditions",
+                    "Find surgical protocol steps",
+                    "Search medication dosing charts",
+                    "Find diagnostic differentials",
+                    "Search vaccine schedules",
+                    "Find nutritional guidelines",
+                    "Search pain management protocols",
+                    "Find regulatory compliance rules",
+                    "Search equipment specifications",
+                    "Find safety data sheets",
+                    "Search anesthesia protocols",
+                    "Find continuing education materials",
+                    "Search industry standards",
+                    "Find best practice guidelines"
                 ]
             };
 
             const layerIndices = {};
-            Object.keys(layerExamples).forEach(id => layerIndices[id] = 0);
+            const layerHovered = {};
+            Object.keys(layerExamples).forEach(id => {
+                layerIndices[id] = 0;
+                layerHovered[id] = false;
+
+                const box = document.getElementById(id);
+                if (box) {
+                    box.addEventListener('mouseenter', () => layerHovered[id] = true);
+                    box.addEventListener('mouseleave', () => layerHovered[id] = false);
+                }
+            });
 
             function rotateLayerExamples() {
+                if (window.animationsPaused) return;
+
                 Object.keys(layerExamples).forEach(id => {
+                    if (layerHovered[id]) return;
+
                     const box = document.getElementById(id);
                     if (box) {
                         const exampleDiv = box.querySelector('.layer-example');
                         if (exampleDiv) {
-                            // Fade out
-                            exampleDiv.style.opacity = '0';
-                            exampleDiv.style.transition = 'opacity 0.3s ease-in-out';
-                            
+                            // Slide current text DOWN and hide
+                            exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                            exampleDiv.style.transform = 'translateY(0)';
+                            exampleDiv.style.opacity = '1';
+
                             setTimeout(() => {
-                                // Update text
+                                exampleDiv.style.transform = 'translateY(100%)';
+                                exampleDiv.style.opacity = '0';
+                            }, 10);
+
+                            setTimeout(() => {
                                 layerIndices[id] = (layerIndices[id] + 1) % layerExamples[id].length;
                                 exampleDiv.textContent = layerExamples[id][layerIndices[id]];
-                                
-                                // Fade in
+
+                                exampleDiv.style.transition = 'none';
+                                exampleDiv.style.transform = 'translateY(-100%)';
                                 exampleDiv.style.opacity = '1';
-                            }, 300);
+
+                                setTimeout(() => {
+                                    exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                                    exampleDiv.style.transform = 'translateY(0)';
+                                }, 30);
+                            }, 850);
                         }
                     }
                 });
             }
 
-            // Start rotation every 3 seconds
-            setInterval(rotateLayerExamples, 3000);
+            // Start rotation every 5 seconds
+            setInterval(rotateLayerExamples, 5000);
         })();
 
         // Output box rotating examples
-        (function() {
+        (function () {
             const outputExamples = [
-                "Create discharge care instructions",
-                "Generate surgical consent form",
-                "Draft estimate for treatment",
-                "Create vaccination certificate",
-                "Generate prescription label",
+                "Generate monthly financial report",
+                "Create team roster schedule",
+                "Client history summary",
+                "Referenced treatment updates",
+                "Updated onboarding plan",
+                "Generate discharge care instructions",
+                "Create surgical consent form",
+                "Draft treatment estimate",
+                "Generate vaccination certificate",
+                "Create prescription labels",
                 "Draft health certificate",
-                "Create patient summary report",
-                "Generate invoice with details",
+                "Generate patient summary report",
+                "Create detailed invoice",
                 "Draft medical records request",
-                "Create treatment plan document",
-                "Generate lab requisition form",
-                "Draft referral letter",
-                "Create insurance claim form",
-                "Generate wellness exam summary",
-                "Draft euthanasia consent",
-                "Create boarding instructions",
-                "Generate rabies certificate",
-                "Draft dental procedure notes",
-                "Create diagnostic report",
-                "Generate spay/neuter certificate"
+                "Generate treatment plan document",
+                "Create lab requisition form",
+                "Draft specialist referral letter",
+                "Generate insurance claim form",
+                "Create wellness exam summary",
+                "Generate compliance audit report"
             ];
 
             let outputIndex = 0;
+            let outputHovered = false;
+
+            const outputBox = document.getElementById('outputsBox');
+            if (outputBox) {
+                outputBox.addEventListener('mouseenter', () => outputHovered = true);
+                outputBox.addEventListener('mouseleave', () => outputHovered = false);
+            }
 
             function rotateOutputExamples() {
+                if (window.animationsPaused || outputHovered) return;
+
                 const box = document.getElementById('outputsBox');
                 if (box) {
                     const exampleDiv = box.querySelector('.layer-example');
                     if (exampleDiv) {
-                        // Fade out
-                        exampleDiv.style.opacity = '0';
-                        exampleDiv.style.transition = 'opacity 0.3s ease-in-out';
-                        
+                        // Slide current text DOWN and hide
+                        exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                        exampleDiv.style.transform = 'translateY(0)';
+                        exampleDiv.style.opacity = '1';
+
                         setTimeout(() => {
-                            // Update text
+                            exampleDiv.style.transform = 'translateY(100%)';
+                            exampleDiv.style.opacity = '0';
+                        }, 10);
+
+                        setTimeout(() => {
                             outputIndex = (outputIndex + 1) % outputExamples.length;
                             exampleDiv.textContent = outputExamples[outputIndex];
-                            
-                            // Fade in
+
+                            exampleDiv.style.transition = 'none';
+                            exampleDiv.style.transform = 'translateY(-100%)';
                             exampleDiv.style.opacity = '1';
-                        }, 300);
+
+                            setTimeout(() => {
+                                exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                                exampleDiv.style.transform = 'translateY(0)';
+                            }, 30);
+                        }, 850);
                     }
                 }
             }
 
-            // Start rotation every 3 seconds
-            setInterval(rotateOutputExamples, 3000);
+            // Start rotation every 5 seconds
+            setInterval(rotateOutputExamples, 5000);
+        })();
+
+        // VetAI box rotating examples - 10 AI capabilities
+        (function () {
+            const vetaiExamples = [
+                "Performing statistics analysis",
+                "Reviewing patient records",
+                "Summarizing medical histories",
+                "Planning treatment schedules",
+                "Researching clinical protocols",
+                "Writing discharge instructions",
+                "Drafting policy documents",
+                "Composing client emails",
+                "Analyzing financial reports",
+                "Creating compliance reports"
+            ];
+
+            let vetaiIndex = 0;
+            let vetaiHovered = false;
+
+            const vetaiBoxElem = document.getElementById('vetaiBox');
+            if (vetaiBoxElem) {
+                vetaiBoxElem.addEventListener('mouseenter', () => vetaiHovered = true);
+                vetaiBoxElem.addEventListener('mouseleave', () => vetaiHovered = false);
+            }
+
+            function rotateVetAIExamples() {
+                if (window.animationsPaused || vetaiHovered) return;
+
+                const box = document.getElementById('vetaiBox');
+                if (box) {
+                    const exampleDiv = box.querySelector('.vetai-example');
+                    if (exampleDiv) {
+                        // Slide current text DOWN and hide
+                        exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                        exampleDiv.style.transform = 'translateY(0)';
+                        exampleDiv.style.opacity = '1';
+
+                        setTimeout(() => {
+                            exampleDiv.style.transform = 'translateY(100%)';
+                            exampleDiv.style.opacity = '0';
+                        }, 10);
+
+                        setTimeout(() => {
+                            vetaiIndex = (vetaiIndex + 1) % vetaiExamples.length;
+                            exampleDiv.textContent = vetaiExamples[vetaiIndex];
+
+                            exampleDiv.style.transition = 'none';
+                            exampleDiv.style.transform = 'translateY(-100%)';
+                            exampleDiv.style.opacity = '1';
+
+                            setTimeout(() => {
+                                exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                                exampleDiv.style.transform = 'translateY(0)';
+                            }, 30);
+                        }, 850);
+                    }
+                }
+            }
+
+            // Start rotation every 5 seconds
+            setInterval(rotateVetAIExamples, 5000);
+        })();
+
+        // ========================================
+        // V4 CAROUSELS - Today's Reality (3-step manual processes)
+        // ========================================
+
+        // V4 Team box rotating examples - 3-step manual processes with titles
+        (function () {
+            const teamExamplesV4 = {
+                teamManagersV4: [
+                    { title: "Email Triage", steps: "1. Check email\n2. Update status\n3. Report progress" },
+                    { title: "Task Assignment", steps: "1. Review requests\n2. Assign tasks\n3. Monitor completion" },
+                    { title: "Decision Making", steps: "1. Read reports\n2. Make decisions\n3. Send approvals" },
+                    { title: "Meeting Coordination", steps: "1. Check calendar\n2. Schedule meetings\n3. Send invites" },
+                    { title: "Budget Approval", steps: "1. Review budgets\n2. Approve expenses\n3. Update records" },
+                    { title: "Feedback Review", steps: "1. Read updates\n2. Provide feedback\n3. Track changes" },
+                    { title: "Inventory Management", steps: "1. Check inventory\n2. Order supplies\n3. Verify delivery" },
+                    { title: "Issue Resolution", steps: "1. Review complaints\n2. Investigate issues\n3. Send resolution" },
+                    { title: "Policy Implementation", steps: "1. Read policy docs\n2. Implement changes\n3. Notify team" },
+                    { title: "Performance Review", steps: "1. Check performance\n2. Set goals\n3. Document plans" }
+                ],
+                teamClientCareV4: [
+                    { title: "Appointment Booking", steps: "1. Answer phone\n2. Check availability\n3. Book appointment" },
+                    { title: "Email Response", steps: "1. Read email inquiry\n2. Look up info\n3. Type response" },
+                    { title: "Record Lookup", steps: "1. Receive call\n2. Locate record\n3. Provide details" },
+                    { title: "Message Relay", steps: "1. Take message\n2. Find vet\n3. Relay information" },
+                    { title: "Call Returns", steps: "1. Check voicemail\n2. Return calls\n3. Log interaction" },
+                    { title: "Cancellation Handling", steps: "1. Process cancellation\n2. Update calendar\n3. Notify team" },
+                    { title: "Feedback Processing", steps: "1. Review feedback\n2. Document issue\n3. Send follow-up" },
+                    { title: "Payment Processing", steps: "1. Handle payment\n2. Print receipt\n3. Email confirmation" },
+                    { title: "Policy Explanation", steps: "1. Answer question\n2. Search policies\n3. Explain details" },
+                    { title: "Follow-up Scheduling", steps: "1. Schedule follow-up\n2. Set reminder\n3. Confirm with client" }
+                ],
+                teamVetV4: [
+                    { title: "Patient Examination", steps: "1. Examine patient\n2. Type diagnosis\n3. Write prescription" },
+                    { title: "Lab Review", steps: "1. Review lab results\n2. Interpret findings\n3. Document plan" },
+                    { title: "Procedure Documentation", steps: "1. Perform procedure\n2. Record details\n3. Write notes" },
+                    { title: "Owner Consultation", steps: "1. Consult with owner\n2. Explain options\n3. Get consent" },
+                    { title: "Treatment Adjustment", steps: "1. Check patient status\n2. Adjust treatment\n3. Update chart" },
+                    { title: "Surgical Planning", steps: "1. Review imaging\n2. Make diagnosis\n3. Plan surgery" },
+                    { title: "Emergency Care", steps: "1. Emergency assessment\n2. Stabilize patient\n3. Document care" },
+                    { title: "Routine Exam", steps: "1. Conduct exam\n2. Order tests\n3. Schedule recheck" },
+                    { title: "Case Management", steps: "1. Review case history\n2. Develop protocol\n3. Brief team" },
+                    { title: "Post-Op Follow-up", steps: "1. Follow-up call\n2. Check recovery\n3. Adjust meds" }
+                ],
+                teamAdminV4: [
+                    { title: "Invoice Processing", steps: "1. Enter invoice data\n2. Match payment\n3. Update ledger" },
+                    { title: "Payroll Management", steps: "1. Process payroll\n2. Verify hours\n3. Submit payments" },
+                    { title: "Account Reconciliation", steps: "1. Reconcile accounts\n2. Find discrepancies\n3. Make corrections" },
+                    { title: "Report Generation", steps: "1. Generate report\n2. Format data\n3. Email to manager" },
+                    { title: "Document Filing", steps: "1. File documents\n2. Organize folders\n3. Update index" },
+                    { title: "Patient Registration", steps: "1. Enter new patient\n2. Verify insurance\n3. Create file" },
+                    { title: "Claims Processing", steps: "1. Process claims\n2. Check status\n3. Follow up" },
+                    { title: "Inventory Update", steps: "1. Update inventory\n2. Count stock\n3. Order supplies" },
+                    { title: "Correspondence Handling", steps: "1. Handle correspondence\n2. Route documents\n3. File copies" },
+                    { title: "Billing Preparation", steps: "1. Prepare invoices\n2. Mail statements\n3. Track payments" }
+                ],
+                teamTechsV4: [
+                    { title: "Lab Testing", steps: "1. Draw blood sample\n2. Run test\n3. Record results" },
+                    { title: "Surgical Assistance", steps: "1. Prep surgical area\n2. Assist procedure\n3. Clean up" },
+                    { title: "Imaging", steps: "1. Take X-ray\n2. Develop image\n3. Upload to system" },
+                    { title: "Medication Administration", steps: "1. Administer medication\n2. Monitor patient\n3. Log treatment" },
+                    { title: "Specimen Collection", steps: "1. Collect specimen\n2. Label sample\n3. Send to lab" },
+                    { title: "Exam Assistance", steps: "1. Restrain patient\n2. Assist exam\n3. Update notes" },
+                    { title: "Anesthesia Monitoring", steps: "1. Prepare anesthesia\n2. Monitor vitals\n3. Record data" },
+                    { title: "Equipment Maintenance", steps: "1. Clean equipment\n2. Sterilize tools\n3. Restock supplies" },
+                    { title: "Patient Care", steps: "1. Feed patients\n2. Check status\n3. Document care" },
+                    { title: "Discharge Processing", steps: "1. Handle discharge\n2. Explain care\n3. Schedule follow-up" }
+                ]
+            };
+
+            const indicesV4 = {};
+            const isHoveredV4 = {};
+            Object.keys(teamExamplesV4).forEach(id => {
+                indicesV4[id] = 0;
+                isHoveredV4[id] = false;
+
+                const box = document.getElementById(id);
+                if (box) {
+                    box.addEventListener('mouseenter', () => isHoveredV4[id] = true);
+                    box.addEventListener('mouseleave', () => isHoveredV4[id] = false);
+                }
+            });
+
+            function rotateTeamExamplesV4() {
+                if (window.animationsPaused) return;
+
+                Object.keys(teamExamplesV4).forEach(id => {
+                    if (isHoveredV4[id]) return;
+
+                    const box = document.getElementById(id);
+                    if (box) {
+                        const exampleDiv = box.querySelector('.team-example-v4');
+                        if (exampleDiv) {
+                            exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                            exampleDiv.style.transform = 'translateY(0)';
+                            exampleDiv.style.opacity = '1';
+
+                            setTimeout(() => {
+                                exampleDiv.style.transform = 'translateY(100%)';
+                                exampleDiv.style.opacity = '0';
+                            }, 10);
+
+                            setTimeout(() => {
+                                indicesV4[id] = (indicesV4[id] + 1) % teamExamplesV4[id].length;
+                                const example = teamExamplesV4[id][indicesV4[id]];
+
+                                // Display title and steps separately
+                                if (typeof example === 'object' && example.title && example.steps) {
+                                    exampleDiv.innerHTML = '<div style="font-weight: 700; color: #3B82F6; margin-bottom: 4px; font-size: 14px;">' + example.title + '</div>' +
+                                        '<div style="font-size: 14px; line-height: 1.2;">' + example.steps.replace(/\n/g, '<br>') + '</div>';
+                                } else {
+                                    exampleDiv.textContent = example;
+                                }
+
+                                exampleDiv.style.transition = 'none';
+                                exampleDiv.style.transform = 'translateY(-100%)';
+                                exampleDiv.style.opacity = '1';
+
+                                setTimeout(() => {
+                                    exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                                    exampleDiv.style.transform = 'translateY(0)';
+                                }, 30);
+                            }, 850);
+                        }
+                    }
+                });
+            }
+
+            setInterval(rotateTeamExamplesV4, 5000);
+        })();
+
+        // V4 Platform/System layer rotating examples - Manual tasks users must perform
+        (function () {
+            const layerExamplesV4 = {
+                layer1BoxV4: [
+                    "Open and find emails manually",
+                    "Search through documents one by one",
+                    "Filter through email threads",
+                    "Download files individually",
+                    "Manually check calendar events",
+                    "Search for contact information",
+                    "Navigate through folders to find files",
+                    "Manually sort and prioritize messages",
+                    "Download attachments separately",
+                    "Search meeting notes by date",
+                    "Manually organize shared documents",
+                    "Filter spam and unread emails",
+                    "Search conversation history",
+                    "Manually download calendar entries",
+                    "Navigate complex folder structures",
+                    "Scroll through long email chains",
+                    "Manually tag and categorize emails",
+                    "Search for shared file permissions",
+                    "Locate archived conversations",
+                    "Manually update task assignments",
+                    "Search for project files across folders",
+                    "Download presentation files one by one",
+                    "Manually check message timestamps",
+                    "Navigate nested folder hierarchies",
+                    "Search for specific meeting recordings"
+                ],
+                layer2BoxV4: [
+                    "Login and search patient records",
+                    "Navigate multiple screens for data",
+                    "Manually download appointment lists",
+                    "Search and export invoices",
+                    "Find and open lab results individually",
+                    "Navigate complex menus for reports",
+                    "Manually check inventory levels",
+                    "Search and filter payment history",
+                    "Export data to spreadsheets manually",
+                    "Search through clinical histories",
+                    "Manually download insurance claims",
+                    "Navigate vendor invoice systems",
+                    "Search and find treatment pricing",
+                    "Manually access payroll reports",
+                    "Export financial data individually",
+                    "Login to multiple vendor portals",
+                    "Manually reconcile billing discrepancies",
+                    "Search for prescription history",
+                    "Navigate appointment scheduling screens",
+                    "Manually update patient demographics",
+                    "Search for surgical records by date",
+                    "Download diagnostic imaging results",
+                    "Manually track medication dispensing",
+                    "Search for vaccination histories",
+                    "Navigate complex reporting dashboards"
+                ],
+                layer3BoxV4: [
+                    "Search and download files manually",
+                    "Navigate knowledge base categories",
+                    "Filter through research papers",
+                    "Search for specific protocols",
+                    "Download PDFs one at a time",
+                    "Manually locate safety data sheets",
+                    "Search through procedure guidelines",
+                    "Navigate training material libraries",
+                    "Find and open compliance documents",
+                    "Search equipment manuals by model",
+                    "Manually locate dosing charts",
+                    "Filter and sort reference materials",
+                    "Download clinical guidelines individually",
+                    "Search through archived documents",
+                    "Navigate complex file hierarchies",
+                    "Manually search drug interaction databases",
+                    "Locate breed-specific health information",
+                    "Search for emergency procedure protocols",
+                    "Download continuing education materials",
+                    "Navigate regulatory compliance folders",
+                    "Search for anesthesia protocol updates",
+                    "Manually locate surgical technique videos",
+                    "Search for disease symptom references",
+                    "Download veterinary journal articles",
+                    "Navigate pain management guidelines"
+                ]
+            };
+
+            const layerIndicesV4 = {};
+            const layerHoveredV4 = {};
+            Object.keys(layerExamplesV4).forEach(id => {
+                layerIndicesV4[id] = 0;
+                layerHoveredV4[id] = false;
+
+                const box = document.getElementById(id);
+                if (box) {
+                    box.addEventListener('mouseenter', () => layerHoveredV4[id] = true);
+                    box.addEventListener('mouseleave', () => layerHoveredV4[id] = false);
+                }
+            });
+
+            function rotateLayerExamplesV4() {
+                if (window.animationsPaused) return;
+
+                Object.keys(layerExamplesV4).forEach(id => {
+                    if (layerHoveredV4[id]) return;
+
+                    const box = document.getElementById(id);
+                    if (box) {
+                        const exampleDiv = box.querySelector('.layer-example-v4');
+                        if (exampleDiv) {
+                            exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                            exampleDiv.style.transform = 'translateY(0)';
+                            exampleDiv.style.opacity = '1';
+
+                            setTimeout(() => {
+                                exampleDiv.style.transform = 'translateY(100%)';
+                                exampleDiv.style.opacity = '0';
+                            }, 10);
+
+                            setTimeout(() => {
+                                layerIndicesV4[id] = (layerIndicesV4[id] + 1) % layerExamplesV4[id].length;
+                                exampleDiv.textContent = layerExamplesV4[id][layerIndicesV4[id]];
+
+                                exampleDiv.style.transition = 'none';
+                                exampleDiv.style.transform = 'translateY(-100%)';
+                                exampleDiv.style.opacity = '1';
+
+                                setTimeout(() => {
+                                    exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                                    exampleDiv.style.transform = 'translateY(0)';
+                                }, 30);
+                            }, 850);
+                        }
+                    }
+                });
+            }
+
+            setInterval(rotateLayerExamplesV4, 5000);
+        })();
+
+        // V4 Output box rotating examples - Manually created documents
+        (function () {
+            const outputExamplesV4 = [
+                "Manually typed discharge notes",
+                "Hand-written consultation summary",
+                "Manually created invoice",
+                "Typed treatment estimate",
+                "Hand-entered lab requisition",
+                "Manually drafted email",
+                "Typed prescription label",
+                "Hand-written care instructions",
+                "Manually updated chart notes",
+                "Typed financial report",
+                "Hand-entered inventory count",
+                "Manually created schedule",
+                "Typed client correspondence",
+                "Hand-written referral letter",
+                "Manually drafted policy memo",
+                "Typed surgical consent form",
+                "Hand-entered patient records",
+                "Manually created appointment reminder",
+                "Typed vaccination certificate",
+                "Hand-written treatment plan",
+                "Manually drafted insurance claim",
+                "Typed medical records summary",
+                "Hand-entered billing statement",
+                "Manually created wellness report",
+                "Typed client education handout"
+            ];
+
+            let outputIndexV4 = 0;
+            let outputHoveredV4 = false;
+
+            const outputBoxV4 = document.getElementById('outputsBoxV4');
+            if (outputBoxV4) {
+                outputBoxV4.addEventListener('mouseenter', () => outputHoveredV4 = true);
+                outputBoxV4.addEventListener('mouseleave', () => outputHoveredV4 = false);
+            }
+
+            function rotateOutputExamplesV4() {
+                if (window.animationsPaused || outputHoveredV4) return;
+
+                const box = document.getElementById('outputsBoxV4');
+                if (box) {
+                    const exampleDiv = box.querySelector('.layer-example-v4');
+                    if (exampleDiv) {
+                        exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                        exampleDiv.style.transform = 'translateY(0)';
+                        exampleDiv.style.opacity = '1';
+
+                        setTimeout(() => {
+                            exampleDiv.style.transform = 'translateY(100%)';
+                            exampleDiv.style.opacity = '0';
+                        }, 10);
+
+                        setTimeout(() => {
+                            outputIndexV4 = (outputIndexV4 + 1) % outputExamplesV4.length;
+                            exampleDiv.textContent = outputExamplesV4[outputIndexV4];
+
+                            exampleDiv.style.transition = 'none';
+                            exampleDiv.style.transform = 'translateY(-100%)';
+                            exampleDiv.style.opacity = '1';
+
+                            setTimeout(() => {
+                                exampleDiv.style.transition = 'transform 0.8s ease-in-out, opacity 0.8s ease-in-out';
+                                exampleDiv.style.transform = 'translateY(0)';
+                            }, 30);
+                        }, 850);
+                    }
+                }
+            }
+
+            setInterval(rotateOutputExamplesV4, 5000);
         })();
     </script>
 
@@ -5648,46 +6432,67 @@
          TRANSFORMATION COMPARISON
          Before vs After with AI
          ======================================== -->
-    <div style="margin-top: var(--space-4xl); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2xl); max-width: 1400px; margin-left: auto; margin-right: auto;">
-        
+    <div
+        style="margin-top: var(--space-4xl); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2xl); max-width: 1400px; margin-left: auto; margin-right: auto;">
+
         <!-- BEFORE: Without AI -->
         <div data-aos="fade-up" data-aos-delay="200"
             style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 24px; padding: var(--space-2xl); border: 2px solid rgba(220,38,38,0.4);">
             <h3 style="text-align: center; font-size: var(--text-xl); margin-bottom: var(--space-lg); color: #DC2626;">
                 Before: Without AI
             </h3>
-            <p style="text-align: center; margin-bottom: var(--space-2xl); color: rgba(255,255,255,0.8); font-size: var(--text-sm);">
+            <p
+                style="text-align: center; margin-bottom: var(--space-2xl); color: rgba(255,255,255,0.8); font-size: var(--text-sm);">
                 Human manually manages all layers
             </p>
 
-            <div style="position: relative; height: 600px; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 100%); border-radius: 16px; padding: var(--space-xl);">
-                <canvas id="beforeAICanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
-                
+            <div
+                style="position: relative; height: 600px; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 100%); border-radius: 16px; padding: var(--space-xl);">
+                <canvas id="beforeAICanvas"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+
                 <!-- Layers across top -->
-                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-260px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
-                    <div style="background: #FACC15; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 1</div>
-                    <p style="font-size: 11px; color: #FACC15; margin: 0; text-align: center; font-weight: 600;">Collaboration</p>
+                <div
+                    style="position: absolute; top: 40px; left: 50%; transform: translateX(-260px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div
+                        style="background: #FACC15; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        LAYER 1</div>
+                    <p style="font-size: 11px; color: #FACC15; margin: 0; text-align: center; font-weight: 600;">
+                        Collaboration</p>
                 </div>
 
-                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-60px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
-                    <div style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 2</div>
-                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">Business</p>
+                <div
+                    style="position: absolute; top: 40px; left: 50%; transform: translateX(-60px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div
+                        style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        LAYER 2</div>
+                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">
+                        Business</p>
                 </div>
 
-                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(140px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
-                    <div style="background: #A855F7; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 3</div>
-                    <p style="font-size: 11px; color: #A855F7; margin: 0; text-align: center; font-weight: 600;">Information</p>
+                <div
+                    style="position: absolute; top: 40px; left: 50%; transform: translateX(140px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div
+                        style="background: #A855F7; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        LAYER 3</div>
+                    <p style="font-size: 11px; color: #A855F7; margin: 0; text-align: center; font-weight: 600;">
+                        Information</p>
                 </div>
 
                 <!-- Human in middle -->
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 50px rgba(59,130,246,0.6);">
+                <div
+                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 50px rgba(59,130,246,0.6);">
                     <div style="font-size: 14px; font-weight: 700; color: white; text-align: center;">Human</div>
                 </div>
 
                 <!-- Business Outputs at bottom -->
-                <div style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-80px); z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 12px; padding: var(--space-md); width: 160px;">
-                    <div style="background: #DC2626; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">OUTPUT</div>
-                    <p style="font-size: 11px; color: #DC2626; margin: 0; text-align: center; font-weight: 600;">Business Outputs</p>
+                <div
+                    style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-80px); z-index: 10; background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5); border-radius: 12px; padding: var(--space-md); width: 160px;">
+                    <div
+                        style="background: #DC2626; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        OUTPUT</div>
+                    <p style="font-size: 11px; color: #DC2626; margin: 0; text-align: center; font-weight: 600;">
+                        Business Outputs</p>
                 </div>
             </div>
         </div>
@@ -5698,44 +6503,65 @@
             <h3 style="text-align: center; font-size: var(--text-xl); margin-bottom: var(--space-lg); color: #22C55E;">
                 After: With AI
             </h3>
-            <p style="text-align: center; margin-bottom: var(--space-2xl); color: rgba(255,255,255,0.8); font-size: var(--text-sm);">
+            <p
+                style="text-align: center; margin-bottom: var(--space-2xl); color: rgba(255,255,255,0.8); font-size: var(--text-sm);">
                 AI coordinates all layers, Human focuses on decisions
             </p>
 
-            <div style="position: relative; height: 600px; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 100%); border-radius: 16px; padding: var(--space-xl);">
-                <canvas id="afterAICanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
-                
+            <div
+                style="position: relative; height: 600px; background: linear-gradient(135deg, rgba(5,12,20,0.98) 0%, rgba(10,15,50,0.95) 100%); border-radius: 16px; padding: var(--space-xl);">
+                <canvas id="afterAICanvas"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+
                 <!-- Layers across top -->
-                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-260px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
-                    <div style="background: #FACC15; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 1</div>
-                    <p style="font-size: 11px; color: #FACC15; margin: 0; text-align: center; font-weight: 600;">Collaboration</p>
+                <div
+                    style="position: absolute; top: 40px; left: 50%; transform: translateX(-260px); z-index: 10; background: rgba(250,204,21,0.15); border: 2px solid rgba(250,204,21,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div
+                        style="background: #FACC15; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        LAYER 1</div>
+                    <p style="font-size: 11px; color: #FACC15; margin: 0; text-align: center; font-weight: 600;">
+                        Collaboration</p>
                 </div>
 
-                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(-60px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
-                    <div style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 2</div>
-                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">Business</p>
+                <div
+                    style="position: absolute; top: 40px; left: 50%; transform: translateX(-60px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div
+                        style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        LAYER 2</div>
+                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">
+                        Business</p>
                 </div>
 
-                <div style="position: absolute; top: 40px; left: 50%; transform: translateX(140px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
-                    <div style="background: #A855F7; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">LAYER 3</div>
-                    <p style="font-size: 11px; color: #A855F7; margin: 0; text-align: center; font-weight: 600;">Information</p>
+                <div
+                    style="position: absolute; top: 40px; left: 50%; transform: translateX(140px); z-index: 10; background: rgba(168,85,247,0.15); border: 2px solid rgba(168,85,247,0.5); border-radius: 12px; padding: var(--space-md); width: 120px;">
+                    <div
+                        style="background: #A855F7; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        LAYER 3</div>
+                    <p style="font-size: 11px; color: #A855F7; margin: 0; text-align: center; font-weight: 600;">
+                        Information</p>
                 </div>
 
                 <!-- AI in center-left -->
-                <div style="position: absolute; top: 50%; left: 35%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 16px; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 60px rgba(255,107,53,0.7);">
+                <div
+                    style="position: absolute; top: 50%; left: 35%; transform: translate(-50%, -50%); z-index: 10; background: #FF6B35; border-radius: 16px; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 60px rgba(255,107,53,0.7);">
                     <div style="font-size: 16px; font-weight: 700; color: white; text-align: center;">AI</div>
                     <div style="font-size: 9px; color: rgba(255,255,255,0.9); text-align: center;">Coordinator</div>
                 </div>
 
                 <!-- Human in center-right -->
-                <div style="position: absolute; top: 50%; right: 28%; transform: translateY(-50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 40px rgba(59,130,246,0.6);">
+                <div
+                    style="position: absolute; top: 50%; right: 28%; transform: translateY(-50%); z-index: 10; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 40px rgba(59,130,246,0.6);">
                     <div style="font-size: 13px; font-weight: 700; color: white; text-align: center;">Human</div>
                 </div>
 
                 <!-- Business Outputs at bottom -->
-                <div style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-80px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 160px;">
-                    <div style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">OUTPUT</div>
-                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">Business Outputs</p>
+                <div
+                    style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-80px); z-index: 10; background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.5); border-radius: 12px; padding: var(--space-md); width: 160px;">
+                    <div
+                        style="background: #22C55E; color: white; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 700; text-align: center; margin-bottom: 4px;">
+                        OUTPUT</div>
+                    <p style="font-size: 11px; color: #22C55E; margin: 0; text-align: center; font-weight: 600;">
+                        Business Outputs</p>
                 </div>
             </div>
         </div>
@@ -5744,32 +6570,32 @@
     <!-- Animation Scripts -->
     <script>
         // BEFORE AI Animation
-        (function() {
+        (function () {
             const canvas = document.getElementById('beforeAICanvas');
             if (!canvas) return;
-            
+
             const ctx = canvas.getContext('2d');
             const container = canvas.parentElement;
-            
+
             function resizeCanvas() {
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
             }
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
-            
+
             const particles = [];
             const particleCount = 30;
-            
+
             class BeforeParticle {
                 constructor() {
                     this.reset();
                 }
-                
+
                 reset() {
                     const w = canvas.width;
                     const h = canvas.height;
-                    
+
                     // Positions
                     const human = { x: w * 0.5, y: h * 0.5 };
                     const layers = [
@@ -5778,9 +6604,9 @@
                         { x: w * 0.7, y: h * 0.12 }    // Layer 3
                     ];
                     const output = { x: w * 0.5, y: h * 0.88 };
-                    
+
                     const rand = Math.random();
-                    
+
                     if (rand < 0.6) {
                         // Human ↔ Layer
                         const layer = layers[Math.floor(Math.random() * layers.length)];
@@ -5805,30 +6631,30 @@
                         this.targetY = output.y;
                         this.color = { r: 220, g: 38, b: 38 };
                     }
-                    
+
                     this.speed = 2.0 + Math.random() * 1.5;
                     this.trail = [];
                     this.maxTrail = 30;
                     this.size = 3.0;
                 }
-                
+
                 update() {
                     this.trail.push({ x: this.x, y: this.y });
                     if (this.trail.length > this.maxTrail) this.trail.shift();
-                    
+
                     const dx = this.targetX - this.x;
                     const dy = this.targetY - this.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    
+
                     if (dist < 10) {
                         this.reset();
                         return;
                     }
-                    
+
                     this.x += (dx / dist) * this.speed;
                     this.y += (dy / dist) * this.speed;
                 }
-                
+
                 draw(ctx) {
                     if (this.trail.length > 1) {
                         ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.6)`;
@@ -5840,31 +6666,31 @@
                         });
                         ctx.stroke();
                     }
-                    
+
                     ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`;
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
-            
+
             for (let i = 0; i < particleCount; i++) {
                 particles.push(new BeforeParticle());
             }
-            
+
             let animationId;
             function animate() {
                 ctx.fillStyle = 'rgba(5, 12, 20, 0.2)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
+
                 particles.forEach(p => {
                     p.update();
                     p.draw(ctx);
                 });
-                
+
                 animationId = requestAnimationFrame(animate);
             }
-            
+
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting && !animationId) animate();
@@ -5874,37 +6700,37 @@
                     }
                 });
             }, { threshold: 0.1 });
-            
+
             observer.observe(canvas);
         })();
-        
+
         // AFTER AI Animation
-        (function() {
+        (function () {
             const canvas = document.getElementById('afterAICanvas');
             if (!canvas) return;
-            
+
             const ctx = canvas.getContext('2d');
             const container = canvas.parentElement;
-            
+
             function resizeCanvas() {
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
             }
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
-            
+
             const particles = [];
             const particleCount = 60;  // More particles = more activity
-            
+
             class AfterParticle {
                 constructor() {
                     this.reset();
                 }
-                
+
                 reset() {
                     const w = canvas.width;
                     const h = canvas.height;
-                    
+
                     // Positions
                     const ai = { x: w * 0.35, y: h * 0.5 };
                     const human = { x: w * 0.65, y: h * 0.5 };
@@ -5914,9 +6740,9 @@
                         { x: w * 0.7, y: h * 0.12, color: { r: 168, g: 85, b: 247 } }    // Layer 3
                     ];
                     const output = { x: w * 0.5, y: h * 0.88 };
-                    
+
                     const rand = Math.random();
-                    
+
                     if (rand < 0.5) {
                         // AI ↔ Layer
                         const layer = layers[Math.floor(Math.random() * layers.length)];
@@ -5962,30 +6788,30 @@
                         this.targetX = output.x + (Math.random() - 0.5) * 60;
                         this.targetY = output.y;
                     }
-                    
+
                     this.speed = 2.5 + Math.random() * 1.5;
                     this.trail = [];
                     this.maxTrail = 35;
                     this.size = 3.0;
                 }
-                
+
                 update() {
                     this.trail.push({ x: this.x, y: this.y });
                     if (this.trail.length > this.maxTrail) this.trail.shift();
-                    
+
                     const dx = this.targetX - this.x;
                     const dy = this.targetY - this.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    
+
                     if (dist < 10) {
                         this.reset();
                         return;
                     }
-                    
+
                     this.x += (dx / dist) * this.speed;
                     this.y += (dy / dist) * this.speed;
                 }
-                
+
                 draw(ctx) {
                     if (this.trail.length > 1) {
                         ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.6)`;
@@ -5997,31 +6823,31 @@
                         });
                         ctx.stroke();
                     }
-                    
+
                     ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1.0)`;
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
-            
+
             for (let i = 0; i < particleCount; i++) {
                 particles.push(new AfterParticle());
             }
-            
+
             let animationId;
             function animate() {
                 ctx.fillStyle = 'rgba(5, 12, 20, 0.2)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
+
                 particles.forEach(p => {
                     p.update();
                     p.draw(ctx);
                 });
-                
+
                 animationId = requestAnimationFrame(animate);
             }
-            
+
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting && !animationId) animate();
@@ -6031,7 +6857,7 @@
                     }
                 });
             }, { threshold: 0.1 });
-            
+
             observer.observe(canvas);
         })();
     </script>
@@ -6382,6 +7208,57 @@
                 }
             });
         });
+    </script>
+
+    <!-- Global Animation Controls -->
+    <div class="animation-controls">
+        <button class="animation-toggle-btn" id="globalAnimationToggle">
+            <span id="toggleIcon">⏸</span>
+            <span id="toggleText">Pause Animations</span>
+        </button>
+    </div>
+
+    <script>
+        // Global animation control system
+        (function () {
+            let animationsPaused = false;
+            const toggleBtn = document.getElementById('globalAnimationToggle');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const toggleText = document.getElementById('toggleText');
+
+            // Toggle all animations
+            toggleBtn.addEventListener('click', function () {
+                animationsPaused = !animationsPaused;
+
+                if (animationsPaused) {
+                    // Pause all animations
+                    toggleBtn.classList.add('paused');
+                    toggleIcon.textContent = '▶';
+                    toggleText.textContent = 'Resume Animations';
+
+                    // Add paused class to all animated boxes
+                    document.querySelectorAll('.arch-layer, .team-box').forEach(box => {
+                        box.classList.add('paused');
+                    });
+                } else {
+                    // Resume all animations
+                    toggleBtn.classList.remove('paused');
+                    toggleIcon.textContent = '⏸';
+                    toggleText.textContent = 'Pause Animations';
+
+                    // Remove paused class
+                    document.querySelectorAll('.arch-layer, .team-box').forEach(box => {
+                        box.classList.remove('paused');
+                    });
+                }
+
+                // Broadcast pause state
+                window.animationsPaused = animationsPaused;
+            });
+
+            // Initialize pause state
+            window.animationsPaused = false;
+        })();
     </script>
 </body>
 

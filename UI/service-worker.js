@@ -14,8 +14,8 @@
  * - jsPDF + html2canvas (600KB)
  */
 
-const CACHE_NAME = 'ai-agents-v1.0.0';
-const CACHE_VERSION = '2025-11-28-v15-auto-detect';  // PURE auto-detection, NO hardcoded URLs
+const CACHE_NAME = 'ai-agents-v1.0.2';  // ✅ Fixed APP_FILES 404 errors
+const CACHE_VERSION = '2025-11-30-v17-app-files-fix';  // Removed non-existent files causing cache failures
 
 // Libraries to cache (loaded post-auth)
 const HEAVY_LIBRARIES = [
@@ -62,24 +62,20 @@ const HEAVY_LIBRARIES = [
     'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js'
 ];
 
-// Application files to cache
+// Application files to cache (ONLY files that exist - 404s cause cache.addAll() to fail)
 const APP_FILES = [
     '/business-ai-platform-v2.html',
     '/render-config.js',
-    '/js/data-loader.js',
-    '/js/synergy-realtime.js',
-    '/js/module-manager.js',
+    '/shared/js/data-loader.js',
+    '/shared/js/synergy-realtime.js',  // ✅ FIX: Moved to shared/js
+    '/shared/js/module-loader-v4.js',  // ✅ FIX: Actual v4 loader
     '/js/module-base.js',
-    '/js/module-loader.js',
-    '/components/feedback-area-new.js',
-    '/modules/prompt-library.js',
-    '/modules/automation-workflows.js',
-    '/modules/internal_docs/manager.js',
-    '/external/modules/workflow-slug-integration.js',
-    '/css/ui-standardization.css',
-    '/modules/prompt-library.css',
-    '/modules/automation-workflows.css',
-    '/external/modules/workflow-slug-integration.css'
+    '/shared/css/ui-standardization.css'  // ✅ FIX: Correct path in shared/css
+    // ❌ REMOVED: Files that don't exist or have been archived
+    // - /js/module-manager.js (doesn't exist)
+    // - /js/module-loader.js (archived)
+    // - /components/feedback-area-new.js (archived)
+    // - /modules/*.js (not caching individual modules - too many)
 ];
 
 /**
@@ -175,8 +171,16 @@ self.addEventListener('fetch', (event) => {
         return; // Let browser handle normally
     }
 
+    // ✅ NEW: Check if this is a CDN-like path that needs reconstruction
+    const isLocalhostCDNPath = url.hostname === 'localhost' && (
+        url.pathname.startsWith('/ajax/libs/') ||
+        url.pathname.startsWith('/npm/') ||
+        url.pathname.startsWith('/gh/') ||
+        url.pathname.startsWith('/@')
+    );
+
     // STRATEGY 1: Cache First (for CDN libraries)
-    if (isCDNResource(url)) {
+    if (isCDNResource(url) || isLocalhostCDNPath) {
         event.respondWith(
             caches.match(request).then((cachedResponse) => {
                 if (cachedResponse) {
@@ -184,9 +188,14 @@ self.addEventListener('fetch', (event) => {
                     return cachedResponse;
                 }
 
-                // Not in cache, fetch and cache it
+                // Not in cache, fetch from proper CDN URL
                 console.log('[Service Worker] Cache MISS, fetching:', url.pathname);
-                return fetch(request).then((response) => {
+
+                // ✅ FIX: Reconstruct full CDN URL if needed
+                const fetchUrl = reconstructCDNUrl(url);
+                const fetchRequest = fetchUrl === url.href ? request : new Request(fetchUrl);
+
+                return fetch(fetchRequest).then((response) => {
                     // Only cache successful responses
                     if (response && response.status === 200) {
                         const responseClone = response.clone();
@@ -195,6 +204,14 @@ self.addEventListener('fetch', (event) => {
                         });
                     }
                     return response;
+                }).catch((error) => {
+                    // ✅ FIX: Silently fail for CDN fetch errors (e.g., network issues)
+                    // Log error but don't throw - browser will show standard 404
+                    console.warn('[Service Worker] Fetch failed (CDN unavailable):', url.pathname);
+                    return new Response('Service Worker: Network error', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
                 });
             })
         );
@@ -244,7 +261,39 @@ function isCDNResource(url) {
         'cdn.socket.io'
     ];
 
+    // Check if hostname is a CDN domain
     return cdnDomains.some(domain => url.hostname.includes(domain));
+}
+
+/**
+ * ✅ FIX: Reconstruct full CDN URL from localhost relative path
+ * Service Worker intercepts CDN requests and normalizes them to localhost paths.
+ * This function converts them back to full CDN URLs for proper fetching.
+ */
+function reconstructCDNUrl(url) {
+    // If already a full CDN URL, return as-is
+    if (isCDNResource(url)) {
+        return url.href;
+    }
+
+    // Map localhost paths back to their CDN origins
+    const cdnMappings = [
+        { pattern: /^\/ajax\/libs\//, domain: 'https://cdnjs.cloudflare.com' },
+        { pattern: /^\/npm\//, domain: 'https://cdn.jsdelivr.net' },
+        { pattern: /^\/@/, domain: 'https://cdn.jsdelivr.net/npm' },
+        { pattern: /^\/gh\//, domain: 'https://cdn.jsdelivr.net' }
+    ];
+
+    for (const mapping of cdnMappings) {
+        if (mapping.pattern.test(url.pathname)) {
+            const fullUrl = `${mapping.domain}${url.pathname}${url.search}`;
+            console.log(`[Service Worker] Reconstructed CDN URL: ${url.pathname} → ${fullUrl}`);
+            return fullUrl;
+        }
+    }
+
+    // Fallback: return original URL
+    return url.href;
 }
 
 /**

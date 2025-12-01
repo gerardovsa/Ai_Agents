@@ -148,12 +148,39 @@
                             "type": "string",
                             "description": "Main task description"
                           },
+                          "priority": {
+                            "type": "string",
+                            "enum": ["low", "medium", "high", "critical"],
+                            "default": "medium",
+                            "description": "Task priority level: low (🟢), medium (🟡), high (🟠), critical (🔴)"
+                          },
                           "subtasks": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "oneOf": [
+                                {
+                                  "type": "string",
+                                  "description": "Simple subtask without priority"
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "task": {
+                                      "type": "string",
+                                      "description": "Subtask description"
+                                    },
+                                    "priority": {
+                                      "type": "string",
+                                      "enum": ["low", "medium", "high", "critical"],
+                                      "default": "medium",
+                                      "description": "Subtask priority level"
+                                    }
+                                  },
+                                  "required": ["task"]
+                                }
+                              ]
                             },
-                            "description": "Subtasks (smaller steps within this task)"
+                            "description": "Subtasks (smaller steps within this task). Can be strings or objects with priority."
                           }
                         },
                         "required": [
@@ -807,6 +834,111 @@
       }
     },
     {
+      "name": "synergy_search_sessions",
+      "description": "🔍 SEARCH SYNERGY SESSIONS BY KEYWORDS\n\nSearch for sessions by title, description, tags, or platform name. Use this when:\n- You know keywords but not the session_id\n- Looking for projects related to specific platforms\n- Finding sessions with specific tags\n- User asks about 'email projects' or 'form-related work'\n\n🎯 SEARCH BEHAVIOR:\n- Searches across: title, description, tags fields\n- Case-insensitive partial matching\n- Returns up to 50 results ordered by last_active\n\n💡 EXAMPLES:\n- 'email automation' → Finds sessions with 'email' or 'automation' in title/description\n- platform='gmail' → All sessions involving Gmail\n- query='customer', priority='high' → High-priority customer projects",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search term (OPTIONAL if platform provided). Searches in title, description, and tags. Examples: 'email automation', 'customer onboarding', 'dashboard'",
+            "examples": [
+              "email automation",
+              "customer database",
+              "sales pipeline"
+            ]
+          },
+          "platform": {
+            "type": "string",
+            "description": "Filter by specific platform (OPTIONAL). Examples: 'gmail', 'google_sheets', 'stripe', 'slack'",
+            "examples": [
+              "gmail",
+              "google_sheets",
+              "stripe",
+              "slack"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "archived"
+            ],
+            "description": "Filter by status (OPTIONAL)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Filter by priority (OPTIONAL)"
+          },
+          "column": {
+            "type": "string",
+            "enum": [
+              "backlog",
+              "in_progress",
+              "review",
+              "done"
+            ],
+            "description": "Filter by Kanban column (OPTIONAL)"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "number",
+            "description": "Number of matching sessions"
+          },
+          "sessions": {
+            "type": "array",
+            "description": "Array of matching sessions"
+          },
+          "query": {
+            "type": "string",
+            "description": "Search term that was used"
+          },
+          "filters_applied": {
+            "type": "object",
+            "description": "Filters that were active"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Search for email-related projects",
+          "parameters": {
+            "query": "email automation"
+          }
+        },
+        {
+          "description": "Find all Gmail projects currently in progress",
+          "parameters": {
+            "platform": "gmail",
+            "column": "in_progress"
+          }
+        },
+        {
+          "description": "Find high-priority dashboard projects",
+          "parameters": {
+            "query": "dashboard",
+            "priority": "high"
+          }
+        }
+      ]
+    },
+    {
       "name": "synergy_add_document",
       "description": "🔗 ADD CLICKABLE DOCUMENT TO SESSION\n\n⚠️ CRITICAL: Call this IMMEDIATELY after creating each resource!\n\nLinks a document to a Synergy session. Documents become CLICKABLE links in the UI that open in new browser tabs.\n\nSupports:\n- Internal documents (created with synergy_create_internal_doc) - Opens in modal popup\n- Google Docs, Sheets, Forms, Slides - Opens in new tab with full URL\n- External links and resources - Opens in new tab\n\n🔗 URL REQUIREMENTS:\n✅ MUST use FULL URL from creation response (https://docs.google.com/...)\n✅ MUST include document type for proper icon (google_sheet, google_doc, etc.)\n✅ MUST use descriptive title (not \"Document 1\" - use actual resource name)\n\n💡 WORKFLOW:\n1. Create resource (doc/sheet/form)\n2. Get the FULL URL from creation response\n3. IMMEDIATELY call synergy_add_document(url=full_url, type=resource_type, title=descriptive_name)\n4. Repeat for each resource\n\n⚠️ EXCEPTION: Internal docs (type='internal_doc' or 'internal_sheet') open in modal popup, not new tab",
       "platform": "synergy",
@@ -1089,10 +1221,34 @@
                     "task": {
                       "type": "string"
                     },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["low", "medium", "high", "critical"],
+                      "default": "medium",
+                      "description": "Task priority level"
+                    },
                     "subtasks": {
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "task": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high", "critical"],
+                                "default": "medium"
+                              }
+                            },
+                            "required": ["task"]
+                          }
+                        ]
                       }
                     }
                   }
@@ -1144,9 +1300,30 @@
           "subtasks": {
             "type": "array",
             "items": {
-              "type": "string"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "Simple subtask without priority"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "task": {
+                      "type": "string",
+                      "description": "Subtask description"
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["low", "medium", "high", "critical"],
+                      "default": "medium",
+                      "description": "Subtask priority level"
+                    }
+                  },
+                  "required": ["task"]
+                }
+              ]
             },
-            "description": "List of subtasks (OPTIONAL)"
+            "description": "List of subtasks (OPTIONAL). Can be strings or objects with priority."
           },
           "priority": {
             "type": "string",
@@ -1156,7 +1333,8 @@
               "high",
               "critical"
             ],
-            "default": "medium"
+            "default": "medium",
+            "description": "Task priority level"
           }
         },
         "required": [

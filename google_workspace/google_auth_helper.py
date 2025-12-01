@@ -334,6 +334,54 @@ def build_forms_service():
     return service
 
 
+def build_forms_service_with_user_creds(user_id):
+    """Build Forms service using user's OAuth credentials from database
+    
+    Args:
+        user_id: User ID to fetch OAuth credentials for
+    
+    Returns:
+        Authenticated Forms service using user's OAuth tokens
+    """
+    if not HAS_OAUTH_LOADER:
+        raise Exception("OAuth credential loader not available")
+    
+    scopes = [
+        'https://www.googleapis.com/auth/forms.body',
+        'https://www.googleapis.com/auth/forms.responses.readonly',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    
+    return build_service_with_oauth(
+        user_id=user_id,
+        service_name='forms',
+        version='v1',
+        scopes=scopes
+    )
+
+
+def build_drive_service_with_user_creds(user_id):
+    """Build Drive service using user's OAuth credentials from database
+    
+    Args:
+        user_id: User ID to fetch OAuth credentials for
+    
+    Returns:
+        Authenticated Drive service using user's OAuth tokens
+    """
+    if not HAS_OAUTH_LOADER:
+        raise Exception("OAuth credential loader not available")
+    
+    scopes = ['https://www.googleapis.com/auth/drive']
+    
+    return build_service_with_oauth(
+        user_id=user_id,
+        service_name='drive',
+        version='v3',
+        scopes=scopes
+    )
+
+
 def build_analytics_service():
     """Get authenticated Google Analytics Data API service"""
     cache_key = 'analyticsdata_v1beta'

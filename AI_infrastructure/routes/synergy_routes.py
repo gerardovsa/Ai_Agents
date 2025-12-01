@@ -116,10 +116,10 @@ def normalize_documents(docs):
     Auto-convert documents array ensuring 'title' field exists
     
     Fixes the field name mismatch where tools might send 'name' 
-    but UI expects 'title'.
+    but UI expects 'title'. Now with robust error handling.
     
     Args:
-        docs: Array of document objects
+        docs: Array of document objects or strings
     
     Returns:
         Array of objects with structure:
@@ -136,14 +136,30 @@ def normalize_documents(docs):
     
     normalized = []
     for doc in docs:
-        if isinstance(doc, dict):
-            # Ensure 'title' field exists (convert 'name' to 'title' if needed)
-            title = doc.get('title') or doc.get('name', '')
+        try:
+            # Handle string entries (convert to dict)
+            if isinstance(doc, str):
+                try:
+                    doc = json.loads(doc)
+                except json.JSONDecodeError:
+                    # Treat as plain text title
+                    doc = {"title": doc, "url": "", "type": "text"}
+            
+            # Ensure it's a dict
+            if not isinstance(doc, dict):
+                print(f"[WARN] Skipping invalid document entry: {doc}")
+                continue
+            
+            # Normalize structure
+            title = doc.get('title') or doc.get('name', 'Untitled Document')
             normalized.append({
                 'title': title,
                 'url': doc.get('url', ''),
                 'type': doc.get('type', 'document')
             })
+        except Exception as e:
+            print(f"[ERROR] Failed to normalize document {doc}: {e}")
+            continue
     
     return normalized
 
@@ -771,10 +787,13 @@ def create_session():
                 'error': 'title field is required'
             }), 400
         
-        # Generate session ID
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+        # Generate session ID with FULL timestamp (including seconds) + random suffix for uniqueness
+        import random
+        import string
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')  # ← ADDED SECONDS
         title_slug = data.get('title', 'untitled').lower().replace(' ', '_')[:30]
-        session_id = f"sess_{timestamp}_{title_slug}"
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))  # ← ADDED RANDOM SUFFIX
+        session_id = f"sess_{timestamp}_{title_slug}_{random_suffix}"
         
         # Normalize and serialize JSON fields
         platforms_involved = json.dumps(data.get('platforms_involved', []))
@@ -804,6 +823,20 @@ def create_session():
         
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Check if session_id already exists (duplicate prevention)
+        check_sql, check_params = convert_sql_placeholders(
+            'SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(check_sql, check_params)
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Session ID collision detected - regenerate with new random suffix
+            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+            session_id = f"sess_{timestamp}_{title_slug}_{random_suffix}"
+            print(f"[SYNERGY] Session ID collision detected - regenerated: {session_id}")
         
         cursor.execute('''
             INSERT INTO synergy_sessions.synergy_sessions (
@@ -885,6 +918,14 @@ def create_session():
         })
     
     except Exception as e:
+        # CRITICAL: Rollback transaction to prevent orphaned sessions
+        if conn:
+            try:
+                conn.rollback()
+                print(f"[SYNERGY] Transaction rolled back due to error: {e}")
+            except Exception as rollback_error:
+                print(f"[SYNERGY] Failed to rollback: {rollback_error}")
+        
         return jsonify({
             'success': False,
             'error': str(e)
@@ -905,7 +946,12 @@ def get_session(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        # Use convert_sql_placeholders for proper database compatibility
+        sql, params = convert_sql_placeholders(
+            'SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
@@ -1212,11 +1258,18 @@ def update_session(session_id):
         
         # Special handling for documents (ensure 'title' field)
         if 'documents' in update_data:
-            updates.append("documents = ?")
-            normalized = normalize_documents(update_data['documents'])
-            json_value = json.dumps(normalized)
-            params.append(json_value)
-            print(f"[DEBUG] Adding documents (normalized): {json_value}")  # DEBUG
+            try:
+                normalized = normalize_documents(update_data['documents'])
+                updates.append("documents = ?")
+                json_value = json.dumps(normalized)
+                params.append(json_value)
+                print(f"[DEBUG] Adding documents (normalized): {json_value}")  # DEBUG
+            except Exception as doc_error:
+                print(f"[ERROR] Document normalization failed: {doc_error}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid document format: {str(doc_error)}'
+                }), 400
         
         # Special handling for checklist (normalize task/item/text fields and subtasks)
         if 'checklist' in update_data:
@@ -1343,6 +1396,134 @@ def update_column(session_id):
         })
     
     except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+
+@synergy_bp.route('/search', methods=['GET'])
+def search_sessions():
+    """
+    Search sessions by title, description, tags, or platform
+    
+    Query Parameters:
+        query (str): Search term (searches title, description, tags)
+        platform (str): Filter by specific platform
+        status (str): Filter by status
+        priority (str): Filter by priority
+        column (str): Filter by Kanban column
+        user_id (int): User ID for permission filtering
+    
+    Returns:
+        {
+            "success": true,
+            "count": 10,
+            "sessions": [...],
+            "query": "email automation",
+            "filters_applied": {...}
+        }
+    """
+    conn = None
+    try:
+        query = request.args.get('query', '').strip()
+        platform = request.args.get('platform')
+        status = request.args.get('status')
+        priority = request.args.get('priority')
+        column = request.args.get('column')
+        user_id = request.args.get('user_id', type=int)
+        
+        if not query and not platform:
+            return jsonify({
+                'success': False,
+                'error': 'Either query or platform parameter is required'
+            }), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Build search query
+        conditions = ['1=1']
+        params = []
+        
+        if query:
+            # Search in title, description, and tags
+            search_pattern = f'%{query}%'
+            conditions.append(
+                "(title LIKE %s OR description LIKE %s OR tags LIKE %s)"
+            )
+            params.extend([search_pattern, search_pattern, search_pattern])
+        
+        if platform:
+            conditions.append("platforms_involved LIKE %s")
+            params.append(f'%{platform}%')
+        
+        if status:
+            conditions.append("status = %s")
+            params.append(status)
+        
+        if priority:
+            conditions.append("priority = %s")
+            params.append(priority)
+        
+        if column:
+            conditions.append("kanban_column = %s")
+            params.append(column)
+        
+        # Build final query
+        base_sql = f"""
+            SELECT * FROM synergy_sessions.synergy_sessions 
+            WHERE {' AND '.join(conditions)}
+            ORDER BY last_active DESC
+            LIMIT 50
+        """
+        
+        sql, final_params = convert_sql_placeholders(base_sql, params)
+        cursor.execute(sql, final_params)
+        rows = cursor.fetchall()
+        
+        # Process results
+        sessions = []
+        for row in rows:
+            session = dict(row)
+            
+            # Check permission
+            has_permission, perm_type = check_session_permission(session, user_id, require_write=False)
+            if not has_permission:
+                continue
+            
+            # Parse JSON fields
+            for field in ['platforms_involved', 'tags', 'documents', 'links', 
+                         'next_steps', 'assignees', 'recent_activity', 'checklist']:
+                if session.get(field):
+                    try:
+                        session[field] = json.loads(session[field])
+                    except:
+                        session[field] = []
+            
+            sessions.append(session)
+        
+        return jsonify({
+            'success': True,
+            'count': len(sessions),
+            'sessions': sessions,
+            'query': query,
+            'filters_applied': {
+                'platform': platform,
+                'status': status,
+                'priority': priority,
+                'column': column
+            }
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Search failed: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -1675,7 +1856,11 @@ def create_internal_doc():
         original_slug = slug
         counter = 1
         while True:
-            cursor.execute('SELECT doc_id FROM synergy_sessions.synergy_internal_docs WHERE slug = %s', (slug,))
+            sql, params = convert_sql_placeholders(
+                'SELECT doc_id FROM synergy_sessions.synergy_internal_docs WHERE slug = %s',
+                (slug,)
+            )
+            cursor.execute(sql, params)
             if not cursor.fetchone():
                 break
             slug = f"{original_slug}-{counter}"
@@ -1685,19 +1870,25 @@ def create_internal_doc():
         share_url = f"/internal-docs/{slug}"
         
         # Verify session exists
-        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        sql, params = convert_sql_placeholders(
+            'SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
         if not cursor.fetchone():
             conn.close()
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Insert document with slug and share_url
-        cursor.execute('''
+        now = datetime.now().isoformat()
+        sql, params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.synergy_internal_docs 
             (doc_id, session_id, title, content, content_json, format, doc_type, 
              created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (doc_id, session_id, title, content, content_json, doc_format, doc_type,
-              created_by, datetime.now().isoformat(), datetime.now().isoformat(), 1, 0, slug, share_url))
+              created_by, now, now, 1, 0, slug, share_url))
+        cursor.execute(sql, params)
         
         conn.commit()
         conn.close()
@@ -1743,13 +1934,14 @@ def get_internal_doc(doc_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT doc_id, session_id, title, content, content_json, format, doc_type,
                    created_at, updated_at, created_by, version, linked_to_ai,
                    slug, share_url, description, tags
             FROM synergy_sessions.synergy_internal_docs
             WHERE doc_id = %s
         ''', (doc_id,))
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         conn.close()
@@ -1814,7 +2006,11 @@ def update_internal_doc(doc_id):
         cursor = conn.cursor()
         
         # Get current version
-        cursor.execute('SELECT version FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s', (doc_id,))
+        sql, params = convert_sql_placeholders(
+            'SELECT version FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s',
+            (doc_id,)
+        )
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
@@ -1825,27 +2021,29 @@ def update_internal_doc(doc_id):
         
         # Build update query
         updates = []
-        params = []
+        update_params = []
         
         if title:
-            updates.append('title = ?')
-            params.append(title)
+            updates.append('title = %s')
+            update_params.append(title)
         if content is not None:  # Allow empty string
-            updates.append('content = ?')
-            params.append(content)
+            updates.append('content = %s')
+            update_params.append(content)
         if content_json is not None:
-            updates.append('content_json = ?')
-            params.append(content_json)
+            updates.append('content_json = %s')
+            update_params.append(content_json)
         
-        updates.append('updated_at = ?')
-        params.append(datetime.now().isoformat())
-        updates.append('version = ?')
-        params.append(new_version)
+        now = datetime.now().isoformat()
+        updates.append('updated_at = %s')
+        update_params.append(now)
+        updates.append('version = %s')
+        update_params.append(new_version)
         
-        params.append(doc_id)
+        update_params.append(doc_id)
         
         query = f"UPDATE synergy_sessions.synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = %s"
-        cursor.execute(query, params)
+        sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+        cursor.execute(sql, final_params)
         
         conn.commit()
         conn.close()
@@ -1881,7 +2079,11 @@ def delete_internal_doc(doc_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('DELETE FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s', (doc_id,))
+        sql, params = convert_sql_placeholders(
+            'DELETE FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s',
+            (doc_id,)
+        )
+        cursor.execute(sql, params)
         
         if cursor.rowcount == 0:
             conn.close()
@@ -2441,24 +2643,32 @@ def get_linked_threads(session_id):
         for row in rows:
             # Handle both RealDictRow (dict) and tuple formats
             if isinstance(row, dict):
+                # Safely convert datetime to isoformat
+                created_at = row.get('created_at')
+                last_activity = row.get('last_activity')
+                
                 threads.append({
                     'thread_id': row.get('thread_id'),
                     'thread_slug': row.get('thread_slug'),
                     'title': row.get('title'),
                     'agent_id': row.get('agent_id') or 'prime',
                     'message_count': row.get('message_count') or 0,
-                    'created_at': row.get('created_at').isoformat() if row.get('created_at') else None,
-                    'last_activity': row.get('last_activity').isoformat() if row.get('last_activity') else None
+                    'created_at': created_at.isoformat() if created_at and hasattr(created_at, 'isoformat') else str(created_at) if created_at else None,
+                    'last_activity': last_activity.isoformat() if last_activity and hasattr(last_activity, 'isoformat') else str(last_activity) if last_activity else None
                 })
             else:
+                # Safely convert datetime to isoformat for tuple format
+                created_at = row[5] if len(row) > 5 else None
+                last_activity = row[6] if len(row) > 6 else None
+                
                 threads.append({
                     'thread_id': row[0],
                     'thread_slug': row[1],
                     'title': row[2],
                     'agent_id': row[3] or 'prime',
                     'message_count': row[4] or 0,
-                    'created_at': row[5].isoformat() if row[5] else None,
-                    'last_activity': row[6].isoformat() if row[6] else None
+                    'created_at': created_at.isoformat() if created_at and hasattr(created_at, 'isoformat') else str(created_at) if created_at else None,
+                    'last_activity': last_activity.isoformat() if last_activity and hasattr(last_activity, 'isoformat') else str(last_activity) if last_activity else None
                 })
         
         print(f"[SYNERGY] Found {len(threads)} linked threads for session {session_id}")
@@ -2794,27 +3004,38 @@ def create_milestone():
             # Handle both string and object formats
             if isinstance(task_item, str):
                 task_text = task_item
+                task_priority = 'medium'  # Default priority
                 subtasks = []
             else:
                 task_text = task_item.get('task', '')
+                task_priority = task_item.get('priority', 'medium')  # Get priority or default to medium
                 subtasks = task_item.get('subtasks', [])
             
-            # Insert task
+            # Insert task with priority
             cursor.execute('''
                 INSERT INTO synergy_sessions.tasks (
-                    task_id, milestone_id, task, completed, task_order, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s)
-            ''', (task_id, milestone_id, task_text, False, task_order, datetime.now().isoformat()))
+                    task_id, milestone_id, task, completed, task_order, priority, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (task_id, milestone_id, task_text, False, task_order, task_priority, datetime.now().isoformat()))
             tasks_created += 1
             
-            # Insert subtasks
-            for subtask_order, subtask_text in enumerate(subtasks, start=1):
+            # Insert subtasks with priority
+            for subtask_order, subtask_item in enumerate(subtasks, start=1):
                 subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}_{subtask_order}"
+                
+                # Handle both string and object formats for subtasks
+                if isinstance(subtask_item, str):
+                    subtask_text = subtask_item
+                    subtask_priority = 'medium'  # Default priority
+                else:
+                    subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                    subtask_priority = subtask_item.get('priority', 'medium')  # Get priority or default to medium
+                
                 cursor.execute('''
                     INSERT INTO synergy_sessions.subtasks (
-                        subtask_id, task_id, task, completed, subtask_order, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s)
-                ''', (subtask_id, task_id, subtask_text, False, subtask_order, datetime.now().isoformat()))
+                        subtask_id, task_id, task, completed, subtask_order, priority, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
                 subtasks_created += 1
         
         # Mark session as using milestones
@@ -2836,10 +3057,15 @@ def create_milestone():
         })
     
     except Exception as e:
+        if conn:
+            conn.rollback()  # ✅ CRITICAL: Undo partial inserts (milestone/tasks/subtasks)
         print(f"[MILESTONE ERROR] Failed to create milestone: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/milestone/<milestone_id>/task/create', methods=['POST'])
@@ -2885,24 +3111,34 @@ def create_milestone_task(milestone_id):
         
         # Generate task ID
         task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        task_priority = data.get('priority', 'medium')  # Get priority from request or default to medium
         
-        # Insert task
+        # Insert task with priority
         sql, params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.tasks (
-                task_id, milestone_id, task, completed, task_order, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (task_id, milestone_id, data['task'], False, task_order, datetime.now().isoformat()))
+                task_id, milestone_id, task, completed, task_order, priority, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (task_id, milestone_id, data['task'], False, task_order, task_priority, datetime.now().isoformat()))
         
-        # Insert subtasks
+        # Insert subtasks with priority
         subtasks_created = 0
         subtasks = data.get('subtasks', [])
-        for subtask_order, subtask_text in enumerate(subtasks, start=1):
+        for subtask_order, subtask_item in enumerate(subtasks, start=1):
             subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{subtask_order}"
+            
+            # Handle both string and object formats for subtasks
+            if isinstance(subtask_item, str):
+                subtask_text = subtask_item
+                subtask_priority = 'medium'
+            else:
+                subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                subtask_priority = subtask_item.get('priority', 'medium')
+            
             cursor.execute('''
                 INSERT INTO synergy_sessions.subtasks (
-                    subtask_id, task_id, task, completed, subtask_order, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s)
-            ''', (subtask_id, task_id, subtask_text, False, subtask_order, datetime.now().isoformat()))
+                    subtask_id, task_id, task, completed, subtask_order, priority, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
             subtasks_created += 1
         
         conn.commit()
@@ -2915,8 +3151,13 @@ def create_milestone_task(milestone_id):
         })
     
     except Exception as e:
+        if conn:
+            conn.rollback()  # ✅ CRITICAL: Undo partial task/subtask inserts
         print(f"[MILESTONE ERROR] Failed to create task: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/task/<task_id>/subtasks', methods=['POST'])
@@ -2978,8 +3219,13 @@ def create_task_subtask(task_id):
         })
     
     except Exception as e:
+        if conn:
+            conn.rollback()  # ✅ CRITICAL: Undo subtask insert
         print(f"[MILESTONE ERROR] Failed to create subtask: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/subtask/<subtask_id>/complete', methods=['PATCH'])
@@ -3595,6 +3841,13 @@ def update_task(task_id):
     try:
         data = request.get_json()
         
+        # Validate request body
+        if not data or not isinstance(data, dict):
+            return jsonify({
+                'success': False,
+                'error': 'Request body must be a JSON object'
+            }), 400
+        
         # Allowed fields for update
         allowed_fields = ['task', 'priority', 'assigned_to', 'estimated_hours', 
                          'actual_hours', 'tags', 'start_date', 'links', 
@@ -3666,6 +3919,13 @@ def update_subtask(subtask_id):
     """
     try:
         data = request.get_json()
+        
+        # Validate request body
+        if not data or not isinstance(data, dict):
+            return jsonify({
+                'success': False,
+                'error': 'Request body must be a JSON object'
+            }), 400
         
         # Handle 'subtask' as alias for 'task' field (frontend sends 'subtask', DB column is 'task')
         if 'subtask' in data and 'task' not in data:

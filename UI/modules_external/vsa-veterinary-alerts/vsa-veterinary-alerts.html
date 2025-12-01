@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSA Veterinary Alerts</title>
+    <!-- CSS loaded by ModuleLoaderV4 -->
+</head>
+
+<body>
+    <!-- 
+        VSA Veterinary Alerts Dashboard Container
+        Modern Framework Module - Architecture 2 (Inline HTML-in-JS)
+        
+        This HTML file provides the base container.
+        The module (vsa-veterinary-alerts.js) dynamically renders all UI content.
+    -->
+
+    <div id="vsa-alerts-dashboard" class="vsa-alerts-container">
+        <!-- Module will inject content here via onDashboardLoad() -->
+        <div class="vsa-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading VSA Alerts...</p>
+        </div>
+    </div>
+
+    <!-- Supabase JavaScript Client (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Module JavaScript loaded by ModuleLoaderV4 via dynamic import() -->
+</body>
+
+</html>

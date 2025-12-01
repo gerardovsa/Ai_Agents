@@ -4963,61 +4963,312 @@ def google_docs_smart_create_from_markdown_v2(title, markdown_content, folder_id
         font.name = 'Arial'
         font.size = Pt(11)
         
-        # Enhanced markdown parser - handles ALL features
+        # Enhanced markdown parser - handles ALL features with NON-OVERLAPPING parsing
         def parse_inline_markdown(paragraph, text):
-            """Parse and apply inline markdown formatting to paragraph"""
-            # Process in order: bold, italic, code, strikethrough, highlight
-            parts = []
-            current_pos = 0
+            """Parse and apply inline markdown formatting to paragraph
             
-            # Find all markdown patterns
-            patterns = [
-                (r'\*\*(.+?)\*\*', 'bold'),
-                (r'\*(.+?)\*', 'italic'),
-                (r'`(.+?)`', 'code'),
-                (r'~~(.+?)~~', 'strike'),
-                (r'==(.+?)==', 'highlight')
-            ]
+            Supports:
+            - Bold: **text** or __text__
+            - Italic: *text* or _text_
+            - Bold+Italic: ***text*** or ___text___
+            - Underline: __text__ (alternative)
+            - Strikethrough: ~~text~~
+            - Highlight: ==text==
+            - Code: `text`
+            - Hyperlinks: [text](url)
+            - Subscript: H~2~O
+            - Superscript: E=mc^2^
+            """
+            if not text.strip():
+                return
             
-            matches = []
-            for pattern, fmt_type in patterns:
-                for match in re.finditer(pattern, text):
-                    matches.append((match.start(), match.end(), match.group(1), fmt_type))
+            # Track what's been processed
+            processed = [False] * len(text)
+            segments = []  # (start, end, content, format_dict)
             
-            # Sort by position
-            matches.sort(key=lambda x: x[0])
+            # Parse patterns in priority order (complex first, simple last)
+            # 1. Hyperlinks [text](url)
+            for match in re.finditer(r'\[([^\]]+)\]\(([^)]+)\)', text):
+                if not any(processed[match.start():match.end()]):
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': match.group(1),
+                        'url': match.group(2),
+                        'type': 'link'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
             
-            # Build runs with formatting
-            last_end = 0
-            for start, end, content, fmt_type in matches:
-                # Add plain text before this match
-                if start > last_end:
-                    paragraph.add_run(text[last_end:start])
+            # 2. Bold + Italic: ***text*** or ___text___
+            for match in re.finditer(r'\*\*\*(.+?)\*\*\*|___(.+?)___', text):
+                if not any(processed[match.start():match.end()]):
+                    content = match.group(1) or match.group(2)
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': content,
+                        'type': 'bold_italic'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 3. Bold: **text** (NOT __text__ - that's underline)
+            for match in re.finditer(r'\*\*(.+?)\*\*', text):
+                if not any(processed[match.start():match.end()]):
+                    content = match.group(1)
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': content,
+                        'type': 'bold'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 3.5. Underline: __text__
+            for match in re.finditer(r'__(.+?)__', text):
+                if not any(processed[match.start():match.end()]):
+                    content = match.group(1)
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': content,
+                        'type': 'underline'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 4. Italic: *text* or _text_ (single)
+            for match in re.finditer(r'(?<!\*)\*([^*]+?)\*(?!\*)|(?<!_)_([^_]+?)_(?!_)', text):
+                if not any(processed[match.start():match.end()]):
+                    content = match.group(1) or match.group(2)
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': content,
+                        'type': 'italic'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 5. Strikethrough: ~~text~~
+            for match in re.finditer(r'~~(.+?)~~', text):
+                if not any(processed[match.start():match.end()]):
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': match.group(1),
+                        'type': 'strike'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 6. Highlight: ==text==
+            for match in re.finditer(r'==(.+?)==', text):
+                if not any(processed[match.start():match.end()]):
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': match.group(1),
+                        'type': 'highlight'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 7. Code: `text`
+            for match in re.finditer(r'`([^`]+?)`', text):
+                if not any(processed[match.start():match.end()]):
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': match.group(1),
+                        'type': 'code'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 8. Subscript: ~text~
+            for match in re.finditer(r'~(.+?)~', text):
+                if not any(processed[match.start():match.end()]):
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': match.group(1),
+                        'type': 'subscript'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # 9. Superscript: ^text^
+            for match in re.finditer(r'\^(.+?)\^', text):
+                if not any(processed[match.start():match.end()]):
+                    segments.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'display': match.group(1),
+                        'type': 'superscript'
+                    })
+                    for i in range(match.start(), match.end()):
+                        processed[i] = True
+            
+            # Sort segments by position
+            segments.sort(key=lambda x: x['start'])
+            
+            # Build runs
+            last_pos = 0
+            for seg in segments:
+                # Add plain text before this segment
+                if seg['start'] > last_pos:
+                    plain_text = text[last_pos:seg['start']]
+                    if plain_text:
+                        paragraph.add_run(plain_text)
                 
-                # Add formatted text
-                run = paragraph.add_run(content)
-                if fmt_type == 'bold':
-                    run.bold = True
-                elif fmt_type == 'italic':
-                    run.italic = True
-                elif fmt_type == 'code':
-                    run.font.name = 'Courier New'
-                    run.font.size = Pt(10)
-                elif fmt_type == 'strike':
-                    run.font.strike = True
-                elif fmt_type == 'highlight':
-                    run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+                # Add formatted segment (check for nested formatting first)
+                display_text = seg['display']
                 
-                last_end = end
+                # Check if this segment has nested formatting (e.g., **bold with *italic* inside**)
+                has_nested = any(char in display_text for char in ['*', '_', '`', '~', '^', '='])
+                
+                if has_nested and seg['type'] in ['bold', 'italic', 'bold_italic']:
+                    # Parse nested formatting recursively
+                    nested_segments = []
+                    nested_processed = [False] * len(display_text)
+                    
+                    # Find nested patterns (only simpler ones)
+                    if seg['type'] == 'bold':
+                        # Look for italic inside bold
+                        for nested_match in re.finditer(r'(?<!\*)\*([^*]+?)\*(?!\*)', display_text):
+                            if not any(nested_processed[nested_match.start():nested_match.end()]):
+                                nested_segments.append({
+                                    'start': nested_match.start(),
+                                    'end': nested_match.end(),
+                                    'display': nested_match.group(1),
+                                    'type': 'bold_italic'  # Combine parent + child
+                                })
+                                for idx in range(nested_match.start(), nested_match.end()):
+                                    nested_processed[idx] = True
+                    
+                    elif seg['type'] == 'italic':
+                        # Look for bold inside italic (symmetric support)
+                        for nested_match in re.finditer(r'\*\*([^*]+?)\*\*', display_text):
+                            if not any(nested_processed[nested_match.start():nested_match.end()]):
+                                nested_segments.append({
+                                    'start': nested_match.start(),
+                                    'end': nested_match.end(),
+                                    'display': nested_match.group(1),
+                                    'type': 'bold_italic'  # Combine parent + child
+                                })
+                                for idx in range(nested_match.start(), nested_match.end()):
+                                    nested_processed[idx] = True
+                    
+                    # Build runs with nested formatting
+                    if nested_segments:
+                        nested_segments.sort(key=lambda x: x['start'])
+                        nested_pos = 0
+                        for nseg in nested_segments:
+                            # Plain text before nested
+                            if nseg['start'] > nested_pos:
+                                run = paragraph.add_run(display_text[nested_pos:nseg['start']])
+                                if seg['type'] in ['bold', 'bold_italic']:
+                                    run.bold = True
+                                if seg['type'] in ['italic', 'bold_italic']:
+                                    run.italic = True
+                            
+                            # Nested formatted text
+                            run = paragraph.add_run(nseg['display'])
+                            if nseg['type'] == 'bold_italic':
+                                run.bold = True
+                                run.italic = True
+                            
+                            nested_pos = nseg['end']
+                        
+                        # Remaining text
+                        if nested_pos < len(display_text):
+                            run = paragraph.add_run(display_text[nested_pos:])
+                            if seg['type'] in ['bold', 'bold_italic']:
+                                run.bold = True
+                            if seg['type'] in ['italic', 'bold_italic']:
+                                run.italic = True
+                    else:
+                        # No nested found, just apply formatting
+                        run = paragraph.add_run(display_text)
+                        if seg['type'] == 'bold':
+                            run.bold = True
+                        elif seg['type'] == 'italic':
+                            run.italic = True
+                        elif seg['type'] == 'bold_italic':
+                            run.bold = True
+                            run.italic = True
+                else:
+                    # No nesting, apply formatting directly
+                    run = paragraph.add_run(display_text)
+                    
+                    # Apply formatting
+                    if seg['type'] == 'bold':
+                        run.bold = True
+                    elif seg['type'] == 'italic':
+                        run.italic = True
+                    elif seg['type'] == 'bold_italic':
+                        run.bold = True
+                        run.italic = True
+                    elif seg['type'] == 'underline':
+                        run.font.underline = True
+                    elif seg['type'] == 'strike':
+                        run.font.strike = True
+                    elif seg['type'] == 'highlight':
+                        run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+                    elif seg['type'] == 'code':
+                        run.font.name = 'Courier New'
+                        run.font.size = Pt(10)
+                    elif seg['type'] == 'subscript':
+                        run.font.subscript = True
+                    elif seg['type'] == 'superscript':
+                        run.font.superscript = True
+                    elif seg['type'] == 'link':
+                        # Add hyperlink (python-docx format)
+                        # Note: python-docx doesn't have direct add_hyperlink method
+                        # We need to use XML manipulation for external URLs
+                        from docx.oxml.shared import OxmlElement
+                        from docx.oxml.ns import qn
+                        
+                        # Remove the run we just added
+                        paragraph._element.remove(run._element)
+                        
+                        # Add relationship for external hyperlink
+                        part = paragraph.part
+                        r_id = part.relate_to(seg['url'], 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink', is_external=True)
+                        
+                        # Create hyperlink element
+                        hyperlink = OxmlElement('w:hyperlink')
+                        hyperlink.set(qn('r:id'), r_id)
+                        
+                        # Create run element inside hyperlink
+                        new_run = OxmlElement('w:r')
+                        rPr = OxmlElement('w:rPr')
+                        
+                        # Add underline style
+                        rStyle = OxmlElement('w:rStyle')
+                        rStyle.set(qn('w:val'), 'Hyperlink')
+                        rPr.append(rStyle)
+                        
+                        new_run.append(rPr)
+                        
+                        # Add text
+                        t = OxmlElement('w:t')
+                        t.text = seg['display']
+                        new_run.append(t)
+                        
+                        hyperlink.append(new_run)
+                        paragraph._element.append(hyperlink)
+                
+                last_pos = seg['end']
             
-            # Add remaining text
-            if last_end < len(text):
-                # Remove markdown that wasn't caught
-                remaining = text[last_end:]
-                remaining = re.sub(r'\*\*(.+?)\*\*', r'\1', remaining)
-                remaining = re.sub(r'\*(.+?)\*', r'\1', remaining)
-                remaining = re.sub(r'`(.+?)`', r'\1', remaining)
-                paragraph.add_run(remaining)
+            # Add remaining plain text (no recursion - segments parser handles everything)
+            if last_pos < len(text):
+                remaining = text[last_pos:]
+                if remaining:
+                    paragraph.add_run(remaining)
         
         # Parse markdown line by line
         lines = markdown_content.strip().split('\n')
@@ -5030,28 +5281,75 @@ def google_docs_smart_create_from_markdown_v2(title, markdown_content, folder_id
                 i += 1
                 continue
             
-            # Headings
+            # Check for headings FIRST (before alignment)
             heading_match = re.match(r'^(#{1,6})\s+(.+)$', line)
+            
+            # Text Alignment Patterns: <text< (left), >text< (center), >text> (right)
+            # Can be combined with headings: ># Heading<
+            alignment = None
+            display_text = line
+            
             if heading_match:
+                # Extract heading content
                 level = len(heading_match.group(1))
-                text = heading_match.group(2)
+                heading_text = heading_match.group(2)
+                
+                # Check if heading has alignment markers
+                if re.match(r'^<(.+)<$', heading_text.strip()):
+                    display_text = re.match(r'^<(.+)<$', heading_text.strip()).group(1)
+                    alignment = WD_ALIGN_PARAGRAPH.LEFT
+                elif re.match(r'^\|>(.+)<\|$', heading_text.strip()) or re.match(r'^>(.+)<$', heading_text.strip()):
+                    match = re.match(r'^\|>(.+)<\|$', heading_text.strip()) or re.match(r'^>(.+)<$', heading_text.strip())
+                    display_text = match.group(1)
+                    alignment = WD_ALIGN_PARAGRAPH.CENTER
+                elif re.match(r'^>(.+)>$', heading_text.strip()):
+                    display_text = re.match(r'^>(.+)>$', heading_text.strip()).group(1)
+                    alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                else:
+                    display_text = heading_text
+                
+                # Create heading
                 para = doc.add_heading('', level=min(level, 9))
-                parse_inline_markdown(para, text)
+                parse_inline_markdown(para, display_text)
                 
-                # Apply Arial font and custom sizes to match Google Docs/Smart V1
-                heading_sizes = {
-                    1: 20,  # H1 - Main title
-                    2: 18,  # H2 - Major sections
-                    3: 16,  # H3 - Sub-sections
-                    4: 11,  # H4 - List titles (body size, bold)
-                    5: 11,  # H5 - Same as body
-                    6: 11   # H6 - Same as body
-                }
+                # Apply alignment if detected
+                if alignment:
+                    para.alignment = alignment
                 
+                # Apply Arial font and custom sizes
+                heading_sizes = {1: 20, 2: 18, 3: 16, 4: 11, 5: 11, 6: 11}
                 for run in para.runs:
                     run.font.name = 'Arial'
                     run.font.size = Pt(heading_sizes.get(level, 11))
-                    run.bold = True  # All headings bold
+                    run.bold = True
+                
+                i += 1
+                continue
+            
+            # Non-heading alignment (plain text)
+            if re.match(r'^<(.+)<$', line.strip()):
+                display_text = re.match(r'^<(.+)<$', line.strip()).group(1)
+                alignment = WD_ALIGN_PARAGRAPH.LEFT
+            elif re.match(r'^\|>(.+)<\|$', line.strip()) or re.match(r'^>(.+)<$', line.strip()):
+                match = re.match(r'^\|>(.+)<\|$', line.strip()) or re.match(r'^>(.+)<$', line.strip())
+                display_text = match.group(1)
+                alignment = WD_ALIGN_PARAGRAPH.CENTER
+            elif re.match(r'^>(.+)>$', line.strip()):
+                display_text = re.match(r'^>(.+)>$', line.strip()).group(1)
+                alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            
+            # If alignment detected (non-heading), create aligned paragraph
+            if alignment:
+                para = doc.add_paragraph()
+                parse_inline_markdown(para, display_text)
+                para.alignment = alignment
+                
+                # Ensure Arial 11pt for all runs
+                for run in para.runs:
+                    if not run.font.name:
+                        run.font.name = 'Arial'
+                    if not run.font.size:
+                        run.font.size = Pt(11)
                 
                 i += 1
                 continue
@@ -5135,7 +5433,12 @@ def google_docs_smart_create_from_markdown_v2(title, markdown_content, folder_id
                     i += 1
                 i += 1  # Skip closing ```
                 
-                para = doc.add_paragraph('\n'.join(code_lines))
+                # Use proper newline character (not vertical tab \u000b)
+                code_text = '\n'.join(code_lines)
+                # Ensure no vertical tabs sneak in
+                code_text = code_text.replace('\u000b', '\n')
+                
+                para = doc.add_paragraph(code_text)
                 para.style = 'No Spacing'
                 for run in para.runs:
                     run.font.name = 'Courier New'
@@ -5150,11 +5453,19 @@ def google_docs_smart_create_from_markdown_v2(title, markdown_content, folder_id
                     quotes.append(lines[i].strip()[2:])
                     i += 1
                 
-                para = doc.add_paragraph(' '.join(quotes))
+                # Preserve line breaks in blockquotes
+                para = doc.add_paragraph('\n'.join(quotes))
                 para.paragraph_format.left_indent = Inches(0.5)
                 for run in para.runs:
                     run.italic = True
                 
+                continue
+            
+            # Page breaks (<<PAGE-BREAK>> or <<<)
+            if line.strip() in ['<<PAGE-BREAK>>', '<<<']:
+                doc.add_page_break()
+                print(f"📄 Inserted page break")
+                i += 1
                 continue
             
             # Bookmarks (<<BOOKMARK:name>>)

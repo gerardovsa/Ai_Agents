@@ -85,9 +85,13 @@ def list_modules():
             'count': 5
         }
     """
+    logger.info("🔵 [list_modules] API ENDPOINT CALLED: GET /api/modules/list")
     try:
+        logger.info("[list_modules] Getting module registry...")
         registry = get_module_registry()
+        logger.info("[list_modules] Fetching all modules...")
         modules = registry.get_all_modules()
+        logger.info(f"[list_modules] Found {len(modules)} modules")
         
         module_list = [{
             'id': m.id,
@@ -115,7 +119,25 @@ def list_modules():
             'floating_toggle_default_top': getattr(m, 'floating_toggle_default_top', 280),
             'main_tab': getattr(m, 'main_tab', False),
             'main_tab_id': getattr(m, 'main_tab_id', m.id),
-            'show_in_sidebar': getattr(m, 'show_in_sidebar', True)  # NEW: Include sidebar visibility
+            'show_in_sidebar': getattr(m, 'show_in_sidebar', True),
+            # Capabilities object (for V4 modules)
+            'capabilities': {
+                'sidebar': {
+                    'enabled': getattr(m, 'show_in_sidebar', True),
+                    'show_button': getattr(m, 'show_in_sidebar', True),
+                    'position': getattr(m, 'sidebar_position', 'right'),
+                    'width': getattr(m, 'sidebar_width', 450)
+                },
+                'dashboard': {
+                    'enabled': True
+                }
+            },
+            # Thread card integration (for ThreadCardRegistry)
+            'thread_card_integration': getattr(m, 'thread_card_integration', None),
+            # Loading configuration (for Modern Framework V4 detection)
+            'loading': getattr(m, 'loading', None),
+            # Dependencies (for V4 framework) - includes utilities, modules, frameworks
+            'dependencies': getattr(m, 'raw_dependencies', None)
         } for m in modules]
         
         return jsonify({
@@ -162,6 +184,7 @@ def get_available_modules():
     
     ✅ CRITICAL FIX: Enhanced error handling to prevent 500 errors
     """
+    logger.info("🔵 [get_available_modules] API ENDPOINT CALLED: GET /api/modules/available")
     try:
         # Get user_id from query params (optional for development)
         user_id = request.args.get('user_id', type=int)
@@ -321,7 +344,9 @@ def get_module_info(module_id: str):
             'features': {...}
         }
     """
+    logger.info(f"🔵 [get_module_info] API ENDPOINT CALLED: GET /api/modules/{module_id}")
     try:
+        logger.info(f"[get_module_info] Fetching info for module: {module_id}")
         registry = get_module_registry()
         module = registry.get_module(module_id)
         
@@ -377,9 +402,12 @@ def get_module_html(module_id: str):
     Returns:
         HTML content (text/html)
     """
+    logger.info(f"🔵 [get_module_html] API ENDPOINT CALLED: GET /api/modules/{module_id}/html")
     try:
+        logger.info(f"[get_module_html] Loading HTML template for module: {module_id}")
         registry = get_module_registry()
         html = registry.get_module_html(module_id)
+        logger.info(f"[get_module_html] HTML loaded: {len(html) if html else 0} characters")
         
         if not html:
             return jsonify({'error': f"HTML not found for module {module_id}"}), 404

@@ -26,12 +26,9 @@ def _get_service(user_email=None, _user_id=None, _injected_credentials=None):
         Exception: If database OAuth credentials not available
     """
     if _user_id and _injected_credentials:
-        from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-        return create_google_service_with_user_credentials(
-            user_id=_user_id,
-            service_name='calendar',
-            version='v3'
-        )
+        # Prefer the high-level helper which normalizes user_id from kwargs
+        from AI_infrastructure.auth.credential_injector import get_user_calendar_service
+        return get_user_calendar_service(user_id=_user_id, _user_id=_user_id)
     
     # No credentials provided - throw clear error
     raise Exception(
@@ -63,36 +60,60 @@ class GoogleCalendarTools:
         self._injected_credentials = _injected_credentials
         
     def _get_service(self, **kwargs):
-        """Get Calendar API service using DATABASE OAuth credentials ONLY"""
+        """Get Calendar API service using DATABASE OAuth credentials ONLY.
+
+        Accepts `_user_id` in kwargs (in case caller passed credentials via kwargs)
+        and delegates to the centralized credential injector helper.
+        """
+        # Prefer kwargs-provided user id (registry often injects this)
+        if '_user_id' in kwargs and kwargs['_user_id']:
+            self._user_id = kwargs['_user_id']
+        if '_injected_credentials' in kwargs and kwargs['_injected_credentials']:
+            self._injected_credentials = kwargs['_injected_credentials']
+
         if not self._user_id or not self._injected_credentials:
             raise Exception(
                 "Google Calendar OAuth credentials required!\n"
                 "File-based OAuth (credentials_desktop.json) is no longer supported.\n"
                 "To authenticate, visit: http://localhost:5001/auth/google/login"
             )
-        
-        from pathlib import Path
-        import sys
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-        
-        return create_google_service_with_user_credentials(
-            user_id=self._user_id,
-            service_name='calendar',
-            version='v3'
-        )
+
+        # Use the central helper for calendar service creation (handles refresh/save)
+        from AI_infrastructure.auth.credential_injector import get_user_calendar_service
+        try:
+            service = get_user_calendar_service(user_id=self._user_id, _user_id=self._user_id)
+            return service
+        except Exception:
+            # Fallback to lower-level creator for older codepaths
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            return create_google_service_with_user_credentials(
+                user_id=self._user_id,
+                service_name='calendar',
+                version='v3'
+            )
     
     def list_calendars(self, show_hidden=False, **kwargs):
         """List all calendars"""
-        service = self._get_service()
-        calendars = service.calendarList().list(
-            showHidden=show_hidden
-        ).execute()
-        return calendars.get('items', [])
+        try:
+            service = self._get_service(**kwargs)
+        except Exception as e:
+            raise Exception(f"Failed to create Calendar service: {e}")
+
+        try:
+            calendars = service.calendarList().list(showHidden=show_hidden).execute()
+            return calendars.get('items', [])
+        except AttributeError as e:
+            # Provide clearer debugging info when the service object is invalid
+            raise AttributeError(f"Calendar service object missing expected methods: {e}. Service repr: {repr(service)}")
+        except Exception:
+            raise
     
     def create_event(self, calendar_id='primary', **kwargs):
         """Create calendar event"""
-        service = self._get_service()
+        try:
+            service = self._get_service(**kwargs)
+        except Exception as e:
+            raise Exception(f"Failed to create Calendar service: {e}")
         
         event = {
             'summary': kwargs.get('summary'),
@@ -116,16 +137,28 @@ class GoogleCalendarTools:
         if kwargs.get('reminders'):
             event['reminders'] = kwargs['reminders']
         
-        return service.events().insert(
-            calendarId=calendar_id,
-            body=event,
-            sendNotifications=kwargs.get('send_notifications', True)
-        ).execute()
+        try:
+            return service.events().insert(
+                calendarId=calendar_id,
+                body=event,
+                sendNotifications=kwargs.get('send_notifications', True)
+            ).execute()
+        except AttributeError as e:
+            raise AttributeError(f"Calendar service missing events() method: {e}. Service repr: {repr(service)}")
+        except Exception:
+            raise
     
     def update_event(self, calendar_id='primary', event_id=None, **kwargs):
         """Update calendar event"""
-        service = self._get_service()
-        event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+        try:
+            service = self._get_service(**kwargs)
+        except Exception as e:
+            raise Exception(f"Failed to create Calendar service: {e}")
+
+        try:
+            event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+        except AttributeError as e:
+            raise AttributeError(f"Calendar service missing events() method: {e}. Service repr: {repr(service)}")
         
         # Update fields that are provided
         if kwargs.get('summary'):
@@ -137,45 +170,77 @@ class GoogleCalendarTools:
         if kwargs.get('end_datetime'):
             event['end']['dateTime'] = kwargs['end_datetime']
         
-        return service.events().update(
-            calendarId=calendar_id,
-            eventId=event_id,
-            body=event,
-            sendNotifications=kwargs.get('send_notifications', True)
-        ).execute()
+        try:
+            return service.events().update(
+                calendarId=calendar_id,
+                eventId=event_id,
+                body=event,
+                sendNotifications=kwargs.get('send_notifications', True)
+            ).execute()
+        except AttributeError as e:
+            raise AttributeError(f"Calendar service missing events().update(): {e}. Service repr: {repr(service)}")
+        except Exception:
+            raise
     
     def delete_event(self, calendar_id='primary', event_id=None, send_notifications=True, **kwargs):
         """Delete calendar event"""
-        service = self._get_service()
-        return service.events().delete(
-            calendarId=calendar_id,
-            eventId=event_id,
-            sendNotifications=send_notifications
-        ).execute()
+        try:
+            service = self._get_service(**kwargs)
+        except Exception as e:
+            raise Exception(f"Failed to create Calendar service: {e}")
+
+        try:
+            return service.events().delete(
+                calendarId=calendar_id,
+                eventId=event_id,
+                sendNotifications=send_notifications
+            ).execute()
+        except AttributeError as e:
+            raise AttributeError(f"Calendar service missing events().delete(): {e}. Service repr: {repr(service)}")
+        except Exception:
+            raise
     
     def list_events(self, calendar_id='primary', **kwargs):
         """List events with filters"""
-        service = self._get_service()
-        return service.events().list(
-            calendarId=calendar_id,
-            timeMin=kwargs.get('time_min'),
-            timeMax=kwargs.get('time_max'),
-            maxResults=kwargs.get('max_results', 250),
-            singleEvents=kwargs.get('single_events', True),
-            orderBy=kwargs.get('order_by', 'startTime'),
-            q=kwargs.get('search_query')
-        ).execute()
+        try:
+            service = self._get_service(**kwargs)
+        except Exception as e:
+            raise Exception(f"Failed to create Calendar service: {e}")
+
+        try:
+            return service.events().list(
+                calendarId=calendar_id,
+                timeMin=kwargs.get('time_min'),
+                timeMax=kwargs.get('time_max'),
+                maxResults=kwargs.get('max_results', 250),
+                singleEvents=kwargs.get('single_events', True),
+                orderBy=kwargs.get('order_by', 'startTime'),
+                q=kwargs.get('search_query')
+            ).execute()
+        except AttributeError as e:
+            raise AttributeError(f"Calendar service missing events().list(): {e}. Service repr: {repr(service)}")
+        except Exception:
+            raise
     
     def check_availability(self, time_min, time_max, calendar_ids, timezone='UTC', **kwargs):
         """Check free/busy information"""
-        service = self._get_service()
+        try:
+            service = self._get_service(**kwargs)
+        except Exception as e:
+            raise Exception(f"Failed to create Calendar service: {e}")
+
         body = {
             'timeMin': time_min,
             'timeMax': time_max,
             'timeZone': timezone,
             'items': [{'id': cal_id} for cal_id in calendar_ids]
         }
-        return service.freebusy().query(body=body).execute()
+        try:
+            return service.freebusy().query(body=body).execute()
+        except AttributeError as e:
+            raise AttributeError(f"Calendar service missing freebusy(): {e}. Service repr: {repr(service)}")
+        except Exception:
+            raise
 
 # Export tool functions
 def google_calendar_list_calendars(_user_id=None, _injected_credentials=None, **kwargs):

@@ -9,8 +9,7 @@
       "parameters": {
         "port": {
           "type": "integer",
-          "description": "Local port to expose (e.g., 3000, 8080)",
-          "required": true
+          "description": "Local port to expose (e.g., 3000, 8080)"
         },
         "protocol": {
           "type": "string",
@@ -61,8 +60,7 @@
       "parameters": {
         "tunnel_name": {
           "type": "string",
-          "description": "Name of the tunnel to stop",
-          "required": true
+          "description": "Name of the tunnel to stop"
         }
       },
       "returns": {
@@ -85,8 +83,7 @@
       "parameters": {
         "port": {
           "type": "integer",
-          "description": "Local port number",
-          "required": true
+          "description": "Local port number"
         }
       },
       "returns": {

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Database V4 Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #2563eb;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 10px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
+        }
+
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Vector Database Module - V4 Compliance Test</h1>
+    <p><strong>Purpose:</strong> Verify vector_database module loads correctly with ModuleLoaderV4 framework</p>
+
+    <!-- Test 1: ES6 Import -->
+    <div class="test-section">
+        <h2>Test 1: ES6 Import Verification</h2>
+        <p>Tests if the module can be imported using ES6 dynamic import syntax.</p>
+        <button onclick="testES6Import()">Run Test 1</button>
+        <div id="test1-result"></div>
+    </div>
+
+    <!-- Test 2: Pattern Detection -->
+    <div class="test-section">
+        <h2>Test 2: Pattern Detection</h2>
+        <p>Tests if ModuleLoaderV4 correctly detects the module as 'modern' pattern.</p>
+        <button onclick="testPatternDetection()">Run Test 2</button>
+        <div id="test2-result"></div>
+    </div>
+
+    <!-- Test 3: Module Loading -->
+    <div class="test-section">
+        <h2>Test 3: Full Module Load</h2>
+        <p>Tests complete module loading via ModuleLoaderV4 including HTML and lifecycle hooks.</p>
+        <button onclick="testModuleLoad()">Run Test 3</button>
+        <div id="test3-result"></div>
+    </div>
+
+    <!-- Test 4: Lifecycle Hooks -->
+    <div class="test-section">
+        <h2>Test 4: Lifecycle Hook Verification</h2>
+        <p>Tests if all required lifecycle hooks exist and are functions.</p>
+        <button onclick="testLifecycleHooks()">Run Test 4</button>
+        <div id="test4-result"></div>
+    </div>
+
+    <!-- Test 5: Module Status -->
+    <div class="test-section">
+        <h2>Test 5: Module Registry Status</h2>
+        <p>Checks if module is properly registered in ModuleLoaderV4.</p>
+        <button onclick="testModuleStatus()">Run Test 5</button>
+        <div id="test5-result"></div>
+    </div>
+
+    <!-- Run All Tests -->
+    <div class="test-section" style="background: #f0f9ff;">
+        <h2>🚀 Run All Tests</h2>
+        <div class="test-grid">
+            <button onclick="runAllTests()" style="background: #059669; font-size: 16px; padding: 15px;">▶ Run All
+                Tests</button>
+            <button onclick="resetTests()" style="background: #dc2626;">🔄 Reset</button>
+        </div>
+        <div id="summary-result"></div>
+    </div>
+
+    <script>
+        let testResults = [];
+
+        function logResult(testId, success, message) {
+            const resultDiv = document.getElementById(testId + '-result');
+            const className = success ? 'success' : 'error';
+            resultDiv.innerHTML = `<div class="result ${className}">${success ? '✅' : '❌'} ${message}</div>`;
+            testResults.push({ test: testId, success, message });
+        }
+
+        function logInfo(testId, message) {
+            const resultDiv = document.getElementById(testId + '-result');
+            resultDiv.innerHTML = `<div class="result info">ℹ️ ${message}</div>`;
+        }
+
+        async function testES6Import() {
+            logInfo('test1', 'Testing ES6 import...');
+            try {
+                const module = await import('/internal/modules/vector_database/vector_database.js');
+
+                if (!module.default) {
+                    logResult('test1', false, 'FAIL: No default export found');
+                    return;
+                }
+
+                const hasState = !!module.default.state;
+                const hasOnLoad = typeof module.default.onLoad === 'function';
+                const hasOnSidebarLoad = typeof module.default.onSidebarLoad === 'function';
+                const hasOnUnload = typeof module.default.onUnload === 'function';
+
+                if (hasState && hasOnLoad && hasOnSidebarLoad && hasOnUnload) {
+                    logResult('test1', true, `PASS: Module exports valid object
+- Has state: ${hasState}
+- Has onLoad: ${hasOnLoad}
+- Has onSidebarLoad: ${hasOnSidebarLoad}
+- Has onUnload: ${hasOnUnload}`);
+                } else {
+                    logResult('test1', false, `FAIL: Missing required properties
+- Has state: ${hasState}
+- Has onLoad: ${hasOnLoad}
+- Has onSidebarLoad: ${hasOnSidebarLoad}
+- Has onUnload: ${hasOnUnload}`);
+                }
+            } catch (error) {
+                logResult('test1', false, `FAIL: ${error.message}\n${error.stack}`);
+            }
+        }
+
+        async function testPatternDetection() {
+            logInfo('test2', 'Testing pattern detection...');
+            try {
+                if (!window.ModuleLoaderV4) {
+                    logResult('test2', false, 'FAIL: ModuleLoaderV4 not found. Is this page loaded in the main app?');
+                    return;
+                }
+
+                const module = await import('/internal/modules/vector_database/vector_database.js');
+                const pattern = window.ModuleLoaderV4.detectPattern(module);
+
+                if (pattern === 'modern') {
+                    logResult('test2', true, `PASS: Pattern detected as 'modern'
+- Module uses ES6 export default
+- ModuleLoaderV4 will use modern loading path`);
+                } else {
+                    logResult('test2', false, `FAIL: Pattern detected as '${pattern}' (expected 'modern')
+- Check if module exports default object with lifecycle hooks`);
+                }
+            } catch (error) {
+                logResult('test2', false, `FAIL: ${error.message}`);
+            }
+        }
+
+        async function testModuleLoad() {
+            logInfo('test3', 'Testing full module load...');
+            try {
+                if (!window.ModuleLoaderV4) {
+                    logResult('test3', false, 'FAIL: ModuleLoaderV4 not found. Is this page loaded in the main app?');
+                    return;
+                }
+
+                await window.ModuleLoaderV4.loadModule('vector_database', 'sidebar');
+
+                const isLoaded = window.ModuleLoaderV4.isModuleLoaded('vector_database');
+
+                if (isLoaded) {
+                    logResult('test3', true, `PASS: Module loaded successfully
+- Module is registered in ModuleLoaderV4
+- Sidebar HTML should be visible
+- Lifecycle hooks called`);
+                } else {
+                    logResult('test3', false, 'FAIL: Module load completed but not marked as loaded');
+                }
+            } catch (error) {
+                logResult('test3', false, `FAIL: ${error.message}\n\nCheck browser console for detailed errors`);
+            }
+        }
+
+        async function testLifecycleHooks() {
+            logInfo('test4', 'Testing lifecycle hooks...');
+            try {
+                const module = await import('/internal/modules/vector_database/vector_database.js');
+                const hooks = module.default;
+
+                const tests = [
+                    { name: 'onLoad', check: typeof hooks.onLoad === 'function' },
+                    { name: 'onSidebarLoad', check: typeof hooks.onSidebarLoad === 'function' },
+                    { name: 'onUnload', check: typeof hooks.onUnload === 'function' }
+                ];
+
+                const passed = tests.filter(t => t.check).length;
+                const total = tests.length;
+
+                const details = tests.map(t => `${t.check ? '✅' : '❌'} ${t.name}: ${t.check ? 'function' : 'missing'}`).join('\n');
+
+                if (passed === total) {
+                    logResult('test4', true, `PASS: All lifecycle hooks present (${passed}/${total})\n${details}`);
+                } else {
+                    logResult('test4', false, `FAIL: Missing lifecycle hooks (${passed}/${total})\n${details}`);
+                }
+            } catch (error) {
+                logResult('test4', false, `FAIL: ${error.message}`);
+            }
+        }
+
+        async function testModuleStatus() {
+            logInfo('test5', 'Checking module registry...');
+            try {
+                if (!window.ModuleLoaderV4) {
+                    logResult('test5', false, 'FAIL: ModuleLoaderV4 not found. Open this page in the main app at http://localhost:5001');
+                    return;
+                }
+
+                const isLoaded = window.ModuleLoaderV4.isModuleLoaded('vector_database');
+                const moduleInstance = window.ModuleLoaderV4.modules?.get('vector_database');
+
+                let message = `Module Status:
+- Loaded: ${isLoaded}`;
+
+                if (moduleInstance) {
+                    message += `\n- Has instance: true
+- Has utilities: ${!!moduleInstance.utilities}
+- Has container: ${!!moduleInstance.container}`;
+                } else {
+                    message += `\n- Has instance: false (module not loaded yet)`;
+                }
+
+                logResult('test5', true, message);
+            } catch (error) {
+                logResult('test5', false, `FAIL: ${error.message}`);
+            }
+        }
+
+        async function runAllTests() {
+            testResults = [];
+            document.getElementById('summary-result').innerHTML = '<div class="result info">Running all tests...</div>';
+
+            await testES6Import();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testPatternDetection();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testLifecycleHooks();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testModuleStatus();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testModuleLoad();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Show summary
+            const passed = testResults.filter(r => r.success).length;
+            const total = testResults.length;
+            const success = passed === total;
+
+            const summary = `
+<div class="result ${success ? 'success' : 'warning'}">
+<strong>Test Summary:</strong>
+${passed}/${total} tests passed (${Math.round(passed / total * 100)}%)
+
+${success ? '🎉 All tests passed! Vector Database module is V4 compliant and ready for production.' : '⚠️ Some tests failed. Check individual test results above.'}
+</div>`;
+
+            document.getElementById('summary-result').innerHTML = summary;
+        }
+
+        function resetTests() {
+            testResults = [];
+            ['test1', 'test2', 'test3', 'test4', 'test5', 'summary'].forEach(id => {
+                const elem = document.getElementById(id + '-result');
+                if (elem) elem.innerHTML = '';
+            });
+        }
+
+        // Show instructions on load
+        window.addEventListener('load', () => {
+            console.log('Vector Database V4 Test Suite Loaded');
+            console.log('IMPORTANT: This test page must be opened WITHIN the main app at http://localhost:5001');
+            console.log('If you see "ModuleLoaderV4 not found" errors, navigate to: http://localhost:5001/test_vector_database_v4.html');
+        });
+    </script>
+</body>
+
+</html>

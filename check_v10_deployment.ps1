@@ -9,7 +9,7 @@ git log -1 --oneline
 
 # 2. Check remote v10 branch commit
 Write-Host "`n2. Remote v10 branch commit:" -ForegroundColor Yellow
-git ls-remote origin v10 | ForEach-Object { $_.Split()[0].Substring(0,7) }
+git ls-remote origin v10 | ForEach-Object { $_.Split()[0].Substring(0, 7) }
 
 # 3. Check if FORCE_V10 is true in local code
 Write-Host "`n3. Local code FORCE_V10 value:" -ForegroundColor Yellow

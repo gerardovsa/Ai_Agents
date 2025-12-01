@@ -8,28 +8,23 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of items to print (e.g., 1000, 5000)",
-          "required": true
+          "description": "Number of items to print (e.g., 1000, 5000)"
         },
         "width": {
           "type": "integer",
-          "description": "Width in millimeters (e.g., 90 for business cards, 210 for A4)",
-          "required": true
+          "description": "Width in millimeters (e.g., 90 for business cards, 210 for A4)"
         },
         "height": {
           "type": "integer",
-          "description": "Height in millimeters (e.g., 55 for business cards, 297 for A4)",
-          "required": true
+          "description": "Height in millimeters (e.g., 55 for business cards, 297 for A4)"
         },
         "stock_gsm": {
           "type": "integer",
-          "description": "Stock weight in GSM. Common: 350 (business cards), 170 (flyers), 250 (thick flyers)",
-          "required": true
+          "description": "Stock weight in GSM. Common: 350 (business cards), 170 (flyers), 250 (thick flyers)"
         },
         "print_mode": {
           "type": "string",
-          "description": "Printing mode: 'single_sided', 'double_sided', 'no_print'",
-          "required": true
+          "description": "Printing mode: 'single_sided', 'double_sided', 'no_print'"
         },
         "cello_type": {
           "type": "string",
@@ -49,23 +44,19 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of business cards (e.g., 250, 500, 1000, 2000, 5000)",
-          "required": true
+          "description": "Number of business cards (e.g., 250, 500, 1000, 2000, 5000)"
         },
         "finish_size": {
           "type": "string",
-          "description": "Card size: '90x55mm' (standard), '90x50mm', '85x55mm'",
-          "required": true
+          "description": "Card size: '90x55mm' (standard), '90x50mm', '85x55mm'"
         },
         "stock_type": {
           "type": "string",
-          "description": "Stock type: 'standard' (350gsm Satin) or 'premium' (400gsm Knight Smooth, 400gsm Satin)",
-          "required": true
+          "description": "Stock type: 'standard' (350gsm Satin) or 'premium' (400gsm Knight Smooth, 400gsm Satin)"
         },
         "print_type": {
           "type": "string",
-          "description": "Print sides: 'single_sided' or 'double_sided'",
-          "required": true
+          "description": "Print sides: 'single_sided' or 'double_sided'"
         },
         "celloglaze": {
           "type": "string",
@@ -80,33 +71,27 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of books to print (e.g., 100, 500, 1000)",
-          "required": true
+          "description": "Number of books to print (e.g., 100, 500, 1000)"
         },
         "total_pages": {
           "type": "integer",
-          "description": "Total page count (must be divisible by 4, minimum 40 pages)",
-          "required": true
+          "description": "Total page count (must be divisible by 4, minimum 40 pages)"
         },
         "cover_stock_gsm": {
           "type": "integer",
-          "description": "Cover stock weight in GSM (e.g., 300, 350)",
-          "required": true
+          "description": "Cover stock weight in GSM (e.g., 300, 350)"
         },
         "internal_stock_gsm": {
           "type": "integer",
-          "description": "Internal pages stock weight in GSM (e.g., 128, 150, 170)",
-          "required": true
+          "description": "Internal pages stock weight in GSM (e.g., 128, 150, 170)"
         },
         "cover_print_mode": {
           "type": "string",
-          "description": "Cover printing: 'single_sided', 'double_sided'",
-          "required": true
+          "description": "Cover printing: 'single_sided', 'double_sided'"
         },
         "internal_print_mode": {
           "type": "string",
-          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white', 'mixed'",
-          "required": true
+          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white', 'mixed'"
         },
         "cover_lamination": {
           "type": "string",
@@ -126,18 +111,15 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of signs (e.g., 1, 5, 10, 50). Tier pricing applies.",
-          "required": true
+          "description": "Number of signs (e.g., 1, 5, 10, 50). Tier pricing applies."
         },
         "width": {
           "type": "integer",
-          "description": "Width in millimeters (e.g., 600, 900, 1200)",
-          "required": true
+          "description": "Width in millimeters (e.g., 600, 900, 1200)"
         },
         "height": {
           "type": "integer",
-          "description": "Height in millimeters (e.g., 600, 900, 1200)",
-          "required": true
+          "description": "Height in millimeters (e.g., 600, 900, 1200)"
         },
         "thickness": {
           "type": "string",
@@ -157,33 +139,27 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of booklets (e.g., 100, 500, 1000)",
-          "required": true
+          "description": "Number of booklets (e.g., 100, 500, 1000)"
         },
         "total_pages": {
           "type": "integer",
-          "description": "Total page count (must be divisible by 4, minimum 8 pages)",
-          "required": true
+          "description": "Total page count (must be divisible by 4, minimum 8 pages)"
         },
         "cover_stock_gsm": {
           "type": "integer",
-          "description": "Cover stock weight in GSM (e.g., 250, 300)",
-          "required": true
+          "description": "Cover stock weight in GSM (e.g., 250, 300)"
         },
         "internal_stock_gsm": {
           "type": "integer",
-          "description": "Internal pages stock weight in GSM (e.g., 128, 150)",
-          "required": true
+          "description": "Internal pages stock weight in GSM (e.g., 128, 150)"
         },
         "cover_print_mode": {
           "type": "string",
-          "description": "Cover printing: 'single_sided', 'double_sided'",
-          "required": true
+          "description": "Cover printing: 'single_sided', 'double_sided'"
         },
         "internal_print_mode": {
           "type": "string",
-          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white'",
-          "required": true
+          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white'"
         }
       }
     },
@@ -198,53 +174,43 @@
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
-          "required": true
+          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs",
-          "required": true
+          "description": "Number of different artwork designs"
         },
         "cover_option": {
           "type": "string",
-          "description": "cover_option. Valid options: 'Self Cover', 'Hard Cover'",
-          "required": true
+          "description": "cover_option. Valid options: 'Self Cover', 'Hard Cover'"
         },
         "cover_stock": {
           "type": "string",
-          "description": "cover_stock. Valid options: 'Satin 150GSM', 'Satin 200GSM', 'Satin 250GSM', 'Satin 300GSM', 'Satin 350GSM'",
-          "required": true
+          "description": "cover_stock. Valid options: 'Satin 150GSM', 'Satin 200GSM', 'Satin 250GSM', 'Satin 300GSM', 'Satin 350GSM'"
         },
         "cover_print_type": {
           "type": "string",
-          "description": "cover_print_type. Valid options: '1 side colour (2pp)', '2 side colour (4pp)', '1 side Black & White (2pp)', '2 side Black & White (4pp)'",
-          "required": true
+          "description": "cover_print_type. Valid options: '1 side colour (2pp)', '2 side colour (4pp)', '1 side Black & White (2pp)', '2 side Black & White (4pp)'"
         },
         "celloglaze": {
           "type": "string",
-          "description": "celloglaze. Valid options: 'None', 'Gloss outside only', 'Matt outside only'",
-          "required": true
+          "description": "celloglaze. Valid options: 'None', 'Gloss outside only', 'Matt outside only'"
         },
         "printed_pages": {
           "type": "string",
-          "description": "printed_pages. Valid options: '4pp', '8pp', '12pp', '16pp', '20pp', '24pp', '28pp', '32pp', '36pp', '40pp', '44pp', '48pp', '52pp', '56pp', '60pp', '64pp'",
-          "required": true
+          "description": "printed_pages. Valid options: '4pp', '8pp', '12pp', '16pp', '20pp', '24pp', '28pp', '32pp', '36pp', '40pp', '44pp', '48pp', '52pp', '56pp', '60pp', '64pp'"
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A5 Portrait', 'A4 Portrait', 'A4 Landscape'",
-          "required": true
+          "description": "finish_size. Valid options: 'A5 Portrait', 'A4 Portrait', 'A4 Landscape'"
         },
         "content_print_type": {
           "type": "string",
-          "description": "content_print_type. Valid options: 'Colour', 'Black & White'",
-          "required": true
+          "description": "content_print_type. Valid options: 'Colour', 'Black & White'"
         },
         "content_stock_type": {
           "type": "string",
-          "description": "content_stock_type. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Satin 200GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'",
-          "required": true
+          "description": "content_stock_type. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Satin 200GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
         }
       }
     },
@@ -254,73 +220,59 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of spiral bound books to print (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of spiral bound books to print (min: 1, max: 10000)"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 10)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 10)"
         },
         "outer_front_cover": {
           "type": "string",
-          "description": "outer_front_cover. Valid options: 'Not Required', 'Clear PVC'",
-          "required": true
+          "description": "outer_front_cover. Valid options: 'Not Required', 'Clear PVC'"
         },
         "printed_front_cover": {
           "type": "string",
-          "description": "printed_front_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'",
-          "required": true
+          "description": "printed_front_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'"
         },
         "cover_print_type": {
           "type": "string",
-          "description": "cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'",
-          "required": true
+          "description": "cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
         },
         "celloglaze": {
           "type": "string",
-          "description": "celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'",
-          "required": true
+          "description": "celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'"
         },
         "outer_back_cover": {
           "type": "string",
-          "description": "outer_back_cover. Valid options: 'Not Required', 'Clear PVC'",
-          "required": true
+          "description": "outer_back_cover. Valid options: 'Not Required', 'Clear PVC'"
         },
         "printed_back_cover": {
           "type": "string",
-          "description": "printed_back_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'",
-          "required": true
+          "description": "printed_back_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'"
         },
         "back_cover_print_type": {
           "type": "string",
-          "description": "back_cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'",
-          "required": true
+          "description": "back_cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
         },
         "back_celloglaze": {
           "type": "string",
-          "description": "back_celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'",
-          "required": true
+          "description": "back_celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'"
         },
         "number_of_content_pages": {
           "type": "integer",
-          "description": "Total number of content pages (must be even) (min: 4, max: 500)",
-          "required": true
+          "description": "Total number of content pages (must be even) (min: 4, max: 500)"
         },
         "content_paper_stock": {
           "type": "string",
-          "description": "content_paper_stock. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 140GSM', 'Uncoated Bond 100GSM', 'Satin 300GSM'",
-          "required": true
+          "description": "content_paper_stock. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 140GSM', 'Uncoated Bond 100GSM', 'Satin 300GSM'"
         },
         "content_print_type": {
           "type": "string",
-          "description": "content_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'",
-          "required": true
+          "description": "content_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A6 Portrait', 'A6 Landscape', 'DL Portrait', 'DL Landscape', 'A5 Portrait', 'A5 Landscape', 'A4 Portrait', 'A4 Landscape'",
-          "required": true
+          "description": "finish_size. Valid options: 'A6 Portrait', 'A6 Landscape', 'DL Portrait', 'DL Landscape', 'A5 Portrait', 'A5 Landscape', 'A4 Portrait', 'A4 Landscape'"
         }
       }
     },
@@ -330,23 +282,19 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of bollard signs to produce (min: 1, max: 1000)",
-          "required": true
+          "description": "Number of bollard signs to produce (min: 1, max: 1000)"
         },
         "material": {
           "type": "string",
-          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'",
-          "required": true
+          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '270mm W x 1000mm H - Three Sided', '270mm W x 1200mm H - Three Sided', '270mm W x 1800mm H - Three Sided', '300mm W x 1000mm H - Three Sided', '300mm W x 1200mm H - Three Sided', '300mm W x 1800mm H - Three Sided', '155mm W x 1000mm H - Four Sided', '155mm W x 1200mm H - Four Sided', '155mm W x 1800mm H - Four Sided', '175mm W x 1000mm H - Four Sided', '175mm W x 1200mm H - Four Sided', '175mm W x 1800mm H - Four Sided'",
-          "required": true
+          "description": "size. Valid options: '270mm W x 1000mm H - Three Sided', '270mm W x 1200mm H - Three Sided', '270mm W x 1800mm H - Three Sided', '300mm W x 1000mm H - Three Sided', '300mm W x 1200mm H - Three Sided', '300mm W x 1800mm H - Three Sided', '155mm W x 1000mm H - Four Sided', '155mm W x 1200mm H - Four Sided', '155mm W x 1800mm H - Four Sided', '175mm W x 1000mm H - Four Sided', '175mm W x 1200mm H - Four Sided', '175mm W x 1800mm H - Four Sided'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         }
       }
     },
@@ -356,23 +304,19 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of stackable cubes to produce (min: 1, max: 1000)",
-          "required": true
+          "description": "Number of stackable cubes to produce (min: 1, max: 1000)"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         },
         "material": {
           "type": "string",
-          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'",
-          "required": true
+          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'"
         },
         "cube_size": {
           "type": "string",
-          "description": "cube_size. Valid options: 'Small 300mm x 300mm', 'Medium 400mm x 400mm', 'Large 500mm x 500mm', 'X-Large 580mm x 580mm'",
-          "required": true
+          "description": "cube_size. Valid options: 'Small 300mm x 300mm', 'Medium 400mm x 400mm', 'Large 500mm x 500mm', 'X-Large 580mm x 580mm'"
         }
       }
     },
@@ -382,13 +326,11 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of election signs to produce (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of election signs to produce (min: 1, max: 10000)"
         },
         "eyelets": {
           "type": "string",
-          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left and right corners)', '2 x Eyelets (center left and right)', '2 x Eyelets (center top and bottom)', '6 x Eyelets (3 each top and bottom)', '6 x Eyelets (3 each left and right)'",
-          "required": true
+          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left and right corners)', '2 x Eyelets (center left and right)', '2 x Eyelets (center top and bottom)', '6 x Eyelets (3 each top and bottom)', '6 x Eyelets (3 each left and right)'"
         },
         "width_mm": {
           "type": "integer",
@@ -397,13 +339,11 @@
         },
         "thickness": {
           "type": "string",
-          "description": "thickness. Valid options: '3mm', '5mm'",
-          "required": true
+          "description": "thickness. Valid options: '3mm', '5mm'"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'",
-          "required": true
+          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'"
         },
         "length_mm": {
           "type": "integer",
@@ -412,18 +352,15 @@
         },
         "sides": {
           "type": "string",
-          "description": "sides. Valid options: 'Single Sided', 'Double Sided'",
-          "required": true
+          "description": "sides. Valid options: 'Single Sided', 'Double Sided'"
         },
         "cutting": {
           "type": "string",
-          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'",
-          "required": true
+          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         }
       }
     },
@@ -433,18 +370,15 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of selfie frames to produce (min: 1, max: 200)",
-          "required": true
+          "description": "Number of selfie frames to produce (min: 1, max: 200)"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'Small 600mm x 900mm', 'Large 900mm x 1200mm'",
-          "required": true
+          "description": "size. Valid options: 'Small 600mm x 900mm', 'Large 900mm x 1200mm'"
         },
         "number_of_artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         }
       }
     },
@@ -454,13 +388,11 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of construction signs to produce (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of construction signs to produce (min: 1, max: 10000)"
         },
         "eyelets": {
           "type": "string",
-          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left & right corners)', '2 x Eyelets (center left & right)', '2 x Eyelets (center top & bottom)', '6 x Eyelets (3 each top & bottom)', '6 x Eyelets (3 each left & right)'",
-          "required": true
+          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left & right corners)', '2 x Eyelets (center left & right)', '2 x Eyelets (center top & bottom)', '6 x Eyelets (3 each top & bottom)', '6 x Eyelets (3 each left & right)'"
         },
         "width_mm": {
           "type": "integer",
@@ -469,13 +401,11 @@
         },
         "thickness": {
           "type": "string",
-          "description": "thickness. Valid options: '3mm', '5mm'",
-          "required": true
+          "description": "thickness. Valid options: '3mm', '5mm'"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'",
-          "required": true
+          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'"
         },
         "length_mm": {
           "type": "integer",
@@ -484,18 +414,15 @@
         },
         "sides": {
           "type": "string",
-          "description": "sides. Valid options: 'Single Sided', 'Double Sided'",
-          "required": true
+          "description": "sides. Valid options: 'Single Sided', 'Double Sided'"
         },
         "cutting": {
           "type": "string",
-          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'",
-          "required": true
+          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         }
       }
     },
@@ -505,23 +432,19 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of A3 strut cards to produce (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of A3 strut cards to produce (min: 1, max: 10000)"
         },
         "stock": {
           "type": "string",
-          "description": "stock. Valid options: '2mm Screenboard'",
-          "required": true
+          "description": "stock. Valid options: '2mm Screenboard'"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'A3 - 297mm x 420mm'",
-          "required": true
+          "description": "size. Valid options: 'A3 - 297mm x 420mm'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         }
       }
     },
@@ -531,23 +454,19 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of A4 strut cards to produce (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of A4 strut cards to produce (min: 1, max: 10000)"
         },
         "stock": {
           "type": "string",
-          "description": "stock. Valid options: '2mm Screenboard'",
-          "required": true
+          "description": "stock. Valid options: '2mm Screenboard'"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'A4 - 210mm x 297mm'",
-          "required": true
+          "description": "size. Valid options: 'A4 - 210mm x 297mm'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         }
       }
     },
@@ -557,33 +476,27 @@
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '25', '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000'",
-          "required": true
+          "description": "quantity. Valid options: '25', '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000'"
         },
         "celloglaze": {
           "type": "string",
-          "description": "celloglaze. Valid options: 'None', 'Gloss 1 Sided', 'Gloss 2 Sided', 'Matt 1 Sided', 'Matt 2 Sided'",
-          "required": true
+          "description": "celloglaze. Valid options: 'None', 'Gloss 1 Sided', 'Gloss 2 Sided', 'Matt 1 Sided', 'Matt 2 Sided'"
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided'",
-          "required": true
+          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided'"
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: '50mm x 150mm', '50mm x 185mm', '50mm x 230mm', '65mm x 215mm'",
-          "required": true
+          "description": "finish_size. Valid options: '50mm x 150mm', '50mm x 185mm', '50mm x 230mm', '65mm x 215mm'"
         },
         "paper_stock_type": {
           "type": "string",
-          "description": "paper_stock_type. Valid options: 'Satin 350GSM', 'Uncoated 300GSM'",
-          "required": true
+          "description": "paper_stock_type. Valid options: 'Satin 350GSM', 'Uncoated 300GSM'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs",
-          "required": true
+          "description": "Number of different artwork designs"
         }
       }
     },
@@ -593,33 +506,27 @@
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
-          "required": true
+          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs",
-          "required": true
+          "description": "Number of different artwork designs"
         },
         "leaves_per_pad": {
           "type": "string",
-          "description": "leaves_per_pad. Valid options: '25', '50', '100'",
-          "required": true
+          "description": "leaves_per_pad. Valid options: '25', '50', '100'"
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A4 Portrait'",
-          "required": true
+          "description": "finish_size. Valid options: 'A4 Portrait'"
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'",
-          "required": true
+          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
         },
         "stock_type": {
           "type": "string",
-          "description": "stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'",
-          "required": true
+          "description": "stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
         }
       }
     },
@@ -629,33 +536,27 @@
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'",
-          "required": true
+          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'"
         },
         "print_sides": {
           "type": "string",
-          "description": "print_sides. Valid options: 'Single side print', 'Double side print'",
-          "required": true
+          "description": "print_sides. Valid options: 'Single side print', 'Double side print'"
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour', 'Black & White'",
-          "required": true
+          "description": "print_type. Valid options: 'Colour', 'Black & White'"
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A4 - 210mm x 297mm'",
-          "required": true
+          "description": "finish_size. Valid options: 'A4 - 210mm x 297mm'"
         },
         "paper_stock_type": {
           "type": "string",
-          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'",
-          "required": true
+          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs",
-          "required": true
+          "description": "Number of different artwork designs"
         }
       }
     },
@@ -665,33 +566,27 @@
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'",
-          "required": true
+          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'"
         },
         "print_sides": {
           "type": "string",
-          "description": "print_sides. Valid options: 'Single side print', 'Double side print'",
-          "required": true
+          "description": "print_sides. Valid options: 'Single side print', 'Double side print'"
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour', 'Black & White'",
-          "required": true
+          "description": "print_type. Valid options: 'Colour', 'Black & White'"
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'DL - 99mm x 210mm'",
-          "required": true
+          "description": "finish_size. Valid options: 'DL - 99mm x 210mm'"
         },
         "paper_stock_type": {
           "type": "string",
-          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'",
-          "required": true
+          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs",
-          "required": true
+          "description": "Number of different artwork designs"
         }
       }
     },
@@ -701,33 +596,27 @@
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
-          "required": true
+          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 10)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 10)"
         },
         "finish_size": {
           "type": "string",
-          "description": "Notepad size (currently only A5 Portrait supported). Valid options: 'A5 Portrait'",
-          "required": true
+          "description": "Notepad size (currently only A5 Portrait supported). Valid options: 'A5 Portrait'"
         },
         "leaves_per_pad": {
           "type": "string",
-          "description": "Number of sheets in each notepad. Valid options: '25', '50', '100'",
-          "required": true
+          "description": "Number of sheets in each notepad. Valid options: '25', '50', '100'"
         },
         "print_type": {
           "type": "string",
-          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'",
-          "required": true
+          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
         },
         "stock_type": {
           "type": "string",
-          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'",
-          "required": true
+          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
         }
       }
     },
@@ -737,33 +626,27 @@
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
-          "required": true
+          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 10)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 10)"
         },
         "finish_size": {
           "type": "string",
-          "description": "Notepad size (currently only A6 Portrait supported). Valid options: 'A6 Portrait'",
-          "required": true
+          "description": "Notepad size (currently only A6 Portrait supported). Valid options: 'A6 Portrait'"
         },
         "leaves_per_pad": {
           "type": "string",
-          "description": "Number of sheets in each notepad. Valid options: '10', '15', '25', '50', '100'",
-          "required": true
+          "description": "Number of sheets in each notepad. Valid options: '10', '15', '25', '50', '100'"
         },
         "print_type": {
           "type": "string",
-          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'",
-          "required": true
+          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
         },
         "stock_type": {
           "type": "string",
-          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'",
-          "required": true
+          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
         }
       }
     },
@@ -773,23 +656,19 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of luxury pull up banners to produce (min: 1, max: 100)",
-          "required": true
+          "description": "Number of luxury pull up banners to produce (min: 1, max: 100)"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (min: 1, max: 20)"
         },
         "base_colour": {
           "type": "string",
-          "description": "base_colour. Valid options: 'Silver', 'Black'",
-          "required": true
+          "description": "base_colour. Valid options: 'Silver', 'Black'"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '850mm W x 2000mm H', '850mm W x 1500mm H', '850mm W x 1400mm H Shopping Center'",
-          "required": true
+          "description": "size. Valid options: '850mm W x 2000mm H', '850mm W x 1500mm H', '850mm W x 1400mm H Shopping Center'"
         }
       }
     },
@@ -799,18 +678,15 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of A-frame signs required (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of A-frame signs required (min: 1, max: 10000)"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '600mm(W) x 900mm(H)'",
-          "required": true
+          "description": "size. Valid options: '600mm(W) x 900mm(H)'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)"
         }
       }
     },
@@ -820,18 +696,15 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of metal face A-frame signs required (min: 1, max: 100)",
-          "required": true
+          "description": "Number of metal face A-frame signs required (min: 1, max: 100)"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first artwork included, additional at $6 each) (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (first artwork included, additional at $6 each) (min: 1, max: 20)"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '600mm W x 900mm H'",
-          "required": true
+          "description": "size. Valid options: '600mm W x 900mm H'"
         }
       }
     },
@@ -841,33 +714,27 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of posters required (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of posters required (min: 1, max: 10000)"
         },
         "width_mm": {
           "type": "integer",
-          "description": "Custom width in millimeters (only visible for custom size) (min: 100, max: 2000)",
-          "required": true
+          "description": "Custom width in millimeters (only visible for custom size) (min: 100, max: 2000)"
         },
         "paper_type": {
           "type": "string",
-          "description": "paper_type. Valid options: '250GSM Satin Poster Paper', '200GSM Yuppo Synthetic Paper'",
-          "required": true
+          "description": "paper_type. Valid options: '250GSM Satin Poster Paper', '200GSM Yuppo Synthetic Paper'"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'A2 - 420mm x 594mm', 'A1 - 594mm x 841mm', 'A0 - 841mm x 1189mm', 'Custom'",
-          "required": true
+          "description": "size. Valid options: 'A2 - 420mm x 594mm', 'A1 - 594mm x 841mm', 'A0 - 841mm x 1189mm', 'Custom'"
         },
         "length_mm": {
           "type": "integer",
-          "description": "Custom length/height in millimeters (only visible for custom size) (min: 100, max: 3000)",
-          "required": true
+          "description": "Custom length/height in millimeters (only visible for custom size) (min: 100, max: 3000)"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)"
         }
       }
     },
@@ -877,53 +744,43 @@
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of stickers required (min: 1, max: 10000)",
-          "required": true
+          "description": "Number of stickers required (min: 1, max: 10000)"
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '50mm Circle', '75mm Circle', '100mm Circle', '50mm Square', '75mm Square', '100mm Square', '75mm × 50mm Rectangle', '100mm × 75mm Rectangle', '150mm × 100mm Rectangle', 'Custom Size'",
-          "required": true
+          "description": "size. Valid options: '50mm Circle', '75mm Circle', '100mm Circle', '50mm Square', '75mm Square', '100mm Square', '75mm × 50mm Rectangle', '100mm × 75mm Rectangle', '150mm × 100mm Rectangle', 'Custom Size'"
         },
         "width_mm": {
           "type": "integer",
-          "description": "Custom width in millimetres (min: 25, max: 500)",
-          "required": true
+          "description": "Custom width in millimetres (min: 25, max: 500)"
         },
         "height_mm": {
           "type": "integer",
-          "description": "Custom height in millimetres (min: 25, max: 500)",
-          "required": true
+          "description": "Custom height in millimetres (min: 25, max: 500)"
         },
         "vinyl_family": {
           "type": "string",
-          "description": "Choose monomeric (short-term) or polymeric (long-term) vinyl.. Valid options: 'Standard (Monomeric)', 'Premium (Polymeric)'",
-          "required": true
+          "description": "Choose monomeric (short-term) or polymeric (long-term) vinyl.. Valid options: 'Standard (Monomeric)', 'Premium (Polymeric)'"
         },
         "adhesive": {
           "type": "string",
-          "description": "Adhesive type (Permanent or Removable). Valid options: 'Permanent', 'Removable'",
-          "required": true
+          "description": "Adhesive type (Permanent or Removable). Valid options: 'Permanent', 'Removable'"
         },
         "laminate": {
           "type": "string",
-          "description": "Optional protective laminate (match monomeric/polymeric family).. Valid options: 'No Lamination', 'Gloss Laminate', 'Matte Laminate'",
-          "required": true
+          "description": "Optional protective laminate (match monomeric/polymeric family).. Valid options: 'No Lamination', 'Gloss Laminate', 'Matte Laminate'"
         },
         "cutting_method": {
           "type": "string",
-          "description": "Cutting/finishing method. Valid options: 'Kiss-Cut (Individual)', 'Die-Cut (No background)', 'Contour-Cut (Custom shapes)', 'Sheet (Uncut Grid)'",
-          "required": true
+          "description": "Cutting/finishing method. Valid options: 'Kiss-Cut (Individual)', 'Die-Cut (No background)', 'Contour-Cut (Custom shapes)', 'Sheet (Uncut Grid)'"
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first included, additional $5 each) (min: 1, max: 20)",
-          "required": true
+          "description": "Number of different artwork designs (first included, additional $5 each) (min: 1, max: 20)"
         },
         "labour_rate": {
           "type": "string",
-          "description": "Choose whether trade or non-trade labour rates apply for laminating and cutting. Valid options: 'Trade ($70/hr)', 'Non-Trade ($90/hr)'",
-          "required": true
+          "description": "Choose whether trade or non-trade labour rates apply for laminating and cutting. Valid options: 'Trade ($70/hr)', 'Non-Trade ($90/hr)'"
         }
       }
     },
@@ -933,8 +790,7 @@
       "parameters": {
         "product_type": {
           "type": "string",
-          "description": "Product type: 'flyers', 'business_cards', 'perfect_bound_books', 'corflute_signs', 'booklets', 'notepads_a5'",
-          "required": true
+          "description": "Product type: 'flyers', 'business_cards', 'perfect_bound_books', 'corflute_signs', 'booklets', 'notepads_a5'"
         }
       }
     }

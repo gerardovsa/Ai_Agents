@@ -53,7 +53,7 @@ def _get_client(project_id):
 
 def google_cloud_run_deploy_service(project_id, service_name, image, region='us-central1',
                                     allow_unauthenticated=False, cpu='1', memory='512Mi',
-                                    max_instances=100, min_instances=0, env_vars=None, port=8080):
+                                    max_instances=100, min_instances=0, env_vars=None, port=8080, **kwargs):
     """Deploy a new Cloud Run service"""
     try:
         client = _get_client(project_id)
@@ -120,7 +120,7 @@ def google_cloud_run_deploy_service(project_id, service_name, image, region='us-
         raise
 
 
-def google_cloud_run_list_services(project_id, region=None):
+def google_cloud_run_list_services(project_id, region=None, **kwargs):
     """List all Cloud Run services"""
     try:
         client = _get_client(project_id)
@@ -157,7 +157,7 @@ def google_cloud_run_list_services(project_id, region=None):
         raise
 
 
-def google_cloud_run_get_service(project_id, service_name, region):
+def google_cloud_run_get_service(project_id, service_name, region, **kwargs):
     """Get details of a specific service"""
     try:
         client = _get_client(project_id)
@@ -186,7 +186,7 @@ def google_cloud_run_get_service(project_id, service_name, region):
 
 def google_cloud_run_update_service(project_id, service_name, region, image=None, 
                                    cpu=None, memory=None, max_instances=None, 
-                                   min_instances=None, env_vars=None):
+                                   min_instances=None, env_vars=None, **kwargs):
     """Update an existing Cloud Run service"""
     try:
         client = _get_client(project_id)
@@ -236,7 +236,7 @@ def google_cloud_run_update_service(project_id, service_name, region, image=None
         raise
 
 
-def google_cloud_run_delete_service(project_id, service_name, region):
+def google_cloud_run_delete_service(project_id, service_name, region, **kwargs):
     """Delete a Cloud Run service"""
     try:
         client = _get_client(project_id)
@@ -256,7 +256,7 @@ def google_cloud_run_delete_service(project_id, service_name, region):
         raise
 
 
-def google_cloud_run_get_service_url(project_id, service_name, region):
+def google_cloud_run_get_service_url(project_id, service_name, region, **kwargs):
     """Get the public URL of a service"""
     try:
         service_info = google_cloud_run_get_service(project_id, service_name, region)
@@ -274,7 +274,7 @@ def google_cloud_run_get_service_url(project_id, service_name, region):
 
 # ==================== TRAFFIC & REVISIONS ====================
 
-def google_cloud_run_set_traffic(project_id, service_name, region, traffic_splits):
+def google_cloud_run_set_traffic(project_id, service_name, region, traffic_splits, **kwargs):
     """Set traffic routing between revisions"""
     try:
         client = _get_client(project_id)
@@ -306,7 +306,7 @@ def google_cloud_run_set_traffic(project_id, service_name, region, traffic_split
         raise
 
 
-def google_cloud_run_list_revisions(project_id, service_name, region):
+def google_cloud_run_list_revisions(project_id, service_name, region, **kwargs):
     """List all revisions of a service"""
     try:
         client = run_v2.RevisionsClient()
@@ -334,7 +334,7 @@ def google_cloud_run_list_revisions(project_id, service_name, region):
 # ==================== MONITORING & LOGS ====================
 
 def google_cloud_run_get_service_metrics(project_id, service_name, region, 
-                                        start_time='1h', end_time='now'):
+                                        start_time='1h', end_time='now', **kwargs):
     """Get service metrics"""
     try:
         from google.cloud import monitoring_v3
@@ -378,7 +378,7 @@ def google_cloud_run_get_service_metrics(project_id, service_name, region,
 
 
 def google_cloud_run_get_service_logs(project_id, service_name, region=None, 
-                                     limit=100, severity=None, time_range='1h'):
+                                     limit=100, severity=None, time_range='1h', **kwargs):
     """Get logs from a service"""
     try:
         from google.cloud import logging
@@ -420,7 +420,7 @@ def google_cloud_run_get_service_logs(project_id, service_name, region=None,
 
 # ==================== IAM & PERMISSIONS ====================
 
-def google_cloud_run_set_iam_policy(project_id, service_name, region, member, role='roles/run.invoker'):
+def google_cloud_run_set_iam_policy(project_id, service_name, region, member, role='roles/run.invoker', **kwargs):
     """Set IAM policy for a service"""
     try:
         client = _get_client(project_id)
@@ -458,7 +458,7 @@ def google_cloud_run_set_iam_policy(project_id, service_name, region, member, ro
 # ==================== CLOUD RUN JOBS ====================
 
 def google_cloud_run_create_job(project_id, job_name, image, region='us-central1',
-                                task_count=1, max_retries=3, timeout='10m', env_vars=None):
+                                task_count=1, max_retries=3, timeout='10m', env_vars=None, **kwargs):
     """Create a Cloud Run Job"""
     try:
         client = run_v2.JobsClient()
@@ -506,7 +506,7 @@ def google_cloud_run_create_job(project_id, job_name, image, region='us-central1
         raise
 
 
-def google_cloud_run_execute_job(project_id, job_name, region, wait=False):
+def google_cloud_run_execute_job(project_id, job_name, region, wait=False, **kwargs):
     """Execute a Cloud Run Job"""
     try:
         client = run_v2.JobsClient()
@@ -534,7 +534,7 @@ def google_cloud_run_execute_job(project_id, job_name, region, wait=False):
         raise
 
 
-def google_cloud_run_list_jobs(project_id, region=None):
+def google_cloud_run_list_jobs(project_id, region=None, **kwargs):
     """List all Cloud Run Jobs"""
     try:
         client = run_v2.JobsClient()
@@ -570,7 +570,7 @@ def google_cloud_run_list_jobs(project_id, region=None):
         raise
 
 
-def google_cloud_run_get_job_executions(project_id, job_name, region, limit=10):
+def google_cloud_run_get_job_executions(project_id, job_name, region, limit=10, **kwargs):
     """Get execution history for a job"""
     try:
         client = run_v2.ExecutionsClient()

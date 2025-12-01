@@ -26,8 +26,7 @@
       "parameters": {
         "calendar_id": {
           "type": "string",
-          "description": "Calendar ID (use 'primary' for main calendar)",
-          "required": true
+          "description": "Calendar ID (use 'primary' for main calendar)"
         }
       },
       "returns": {
@@ -48,8 +47,7 @@
         },
         "summary": {
           "type": "string",
-          "description": "Event title/summary",
-          "required": true
+          "description": "Event title/summary"
         },
         "description": {
           "type": "string",
@@ -58,13 +56,11 @@
         },
         "start_datetime": {
           "type": "string",
-          "description": "Start date/time (ISO 8601 format: 2025-10-23T10:00:00-07:00)",
-          "required": true
+          "description": "Start date/time (ISO 8601 format: 2025-10-23T10:00:00-07:00)"
         },
         "end_datetime": {
           "type": "string",
-          "description": "End date/time (ISO 8601 format)",
-          "required": true
+          "description": "End date/time (ISO 8601 format)"
         },
         "timezone": {
           "type": "string",
@@ -122,8 +118,7 @@
         },
         "event_id": {
           "type": "string",
-          "description": "Event ID to update",
-          "required": true
+          "description": "Event ID to update"
         },
         "summary": {
           "type": "string",
@@ -180,8 +175,7 @@
         },
         "event_id": {
           "type": "string",
-          "description": "Event ID to delete",
-          "required": true
+          "description": "Event ID to delete"
         },
         "send_notifications": {
           "type": "boolean",
@@ -258,8 +252,7 @@
         },
         "event_id": {
           "type": "string",
-          "description": "Event ID",
-          "required": true
+          "description": "Event ID"
         }
       },
       "returns": {
@@ -274,18 +267,15 @@
       "parameters": {
         "time_min": {
           "type": "string",
-          "description": "Start of time range (ISO 8601)",
-          "required": true
+          "description": "Start of time range (ISO 8601)"
         },
         "time_max": {
           "type": "string",
-          "description": "End of time range (ISO 8601)",
-          "required": true
+          "description": "End of time range (ISO 8601)"
         },
         "calendar_ids": {
           "type": "array",
-          "description": "Array of calendar IDs to check",
-          "required": true
+          "description": "Array of calendar IDs to check"
         },
         "timezone": {
           "type": "string",
@@ -312,8 +302,7 @@
         },
         "text": {
           "type": "string",
-          "description": "Natural language event description (e.g., 'Team meeting tomorrow at 2pm')",
-          "required": true
+          "description": "Natural language event description (e.g., 'Team meeting tomorrow at 2pm')"
         },
         "send_notifications": {
           "type": "boolean",
@@ -334,18 +323,15 @@
       "parameters": {
         "source_calendar_id": {
           "type": "string",
-          "description": "Source calendar ID",
-          "required": true
+          "description": "Source calendar ID"
         },
         "destination_calendar_id": {
           "type": "string",
-          "description": "Destination calendar ID",
-          "required": true
+          "description": "Destination calendar ID"
         },
         "event_id": {
           "type": "string",
-          "description": "Event ID to move",
-          "required": true
+          "description": "Event ID to move"
         },
         "send_notifications": {
           "type": "boolean",
@@ -372,13 +358,11 @@
         },
         "event_id": {
           "type": "string",
-          "description": "Event ID",
-          "required": true
+          "description": "Event ID"
         },
         "reminders": {
           "type": "array",
-          "description": "Array of reminder objects with method (email/popup) and minutes",
-          "required": true
+          "description": "Array of reminder objects with method (email/popup) and minutes"
         }
       },
       "returns": {

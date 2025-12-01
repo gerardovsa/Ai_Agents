@@ -9,13 +9,11 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Document title",
-          "required": true
+          "description": "Document title"
         },
         "markdown_content": {
           "type": "string",
-          "description": "Markdown content (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for main sections, H4 ONLY for list titles (body text size 11pt bold). Supports: # H1-H6, **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, ```blocks```, [links](url), ![images](url), nested lists (2 spaces), > blockquotes, TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), | tables |",
-          "required": true
+          "description": "Markdown content (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for main sections, H4 ONLY for list titles (body text size 11pt bold). Supports: # H1-H6, **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, ```blocks```, [links](url), ![images](url), nested lists (2 spaces), > blockquotes, TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), | tables |"
         }
       },
       "returns": {
@@ -30,13 +28,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "ID of EXISTING Google Doc to update",
-          "required": true
+          "description": "ID of EXISTING Google Doc to update"
         },
         "markdown_content": {
           "type": "string",
-          "description": "Markdown content to insert (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for sections, H4 ONLY for list titles at 11pt bold. Includes TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right). Same features as smart_create_from_markdown",
-          "required": true
+          "description": "Markdown content to insert (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for sections, H4 ONLY for list titles at 11pt bold. Includes TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right). Same features as smart_create_from_markdown"
         },
         "insertion_position": {
           "type": "string",
@@ -52,18 +48,16 @@
     },
     {
       "name": "google_docs_smart_create_from_markdown_v2",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nMUST USE: execute_tool(tool_name='google_docs_smart_create_from_markdown_v2', ...) - DO NOT call directly.\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART TOOL v2.0 (ENHANCED): Create Google Docs from markdown using DOCX conversion with FULL FORMATTING (30+ features). Default font: Arial 11pt (matching Google Docs default - NOT Times New Roman). Faster than API method, much less code, high success rate. Uses python-docx and Drive auto-conversion.\n\nDEFAULT FONT: Arial 11pt (matches Google Docs, NOT Times New Roman)\nHEADING SIZES: H1=20pt, H2=18pt, H3=16pt, H4-H6=11pt (matches Smart V1)\n\nCOMPLETE MARKDOWN SUPPORT:\n\nTEXT FORMATTING:\n- **bold** or __bold__ -> Bold text\n- *italic* or _italic_ -> Italic text\n- __underline__ -> Underlined text (double underscore)\n- ~~strikethrough~~ -> Strikethrough text\n- ==highlight== -> Yellow highlighted text\n- `inline code` -> Monospace code\n- H~2~O -> Subscript (H2O)\n- x^2^ -> Superscript (x2)\n\nSTRUCTURE:\n- # to ###### -> 6 heading levels (H1-H6)\n- - or * -> Bullet lists\n- 1. 2. 3. -> Numbered lists\n-   - (2 spaces) -> Nested lists (unlimited levels)\n- | Tables | -> Professional tables\n- ```code blocks``` -> Monospace code blocks\n- > Blockquotes -> Indented quotes\n\nSPECIAL ELEMENTS:\n- --- or *** -> Horizontal line\n- <<PAGE-BREAK>> or <<< -> Page break\n- <<BOOKMARK:name>> -> Create Word bookmark for navigation\n- <<TOC>> -> Auto-generate table of contents (update in Word)\n- ![alt](url) -> Images from URLs\n- [Link](url) -> Hyperlinks\n\nNAVIGATION FEATURES:\n- Bookmarks: <<BOOKMARK:section_name>> creates Word bookmark\n- TOC: <<TOC>> generates table of contents from headings (requires Word to update page numbers)\n\nALIGNMENT:\n- ->centered text<- -> Center aligned\n- <-left text -> Left aligned\n- right text-> -> Right aligned\n\nADVANTAGES OVER V1:\n- Faster (0.5-2s vs 2-8s)\n- Much less code\n- High success rate\n- Automatic shareability\n- Simpler to use and debug\n\nAUTO-SHAREABLE: Documents automatically shareable with edit permissions.\n\nComplementary to v1 (API-based) - both tools available.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nMUST USE: execute_tool(tool_name='google_docs_smart_create_from_markdown_v2', ...) - DO NOT call directly.\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART TOOL v2.0 (ENHANCED): Create Google Docs from markdown using DOCX conversion with FULL FORMATTING (30+ features). Default font: Arial 11pt (matching Google Docs default - NOT Times New Roman). Faster than API method, much less code, high success rate. Uses python-docx and Drive auto-conversion.\n\nDEFAULT FONT: Arial 11pt (matches Google Docs, NOT Times New Roman)\nHEADING SIZES: H1=20pt, H2=18pt, H3=16pt, H4-H6=11pt (matches Smart V1)\n\nCOMPLETE MARKDOWN SUPPORT:\n\nTEXT FORMATTING:\n- **bold** or __bold__ -> Bold text\n- *italic* or _italic_ -> Italic text\n- __underline__ -> Underlined text (double underscore)\n- ~~strikethrough~~ -> Strikethrough text\n- ==highlight== -> Yellow highlighted text\n- `inline code` -> Monospace code\n- H~2~O -> Subscript (H2O)\n- x^2^ -> Superscript (x2)\n\nSTRUCTURE:\n- # to ###### -> 6 heading levels (H1-H6)\n- - or * -> Bullet lists\n- 1. 2. 3. -> Numbered lists\n-   - (2 spaces) -> Nested lists (unlimited levels)\n- | Tables | -> Professional tables\n- ```code blocks``` -> Monospace code blocks\n- > Blockquotes -> Indented quotes\n\nSPECIAL ELEMENTS:\n- --- or *** -> Horizontal line\n- <<PAGE-BREAK>> or <<< -> Page break\n- <<BOOKMARK:name>> -> Create Word bookmark for navigation\n- <<TOC>> -> Auto-generate table of contents (update in Word)\n- ![alt](url) -> Images from URLs\n- [Link](url) -> Hyperlinks\n\nNAVIGATION FEATURES:\n- Bookmarks: <<BOOKMARK:section_name>> creates Word bookmark\n- TOC: <<TOC>> generates table of contents from headings (requires Word to update page numbers)\n\nALIGNMENT:\n- <text< -> Left aligned\n- >text< or |>text<| -> Center aligned\n- >text> -> Right aligned\n- Can combine with headings: ># Centered Heading<\n\nADVANTAGES OVER V1:\n- Faster (0.5-2s vs 2-8s)\n- Much less code\n- High success rate\n- Automatic shareability\n- Simpler to use and debug\n\nAUTO-SHAREABLE: Documents automatically shareable with edit permissions.\n\nComplementary to v1 (API-based) - both tools available.",
       "platform": "google_docs",
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Document title",
-          "required": true
+          "description": "Document title"
         },
         "markdown_content": {
           "type": "string",
-          "description": "Markdown content (NO EMOJIS - plain text only). FULL support: **bold**, *italic*, __underline__, ~~strike~~, ==highlight==, H~2~O, x^2^, ![img](url), <<PAGE-BREAK>>, <<BOOKMARK:name>>, <<TOC>>, ->center<-, tables, nested lists, code blocks",
-          "required": true
+          "description": "Markdown content (NO EMOJIS - plain text only). FULL support: **bold**, *italic*, __underline__, ~~strike~~, ==highlight==, H~2~O, x^2^, ![img](url), <<PAGE-BREAK>>, <<BOOKMARK:name>>, <<TOC>>, ->center<-, tables, nested lists, code blocks"
         },
         "folder_id": {
           "type": "string",
@@ -92,8 +86,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Document title",
-          "required": true
+          "description": "Document title"
         }
       },
       "returns": {
@@ -108,8 +101,7 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "format": {
           "type": "string",
@@ -130,13 +122,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "query": {
           "type": "string",
-          "description": "Search query (keywords or phrases, case-insensitive)",
-          "required": true
+          "description": "Search query (keywords or phrases, case-insensitive)"
         },
         "context_chars": {
           "type": "integer",
@@ -163,13 +153,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "requests": {
           "type": "array",
-          "description": "Array of update requests (insertText, deleteContentRange, updateTextStyle, etc.)",
-          "required": true
+          "description": "Array of update requests (insertText, deleteContentRange, updateTextStyle, etc.)"
         }
       },
       "returns": {
@@ -184,18 +172,15 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "text": {
           "type": "string",
-          "description": "Text to insert",
-          "required": true
+          "description": "Text to insert"
         },
         "index": {
           "type": "integer",
-          "description": "Character index to insert at (1-based)",
-          "required": true
+          "description": "Character index to insert at (1-based)"
         }
       },
       "returns": {
@@ -210,18 +195,15 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "start_index": {
           "type": "integer",
-          "description": "Start index (1-based)",
-          "required": true
+          "description": "Start index (1-based)"
         },
         "end_index": {
           "type": "integer",
-          "description": "End index (exclusive)",
-          "required": true
+          "description": "End index (exclusive)"
         }
       },
       "returns": {
@@ -236,18 +218,15 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "start_index": {
           "type": "integer",
-          "description": "Start index",
-          "required": true
+          "description": "Start index"
         },
         "end_index": {
           "type": "integer",
-          "description": "End index",
-          "required": true
+          "description": "End index"
         },
         "bold": {
           "type": "boolean",
@@ -297,23 +276,19 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "index": {
           "type": "integer",
-          "description": "Index to insert table",
-          "required": true
+          "description": "Index to insert table"
         },
         "rows": {
           "type": "integer",
-          "description": "Number of rows",
-          "required": true
+          "description": "Number of rows"
         },
         "columns": {
           "type": "integer",
-          "description": "Number of columns",
-          "required": true
+          "description": "Number of columns"
         }
       },
       "returns": {
@@ -328,18 +303,15 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "index": {
           "type": "integer",
-          "description": "Index to insert image",
-          "required": true
+          "description": "Index to insert image"
         },
         "image_uri": {
           "type": "string",
-          "description": "Image URL (must be publicly accessible)",
-          "required": true
+          "description": "Image URL (must be publicly accessible)"
         },
         "width": {
           "type": "integer",
@@ -364,18 +336,15 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "text": {
           "type": "string",
-          "description": "Heading text",
-          "required": true
+          "description": "Heading text"
         },
         "level": {
           "type": "integer",
-          "description": "Heading level (1-6)",
-          "required": true
+          "description": "Heading level (1-6)"
         },
         "index": {
           "type": "integer",
@@ -395,18 +364,15 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "items": {
           "type": "array",
-          "description": "List items",
-          "required": true
+          "description": "List items"
         },
         "list_type": {
           "type": "string",
-          "description": "List type: BULLET or NUMBER",
-          "required": true
+          "description": "List type: BULLET or NUMBER"
         },
         "index": {
           "type": "integer",
@@ -426,13 +392,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "index": {
           "type": "integer",
-          "description": "Index to insert page break",
-          "required": true
+          "description": "Index to insert page break"
         }
       },
       "returns": {
@@ -447,18 +411,15 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "find_text": {
           "type": "string",
-          "description": "Text to find",
-          "required": true
+          "description": "Text to find"
         },
         "replace_text": {
           "type": "string",
-          "description": "Replacement text",
-          "required": true
+          "description": "Replacement text"
         },
         "match_case": {
           "type": "boolean",
@@ -479,13 +440,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "text": {
           "type": "string",
-          "description": "Text to append",
-          "required": true
+          "description": "Text to append"
         }
       },
       "returns": {
@@ -500,13 +459,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "content": {
           "type": "string",
-          "description": "Content to write/replace (depends on mode)",
-          "required": true
+          "description": "Content to write/replace (depends on mode)"
         },
         "mode": {
           "type": "string",
@@ -537,8 +494,7 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         }
       },
       "returns": {
@@ -553,8 +509,7 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "position": {
           "type": "string",
@@ -587,8 +542,7 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         }
       },
       "returns": {
@@ -603,8 +557,7 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         }
       },
       "returns": {
@@ -619,13 +572,11 @@
       "parameters": {
         "template_id": {
           "type": "string",
-          "description": "Template document ID",
-          "required": true
+          "description": "Template document ID"
         },
         "title": {
           "type": "string",
-          "description": "New document title",
-          "required": true
+          "description": "New document title"
         },
         "variables": {
           "type": "object",
@@ -645,8 +596,7 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         }
       },
       "returns": {
@@ -661,23 +611,19 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Document ID",
-          "required": true
+          "description": "Document ID"
         },
         "name": {
           "type": "string",
-          "description": "Range name",
-          "required": true
+          "description": "Range name"
         },
         "start_index": {
           "type": "integer",
-          "description": "Start index",
-          "required": true
+          "description": "Start index"
         },
         "end_index": {
           "type": "integer",
-          "description": "End index",
-          "required": true
+          "description": "End index"
         }
       },
       "returns": {
@@ -692,8 +638,7 @@
       "parameters": {
         "report_title": {
           "type": "string",
-          "description": "Title for both document and spreadsheet (e.g., 'Q1 2025 Financial Report')",
-          "required": true
+          "description": "Title for both document and spreadsheet (e.g., 'Q1 2025 Financial Report')"
         },
         "charts_config": {
           "type": "array",
@@ -719,8 +664,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Title of the new spreadsheet",
-          "required": true
+          "description": "Title of the new spreadsheet"
         },
         "data": {
           "type": "array",
@@ -745,13 +689,11 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "The spreadsheet ID (from URL)",
-          "required": true
+          "description": "The spreadsheet ID (from URL)"
         },
         "range": {
           "type": "string",
-          "description": "Range in A1 notation (e.g., 'Sheet1!A1:D10' or just 'A1:D10')",
-          "required": true
+          "description": "Range in A1 notation (e.g., 'Sheet1!A1:D10' or just 'A1:D10')"
         }
       },
       "returns": {
@@ -766,18 +708,15 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "The spreadsheet ID",
-          "required": true
+          "description": "The spreadsheet ID"
         },
         "range": {
           "type": "string",
-          "description": "Range to append to (e.g., 'Sheet1!A:D')",
-          "required": true
+          "description": "Range to append to (e.g., 'Sheet1!A:D')"
         },
         "values": {
           "type": "array",
-          "description": "2D array of values to append. Example: [['Alice', 100], ['Bob', 200]]",
-          "required": true
+          "description": "2D array of values to append. Example: [['Alice', 100], ['Bob', 200]]"
         }
       },
       "returns": {
@@ -792,8 +731,7 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "The document ID",
-          "required": true
+          "description": "The document ID"
         }
       },
       "returns": {
@@ -808,18 +746,15 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Spreadsheet title (e.g., 'Q1 Sales Chart')",
-          "required": true
+          "description": "Spreadsheet title (e.g., 'Q1 Sales Chart')"
         },
         "chart_type": {
           "type": "string",
-          "description": "Chart type: column/bar/line/area/pie/scatter/combo/histogram/candlestick/bubble",
-          "required": true
+          "description": "Chart type: column/bar/line/area/pie/scatter/combo/histogram/candlestick/bubble"
         },
         "data": {
           "type": "array",
-          "description": "2D array of data. First column = labels/x-axis, remaining = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25]]",
-          "required": true
+          "description": "2D array of data. First column = labels/x-axis, remaining = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25]]"
         },
         "headers": {
           "type": "array",
@@ -844,13 +779,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Target Google Doc ID",
-          "required": true
+          "description": "Target Google Doc ID"
         },
         "chart_data": {
           "type": "object",
-          "description": "Chart data: {headers: [str], data: [[values]]}. Example: {headers: ['Month', 'Sales'], data: [['Jan', 100], ['Feb', 150]]}",
-          "required": true
+          "description": "Chart data: {headers: [str], data: [[values]]}. Example: {headers: ['Month', 'Sales'], data: [['Jan', 100], ['Feb', 150]]}"
         },
         "chart_type": {
           "type": "string",
@@ -882,8 +815,7 @@
       "parameters": {
         "prompt": {
           "type": "string",
-          "description": "Natural language description of document to create. Examples: 'Create a product requirements document for a mobile fitness app with sections for overview, features, technical specs, timeline', 'Write a professional project proposal for website redesign', 'Generate meeting minutes template'",
-          "required": true
+          "description": "Natural language description of document to create. Examples: 'Create a product requirements document for a mobile fitness app with sections for overview, features, technical specs, timeline', 'Write a professional project proposal for website redesign', 'Generate meeting minutes template'"
         },
         "tone": {
           "type": "string",
@@ -934,8 +866,7 @@
       "parameters": {
         "documents": {
           "type": "array",
-          "description": "Array of document configurations. Each can be: {'title': str, 'markdown_content': str} OR {'title': str, 'prompt': str, 'tone': str}. Example: [{'title': 'Q1 Report', 'markdown_content': '# Q1...'}, {'title': 'Q2 Report', 'prompt': 'Create Q2 financial report'}]",
-          "required": true
+          "description": "Array of document configurations. Each can be: {'title': str, 'markdown_content': str} OR {'title': str, 'prompt': str, 'tone': str}. Example: [{'title': 'Q1 Report', 'markdown_content': '# Q1...'}, {'title': 'Q2 Report', 'prompt': 'Create Q2 financial report'}]"
         },
         "share_with": {
           "type": "array",

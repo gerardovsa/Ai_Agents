@@ -25,6 +25,11 @@ try:
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
+    
+    # Suppress Google API discovery cache warning (harmless but verbose)
+    import logging
+    logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
+    
     HAS_GMAIL_API = True
 except ImportError:
     HAS_GMAIL_API = False
@@ -79,7 +84,8 @@ def _get_gmail_service(user_email=None, _user_id=None, _injected_credentials=Non
             )
             
             service = build('gmail', 'v1', credentials=credentials)
-            print(f"✅ Gmail service created with user {_user_id}'s credentials")
+            # Reduced logging verbosity - only log in debug mode
+            # print(f"✅ Gmail service created with user {_user_id}'s credentials")
             return service
             
         except Exception as e:

@@ -6,7 +6,7 @@ User login, registration, and Gmail OAuth integration
 """
 
 from flask import Blueprint, request, jsonify
-from auth.user_auth import user_auth_manager, require_auth
+from auth.user_auth import user_auth_manager, require_auth, UserAuthManager
 from shared.database_utils import get_database_connection, convert_sql_placeholders, is_using_supabase
 
 
@@ -563,4 +563,226 @@ def revoke_tokens():
         return jsonify({
             'success': False,
             'error': str(e)
+        }), 500
+
+
+@auth_bp.route('/credentials/<platform>', methods=['GET'])
+@require_auth
+def get_platform_credentials(platform):
+    """
+    Get ALL stored credentials for a platform (masked for display)
+    Supports multiple credentials per platform
+    
+    GET /api/auth/credentials/<platform>
+    Headers: Authorization: Bearer <token>
+    
+    Returns:
+        {
+            "success": true,
+            "has_credentials": true,
+            "credentials": [
+                {
+                    "id": 1,
+                    "credential_key": "API_KEY",
+                    "credential_value_masked": "sk-1****cdef",
+                    "account_name": "user@example.com",
+                    "is_active": true,
+                    "created_at": "2025-11-30T...",
+                    "settings": {...}
+                }
+            ]
+        }
+    """
+    try:
+        print(f"🔍 [GET CREDENTIALS] Platform: {platform}")
+        print(f"🔍 [GET CREDENTIALS] Request.user: {getattr(request, 'user', 'NOT SET')}")
+        
+        # Get user_id from request.user (set by @require_auth)
+        if not hasattr(request, 'user'):
+            print("❌ [GET CREDENTIALS] request.user not set by @require_auth")
+            return jsonify({
+                'success': False,
+                'error': 'Authentication required'
+            }), 401
+        
+        user_id = request.user.get('user_id') or request.user.get('id')
+        if not user_id:
+            print(f"❌ [GET CREDENTIALS] No user_id in request.user: {request.user}")
+            return jsonify({
+                'success': False,
+                'error': 'User ID not found'
+            }), 401
+        
+        print(f"✅ [GET CREDENTIALS] User ID: {user_id}")
+        
+        # Query database for ALL credentials for this platform
+        from shared.database_utils import get_database_connection
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                id,
+                credential_key,
+                credential_value,
+                credential_type,
+                metadata,
+                is_active,
+                created_at
+            FROM ai_infrastructure.user_platform_credentials
+            WHERE user_id = %s AND platform = %s
+            ORDER BY is_active DESC, created_at DESC
+        """, (user_id, platform))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        print(f"✅ [GET CREDENTIALS] Found {len(rows)} credential(s) for platform {platform}")
+        
+        if not rows:
+            return jsonify({
+                'success': True,
+                'has_credentials': False,
+                'credentials': []
+            })
+        
+        # Mask credentials for display
+        from AI_infrastructure.auth.credential_encryptor import get_encryptor
+        encryptor = get_encryptor()
+        
+        credentials_list = []
+        for row in rows:
+            cred_id, cred_key, cred_value, cred_type, metadata, is_active, created_at = row
+            
+            # Extract account name from metadata (email, username, account_name)
+            account_name = None
+            if metadata:
+                account_name = (
+                    metadata.get('email') or 
+                    metadata.get('account_name') or 
+                    metadata.get('username') or
+                    metadata.get('display_name')
+                )
+            
+            # Mask the credential value
+            masked_value = encryptor.mask_credential(cred_value) if cred_value else None
+            
+            credentials_list.append({
+                'id': cred_id,
+                'credential_key': cred_key,
+                'credential_value_masked': masked_value,
+                'credential_type': cred_type,
+                'account_name': account_name,
+                'is_active': is_active,
+                'created_at': created_at.isoformat() if created_at else None,
+                'metadata': metadata
+            })
+        
+        return jsonify({
+            'success': True,
+            'has_credentials': True,
+            'credentials': credentials_list
+        })
+        
+    except Exception as e:
+        print(f"❌ Get credentials error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@auth_bp.route('/credentials/test', methods=['POST'])
+@require_auth
+def test_credentials():
+    """
+    Test platform credentials with real API call
+    
+    POST /api/auth/credentials/test
+    {
+        "platform": "pinecone",
+        "credentials": {"API_KEY": "pcsk_..."},
+        "settings": {"index_name": "myindex"}
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Connected to Pinecone successfully",
+        "details": {"index_count": 1, ...},
+        "tested_at": "2025-11-29T12:30:00Z"
+    }
+    """
+    try:
+        data = request.get_json()
+        user_id = request.user_id  # From @require_auth decorator
+        
+        platform = data.get('platform')
+        credentials = data.get('credentials', {})
+        settings = data.get('settings', {})
+        
+        if not platform:
+            return jsonify({
+                'success': False,
+                'error': 'Platform not specified'
+            }), 400
+        
+        if not credentials:
+            return jsonify({
+                'success': False,
+                'error': 'Credentials not provided'
+            }), 400
+        
+        # Import credential tester
+        from auth.credential_tester import CredentialTester
+        from auth.credential_encryptor import get_encryptor
+        
+        # Decrypt credentials if encrypted
+        encryptor = get_encryptor()
+        decrypted_credentials = encryptor.decrypt_dict(credentials)
+        
+        # Test credentials
+        tester = CredentialTester()
+        result = tester.test_credential(platform, decrypted_credentials, settings)
+        
+        # Add timestamp
+        from datetime import datetime
+        result['tested_at'] = datetime.now().isoformat()
+        result['platform'] = platform
+        result['user_id'] = user_id
+        
+        # Log test result
+        print(f"{'✅' if result['success'] else '❌'} [CREDENTIAL TEST] User {user_id} tested {platform}: {result['message']}")
+        
+        # Update last_tested timestamp in database
+        if result['success']:
+            try:
+                conn = get_database_connection('ai_infrastructure')
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    UPDATE ai_infrastructure.user_platform_credentials
+                    SET last_tested_at = NOW(),
+                        updated_at = NOW()
+                    WHERE user_id = %s AND platform = %s
+                ''', (user_id, platform))
+                
+                conn.commit()
+                conn.close()
+            except Exception as db_error:
+                print(f"⚠️ Failed to update last_tested timestamp: {db_error}")
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f'❌ [TEST CREDENTIALS] Error: {e}')
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Credential test failed'
         }), 500

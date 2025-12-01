@@ -127,6 +127,12 @@ def synergy_smart_project_tracker(
             except json.JSONDecodeError:
                 raise SynergyError(f"Invalid JSON for tags: {tags}")
         
+        if initial_milestones and isinstance(initial_milestones, str):
+            try:
+                initial_milestones = json.loads(initial_milestones)
+            except json.JSONDecodeError:
+                raise SynergyError(f"Invalid JSON for initial_milestones: {initial_milestones}")
+        
         # Auto-generate description if not provided
         if not description:
             platform_str = ", ".join(platforms_involved)
@@ -449,6 +455,93 @@ def synergy_list_sessions(
         
     except requests.exceptions.RequestException as e:
         raise SynergyError(f"Failed to list sessions: {str(e)}")
+
+
+def synergy_search_sessions(
+    query: Optional[str] = None,
+    platform: Optional[str] = None,
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    column: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Search sessions by title, description, tags, or platform
+    
+    Use this tool to find specific sessions when you know keywords or platforms
+    but not the exact session ID. Searches across:
+    - Session title
+    - Description text
+    - Tags
+    - Platform names
+    
+    Args:
+        query: Search term to find in title/description/tags (optional if platform provided)
+        platform: Filter by specific platform (gmail, sheets, docs, etc.)
+        status: Filter by status (active|completed|archived)
+        priority: Filter by priority (low|medium|high|critical)
+        column: Filter by Kanban column (backlog|in_progress|review|done)
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - count: int (number of matches)
+        - sessions: List[Dict] (matching sessions)
+        - query: str (search term used)
+        - filters_applied: Dict (filters that were active)
+        
+    Raises:
+        SynergyError: If API call fails
+        
+    Examples:
+        # Search for email-related projects
+        synergy_search_sessions(query="email automation")
+        
+        # Find all Gmail projects
+        synergy_search_sessions(platform="gmail")
+        
+        # Search with filters
+        synergy_search_sessions(
+            query="dashboard",
+            priority="high",
+            column="in_progress"
+        )
+    """
+    try:
+        if not query and not platform:
+            raise SynergyError("Either query or platform parameter is required")
+        
+        params = {}
+        if query:
+            params["query"] = query
+        if platform:
+            params["platform"] = platform
+        if status:
+            params["status"] = status
+        if priority:
+            params["priority"] = priority
+        if column:
+            params["column"] = column
+        
+        response = requests.get(
+            f"{SYNERGY_API_BASE}/search",
+            params=params,
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "count": result.get("count", 0),
+            "sessions": result.get("sessions", []),
+            "query": query,
+            "filters_applied": result.get("filters_applied", {})
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to search sessions: {str(e)}")
 
 
 def synergy_get_session(

@@ -9,18 +9,15 @@
       "parameters": {
         "to": {
           "type": "array",
-          "description": "Array of recipient email addresses",
-          "required": true
+          "description": "Array of recipient email addresses"
         },
         "subject": {
           "type": "string",
-          "description": "Email subject",
-          "required": true
+          "description": "Email subject"
         },
         "body": {
           "type": "string",
-          "description": "Email body (plain text or HTML)",
-          "required": true
+          "description": "Email body (plain text or HTML)"
         },
         "cc": {
           "type": "array",
@@ -66,18 +63,15 @@
       "parameters": {
         "to": {
           "type": "array",
-          "description": "Recipient emails",
-          "required": true
+          "description": "Recipient emails"
         },
         "subject": {
           "type": "string",
-          "description": "Email subject",
-          "required": true
+          "description": "Email subject"
         },
         "body": {
           "type": "string",
-          "description": "Email body",
-          "required": true
+          "description": "Email body"
         },
         "cc": {
           "type": "array",
@@ -108,8 +102,7 @@
       "parameters": {
         "draft_id": {
           "type": "string",
-          "description": "Draft ID to send",
-          "required": true
+          "description": "Draft ID to send"
         }
       },
       "returns": {
@@ -157,8 +150,7 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Message ID",
-          "required": true
+          "description": "Message ID"
         },
         "format": {
           "type": "string",
@@ -179,13 +171,11 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Message ID",
-          "required": true
+          "description": "Message ID"
         },
         "attachment_id": {
           "type": "string",
-          "description": "Attachment ID",
-          "required": true
+          "description": "Attachment ID"
         }
       },
       "returns": {
@@ -200,8 +190,7 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Message ID",
-          "required": true
+          "description": "Message ID"
         },
         "permanent": {
           "type": "boolean",
@@ -222,8 +211,7 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Message ID",
-          "required": true
+          "description": "Message ID"
         },
         "add_label_ids": {
           "type": "array",
@@ -248,8 +236,7 @@
       "parameters": {
         "message_ids": {
           "type": "array",
-          "description": "Array of message IDs",
-          "required": true
+          "description": "Array of message IDs"
         }
       },
       "returns": {
@@ -264,8 +251,7 @@
       "parameters": {
         "message_ids": {
           "type": "array",
-          "description": "Array of message IDs",
-          "required": true
+          "description": "Array of message IDs"
         }
       },
       "returns": {
@@ -280,8 +266,7 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Message ID",
-          "required": true
+          "description": "Message ID"
         }
       },
       "returns": {
@@ -296,8 +281,7 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Message ID",
-          "required": true
+          "description": "Message ID"
         }
       },
       "returns": {
@@ -322,8 +306,7 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "Label name",
-          "required": true
+          "description": "Label name"
         },
         "label_list_visibility": {
           "type": "string",
@@ -350,8 +333,7 @@
       "parameters": {
         "label_id": {
           "type": "string",
-          "description": "Label ID",
-          "required": true
+          "description": "Label ID"
         },
         "name": {
           "type": "string",
@@ -376,8 +358,7 @@
       "parameters": {
         "label_id": {
           "type": "string",
-          "description": "Label ID",
-          "required": true
+          "description": "Label ID"
         }
       },
       "returns": {
@@ -392,13 +373,11 @@
       "parameters": {
         "criteria": {
           "type": "object",
-          "description": "Filter criteria (from, to, subject, query, etc.)",
-          "required": true
+          "description": "Filter criteria (from, to, subject, query, etc.)"
         },
         "action": {
           "type": "object",
-          "description": "Actions to apply (addLabelIds, removeLabelIds, forward, etc.)",
-          "required": true
+          "description": "Actions to apply (addLabelIds, removeLabelIds, forward, etc.)"
         }
       },
       "returns": {
@@ -423,8 +402,7 @@
       "parameters": {
         "filter_id": {
           "type": "string",
-          "description": "Filter ID",
-          "required": true
+          "description": "Filter ID"
         }
       },
       "returns": {
@@ -449,8 +427,7 @@
       "parameters": {
         "query": {
           "type": "string",
-          "description": "Gmail search query (supports operators like from:, to:, subject:, has:attachment, after:, before:, newer_than:, older_than:, is:unread, is:starred, label:, filename:, larger:, smaller:)",
-          "required": true
+          "description": "Gmail search query (supports operators like from:, to:, subject:, has:attachment, after:, before:, newer_than:, older_than:, is:unread, is:starred, label:, filename:, larger:, smaller:)"
         },
         "max_results": {
           "type": "integer",
@@ -487,8 +464,7 @@
       "parameters": {
         "message_ids": {
           "type": "array",
-          "description": "Array of message IDs to delete",
-          "required": true
+          "description": "Array of message IDs to delete"
         }
       },
       "returns": {
@@ -503,8 +479,7 @@
       "parameters": {
         "message_ids": {
           "type": "array",
-          "description": "Array of message IDs",
-          "required": true
+          "description": "Array of message IDs"
         },
         "add_label_ids": {
           "type": "array",
@@ -529,8 +504,7 @@
       "parameters": {
         "topic_name": {
           "type": "string",
-          "description": "Google Cloud Pub/Sub topic name",
-          "required": true
+          "description": "Google Cloud Pub/Sub topic name"
         },
         "label_ids": {
           "type": "array",
@@ -560,8 +534,7 @@
       "parameters": {
         "thread_id": {
           "type": "string",
-          "description": "Thread ID",
-          "required": true
+          "description": "Thread ID"
         },
         "format": {
           "type": "string",
@@ -604,8 +577,7 @@
       "parameters": {
         "thread_id": {
           "type": "string",
-          "description": "Thread ID",
-          "required": true
+          "description": "Thread ID"
         }
       },
       "returns": {
@@ -620,8 +592,7 @@
       "parameters": {
         "start_history_id": {
           "type": "string",
-          "description": "History ID to start from",
-          "required": true
+          "description": "History ID to start from"
         },
         "history_types": {
           "type": "array",
@@ -647,23 +618,19 @@
       "parameters": {
         "from_email": {
           "type": "string",
-          "description": "Sender email address. Must be one of: gpoli1982@gmail.com, gerardo@vetsuccessacademy.com, gerardo@minivetguide.com, minivetguide@gmail.com, marketing@minivetguide.com",
-          "required": true
+          "description": "Sender email address. Must be one of: gpoli1982@gmail.com, gerardo@vetsuccessacademy.com, gerardo@minivetguide.com, minivetguide@gmail.com, marketing@minivetguide.com"
         },
         "to": {
           "type": "string",
-          "description": "Recipient email address",
-          "required": true
+          "description": "Recipient email address"
         },
         "subject": {
           "type": "string",
-          "description": "Email subject",
-          "required": true
+          "description": "Email subject"
         },
         "body": {
           "type": "string",
-          "description": "Email body (plain text)",
-          "required": true
+          "description": "Email body (plain text)"
         },
         "cc": {
           "type": "string",
@@ -688,23 +655,19 @@
       "parameters": {
         "from_email": {
           "type": "string",
-          "description": "Sender email address. Must be one of the configured accounts.",
-          "required": true
+          "description": "Sender email address. Must be one of the configured accounts."
         },
         "to": {
           "type": "string",
-          "description": "Recipient email address",
-          "required": true
+          "description": "Recipient email address"
         },
         "subject": {
           "type": "string",
-          "description": "Email subject",
-          "required": true
+          "description": "Email subject"
         },
         "html_body": {
           "type": "string",
-          "description": "Email body in HTML format",
-          "required": true
+          "description": "Email body in HTML format"
         },
         "plain_body": {
           "type": "string",

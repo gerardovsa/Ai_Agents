@@ -9,18 +9,15 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Spreadsheet title (e.g., 'Q1 Sales Dashboard', 'Revenue Analysis')",
-          "required": true
+          "description": "Spreadsheet title (e.g., 'Q1 Sales Dashboard', 'Revenue Analysis')"
         },
         "chart_type": {
           "type": "string",
-          "description": "Chart type: 'column', 'bar', 'line', 'area', 'pie', 'scatter', 'combo', 'histogram', 'candlestick', or 'bubble'",
-          "required": true
+          "description": "Chart type: 'column', 'bar', 'line', 'area', 'pie', 'scatter', 'combo', 'histogram', 'candlestick', or 'bubble'"
         },
         "data": {
           "type": "array",
-          "description": "2D array of chart data. First column = labels (x-axis/categories), remaining columns = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25], ['Mar', 12, 22]]",
-          "required": true
+          "description": "2D array of chart data. First column = labels (x-axis/categories), remaining columns = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25], ['Mar', 12, 22]]"
         },
         "headers": {
           "type": "array",
@@ -45,13 +42,11 @@
       "parameters": {
         "document_id": {
           "type": "string",
-          "description": "Target Google Doc ID where chart will be inserted",
-          "required": true
+          "description": "Target Google Doc ID where chart will be inserted"
         },
         "chart_data": {
           "type": "object",
-          "description": "Chart data structure with 'headers' (array) and 'data' (2D array). Example: {'headers': ['Month', 'Sales'], 'data': [['Jan', 100], ['Feb', 150]]}",
-          "required": true
+          "description": "Chart data structure with 'headers' (array) and 'data' (2D array). Example: {'headers': ['Month', 'Sales'], 'data': [['Jan', 100], ['Feb', 150]]}"
         },
         "chart_type": {
           "type": "string",

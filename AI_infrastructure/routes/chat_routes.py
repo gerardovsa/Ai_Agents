@@ -8,23 +8,23 @@ Endpoints:
 - POST /api/chat/message - Single message (non-streaming fallback)
 """
 
-from flask import Blueprint, request, Response, jsonify, stream_with_context
+from flask import Blueprint, request, Response, jsonify, stream_with_context, current_app
 import json
 import time
 from datetime import datetime
+from AI_infrastructure.core.universal_file_handler import UniversalFileHandler
+from AI_infrastructure.core.unified_session_manager import UnifiedSessionManager
 
-# Will be initialized by flask_app.py
+# Blueprint
 chat_bp = Blueprint('chat', __name__)
 
-# Global references (set by flask_app)
-session_manager = None
-ai_client = None
+def get_session_manager():
+    """Get session manager from Flask app config"""
+    return current_app.config.get('SESSION_MANAGER') or UnifiedSessionManager()
 
-def init_chat_routes(sm, aic):
-    """Initialize with session manager and AI client"""
-    global session_manager, ai_client
-    session_manager = sm
-    ai_client = aic
+def get_ai_client():
+    """Get AI client from Flask app config"""
+    return current_app.config.get('AI_CLIENT')
 
 
 @chat_bp.route('/stream', methods=['GET'])
@@ -119,11 +119,21 @@ def upload_files():
     session_id = request.form.get('session_id')
     message = request.form.get('message', '')
     files = request.files.getlist('files')
+    # Optional form parameters to control conversion behavior for office docs
+    # convert_pref: 'pdf' | 'image' | 'hybrid' | 'auto' (default 'auto')
+    convert_pref = request.form.get('convert_pref', 'auto')
+    image_format = request.form.get('image_format', 'png')
+    try:
+        image_dpi = int(request.form.get('image_dpi', 150))
+    except Exception:
+        image_dpi = 150
     
     if not session_id:
         return jsonify({'error': 'session_id required'}), 400
     
     processed_files = []
+    # Initialize UniversalFileHandler for binary/attachment processing
+    handler = UniversalFileHandler()
     
     for file in files:
         try:
@@ -135,25 +145,159 @@ def upload_files():
             content = file.read()
             file_size = len(content)
             
-            # Process based on type
+            # Process based on type. For text-like files, extract raw text.
             if file.content_type.startswith('text/'):
                 text_content = content.decode('utf-8')
+                processed_files.append({
+                    'name': file.filename,
+                    'type': file.content_type,
+                    'size': file_size,
+                    'content': text_content[:5000]
+                })
+                get_session_manager().add_file_context(session_id, file.filename, text_content)
+
             elif file.content_type == 'application/pdf':
                 text_content = extract_pdf_text(content)
+                processed_files.append({
+                    'name': file.filename,
+                    'type': file.content_type,
+                    'size': file_size,
+                    'content': text_content[:5000]
+                })
+                get_session_manager().add_file_context(session_id, file.filename, text_content)
+
             elif file.content_type == 'text/csv':
                 text_content = content.decode('utf-8')
+                processed_files.append({
+                    'name': file.filename,
+                    'type': file.content_type,
+                    'size': file_size,
+                    'content': text_content[:5000]
+                })
+                get_session_manager().add_file_context(session_id, file.filename, text_content)
+
             else:
-                text_content = f'[Binary file: {file.filename}]'
-            
-            processed_files.append({
-                'name': file.filename,
-                'type': file.content_type,
-                'size': file_size,
-                'content': text_content[:5000]  # Limit to 5KB per file
-            })
-            
-            # Save file context to session
-            session_manager.add_file_context(session_id, file.filename, text_content)
+                # Binary files (images, office docs, etc.) - use UniversalFileHandler
+                try:
+                    # SMART TWO-TIER STRATEGY:
+                    # Tier 1: Try converting to PDF for visual analysis (preserves images/charts)
+                    # Tier 2: If too large (>2000 tokens) or conversion fails, fall back to markdown extraction
+                    
+                    # Decide processing mode for this file
+                    mode = 'auto'
+                    try:
+                        # Access handler constants
+                        extractable = file.content_type in handler.TEXT_EXTRACTABLE_TYPES
+                        supported = handler._is_supported_by_anthropic(file.content_type)
+                    except Exception:
+                        extractable = False
+                        supported = False
+
+                    # Check if file is large (heuristic: spreadsheets >100KB or docs >500KB likely exceed 2000 tokens)
+                    is_large_spreadsheet = (
+                        file.content_type in [
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel',
+                            'text/csv'
+                        ] and file_size > 100 * 1024  # >100KB spreadsheet
+                    )
+                    is_large_document = (
+                        file.content_type in handler.TEXT_EXTRACTABLE_TYPES and 
+                        file_size > 500 * 1024  # >500KB doc
+                    )
+
+                    if extractable and not supported:
+                        # Office document or text file
+                        if convert_pref == 'image':
+                            mode = 'convert_image'
+                        elif convert_pref == 'hybrid':
+                            mode = 'hybrid'
+                        elif convert_pref == 'extract':
+                            # Explicitly requested markdown extraction
+                            mode = 'extract'
+                        elif is_large_spreadsheet or is_large_document:
+                            # Tier 2: Large file - extract to markdown directly (avoid token overflow)
+                            print(f"[INFO] Large file detected ({file_size} bytes) - extracting to markdown instead of PDF")
+                            mode = 'extract'
+                        elif convert_pref == 'auto' or convert_pref == 'pdf':
+                            # Tier 1: Default for office docs - convert to PDF for visual analysis
+                            mode = 'convert_pdf'
+
+                    # Call the universal handler with explicit options when needed
+                    conversion_result = handler.process_file(
+                        source='bytes',
+                        source_id={
+                            'filename': file.filename,
+                            'content_type': file.content_type,
+                            'data': content
+                        },
+                        mode=mode,
+                        image_format=image_format,
+                        image_dpi=image_dpi
+                    )
+                    
+                    # FALLBACK: If conversion resulted in huge token estimate (>2000), retry with extraction
+                    if conversion_result.get('success') and conversion_result.get('method') in ['convert_pdf', 'convert_image']:
+                        token_estimate = conversion_result.get('metadata', {}).get('token_estimate', 0)
+                        if token_estimate > 2000:
+                            print(f"[INFO] Conversion exceeded 2000 tokens ({token_estimate}) - retrying with markdown extraction")
+                            # Retry with extract mode
+                            conversion_result = handler.process_file(
+                                source='bytes',
+                                source_id={
+                                    'filename': file.filename,
+                                    'content_type': file.content_type,
+                                    'data': content
+                                },
+                                mode='extract',
+                                image_format=image_format,
+                                image_dpi=image_dpi
+                            )
+
+                    if conversion_result.get('success'):
+                        # Attach summary info and content_blocks if present
+                        processed_entry = {
+                            'name': file.filename,
+                            'type': file.content_type,
+                            'size': file_size,
+                            'method': conversion_result.get('method'),
+                            'metadata': conversion_result.get('metadata')
+                        }
+
+                        # Prefer content_block for single block, otherwise content_blocks
+                        if conversion_result.get('content_block'):
+                            processed_entry['content'] = conversion_result['content_block']
+                            # Save a text summary to session if available
+                            if conversion_result['content_block'].get('type') == 'text':
+                                get_session_manager().add_file_context(session_id, file.filename, conversion_result['content_block'].get('text', ''))
+                        elif conversion_result.get('content_blocks'):
+                            processed_entry['content'] = conversion_result['content_blocks']
+                            # Save first text block if exists
+                            for cb in conversion_result['content_blocks']:
+                                if cb.get('type') == 'text':
+                                    get_session_manager().add_file_context(session_id, file.filename, cb.get('text', ''))
+                                    break
+
+                        processed_files.append(processed_entry)
+                    else:
+                        # Fallback to storing a binary note
+                        text_content = f'[Binary file: {file.filename}]'
+                        processed_files.append({
+                            'name': file.filename,
+                            'type': file.content_type,
+                            'size': file_size,
+                            'content': text_content
+                        })
+                        get_session_manager().add_file_context(session_id, file.filename, text_content)
+                except Exception as e:
+                    print(f' File processing error (handler): {e}')
+                    processed_files.append({
+                        'name': file.filename,
+                        'type': file.content_type,
+                        'size': file_size,
+                        'content': f'[Processing error: {str(e)}]'
+                    })
+                    get_session_manager().add_file_context(session_id, file.filename, f'[Processing error: {str(e)}]')
             
         except Exception as error:
             print(f' File processing error: {error}')

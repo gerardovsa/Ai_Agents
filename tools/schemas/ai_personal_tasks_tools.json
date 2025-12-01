@@ -9,8 +9,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Task title - what needs to be done. Examples: 'Follow up with user about Gmail integration', 'Review Google Docs feedback', 'Test new features'",
-          "required": true
+          "description": "Task title - what needs to be done. Examples: 'Follow up with user about Gmail integration', 'Review Google Docs feedback', 'Test new features'"
         },
         "notes": {
           "type": "string",
@@ -83,8 +82,7 @@
       "parameters": {
         "task_id": {
           "type": "string",
-          "description": "ID of the task to update (from ai_list_my_tasks)",
-          "required": true
+          "description": "ID of the task to update (from ai_list_my_tasks)"
         },
         "title": {
           "type": "string",
@@ -127,8 +125,7 @@
       "parameters": {
         "task_id": {
           "type": "string",
-          "description": "ID of the task to complete (from ai_list_my_tasks)",
-          "required": true
+          "description": "ID of the task to complete (from ai_list_my_tasks)"
         },
         "completion_notes": {
           "type": "string",
@@ -173,13 +170,11 @@
       "parameters": {
         "project_name": {
           "type": "string",
-          "description": "Name of the project. Example: 'User Dashboard Redesign'",
-          "required": true
+          "description": "Name of the project. Example: 'User Dashboard Redesign'"
         },
         "task_list": {
           "type": "array",
-          "description": "List of task titles. Example: ['Review current design', 'Gather feedback', 'Create mockups', 'Implement changes', 'Test with users']",
-          "required": true
+          "description": "List of task titles. Example: ['Review current design', 'Gather feedback', 'Create mockups', 'Implement changes', 'Test with users']"
         },
         "due_date": {
           "type": "string",

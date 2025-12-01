@@ -45,6 +45,9 @@ from functools import wraps
 class UserAuthManager:
     """Manages user authentication, profiles, and workspace isolation"""
     
+    # Class-level flag to track if tables have been checked (prevents repeated logs)
+    _tables_initialized = False
+    
     def __init__(self, db_path: str = None):
         if db_path is None:
             from utils.db_path_helper import get_ai_infrastructure_db_path
@@ -135,7 +138,10 @@ class UserAuthManager:
         
         # Skip table creation on Supabase - tables already exist with correct PostgreSQL schema
         if is_using_supabase():
-            print("✅ [USER AUTH] Using Supabase - skipping table creation (tables already exist)")
+            # Only log once per application lifetime (not per UserAuthManager instance)
+            if not UserAuthManager._tables_initialized:
+                print("✅ [USER AUTH] Using Supabase - tables verified")
+                UserAuthManager._tables_initialized = True
             return
         
         max_retries = 5
@@ -743,10 +749,17 @@ class UserAuthManager:
                         'validation_errors': str(ve)
                     }
             
+            # SECURITY: Encrypt credentials before storage
+            from AI_infrastructure.auth.credential_encryptor import get_encryptor
+            encryptor = get_encryptor()
+            encrypted_credentials = encryptor.encrypt_dict(credentials_dict)
+            print(f"🔐 Encrypted {len(encrypted_credentials)} credential fields for {platform}")
+            
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
-                credentials_json = json.dumps(credentials_dict)
+                # Use encrypted credentials for storage
+                credentials_json = json.dumps(encrypted_credentials)
                 settings_json = json.dumps(settings_dict) if settings_dict else '{}'
                 
                 # Calculate credential hash for change detection (SHA256)
@@ -942,7 +955,14 @@ class UserAuthManager:
                         print(f"⚠️ Platform credentials lookup failed: {e}")
                         result = {}
             
-            # ✅ Log successful credential access
+            # SECURITY: Auto-decrypt credentials before returning
+            if result:
+                from AI_infrastructure.auth.credential_encryptor import get_encryptor
+                encryptor = get_encryptor()
+                result = encryptor.decrypt_dict(result)
+                print(f"🔓 Decrypted {len(result)} credential fields for {platform}")
+            
+            # ✅ Log successful credential access with audit trail
             if result:
                 self.log_credential_access(
                     user_id=user_id,
@@ -1255,7 +1275,8 @@ class UserAuthManager:
                     'metadata': metadata
                 }
                 
-                print(f"✅ Retrieved Google OAuth credentials for user {user_id}")
+                # Reduced logging verbosity - only log in debug mode
+                # print(f"✅ Retrieved Google OAuth credentials for user {user_id}")
                 return credentials
                 
         except Exception as e:

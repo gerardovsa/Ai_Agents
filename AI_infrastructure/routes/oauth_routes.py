@@ -26,6 +26,34 @@ from AI_infrastructure.utils.oauth_url_helper import get_frontend_url, capture_o
 oauth_bp = Blueprint('oauth', __name__, url_prefix='/api/oauth')
 
 
+@oauth_bp.route('/google/login', methods=['GET'])
+def google_login():
+    """
+    Alias for /workspace/start - Start Google OAuth flow
+    
+    GET /api/oauth/google/login
+    
+    Redirects to the unified OAuth workspace flow
+    """
+    # Redirect to the main workspace OAuth endpoint
+    return redirect(url_for('oauth.oauth_workspace_start', mode='signin'))
+
+
+@oauth_bp.route('/microsoft/login', methods=['GET'])
+def microsoft_login():
+    """
+    Alias for Microsoft OAuth flow
+    
+    GET /api/oauth/microsoft/login
+    
+    TODO: Implement Microsoft OAuth flow
+    """
+    return jsonify({
+        'success': False,
+        'error': 'Microsoft OAuth not yet implemented. Use /api/oauth/workspace/start'
+    }), 501
+
+
 @oauth_bp.route('/workspace/start', methods=['GET'])
 def oauth_workspace_start():
     """

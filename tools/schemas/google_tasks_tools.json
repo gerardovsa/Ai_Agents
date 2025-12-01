@@ -10,13 +10,11 @@
       "parameters": {
         "project_name": {
           "type": "string",
-          "description": "Name of the project (becomes parent task). Examples: 'Q4 Website Redesign', 'Product Launch Campaign', 'Team Offsite Planning'",
-          "required": true
+          "description": "Name of the project (becomes parent task). Examples: 'Q4 Website Redesign', 'Product Launch Campaign', 'Team Offsite Planning'"
         },
         "tasks_list": {
           "type": "array",
-          "description": "Array of task objects with 'title' (required), 'notes' (optional), 'due' (optional RFC 3339 date). Example: [{'title': 'Design mockups', 'notes': 'Use Figma', 'due': '2025-10-30T17:00:00.000Z'}, {'title': 'Get approval'}, {'title': 'Implement changes'}]",
-          "required": true
+          "description": "Array of task objects with 'title' (required), 'notes' (optional), 'due' (optional RFC 3339 date). Example: [{'title': 'Design mockups', 'notes': 'Use Figma', 'due': '2025-10-30T17:00:00.000Z'}, {'title': 'Get approval'}, {'title': 'Implement changes'}]"
         },
         "task_list_id": {
           "type": "string",
@@ -52,8 +50,7 @@
       "parameters": {
         "task_ids": {
           "type": "array",
-          "description": "Array of task IDs to complete. Example: ['task_abc123', 'task_def456', 'task_ghi789']",
-          "required": true
+          "description": "Array of task IDs to complete. Example: ['task_abc123', 'task_def456', 'task_ghi789']"
         },
         "task_list_id": {
           "type": "string",
@@ -118,8 +115,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Task list title",
-          "required": true
+          "description": "Task list title"
         }
       },
       "returns": {
@@ -134,8 +130,7 @@
       "parameters": {
         "task_list_id": {
           "type": "string",
-          "description": "Task list ID",
-          "required": true
+          "description": "Task list ID"
         }
       },
       "returns": {
@@ -150,8 +145,7 @@
       "parameters": {
         "task_list_id": {
           "type": "string",
-          "description": "Task list ID to delete",
-          "required": true
+          "description": "Task list ID to delete"
         }
       },
       "returns": {
@@ -192,8 +186,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Task title",
-          "required": true
+          "description": "Task title"
         },
         "task_list_id": {
           "type": "string",
@@ -228,8 +221,7 @@
       "parameters": {
         "task_id": {
           "type": "string",
-          "description": "Task ID to update",
-          "required": true
+          "description": "Task ID to update"
         },
         "task_list_id": {
           "type": "string",
@@ -269,8 +261,7 @@
       "parameters": {
         "task_id": {
           "type": "string",
-          "description": "Task ID to complete",
-          "required": true
+          "description": "Task ID to complete"
         },
         "task_list_id": {
           "type": "string",
@@ -290,8 +281,7 @@
       "parameters": {
         "task_id": {
           "type": "string",
-          "description": "Task ID to delete",
-          "required": true
+          "description": "Task ID to delete"
         },
         "task_list_id": {
           "type": "string",

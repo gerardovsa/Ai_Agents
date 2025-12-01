@@ -100,6 +100,151 @@ python test_progressive_with_google.py
 
 ---
 
+## 🔍 Module Analyzer Tool (November 2025) ✅ COMPLETE
+
+**FEATURE**: Comprehensive CLI tool for analyzing module architecture, V3.0 compliance, and live API endpoint testing.
+
+### Overview:
+- **Location**: `scripts/testing/module_analyzer.py` (1,071 lines)
+- **Purpose**: Automated compliance checking and architecture analysis for UI modules
+- **Score System**: 0-100 compliance score with detailed breakdown
+- **Multi-AI Ready**: Parameterized CLI for concurrent execution without conflicts
+
+### Usage:
+```powershell
+# Basic analysis (static only)
+python scripts/testing/module_analyzer.py UI/modules_external/inhouse-kanban
+
+# With live API endpoint testing
+python scripts/testing/module_analyzer.py UI/modules_external/inhouse-kanban --test-endpoints
+
+# Custom endpoints and configuration
+python scripts/testing/module_analyzer.py UI/modules_external/inhouse-kanban \
+  --test-endpoints \
+  --endpoints /api/inhouse-kanban/jobs,/api/inhouse-kanban/stages \
+  --base-url http://localhost:5001 \
+  --token abc123 \
+  --timeout 3
+```
+
+### Command-Line Parameters:
+```
+python scripts/testing/module_analyzer.py <module_path> [options]
+
+Required:
+  module_path              Path to module folder (e.g., UI/modules_external/inhouse-kanban)
+
+Optional:
+  --test-endpoints         Enable live API endpoint testing (HTTP requests)
+  --endpoints <list>       Comma-separated endpoints to test (e.g., /api/test,/api/health)
+  --base-url <url>         API server URL (default: http://localhost:5001)
+  --token <token>          Authentication token for API requests
+  --timeout <seconds>      Request timeout in seconds (default: 5)
+  --output <path>          Custom output file path
+```
+
+### Analysis Checks (10 Total):
+1. **File Structure** - Counts manifest, JS, CSS, HTML, docs, backups
+2. **Manifest V3.0 Compliance** - Validates required fields (id, name, version, type, category)
+3. **Architecture Pattern Detection** - Identifies Architecture 1 (separate files) vs Architecture 2 (inline HTML-in-JS)
+4. **Sidebar Integration** - Checks for SidebarManager.register() usage
+5. **API Endpoint Detection** - Finds fetch() calls and API routes (regex patterns)
+6. **Live API Endpoint Testing** - Makes HTTP requests to verify endpoints are reachable (optional, non-blocking)
+7. **UI Rendering** - Validates initialize(), render(), getSubTabContainer() methods
+8. **Connections** - Detects databases (Supabase, PostgreSQL, SQL Server), external APIs (Shopify, Salesforce, Stripe, OpenAI), WebSockets
+9. **Documentation** - Checks for README.md, integration guides, API docs
+10. **Best Practices** - Analyzes try-catch usage, async/await, console.log frequency, inline styles
+
+### Output:
+```json
+{
+  "module_name": "inhouse-kanban",
+  "module_path": "C:\\Users\\gpoli\\GIT\\AI_agents\\UI\\modules_external\\inhouse-kanban",
+  "timestamp": "2025-11-29T18:03:21",
+  "checks": {
+    "file_structure": { "status": "PASS", "js_files": 6, "css_files": 3, ... },
+    "manifest_compliance": { "version": "3.0", "status": "PASS", ... },
+    "architecture_pattern": { "architecture": "Architecture 1", "confidence": 80, ... },
+    "sidebar_integration": { "uses_sidebar_manager": true, "status": "PASS", ... },
+    "api_endpoints": { "total_endpoints": 1, "endpoints": [...], ... },
+    "api_endpoint_testing": { "passed": 0, "failed": 1, "skipped": 0, ... },
+    "ui_rendering": { "has_initialize": true, "has_render_method": false, "status": "PARTIAL", ... },
+    "connections": { "databases": ["Supabase", "SQL Server"], "external_apis": [], ... },
+    "documentation": { "has_readme": true, "total_docs": 14, ... },
+    "best_practices": { "good_practices": 23, "issues": 5, ... }
+  },
+  "issues": [],
+  "warnings": ["API Testing: 1 endpoints returned errors"],
+  "recommendations": ["Many documentation files (14), consider consolidation", ...],
+  "compliance_score": 93
+}
+```
+
+### Timestamped Output Files:
+- **Format**: `modulename_analysis_YYYYMMDD_HHMMSS.json`
+- **Example**: `inhouse-kanban_analysis_20251129_180323.json`
+- **Benefit**: Multiple AI agents can analyze different modules simultaneously without file conflicts
+- **Location**: Saved in the module's root folder (e.g., `UI/modules_external/inhouse-kanban/`)
+
+### Compliance Scoring (0-100):
+- **90-100**: ✅ EXCELLENT - Full V3.0 compliance
+- **80-89**: ✅ EXCELLENT - Minor improvements needed
+- **70-79**: ⚠️ GOOD - Some V3.0 features missing
+- **60-69**: ⚠️ GOOD - Needs modernization
+- **40-59**: ⚠️ NEEDS IMPROVEMENT - Major gaps
+- **0-39**: ❌ POOR - Critical compliance issues
+
+### Exit Codes (CI/CD Integration):
+- **0**: Score ≥70 (Success)
+- **1**: Score 40-69 (Needs improvement)
+- **2**: Score <40 (Poor compliance)
+
+### Multi-AI Agent Usage:
+```powershell
+# AI Agent 1 - Analyze InHouse Kanban with API testing
+python module_analyzer.py UI/modules_external/inhouse-kanban --test-endpoints
+
+# AI Agent 2 - Analyze Communication Hub (5 seconds later)
+python module_analyzer.py UI/modules_external/communication-hub --test-endpoints
+
+# AI Agent 3 - Analyze Settings (static only, 10 seconds later)
+python module_analyzer.py UI/modules_internal/settings
+
+# Result: 3 separate JSON files with unique timestamps, no conflicts
+```
+
+### Key Features:
+- ✅ **Non-blocking API tests** - Reports errors in JSON, doesn't crash analyzer
+- ✅ **Parameterized CLI** - AI agents pass parameters without code modification
+- ✅ **Timestamped outputs** - No file overwrites, concurrent execution safe
+- ✅ **Windows compatible** - No Unicode emojis in code (uses ASCII text)
+- ✅ **Comprehensive analysis** - 10 distinct checks covering all aspects
+- ✅ **CI/CD ready** - Exit codes for automated pipelines
+
+### Live API Testing (Optional):
+When `--test-endpoints` flag is used, the analyzer makes HTTP requests to detected endpoints:
+- **Default timeout**: 3 seconds (configurable with `--timeout`)
+- **Status interpretation**:
+  - 200 OK → ✅ PASSED
+  - 401 Unauthorized → ✅ PASSED (auth required, but endpoint exists)
+  - 404 Not Found → ❌ FAILED (endpoint doesn't exist)
+  - 500+ Server Error → ❌ FAILED (server issue)
+  - Timeout/Connection Error → ⏭️ SKIPPED (server not running)
+- **Non-blocking**: Errors reported in JSON, analyzer continues running
+- **Response times**: Average response time calculated for performance insights
+
+### Integration with Module Architect:
+The Module Analyzer is referenced in `.github/prompts/Module Architect.prompt.md` (lines 306+) for automated compliance checking during module development.
+
+### Files:
+- `scripts/testing/module_analyzer.py` - Main analyzer tool (1,071 lines)
+- `UI/modules_internal/docs/module_analyzer.py` - Documentation copy
+- `UI/modules_internal/docs/MODULE_ANALYZER_QUICK_START.md` - Quick reference guide
+
+### Status: ✅ PRODUCTION READY - Tested on InHouse Kanban (93/100 score)
+
+---
+
 ## 🤖 Visual Automation Workflows (November 2025)
 
 **NOTE**: Complete workflow creation instructions are in the tool schema `automation_tools.json` under `automation_create_workflow` description. The AI agent receives these instructions when the tool is loaded.
@@ -1929,6 +2074,6 @@ When completing tasks:
 # CRITICAL RULE:  NO EMOJIS IN YOUR CODE or TEST SCRIPTS - NO FUKING EMOJIS - the cause UnicodeEncodeError!!!
 
 
-**Last Updated:** November 1, 2025  
-**Version:** 1.2.0  
-**Status:** Production Ready (with Calculator Integration + Google Sheets Markdown Formatting)
+**Last Updated:** November 29, 2025  
+**Version:** 1.3.0  
+**Status:** Production Ready (with Calculator Integration + Google Sheets Markdown Formatting + Module Analyzer Tool)

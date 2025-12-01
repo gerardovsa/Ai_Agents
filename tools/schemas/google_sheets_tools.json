@@ -9,8 +9,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Spreadsheet title",
-          "required": true
+          "description": "Spreadsheet title"
         },
         "headers": {
           "type": "array",
@@ -328,8 +327,7 @@
       "parameters": {
         "spreadsheets_config": {
           "type": "array",
-          "description": "List of spreadsheet configurations. Each config is an object with: title (required), headers (optional), data (optional), parse_markdown (optional, default false), auto_borders (optional, default true)",
-          "required": true
+          "description": "List of spreadsheet configurations. Each config is an object with: title (required), headers (optional), data (optional), parse_markdown (optional, default false), auto_borders (optional, default true)"
         }
       },
       "returns": {
@@ -465,13 +463,11 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Target spreadsheet ID (from URL or create response)",
-          "required": true
+          "description": "Target spreadsheet ID (from URL or create response)"
         },
         "data": {
           "type": "array",
-          "description": "2D array of data to append (e.g., [['Widget C', 39.99, 75]])",
-          "required": true
+          "description": "2D array of data to append (e.g., [['Widget C', 39.99, 75]])"
         },
         "sheet_name": {
           "type": "string",
@@ -492,8 +488,7 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Source spreadsheet ID",
-          "required": true
+          "description": "Source spreadsheet ID"
         },
         "range_name": {
           "type": "string",
@@ -514,8 +509,7 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Source spreadsheet ID (required)",
-          "required": true
+          "description": "Source spreadsheet ID (required)"
         },
         "range": {
           "type": "string",
@@ -582,8 +576,7 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID (required)",
-          "required": true
+          "description": "Spreadsheet ID (required)"
         },
         "range": {
           "type": "string",
@@ -669,8 +662,7 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID (required)",
-          "required": true
+          "description": "Spreadsheet ID (required)"
         },
         "range": {
           "type": "string",
@@ -761,18 +753,15 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID (required)",
-          "required": true
+          "description": "Spreadsheet ID (required)"
         },
         "range_name": {
           "type": "string",
-          "description": "A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10') (required)",
-          "required": true
+          "description": "A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10') (required)"
         },
         "data": {
           "type": "array",
-          "description": "2D array of values to write [[row1], [row2], ...] (required)",
-          "required": true
+          "description": "2D array of values to write [[row1], [row2], ...] (required)"
         },
         "mode": {
           "type": "string",
@@ -803,13 +792,11 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID (required)",
-          "required": true
+          "description": "Spreadsheet ID (required)"
         },
         "range_name": {
           "type": "string",
-          "description": "A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10') (required)",
-          "required": true
+          "description": "A1 notation range (e.g., 'A1:C10' or 'Sheet1!A1:C10') (required)"
         },
         "sheet_name": {
           "type": "string",

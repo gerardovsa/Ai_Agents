@@ -97,7 +97,11 @@ UNIFIED_SCOPES = [
     'https://www.googleapis.com/auth/forms.body',
     'https://www.googleapis.com/auth/forms.responses.readonly',
     # Drive (for Forms file creation)
-    'https://www.googleapis.com/auth/drive.file'
+    'https://www.googleapis.com/auth/drive.file',
+    # Google Apps Script API
+    'https://www.googleapis.com/auth/script.projects',
+    'https://www.googleapis.com/auth/script.processes',
+    'https://www.googleapis.com/auth/script.deployments'
 ]
 
 # API versions

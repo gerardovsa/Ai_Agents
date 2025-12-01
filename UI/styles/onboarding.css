@@ -1,0 +1,1032 @@
+/**
+ * FILE: UI/styles/onboarding.css
+ * PURPOSE: Complete styling for onboarding system components
+ * 
+ * COMPONENTS STYLED:
+ * - First-Run Experience (FRE) Modal
+ * - Onboarding Checklist Widget
+ * - Shepherd.js Tour Theme
+ * - Learning Module Modal
+ * - Toast Notifications
+ * - Activation Success Modal
+ * 
+ * DEPENDENCIES:
+ * - Font Awesome (icons)
+ * - Shepherd.js (tour library)
+ * 
+ * NOTES:
+ * - Uses CSS variables for easy theming
+ * - Mobile-first responsive design
+ * - Smooth animations and transitions
+ * - Accessible focus states
+ * 
+ * LAST MODIFIED: 2025-11-29 - Initial creation
+ */
+
+/* ==========================================================================
+   CSS VARIABLES & THEME
+   ========================================================================== */
+
+:root {
+  /* Primary Colors */
+  --onboarding-primary: #667eea;
+  --onboarding-primary-dark: #5568d3;
+  --onboarding-primary-light: #8b9cf6;
+
+  /* Gradient */
+  --onboarding-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  /* Status Colors */
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  --info-color: #3b82f6;
+
+  /* Neutral Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --border-color: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+
+  /* Overlays */
+  --backdrop-color: rgba(0, 0, 0, 0.75);
+  --modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+  /* Z-Index Layers */
+  --z-modal: 10000;
+  --z-tour: 9999;
+  --z-checklist: 9000;
+  --z-toast: 9001;
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bounce {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(-10px);
+  }
+
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes celebrate {
+  0% {
+    transform: scale(1);
+  }
+
+  25% {
+    transform: scale(1.2) rotate(-5deg);
+  }
+
+  50% {
+    transform: scale(1.2) rotate(5deg);
+  }
+
+  75% {
+    transform: scale(1.2) rotate(-5deg);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   FIRST-RUN EXPERIENCE MODAL
+   ========================================================================== */
+
+.fre-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.fre-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--backdrop-color);
+  backdrop-filter: blur(8px);
+}
+
+.fre-container {
+  position: relative;
+  background: var(--onboarding-gradient);
+  border-radius: 24px;
+  padding: 24px;
+  max-width: 100%;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--modal-shadow);
+  animation: slideUp 0.4s ease-out;
+}
+
+.fre-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fre-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.fre-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.fre-logo {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 32px;
+  color: white;
+}
+
+.fre-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 12px 0;
+}
+
+.fre-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.fre-features {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.fre-feature {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s;
+}
+
+.fre-feature:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fre-feature-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+  color: white;
+}
+
+.fre-feature h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 8px 0;
+}
+
+.fre-feature p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.fre-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.fre-btn {
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.fre-btn-primary {
+  background: white;
+  color: var(--onboarding-primary);
+}
+
+.fre-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.fre-btn-secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.fre-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.fre-footer {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   ONBOARDING CHECKLIST WIDGET
+   ========================================================================== */
+
+.onboarding-checklist {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: var(--z-checklist);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Collapsed Badge */
+.checklist-badge {
+  width: 60px;
+  height: 60px;
+  background: var(--onboarding-gradient);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.checklist-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 24px rgba(102, 126, 234, 0.5);
+}
+
+.badge-icon {
+  color: white;
+  font-size: 24px;
+  position: absolute;
+}
+
+.badge-progress {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
+.progress-count {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  background: var(--onboarding-primary);
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 2px solid white;
+}
+
+.progress-ring svg {
+  transform: rotate(-90deg);
+}
+
+.progress-circle {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+/* Expanded Panel */
+.checklist-panel {
+  display: none;
+  width: 360px;
+  background: var(--bg-primary);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.onboarding-checklist:not(.collapsed) .checklist-badge {
+  display: none;
+}
+
+.onboarding-checklist:not(.collapsed) .checklist-panel {
+  display: block;
+}
+
+/* Header */
+.checklist-header {
+  background: var(--onboarding-gradient);
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checklist-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checklist-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.checklist-action-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checklist-action-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Progress Bar */
+.checklist-progress {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--onboarding-gradient);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Checklist Items */
+.checklist-items {
+  list-style: none;
+  margin: 0;
+  padding: 16px 20px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.checklist-item:hover {
+  background: var(--bg-secondary);
+}
+
+.checklist-item.completed {
+  opacity: 0.6;
+}
+
+.checklist-item.completing {
+  animation: celebrate 0.6s ease-out;
+}
+
+.item-checkbox {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.item-checkbox .fa-circle {
+  color: var(--border-color);
+  font-size: 24px;
+}
+
+.item-checkbox .fa-check-circle {
+  color: var(--success-color);
+  font-size: 24px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.3s;
+}
+
+.checklist-item.completed .item-checkbox .fa-circle {
+  opacity: 0;
+}
+
+.checklist-item.completed .item-checkbox .fa-check-circle {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.item-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-label {
+  font-size: 14px;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.checklist-item.completed .item-label {
+  text-decoration: line-through;
+}
+
+.item-xp {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--onboarding-primary);
+  background: #ede9fe;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* Footer */
+.checklist-footer {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.xp-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--onboarding-primary);
+}
+
+.xp-display .fa-star {
+  font-size: 18px;
+}
+
+.xp-count {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.xp-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.checklist-help-btn {
+  background: white;
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checklist-help-btn:hover {
+  border-color: var(--onboarding-primary);
+  color: var(--onboarding-primary);
+}
+
+/* ==========================================================================
+   SHEPHERD.JS TOUR THEME
+   ========================================================================== */
+
+.shepherd-theme-custom {
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 400px;
+}
+
+.shepherd-theme-custom .shepherd-header {
+  background: var(--onboarding-gradient);
+  padding: 16px 20px;
+}
+
+.shepherd-theme-custom .shepherd-title {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.shepherd-theme-custom .shepherd-text {
+  padding: 20px;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.shepherd-theme-custom .shepherd-footer {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  display: flex;
+  justify-content: space-between;
+}
+
+.shepherd-theme-custom .shepherd-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.shepherd-theme-custom .shepherd-button-primary {
+  background: var(--onboarding-primary);
+  color: white;
+}
+
+.shepherd-theme-custom .shepherd-button-primary:hover {
+  background: var(--onboarding-primary-dark);
+}
+
+.shepherd-theme-custom .shepherd-button-secondary {
+  background: white;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.shepherd-theme-custom .shepherd-button-secondary:hover {
+  border-color: var(--onboarding-primary);
+  color: var(--onboarding-primary);
+}
+
+.shepherd-theme-custom .shepherd-cancel-icon {
+  color: white;
+  width: 24px;
+  height: 24px;
+}
+
+.shepherd-theme-custom .shepherd-arrow:before {
+  background: var(--onboarding-gradient);
+}
+
+/* Spotlight effect on focused element */
+.shepherd-target {
+  position: relative;
+  z-index: calc(var(--z-tour) + 1) !important;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.4),
+    0 0 0 8px rgba(102, 126, 234, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+/* Modal overlay */
+.shepherd-modal-overlay-container {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+/* ==========================================================================
+   TOAST NOTIFICATIONS
+   ========================================================================== */
+
+.onboarding-toast {
+  position: fixed;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: var(--z-toast);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s;
+  pointer-events: none;
+}
+
+.onboarding-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-success {
+  background: var(--success-color);
+}
+
+.toast-error {
+  background: var(--error-color);
+}
+
+.toast-warning {
+  background: var(--warning-color);
+}
+
+.toast-info {
+  background: var(--info-color);
+}
+
+/* ==========================================================================
+   ACTIVATION SUCCESS MODAL
+   ========================================================================== */
+
+.activation-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.activation-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--backdrop-color);
+  backdrop-filter: blur(8px);
+}
+
+.activation-content {
+  position: relative;
+  background: white;
+  border-radius: 24px;
+  padding: 48px;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: var(--modal-shadow);
+  animation: slideUp 0.4s ease-out;
+}
+
+.activation-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--onboarding-gradient);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 40px;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.activation-content h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+.activation-content p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 32px 0;
+}
+
+.activation-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.activation-badge img {
+  width: 64px;
+  height: 64px;
+}
+
+.activation-badge span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.activation-content button {
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--onboarding-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.activation-content button:hover {
+  background: var(--onboarding-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+/* Tablet (768px and up) */
+@media (min-width: 768px) {
+  .fre-container {
+    padding: 48px;
+    max-width: 600px;
+  }
+
+  .fre-logo {
+    width: 80px;
+    height: 80px;
+    font-size: 40px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  .fre-title {
+    font-size: 36px;
+  }
+
+  .fre-subtitle {
+    font-size: 18px;
+  }
+
+  .fre-features {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+
+  .fre-feature-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+  }
+
+  .fre-feature h3 {
+    font-size: 18px;
+  }
+
+  .fre-actions {
+    flex-direction: row;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .fre-btn {
+    width: auto;
+  }
+
+  .fre-footer {
+    font-size: 14px;
+  }
+}
+
+/* Desktop (1024px and up) */
+@media (min-width: 1024px) {
+  .fre-container {
+    max-width: 900px;
+  }
+
+  .fre-features {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Mobile adjustments for checklist */
+@media (max-width: 767px) {
+  .onboarding-checklist {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .checklist-panel {
+    width: calc(100vw - 32px);
+    max-width: 360px;
+  }
+
+  .checklist-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .checklist-help-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+/* Focus states */
+.fre-btn:focus,
+.checklist-action-btn:focus,
+.checklist-help-btn:focus,
+.shepherd-button:focus,
+.activation-content button:focus {
+  outline: 2px solid var(--onboarding-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+
+  .fre-container,
+  .checklist-panel,
+  .shepherd-theme-custom {
+    border: 2px solid currentColor;
+  }
+}
+
+/* ==========================================================================
+   PRINT STYLES
+   ========================================================================== */
+
+@media print {
+
+  .fre-modal,
+  .onboarding-checklist,
+  .shepherd-modal,
+  .onboarding-toast,
+  .activation-modal {
+    display: none !important;
+  }
+}

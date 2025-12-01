@@ -1,0 +1,3584 @@
+/**
+ * AUTOMATION WORKFLOWS MODULE - JAVASCRIPT
+ * 
+ * Visual automation canvas with drag-and-drop flow builder
+ * AI-interpretable visual workflow creation system
+ * Drag workflow slugs to AI chat to activate AI Workflow Designer mode
+ * 
+ * NO EMOJIS - Font Awesome icons only
+ */
+
+class AutomationCanvas {
+    constructor() {
+        console.log('[AUTOMATION] Constructor called - initializing properties...');
+
+        this.shapes = [];
+        this.connections = [];
+        this.selectedShape = null;
+        this.selectedShapes = []; // Multi-select
+        this.currentColor = '#58a6ff'; // Default: accent-primary
+        this.currentShapeType = 'rectangle';
+        this.isDragging = false;
+        this.isConnecting = false;
+        this.connectionStart = null;
+        this.dragOffset = { x: 0, y: 0 };
+        this.nextShapeId = 1;
+        this.nextConnectionId = 1;
+
+        // Workflow management
+        this.workflows = [];
+        this.currentWorkflow = null;
+        this.workflowSlug = null;
+        this.workflowTitle = 'Untitled Workflow';
+        this.workflowDescription = '';
+        this.workflowStatus = 'draft'; // draft, active, inactive
+        this.isLoadingWorkflow = false;
+
+        // Canvas interaction
+        this.isPanning = false;
+        this.isSelecting = false;
+        this.panStart = { x: 0, y: 0 };
+        this.selectionStart = { x: 0, y: 0 };
+        this.selectionRect = null;
+
+        // Resize
+        this.isResizing = false;
+        this.resizeHandle = null;
+        this.resizeStart = { x: 0, y: 0, width: 0, height: 0 };
+
+        // Clipboard
+        this.clipboard = null;
+
+        // Undo/Redo history
+        this.history = [];
+        this.historyIndex = -1;
+        this.maxHistorySize = 50; // Keep last 50 states
+
+        // Auto-save
+        this.autoSaveTimer = null;
+        this.autoSaveInterval = 30000; // 30 seconds
+        this.isDirty = false;
+        this.lastSaved = null;
+
+        // API configuration
+        this.apiBaseUrl = window.API_BASE_URL || 'http://localhost:5001';
+
+        console.log('[AUTOMATION] Properties initialized, calling init()...');
+        this.init();
+        console.log('[AUTOMATION] Constructor complete!');
+
+        // ✅ Debug panel moved to Debug Sidebar → Automation Canvas tab (Nov 24, 2025)
+        // Old standalone panel removed - use Debug Panel (bug icon) instead
+        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        //     this.createDebugPanel();
+        // }
+    }
+
+    init() {
+        console.log('[AUTOMATION] init() - Setting up event listeners...');
+        this.setupEventListeners();
+
+        console.log('[AUTOMATION] init() - Starting auto-save timer...');
+        this.startAutoSave();
+
+        // Wait for authentication before loading workflows
+        console.log('[AUTOMATION] init() - Waiting for authentication...');
+        document.addEventListener('authComplete', () => {
+            console.log('[AUTOMATION] init() - Auth complete, loading workflows...');
+            this.loadWorkflows();
+        });
+
+        console.log('[AUTOMATION] init() - Complete! Canvas ready.');
+    }
+
+    /**
+     * Get full API URL for a given endpoint
+     * @param {string} endpoint - API endpoint path (e.g., '/api/automation/list')
+     * @returns {string} Full URL
+     */
+    getApiUrl(endpoint) {
+        return `${this.apiBaseUrl}${endpoint}`;
+    }
+
+    /**
+     * Get auth token from localStorage (checks multiple keys for compatibility)
+     * @returns {string} Auth token or empty string
+     */
+    getAuthToken() {
+        return localStorage.getItem('authToken') ||
+            localStorage.getItem('auth_token') ||
+            window.UserAuth?.token ||
+            '';
+    }
+
+    startAutoSave() {
+        // Clear any existing timer
+        if (this.autoSaveTimer) {
+            clearInterval(this.autoSaveTimer);
+        }
+
+        // Start auto-save timer
+        this.autoSaveTimer = setInterval(() => {
+            if (this.isDirty && this.currentWorkflow) {
+                console.log('[AUTO-SAVE] Changes detected - saving workflow automatically...');
+                this.autoSaveWorkflow();
+            } else if (!this.isDirty && this.currentWorkflow) {
+                console.log('[AUTO-SAVE] No changes detected - skipping save');
+            }
+        }, this.autoSaveInterval);
+
+        console.log('[AUTO-SAVE] Auto-save enabled (30 second interval, only saves when isDirty=true)');
+    }
+
+    markDirty() {
+        this.isDirty = true;
+        this.updateAutoSaveIndicator('unsaved');
+        this.saveHistoryState(); // Save state for undo/redo
+    }
+
+    /**
+     * Save current canvas state to history for undo/redo
+     */
+    saveHistoryState() {
+        // Create deep copy of current state
+        const state = {
+            shapes: JSON.parse(JSON.stringify(this.shapes)),
+            connections: JSON.parse(JSON.stringify(this.connections))
+        };
+
+        // Remove any future states (if we're not at the end)
+        if (this.historyIndex < this.history.length - 1) {
+            this.history = this.history.slice(0, this.historyIndex + 1);
+        }
+
+        // Add new state
+        this.history.push(state);
+
+        // Limit history size
+        if (this.history.length > this.maxHistorySize) {
+            this.history.shift();
+        } else {
+            this.historyIndex++;
+        }
+
+        this.updateUndoRedoButtons();
+        console.log(`[HISTORY] Saved state ${this.historyIndex + 1}/${this.history.length}`);
+    }
+
+    /**
+     * Undo last action
+     */
+    undo() {
+        if (this.historyIndex <= 0) {
+            console.log('[UNDO] No more undo states');
+            this.showToast('Nothing to undo', 'info');
+            return;
+        }
+
+        this.historyIndex--;
+        this.restoreHistoryState();
+        console.log(`[UNDO] Restored state ${this.historyIndex + 1}/${this.history.length}`);
+        this.showToast('Undo', 'info');
+    }
+
+    /**
+     * Redo last undone action
+     */
+    redo() {
+        if (this.historyIndex >= this.history.length - 1) {
+            console.log('[REDO] No more redo states');
+            this.showToast('Nothing to redo', 'info');
+            return;
+        }
+
+        this.historyIndex++;
+        this.restoreHistoryState();
+        console.log(`[REDO] Restored state ${this.historyIndex + 1}/${this.history.length}`);
+        this.showToast('Redo', 'info');
+    }
+
+    /**
+     * Restore canvas state from history
+     */
+    restoreHistoryState() {
+        const state = this.history[this.historyIndex];
+        if (!state) {
+            console.error('[HISTORY] Invalid state at index', this.historyIndex);
+            return;
+        }
+
+        // Clear canvas
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        if (canvas) {
+            canvas.innerHTML = '';
+        }
+
+        // Restore shapes and connections
+        this.shapes = JSON.parse(JSON.stringify(state.shapes));
+        this.connections = JSON.parse(JSON.stringify(state.connections));
+
+        // Re-render everything
+        this.renderAllShapes();
+        this.renderConnections();
+
+        this.updateUndoRedoButtons();
+    }
+
+    /**
+     * Update undo/redo button states
+     */
+    updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('undo-workflow-btn');
+        const redoBtn = document.getElementById('redo-workflow-btn');
+
+        if (undoBtn) {
+            undoBtn.disabled = this.historyIndex <= 0;
+            undoBtn.style.opacity = this.historyIndex <= 0 ? '0.5' : '1';
+            undoBtn.style.cursor = this.historyIndex <= 0 ? 'not-allowed' : 'pointer';
+        }
+
+        if (redoBtn) {
+            redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+            redoBtn.style.opacity = this.historyIndex >= this.history.length - 1 ? '0.5' : '1';
+            redoBtn.style.cursor = this.historyIndex >= this.history.length - 1 ? 'not-allowed' : 'pointer';
+        }
+    }
+
+    async autoSaveWorkflow() {
+        if (!this.currentWorkflow) {
+            console.log('[AUTO-SAVE] No workflow loaded - skipping save');
+            return;
+        }
+
+        if (!this.isDirty) {
+            console.log('[AUTO-SAVE] No changes detected (isDirty=false) - skipping save');
+            return;
+        }
+
+        try {
+            console.log('[AUTO-SAVE] Starting save... (shapes: ' + this.shapes.length + ', connections: ' + this.connections.length + ')');
+
+            // Export current canvas state
+            const ui_json = {
+                shapes: this.shapes,
+                connections: this.connections
+            };
+
+            // ✅ FIX: Prepare workflow data with proper update flag
+            const workflowData = {
+                automation_id: this.currentWorkflow.automation_id,
+                slug: this.workflowSlug,
+                title: this.workflowTitle || 'Untitled Workflow',
+                description: this.workflowDescription || '',
+                status: this.workflowStatus,
+                ui_json: ui_json,
+                execution_json: this.currentWorkflow.execution_json || { steps: [] },
+                is_update: true  // ✅ FIX: Signal backend this is UPDATE not INSERT
+            };
+
+            const response = await fetch(this.getApiUrl('/api/automation/save'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                    // REMOVED: Authorization not required for auto-save
+                },
+                body: JSON.stringify(workflowData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Auto-save failed: ${response.status} ${errorText}`);
+            }
+
+            // CRITICAL: Reset isDirty flag after successful save
+            this.isDirty = false;
+            this.lastSaved = new Date();
+            this.updateAutoSaveIndicator('saved');
+            console.log('[AUTO-SAVE] Workflow auto-saved successfully (isDirty reset to false)');
+        } catch (error) {
+            console.error('[AUTO-SAVE] Error:', error);
+            this.updateAutoSaveIndicator('error');
+            // Don't reset isDirty on error - will retry next interval
+        }
+    }
+
+    updateAutoSaveIndicator(status) {
+        // Find or create auto-save indicator
+        let indicator = document.getElementById('auto-save-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'auto-save-indicator';
+            indicator.style.cssText = 'position: fixed; bottom: 15px; left: 15px; padding: 8px 12px; background: rgba(0,0,0,0.8); color: white; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 6px; z-index: 1000; transition: opacity 0.3s;';
+            document.body.appendChild(indicator);
+        }
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+        if (status === 'saved') {
+            indicator.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> Auto-saved at ${timeStr}`;
+            indicator.style.opacity = '1';
+            // Fade out after 3 seconds
+            setTimeout(() => {
+                indicator.style.opacity = '0.3';
+            }, 3000);
+        } else if (status === 'unsaved') {
+            indicator.innerHTML = `<i class="fas fa-circle" style="color: #fbbf24;"></i> Unsaved changes`;
+            indicator.style.opacity = '1';
+        } else if (status === 'error') {
+            indicator.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> Auto-save failed`;
+            indicator.style.opacity = '1';
+        }
+    }
+
+    /**
+     * Verify and re-attach event listeners for toolbar buttons
+     * Call this whenever canvas becomes visible or active
+     * @returns {Object} Result with attached and missing counts
+     */
+    verifyEventListeners() {
+        console.log('[AUTOMATION] 🔍 Verifying event listeners...');
+
+        const handlers = {
+            'new-workflow-btn': () => this.openWorkflowModal(),
+            'load-workflow-btn': () => window.toggleWorkflowLibraryPanel(),
+            'save-workflow-btn': () => this.saveWorkflow(),
+            'undo-workflow-btn': () => this.undo(),
+            'redo-workflow-btn': () => this.redo(),
+            'export-workflow-btn': () => this.exportToJSON(),
+            'print-workflow-btn': () => this.printWorkflow(),
+            'automation-clear-btn': () => this.clearCanvas(),
+            'automation-settings-btn': () => this.showSettingsPanel(),
+            'automation-send-ai-btn': () => this.sendToAI(),
+            'zoom-in-btn': () => this.zoomIn(),
+            'zoom-out-btn': () => this.zoomOut(),
+            'zoom-reset-btn': () => this.zoomReset(),
+            'recenter-btn': () => this.recenterToShapes()
+        };
+
+        let attached = 0;
+        let missing = 0;
+
+        Object.entries(handlers).forEach(([id, handler]) => {
+            const btn = document.getElementById(id);
+
+            if (btn) {
+                // Remove all existing listeners by cloning
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+
+                // Attach fresh listener
+                newBtn.addEventListener('click', handler);
+
+                attached++;
+                console.log(`[AUTOMATION]    ✅ ${id}`);
+            } else {
+                missing++;
+                console.warn(`[AUTOMATION]    ⚠️ ${id} NOT FOUND`);
+            }
+        });
+
+        console.log(`[AUTOMATION] 📊 Result: ${attached} attached, ${missing} missing`);
+        return { attached, missing };
+    }
+
+    setupEventListeners() {
+        console.log('[AUTOMATION] setupEventListeners() - Starting...');
+
+        // Palette collapse/expand toggle
+        const paletteToggle = document.getElementById('palette-toggle');
+        if (paletteToggle) {
+            paletteToggle.addEventListener('click', () => {
+                const paletteShapes = document.getElementById('palette-shapes');
+                const chevron = document.getElementById('palette-chevron');
+                if (paletteShapes && chevron) {
+                    const isCollapsed = paletteShapes.style.display === 'none';
+                    paletteShapes.style.display = isCollapsed ? 'flex' : 'none';
+                    chevron.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
+                }
+            });
+            console.log('[AUTOMATION] Palette toggle listener attached');
+        } else {
+            console.warn('[AUTOMATION] Palette toggle not found');
+        }
+
+        // Shape palette drag-and-drop (floating palette)
+        const shapeItems = document.querySelectorAll('.floating-shape-item');
+        console.log(`[AUTOMATION] Found ${shapeItems.length} draggable shape items`);
+
+        shapeItems.forEach((item, index) => {
+            const shapeType = item.dataset.shape;
+            item.addEventListener('dragstart', (e) => {
+                console.log(`[AUTOMATION] Drag start: ${shapeType}`);
+                this.handleShapeDragStart(e);
+            });
+            console.log(`[AUTOMATION] Attached dragstart to shape ${index + 1}: ${shapeType}`);
+        });
+
+        // Color swatch selection
+        const swatches = document.querySelectorAll('.color-swatch');
+        console.log(`[AUTOMATION] Found ${swatches.length} color swatches`);
+        swatches.forEach(swatch => {
+            swatch.addEventListener('click', (e) => this.selectColor(e.target.dataset.color));
+        });
+
+        // Canvas drop zone
+        const canvasWrapper = document.getElementById('automation-canvas-wrapper');
+        if (canvasWrapper) {
+            console.log('[AUTOMATION] Canvas wrapper found, attaching drop handlers');
+
+            canvasWrapper.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+
+            canvasWrapper.addEventListener('drop', (e) => {
+                console.log('[AUTOMATION] Drop event triggered');
+                this.handleCanvasDrop(e);
+            });
+
+            canvasWrapper.addEventListener('click', (e) => this.handleCanvasClick(e));
+
+            console.log('[AUTOMATION] Canvas drop zone configured');
+        } else {
+            console.error('[AUTOMATION] Canvas wrapper NOT FOUND - drag and drop will not work!');
+        }
+
+        // ✅ NEW: Use verifyEventListeners() for toolbar buttons
+        this.verifyEventListeners();
+
+        // Modal buttons
+        document.getElementById('close-workflow-modal')?.addEventListener('click', () => this.closeWorkflowModal());
+        document.getElementById('cancel-workflow-btn')?.addEventListener('click', () => this.closeWorkflowModal());
+        document.getElementById('save-workflow-modal-btn')?.addEventListener('click', () => this.saveWorkflowFromModal());
+        document.getElementById('add-category-btn')?.addEventListener('click', () => this.addNewCategory());
+
+        // Modal overlay close on click outside
+        document.getElementById('workflow-modal-overlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'workflow-modal-overlay') {
+                this.closeWorkflowModal();
+            }
+        });
+
+        // Title input - DO NOT auto-generate slug (slug must remain immutable)
+        document.getElementById('workflow-title-input')?.addEventListener('input', (e) => {
+            // Slug should NOT change when title changes
+            // If this is a new workflow and no slug exists yet, generate one
+            const slugInput = document.getElementById('workflow-slug-input');
+            if (slugInput && !slugInput.value) {
+                slugInput.value = this.generateSlug();
+            }
+        });
+
+        // Workflow card click to edit
+        document.getElementById('workflow-list')?.addEventListener('click', (e) => {
+            const card = e.target.closest('.workflow-card');
+            if (card && !e.target.closest('.workflow-card-actions')) {
+                const workflowId = card.dataset.workflowId;
+                this.openWorkflowModal(workflowId);
+            }
+        });
+
+        // Zoom controls
+        document.getElementById('zoom-in-btn')?.addEventListener('click', () => this.zoomIn());
+        document.getElementById('zoom-out-btn')?.addEventListener('click', () => this.zoomOut());
+        document.getElementById('zoom-reset-btn')?.addEventListener('click', () => this.zoomReset());
+        document.getElementById('recenter-btn')?.addEventListener('click', () => this.recenterToShapes());
+
+        // Canvas panning and selection
+        const canvas = document.getElementById('automation-canvas');
+        if (canvas) {
+            canvas.addEventListener('mousedown', (e) => this.handleCanvasMouseDown(e));
+            canvas.addEventListener('mousemove', (e) => this.handleCanvasMouseMove(e));
+            canvas.addEventListener('mouseup', (e) => this.handleCanvasMouseUp(e));
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Delete
+            if (e.key === 'Delete' && (this.selectedShape || this.selectedShapes.length > 0)) {
+                e.preventDefault();
+                if (this.selectedShapes.length > 0) {
+                    this.selectedShapes.forEach(shape => this.deleteShape(shape));
+                    this.selectedShapes = [];
+                } else if (this.selectedShape) {
+                    this.deleteShape(this.selectedShape);
+                }
+            }
+            // Copy (Ctrl+C)
+            if (e.ctrlKey && e.key === 'c' && (this.selectedShape || this.selectedShapes.length > 0)) {
+                e.preventDefault();
+                this.copyShapes();
+            }
+            // Paste (Ctrl+V)
+            if (e.ctrlKey && e.key === 'v' && this.clipboard) {
+                e.preventDefault();
+                this.pasteShapes();
+            }
+            // Undo (Ctrl+Z)
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                this.undo();
+            }
+            // Redo (Ctrl+Y or Ctrl+Shift+Z)
+            if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+                e.preventDefault();
+                this.redo();
+            }
+            // Zoom shortcuts
+            if (e.ctrlKey && e.key === '=') {
+                e.preventDefault();
+                this.zoomIn();
+            }
+            if (e.ctrlKey && e.key === '-') {
+                e.preventDefault();
+                this.zoomOut();
+            }
+            if (e.ctrlKey && e.key === '0') {
+                e.preventDefault();
+                this.zoomReset();
+            }
+        });
+
+        // Initialize zoom
+        this.currentZoom = 1.0;
+        this.updateZoomDisplay();
+    }
+
+    handleShapeDragStart(e) {
+        const shapeItem = e.target.closest('.floating-shape-item');
+        if (!shapeItem) return;
+        const shapeType = shapeItem.dataset.shape;
+        e.dataTransfer.setData('shapeType', shapeType);
+        e.dataTransfer.effectAllowed = 'copy';
+    }
+
+    handleCanvasDrop(e) {
+        e.preventDefault();
+        const shapeType = e.dataTransfer.getData('shapeType');
+        if (!shapeType) return;
+
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left - 75; // Center shape
+        const y = e.clientY - rect.top - 40;
+
+        this.createShape(shapeType, x, y);
+    }
+
+    createShape(type, x, y, text = '', color = null, id = null) {
+        const shapeId = id || `shape_${this.nextShapeId++}`;
+        const shapeColor = color || this.currentColor;
+
+        const shape = {
+            id: shapeId,
+            type: type,
+            x: x,
+            y: y,
+            width: 150,
+            height: 80,
+            text: text,
+            color: shapeColor
+        };
+
+        this.shapes.push(shape);
+        this.renderShape(shape);
+        this.markDirty(); // Track change for auto-save
+        return shape;
+    }
+
+    renderShape(shape) {
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        const shapeEl = document.createElement('div');
+        shapeEl.className = `automation-shape ${shape.type}`;
+        shapeEl.id = shape.id;
+        shapeEl.style.left = `${shape.x}px`;
+        shapeEl.style.top = `${shape.y}px`;
+        shapeEl.style.width = `${shape.width}px`;
+        shapeEl.style.height = `${shape.height}px`;
+        // Don't override border color - let CSS handle it based on type
+        shapeEl.draggable = true;
+
+        // Type label (above shape)
+        const typeLabel = document.createElement('div');
+        typeLabel.className = 'shape-type-label';
+        typeLabel.innerHTML = this.getShapeTypeLabel(shape.type);
+
+        // Text input
+        const textInput = document.createElement('textarea');
+        textInput.className = 'shape-text-input';
+        textInput.placeholder = 'Enter text...';
+        textInput.value = shape.text;
+        textInput.addEventListener('input', (e) => {
+            shape.text = e.target.value;
+            this.autoResizeShape(shape, shapeEl);
+            this.markDirty(); // Track change for auto-save
+        });
+        textInput.addEventListener('click', (e) => e.stopPropagation());
+
+        // Shape controls
+        const controls = document.createElement('div');
+        controls.className = 'shape-controls';
+        controls.innerHTML = `
+            <div class="shape-type-picker-container">
+                <button class="shape-control-btn" title="Change type" onclick="automationCanvas.toggleTypePicker('${shape.id}')">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                <div class="shape-type-dropdown" id="type-dropdown-${shape.id}" style="display: none;">
+                    <div class="type-option" data-type="trigger" onclick="automationCanvas.changeShapeType('${shape.id}', 'trigger')">Trigger</div>
+                    <div class="type-option" data-type="action" onclick="automationCanvas.changeShapeType('${shape.id}', 'action')">Action</div>
+                    <div class="type-option" data-type="wait" onclick="automationCanvas.changeShapeType('${shape.id}', 'wait')">Wait</div>
+                    <div class="type-option" data-type="decision" onclick="automationCanvas.changeShapeType('${shape.id}', 'decision')">Decision</div>
+                    <div class="type-option" data-type="tool" onclick="automationCanvas.changeShapeType('${shape.id}', 'tool')">Tool</div>
+                    <div class="type-option" data-type="database" onclick="automationCanvas.changeShapeType('${shape.id}', 'database')">Database</div>
+                    <div class="type-option" data-type="output" onclick="automationCanvas.changeShapeType('${shape.id}', 'output')">Output</div>
+                    <div class="type-option" data-type="schedule" onclick="automationCanvas.changeShapeType('${shape.id}', 'schedule')">Schedule</div>
+                    <div class="type-option" data-type="end" onclick="automationCanvas.changeShapeType('${shape.id}', 'end')">End</div>
+                </div>
+            </div>
+            <button class="shape-control-btn delete" title="Delete" onclick="automationCanvas.deleteShape('${shape.id}')">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+
+        // Resize handle
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'shape-resize-handle';
+        resizeHandle.addEventListener('mousedown', (e) => this.startResize(e, shape, shapeEl));
+
+        // Connection points
+        const connectionPoints = ['top', 'right', 'bottom', 'left'].map(pos => {
+            const point = document.createElement('div');
+            point.className = `connection-point ${pos}`;
+            point.addEventListener('mousedown', (e) => this.startConnection(e, shape, pos));
+            return point;
+        });
+
+        shapeEl.appendChild(typeLabel);
+        shapeEl.appendChild(textInput);
+        shapeEl.appendChild(controls);
+        shapeEl.appendChild(resizeHandle);
+        connectionPoints.forEach(p => shapeEl.appendChild(p));
+
+        // Dragging
+        shapeEl.addEventListener('dragstart', (e) => this.startDragShape(e, shape));
+        shapeEl.addEventListener('drag', (e) => this.dragShape(e, shape));
+        shapeEl.addEventListener('dragend', (e) => this.endDragShape(e, shape));
+
+        // Selection
+        shapeEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.selectShape(shape.id);
+        });
+
+        canvas.appendChild(shapeEl);
+    }
+
+    autoResizeShape(shape, shapeEl) {
+        const textInput = shapeEl.querySelector('.shape-text-input');
+        if (!textInput) return;
+
+        // Calculate required size based on text
+        const lines = textInput.value.split('\n').length;
+        const minHeight = Math.max(80, (lines * 20) + 40);
+        const minWidth = Math.max(150, textInput.value.length * 8);
+
+        shape.height = minHeight;
+        shape.width = Math.min(minWidth, 400);
+
+        shapeEl.style.height = `${shape.height}px`;
+        shapeEl.style.width = `${shape.width}px`;
+    }
+
+    selectShape(shapeId) {
+        // Deselect previous
+        if (this.selectedShape) {
+            document.getElementById(this.selectedShape)?.classList.remove('selected');
+        }
+
+        // Select new
+        this.selectedShape = shapeId;
+        document.getElementById(shapeId)?.classList.add('selected');
+    }
+
+    deleteShape(shapeId) {
+        // Remove from shapes array
+        this.shapes = this.shapes.filter(s => s.id !== shapeId);
+
+        // Remove connections
+        this.connections = this.connections.filter(c =>
+            c.from !== shapeId && c.to !== shapeId
+        );
+
+        // Remove from DOM
+        document.getElementById(shapeId)?.remove();
+
+        // Clear selection
+        if (this.selectedShape === shapeId) {
+            this.selectedShape = null;
+        }
+
+        this.renderConnections();
+        this.markDirty(); // Track change for auto-save
+    }
+
+    startDragShape(e, shape) {
+        const shapeEl = document.getElementById(shape.id);
+        const rect = shapeEl.getBoundingClientRect();
+        this.dragOffset = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+        shapeEl.classList.add('dragging');
+        this.isDragging = true;
+
+        // If clicked shape is in selection, drag ALL selected shapes as a group
+        if (this.selectedShapes.includes(shape.id) && this.selectedShapes.length > 1) {
+            this.isDraggingGroup = true;
+            // Calculate offsets for all selected shapes
+            this.groupDragOffsets = {};
+            this.selectedShapes.forEach(shapeId => {
+                const selectedShape = this.shapes.find(s => s.id === shapeId);
+                if (selectedShape) {
+                    const selectedEl = document.getElementById(shapeId);
+                    const selectedRect = selectedEl.getBoundingClientRect();
+                    this.groupDragOffsets[shapeId] = {
+                        x: e.clientX - selectedRect.left,
+                        y: e.clientY - selectedRect.top
+                    };
+                    selectedEl.classList.add('dragging');
+                }
+            });
+        } else {
+            this.isDraggingGroup = false;
+        }
+    }
+
+    dragShape(e, shape) {
+        if (!this.isDragging || e.clientX === 0) return;
+
+        const canvas = document.getElementById('automation-canvas');
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+
+        if (this.isDraggingGroup) {
+            // Drag all selected shapes as a group
+            this.selectedShapes.forEach(shapeId => {
+                const selectedShape = this.shapes.find(s => s.id === shapeId);
+                if (selectedShape && this.groupDragOffsets[shapeId]) {
+                    selectedShape.x = e.clientX - rect.left - this.groupDragOffsets[shapeId].x + canvas.scrollLeft;
+                    selectedShape.y = e.clientY - rect.top - this.groupDragOffsets[shapeId].y + canvas.scrollTop;
+
+                    const selectedEl = document.getElementById(shapeId);
+                    if (selectedEl) {
+                        selectedEl.style.left = `${selectedShape.x}px`;
+                        selectedEl.style.top = `${selectedShape.y}px`;
+                    }
+                }
+            });
+        } else {
+            // Drag single shape
+            shape.x = e.clientX - rect.left - this.dragOffset.x + canvas.scrollLeft;
+            shape.y = e.clientY - rect.top - this.dragOffset.y + canvas.scrollTop;
+
+            const shapeEl = document.getElementById(shape.id);
+            if (shapeEl) {
+                shapeEl.style.left = `${shape.x}px`;
+                shapeEl.style.top = `${shape.y}px`;
+            }
+        }
+
+        // Update connections in real-time as shape moves
+        this.renderConnections();
+    }
+
+    endDragShape(e, shape) {
+        if (this.isDraggingGroup) {
+            // Remove dragging class from all selected shapes
+            this.selectedShapes.forEach(shapeId => {
+                document.getElementById(shapeId)?.classList.remove('dragging');
+            });
+            this.isDraggingGroup = false;
+            this.groupDragOffsets = {};
+        } else {
+            document.getElementById(shape.id)?.classList.remove('dragging');
+        }
+        this.isDragging = false;
+        this.markDirty(); // Track change for auto-save
+    }
+
+    startResize(e, shape, shapeEl) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = shape.width;
+        const startHeight = shape.height;
+
+        const handleMouseMove = (e) => {
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            shape.width = Math.max(100, startWidth + deltaX);
+            shape.height = Math.max(60, startHeight + deltaY);
+
+            shapeEl.style.width = `${shape.width}px`;
+            shapeEl.style.height = `${shape.height}px`;
+
+            this.renderConnections();
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    startConnection(e, shape, position) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        this.isConnecting = true;
+        this.connectionStart = { shape: shape.id, position: position };
+
+        // Visual feedback
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        const tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        tempLine.id = 'temp-connection-line';
+        tempLine.style.position = 'absolute';
+        tempLine.style.top = '0';
+        tempLine.style.left = '0';
+        tempLine.style.width = '100%';
+        tempLine.style.height = '100%';
+        tempLine.style.pointerEvents = 'none';
+        tempLine.style.zIndex = '100';
+        canvas.appendChild(tempLine);
+
+        const handleMouseMove = (e) => {
+            if (!this.isConnecting) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const startPoint = this.getConnectionPoint(shape, position);
+            tempLine.innerHTML = `
+                <line x1="${startPoint.x}" y1="${startPoint.y}" 
+                      x2="${mouseX}" y2="${mouseY}" 
+                      stroke="#58a6ff" stroke-width="2" stroke-dasharray="5,5"/>
+            `;
+        };
+
+        const handleMouseUp = (e) => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+
+            // Check if dropped on another shape
+            const target = e.target.closest('.automation-shape');
+            if (target && target.id !== shape.id) {
+                this.createConnection(shape.id, target.id);
+            }
+
+            this.isConnecting = false;
+            this.connectionStart = null;
+            document.getElementById('temp-connection-line')?.remove();
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    createConnection(fromId, toId) {
+        // Check if connection already exists
+        const exists = this.connections.some(c =>
+            (c.from === fromId && c.to === toId) ||
+            (c.from === toId && c.to === fromId)
+        );
+
+        if (exists) return;
+
+        const connection = {
+            id: `conn_${this.nextConnectionId++}`,
+            from: fromId,
+            to: toId
+        };
+
+        this.connections.push(connection);
+        this.renderConnections();
+        this.markDirty(); // Track change for auto-save
+    }
+
+    getConnectionPoint(shape, position) {
+        // Calculate connection point directly from shape coordinates
+        // This ensures arrows stay connected even when shapes move
+        const shapeWidth = shape.width || 150;
+        const shapeHeight = shape.height || 80;
+
+        switch (position) {
+            case 'top':
+                return { x: shape.x + shapeWidth / 2, y: shape.y };
+            case 'right':
+                return { x: shape.x + shapeWidth, y: shape.y + shapeHeight / 2 };
+            case 'bottom':
+                return { x: shape.x + shapeWidth / 2, y: shape.y + shapeHeight };
+            case 'left':
+                return { x: shape.x, y: shape.y + shapeHeight / 2 };
+            default:
+                return { x: shape.x + shapeWidth / 2, y: shape.y + shapeHeight / 2 };
+        }
+    }
+
+    // Calculate the best connection points between two shapes
+    getBestConnectionPoints(fromShape, toShape) {
+        // Get center points of both shapes
+        const fromCenterX = fromShape.x + (fromShape.width || 150) / 2;
+        const fromCenterY = fromShape.y + (fromShape.height || 80) / 2;
+        const toCenterX = toShape.x + (toShape.width || 150) / 2;
+        const toCenterY = toShape.y + (toShape.height || 80) / 2;
+
+        // Calculate angle between shapes
+        const dx = toCenterX - fromCenterX;
+        const dy = toCenterY - fromCenterY;
+
+        // Determine best exit and entry points based on relative positions
+        let fromPosition, toPosition;
+
+        // If shapes are mostly horizontal
+        if (Math.abs(dx) > Math.abs(dy)) {
+            fromPosition = dx > 0 ? 'right' : 'left';
+            toPosition = dx > 0 ? 'left' : 'right';
+        } else {
+            // Shapes are mostly vertical
+            fromPosition = dy > 0 ? 'bottom' : 'top';
+            toPosition = dy > 0 ? 'top' : 'bottom';
+        }
+
+        return {
+            from: this.getConnectionPoint(fromShape, fromPosition),
+            to: this.getConnectionPoint(toShape, toPosition)
+        };
+    }
+
+    clearCanvasDOM() {
+        // Clear all shapes from DOM (without resetting data arrays)
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        if (!canvas) return;
+
+        // Remove all shape elements
+        const shapeElements = canvas.querySelectorAll('[id^="shape-"]');
+        shapeElements.forEach(el => el.remove());
+
+        // Remove connections SVG
+        document.getElementById('connections-svg')?.remove();
+
+        console.log('[CANVAS] Cleared DOM elements (shapes data preserved)');
+    }
+
+    renderAllShapes() {
+        // Render all shapes from this.shapes array onto the canvas using the standard renderShape method
+        console.log(`[CANVAS] Rendering ${this.shapes.length} shapes`);
+
+        this.shapes.forEach(shape => {
+            // Normalize shape data structure (old format uses 'text', new uses 'label' + 'description')
+            if (!shape.text && (shape.label || shape.description)) {
+                // Combine label and description into text field for consistency
+                const label = (shape.label && shape.label !== 'null') ? shape.label : '';
+                const description = (shape.description && shape.description !== 'null') ? shape.description : '';
+                shape.text = label + (description ? '\n' + description : '');
+            } else if (!shape.text) {
+                shape.text = '';
+            }
+
+            // Ensure shape has required properties for renderShape
+            if (!shape.width) shape.width = 150;
+            if (!shape.height) shape.height = 80;
+            if (!shape.color) shape.color = this.currentColor;
+
+            // Fix shape ID format (remove 'shape-' prefix if present, renderShape will add it)
+            const originalId = shape.id;
+            if (typeof shape.id === 'string' && shape.id.startsWith('shape-')) {
+                shape.id = shape.id;  // Keep as is, renderShape expects just the ID part
+            } else if (typeof shape.id === 'number') {
+                shape.id = `shape_${shape.id}`;  // Convert number to string format
+            }
+
+            // Use the standard renderShape method for full functionality
+            this.renderShape(shape);
+        });
+
+        console.log('[CANVAS] All shapes rendered with full interactivity');
+    }
+
+    getShapeIcon(type) {
+        // Return Font Awesome icon class for shape type
+        const iconMap = {
+            'trigger': 'fas fa-bolt',
+            'wait': 'fas fa-hand-paper',
+            'schedule': 'fas fa-calendar',
+            'end': 'fas fa-flag',
+            'database': 'fas fa-database',
+            'output': 'fas fa-file-export',
+            'tool': 'fas fa-cog',
+            'instructions': 'fas fa-info-circle',
+            'rectangle': 'fas fa-square',
+            'circle': 'fas fa-circle',
+            'diamond': 'fas fa-diamond'
+        };
+        return iconMap[type] || 'fas fa-square';
+    }
+
+    renderConnections() {
+        // Remove existing SVG
+        document.getElementById('connections-svg')?.remove();
+
+        if (this.connections.length === 0) {
+            console.log('[CONNECTIONS] No connections to render');
+            return;
+        }
+
+        // Create new SVG
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        if (!canvas) {
+            console.error('[CONNECTIONS] Canvas wrapper not found');
+            return;
+        }
+
+        console.log(`[CONNECTIONS] Rendering ${this.connections.length} connections`);
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.id = 'connections-svg';
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.pointerEvents = 'auto'; // ✅ FIX: Allow arrow selection
+        svg.style.zIndex = '1'; // Below shapes (shapes have z-index 10)
+
+        // Define arrowhead marker
+        svg.innerHTML = `
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="10" 
+                        refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#58a6ff" />
+                </marker>
+            </defs>
+        `;
+
+        // Draw connections with smart routing
+        this.connections.forEach((conn, index) => {
+            const fromShape = this.shapes.find(s => s.id === conn.from);
+            const toShape = this.shapes.find(s => s.id === conn.to);
+
+            if (!fromShape || !toShape) {
+                console.warn(`[CONNECTIONS] Connection ${index} skipped: from=${conn.from} (${fromShape ? 'found' : 'NOT FOUND'}), to=${conn.to} (${toShape ? 'found' : 'NOT FOUND'})`);
+                return;
+            }
+
+            console.log(`[CONNECTIONS] Drawing connection ${index}: ${conn.from} → ${conn.to}`);
+
+            // Get best connection points based on shape positions
+            const points = this.getBestConnectionPoints(fromShape, toShape);
+            const from = points.from;
+            const to = points.to;
+
+            // Calculate adjusted endpoint - stop arrow at shape edge
+            const arrowOffset = 8;
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance === 0) return; // Prevent division by zero
+
+            const adjustedToX = to.x - (dx / distance) * arrowOffset;
+            const adjustedToY = to.y - (dy / distance) * arrowOffset;
+
+            // Create curved path with bezier curve
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+            // Calculate control points for smooth curve
+            const controlOffset = Math.min(Math.abs(dx), Math.abs(dy), 100);
+            let pathData;
+
+            // Determine curve direction based on connection orientation
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal connection - use horizontal control points
+                const midX = (from.x + adjustedToX) / 2;
+                pathData = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${adjustedToY}, ${adjustedToX} ${adjustedToY}`;
+            } else {
+                // Vertical connection - use vertical control points
+                const midY = (from.y + adjustedToY) / 2;
+                pathData = `M ${from.x} ${from.y} C ${from.x} ${midY}, ${adjustedToX} ${midY}, ${adjustedToX} ${adjustedToY}`;
+            }
+
+            line.setAttribute('d', pathData);
+            line.setAttribute('stroke', '#58a6ff');
+            line.setAttribute('stroke-width', '2');
+            line.setAttribute('fill', 'none');
+            line.setAttribute('marker-end', 'url(#arrowhead)');
+            line.style.cursor = 'pointer'; // ✅ FIX: Show pointer cursor on hover
+            line.classList.add('connection-line');
+            line.dataset.from = conn.from;
+            line.dataset.to = conn.to;
+            
+            // ✅ FIX: Add hover effect for arrows
+            line.addEventListener('mouseenter', () => {
+                line.setAttribute('stroke-width', '3');
+                line.setAttribute('stroke', '#79c0ff');
+            });
+            line.addEventListener('mouseleave', () => {
+                line.setAttribute('stroke-width', '2');
+                line.setAttribute('stroke', '#58a6ff');
+            });
+
+            svg.appendChild(line);
+        });
+
+        canvas.insertBefore(svg, canvas.firstChild);
+    }
+
+    selectColor(color) {
+        this.currentColor = color;
+
+        // Update swatch UI - remove selected from all, add to clicked
+        document.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.classList.toggle('selected', swatch.dataset.color === color);
+        });
+
+        // Update selected shape if any
+        if (this.selectedShape) {
+            const shape = this.shapes.find(s => s.id === this.selectedShape);
+            if (shape) {
+                shape.color = color;
+                document.getElementById(shape.id).style.borderColor = color;
+            }
+        }
+    }
+
+    clearCanvas() {
+        if (!confirm('Are you sure you want to clear the canvas? This cannot be undone.')) {
+            return;
+        }
+
+        // Reset all data
+        this.shapes = [];
+        this.connections = [];
+        this.selectedShape = null;
+        this.selectedShapes = [];
+
+        // Clear DOM
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        if (canvas) {
+            canvas.innerHTML = '';
+        }
+
+        // Reset workflow metadata
+        this.automationId = null;
+        this.automationTitle = 'Untitled Automation';
+        this.workflowTitle = 'Untitled Workflow'; // ✅ FIX: Never set to null (database constraint)
+        this.workflowSlug = null;
+        this.workflowDescription = '';
+        this.updateWorkflowNameDisplay();
+
+        // Mark as dirty for save state
+        this.markDirty();
+
+        console.log('Canvas cleared successfully');
+        this.showToast('Canvas cleared', 'success');
+    }
+
+    exportToJSON() {
+        const automation = {
+            automation_id: this.automationId || `auto_${Date.now()}`,
+            title: this.automationTitle,
+            created_at: new Date().toISOString(),
+            shapes: this.shapes.map(s => ({
+                id: s.id,
+                type: s.type,
+                position: { x: s.x, y: s.y },
+                size: { width: s.width, height: s.height },
+                text: s.text,
+                color: s.color
+            })),
+            connections: this.connections.map(c => ({
+                id: c.id,
+                from: c.from,
+                to: c.to
+            }))
+        };
+
+        // Download JSON
+        const blob = new Blob([JSON.stringify(automation, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `automation_${automation.automation_id}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        console.log('Automation exported:', automation);
+    }
+
+    printWorkflow() {
+        // Create a print-friendly version of the canvas
+        const canvas = document.getElementById('automation-canvas');
+        if (!canvas) {
+            this.showToast('Canvas not found', 'error');
+            return;
+        }
+
+        // Store current state
+        const originalTitle = document.title;
+        const workflowName = this.workflowTitle || this.automationTitle || 'Untitled Workflow';
+
+        // Set document title for print header
+        document.title = `Workflow: ${workflowName}`;
+
+        // Create print styles
+        const printStyles = document.createElement('style');
+        printStyles.id = 'workflow-print-styles';
+        printStyles.textContent = `
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                
+                #automation-canvas,
+                #automation-canvas * {
+                    visibility: visible;
+                }
+                
+                #automation-canvas {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    background: white !important;
+                }
+                
+                .automation-shape {
+                    page-break-inside: avoid;
+                }
+                
+                .floating-shape-palette {
+                    display: none !important;
+                }
+                
+                @page {
+                    size: landscape;
+                    margin: 1cm;
+                }
+            }
+        `;
+        document.head.appendChild(printStyles);
+
+        // Show print dialog
+        window.print();
+
+        // Cleanup after print dialog closes
+        setTimeout(() => {
+            document.title = originalTitle;
+            printStyles.remove();
+        }, 100);
+
+        this.showToast('Print dialog opened', 'success');
+    }
+
+    importFromJSON(json) {
+        try {
+            const automation = typeof json === 'string' ? JSON.parse(json) : json;
+
+            this.clearCanvas();
+            this.automationId = automation.automation_id;
+            this.automationTitle = automation.title || 'Untitled Automation';
+
+            // Recreate shapes
+            automation.shapes.forEach(s => {
+                this.createShape(
+                    s.type,
+                    s.position.x,
+                    s.position.y,
+                    s.text,
+                    s.color,
+                    s.id
+                );
+
+                // Update size
+                const shape = this.shapes.find(sh => sh.id === s.id);
+                if (shape) {
+                    shape.width = s.size.width;
+                    shape.height = s.size.height;
+                    const shapeEl = document.getElementById(s.id);
+                    shapeEl.style.width = `${s.size.width}px`;
+                    shapeEl.style.height = `${s.size.height}px`;
+                }
+            });
+
+            // Recreate connections
+            automation.connections.forEach(c => {
+                this.connections.push(c);
+            });
+
+            this.renderConnections();
+
+            console.log('Automation imported:', automation);
+        } catch (error) {
+            console.error('Failed to import automation:', error);
+            this.showToast('Failed to import automation. Please check the JSON format.', 'error');
+        }
+    }
+
+    async saveAutomation() {
+        const title = prompt('Enter automation title:', this.automationTitle);
+        if (!title) return;
+
+        this.automationTitle = title;
+
+        const automation = {
+            automation_id: this.automationId || `auto_${Date.now()}`,
+            title: this.automationTitle,
+            visual_flow_json: JSON.stringify({
+                shapes: this.shapes,
+                connections: this.connections
+            }),
+            created_at: new Date().toISOString()
+        };
+
+        try {
+            // TODO: Save to backend via API
+            console.log('Saving automation:', automation);
+
+            // For now, save to localStorage
+            const saved = JSON.parse(localStorage.getItem('automations') || '[]');
+            const existing = saved.findIndex(a => a.automation_id === automation.automation_id);
+
+            if (existing >= 0) {
+                saved[existing] = automation;
+            } else {
+                saved.push(automation);
+            }
+
+            localStorage.setItem('automations', JSON.stringify(saved));
+            this.automationId = automation.automation_id;
+
+            this.showToast(`Automation "${title}" saved successfully!`, 'success');
+            this.loadSavedAutomations();
+        } catch (error) {
+            console.error('Failed to save automation:', error);
+            this.showToast('Failed to save automation. Please try again.', 'error');
+        }
+    }
+
+    loadSavedAutomations() {
+        const saved = JSON.parse(localStorage.getItem('automations') || '[]');
+        const list = document.getElementById('automation-list');
+
+        if (!list) return;
+
+        if (saved.length === 0) {
+            list.innerHTML = `
+                <div style="text-align: center; padding: var(--space-4); color: var(--text-muted);">
+                    <i class="fas fa-inbox" style="font-size: 32px; opacity: 0.3; margin-bottom: var(--space-2);"></i>
+                    <p style="font-size: 13px;">No saved automations yet</p>
+                </div>
+            `;
+            return;
+        }
+
+        list.innerHTML = saved.map(auto => `
+            <div class="automation-list-item" onclick="automationCanvas.loadAutomation('${auto.automation_id}')">
+                <div class="automation-list-item-header">
+                    <span class="automation-list-item-title">${auto.title}</span>
+                    <span class="automation-list-item-badge">SAVED</span>
+                </div>
+                <div class="automation-list-item-meta">
+                    <i class="fas fa-calendar"></i>
+                    <span>${new Date(auto.created_at).toLocaleDateString()}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    loadAutomation(automationId) {
+        const saved = JSON.parse(localStorage.getItem('automations') || '[]');
+        const automation = saved.find(a => a.automation_id === automationId);
+
+        if (!automation) {
+            this.showToast('Automation not found', 'error');
+            return;
+        }
+
+        const visualFlow = JSON.parse(automation.visual_flow_json);
+        this.importFromJSON({
+            automation_id: automation.automation_id,
+            title: automation.title,
+            shapes: visualFlow.shapes,
+            connections: visualFlow.connections
+        });
+    }
+
+    sendToAI() {
+        if (!this.workflowSlug) {
+            this.showToast('Please save the workflow first', 'warning');
+            return;
+        }
+
+        // Get active thread from AI Prime
+        const activeThreadId = window.ThreadManager?.getActiveThreadId ? window.ThreadManager.getActiveThreadId() : null;
+
+        if (!activeThreadId) {
+            this.showToast('No active AI Prime thread. Please start a conversation first.', 'warning');
+            return;
+        }
+
+        // Link workflow to thread via API
+        this.linkWorkflowToThread(activeThreadId, this.workflowSlug, this.workflowTitle);
+    }
+
+    async linkWorkflowToThread(threadId, workflowSlug, workflowTitle) {
+        try {
+            const response = await fetch('/api/threads/link-workflow', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getAuthToken() || ''}`
+                },
+                body: JSON.stringify({
+                    thread_id: threadId,
+                    workflow_id: workflowSlug,
+                    workflow_name: workflowTitle
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to link workflow: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showToast(`Workflow "${workflowTitle}" linked to AI Prime thread`, 'success');
+
+                // Refresh thread card to show workflow badge
+                if (window.ThreadManager?.refreshThreadCard) {
+                    window.ThreadManager.refreshThreadCard(threadId);
+                }
+            } else {
+                throw new Error(data.error || 'Failed to link workflow');
+            }
+        } catch (error) {
+            console.error('[AUTOMATION] Failed to link workflow to thread:', error);
+            this.showToast(`Failed to link workflow: ${error.message}`, 'error');
+        }
+    }
+
+    handleCanvasClick(e) {
+        if (e.target.id === 'automation-canvas-wrapper') {
+            this.selectShape(null);
+        }
+    }
+
+    toggleTypePicker(shapeId) {
+        const dropdown = document.getElementById(`type-dropdown-${shapeId}`);
+        if (!dropdown) return;
+
+        // Close all other dropdowns
+        document.querySelectorAll('.shape-type-dropdown').forEach(d => {
+            if (d.id !== `type-dropdown-${shapeId}`) {
+                d.style.display = 'none';
+            }
+        });
+
+        // Toggle this dropdown
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+
+    changeShapeType(shapeId, newType) {
+        const shape = this.shapes.find(s => s.id === shapeId);
+        if (!shape) return;
+
+        // Update shape type
+        const oldType = shape.type;
+        shape.type = newType;
+
+        // Update DOM element classes
+        const shapeEl = document.getElementById(shapeId);
+        if (shapeEl) {
+            shapeEl.classList.remove(oldType);
+            shapeEl.classList.add(newType);
+
+            // Update type label
+            const typeLabel = shapeEl.querySelector('.shape-type-label');
+            if (typeLabel) {
+                typeLabel.innerHTML = this.getShapeTypeLabel(newType);
+            }
+        }
+
+        // Close dropdown
+        const dropdown = document.getElementById(`type-dropdown-${shapeId}`);
+        if (dropdown) dropdown.style.display = 'none';
+
+        // Mark as dirty for auto-save
+        this.markDirty();
+
+        console.log(`Changed shape ${shapeId} from ${oldType} to ${newType}`);
+    }
+
+    // ==================== WORKFLOW MANAGEMENT METHODS ====================
+
+    async loadWorkflows() {
+        try {
+            const token = this.getAuthToken();
+            console.log('[AUTOMATION] Loading workflows...');
+            console.log('[AUTOMATION] Token available:', token ? `Yes (${token.substring(0, 20)}...)` : 'NO TOKEN FOUND');
+            console.log('[AUTOMATION] localStorage.authToken:', localStorage.getItem('authToken') ? 'YES' : 'NO');
+            console.log('[AUTOMATION] window.UserAuth?.token:', window.UserAuth?.token ? 'YES' : 'NO');
+
+            // ✅ FIX: Load BOTH visual_automations (drafts) AND automation_workflows (production)
+            const [visualResponse, productionResponse] = await Promise.all([
+                fetch(this.getApiUrl('/api/automation/list'), {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(this.getApiUrl('/api/automation/workflows/list'), {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+            ]);
+
+            console.log('[AUTOMATION] Visual response:', visualResponse.status, visualResponse.statusText);
+            console.log('[AUTOMATION] Production response:', productionResponse.status, productionResponse.statusText);
+
+            // Parse responses (gracefully handle failures)
+            let visualWorkflows = [];
+            let productionWorkflows = [];
+            
+            if (visualResponse.ok) {
+                const data = await visualResponse.json();
+                visualWorkflows = (data.workflows || []).map(w => ({ ...w, source: 'visual_automations' }));
+            }
+            
+            if (productionResponse.ok) {
+                const data = await productionResponse.json();
+                productionWorkflows = (data.workflows || []).map(w => ({ ...w, source: 'automation_workflows' }));
+            }
+
+            // ✅ FIX: Store both lists separately for tab filtering
+            this.visualWorkflows = visualWorkflows;
+            this.productionWorkflows = productionWorkflows;
+            this.workflows = [...visualWorkflows, ...productionWorkflows]; // Combined for default view
+            
+            this.renderWorkflowList();
+        } catch (error) {
+            // Silently handle fetch errors (backend offline, network issues, etc.)
+            console.warn('[AutomationCanvas] Could not load workflows - showing empty state:', error.message);
+            this.visualWorkflows = [];
+            this.productionWorkflows = [];
+            this.workflows = [];
+            this.renderWorkflowList();
+        }
+    }
+
+    renderWorkflowList() {
+        const listContainer = document.getElementById('workflow-list');
+        const emptyState = document.getElementById('workflow-list-empty');
+
+        if (!listContainer) return;
+
+        if (this.workflows.length === 0) {
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+
+        // Clear existing items except empty state
+        const items = listContainer.querySelectorAll('.workflow-item');
+        items.forEach(item => item.remove());
+
+        this.workflows.forEach(workflow => {
+            const item = this.createWorkflowListItem(workflow);
+            listContainer.appendChild(item);
+        });
+    }
+
+    createWorkflowListItem(workflow) {
+        const item = document.createElement('div');
+        item.className = 'workflow-item';
+        if (this.currentWorkflow && this.currentWorkflow.slug === workflow.slug) {
+            item.classList.add('selected');
+        }
+
+        // Status badge
+        const statusClass = workflow.status || 'draft';
+        const statusIcon = statusClass === 'active' ? 'fa-circle' : statusClass === 'inactive' ? 'fa-circle-pause' : 'fa-circle-dot';
+
+        // Format updated date
+        const updatedDate = workflow.updated_at ? new Date(workflow.updated_at).toLocaleDateString() : 'Never';
+
+        item.innerHTML = `
+            <div class=\"workflow-header\">
+                <div class=\"workflow-icon\">
+                    <i class=\"fas fa-project-diagram\"></i>
+                </div>
+                <div class=\"workflow-details\">
+                    <div class=\"workflow-title\">${workflow.title || 'Untitled Workflow'}</div>
+                    <div class=\"workflow-description\">${workflow.description || 'No description'}</div>
+                </div>
+            </div>
+            <div class=\"workflow-slug-pill\" draggable=\"true\" data-slug=\"${workflow.slug}\" data-workflow-id=\"${workflow.id || ''}\" title=\"Drag to AI chat to activate Workflow Designer mode\">
+                <i class=\"fas fa-hashtag\"></i>${workflow.slug}
+            </div>
+            <div class=\"workflow-meta\">
+                <span class=\"workflow-status-badge ${statusClass}\">
+                    <i class=\"fas ${statusIcon}\"></i>
+                    ${statusClass}
+                </span>
+                <span class=\"workflow-updated\">${updatedDate}</span>
+            </div>
+            <div class=\"workflow-actions\">
+                <button class=\"workflow-action-btn\" data-action=\"load\" data-workflow-id=\"${workflow.id || workflow.slug}\" title=\"Load workflow\">
+                    <i class=\"fas fa-folder-open\"></i> Load
+                </button>
+                <button class=\"workflow-action-btn\" data-action=\"duplicate\" data-workflow-id=\"${workflow.id || workflow.slug}\" title=\"Duplicate\">
+                    <i class=\"fas fa-copy\"></i> Duplicate
+                </button>
+                <button class=\"workflow-action-btn danger\" data-action=\"delete\" data-workflow-id=\"${workflow.id || workflow.slug}\" title=\"Delete\">
+                    <i class=\"fas fa-trash\"></i> Delete
+                </button>
+            </div>
+        `;
+
+        // Add event listeners
+        const slugPill = item.querySelector('.workflow-slug-pill');
+        slugPill.addEventListener('dragstart', (e) => this.handleSlugDragStart(e));
+        // click copies slug to clipboard
+        slugPill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const slug = slugPill.dataset.slug || '';
+            if (!slug) return;
+            navigator.clipboard?.writeText(slug).then(() => {
+                this.showToast('Workflow slug copied to clipboard', 'success');
+            }).catch(() => {
+                this.showToast('Could not copy slug', 'error');
+            });
+        });
+
+        const loadBtn = item.querySelector('[data-action=\"load\"]');
+        loadBtn?.addEventListener('click', () => this.loadWorkflow(workflow.id || workflow.slug));
+
+        const duplicateBtn = item.querySelector('[data-action=\"duplicate\"]');
+        duplicateBtn?.addEventListener('click', () => this.duplicateWorkflow(workflow.id || workflow.slug));
+
+        const deleteBtn = item.querySelector('[data-action=\"delete\"]');
+        deleteBtn?.addEventListener('click', () => this.deleteWorkflow(workflow.id || workflow.slug));
+
+        return item;
+    }
+
+    handleSlugDragStart(e) {
+        const slug = e.target.dataset.slug;
+        const workflowId = e.target.dataset.workflowId;
+
+        // Set drag data
+        e.dataTransfer.setData('text/plain', `[${slug}]`);
+        e.dataTransfer.setData('workflow-slug', slug);
+        e.dataTransfer.setData('workflow-id', workflowId);
+        e.dataTransfer.effectAllowed = 'copy';
+
+        console.log('Dragging workflow slug:', slug);
+    }
+
+    async createNewWorkflow() {
+        // Generate TRUE unique slug (not title-based)
+        const slug = this.generateSlug();
+
+        // Create new workflow object
+        const newWorkflow = {
+            slug: slug,
+            title: 'New Workflow',
+            description: 'Describe your automation workflow',
+            status: 'draft',
+            ui_json: {
+                shapes: [],
+                connections: []
+            },
+            execution_json: {
+                steps: []
+            }
+        };
+
+        // Clear canvas
+        this.clearCanvas();
+
+        // Set as current workflow
+        this.currentWorkflow = newWorkflow;
+        this.workflowSlug = slug;
+        this.workflowTitle = 'New Workflow';
+        this.workflowDescription = 'Describe your automation workflow';
+        this.workflowStatus = 'draft';
+
+        console.log('Created new workflow with unique slug:', slug);
+
+        // Add to workflows list temporarily (will be saved when user saves)
+        this.workflows.unshift(newWorkflow);
+        this.renderWorkflowList();
+        this.updateWorkflowNameDisplay();
+    }
+
+    async loadWorkflow(workflowId) {
+        try {
+            const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
+                headers: {
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to load workflow');
+
+            const data = await response.json();
+            const workflow = data.workflow;
+
+            // Set as current workflow
+            this.currentWorkflow = workflow;
+            this.workflowSlug = workflow.slug;
+            this.workflowTitle = workflow.title;
+            this.workflowDescription = workflow.description;
+            this.workflowStatus = workflow.status;
+
+            // Load UI JSON to canvas
+            if (workflow.ui_json) {
+                this.importFromJSON(workflow.ui_json);
+            }
+
+            console.log('Loaded workflow:', workflow.slug);
+            this.renderWorkflowList();
+            this.updateWorkflowNameDisplay();
+        } catch (error) {
+            console.error('Error loading workflow:', error);
+            this.showToast('Failed to load workflow. Please try again.', 'error');
+        }
+    }
+
+    async loadWorkflowFromList(workflow) {
+        /**
+         * Load workflow from list data (used when clicking from sidebar)
+         * @param {object} workflow - Workflow object with shapes and connections
+         */
+        // Prevent multiple simultaneous loads
+        if (this.isLoadingWorkflow) {
+            console.log('[AUTOMATION CANVAS] Already loading a workflow, ignoring duplicate request');
+            return;
+        }
+
+        try {
+            this.isLoadingWorkflow = true;
+            console.log('[AUTOMATION CANVAS] Loading workflow onto canvas:', workflow.slug);
+            console.log('[AUTOMATION CANVAS] Full workflow object:', workflow);
+
+            // Clear canvas first
+            this.clearCanvas();
+
+            // Set workflow metadata
+            this.workflowSlug = workflow.slug;
+            this.workflowTitle = workflow.name || workflow.title;
+            this.workflowCategory = workflow.category;
+            this.workflowDescription = workflow.description;
+            this.currentWorkflow = workflow;
+
+            // Extract shapes and connections from various possible locations
+            const shapes = workflow.shapes ||
+                workflow.workflow_json?.shapes ||
+                workflow.ui_json?.shapes ||
+                [];
+            const connections = workflow.connections ||
+                workflow.workflow_json?.connections ||
+                workflow.ui_json?.connections ||
+                [];
+
+            console.log(`[AUTOMATION CANVAS] Extracted - Shapes: ${shapes.length}, Connections: ${connections.length}`);
+            console.log('[AUTOMATION CANVAS] Shapes data:', shapes);
+            console.log('[AUTOMATION CANVAS] Connections data:', connections);
+
+            // Load shapes with AI-recommended vertical spacing (150px between shapes)
+            shapes.forEach((shape, index) => {
+                // Calculate recommended Y position with 150px spacing
+                const baseY = shape.y || shape.position?.y || 100;
+                const recommendedY = index === 0 ? baseY : baseY + (index * 150);
+
+                // CRITICAL FIX: Normalize shape IDs to ensure consistent format
+                let shapeId = shape.id;
+
+                // Convert numeric IDs to string format
+                if (typeof shapeId === 'number') {
+                    shapeId = `shape_${shapeId}`;
+                }
+                // Convert string numeric IDs (e.g., "1", "2") to shape format
+                else if (typeof shapeId === 'string' && /^\d+$/.test(shapeId)) {
+                    shapeId = `shape_${shapeId}`;
+                }
+
+                const shapeData = {
+                    id: shapeId,
+                    type: shape.type || 'rectangle',
+                    x: shape.x || shape.position?.x || 100,
+                    y: recommendedY, // Use AI-recommended spacing
+                    width: shape.width || shape.size?.width || 150,
+                    height: shape.height || shape.size?.height || 80,
+                    text: shape.text || shape.label || '',
+                    color: shape.color || this.getDefaultColorForType(shape.type || 'rectangle')
+                };
+
+                this.shapes.push(shapeData);
+            });
+
+            // Load connections with ID normalization
+            connections.forEach(conn => {
+                // CRITICAL FIX: Normalize connection IDs to match shape ID format
+                // If connections have numeric from/to (e.g., 1, 2, 3), convert to match shape format
+                let fromId = conn.from;
+                let toId = conn.to;
+
+                // Convert numeric IDs to string format (matches shape ID normalization)
+                if (typeof fromId === 'number') {
+                    fromId = `shape_${fromId}`;
+                }
+                if (typeof toId === 'number') {
+                    toId = `shape_${toId}`;
+                }
+
+                // Convert string numeric IDs (e.g., "1", "2") to shape format
+                if (typeof fromId === 'string' && /^\d+$/.test(fromId)) {
+                    fromId = `shape_${fromId}`;
+                }
+                if (typeof toId === 'string' && /^\d+$/.test(toId)) {
+                    toId = `shape_${toId}`;
+                }
+
+                this.connections.push({
+                    id: conn.id || `conn_${Date.now()}_${Math.random()}`,
+                    from: fromId,
+                    to: toId
+                });
+            });
+
+            // Render everything
+            this.renderAllShapes();
+            this.renderConnections();
+
+            // Update UI
+            this.updateWorkflowNameDisplay();
+
+            // Close modal if open
+            this.hideLoadWorkflowDialog();
+
+            console.log('[AUTOMATION CANVAS] Workflow loaded successfully');
+            this.showToast(`Loaded workflow: ${this.workflowTitle}`, 'success');
+            this.isLoadingWorkflow = false;
+
+        } catch (error) {
+            console.error('[AUTOMATION CANVAS] Failed to load workflow:', error);
+            this.showToast(`Failed to load workflow: ${error.message}`, 'error');
+            this.isLoadingWorkflow = false;
+        }
+    }
+
+    async loadWorkflowBySlug(slug) {
+        /**
+         * Load workflow by slug (used when opening from thread context)
+         * @param {string} slug - Workflow slug (e.g., 'workflow-email-automation')
+         */
+        try {
+            console.log(`[AUTOMATION CANVAS] Loading workflow by slug: ${slug}`);
+
+            // Find workflow in current list
+            const workflow = this.workflows.find(w => w.slug === slug);
+
+            if (workflow) {
+                // Use new loadWorkflowFromList method
+                await this.loadWorkflowFromList(workflow);
+                return;
+            }
+
+            // Workflow not in list, fetch from backend by slug
+            const response = await fetch(this.getApiUrl(`/api/automation/list?slug=${encodeURIComponent(slug)}`), {
+                headers: {
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Workflow not found: ${slug}`);
+            }
+
+            const data = await response.json();
+            const workflowData = data.workflows && data.workflows[0];
+
+            if (!workflowData) {
+                throw new Error(`Workflow not found: ${slug}`);
+            }
+
+            // Clear canvas and load workflow
+            this.shapes = [];
+            this.connections = [];
+            this.selectedShape = null;
+
+            const canvas = document.getElementById('automation-canvas-wrapper');
+            if (canvas) {
+                canvas.innerHTML = '';
+            }
+
+            // Parse ui_json if it's a string
+            const uiJson = typeof workflowData.ui_json === 'string'
+                ? JSON.parse(workflowData.ui_json)
+                : workflowData.ui_json;
+
+            this.shapes = uiJson.shapes || [];
+            this.connections = uiJson.connections || [];
+            this.currentZoom = uiJson.zoom || 1;
+
+            // Set current workflow
+            this.currentWorkflow = workflowData;
+            this.workflowSlug = workflowData.slug;
+            this.workflowTitle = workflowData.title;
+            this.workflowDescription = workflowData.description;
+            this.workflowStatus = workflowData.status;
+
+            // Render canvas
+            this.renderCanvas();
+            this.updateWorkflowNameDisplay();
+
+            console.log('[AUTOMATION CANVAS] Workflow loaded successfully from slug');
+        } catch (error) {
+            console.error('[AUTOMATION CANVAS] Error loading workflow by slug:', error);
+            this.showToast(`Failed to load workflow: ${error.message}`, 'error');
+        }
+    }
+
+    async saveWorkflow() {
+        if (!this.currentWorkflow) {
+            this.showToast('Please create a new workflow first', 'error');
+            return;
+        }
+
+        // Export current canvas state
+        const ui_json = {
+            shapes: this.shapes,
+            connections: this.connections
+        };
+
+        // Prepare workflow data
+        const workflowData = {
+            slug: this.workflowSlug,
+            title: this.workflowTitle || 'Untitled Workflow', // ✅ FIX: Ensure title is never null
+            description: this.workflowDescription || '',
+            status: this.workflowStatus,
+            ui_json: ui_json,
+            execution_json: this.currentWorkflow.execution_json || { steps: [] }
+        };
+
+        try {
+            const response = await fetch(this.getApiUrl('/api/automation/save'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                },
+                body: JSON.stringify(workflowData)
+            });
+
+            if (!response.ok) throw new Error('Failed to save workflow');
+
+            const data = await response.json();
+            console.log('Workflow saved:', data);
+            this.showToast('Workflow saved successfully!', 'success');
+
+            // Reset dirty flag and update indicator
+            this.isDirty = false;
+            this.lastSaved = new Date();
+            this.updateAutoSaveIndicator('saved');
+
+            // Reload workflows list
+            await this.loadWorkflows();
+        } catch (error) {
+            console.error('Error saving workflow:', error);
+            this.showToast('Failed to save workflow. Please try again.', 'error');
+        }
+    }
+
+    async duplicateWorkflow(workflowId) {
+        if (!confirm('Create a copy of this workflow?')) return;
+
+        try {
+            const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
+                headers: {
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to load workflow');
+
+            const data = await response.json();
+            const original = data.workflow;
+
+            // Create duplicate with new slug
+            const timestamp = Date.now();
+            const newSlug = `${original.slug}-copy-${timestamp}`;
+
+            const duplicate = {
+                slug: newSlug,
+                title: `${original.title} (Copy)`,
+                description: original.description,
+                status: 'draft',
+                ui_json: original.ui_json,
+                execution_json: original.execution_json
+            };
+
+            // Save duplicate
+            const saveResponse = await fetch(this.getApiUrl('/api/automation/save'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                },
+                body: JSON.stringify(duplicate)
+            });
+
+            if (!saveResponse.ok) throw new Error('Failed to save duplicate');
+
+            console.log('Workflow duplicated:', newSlug);
+            this.showToast('Workflow duplicated successfully!', 'success');
+
+            // Reload workflows list
+            await this.loadWorkflows();
+        } catch (error) {
+            console.error('Error duplicating workflow:', error);
+            this.showToast('Failed to duplicate workflow. Please try again.', 'error');
+        }
+    }
+
+    getShapeTypeLabel(type) {
+        const labels = {
+            'trigger': '<i class="fas fa-bolt"></i> TRIGGER',
+            'action': '<i class="fas fa-play"></i> ACTION',
+            'decision': '<i class="fas fa-code-branch"></i> DECISION',
+            'end': '<i class="fas fa-flag"></i> END',
+            'blank': '<i class="fas fa-square"></i> BLANK',
+            'wait': '<i class="fas fa-hand-paper"></i> WAIT',
+            'schedule': '<i class="fas fa-calendar"></i> SCHEDULE',
+            'database': '<i class="fas fa-database"></i> DATABASE',
+            'output': '<i class="fas fa-file-export"></i> OUTPUT',
+            'tool': '<i class="fas fa-cog"></i> TOOL',
+            'instructions': '<i class="fas fa-info-circle"></i> INSTRUCTIONS',
+            // Legacy mappings
+            'rectangle': '<i class="fas fa-play"></i> ACTION',
+            'rounded': '<i class="fas fa-play"></i> ACTION',
+            'hexagon': '<i class="fas fa-bolt"></i> TRIGGER',
+            'circle': '<i class="fas fa-flag"></i> END',
+            'diamond': '<i class="fas fa-code-branch"></i> DECISION'
+        };
+        return labels[type] || '<i class="fas fa-square"></i> BLANK';
+    }
+
+    async deleteWorkflow(workflowId) {
+        if (!confirm('Are you sure you want to delete this workflow? This cannot be undone.')) return;
+
+        try {
+            const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to delete workflow');
+
+            console.log('Workflow deleted:', workflowId);
+            this.showToast('Workflow deleted successfully!', 'success');
+
+            // Clear canvas if this was the current workflow
+            if (this.currentWorkflow && (this.currentWorkflow.id === workflowId || this.currentWorkflow.slug === workflowId)) {
+                this.clearCanvas();
+                this.currentWorkflow = null;
+            }
+
+            // Reload workflows list
+            await this.loadWorkflows();
+        } catch (error) {
+            console.error('Error deleting workflow:', error);
+            this.showToast('Failed to delete workflow. Please try again.', 'error');
+        }
+    }
+
+    // ==================== ZOOM METHODS ====================
+
+    zoomIn() {
+        this.currentZoom = Math.min(this.currentZoom + 0.1, 2.0); // Max 200%
+        this.applyZoom();
+    }
+
+    zoomOut() {
+        this.currentZoom = Math.max(this.currentZoom - 0.1, 0.5); // Min 50%
+        this.applyZoom();
+    }
+
+    zoomReset() {
+        this.currentZoom = 1.0;
+        this.applyZoom();
+    }
+
+    applyZoom() {
+        const wrapper = document.getElementById('automation-canvas-wrapper');
+        if (wrapper) {
+            wrapper.style.transform = `scale(${this.currentZoom})`;
+            wrapper.style.transformOrigin = 'top left';
+        }
+        this.updateZoomDisplay();
+    }
+
+    updateZoomDisplay() {
+        const zoomLevel = document.getElementById('zoom-level');
+        if (zoomLevel) {
+            zoomLevel.textContent = `${Math.round(this.currentZoom * 100)}%`;
+        }
+    }
+
+    // ==================== SEND TO AI (Enhanced) ====================
+
+    sendToAI() {
+        if (!this.currentWorkflow) {
+            this.showToast('Please create or load a workflow first', 'error');
+            return;
+        }
+
+        // Export current canvas state
+        const workflowData = this.exportToJSON();
+
+        // Store in global variable for agent access
+        window.currentAutomationSlug = this.workflowSlug;
+
+        // Get the active agent (look for visible agent column or use agent 1)
+        let targetAgentId = 1; // Default to Prime agent
+        const agentColumns = document.querySelectorAll('.agent-column');
+        agentColumns.forEach((col, index) => {
+            if (col.style.display !== 'none') {
+                // Get agent ID from column
+                const inputId = col.querySelector('textarea')?.id;
+                if (inputId) {
+                    const match = inputId.match(/input-(\d+)/);
+                    if (match) {
+                        targetAgentId = parseInt(match[1]);
+                    }
+                }
+            }
+        });
+
+        // Add workflow slug to AI thread info area
+        this.addWorkflowSlugToThreadInfo(targetAgentId);
+
+        // Add user message with workflow slug
+        if (typeof addAgentMessage === 'function') {
+            const message = `<div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(210, 153, 34, 0.15); border: 1px solid #d29922; border-radius: 12px; padding: 6px 12px;">
+                <i class="fas fa-project-diagram" style="color: #d29922;"></i>
+                <span style="color: #d29922; font-weight: 600; font-size: 13px;">Workflow: ${this.workflowSlug}</span>
+            </div>`;
+            addAgentMessage(targetAgentId, 'user', message);
+        }
+
+        console.log(`Workflow [${this.workflowSlug}] sent to Agent ${targetAgentId}`);
+        this.showToast(`Workflow sent to AI Agent ${targetAgentId}! The AI Workflow Designer mode is active.`, 'success', 5000);
+    }
+
+    addWorkflowSlugToThreadInfo(agentId) {
+        // Find the thread info area for this agent
+        const threadInfoSelector = agentId === 1
+            ? '.ai-chat-thread-info'
+            : `#agent-${agentId} .agent-thread-info`;
+
+        const threadInfo = document.querySelector(threadInfoSelector);
+        if (!threadInfo) {
+            console.warn('Thread info area not found for agent', agentId);
+            return;
+        }
+
+        // Remove existing workflow pill if present
+        const existingPill = threadInfo.querySelector('.workflow-info-pill');
+        if (existingPill) {
+            existingPill.remove();
+        }
+
+        // Create workflow pill
+        const pill = document.createElement('div');
+        pill.className = 'workflow-info-pill';
+        pill.innerHTML = `
+            <i class="fas fa-project-diagram"></i>
+            <span>Workflow: ${this.workflowSlug}</span>
+        `;
+        pill.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(210, 153, 34, 0.15);
+            border: 1px solid #d29922;
+            border-radius: 12px;
+            padding: 6px 12px;
+            margin: 8px 0;
+            color: #d29922;
+            font-size: 12px;
+            font-weight: 600;
+        `;
+
+        // Insert at the top of thread info
+        threadInfo.insertBefore(pill, threadInfo.firstChild);
+
+        console.log(`Workflow pill added to agent ${agentId} thread info`);
+    }
+
+    // ==================== NEW INTERACTION METHODS ====================
+
+    recenterToShapes() {
+        if (this.shapes.length === 0) {
+            console.log('No shapes to center on');
+            this.showToast('No shapes on canvas', 'info');
+            return;
+        }
+
+        // Calculate bounding box of all shapes
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
+        this.shapes.forEach(shape => {
+            minX = Math.min(minX, shape.x);
+            minY = Math.min(minY, shape.y);
+            maxX = Math.max(maxX, shape.x + (shape.width || 150));
+            maxY = Math.max(maxY, shape.y + (shape.height || 80));
+        });
+
+        // Calculate center point of all shapes
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        // Get canvas container (the scrollable element)
+        const canvas = document.getElementById('automation-canvas');
+        if (!canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+
+        const canvasRect = canvas.getBoundingClientRect();
+
+        // Scroll to center the shapes in view
+        canvas.scrollTo({
+            left: centerX - (canvasRect.width / 2),
+            top: centerY - (canvasRect.height / 2),
+            behavior: 'smooth'
+        });
+
+        console.log(`Recentered to shapes at (${centerX}, ${centerY})`);
+        this.showToast('Centered on shapes', 'success');
+    }
+
+    handleCanvasMouseDown(e) {
+        // Only start selection if clicking on canvas background (not on shapes)
+        if (e.target.id === 'automation-canvas' || e.target.id === 'automation-canvas-wrapper') {
+            // Clear any previous selection rect
+            if (this.selectionRect) {
+                this.selectionRect.remove();
+                this.selectionRect = null;
+            }
+
+            // Clear previous selections
+            this.selectedShapes.forEach(shapeId => {
+                document.getElementById(shapeId)?.classList.remove('selected');
+            });
+            this.selectedShapes = [];
+
+            // Start drag selection with left click
+            if (e.button === 0 && !e.ctrlKey) {
+                this.isSelecting = true;
+
+                // Get canvas and wrapper elements
+                const canvas = document.getElementById('automation-canvas');
+                const wrapper = document.getElementById('automation-canvas-wrapper');
+                const canvasRect = canvas.getBoundingClientRect();
+
+                // Calculate position relative to wrapper, accounting for scroll
+                this.selectionStart = {
+                    x: e.clientX - canvasRect.left + canvas.scrollLeft,
+                    y: e.clientY - canvasRect.top + canvas.scrollTop
+                };
+
+                // Create selection rectangle in wrapper
+                this.selectionRect = document.createElement('div');
+                this.selectionRect.className = 'selection-rect';
+                this.selectionRect.style.position = 'absolute';
+                this.selectionRect.style.left = `${this.selectionStart.x}px`;
+                this.selectionRect.style.top = `${this.selectionStart.y}px`;
+                this.selectionRect.style.width = '0px';
+                this.selectionRect.style.height = '0px';
+                wrapper.appendChild(this.selectionRect);
+
+                canvas.classList.add('selecting');
+                e.preventDefault();
+            }
+        }
+    }
+
+    handleCanvasMouseMove(e) {
+        // Handle drag selection
+        if (this.isSelecting && this.selectionRect) {
+            const canvas = document.getElementById('automation-canvas');
+            const canvasRect = canvas.getBoundingClientRect();
+
+            // Calculate current position relative to wrapper with scroll
+            const currentX = e.clientX - canvasRect.left + canvas.scrollLeft;
+            const currentY = e.clientY - canvasRect.top + canvas.scrollTop;
+
+            // Calculate selection rectangle bounds
+            const width = Math.abs(currentX - this.selectionStart.x);
+            const height = Math.abs(currentY - this.selectionStart.y);
+            const left = Math.min(currentX, this.selectionStart.x);
+            const top = Math.min(currentY, this.selectionStart.y);
+
+            // Update selection rectangle style
+            this.selectionRect.style.width = `${width}px`;
+            this.selectionRect.style.height = `${height}px`;
+            this.selectionRect.style.left = `${left}px`;
+            this.selectionRect.style.top = `${top}px`;
+
+            // Update shape selection based on intersection
+            this.updateShapeSelection(left, top, width, height);
+        }
+    }
+
+    handleCanvasMouseUp(e) {
+        const canvas = document.getElementById('automation-canvas');
+        if (!canvas) return;
+
+        // Always cleanup selection state
+        this.isSelecting = false;
+        canvas.classList.remove('selecting');
+
+        // Remove selection rectangle if it exists
+        if (this.selectionRect) {
+            this.selectionRect.remove();
+            this.selectionRect = null;
+        }
+
+        // Ensure no lingering selection rects (DOM cleanup)
+        const lingering = document.querySelectorAll('.selection-rect');
+        lingering.forEach(rect => rect.remove());
+
+        console.log(`Selection complete: ${this.selectedShapes.length} shape(s) selected`);
+    }
+
+    updateShapeSelection(left, top, width, height) {
+        // Clear previous selection
+        this.selectedShapes = [];
+
+        this.shapes.forEach(shape => {
+            const shapeWidth = shape.width || 150;
+            const shapeHeight = shape.height || 80;
+            const shapeRight = shape.x + shapeWidth;
+            const shapeBottom = shape.y + shapeHeight;
+            const selectionRight = left + width;
+            const selectionBottom = top + height;
+
+            // Check if shape intersects with selection rectangle
+            const intersects = !(
+                shape.x > selectionRight ||
+                shapeRight < left ||
+                shape.y > selectionBottom ||
+                shapeBottom < top
+            );
+
+            const shapeEl = document.getElementById(shape.id);
+            if (intersects) {
+                this.selectedShapes.push(shape.id);
+                shapeEl?.classList.add('selected');
+            } else {
+                shapeEl?.classList.remove('selected');
+            }
+        });
+
+        // Debug log
+        if (this.selectedShapes.length > 0) {
+            console.log(`Selection updated: ${this.selectedShapes.length} shape(s) in selection`);
+        }
+    }
+
+    copyShapes() {
+        if (this.selectedShapes.length > 0) {
+            // Copy multiple shapes
+            this.clipboard = this.selectedShapes.map(id => {
+                const shape = this.shapes.find(s => s.id === id);
+                return shape ? JSON.parse(JSON.stringify(shape)) : null;
+            }).filter(s => s !== null);
+        } else if (this.selectedShape) {
+            // Copy single shape
+            const shape = this.shapes.find(s => s.id === this.selectedShape);
+            if (shape) {
+                this.clipboard = [JSON.parse(JSON.stringify(shape))];
+            }
+        }
+
+        if (this.clipboard && this.clipboard.length > 0) {
+            console.log(`Copied ${this.clipboard.length} shape(s) to clipboard`);
+        }
+    }
+
+    pasteShapes() {
+        if (!this.clipboard || this.clipboard.length === 0) return;
+
+        // Clear selection
+        this.selectedShapes = [];
+        if (this.selectedShape) {
+            document.getElementById(this.selectedShape)?.classList.remove('selected');
+            this.selectedShape = null;
+        }
+
+        // Paste shapes with offset (to the side)
+        const pasteOffset = 40;
+        this.clipboard.forEach(shape => {
+            const newShape = {
+                ...shape,
+                id: `shape_${this.nextShapeId++}`,
+                x: shape.x + pasteOffset,
+                y: shape.y + pasteOffset
+            };
+
+            this.shapes.push(newShape);
+            this.renderShape(newShape);
+            this.selectedShapes.push(newShape.id);
+        });
+
+        console.log(`Pasted ${this.clipboard.length} shape(s) with offset`);
+    }
+
+    // Modal Management
+    openWorkflowModal(workflowId = null) {
+        const overlay = document.getElementById('workflow-modal-overlay');
+        const modalTitle = document.getElementById('modal-title-text');
+        const titleInput = document.getElementById('workflow-title-input');
+        const slugInput = document.getElementById('workflow-slug-input');
+        const timestampInput = document.getElementById('workflow-timestamp-input');
+        const categorySelect = document.getElementById('workflow-category-select');
+        const descriptionInput = document.getElementById('workflow-description-input');
+
+        if (workflowId) {
+            // Edit existing workflow
+            const workflow = this.workflows.find(w => w.id === workflowId);
+            if (workflow) {
+                modalTitle.textContent = 'Edit Workflow';
+                titleInput.value = workflow.title || '';
+                slugInput.value = workflow.slug || '';
+                timestampInput.value = workflow.created_at || new Date().toISOString();
+                categorySelect.value = workflow.category || '';
+                descriptionInput.value = workflow.description || '';
+                this.editingWorkflowId = workflowId;
+            }
+        } else {
+            // New workflow
+            modalTitle.textContent = 'New Workflow';
+            titleInput.value = '';
+            slugInput.value = '';
+            timestampInput.value = new Date().toISOString();
+            categorySelect.value = '';
+            descriptionInput.value = '';
+            this.editingWorkflowId = null;
+        }
+
+        overlay.style.display = 'flex';
+        setTimeout(() => titleInput.focus(), 100);
+    }
+
+    closeWorkflowModal() {
+        const overlay = document.getElementById('workflow-modal-overlay');
+        overlay.style.display = 'none';
+        this.editingWorkflowId = null;
+    }
+
+    saveWorkflowFromModal() {
+        const titleInput = document.getElementById('workflow-title-input');
+        const slugInput = document.getElementById('workflow-slug-input');
+        const timestampInput = document.getElementById('workflow-timestamp-input');
+        const categorySelect = document.getElementById('workflow-category-select');
+        const descriptionInput = document.getElementById('workflow-description-input');
+
+        const title = titleInput.value.trim();
+        if (!title) {
+            this.showToast('Please enter a workflow title', 'error');
+            titleInput.focus();
+            return;
+        }
+
+        const workflowData = {
+            title: title,
+            // Use existing slug OR generate new unique slug (NOT title-based)
+            slug: slugInput.value || this.workflowSlug || this.generateSlug(),
+            created_at: timestampInput.value || new Date().toISOString(),
+            category: categorySelect.value || 'other',
+            description: descriptionInput.value.trim(),
+            ui_json: {
+                shapes: this.shapes,
+                connections: this.connections,
+                zoom: this.currentZoom
+            },
+            execution_json: {},
+            status: 'draft'
+        };
+
+        if (this.editingWorkflowId) {
+            // Update existing
+            const index = this.workflows.findIndex(w => w.id === this.editingWorkflowId);
+            if (index !== -1) {
+                workflowData.id = this.editingWorkflowId;
+                this.workflows[index] = { ...this.workflows[index], ...workflowData };
+            }
+        } else {
+            // Create new
+            workflowData.id = `workflow_${Date.now()}`;
+            this.workflows.push(workflowData);
+        }
+
+        // Update current workflow title
+        this.workflowTitle = title;
+
+        // Ensure currentWorkflow and slug are set so saveWorkflow can proceed
+        this.currentWorkflow = workflowData;
+        this.workflowSlug = workflowData.slug;
+        this.workflowDescription = workflowData.description || this.workflowDescription;
+        this.workflowStatus = workflowData.status || this.workflowStatus;
+
+        this.saveWorkflow();
+        this.loadWorkflows();
+        this.updateWorkflowNameDisplay();
+        this.closeWorkflowModal();
+    }
+
+    generateSlug(title = '') {
+        // Generate TRUE unique slug (not title-based)
+        // Format: wf_<8-char-random>_<timestamp>
+        // Example: wf_a3f8b2c1_1732029847
+
+        const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
+        const randomPart = Math.random().toString(36).substring(2, 10); // 8 random chars
+
+        return `wf_${randomPart}_${timestamp}`;
+    }
+
+    generateReadableSlug(title) {
+        // Generate human-readable slug from title (for display/reference only)
+        // NOT used as unique identifier
+        return title
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '_')
+            .replace(/_+/g, '_')
+            .substring(0, 50);
+    }
+
+    updateWorkflowNameDisplay() {
+        const displayElement = document.getElementById('workflow-name-display');
+        if (!displayElement) return;
+
+        // Show title and slug with a small link/copy button
+        if (this.workflowTitle) {
+            const slug = this.workflowSlug || '';
+            const safeTitle = this.workflowTitle;
+            displayElement.innerHTML = `- <span class="workflow-toolbar-title">${safeTitle}</span>` + (slug ? ` <button id="workflow-link-btn" class="workflow-link-btn" title="Copy workflow slug or drag to chat">${slug}</button>` : '');
+
+            // Attach copy click and dragstart handlers to the slug button if present
+            const linkBtn = document.getElementById('workflow-link-btn');
+            if (linkBtn) {
+                // copy to clipboard on click
+                linkBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const text = this.workflowSlug || '';
+                    if (!text) {
+                        this.showToast('No workflow slug available', 'error');
+                        return;
+                    }
+                    navigator.clipboard?.writeText(text).then(() => {
+                        this.showToast('Workflow slug copied to clipboard', 'success');
+                    }).catch(() => {
+                        this.showToast('Could not copy slug', 'error');
+                    });
+                });
+
+                // enable dragging the slug from the toolbar to other drop targets
+                linkBtn.setAttribute('draggable', 'true');
+                linkBtn.addEventListener('dragstart', (ev) => {
+                    const slug = this.workflowSlug || '';
+                    ev.dataTransfer.setData('text/plain', `[${slug}]`);
+                    ev.dataTransfer.setData('workflow-slug', slug);
+                    ev.dataTransfer.effectAllowed = 'copy';
+                });
+            }
+        } else {
+            displayElement.textContent = '';
+        }
+    }
+
+    // Minimal toast/notification helper to replace alert() calls
+    showToast(message, type = 'info', duration = 3500) {
+        try {
+            let container = document.getElementById('workflow-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'workflow-toast-container';
+                container.style.position = 'fixed';
+                container.style.top = '24px';
+                container.style.right = '24px';
+                container.style.zIndex = 99999;
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                container.style.gap = '8px';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `workflow-toast workflow-toast-${type}`;
+            toast.style.minWidth = '220px';
+            toast.style.padding = '10px 14px';
+            toast.style.borderRadius = '8px';
+            toast.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)';
+            toast.style.color = '#fff';
+            toast.style.fontSize = '13px';
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 200ms ease, transform 200ms ease';
+            toast.style.transform = 'translateY(-6px)';
+
+            if (type === 'success') {
+                toast.style.background = '#2d9f6a';
+            } else if (type === 'error') {
+                toast.style.background = '#e74c3c';
+            } else {
+                toast.style.background = '#2f3b52';
+            }
+
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            // force reflow then show
+            window.requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            });
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-6px)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        } catch (e) {
+            console.log('Toast:', message);
+        }
+    }
+
+    addNewCategory() {
+        const categoryName = prompt('Enter new category name:');
+        if (categoryName && categoryName.trim()) {
+            const select = document.getElementById('workflow-category-select');
+            const slug = this.generateSlug(categoryName);
+
+            // Check if category already exists
+            const exists = Array.from(select.options).some(opt => opt.value === slug);
+            if (!exists) {
+                const option = document.createElement('option');
+                option.value = slug;
+                option.textContent = categoryName.trim();
+                select.insertBefore(option, select.lastElementChild); // Insert before "Other"
+                select.value = slug;
+            } else {
+                this.showToast('Category already exists', 'error');
+            }
+        }
+    }
+
+    async showLoadWorkflowDialog() {
+        const modal = document.getElementById('load-workflow-modal-overlay');
+        if (!modal) {
+            this.showToast('Load workflow modal not found', 'error');
+            return;
+        }
+
+        // Show modal
+        modal.style.display = 'flex';
+
+        // Show loading state
+        const loadingEl = document.getElementById('workflow-load-loading');
+        const emptyEl = document.getElementById('workflow-load-empty');
+        const listEl = document.getElementById('workflow-load-list');
+
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        // Fetch workflows from API
+        try {
+            const response = await fetch(this.getApiUrl('/api/automation/list'), {
+                headers: {
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                }
+            });
+
+            if (!response.ok) {
+                // Gracefully handle API not available
+                console.warn('[LoadWorkflow] Workflows API not available');
+                this.workflows = [];
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (emptyEl) {
+                    emptyEl.style.display = 'block';
+                    emptyEl.innerHTML = `
+                        <i class="fas fa-cloud-slash" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p style="margin-bottom: 8px; opacity: 0.8;">Backend API not available</p>
+                        <p style="font-size: 12px; opacity: 0.6;">Start the backend server to load workflows</p>
+                    `;
+                }
+                return;
+            }
+
+            const data = await response.json();
+            this.workflows = data.workflows || [];
+
+            // Hide loading state
+            if (loadingEl) loadingEl.style.display = 'none';
+
+            // Render workflow list
+            this.renderLoadWorkflowList();
+
+            // Setup modal event listeners
+            this.setupLoadWorkflowModalListeners();
+
+        } catch (error) {
+            console.warn('[LoadWorkflow] Could not load workflows:', error.message);
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (emptyEl) {
+                emptyEl.style.display = 'block';
+                emptyEl.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5; color: #f59e0b;"></i>
+                    <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">Error Loading Workflows</div>
+                    <div style="font-size: 13px;">${error.message}</div>
+                `;
+            }
+        }
+    }
+
+    renderLoadWorkflowList() {
+        const listEl = document.getElementById('workflow-load-list');
+        const emptyEl = document.getElementById('workflow-load-empty');
+        const searchInput = document.getElementById('workflow-search-input');
+        const categoryFilter = document.getElementById('workflow-filter-category');
+        const statusFilter = document.getElementById('workflow-filter-status');
+
+        if (!listEl) return;
+
+        // Get filter values
+        const searchTerm = searchInput?.value.toLowerCase() || '';
+        const categoryValue = categoryFilter?.value || '';
+        const statusValue = statusFilter?.value || '';
+
+        // Filter workflows
+        let filteredWorkflows = this.workflows.filter(wf => {
+            const matchesSearch = !searchTerm ||
+                wf.title?.toLowerCase().includes(searchTerm) ||
+                wf.slug?.toLowerCase().includes(searchTerm) ||
+                wf.description?.toLowerCase().includes(searchTerm);
+
+            const matchesCategory = !categoryValue || wf.category === categoryValue;
+            const matchesStatus = !statusValue || wf.status === statusValue;
+
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
+
+        // Show/hide empty state
+        if (filteredWorkflows.length === 0) {
+            if (emptyEl) emptyEl.style.display = 'block';
+            // Remove any existing workflow items
+            const existingItems = listEl.querySelectorAll('.workflow-load-item');
+            existingItems.forEach(item => item.remove());
+            return;
+        }
+
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        // Remove any existing workflow items
+        const existingItems = listEl.querySelectorAll('.workflow-load-item');
+        existingItems.forEach(item => item.remove());
+
+        // Render workflow items
+        filteredWorkflows.forEach(workflow => {
+            const item = this.createLoadWorkflowItem(workflow);
+            listEl.appendChild(item);
+        });
+    }
+
+    createLoadWorkflowItem(workflow) {
+        const item = document.createElement('div');
+        item.className = 'workflow-load-item';
+
+        // Determine border color based on workflow state
+        const isProduction = workflow.is_production || workflow.workflow_state === 'production';
+        const isDraft = workflow.is_draft || workflow.workflow_state === 'draft';
+        const borderColor = isProduction ? '#10B981' : '#A855F7';  // Green for production, Purple for draft
+        const borderWidth = '4px';
+
+        item.style.cssText = `
+            padding: 16px;
+            padding-left: 12px;
+            border-bottom: 1px solid var(--border-color);
+            border-left: ${borderWidth} solid ${borderColor};
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        `;
+
+        // Status badge
+        const statusColors = {
+            draft: '#6B7280',
+            active: '#10B981',
+            inactive: '#EF4444'
+        };
+        const statusColor = statusColors[workflow.status] || statusColors.draft;
+
+        // Format dates
+        const createdDate = workflow.created_at ? new Date(workflow.created_at).toLocaleDateString() : 'Unknown';
+        const updatedDate = workflow.updated_at ? new Date(workflow.updated_at).toLocaleDateString() : 'Never';
+
+        // Count shapes and connections (ui_json contains shapes and connections arrays)
+        const uiJson = workflow.ui_json || {};
+        const shapeCount = (uiJson.shapes && Array.isArray(uiJson.shapes)) ? uiJson.shapes.length : 0;
+        const connectionCount = (uiJson.connections && Array.isArray(uiJson.connections)) ? uiJson.connections.length : 0;
+
+        item.innerHTML = `
+            <div style="flex-shrink: 0;">
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: var(--accent-primary); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-project-diagram" style="font-size: 20px; color: white;"></i>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${workflow.title || 'Untitled Workflow'}
+                    </div>
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; flex-shrink: 0;" title="${workflow.status || 'draft'}"></div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); font-family: 'Courier New', monospace; margin-bottom: 6px;">
+                    ${workflow.slug || 'no-slug'}
+                </div>
+                ${workflow.description ? `
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        ${workflow.description}
+                    </div>
+                ` : ''}
+                <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+                    <span><i class="fas fa-shapes" style="margin-right: 4px;"></i>${shapeCount} shapes</span>
+                    <span><i class="fas fa-link" style="margin-right: 4px;"></i>${connectionCount} connections</span>
+                    <span><i class="fas fa-calendar" style="margin-right: 4px;"></i>${updatedDate}</span>
+                    ${workflow.category ? `<span><i class="fas fa-tag" style="margin-right: 4px;"></i>${workflow.category}</span>` : ''}
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    ${isProduction ? `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; font-size: 11px; font-weight: 600; color: #10B981;">
+                            <i class="fas fa-check-circle"></i>
+                            <span>PRODUCTION READY</span>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" 
+                                   class="workflow-enable-toggle" 
+                                   data-workflow-id="${workflow.automation_workflow_id || workflow.workflow_id || workflow.id}" 
+                                   data-slug="${workflow.slug}"
+                                   ${workflow.automation_enabled ? 'checked' : ''}
+                                   style="width: 16px; height: 16px; cursor: pointer;">
+                            <span style="font-size: 12px; color: var(--text-secondary);">${workflow.automation_enabled ? 'Enabled' : 'Disabled'}</span>
+                        </label>
+                    ` : `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: rgba(168, 85, 247, 0.1); border-radius: 4px; font-size: 11px; font-weight: 600; color: #A855F7;">
+                            <i class="fas fa-drafting-compass"></i>
+                            <span>DRAFT MODE</span>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+
+        // Hover effect
+        item.addEventListener('mouseenter', () => {
+            item.style.background = 'var(--bg-hover)';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.background = 'transparent';
+        });
+
+        // Enable/disable toggle for production workflows
+        const enableToggle = item.querySelector('.workflow-enable-toggle');
+        if (enableToggle) {
+            enableToggle.addEventListener('change', async (e) => {
+                e.stopPropagation();
+                const isEnabled = e.target.checked;
+                const workflowId = e.target.dataset.workflowId;
+                const slug = e.target.dataset.slug;
+
+                try {
+                    // Update workflow enabled state via API
+                    const response = await fetch(this.getApiUrl(`/api/automation/toggle/${workflowId || slug}`), {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${this.getAuthToken()}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ enabled: isEnabled })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to update workflow state');
+
+                    // Update label text
+                    const label = e.target.parentElement.querySelector('span');
+                    if (label) {
+                        label.textContent = isEnabled ? 'Enabled' : 'Disabled';
+                    }
+
+                    this.showToast(`Workflow ${isEnabled ? 'enabled' : 'disabled'}`, 'success');
+                } catch (error) {
+                    console.error('[AUTOMATION] Failed to toggle workflow:', error);
+                    e.target.checked = !isEnabled;  // Revert toggle
+                    this.showToast('Failed to update workflow state', 'error');
+                }
+            });
+        }
+
+        // Click to load
+        item.addEventListener('click', () => {
+            this.loadWorkflowFromList(workflow);
+        });
+
+        return item;
+    }
+
+    setupLoadWorkflowModalListeners() {
+        // Close button
+        const closeBtn = document.getElementById('close-load-workflow-modal');
+        const cancelBtn = document.getElementById('cancel-load-workflow-btn');
+        const modal = document.getElementById('load-workflow-modal-overlay');
+
+        const closeModal = () => {
+            if (modal) modal.style.display = 'none';
+        };
+
+        if (closeBtn) {
+            closeBtn.removeEventListener('click', closeModal);
+            closeBtn.addEventListener('click', closeModal);
+        }
+
+        if (cancelBtn) {
+            cancelBtn.removeEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+        }
+
+        // Click outside to close
+        if (modal) {
+            modal.removeEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+
+        // Search and filter inputs
+        const searchInput = document.getElementById('workflow-search-input');
+        const categoryFilter = document.getElementById('workflow-filter-category');
+        const statusFilter = document.getElementById('workflow-filter-status');
+
+        const refilter = () => this.renderLoadWorkflowList();
+
+        if (searchInput) {
+            searchInput.removeEventListener('input', refilter);
+            searchInput.addEventListener('input', refilter);
+        }
+
+        if (categoryFilter) {
+            categoryFilter.removeEventListener('change', refilter);
+            categoryFilter.addEventListener('change', refilter);
+        }
+
+        if (statusFilter) {
+            statusFilter.removeEventListener('change', refilter);
+            statusFilter.addEventListener('change', refilter);
+        }
+    }
+
+    async loadWorkflowFromList(workflow) {
+        try {
+            // Close modal
+            const modal = document.getElementById('load-workflow-modal-overlay');
+            if (modal) modal.style.display = 'none';
+
+            // Show loading toast
+            this.showToast(`Loading workflow: ${workflow.title}...`, 'info', 2000);
+
+            // Use workflow data from list (already has ui_json)
+            // No need to fetch again unless we need execution data
+
+            // Set current workflow
+            this.currentWorkflow = workflow;
+            this.workflowSlug = workflow.slug;
+            this.workflowTitle = workflow.title;
+            this.workflowDescription = workflow.description || '';
+            this.workflowStatus = workflow.status || 'draft';
+
+            // Load workflow data onto canvas (ui_json contains shapes and connections)
+            const uiJson = workflow.ui_json || {};
+            console.log('[LOAD] ui_json:', uiJson);
+            console.log('[LOAD] shapes array:', uiJson.shapes);
+            console.log('[LOAD] shapes is array:', Array.isArray(uiJson.shapes));
+
+            if (uiJson.shapes || uiJson.connections) {
+                // Sanitize shape data to remove null values
+                const rawShapes = Array.isArray(uiJson.shapes) ? uiJson.shapes : [];
+                console.log('[LOAD] Raw shapes count:', rawShapes.length);
+
+                this.shapes = rawShapes
+                    .filter(s => {
+                        const hasId = s && s.id;
+                        if (!hasId) console.log('[LOAD] Filtered out shape (no id):', s);
+                        return hasId;
+                    })
+                    .map(s => ({
+                        ...s,
+                        x: (s.x || 0) + 200,  // Offset 200px from left
+                        y: (s.y || 0) + 200,  // Offset 200px from top
+                        label: (s.label && s.label !== 'null') ? s.label : (s.text && s.text !== 'null') ? s.text : null,
+                        description: (s.description && s.description !== 'null') ? s.description : null
+                    }));
+
+                console.log('[LOAD] Filtered shapes count:', this.shapes.length);
+                console.log('[LOAD] Shapes:', this.shapes);
+
+                this.connections = (Array.isArray(uiJson.connections) ? uiJson.connections : []).filter(c => c && c.id);
+                console.log('[LOAD] Connections count:', this.connections.length);
+
+                // Update shape IDs to prevent conflicts
+                if (this.shapes.length > 0) {
+                    // Handle both string and numeric IDs
+                    const numericIds = this.shapes.map(s => {
+                        const id = s.id;
+                        // If ID is a string like "shape_1", extract the number
+                        if (typeof id === 'string') {
+                            const match = id.match(/\d+/);
+                            return match ? parseInt(match[0]) : 0;
+                        }
+                        return typeof id === 'number' ? id : 0;
+                    }).filter(id => id > 0);
+
+                    if (numericIds.length > 0) {
+                        const maxId = Math.max(...numericIds);
+                        this.nextShapeId = maxId + 1;
+                        console.log('[LOAD] Next shape ID:', this.nextShapeId);
+                    }
+                }
+
+                if (this.connections.length > 0) {
+                    // Handle both string and numeric IDs
+                    const numericIds = this.connections.map(c => {
+                        const id = c.id;
+                        if (typeof id === 'string') {
+                            const match = id.match(/\d+/);
+                            return match ? parseInt(match[0]) : 0;
+                        }
+                        return typeof id === 'number' ? id : 0;
+                    }).filter(id => id > 0);
+
+                    if (numericIds.length > 0) {
+                        const maxId = Math.max(...numericIds);
+                        this.nextConnectionId = maxId + 1;
+                        console.log('[LOAD] Next connection ID:', this.nextConnectionId);
+                    }
+                }
+
+                // Clear existing canvas DOM (preserve this.shapes array)
+                this.clearCanvasDOM();
+
+                // Render all shapes and connections
+                this.renderAllShapes();
+                this.renderConnections();
+
+                // Update workflow name display with title (not ugly slug)
+                this.updateWorkflowNameDisplay();
+
+                // Center canvas on shapes
+                this.recenterToShapes();
+
+                this.showToast(`Workflow loaded: ${this.workflowTitle}`, 'success');
+            } else {
+                this.showToast('Workflow has no data', 'warning');
+            }
+
+        } catch (error) {
+            console.error('Error loading workflow:', error);
+            this.showToast(`Error loading workflow: ${error.message}`, 'error');
+        }
+    }
+
+    getDefaultColorForType(type) {
+        /**
+         * Get default color for shape type
+         * @param {string} type - Shape type (hexagon, rectangle, diamond, circle)
+         * @returns {string} - Color hex code
+         */
+        const colors = {
+            'hexagon': '#10B981',    // Green (trigger)
+            'rectangle': '#3B82F6',  // Blue (action)
+            'diamond': '#F59E0B',    // Orange (decision)
+            'circle': '#EF4444'      // Red (end)
+        };
+        return colors[type] || '#6B7280';  // Gray default
+    }
+
+    escapeHtml(text) {
+        /**
+         * Escape HTML to prevent XSS
+         * @param {string} text - Text to escape
+         * @returns {string} - Escaped HTML
+         */
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Create debug panel for development testing
+     * Shows initialization status and allows testing drag/drop
+     */
+    createDebugPanel() {
+        console.log('[AUTOMATION] Creating debug panel...');
+
+        const panel = document.createElement('div');
+        panel.id = 'automation-debug-panel';
+        panel.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            z-index: 10000;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border: 1px solid #333;
+        `;
+
+        panel.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 10px; color: #58a6ff; font-size: 12px;">
+                <i class="fas fa-bug"></i> Automation Canvas Debug
+            </div>
+            <div id="debug-initialized" style="margin-bottom: 5px;">
+                <span style="color: #10b981;">✓</span> Initialized: YES
+            </div>
+            <div id="debug-shapes" style="margin-bottom: 5px;">
+                Shapes: ${this.shapes.length}
+            </div>
+            <div id="debug-connections" style="margin-bottom: 5px;">
+                Connections: ${this.connections.length}
+            </div>
+            <div id="debug-workflows" style="margin-bottom: 5px;">
+                Workflows: ${this.workflows.length}
+            </div>
+            <div id="debug-canvas" style="margin-bottom: 5px;">
+                Canvas: <span id="debug-canvas-status">checking...</span>
+            </div>
+            <div id="debug-palette" style="margin-bottom: 10px;">
+                Palette: <span id="debug-palette-status">checking...</span>
+            </div>
+            <button onclick="window.automationCanvas.testCreateShape()" 
+                    style="width: 100%; padding: 8px; cursor: pointer; background: #58a6ff; color: white; border: none; border-radius: 4px; font-weight: bold; margin-bottom: 5px;">
+                <i class="fas fa-plus"></i> Test Create Shape
+            </button>
+            <button onclick="window.testAutomationCanvas()" 
+                    style="width: 100%; padding: 8px; cursor: pointer; background: #666; color: white; border: none; border-radius: 4px; font-weight: bold;">
+                <i class="fas fa-terminal"></i> Console Dump
+            </button>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Update status after a short delay
+        setTimeout(() => {
+            const canvas = document.getElementById('automation-canvas-wrapper');
+            const palette = document.querySelector('.floating-shape-palette');
+            const shapeItems = document.querySelectorAll('.floating-shape-item');
+
+            document.getElementById('debug-canvas-status').innerHTML =
+                canvas ? '<span style="color: #10b981;">✓ Found</span>' : '<span style="color: #ef4444;">✗ Missing</span>';
+            document.getElementById('debug-palette-status').innerHTML =
+                palette ? `<span style="color: #10b981;">✓ Found (${shapeItems.length} items)</span>` : '<span style="color: #ef4444;">✗ Missing</span>';
+        }, 100);
+
+        console.log('[AUTOMATION] Debug panel created');
+    }
+
+    /**
+     * Test function to create a shape programmatically
+     */
+    testCreateShape() {
+        console.log('[TEST] Creating test shape at (200, 200)');
+
+        const testX = 200 + Math.random() * 100;
+        const testY = 200 + Math.random() * 100;
+
+        this.createShape('rectangle', testX, testY, 'Test Shape ' + this.shapes.length);
+
+        // Update debug panel
+        const debugShapes = document.getElementById('debug-shapes');
+        if (debugShapes) {
+            debugShapes.textContent = `Shapes: ${this.shapes.length}`;
+        }
+
+        console.log('[TEST] Shape created! Total shapes:', this.shapes.length);
+    }
+}
+
+// Initialize when DOM is ready
+let automationCanvas = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[AUTOMATION] DOM loaded, checking for canvas wrapper...');
+
+    // Only initialize if automation dashboard exists
+    const canvasWrapper = document.getElementById('automation-canvas-wrapper');
+
+    if (canvasWrapper) {
+        console.log('[AUTOMATION] Canvas wrapper found, initializing AutomationCanvas...');
+        try {
+            automationCanvas = new AutomationCanvas();
+            window.automationCanvas = automationCanvas; // Assign AFTER creation
+            console.log('[AUTOMATION] AutomationCanvas initialized and assigned to window.automationCanvas');
+            console.log('[AUTOMATION] Instance check:', window.automationCanvas instanceof AutomationCanvas);
+        } catch (error) {
+            console.error('[AUTOMATION] Failed to initialize:', error);
+        }
+    } else {
+        console.warn('[AUTOMATION] Canvas wrapper not found in DOM');
+        console.log('[AUTOMATION] Available automation elements:',
+            Array.from(document.querySelectorAll('[id*="automation"]')).map(el => el.id));
+    }
+});
+
+// Fallback: Lazy initialization when automation tab is activated
+window.initializeAutomationCanvas = function () {
+    console.log('[AUTOMATION] Lazy initialization triggered');
+
+    if (!window.automationCanvas) {
+        const canvasWrapper = document.getElementById('automation-canvas-wrapper');
+        if (canvasWrapper && typeof AutomationCanvas !== 'undefined') {
+            console.log('[AUTOMATION] Creating AutomationCanvas instance...');
+            automationCanvas = new AutomationCanvas();
+            window.automationCanvas = automationCanvas;
+            console.log('[AUTOMATION] Lazy initialization complete');
+        } else {
+            console.error('[AUTOMATION] Cannot initialize - wrapper or class not found');
+            console.log('[AUTOMATION] Wrapper exists:', !!canvasWrapper);
+            console.log('[AUTOMATION] Class defined:', typeof AutomationCanvas);
+        }
+    } else {
+        console.log('[AUTOMATION] Already initialized');
+    }
+
+    return window.automationCanvas;
+};
+
+// ========== CANVAS SETTINGS OVERLAY ==========
+/**
+ * Show floating settings panel on canvas
+ */
+AutomationCanvas.prototype.showSettingsPanel = async function() {
+    if (!this.workflowSlug) {
+        this.showToast('No workflow loaded', 'warning');
+        return;
+    }
+
+    try {
+        // Load settings into sync manager
+        await AutomationSettingsSync.loadSettings(this.workflowSlug);
+
+        // Subscribe to settings changes
+        if (this.settingsSyncUnsubscribe) {
+            this.settingsSyncUnsubscribe();
+        }
+        this.settingsSyncUnsubscribe = AutomationSettingsSync.subscribe((eventType, data) => {
+            if (eventType === 'update' || eventType === 'save') {
+                // Re-render settings panel with updated data
+                this.refreshCanvasSettingsPanel();
+            }
+        });
+
+        // Create or update settings panel
+        let panel = document.getElementById('canvas-settings-overlay');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'canvas-settings-overlay';
+            panel.className = 'canvas-settings-overlay';
+            
+            // ✅ FIX: Find correct container (try multiple possible IDs)
+            const container = document.getElementById('automation-canvas-content') 
+                || document.getElementById('automation-canvas-wrapper')
+                || document.getElementById('automationCanvasContainer')
+                || document.body;
+            
+            if (!container) {
+                console.error('[CANVAS] No suitable container found for settings overlay');
+                throw new Error('Canvas container not found');
+            }
+            
+            container.appendChild(panel);
+            console.log('[CANVAS] Settings overlay appended to:', container.id || 'body');
+        }
+
+        panel.innerHTML = this.createCanvasSettingsPanel(AutomationSettingsSync.getCurrentAutomation());
+        panel.style.display = 'flex';
+
+    } catch (error) {
+        console.error('[CANVAS] Failed to show settings panel:', error);
+        this.showToast(`Failed to load settings: ${error.message}`, 'error');
+    }
+};
+
+/**
+ * Close canvas settings overlay
+ */
+AutomationCanvas.prototype.closeSettingsPanel = function() {
+    const panel = document.getElementById('canvas-settings-overlay');
+    if (panel) {
+        // Check for unsaved changes
+        if (AutomationSettingsSync.hasUnsavedChanges()) {
+            const confirmed = confirm('You have unsaved changes. Do you want to save before closing?');
+            if (confirmed) {
+                AutomationSettingsSync.save();
+            }
+        }
+
+        panel.style.display = 'none';
+
+        // Unsubscribe from settings sync
+        if (this.settingsSyncUnsubscribe) {
+            this.settingsSyncUnsubscribe();
+            this.settingsSyncUnsubscribe = null;
+        }
+    }
+};
+
+/**
+ * Refresh canvas settings panel with current data
+ */
+AutomationCanvas.prototype.refreshCanvasSettingsPanel = function() {
+    const automation = AutomationSettingsSync.getCurrentAutomation();
+    if (!automation) return;
+
+    const panel = document.getElementById('canvas-settings-overlay');
+    if (panel) {
+        panel.innerHTML = this.createCanvasSettingsPanel(automation);
+    }
+};
+
+/**
+ * Create canvas settings panel HTML
+ */
+AutomationCanvas.prototype.createCanvasSettingsPanel = function(automation) {
+    const isDraft = AutomationSettingsSync.isDraft();
+
+    return `
+        <div class="canvas-settings-content">
+            <div class="canvas-settings-header">
+                <div>
+                    <h3><i class="fas fa-cog"></i> Automation Settings</h3>
+                    <div class="canvas-settings-subtitle">${automation.name} - ${automation.slug}</div>
+                </div>
+                <button class="canvas-settings-close-btn" onclick="automationCanvas.closeSettingsPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            ${isDraft ? `
+                <div class="draft-mode-banner canvas-draft-banner">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Draft Mode</strong>
+                        <p>Automation settings disabled. Convert to automation to enable scheduling.</p>
+                    </div>
+                    <button class="btn-promote" onclick="automationCanvas.promoteToAutomation('${automation.slug}')">
+                        <i class="fas fa-rocket"></i> Convert
+                    </button>
+                </div>
+            ` : ''}
+
+            <div class="canvas-settings-body">
+                ${AutomationsSidebar.renderSchedulingSettings(automation, isDraft)}
+                ${AutomationsSidebar.renderTriggerSettings(automation, isDraft)}
+                ${AutomationsSidebar.renderExecutionSettings(automation, isDraft)}
+                ${AutomationsSidebar.renderNotificationSettings(automation, isDraft)}
+            </div>
+
+            <div class="canvas-settings-footer">
+                ${AutomationSettingsSync.hasUnsavedChanges() ? `
+                    <button class="btn-secondary" onclick="AutomationSettingsSync.revert()">
+                        <i class="fas fa-undo"></i> Revert
+                    </button>
+                ` : ''}
+                <button class="btn-primary" onclick="AutomationSettingsSync.save()" ${isDraft ? 'disabled' : ''}>
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    `;
+};
+
+/**
+ * Promote draft workflow to automation (with scheduling modal)
+ */
+AutomationCanvas.prototype.promoteToAutomation = async function(slug) {
+    try {
+        console.log('[CANVAS] Promoting workflow to automation:', slug);
+
+        // Show promotion modal with scheduling configuration
+        const scheduleType = await this.showPromotionModal();
+        if (!scheduleType) {
+            console.log('[CANVAS] Promotion cancelled by user');
+            return;
+        }
+
+        // Call backend API to promote workflow
+        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+        const response = await fetch(`${API_BASE_URL}/api/automation/${slug}/promote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+            },
+            body: JSON.stringify({
+                schedule: scheduleType
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Promotion failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to promote workflow');
+        }
+
+        console.log('[CANVAS] Workflow promoted successfully:', data.automation);
+        this.showToast('Workflow promoted to automation!', 'success');
+
+        // Reload settings to show production mode
+        if (AutomationSettingsSync.getCurrentAutomation()) {
+            await AutomationSettingsSync.loadSettings(slug);
+            this.refreshCanvasSettingsPanel();
+        }
+
+        // Refresh automation sidebar if open
+        if (window.AutomationsSidebar && window.AutomationsSidebar.automationsLoaded) {
+            await window.AutomationsSidebar.loadAutomations();
+        }
+
+    } catch (error) {
+        console.error('[CANVAS] Promotion failed:', error);
+        this.showToast(`Failed to promote workflow: ${error.message}`, 'error');
+    }
+};
+
+/**
+ * Show promotion modal for scheduling configuration
+ */
+AutomationCanvas.prototype.showPromotionModal = function() {
+    return new Promise((resolve) => {
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'promotion-modal-overlay';
+        modal.innerHTML = `
+            <div class="promotion-modal">
+                <div class="promotion-modal-header">
+                    <h3><i class="fas fa-rocket"></i> Convert to Automation</h3>
+                    <button class="modal-close-btn" onclick="this.closest('.promotion-modal-overlay').remove(); window.promotionModalResolve(null);">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="promotion-modal-body">
+                    <p>Choose how this automation will be triggered:</p>
+                    <div class="promotion-options">
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="manual" checked>
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-hand-pointer"></i> Manual</strong>
+                                <span>Run on demand only</span>
+                            </div>
+                        </label>
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="cron">
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-clock"></i> Scheduled (Cron)</strong>
+                                <span>Run on a schedule (configure after conversion)</span>
+                            </div>
+                        </label>
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="interval">
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-hourglass-half"></i> Interval</strong>
+                                <span>Run at regular intervals</span>
+                            </div>
+                        </label>
+                        <label class="promotion-option">
+                            <input type="radio" name="schedule-type" value="webhook">
+                            <div class="promotion-option-content">
+                                <strong><i class="fas fa-link"></i> Webhook</strong>
+                                <span>Trigger via external HTTP request</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <div class="promotion-modal-footer">
+                    <button class="btn-secondary" onclick="this.closest('.promotion-modal-overlay').remove(); window.promotionModalResolve(null);">
+                        Cancel
+                    </button>
+                    <button class="btn-primary" onclick="
+                        const selected = document.querySelector('input[name=schedule-type]:checked');
+                        const value = selected ? { type: selected.value } : null;
+                        this.closest('.promotion-modal-overlay').remove();
+                        window.promotionModalResolve(value);
+                    ">
+                        <i class="fas fa-check"></i> Convert to Automation
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Store resolve function globally for onclick handlers
+        window.promotionModalResolve = resolve;
+    });
+};
+
+// Test function for debugging
+window.testAutomationCanvas = function () {
+    console.log('=== AUTOMATION CANVAS DEBUG ===');
+    console.log('window.automationCanvas:', window.automationCanvas);
+    console.log('Is instance?:', window.automationCanvas instanceof AutomationCanvas);
+    console.log('Canvas wrapper exists?:', !!document.getElementById('automation-canvas-wrapper'));
+    console.log('Palette exists?:', !!document.querySelector('.floating-shape-palette'));
+    console.log('Shape count:', window.automationCanvas?.shapes?.length || 0);
+    console.log('Workflows loaded:', window.automationCanvas?.workflows?.length || 0);
+    console.log('==============================');
+};
+

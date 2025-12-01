@@ -135,7 +135,10 @@ def create_google_credentials_object(cred_dict: Dict[str, Any], scopes: list = N
             'https://www.googleapis.com/auth/tasks',
             'https://www.googleapis.com/auth/documents',
             'https://www.googleapis.com/auth/drive',
-            'https://www.googleapis.com/auth/forms.body'
+            'https://www.googleapis.com/auth/forms.body',
+            'https://www.googleapis.com/auth/script.projects',
+            'https://www.googleapis.com/auth/script.processes',
+            'https://www.googleapis.com/auth/script.deployments'
         ]
     
     # Create Credentials object

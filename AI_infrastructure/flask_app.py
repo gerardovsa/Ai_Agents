@@ -112,6 +112,7 @@ from core.unified_ai_client import initialize_ai_client
 # Import routes (blueprints) - Working In_House_SQL implementation
 from routes.agent_routes_v4 import agent_bp  # V4 modular architecture with tool execution
 from routes.thread_routes import thread_bp
+from routes.chat_routes import chat_bp  # NEW: Chat with file uploads
 from routes.message_operations import message_ops_bp  # NEW: Message operations (fork, clone, copy, delete)
 from routes.export_routes import export_bp
 from routes.woocommerce_routes import woocommerce_bp
@@ -135,11 +136,15 @@ except ImportError as e:
     inhouse_kanban_bp = None
     INHOUSE_KANBAN_AVAILABLE = False
 
+from routes.kanban_supabase_routes import kanban_supabase_bp  # NEW: Kanban Supabase integration (time tracking & analytics)
 from routes.kanban_analytics_routes import kanban_analytics_bp  # NEW: Kanban Analytics (SQLite database with custom metrics)
+from routes.universal_search_routes import universal_search_bp  # NEW: Universal search (5 endpoints: search, facets, sources, index)
+from routes.cloud_folder_sync_routes import cloud_sync_bp  # NEW: Cloud folder sync (5 endpoints: add, list, sync, schedule, delete)
 from routes.production_log_routes import production_log_bp  # NEW: Production Log (comprehensive job tracking)
 from routes.user_preferences_routes import user_preferences_bp  # NEW: User personalization preferences
 from routes.geolocation_routes import geolocation_bp  # NEW: Geolocation detection
 from routes.thread_assignment_routes import thread_assignment_bp  # NEW: Thread assignments (JSON storage)
+from routes.vector_db_routes import vector_db_bp  # NEW: Vector Database management (Pinecone + embeddings)
 from routes.workspace_routes import workspace_bp  # NEW: Workspace management (CRUD, members, invitations)
 from routes.thread_sharing_routes import thread_sharing_bp  # NEW: Thread sharing (multi-user collaboration)
 from routes.communication_routes import communication_bp  # NEW: Communication Hub (Gmail + Outlook unified inbox)
@@ -154,7 +159,7 @@ from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool m
 from routes.monitoring_routes import monitoring_bp  # NEW: Connection pool health monitoring (Supabase optimization)
 from routes.search_routes import search_bp  # NEW: Supabase full-text and semantic search (5 endpoints)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
-from routes.vector_db.vector_db_routes import vector_db_bp  # NEW: Vector database management (Pinecone integration, 9 endpoints)
+from routes.vector_db_routes import vector_db_bp  # NEW: Vector database management - AI autonomous search (Pinecone + OpenAI, 3 endpoints)
 from routes.module_routes import module_bp  # NEW: Self-registering module system (8 endpoints)
 from routes.session_management_routes import session_management_bp  # NEW: Session management (list/revoke sessions, 3 endpoints)
 from routes.connection_routes import connections_bp  # Platform connections (2 endpoints)
@@ -265,22 +270,23 @@ except Exception as e:
 
 # Initialize ModuleRegistry (self-registering module system)
 try:
-    from core.module_registry import get_module_registry
+    from AI_infrastructure.core.module_registry import get_module_registry  # ✅ FIX: Use full import path (matches module_routes.py)
     from pathlib import Path
     
     log_init(logger, "Initializing Module Registry...")
     base_dir = Path(__file__).parent.parent
     registry = get_module_registry()
     
-    # Scan frontend/modules directory
-    frontend_modules_dir = base_dir / 'frontend' / 'modules'
-    log_init(logger, f"Scanning {frontend_modules_dir}...")
-    registry.initialize(frontend_modules_dir)
-    
-    # Scan UI/external/modules directory (additional modules)
-    external_modules_dir = base_dir / 'UI' / 'external' / 'modules'
+    # ONLY scan UI/modules_external directory (plug-and-play modules with manifests)
+    # UI/modules_internal are hardcoded/pre-loaded in HTML - they should NOT be managed by ModuleRegistry
+    external_modules_dir = base_dir / 'UI' / 'modules_external'
     log_init(logger, f"Scanning {external_modules_dir}...")
-    registry.initialize(external_modules_dir)
+    registry.initialize(str(external_modules_dir))  # Convert Path to string
+    
+    log_init(logger, "ℹ️  Note: modules_internal (thread-cards, universal-search, vector_database, etc.) are pre-loaded in HTML and NOT managed by ModuleRegistry")
+    
+    # Mark as loaded after ALL directories scanned
+    registry._modules_loaded = True
     
     log_success(logger, f"Module Registry initialized: {len(registry.modules)} modules discovered")
     
@@ -295,6 +301,7 @@ except Exception as e:
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp, url_prefix='/api/agent')           # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
+app.register_blueprint(chat_bp, url_prefix='/api/chat')             # NEW: Chat with file upload (2 endpoints: /upload, /message)
 app.register_blueprint(thread_sharing_bp)                            # NEW: Thread sharing (6 endpoints: share, accept, revoke, list)
 app.register_blueprint(message_ops_bp)                               # NEW: Message operations - fork, clone, copy, delete (5 endpoints)
 app.register_blueprint(file_bp)                                      # NEW: File storage (7 endpoints: serve, download, delete, usage)
@@ -314,12 +321,23 @@ app.register_blueprint(scheduler_bp)                                 # NEW: AI A
 app.register_blueprint(automation_bp)                                # NEW: Visual Automation Canvas (9 endpoints: /api/automation/*)
 if INHOUSE_KANBAN_AVAILABLE:
     app.register_blueprint(inhouse_kanban_bp)                        # NEW: InHousePrint production workflow (5 endpoints)
+app.register_blueprint(kanban_supabase_bp)                           # NEW: Kanban Supabase integration (10 endpoints: /api/kanban/supabase/*)
 app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics SQLite (15 endpoints: /api/kanban-analytics/*)
+app.register_blueprint(universal_search_bp)                          # NEW: Universal search (5 endpoints: /api/universal-search/*)
+app.register_blueprint(cloud_sync_bp)                                # NEW: Cloud folder sync (5 endpoints: /api/cloud-sync/*)
 app.register_blueprint(device_lock_bp)                               # NEW: Device lock (5 endpoints: /api/device/*, /api/thread/*/lock*)
 app.register_blueprint(production_log_bp)                            # NEW: Production Log (10 endpoints: /api/production-log/*)
 app.register_blueprint(user_preferences_bp)                          # NEW: User preferences (2 endpoints: /api/user/preferences)
 app.register_blueprint(geolocation_bp)                               # NEW: Geolocation detection (2 endpoints: /api/geolocation/*)
 app.register_blueprint(thread_assignment_bp)                         # NEW: Thread assignments (7 endpoints: /api/thread-assignments/*)
+
+# Vector Database Enhanced Routes
+try:
+    from AI_infrastructure.routes.vector_db.vector_db_enhanced_routes import vector_db_enhanced_bp
+    app.register_blueprint(vector_db_enhanced_bp)                    # NEW: Vector DB enhanced features (5 endpoints: /api/vector-db/*)
+    log_success(logger, "Vector Database Enhanced routes registered (5 endpoints)")
+except Exception as e:
+    log_error(logger, f"Failed to register vector_db_enhanced routes: {e}")
 app.register_blueprint(workspace_bp)                                 # NEW: Workspace management (18 endpoints: /api/workspaces/*)
 app.register_blueprint(communication_bp)                             # NEW: Communication Hub (8 endpoints: /api/communication-hub/*)
 app.register_blueprint(user_management_bp)                           # NEW: Sub-user management (5 endpoints: /api/users/sub-users/*)
@@ -328,7 +346,7 @@ app.register_blueprint(prompt_routes)                                # NEW: Prom
 app.register_blueprint(search_bp)                                    # NEW: Supabase search system (5 endpoints: /api/search/*)
 app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
 app.register_blueprint(transcription_bp)                             # NEW: Voice/audio transcription (2 endpoints: /api/transcribe, /api/system/check)
-app.register_blueprint(vector_db_bp)                                 # NEW: Vector database management (9 endpoints: /api/vector-db/*)
+app.register_blueprint(vector_db_bp)                                 # NEW: Vector database management (5 endpoints: /api/vector-db/*)
 app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
 app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)
 app.register_blueprint(module_bp)                                    # NEW: Self-registering module system (8 endpoints: /api/modules/*)
@@ -341,8 +359,8 @@ try:
     from core.module_blueprint_loader import load_module_blueprints
     from utils.logger_config import log_module, log_route
     module_bp_count = load_module_blueprints(app)
-    log_module(logger, f"Loaded {module_bp_count} module blueprints from UI/external/modules")
-    log_route(logger, "Auto-discovered routes from: UI/external/modules/*/routes/*.py")
+    log_module(logger, f"Loaded {module_bp_count} module blueprints from UI/modules_external")
+    log_route(logger, "Auto-discovered routes from: UI/modules_external/*/routes/*.py")
     log_route(logger, "Stock Management: /api/stock-management/* (Blueprint auto-loaded)")
 except Exception as e:
     log_warning(logger, f"Module blueprints not loaded: {e} (Module blueprints are optional)")
@@ -686,8 +704,9 @@ def ws_synergy_user_activity(data):
 print(f"[DEBUG] Using config path: {Config.DB_CONFIG_PATH}")
 ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
 
-# Store AI client in app config for blueprints to access
+# Store AI client and session manager in app config for blueprints to access
 app.config['AI_CLIENT'] = ai_client
+app.config['SESSION_MANAGER'] = session_manager
 
 print("=" * 80)
 print("AI INFRASTRUCTURE - CLEANED & READY FOR 281 TOOLS")
@@ -799,6 +818,9 @@ def get_supabase_config():
 TEMPLATE_DIR = Path(__file__).parent.parent / 'Quote_Calculator' / 'AI_Quote_Agent' / 'web_interface' / 'templates'
 STATIC_DIR = Path(__file__).parent.parent / 'Quote_Calculator' / 'AI_Quote_Agent' / 'web_interface' / 'static'
 
+# CRITICAL FIX NOV 29: Favicon served from AI_infrastructure/static
+FAVICON_DIR = Path(__file__).parent / 'static'
+
 @app.route('/stock-management')
 def serve_stock_management():
     """Serve Stock Management HTML UI"""
@@ -818,8 +840,135 @@ def serve_triple_agent():
 # Serve favicon
 @app.route('/favicon.ico')
 def favicon():
-    """Serve favicon to prevent 404 errors"""
-    return send_from_directory(STATIC_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    """Serve favicon to prevent 404 errors - FIXED NOV 29 to use correct path"""
+    return send_from_directory(FAVICON_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+# Serve external module files (HTML, CSS, JS) - ADDED NOV 29
+@app.route('/external/modules/<module_id>/<path:filename>')
+def serve_external_module_file(module_id, filename):
+    """Serve static files for external modules from UI/modules_external/"""
+    try:
+        # UI_DIR is a string, convert to Path for proper path operations
+        ui_path = Path(UI_DIR)
+        module_dir = ui_path / 'modules_external' / module_id
+        
+        if not module_dir.exists():
+            log_error(logger, f"Module directory not found: {module_dir}")
+            return jsonify({'error': f'Module directory not found: {module_id}'}), 404
+        
+        file_path = module_dir / filename
+        
+        if not file_path.exists():
+            log_error(logger, f"Module file not found: {file_path}")
+            return jsonify({'error': f'File not found: {filename}'}), 404
+        
+        log_success(logger, f"Serving module file: {module_id}/{filename}")
+        return send_from_directory(str(module_dir), filename)
+    
+    except Exception as e:
+        log_error(logger, f"Error serving module file {module_id}/{filename}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Serve UI module files via UI/modules_external path (alternative route) - ADDED NOV 30
+@app.route('/UI/modules_external/<module_id>/<path:filename>')
+def serve_ui_module_file(module_id, filename):
+    """Serve static files for external modules from UI/modules_external/ (alternative path)"""
+    try:
+        # UI_DIR is a string, convert to Path for proper path operations
+        ui_path = Path(UI_DIR)
+        module_dir = ui_path / 'modules_external' / module_id
+        
+        if not module_dir.exists():
+            log_error(logger, f"Module directory not found: {module_dir}")
+            return jsonify({'error': f'Module directory not found: {module_id}'}), 404
+        
+        file_path = module_dir / filename
+        
+        if not file_path.exists():
+            log_error(logger, f"Module file not found: {file_path}")
+            return jsonify({'error': f'File not found: {filename}'}), 404
+        
+        log_success(logger, f"Serving UI module file: {module_id}/{filename}")
+        return send_from_directory(str(module_dir), filename)
+    
+    except Exception as e:
+        log_error(logger, f"Error serving UI module file {module_id}/{filename}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Serve internal module files - ADDED NOV 30 for Universal Search and Vector Database
+@app.route('/internal/modules/<module_id>/<path:filename>')
+def serve_internal_modules(module_id, filename):
+    """Serve internal modules from UI/modules_internal/"""
+    try:
+        ui_path = Path(UI_DIR)
+        module_dir = ui_path / 'modules_internal' / module_id
+        
+        if not module_dir.exists():
+            log_error(logger, f"Internal module directory not found: {module_dir}")
+            return jsonify({'error': f'Module directory not found: {module_id}'}), 404
+        
+        file_path = module_dir / filename
+        
+        if not file_path.exists():
+            log_error(logger, f"Internal module file not found: {file_path}")
+            return jsonify({'error': f'File not found: {filename}'}), 404
+        
+        log_success(logger, f"Serving internal module file: {module_id}/{filename}")
+        return send_from_directory(str(module_dir), filename)
+    
+    except Exception as e:
+        log_error(logger, f"Error serving internal module file {module_id}/{filename}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Serve internal module files via UI/modules_internal path (alternative route) - ADDED NOV 30
+@app.route('/UI/modules_internal/<module_id>/<path:filename>')
+def serve_ui_internal_module_file(module_id, filename):
+    """Serve static files for internal modules from UI/modules_internal/ (alternative path)"""
+    try:
+        ui_path = Path(UI_DIR)
+        module_dir = ui_path / 'modules_internal' / module_id
+        
+        if not module_dir.exists():
+            log_error(logger, f"Internal module directory not found: {module_dir}")
+            return jsonify({'error': f'Module directory not found: {module_id}'}), 404
+        
+        file_path = module_dir / filename
+        
+        if not file_path.exists():
+            log_error(logger, f"Internal module file not found: {file_path}")
+            return jsonify({'error': f'File not found: {filename}'}), 404
+        
+        log_success(logger, f"Serving UI internal module file: {module_id}/{filename}")
+        return send_from_directory(str(module_dir), filename)
+    
+    except Exception as e:
+        log_error(logger, f"Error serving UI internal module file {module_id}/{filename}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Serve internal module files directly via /modules_internal path (for test suite) - ADDED DEC 1
+@app.route('/modules_internal/<module_id>/<path:filename>')
+def serve_modules_internal_direct(module_id, filename):
+    """Serve internal modules from UI/modules_internal/ - direct path for test suite"""
+    try:
+        ui_path = Path(UI_DIR)
+        module_dir = ui_path / 'modules_internal' / module_id
+        
+        if not module_dir.exists():
+            log_error(logger, f"Internal module directory not found: {module_dir}")
+            return jsonify({'error': f'Module directory not found: {module_id}'}), 404
+        
+        file_path = module_dir / filename
+        
+        if not file_path.exists():
+            log_error(logger, f"Internal module file not found: {file_path}")
+            return jsonify({'error': f'File not found: {filename}'}), 404
+        
+        log_success(logger, f"Serving modules_internal file: {module_id}/{filename}")
+        return send_from_directory(str(module_dir), filename)
+    
+    except Exception as e:
+        log_error(logger, f"Error serving modules_internal file {module_id}/{filename}: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # Serve static files (JS, CSS, images)
 @app.route('/static/<path:filename>')
@@ -1551,6 +1700,28 @@ def cleanup_resources():
         print("✅ [SHUTDOWN] Connection pools closed")
     except Exception as e:
         print(f"⚠️  [SHUTDOWN] Failed to close pools: {e}")
+
+# ============================================================================
+# CACHE CONTROL FOR MODULE LOADING FIX (Dec 1, 2025)
+# ============================================================================
+
+@app.after_request
+def add_no_cache_headers(response):
+    """
+    Force browsers to revalidate JavaScript modules on every request.
+    
+    CRITICAL FIX: Browser was caching old module-utilities.js despite cache-busting
+    query parameters. This prevented the module-aware dom.getContainer() wrapper
+    from loading, causing "Cannot read properties of null" errors.
+    
+    Solution: Add strict no-cache headers to ALL JavaScript responses.
+    """
+    if response.content_type and 'javascript' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 # Register cleanup handler (called on normal exit)
 atexit.register(cleanup_resources)

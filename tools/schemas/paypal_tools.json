@@ -9,13 +9,11 @@
       "parameters": {
         "amount": {
           "type": "string",
-          "description": "Order amount (e.g., '100.00')",
-          "required": true
+          "description": "Order amount (e.g., '100.00')"
         },
         "currency": {
           "type": "string",
-          "description": "Currency code (USD, EUR, GBP, etc.)",
-          "required": true
+          "description": "Currency code (USD, EUR, GBP, etc.)"
         },
         "description": {
           "type": "string",
@@ -24,13 +22,11 @@
         },
         "return_url": {
           "type": "string",
-          "description": "URL to return after payment approval",
-          "required": true
+          "description": "URL to return after payment approval"
         },
         "cancel_url": {
           "type": "string",
-          "description": "URL for cancelled payments",
-          "required": true
+          "description": "URL for cancelled payments"
         },
         "items": {
           "type": "array",
@@ -50,8 +46,7 @@
       "parameters": {
         "order_id": {
           "type": "string",
-          "description": "Order ID to capture",
-          "required": true
+          "description": "Order ID to capture"
         }
       },
       "returns": {
@@ -66,8 +61,7 @@
       "parameters": {
         "order_id": {
           "type": "string",
-          "description": "Order ID",
-          "required": true
+          "description": "Order ID"
         }
       },
       "returns": {
@@ -82,8 +76,7 @@
       "parameters": {
         "sender_batch_id": {
           "type": "string",
-          "description": "Unique batch ID",
-          "required": true
+          "description": "Unique batch ID"
         },
         "email_subject": {
           "type": "string",
@@ -97,8 +90,7 @@
         },
         "items": {
           "type": "array",
-          "description": "Array of payout items with recipient_email, amount, currency, note",
-          "required": true
+          "description": "Array of payout items with recipient_email, amount, currency, note"
         }
       },
       "returns": {
@@ -113,8 +105,7 @@
       "parameters": {
         "payout_batch_id": {
           "type": "string",
-          "description": "Payout batch ID",
-          "required": true
+          "description": "Payout batch ID"
         }
       },
       "returns": {
@@ -129,8 +120,7 @@
       "parameters": {
         "payout_item_id": {
           "type": "string",
-          "description": "Payout item ID",
-          "required": true
+          "description": "Payout item ID"
         }
       },
       "returns": {
@@ -145,18 +135,15 @@
       "parameters": {
         "recipient_email": {
           "type": "string",
-          "description": "Recipient email address",
-          "required": true
+          "description": "Recipient email address"
         },
         "items": {
           "type": "array",
-          "description": "Array of invoice items with name, quantity, unit_price",
-          "required": true
+          "description": "Array of invoice items with name, quantity, unit_price"
         },
         "currency": {
           "type": "string",
-          "description": "Currency code",
-          "required": true
+          "description": "Currency code"
         },
         "note": {
           "type": "string",
@@ -186,8 +173,7 @@
       "parameters": {
         "invoice_id": {
           "type": "string",
-          "description": "Invoice ID",
-          "required": true
+          "description": "Invoice ID"
         },
         "subject": {
           "type": "string",
@@ -212,8 +198,7 @@
       "parameters": {
         "invoice_id": {
           "type": "string",
-          "description": "Invoice ID",
-          "required": true
+          "description": "Invoice ID"
         }
       },
       "returns": {
@@ -228,8 +213,7 @@
       "parameters": {
         "invoice_id": {
           "type": "string",
-          "description": "Invoice ID",
-          "required": true
+          "description": "Invoice ID"
         },
         "subject": {
           "type": "string",
@@ -254,23 +238,19 @@
       "parameters": {
         "invoice_id": {
           "type": "string",
-          "description": "Invoice ID",
-          "required": true
+          "description": "Invoice ID"
         },
         "payment_date": {
           "type": "string",
-          "description": "Payment date (YYYY-MM-DD)",
-          "required": true
+          "description": "Payment date (YYYY-MM-DD)"
         },
         "amount": {
           "type": "string",
-          "description": "Payment amount",
-          "required": true
+          "description": "Payment amount"
         },
         "payment_method": {
           "type": "string",
-          "description": "Payment method (CASH, CHECK, etc.)",
-          "required": true
+          "description": "Payment method (CASH, CHECK, etc.)"
         },
         "note": {
           "type": "string",
@@ -318,8 +298,7 @@
       "parameters": {
         "transaction_id": {
           "type": "string",
-          "description": "Transaction ID",
-          "required": true
+          "description": "Transaction ID"
         }
       },
       "returns": {
@@ -334,13 +313,11 @@
       "parameters": {
         "start_date": {
           "type": "string",
-          "description": "Start date (YYYY-MM-DDTHH:MM:SSZ)",
-          "required": true
+          "description": "Start date (YYYY-MM-DDTHH:MM:SSZ)"
         },
         "end_date": {
           "type": "string",
-          "description": "End date (YYYY-MM-DDTHH:MM:SSZ)",
-          "required": true
+          "description": "End date (YYYY-MM-DDTHH:MM:SSZ)"
         },
         "transaction_status": {
           "type": "string",
@@ -366,8 +343,7 @@
       "parameters": {
         "capture_id": {
           "type": "string",
-          "description": "Capture ID",
-          "required": true
+          "description": "Capture ID"
         },
         "amount": {
           "type": "string",
@@ -397,8 +373,7 @@
       "parameters": {
         "refund_id": {
           "type": "string",
-          "description": "Refund ID",
-          "required": true
+          "description": "Refund ID"
         }
       },
       "returns": {

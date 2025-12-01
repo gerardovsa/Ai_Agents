@@ -9,8 +9,7 @@
       "parameters": {
         "audio_file": {
           "type": "string",
-          "description": "Path to audio/video file or URL",
-          "required": true
+          "description": "Path to audio/video file or URL"
         },
         "language": {
           "type": "string",
@@ -53,8 +52,7 @@
       "parameters": {
         "audio_file": {
           "type": "string",
-          "description": "Path to audio file or URL",
-          "required": true
+          "description": "Path to audio file or URL"
         },
         "sentiment_analysis": {
           "type": "boolean",
@@ -97,8 +95,7 @@
       "parameters": {
         "audio_file": {
           "type": "string",
-          "description": "Path to audio file or URL",
-          "required": true
+          "description": "Path to audio file or URL"
         },
         "speakers_expected": {
           "type": "integer",
@@ -127,8 +124,7 @@
       "parameters": {
         "transcript_id": {
           "type": "string",
-          "description": "AssemblyAI transcript ID",
-          "required": true
+          "description": "AssemblyAI transcript ID"
         }
       },
       "returns": {

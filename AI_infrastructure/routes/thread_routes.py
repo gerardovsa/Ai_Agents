@@ -68,6 +68,10 @@ def create_thread():
         tags = data.get('tags', [])
         synergy_card_id = data.get('synergy_card_id')
         
+        # NEW: Email context parameters
+        context_type = data.get('context_type')  # 'email', 'task', 'general'
+        metadata = data.get('metadata', {})  # Email metadata, etc.
+        
         # NEW: Branching parameters
         parent_thread_id = data.get('parent_thread_id')
         branch_point_message_id = data.get('branch_point_message_id')
@@ -89,9 +93,9 @@ def create_thread():
                 INSERT INTO sessions.threads (
                     thread_slug, workspace_id, name, user_id, created_at, updated_at,
                     metadata, location, tags, synergy_card_id,
-                    parent_thread_id, branch_point_message_id, branch_name
+                    parent_thread_id, branch_point_message_id, branch_name, context_type
                 ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 RETURNING id
             """, (
@@ -101,13 +105,14 @@ def create_thread():
                 user_id,                        # user_id
                 created,                        # created_at
                 created,                        # updated_at
-                json.dumps({}),                 # metadata
+                json.dumps(metadata),           # metadata (email context, etc.)
                 location,                       # location
-                json.dumps(tags),               # tags
+                json.dumps(tags),               # tags (includes email, provider, action)
                 synergy_card_id,                # synergy_card_id
                 parent_thread_id,               # parent_thread_id
                 branch_point_message_id,        # branch_point_message_id
-                branch_name                     # branch_name
+                branch_name,                    # branch_name
+                context_type                    # context_type ('email', 'task', etc.)
             ))
             
             cursor.execute(sql, params)
@@ -312,9 +317,10 @@ def list_threads():
     
     Returns list of threads FROM sessions.sessions schema (Supabase) or sessions.db (SQLite)
     """
-    # ✅ LEAK FIX #2: Initialize response BEFORE with block
+    # ✅ LEAK FIX: Initialize response variables BEFORE with block
     response_data = None
     status_code = 200
+    rows = []
     
     try:
         user_id = request.args.get('user_id')
@@ -410,9 +416,10 @@ def list_threads():
                 print(f"❌ Error: {query_error}")
                 import traceback
                 traceback.print_exc()
-                # Return error instead of empty list
+                # ✅ FIX: Return error immediately on query failure
                 return error_response(f"Query execution failed: {str(query_error)}", 500)
             
+            # Process rows into thread objects
             threads = []
             print(f"🔄 [THREAD API] Processing {len(rows)} rows into thread objects...")
             for idx, row in enumerate(rows, 1):
@@ -455,20 +462,22 @@ def list_threads():
         
         # ✅ with block ends here - connection returned to pool
         
-        # ✅ LEAK FIX #2: Set response data AFTER with block closes
-        print(f"📤 [THREAD API] Returning {len(threads)} threads")
-        for thread in threads[:5]:  # Log first 5 threads
-            print(f"   🧵 {thread['id']}: '{thread['title']}' → location={thread['location']}")
-        if len(threads) > 5:
-            print(f"   ... and {len(threads) - 5} more threads")
+        # ✅ LEAK FIX: Check if error occurred during query execution
+        if response_data is None:
+            # Success case - query executed without errors
+            print(f"📤 [THREAD API] Returning {len(threads)} threads")
+            for thread in threads[:5]:  # Log first 5 threads
+                print(f"   🧵 {thread['id']}: '{thread['title']}' → location={thread['location']}")
+            if len(threads) > 5:
+                print(f"   ... and {len(threads) - 5} more threads")
+            
+            response_data = success_response({
+                'threads': threads,
+                'count': len(threads)
+            }, message=f"Found {len(threads)} threads for user {user_id}")
+            status_code = 200
         
-        response_data = success_response({
-            'threads': threads,
-            'count': len(threads)
-        }, message=f"Found {len(threads)} threads for user {user_id}")
-        status_code = 200
-        
-        # ✅ Return response
+        # ✅ Return response (either success or error from query exception)
         return response_data
     
     except Exception as e:

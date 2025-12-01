@@ -11,7 +11,7 @@ Architecture:
         ↓
     module_blueprint_loader.load_module_blueprints(app)
         ↓
-    Discovers: UI/external/modules/*/routes/
+    Discovers: UI/modules_external/*/routes/
         ↓
     Imports and registers blueprints automatically
 
@@ -19,7 +19,7 @@ FILE: AI_infrastructure/core/module_blueprint_loader.py
 PURPOSE: Auto-discover and register Flask blueprints from UI modules
 DEPENDENCIES:
 - Flask app instance
-- UI/external/modules/*/routes/*.py files
+- UI/modules_external/*/routes/*.py files
 
 EXPORTS:
 - load_module_blueprints(app) - Main function to load all module blueprints
@@ -43,7 +43,7 @@ class ModuleBlueprintLoader:
     def __init__(self, app: Flask):
         self.app = app
         self.root_dir = Path(__file__).parent.parent.parent
-        self.modules_dir = self.root_dir / "UI" / "external" / "modules"
+        self.modules_dir = self.root_dir / "UI" / "modules_external"
         self.loaded_blueprints = []
         
         logger.info(f"🔌 [Module Blueprints] Initialized")

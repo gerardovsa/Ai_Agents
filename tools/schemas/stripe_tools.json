@@ -9,13 +9,11 @@
       "parameters": {
         "amount": {
           "type": "integer",
-          "description": "Amount in smallest currency unit (e.g., cents for USD)",
-          "required": true
+          "description": "Amount in smallest currency unit (e.g., cents for USD)"
         },
         "currency": {
           "type": "string",
-          "description": "Three-letter ISO currency code (e.g., 'usd', 'eur', 'gbp')",
-          "required": true
+          "description": "Three-letter ISO currency code (e.g., 'usd', 'eur', 'gbp')"
         },
         "customer_id": {
           "type": "string",
@@ -64,8 +62,7 @@
       "parameters": {
         "payment_intent_id": {
           "type": "string",
-          "description": "Payment intent ID",
-          "required": true
+          "description": "Payment intent ID"
         },
         "payment_method": {
           "type": "string",
@@ -90,8 +87,7 @@
       "parameters": {
         "payment_intent_id": {
           "type": "string",
-          "description": "Payment intent ID",
-          "required": true
+          "description": "Payment intent ID"
         },
         "amount_to_capture": {
           "type": "integer",
@@ -111,8 +107,7 @@
       "parameters": {
         "payment_intent_id": {
           "type": "string",
-          "description": "Payment intent ID to refund",
-          "required": true
+          "description": "Payment intent ID to refund"
         },
         "amount": {
           "type": "integer",
@@ -164,8 +159,7 @@
       "parameters": {
         "email": {
           "type": "string",
-          "description": "Customer email",
-          "required": true
+          "description": "Customer email"
         },
         "name": {
           "type": "string",
@@ -205,8 +199,7 @@
       "parameters": {
         "customer_id": {
           "type": "string",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         }
       },
       "returns": {
@@ -221,8 +214,7 @@
       "parameters": {
         "customer_id": {
           "type": "string",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         },
         "email": {
           "type": "string",
@@ -257,8 +249,7 @@
       "parameters": {
         "customer_id": {
           "type": "string",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         }
       },
       "returns": {
@@ -295,13 +286,11 @@
       "parameters": {
         "customer_id": {
           "type": "string",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         },
         "items": {
           "type": "array",
-          "description": "Array of subscription items with price IDs",
-          "required": true
+          "description": "Array of subscription items with price IDs"
         },
         "trial_period_days": {
           "type": "integer",
@@ -332,8 +321,7 @@
       "parameters": {
         "subscription_id": {
           "type": "string",
-          "description": "Subscription ID",
-          "required": true
+          "description": "Subscription ID"
         },
         "items": {
           "type": "array",
@@ -363,8 +351,7 @@
       "parameters": {
         "subscription_id": {
           "type": "string",
-          "description": "Subscription ID",
-          "required": true
+          "description": "Subscription ID"
         },
         "at_period_end": {
           "type": "boolean",
@@ -412,8 +399,7 @@
       "parameters": {
         "customer_id": {
           "type": "string",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         },
         "description": {
           "type": "string",
@@ -450,8 +436,7 @@
       "parameters": {
         "invoice_id": {
           "type": "string",
-          "description": "Invoice ID",
-          "required": true
+          "description": "Invoice ID"
         },
         "auto_advance": {
           "type": "boolean",
@@ -472,8 +457,7 @@
       "parameters": {
         "invoice_id": {
           "type": "string",
-          "description": "Invoice ID",
-          "required": true
+          "description": "Invoice ID"
         },
         "payment_method": {
           "type": "string",
@@ -493,8 +477,7 @@
       "parameters": {
         "invoice_id": {
           "type": "string",
-          "description": "Invoice ID",
-          "required": true
+          "description": "Invoice ID"
         }
       },
       "returns": {
@@ -536,8 +519,7 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "Product name",
-          "required": true
+          "description": "Product name"
         },
         "description": {
           "type": "string",
@@ -567,18 +549,15 @@
       "parameters": {
         "product_id": {
           "type": "string",
-          "description": "Product ID",
-          "required": true
+          "description": "Product ID"
         },
         "unit_amount": {
           "type": "integer",
-          "description": "Price in smallest currency unit",
-          "required": true
+          "description": "Price in smallest currency unit"
         },
         "currency": {
           "type": "string",
-          "description": "Currency code",
-          "required": true
+          "description": "Currency code"
         },
         "recurring": {
           "type": "object",
@@ -603,8 +582,7 @@
       "parameters": {
         "customer_id": {
           "type": "string",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         },
         "type": {
           "type": "string",
@@ -625,13 +603,11 @@
       "parameters": {
         "payment_method_id": {
           "type": "string",
-          "description": "Payment method ID",
-          "required": true
+          "description": "Payment method ID"
         },
         "customer_id": {
           "type": "string",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         }
       },
       "returns": {
@@ -646,8 +622,7 @@
       "parameters": {
         "payment_method_id": {
           "type": "string",
-          "description": "Payment method ID",
-          "required": true
+          "description": "Payment method ID"
         }
       },
       "returns": {

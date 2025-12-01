@@ -9,18 +9,15 @@
       "parameters": {
         "to": {
           "type": "string",
-          "description": "Recipient phone number (E.164 format: +1234567890)",
-          "required": true
+          "description": "Recipient phone number (E.164 format: +1234567890)"
         },
         "from": {
           "type": "string",
-          "description": "Twilio phone number (E.164 format)",
-          "required": true
+          "description": "Twilio phone number (E.164 format)"
         },
         "body": {
           "type": "string",
-          "description": "Message body (up to 1600 characters)",
-          "required": true
+          "description": "Message body (up to 1600 characters)"
         },
         "media_url": {
           "type": "array",
@@ -45,8 +42,7 @@
       "parameters": {
         "message_sid": {
           "type": "string",
-          "description": "Message SID",
-          "required": true
+          "description": "Message SID"
         }
       },
       "returns": {
@@ -93,13 +89,11 @@
       "parameters": {
         "to": {
           "type": "string",
-          "description": "Recipient phone number (E.164 format)",
-          "required": true
+          "description": "Recipient phone number (E.164 format)"
         },
         "from": {
           "type": "string",
-          "description": "Twilio phone number",
-          "required": true
+          "description": "Twilio phone number"
         },
         "url": {
           "type": "string",
@@ -135,8 +129,7 @@
       "parameters": {
         "call_sid": {
           "type": "string",
-          "description": "Call SID",
-          "required": true
+          "description": "Call SID"
         }
       },
       "returns": {
@@ -183,8 +176,7 @@
       "parameters": {
         "call_sid": {
           "type": "string",
-          "description": "Call SID",
-          "required": true
+          "description": "Call SID"
         },
         "url": {
           "type": "string",
@@ -214,18 +206,15 @@
       "parameters": {
         "to": {
           "type": "string",
-          "description": "Recipient WhatsApp number (whatsapp:+1234567890)",
-          "required": true
+          "description": "Recipient WhatsApp number (whatsapp:+1234567890)"
         },
         "from": {
           "type": "string",
-          "description": "Twilio WhatsApp number (whatsapp:+14155238886)",
-          "required": true
+          "description": "Twilio WhatsApp number (whatsapp:+14155238886)"
         },
         "body": {
           "type": "string",
-          "description": "Message body",
-          "required": true
+          "description": "Message body"
         },
         "media_url": {
           "type": "array",
@@ -245,8 +234,7 @@
       "parameters": {
         "unique_name": {
           "type": "string",
-          "description": "Unique room name",
-          "required": true
+          "description": "Unique room name"
         },
         "type": {
           "type": "string",
@@ -284,8 +272,7 @@
       "parameters": {
         "room_sid": {
           "type": "string",
-          "description": "Room SID or unique name",
-          "required": true
+          "description": "Room SID or unique name"
         }
       },
       "returns": {
@@ -322,8 +309,7 @@
       "parameters": {
         "room_sid": {
           "type": "string",
-          "description": "Room SID",
-          "required": true
+          "description": "Room SID"
         }
       },
       "returns": {
@@ -359,8 +345,7 @@
       "parameters": {
         "country_code": {
           "type": "string",
-          "description": "ISO country code (e.g., 'US', 'GB')",
-          "required": true
+          "description": "ISO country code (e.g., 'US', 'GB')"
         },
         "area_code": {
           "type": "string",
@@ -397,8 +382,7 @@
       "parameters": {
         "phone_number": {
           "type": "string",
-          "description": "Phone number to purchase (E.164 format)",
-          "required": true
+          "description": "Phone number to purchase (E.164 format)"
         },
         "friendly_name": {
           "type": "string",
@@ -418,18 +402,15 @@
       "parameters": {
         "to": {
           "type": "array",
-          "description": "Array of recipient email objects with email and name",
-          "required": true
+          "description": "Array of recipient email objects with email and name"
         },
         "from": {
           "type": "object",
-          "description": "Sender object with email and name",
-          "required": true
+          "description": "Sender object with email and name"
         },
         "subject": {
           "type": "string",
-          "description": "Email subject",
-          "required": true
+          "description": "Email subject"
         },
         "text": {
           "type": "string",

@@ -9,13 +9,11 @@
       "parameters": {
         "worker_name": {
           "type": "string",
-          "description": "Name of the Worker",
-          "required": true
+          "description": "Name of the Worker"
         },
         "script_path": {
           "type": "string",
-          "description": "Path to JavaScript file",
-          "required": true
+          "description": "Path to JavaScript file"
         },
         "routes": {
           "type": "array",
@@ -57,8 +55,7 @@
       "parameters": {
         "worker_name": {
           "type": "string",
-          "description": "Name of the Worker",
-          "required": true
+          "description": "Name of the Worker"
         },
         "limit": {
           "type": "integer",
@@ -79,8 +76,7 @@
       "parameters": {
         "worker_name": {
           "type": "string",
-          "description": "Name of the Worker",
-          "required": true
+          "description": "Name of the Worker"
         }
       },
       "returns": {

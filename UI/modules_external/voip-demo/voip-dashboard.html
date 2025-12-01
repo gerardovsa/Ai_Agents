@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>VoIP Demo - Dashboard</title>
+</head>
+
+<body>
+    <div id="voip-dashboard-container">
+        <div class="voip-header">
+            <h2><i class="fas fa-phone"></i> VoIP Call Center</h2>
+            <div class="voip-status" id="voip-connection-status">
+                <span class="status-dot disconnected"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+        </div>
+
+        <div class="voip-main-content">
+            <!-- Call Controls -->
+            <div class="voip-controls-section">
+                <h3>Call Controls</h3>
+                <div class="call-controls">
+                    <button id="voip-start-call" class="voip-btn voip-btn-success" disabled>
+                        <i class="fas fa-phone"></i> Start Call
+                    </button>
+                    <button id="voip-end-call" class="voip-btn voip-btn-danger" disabled>
+                        <i class="fas fa-phone-slash"></i> End Call
+                    </button>
+                    <button id="voip-mute-audio" class="voip-btn voip-btn-secondary" disabled>
+                        <i class="fas fa-microphone"></i> Mute
+                    </button>
+                </div>
+            </div>
+
+            <!-- Call Status -->
+            <div class="voip-call-status" id="voip-call-status">
+                <div class="status-indicator">
+                    <i class="fas fa-info-circle"></i>
+                    <span>No active call</span>
+                </div>
+                <div class="call-timer" id="voip-call-timer" style="display: none;">
+                    <i class="fas fa-clock"></i>
+                    <span id="voip-timer-display">00:00</span>
+                </div>
+            </div>
+
+            <!-- Live Transcription -->
+            <div class="voip-transcription-section">
+                <h3>
+                    <i class="fas fa-closed-captioning"></i> Live Transcription
+                    <button id="voip-toggle-transcription" class="voip-btn-small" disabled>
+                        <i class="fas fa-eye"></i> Show
+                    </button>
+                </h3>
+                <div id="voip-transcription-output" class="transcription-output" style="display: none;">
+                    <div class="transcription-content">
+                        <p class="placeholder-text">Transcription will appear here during call...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call History -->
+            <div class="voip-history-section">
+                <h3><i class="fas fa-history"></i> Recent Calls</h3>
+                <div id="voip-call-history" class="call-history-list">
+                    <p class="placeholder-text">No call history yet</p>
+                </div>
+            </div>
+
+            <!-- Audio Level Meter -->
+            <div class="voip-audio-meter">
+                <label>Audio Input Level</label>
+                <div class="meter-bar">
+                    <div class="meter-fill" id="voip-audio-level"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Setup -->
+        <div class="voip-setup-panel" id="voip-setup-panel">
+            <h3>Setup WebRTC Connection</h3>
+            <div class="setup-controls">
+                <button id="voip-connect" class="voip-btn voip-btn-primary">
+                    <i class="fas fa-plug"></i> Connect to Server
+                </button>
+                <button id="voip-test-audio" class="voip-btn voip-btn-secondary">
+                    <i class="fas fa-volume-up"></i> Test Audio
+                </button>
+            </div>
+            <div class="setup-info">
+                <p><i class="fas fa-info-circle"></i> This is a demonstration VoIP module showing:</p>
+                <ul>
+                    <li>WebRTC audio streaming</li>
+                    <li>Real-time transcription using AI</li>
+                    <li>Call recording and playback</li>
+                    <li>Audio level monitoring</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

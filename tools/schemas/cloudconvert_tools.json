@@ -9,18 +9,15 @@
       "parameters": {
         "input_file": {
           "type": "string",
-          "description": "Path to input file or URL",
-          "required": true
+          "description": "Path to input file or URL"
         },
         "input_format": {
           "type": "string",
-          "description": "Input file format (e.g., 'docx', 'jpg', 'mp4')",
-          "required": true
+          "description": "Input file format (e.g., 'docx', 'jpg', 'mp4')"
         },
         "output_format": {
           "type": "string",
-          "description": "Output file format (e.g., 'pdf', 'png', 'webm')",
-          "required": true
+          "description": "Output file format (e.g., 'pdf', 'png', 'webm')"
         },
         "output_file": {
           "type": "string",
@@ -51,13 +48,11 @@
       "parameters": {
         "input_file": {
           "type": "string",
-          "description": "Path to input file",
-          "required": true
+          "description": "Path to input file"
         },
         "file_type": {
           "type": "string",
-          "description": "File type: 'image' or 'video'",
-          "required": true
+          "description": "File type: 'image' or 'video'"
         },
         "quality": {
           "type": "integer",
@@ -93,13 +88,11 @@
       "parameters": {
         "input_files": {
           "type": "array",
-          "description": "Array of file paths to merge",
-          "required": true
+          "description": "Array of file paths to merge"
         },
         "output_format": {
           "type": "string",
-          "description": "Output format (e.g., 'pdf', 'mp4')",
-          "required": true
+          "description": "Output format (e.g., 'pdf', 'mp4')"
         },
         "output_file": {
           "type": "string",
@@ -131,8 +124,7 @@
       "parameters": {
         "job_id": {
           "type": "string",
-          "description": "CloudConvert job ID",
-          "required": true
+          "description": "CloudConvert job ID"
         }
       },
       "returns": {

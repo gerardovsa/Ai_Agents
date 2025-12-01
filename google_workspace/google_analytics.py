@@ -17,7 +17,7 @@ try:
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
-    from google_workspace.google_auth_helper import build_analytics_service
+    from google_workspace.google_auth_helper import build_analytics_service, get_service_account_credentials
     HAS_ANALYTICS_API = True
 except ImportError:
     HAS_ANALYTICS_API = False
@@ -25,7 +25,7 @@ except ImportError:
 
 
 def _get_analytics_service():
-    """Get authenticated Google Analytics API service"""
+    """Get authenticated Google Analytics Data API service (for reports)"""
     if not HAS_ANALYTICS_API:
         raise Exception("Google Analytics API not available - install google-api-python-client")
     
@@ -33,12 +33,22 @@ def _get_analytics_service():
     return build_analytics_service()
 
 
+def _get_analytics_admin_service():
+    """Get authenticated Google Analytics Admin API service (for accounts/properties)"""
+    if not HAS_ANALYTICS_API:
+        raise Exception("Google Analytics API not available - install google-api-python-client")
+    
+    scopes = ['https://www.googleapis.com/auth/analytics.readonly']
+    credentials = get_service_account_credentials(scopes)
+    return build('analyticsadmin', 'v1beta', credentials=credentials)
+
+
 # ==================== ACCOUNT & PROPERTY ====================
 
 def google_analytics_list_accounts(**kwargs):
     """List all Analytics accounts"""
     try:
-        service = _get_analytics_service()
+        service = _get_analytics_admin_service()
         
         accounts = service.accountSummaries().list().execute()
         
@@ -57,7 +67,7 @@ def google_analytics_list_accounts(**kwargs):
 def google_analytics_list_properties(account_id=None, **kwargs):
     """List Analytics properties"""
     try:
-        service = _get_analytics_service()
+        service = _get_analytics_admin_service()
         
         if account_id:
             parent = f'accounts/{account_id}'

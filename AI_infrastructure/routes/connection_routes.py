@@ -46,64 +46,65 @@ def list_user_connections():
         return jsonify({'error': 'User ID not found in session'}), 401
     
     try:
-        conn = get_database_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        connections = []
-        
-        # 1. Query OAuth tokens
-        cursor.execute("""
-            SELECT 
-                id,
-                platform,
-                email,
-                is_active,
-                is_valid,
-                created_at,
-                updated_at,
-                expires_at,
-                last_refreshed_at,
-                scope
-            FROM ai_infrastructure.oauth_tokens
-            WHERE user_id = %s
-            ORDER BY created_at DESC
-        """, (user_id,))
-        
-        oauth_rows = cursor.fetchall()
-        
-        for row in oauth_rows:
-            # Handle both dict and tuple responses
-            if isinstance(row, dict):
-                row_data = row
-            else:
-                row_data = {
-                    'id': row[0],
-                    'platform': row[1],
-                    'email': row[2],
-                    'is_active': row[3],
-                    'is_valid': row[4],
-                    'created_at': row[5],
-                    'updated_at': row[6],
-                    'expires_at': row[7],
-                    'last_refreshed_at': row[8],
-                    'scope': row[9]
-                }
+        # ✅ FIX: Use context manager to prevent connection leaks
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
             
-            connection = {
-                'id': f"oauth_{row_data['id']}",
-                'platform': row_data['platform'],
-                'credential_type': 'oauth',
-                'is_active': row_data['is_active'] and row_data['is_valid'],
-                'created_at': row_data['created_at'].isoformat() if row_data['created_at'] else None,
-                'updated_at': row_data['updated_at'].isoformat() if row_data['updated_at'] else None,
-                'metadata': {
-                    'email': row_data['email'],
-                    'expires_at': row_data['expires_at'].isoformat() if row_data['expires_at'] else None,
-                    'last_refreshed_at': row_data['last_refreshed_at'].isoformat() if row_data['last_refreshed_at'] else None,
-                    'scope': row_data['scope']
+            connections = []
+            
+            # 1. Query OAuth tokens
+            cursor.execute("""
+                SELECT 
+                    id,
+                    platform,
+                    email,
+                    is_active,
+                    is_valid,
+                    created_at,
+                    updated_at,
+                    expires_at,
+                    last_refreshed_at,
+                    scope
+                FROM ai_infrastructure.oauth_tokens
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+            """, (user_id,))
+            
+            oauth_rows = cursor.fetchall()
+            
+            for row in oauth_rows:
+                # Handle both dict and tuple responses
+                if isinstance(row, dict):
+                    row_data = row
+                else:
+                    row_data = {
+                        'id': row[0],
+                        'platform': row[1],
+                        'email': row[2],
+                        'is_active': row[3],
+                        'is_valid': row[4],
+                        'created_at': row[5],
+                        'updated_at': row[6],
+                        'expires_at': row[7],
+                        'last_refreshed_at': row[8],
+                        'scope': row[9]
+                    }
+                
+                connection = {
+                    'id': f"oauth_{row_data['id']}",
+                    'platform': row_data['platform'],
+                    'credential_type': 'oauth',
+                    'is_active': row_data['is_active'] and row_data['is_valid'],
+                    'created_at': row_data['created_at'].isoformat() if row_data['created_at'] else None,
+                    'updated_at': row_data['updated_at'].isoformat() if row_data['updated_at'] else None,
+                    'metadata': {
+                        'email': row_data['email'],
+                        'expires_at': row_data['expires_at'].isoformat() if row_data['expires_at'] else None,
+                        'last_refreshed_at': row_data['last_refreshed_at'].isoformat() if row_data['last_refreshed_at'] else None,
+                        'scope': row_data['scope']
+                    }
                 }
-            }
-            connections.append(connection)
+                connections.append(connection)
         
         # 2. Query user_platform_credentials (API keys, databases, etc.)
         cursor.execute("""
@@ -112,6 +113,7 @@ def list_user_connections():
                 platform,
                 credential_type,
                 credential_key,
+                credential_value,
                 is_active,
                 created_at,
                 updated_at,
@@ -124,6 +126,10 @@ def list_user_connections():
         
         platform_rows = cursor.fetchall()
         
+        # Import encryptor for masking
+        from AI_infrastructure.auth.credential_encryptor import get_encryptor
+        encryptor = get_encryptor()
+        
         for row in platform_rows:
             if isinstance(row, dict):
                 row_data = row
@@ -133,11 +139,12 @@ def list_user_connections():
                     'platform': row[1],
                     'credential_type': row[2],
                     'credential_key': row[3],
-                    'is_active': row[4],
-                    'created_at': row[5],
-                    'updated_at': row[6],
-                    'metadata': row[7],
-                    'credentials': row[8]
+                    'credential_value': row[4],
+                    'is_active': row[5],
+                    'created_at': row[6],
+                    'updated_at': row[7],
+                    'metadata': row[8],
+                    'credentials': row[9]
                 }
             
             # Parse metadata JSON if string
@@ -156,21 +163,36 @@ def list_user_connections():
                 except:
                     credentials = {}
             
+            # Mask the credential value for display
+            credential_value = row_data.get('credential_value')
+            masked_value = None
+            if credential_value:
+                masked_value = encryptor.mask_credential(credential_value)
+            
+            # Extract account name from metadata
+            account_name = None
+            if metadata:
+                account_name = (
+                    metadata.get('email') or 
+                    metadata.get('account_name') or 
+                    metadata.get('username') or
+                    metadata.get('display_name')
+                )
+            
             connection = {
                 'id': f"platform_{row_data['id']}",
                 'platform': row_data['platform'],
                 'credential_type': row_data['credential_type'],
                 'credential_key': row_data['credential_key'],  # API key name/identifier
+                'credential_value_masked': masked_value,  # ✅ ADD MASKED VALUE
+                'account_name': account_name,  # ✅ ADD ACCOUNT NAME
                 'is_active': row_data['is_active'],
                 'created_at': row_data['created_at'].isoformat() if row_data['created_at'] else None,
                 'updated_at': row_data['updated_at'].isoformat() if row_data['updated_at'] else None,
                 'metadata': metadata,
-                'has_credentials': bool(credentials)  # Don't expose actual values
+                'has_credentials': bool(credentials)
             }
             connections.append(connection)
-        
-        cursor.close()
-        conn.close()
         
         return jsonify({
             'success': True,
@@ -186,6 +208,13 @@ def list_user_connections():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ CRITICAL FIX: Always close connection
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @connections_bp.route('/api/connections', methods=['POST'])
@@ -230,6 +259,7 @@ def add_platform_credential():
         # Add the main credential value to credentials dict
         credentials['main_credential'] = credential_value
         
+        conn = None  # Initialize for finally block
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
@@ -243,8 +273,6 @@ def add_platform_credential():
         
         credential_id = cursor.fetchone()[0]
         conn.commit()
-        cursor.close()
-        conn.close()
         
         return jsonify({
             'success': True,
@@ -260,6 +288,13 @@ def add_platform_credential():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ CRITICAL FIX: Always close connection
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @connections_bp.route('/api/connections/<credential_id>', methods=['PUT'])
@@ -299,6 +334,7 @@ def update_platform_credential(credential_id):
             'error': 'OAuth credentials cannot be edited directly. Please re-authenticate.'
         }), 400
     
+    conn = None  # Initialize for finally block
     try:
         data = request.get_json()
         
@@ -339,8 +375,6 @@ def update_platform_credential(credential_id):
         
         affected_rows = cursor.rowcount
         conn.commit()
-        cursor.close()
-        conn.close()
         
         if affected_rows == 0:
             return jsonify({
@@ -361,6 +395,13 @@ def update_platform_credential(credential_id):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ CRITICAL FIX: Always close connection
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @connections_bp.route('/api/connections/<credential_id>/test', methods=['POST'])
@@ -386,6 +427,7 @@ def test_platform_credential(credential_id):
     
     id_type, id_value = credential_id.split('_', 1)
     
+    conn = None  # Initialize for finally block
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
@@ -406,8 +448,6 @@ def test_platform_credential(credential_id):
             """, (user_id, int(id_value)))
         
         row = cursor.fetchone()
-        cursor.close()
-        conn.close()
         
         if not row:
             return jsonify({
@@ -506,8 +546,6 @@ def disconnect_platform(credential_id):
                 affected_rows = cursor.rowcount
         
         conn.commit()
-        cursor.close()
-        conn.close()
         
         if affected_rows == 0:
             return jsonify({
@@ -528,3 +566,10 @@ def disconnect_platform(credential_id):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ CRITICAL FIX: Always close connection
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass

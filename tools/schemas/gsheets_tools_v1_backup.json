@@ -9,13 +9,11 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID from URL",
-          "required": true
+          "description": "Spreadsheet ID from URL"
         },
         "range": {
           "type": "string",
-          "description": "Cell range (e.g., 'Sheet1!A1:D10')",
-          "required": true
+          "description": "Cell range (e.g., 'Sheet1!A1:D10')"
         }
       },
       "returns": {
@@ -39,18 +37,15 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID from URL",
-          "required": true
+          "description": "Spreadsheet ID from URL"
         },
         "range": {
           "type": "string",
-          "description": "Cell range to write to",
-          "required": true
+          "description": "Cell range to write to"
         },
         "values": {
           "type": "array",
-          "description": "2D array of values to write",
-          "required": true
+          "description": "2D array of values to write"
         }
       },
       "returns": {
@@ -65,18 +60,15 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID from URL",
-          "required": true
+          "description": "Spreadsheet ID from URL"
         },
         "range": {
           "type": "string",
-          "description": "Sheet name and starting column (e.g., 'Sheet1!A:D')",
-          "required": true
+          "description": "Sheet name and starting column (e.g., 'Sheet1!A:D')"
         },
         "values": {
           "type": "array",
-          "description": "2D array of values to append",
-          "required": true
+          "description": "2D array of values to append"
         }
       },
       "returns": {
@@ -91,8 +83,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Spreadsheet title",
-          "required": true
+          "description": "Spreadsheet title"
         },
         "sheets": {
           "type": "array",

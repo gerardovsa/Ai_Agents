@@ -91,8 +91,17 @@ class ModuleManifest:
     dependencies: List[str] = field(default_factory=list)  # Other module IDs this depends on
     api_routes: List[str] = field(default_factory=list)  # API endpoints this module uses
     
+    # Raw dependencies object (for V4 framework) - includes utilities, modules, frameworks
+    raw_dependencies: Optional[Dict[str, Any]] = None  # Full dependencies from manifest.json
+    
     # Feature flags
     features: Dict[str, bool] = field(default_factory=dict)  # Feature toggles
+    
+    # Thread card integration (for ThreadCardRegistry)
+    thread_card_integration: Optional[Dict[str, Any]] = None  # Badge/drag-drop/realtime config
+    
+    # Loading configuration (for Modern Framework V4 detection)
+    loading: Optional[Dict[str, Any]] = None  # Loading strategy, priority, framework version (e.g., {"framework": "v4"})
     
     # Module directory path
     module_path: str = ""  # Absolute path to module directory
@@ -182,6 +191,71 @@ class ModuleRegistry:
                 with open(manifest_path, 'r', encoding='utf-8') as f:
                     manifest_data = json.load(f)
                 
+                logger.debug(f"Processing module: {manifest_data.get('id', 'unknown')}")
+                
+                # Extract dependencies (handle both dict and list formats)
+                dependencies_raw = manifest_data.get('dependencies', [])
+                
+                # Store raw dependencies for V4 framework (includes utilities, modules, frameworks)
+                raw_dependencies_obj = dependencies_raw if isinstance(dependencies_raw, dict) else None
+                
+                if isinstance(dependencies_raw, dict):
+                    # Modern format: {"utilities": [...], "frameworks": [...], "modules": [...]}
+                    module_deps_raw = dependencies_raw.get('modules', [])
+                elif isinstance(dependencies_raw, list):
+                    # Legacy format: ["module1", "module2"] OR [{"type": "...", "name": "..."}]
+                    module_deps_raw = dependencies_raw
+                else:
+                    module_deps_raw = []
+                
+                # Normalize dependencies to list of strings (extract 'name' from dict objects)
+                module_dependencies = []
+                for dep in module_deps_raw:
+                    if isinstance(dep, str):
+                        module_dependencies.append(dep)
+                    elif isinstance(dep, dict) and 'name' in dep:
+                        # Old format: {"type": "framework", "name": "sidebar-manager", ...}
+                        module_dependencies.append(dep['name'])
+                    # Ignore invalid dependency formats
+                
+                # Extract api_routes (handle both dict and list formats)
+                api_routes_raw = manifest_data.get('api_routes', manifest_data.get('api_endpoints', []))
+                if isinstance(api_routes_raw, dict):
+                    # Modern format: {"jobs": {...}, "stages": {...}} - flatten to list of endpoint paths
+                    api_routes_list = []
+                    for category, endpoints in api_routes_raw.items():
+                        if isinstance(endpoints, dict):
+                            api_routes_list.extend(endpoints.values())
+                        elif isinstance(endpoints, list):
+                            api_routes_list.extend(endpoints)
+                elif isinstance(api_routes_raw, list):
+                    # Legacy format: ["/api/endpoint1", "/api/endpoint2"]
+                    api_routes_list = api_routes_raw
+                else:
+                    api_routes_list = []
+                
+                # Extract file paths (support both root-level and files.* object)
+                files_obj = manifest_data.get('files', {})
+                paths_obj = manifest_data.get('paths', {})
+                
+                # Debug logging for inhouse-kanban
+                if manifest_data['id'] == 'inhouse-kanban':
+                    print(f"[DEBUG] inhouse-kanban files_obj: {files_obj}")
+                    print(f"[DEBUG] inhouse-kanban paths_obj: {paths_obj}")
+                
+                js_file = manifest_data.get('js_file') or files_obj.get('js')
+                css_file = manifest_data.get('css_file') or files_obj.get('css')
+                html_file = manifest_data.get('html_file') or files_obj.get('html')
+                
+                scriptPath = manifest_data.get('scriptPath') or paths_obj.get('script')
+                stylePath = manifest_data.get('stylePath') or paths_obj.get('style')
+                htmlPath = manifest_data.get('htmlPath') or paths_obj.get('html') or paths_obj.get('sidebar_html')
+                
+                # Debug logging for inhouse-kanban
+                if manifest_data['id'] == 'inhouse-kanban':
+                    print(f"[DEBUG] inhouse-kanban js_file: {js_file}")
+                    print(f"[DEBUG] inhouse-kanban scriptPath: {scriptPath}")
+                
                 # Create ModuleManifest object
                 manifest = ModuleManifest(
                     id=manifest_data['id'],
@@ -190,12 +264,12 @@ class ModuleRegistry:
                     description=manifest_data.get('description', ''),
                     icon=manifest_data.get('icon', 'fa-puzzle-piece'),
                     color=manifest_data.get('color', '#6B7280'),
-                    html_file=manifest_data.get('html_file'),
-                    js_file=manifest_data.get('js_file'),
-                    css_file=manifest_data.get('css_file'),
-                    htmlPath=manifest_data.get('htmlPath'),
-                    scriptPath=manifest_data.get('scriptPath'),
-                    stylePath=manifest_data.get('stylePath'),
+                    html_file=html_file,
+                    js_file=js_file,
+                    css_file=css_file,
+                    htmlPath=htmlPath,
+                    scriptPath=scriptPath,
+                    stylePath=stylePath,
                     required_platforms=manifest_data.get('required_platforms', []),
                     optional_platforms=manifest_data.get('optional_platforms', []),
                     sidebar_position=manifest_data.get('sidebar_position', 'right'),
@@ -208,9 +282,12 @@ class ModuleRegistry:
                     floating_toggle_default_top=manifest_data.get('floating_toggle_default_top', 280),
                     main_tab=manifest_data.get('main_tab', False),
                     main_tab_id=manifest_data.get('main_tab_id'),
-                    dependencies=manifest_data.get('dependencies', []),
-                    api_routes=manifest_data.get('api_routes', []),
+                    dependencies=module_dependencies,  # ✅ FIX: Use extracted module dependencies
+                    raw_dependencies=raw_dependencies_obj,  # ✅ NEW: Full dependencies object for V4 framework
+                    api_routes=api_routes_list,  # ✅ FIX: Use extracted API routes list
                     features=manifest_data.get('features', {}),
+                    thread_card_integration=manifest_data.get('thread_card_integration'),
+                    loading=manifest_data.get('loading'),  # ✅ Loading config for Modern Framework V4 detection
                     module_path=str(module_dir)
                 )
                 
@@ -230,25 +307,29 @@ class ModuleRegistry:
                     logger.info(f"  Optional platforms: {', '.join(manifest.optional_platforms)}")
                 
             except Exception as e:
+                import traceback
                 logger.error(f"Failed to load module from {module_dir.name}: {e}")
+                logger.debug(f"Traceback:\n{traceback.format_exc()}")
                 continue
         
-        logger.info(f"Module registry initialized: {len(self.modules)} modules loaded")
-        self._modules_loaded = True  # Mark as loaded
+        logger.info(f"Module registry scan complete: {len(self.modules)} total modules")
+        # ✅ FIX: Don't set _modules_loaded = True here, so initialize() can be called multiple times
+        # This allows flask_app.py to scan multiple directories (frontend/, UI/external/, UI/modules/)
+        # self._modules_loaded = True  # REMOVED
     
     def _ensure_initialized(self):
         """Ensure modules are loaded (lazy initialization)"""
         if not self._modules_loaded:
-            # ONLY scan UI/external/modules (external plug-and-play modules)
-            # UI/modules and frontend/modules are hardcoded in HTML and NOT managed by module registry
+            # ONLY scan UI/modules_external (external plug-and-play modules)
+            # UI/modules_internal and frontend/modules are hardcoded in HTML and NOT managed by module registry
             base_dir = Path(__file__).parent.parent.parent  # Go up to AI_agents root
             
-            external_dir = base_dir / "UI" / "external" / "modules"
+            external_dir = base_dir / "UI" / "modules_external"
             if external_dir.exists():
                 logger.info(f"[ModuleRegistry] Scanning external modules: {external_dir}")
                 self.initialize(str(external_dir))
             else:
-                logger.warning(f"[ModuleRegistry] External modules directory not found: {external_dir}")
+                logger.warning(f"[ModuleRegistry] modules_external directory not found: {external_dir}")
     
     def get_module(self, module_id: str) -> Optional[ModuleManifest]:
         """Get module manifest by ID"""

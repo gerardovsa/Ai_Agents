@@ -9,8 +9,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Form title",
-          "required": true
+          "description": "Form title"
         },
         "description": {
           "type": "string",
@@ -30,8 +29,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         }
       },
       "returns": {
@@ -46,18 +44,15 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "question_type": {
           "type": "string",
-          "description": "Question type: TEXT, PARAGRAPH_TEXT, MULTIPLE_CHOICE, CHECKBOX, DROPDOWN, LINEAR_SCALE, MULTIPLE_CHOICE_GRID, CHECKBOX_GRID, DATE, TIME, FILE_UPLOAD",
-          "required": true
+          "description": "Question type: TEXT, PARAGRAPH_TEXT, MULTIPLE_CHOICE, CHECKBOX, DROPDOWN, LINEAR_SCALE, MULTIPLE_CHOICE_GRID, CHECKBOX_GRID, DATE, TIME, FILE_UPLOAD"
         },
         "title": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "required": {
           "type": "boolean",
@@ -88,18 +83,15 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "title": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "options": {
           "type": "array",
-          "description": "Answer choices",
-          "required": true
+          "description": "Answer choices"
         },
         "required": {
           "type": "boolean",
@@ -126,13 +118,11 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "title": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "paragraph": {
           "type": "boolean",
@@ -159,23 +149,19 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "title": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "low_value": {
           "type": "integer",
-          "description": "Minimum value (0 or 1)",
-          "required": true
+          "description": "Minimum value (0 or 1)"
         },
         "high_value": {
           "type": "integer",
-          "description": "Maximum value (2-10)",
-          "required": true
+          "description": "Maximum value (2-10)"
         },
         "low_label": {
           "type": "string",
@@ -206,13 +192,11 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "question_id": {
           "type": "string",
-          "description": "Question ID",
-          "required": true
+          "description": "Question ID"
         },
         "title": {
           "type": "string",
@@ -242,13 +226,11 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "question_id": {
           "type": "string",
-          "description": "Question ID",
-          "required": true
+          "description": "Question ID"
         }
       },
       "returns": {
@@ -263,8 +245,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "filter": {
           "type": "string",
@@ -284,13 +265,11 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "response_id": {
           "type": "string",
-          "description": "Response ID",
-          "required": true
+          "description": "Response ID"
         }
       },
       "returns": {
@@ -305,13 +284,11 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "response_id": {
           "type": "string",
-          "description": "Response ID",
-          "required": true
+          "description": "Response ID"
         }
       },
       "returns": {
@@ -326,8 +303,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "collect_email": {
           "type": "boolean",
@@ -377,8 +353,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         }
       },
       "returns": {
@@ -393,8 +368,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Quiz title",
-          "required": true
+          "description": "Quiz title"
         },
         "release_score": {
           "type": "string",
@@ -421,33 +395,27 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "title": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "question_type": {
           "type": "string",
-          "description": "Question type",
-          "required": true
+          "description": "Question type"
         },
         "options": {
           "type": "array",
-          "description": "Answer options",
-          "required": true
+          "description": "Answer options"
         },
         "correct_answer": {
           "type": "string",
-          "description": "Correct answer (for auto-grading)",
-          "required": true
+          "description": "Correct answer (for auto-grading)"
         },
         "points": {
           "type": "integer",
-          "description": "Point value",
-          "required": true
+          "description": "Point value"
         },
         "feedback": {
           "type": "string",

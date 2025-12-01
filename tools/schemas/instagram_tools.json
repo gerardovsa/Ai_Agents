@@ -9,8 +9,7 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "fields": {
           "type": "array",
@@ -38,8 +37,7 @@
       "parameters": {
         "media_id": {
           "type": "string",
-          "description": "Media ID",
-          "required": true
+          "description": "Media ID"
         },
         "fields": {
           "type": "array",
@@ -69,8 +67,7 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "limit": {
           "type": "integer",
@@ -101,13 +98,11 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "image_url": {
           "type": "string",
-          "description": "Public URL of image to publish",
-          "required": true
+          "description": "Public URL of image to publish"
         },
         "caption": {
           "type": "string",
@@ -137,13 +132,11 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "video_url": {
           "type": "string",
-          "description": "Public URL of video to publish",
-          "required": true
+          "description": "Public URL of video to publish"
         },
         "caption": {
           "type": "string",
@@ -174,13 +167,11 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "children": {
           "type": "array",
-          "description": "Array of media container IDs (created separately)",
-          "required": true
+          "description": "Array of media container IDs (created separately)"
         },
         "caption": {
           "type": "string",
@@ -205,18 +196,15 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "media_url": {
           "type": "string",
-          "description": "Public URL of photo or video",
-          "required": true
+          "description": "Public URL of photo or video"
         },
         "media_type": {
           "type": "string",
-          "description": "Media type: IMAGE or VIDEO",
-          "required": true
+          "description": "Media type: IMAGE or VIDEO"
         }
       },
       "returns": {
@@ -231,8 +219,7 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         }
       },
       "returns": {
@@ -247,8 +234,7 @@
       "parameters": {
         "media_id": {
           "type": "string",
-          "description": "Media ID",
-          "required": true
+          "description": "Media ID"
         },
         "limit": {
           "type": "integer",
@@ -269,8 +255,7 @@
       "parameters": {
         "comment_id": {
           "type": "string",
-          "description": "Comment ID",
-          "required": true
+          "description": "Comment ID"
         },
         "fields": {
           "type": "array",
@@ -296,13 +281,11 @@
       "parameters": {
         "comment_id": {
           "type": "string",
-          "description": "Comment ID to reply to",
-          "required": true
+          "description": "Comment ID to reply to"
         },
         "message": {
           "type": "string",
-          "description": "Reply message",
-          "required": true
+          "description": "Reply message"
         }
       },
       "returns": {
@@ -317,8 +300,7 @@
       "parameters": {
         "comment_id": {
           "type": "string",
-          "description": "Comment ID to delete",
-          "required": true
+          "description": "Comment ID to delete"
         }
       },
       "returns": {
@@ -333,13 +315,11 @@
       "parameters": {
         "comment_id": {
           "type": "string",
-          "description": "Comment ID",
-          "required": true
+          "description": "Comment ID"
         },
         "hide": {
           "type": "boolean",
-          "description": "True to hide, false to unhide",
-          "required": true
+          "description": "True to hide, false to unhide"
         }
       },
       "returns": {
@@ -354,8 +334,7 @@
       "parameters": {
         "media_id": {
           "type": "string",
-          "description": "Media ID",
-          "required": true
+          "description": "Media ID"
         },
         "metrics": {
           "type": "array",
@@ -381,18 +360,15 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "metrics": {
           "type": "array",
-          "description": "Metrics (impressions, reach, follower_count, email_contacts, etc.)",
-          "required": true
+          "description": "Metrics (impressions, reach, follower_count, email_contacts, etc.)"
         },
         "period": {
           "type": "string",
-          "description": "Time period: day, week, days_28, or lifetime",
-          "required": true
+          "description": "Time period: day, week, days_28, or lifetime"
         },
         "since": {
           "type": "string",
@@ -417,13 +393,11 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "metrics": {
           "type": "array",
-          "description": "Metrics (audience_city, audience_country, audience_gender_age, etc.)",
-          "required": true
+          "description": "Metrics (audience_city, audience_country, audience_gender_age, etc.)"
         },
         "period": {
           "type": "string",
@@ -444,8 +418,7 @@
       "parameters": {
         "story_id": {
           "type": "string",
-          "description": "Story media ID",
-          "required": true
+          "description": "Story media ID"
         },
         "metrics": {
           "type": "array",
@@ -470,13 +443,11 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "hashtag": {
           "type": "string",
-          "description": "Hashtag (without # symbol)",
-          "required": true
+          "description": "Hashtag (without # symbol)"
         }
       },
       "returns": {
@@ -491,13 +462,11 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "hashtag_id": {
           "type": "string",
-          "description": "Hashtag ID (from instagram_get_hashtag_id)",
-          "required": true
+          "description": "Hashtag ID (from instagram_get_hashtag_id)"
         },
         "search_type": {
           "type": "string",
@@ -524,8 +493,7 @@
       "parameters": {
         "user_id": {
           "type": "string",
-          "description": "Instagram Business Account ID",
-          "required": true
+          "description": "Instagram Business Account ID"
         },
         "limit": {
           "type": "integer",

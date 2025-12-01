@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>VoIP Demo - Sidebar</title>
+</head>
+
+<body>
+    <div id="voip-sidebar-container">
+        <div class="voip-sidebar-header">
+            <h3><i class="fas fa-phone"></i> VoIP Calls</h3>
+        </div>
+
+        <div class="voip-sidebar-content">
+            <!-- Quick Status -->
+            <div class="voip-quick-status">
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value" id="voip-sidebar-status">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Active Calls:</span>
+                    <span class="status-value" id="voip-active-calls-count">0</span>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="voip-quick-actions">
+                <button id="voip-sidebar-start-call" class="voip-sidebar-btn voip-btn-success" disabled>
+                    <i class="fas fa-phone"></i> New Call
+                </button>
+                <button id="voip-sidebar-view-dashboard" class="voip-sidebar-btn voip-btn-primary">
+                    <i class="fas fa-th-large"></i> Open Dashboard
+                </button>
+            </div>
+
+            <!-- Recent Calls (compact) -->
+            <div class="voip-sidebar-recent">
+                <h4>Recent Calls</h4>
+                <div id="voip-sidebar-call-list" class="call-list-compact">
+                    <p class="placeholder-text">No recent calls</p>
+                </div>
+            </div>
+
+            <!-- Settings Link -->
+            <div class="voip-sidebar-footer">
+                <button class="voip-link-btn" id="voip-sidebar-settings">
+                    <i class="fas fa-cog"></i> Call Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

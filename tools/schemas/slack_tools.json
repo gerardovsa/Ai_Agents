@@ -9,13 +9,11 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID or name (e.g., '#general', 'C1234567890')",
-          "required": true
+          "description": "Channel ID or name (e.g., '#general', 'C1234567890')"
         },
         "text": {
           "type": "string",
-          "description": "Message text (supports markdown)",
-          "required": true
+          "description": "Message text (supports markdown)"
         },
         "thread_ts": {
           "type": "string",
@@ -60,18 +58,15 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "ts": {
           "type": "string",
-          "description": "Message timestamp",
-          "required": true
+          "description": "Message timestamp"
         },
         "text": {
           "type": "string",
-          "description": "New message text",
-          "required": true
+          "description": "New message text"
         },
         "blocks": {
           "type": "array",
@@ -91,13 +86,11 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "ts": {
           "type": "string",
-          "description": "Message timestamp",
-          "required": true
+          "description": "Message timestamp"
         }
       },
       "returns": {
@@ -112,13 +105,11 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "message_ts": {
           "type": "string",
-          "description": "Message timestamp",
-          "required": true
+          "description": "Message timestamp"
         }
       },
       "returns": {
@@ -156,8 +147,7 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "Channel name (lowercase, no spaces)",
-          "required": true
+          "description": "Channel name (lowercase, no spaces)"
         },
         "is_private": {
           "type": "boolean",
@@ -183,8 +173,7 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         }
       },
       "returns": {
@@ -199,8 +188,7 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         }
       },
       "returns": {
@@ -215,13 +203,11 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "users": {
           "type": "array",
-          "description": "Array of user IDs to invite",
-          "required": true
+          "description": "Array of user IDs to invite"
         }
       },
       "returns": {
@@ -236,13 +222,11 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "user": {
           "type": "string",
-          "description": "User ID to remove",
-          "required": true
+          "description": "User ID to remove"
         }
       },
       "returns": {
@@ -257,8 +241,7 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "include_num_members": {
           "type": "boolean",
@@ -279,8 +262,7 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "limit": {
           "type": "integer",
@@ -334,8 +316,7 @@
       "parameters": {
         "user": {
           "type": "string",
-          "description": "User ID",
-          "required": true
+          "description": "User ID"
         },
         "include_locale": {
           "type": "boolean",
@@ -356,8 +337,7 @@
       "parameters": {
         "status_text": {
           "type": "string",
-          "description": "Status text",
-          "required": true
+          "description": "Status text"
         },
         "status_emoji": {
           "type": "string",
@@ -387,13 +367,11 @@
         },
         "content": {
           "type": "string",
-          "description": "File content (text or base64 encoded)",
-          "required": true
+          "description": "File content (text or base64 encoded)"
         },
         "filename": {
           "type": "string",
-          "description": "File name",
-          "required": true
+          "description": "File name"
         },
         "filetype": {
           "type": "string",
@@ -423,8 +401,7 @@
       "parameters": {
         "file": {
           "type": "string",
-          "description": "File ID",
-          "required": true
+          "description": "File ID"
         }
       },
       "returns": {
@@ -439,8 +416,7 @@
       "parameters": {
         "file": {
           "type": "string",
-          "description": "File ID",
-          "required": true
+          "description": "File ID"
         }
       },
       "returns": {
@@ -455,18 +431,15 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "timestamp": {
           "type": "string",
-          "description": "Message timestamp",
-          "required": true
+          "description": "Message timestamp"
         },
         "name": {
           "type": "string",
-          "description": "Emoji name (without colons, e.g., 'thumbsup')",
-          "required": true
+          "description": "Emoji name (without colons, e.g., 'thumbsup')"
         }
       },
       "returns": {
@@ -481,18 +454,15 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "timestamp": {
           "type": "string",
-          "description": "Message timestamp",
-          "required": true
+          "description": "Message timestamp"
         },
         "name": {
           "type": "string",
-          "description": "Emoji name",
-          "required": true
+          "description": "Emoji name"
         }
       },
       "returns": {
@@ -517,8 +487,7 @@
       "parameters": {
         "query": {
           "type": "string",
-          "description": "Search query",
-          "required": true
+          "description": "Search query"
         },
         "count": {
           "type": "integer",
@@ -545,13 +514,11 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "topic": {
           "type": "string",
-          "description": "New topic text",
-          "required": true
+          "description": "New topic text"
         }
       },
       "returns": {
@@ -566,13 +533,11 @@
       "parameters": {
         "channel": {
           "type": "string",
-          "description": "Channel ID",
-          "required": true
+          "description": "Channel ID"
         },
         "purpose": {
           "type": "string",
-          "description": "New purpose text",
-          "required": true
+          "description": "New purpose text"
         }
       },
       "returns": {

@@ -3305,8 +3305,7 @@
         "properties": {
           "markdown": {
             "type": "string",
-            "description": "Markdown source to convert into a Word document (supports full markdown features listed above)",
-            "required": true
+            "description": "Markdown source to convert into a Word document (supports full markdown features listed above)"
           },
           "name": {
             "type": "string",

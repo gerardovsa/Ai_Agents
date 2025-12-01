@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication Hub - Live Email Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+        }
+
+        .auth-section {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #38a169;
+        }
+
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-left: 4px solid #e53e3e;
+        }
+
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border-left: 4px solid #3182ce;
+        }
+
+        .email-list {
+            margin-top: 20px;
+        }
+
+        .email-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s;
+        }
+
+        .email-item:hover {
+            background: #edf2f7;
+            transform: translateX(4px);
+        }
+
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .email-from {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .email-date {
+            color: #718096;
+            font-size: 12px;
+        }
+
+        .email-subject {
+            color: #4a5568;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .email-preview {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .email-tags {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag.gmail {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .tag.outlook {
+            background: #dbeafe;
+            color: #1e3a8a;
+        }
+
+        .tag.unread {
+            background: #fecaca;
+            color: #7f1d1d;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .accounts-list {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .account-item {
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .account-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .account-icon.google {
+            background: #ea4335;
+        }
+
+        .account-icon.microsoft {
+            background: #00a4ef;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>
+            📧 Communication Hub - Live Email Test
+        </h1>
+        <p class="subtitle">Connect and view your Gmail and Outlook emails</p>
+
+        <!-- Authentication Section -->
+        <div class="auth-section">
+            <h2 style="margin-bottom: 20px; color: #2d3748;">🔐 Authentication</h2>
+
+            <div class="form-group">
+                <label for="user-select">Select User (from OAuth tokens):</label>
+                <select id="user-select">
+                    <option value="">-- Select User --</option>
+                    <option value="3">User 3 (Google - expired)</option>
+                    <option value="5">User 5 (Google)</option>
+                    <option value="12">User 12 (Google - expires 2025-11-28)</option>
+                    <option value="13">User 13 (Microsoft - Gerardo@minivetguide.onmicrosoft.com)</option>
+                    <option value="14">User 14 (Microsoft - printing@inhouseprint.com.au)</option>
+                </select>
+            </div>
+
+            <button class="button" onclick="authenticate()">
+                🔑 Get JWT Token & Load Emails
+            </button>
+
+            <div id="auth-status" style="margin-top: 15px;"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results" id="results" style="display: none;">
+            <h2 style="margin-bottom: 20px; color: #2d3748;">📬 Email Inbox</h2>
+
+            <div id="accounts-container"></div>
+            <div id="emails-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:5001';
+        let jwtToken = null;
+        let currentUserId = null;
+
+        async function authenticate() {
+            const userSelect = document.getElementById('user-select');
+            const userId = userSelect.value;
+
+            if (!userId) {
+                showAuthStatus('error', '⚠️ Please select a user');
+                return;
+            }
+
+            currentUserId = userId;
+            showAuthStatus('info', '🔄 Authenticating...');
+
+            try {
+                // For demo purposes, we'll use the tool registry to get a valid JWT
+                // In production, this would be a proper login flow
+                const loginResponse = await fetch(`${BACKEND_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: `user${userId}@test.com`,
+                        password: 'test123' // This won't work, but shows the flow
+                    })
+                });
+
+                if (!loginResponse.ok) {
+                    // JWT auth not working, try direct API call with user_id
+                    showAuthStatus('info', '⚠️ Login failed, trying direct access...');
+                    await loadEmailsDirect(userId);
+                    return;
+                }
+
+                const loginData = await loginResponse.json();
+                jwtToken = loginData.token;
+
+                showAuthStatus('success', '✅ Authenticated successfully!');
+                await loadAccounts();
+                await loadEmails();
+
+            } catch (error) {
+                console.error('Auth error:', error);
+                showAuthStatus('error', `❌ Authentication error: ${error.message}`);
+
+                // Try direct access as fallback
+                showAuthStatus('info', '🔄 Trying direct API access...');
+                await loadEmailsDirect(userId);
+            }
+        }
+
+        async function loadEmailsDirect(userId) {
+            try {
+                showAuthStatus('info', '🔄 Loading emails directly from backend...');
+
+                // Call backend with user_id parameter (for testing)
+                const response = await fetch(`${BACKEND_URL}/api/communication-hub/emails?user_id=${userId}&limit=20`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                document.getElementById('results').style.display = 'block';
+
+                if (data.accounts) {
+                    displayAccounts(data.accounts);
+                }
+
+                if (data.emails && data.emails.length > 0) {
+                    displayEmails(data.emails);
+                    showAuthStatus('success', `✅ Loaded ${data.emails.length} emails successfully!`);
+                } else {
+                    document.getElementById('emails-container').innerHTML = `
+                        <div class="status info">
+                            📭 No emails found. This could mean:
+                            <ul style="margin-top: 10px; margin-left: 20px;">
+                                <li>OAuth tokens are expired</li>
+                                <li>No emails in the accounts</li>
+                                <li>Backend is filtering them out</li>
+                            </ul>
+                        </div>
+                    `;
+                    showAuthStatus('info', '⚠️ No emails returned from backend');
+                }
+
+            } catch (error) {
+                console.error('Direct access error:', error);
+                showAuthStatus('error', `❌ Failed to load emails: ${error.message}`);
+            }
+        }
+
+        async function loadAccounts() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/communication-hub/accounts`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load accounts');
+
+                const data = await response.json();
+                displayAccounts(data.accounts);
+
+            } catch (error) {
+                console.error('Accounts error:', error);
+            }
+        }
+
+        async function loadEmails() {
+            try {
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('emails-container').innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading emails...</p>
+                    </div>
+                `;
+
+                const response = await fetch(`${BACKEND_URL}/api/communication-hub/emails?limit=20`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load emails');
+
+                const data = await response.json();
+
+                if (data.emails && data.emails.length > 0) {
+                    displayEmails(data.emails);
+                    showAuthStatus('success', `✅ Loaded ${data.emails.length} emails!`);
+                } else {
+                    document.getElementById('emails-container').innerHTML = `
+                        <div class="status info">
+                            📭 No emails found
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('Emails error:', error);
+                document.getElementById('emails-container').innerHTML = `
+                    <div class="status error">
+                        ❌ Failed to load emails: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayAccounts(accounts) {
+            const container = document.getElementById('accounts-container');
+
+            if (!accounts || accounts.length === 0) {
+                container.innerHTML = `
+                    <div class="status info">
+                        ⚠️ No connected accounts found
+                    </div>
+                `;
+                return;
+            }
+
+            const accountsHTML = accounts.map(account => `
+                <div class="account-item">
+                    <div class="account-icon ${account.provider}">
+                        ${account.provider === 'google' ? 'G' : 'M'}
+                    </div>
+                    <div>
+                        <strong>${account.email}</strong>
+                        <div style="font-size: 12px; color: #718096;">
+                            ${account.provider === 'google' ? 'Gmail' : 'Outlook'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="accounts-list">
+                    <strong style="display: block; margin-bottom: 10px;">📧 Connected Accounts:</strong>
+                    ${accountsHTML}
+                </div>
+            `;
+        }
+
+        function displayEmails(emails) {
+            const container = document.getElementById('emails-container');
+
+            const emailsHTML = emails.map(email => `
+                <div class="email-item">
+                    <div class="email-header">
+                        <div class="email-from">${email.from || 'Unknown Sender'}</div>
+                        <div class="email-date">${formatDate(email.date)}</div>
+                    </div>
+                    <div class="email-subject">${email.subject || '(No Subject)'}</div>
+                    <div class="email-preview">${email.preview || ''}</div>
+                    <div class="email-tags">
+                        <span class="tag ${email.provider}">${email.provider}</span>
+                        ${!email.read ? '<span class="tag unread">Unread</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="email-list">
+                    ${emailsHTML}
+                </div>
+            `;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+            if (diffHours < 24) {
+                return `${diffHours}h ago`;
+            } else {
+                const diffDays = Math.floor(diffHours / 24);
+                return `${diffDays}d ago`;
+            }
+        }
+
+        function showAuthStatus(type, message) {
+            const statusDiv = document.getElementById('auth-status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // On page load
+        console.log('🚀 Communication Hub Test Page Loaded');
+        console.log('📡 Backend URL:', BACKEND_URL);
+    </script>
+</body>
+
+</html>

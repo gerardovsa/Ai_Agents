@@ -1,0 +1,801 @@
+/**
+ * Vector Database Sidebar - Modern Framework Edition
+ * 
+ * PURPOSE: Vector database management with Pinecone cloud integration
+ * FRAMEWORK: ModuleLoaderV4 (composition-based pattern)
+ * PATTERN: ES6 export default (modern)
+ * 
+ * FEATURES:
+ * - Credential management (Pinecone + OpenAI + Voyager)
+ * - Document upload and processing (PDF, DOCX, TXT, MD)
+ * - Vector database operations (query, upsert, delete)
+ * - AI-controlled semantic search
+ * - Namespace isolation
+ * 
+ * DEPENDENCIES:
+ * - Utilities: dom, api, storage, events, log (injected)
+ * - Backend: /api/vector-db/* endpoints
+ * - AI Tools: 8 Pinecone tools via registry
+ * 
+ * LAST MODIFIED: 2025-11-30 - Migrated to ES6 export for ModuleLoaderV4
+ */
+
+export default {
+    // ==================== STATE ====================
+    state: {
+        API_BASE_URL: window.API_BASE_URL || 'http://localhost:5001',
+        currentTab: 'credentials',
+        uploadedFiles: [],
+        isConnected: false,
+        stats: {
+            documents: 0,
+            vectors: 0,
+            namespaces: 0
+        },
+        loading: false,
+        error: null,
+        initialized: false
+    },
+
+    // ==================== LIFECYCLE HOOKS ====================
+
+    /**
+     * Called once when module first loads
+     */
+    async onLoad(utilities) {
+        Object.assign(this, utilities);
+        this.log.info('[VECTOR DB] Module loading...');
+
+        // Load saved preferences
+        const savedTab = this.storage.get('vector_db_current_tab');
+        if (savedTab) {
+            this.state.currentTab = savedTab;
+        }
+
+        this.state.initialized = true;
+        this.log.info('[VECTOR DB] Module loaded successfully');
+    },
+
+    /**
+     * Called when sidebar is opened
+     */
+    async onSidebarLoad(utilities) {
+        Object.assign(this, utilities);
+        this.log.info('[VECTOR DB] Sidebar loading...');
+
+        // Get container
+        this.container = this.dom.getContainer();
+
+        if (!this.container) {
+            this.log.error('[VECTOR DB] Container not found');
+            return;
+        }
+
+        // Setup event listeners (tracked automatically by framework)
+        this.setupEventListeners();
+
+        // Load saved credentials
+        await this.loadCredentials();
+
+        // Load stats if connected
+        if (this.state.isConnected) {
+            await this.loadStats();
+        }
+
+        // Switch to saved tab
+        this.switchTab(this.state.currentTab);
+
+        this.log.info('[VECTOR DB] Sidebar loaded successfully');
+    },
+
+    /**
+     * Called when module is unloaded
+     */
+    onUnload(utilities) {
+        Object.assign(this, utilities);
+        this.log.info('[VECTOR DB] Module unloading...');
+
+        // Save current tab
+        this.storage.set('vector_db_current_tab', this.state.currentTab);
+
+        // Framework automatically cleans up tracked event listeners
+        this.log.info('[VECTOR DB] Module unloaded successfully');
+    },
+
+    // ==================== EVENT LISTENERS ====================
+
+    setupEventListeners() {
+        // Credential form submission
+        this.dom.on(this.container, 'submit', '#credential-form', (e) => {
+            e.preventDefault();
+            this.saveCredentials();
+        });
+
+        // File upload zone click
+        this.dom.on(this.container, 'click', '#upload-zone', (e) => {
+            if (e.target.id !== 'file-input') {
+                document.getElementById('file-input')?.click();
+            }
+        });
+
+        // Drag and drop
+        this.dom.on(this.container, 'dragover', '#upload-zone', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        });
+
+        this.dom.on(this.container, 'dragleave', '#upload-zone', (e) => {
+            e.currentTarget.classList.remove('drag-over');
+        });
+
+        this.dom.on(this.container, 'drop', '#upload-zone', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const files = Array.from(e.dataTransfer.files);
+            this.handleFileSelect(files);
+        });
+
+        // File input change
+        this.dom.on(this.container, 'change', '#file-input', (e) => {
+            const files = Array.from(e.target.files);
+            this.handleFileSelect(files);
+        });
+
+        // Tab switching
+        this.dom.on(this.container, 'click', '.vector-db-tab', (e) => {
+            const tabName = e.currentTarget.dataset.tab;
+            if (tabName) {
+                this.switchTab(tabName);
+            }
+        });
+
+        // Test connection button
+        this.dom.on(this.container, 'click', '[data-action="test-connection"]', () => {
+            this.testConnection();
+        });
+
+        // Process files button
+        this.dom.on(this.container, 'click', '[data-action="process-files"]', () => {
+            this.processFiles();
+        });
+
+        // Refresh button
+        this.dom.on(this.container, 'click', '[data-action="refresh"]', () => {
+            this.refresh();
+        });
+
+        // Embedding provider change
+        this.dom.on(this.container, 'change', '#embedding-provider', () => {
+            this.onEmbeddingProviderChange();
+        });
+
+        // Save embedding config button
+        this.dom.on(this.container, 'click', '[data-action="save-embedding-config"]', () => {
+            this.saveEmbeddingConfig();
+        });
+
+        this.log.info('[VECTOR DB] Event listeners setup complete');
+    },
+
+    // ==================== CREDENTIAL MANAGEMENT ====================
+
+    async saveCredentials() {
+        const apiKey = this.container.querySelector('#api-key')?.value.trim();
+        const indexName = this.container.querySelector('#index-name')?.value.trim();
+        const environment = this.container.querySelector('#environment')?.value.trim();
+        const namespace = this.container.querySelector('#namespace')?.value.trim();
+
+        if (!apiKey || !indexName || !environment) {
+            this.showMessage('Please fill all required fields', 'error');
+            return;
+        }
+
+        try {
+            this.showMessage('Saving credentials...', 'loading');
+
+            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/credentials/save`, {
+                user_id: window.currentUserId || 1,
+                api_key: apiKey,
+                index_name: indexName,
+                environment: environment,
+                namespace: namespace || ''
+            });
+
+            if (response.success) {
+                this.showMessage('Credentials saved successfully', 'success');
+                this.state.isConnected = true;
+                this.updateConnectionStatus(true);
+                await this.loadStats();
+            } else {
+                this.showMessage(`Error: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Save credentials error:', error);
+            this.showMessage('Failed to save credentials', 'error');
+        }
+    },
+
+    async loadCredentials() {
+        try {
+            const response = await this.api.get(
+                `${this.state.API_BASE_URL}/api/vector-db/credentials/get?user_id=${window.currentUserId || 1}`
+            );
+
+            if (response.success && response.credentials) {
+                const creds = response.credentials;
+
+                const indexInput = this.container.querySelector('#index-name');
+                const envInput = this.container.querySelector('#environment');
+                const nsInput = this.container.querySelector('#namespace');
+
+                if (indexInput) indexInput.value = creds.index_name || '';
+                if (envInput) envInput.value = creds.environment || '';
+                if (nsInput) nsInput.value = creds.namespace || '';
+
+                this.state.isConnected = true;
+                this.updateConnectionStatus(true);
+                this.log.info('[VECTOR DB] Credentials loaded');
+            }
+
+            // Load embedding configuration
+            await this.loadEmbeddingConfig();
+        } catch (error) {
+            this.log.error('[VECTOR DB] Load credentials error:', error);
+        }
+    },
+
+    async loadEmbeddingConfig() {
+        try {
+            const response = await this.api.get(
+                `${this.state.API_BASE_URL}/api/vector-db/embedding-config/get?user_id=${window.currentUserId || 1}`
+            );
+
+            if (response.success && response.config) {
+                const config = response.config;
+                const provider = config.provider || '';
+
+                const providerSelect = this.container.querySelector('#embedding-provider');
+                if (providerSelect) {
+                    providerSelect.value = provider;
+                    this.onEmbeddingProviderChange();
+                }
+
+                if (provider === 'voyager' && config.model) {
+                    const modelSelect = this.container.querySelector('#voyager-model');
+                    if (modelSelect) modelSelect.value = config.model;
+                } else if (provider === 'openai' && config.model) {
+                    const modelSelect = this.container.querySelector('#openai-model');
+                    if (modelSelect) modelSelect.value = config.model;
+                }
+
+                this.log.info('[VECTOR DB] Embedding config loaded:', provider);
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Load embedding config error:', error);
+        }
+    },
+
+    async testConnection() {
+        try {
+            this.showMessage('Testing connection...', 'loading');
+
+            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/test-connection`, {
+                user_id: window.currentUserId || 1
+            });
+
+            if (response.success) {
+                this.showMessage(`Connected! ${response.message}`, 'success');
+                this.state.isConnected = true;
+                this.updateConnectionStatus(true);
+                await this.loadStats();
+            } else {
+                this.showMessage(`Connection failed: ${response.error}`, 'error');
+                this.state.isConnected = false;
+                this.updateConnectionStatus(false);
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Test connection error:', error);
+            this.showMessage('Connection test failed', 'error');
+            this.state.isConnected = false;
+            this.updateConnectionStatus(false);
+        }
+    },
+
+    updateConnectionStatus(connected) {
+        const statusEl = this.container.querySelector('#connection-status');
+        if (statusEl) {
+            if (connected) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'credential-status connected';
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'credential-status disconnected';
+            }
+        }
+    },
+
+    // ==================== EMBEDDING CONFIGURATION ====================
+
+    onEmbeddingProviderChange() {
+        const provider = this.container.querySelector('#embedding-provider')?.value;
+
+        const voyagerConfig = this.container.querySelector('#voyager-config');
+        const openaiConfig = this.container.querySelector('#openai-config');
+
+        if (voyagerConfig) voyagerConfig.style.display = 'none';
+        if (openaiConfig) openaiConfig.style.display = 'none';
+
+        if (provider === 'voyager' && voyagerConfig) {
+            voyagerConfig.style.display = 'block';
+        } else if (provider === 'openai' && openaiConfig) {
+            openaiConfig.style.display = 'block';
+        }
+
+        this.log.info('[VECTOR DB] Embedding provider changed:', provider);
+    },
+
+    async saveEmbeddingConfig() {
+        const provider = this.container.querySelector('#embedding-provider')?.value;
+
+        if (!provider) {
+            this.showEmbeddingMessage('Please select an embedding provider', 'error');
+            return;
+        }
+
+        let apiKey, model, platform;
+
+        if (provider === 'voyager') {
+            apiKey = this.container.querySelector('#voyager-api-key')?.value.trim();
+            model = this.container.querySelector('#voyager-model')?.value;
+            platform = 'voyager';
+
+            if (!apiKey) {
+                this.showEmbeddingMessage('Please enter Voyager API key', 'error');
+                return;
+            }
+        } else if (provider === 'openai') {
+            apiKey = this.container.querySelector('#openai-api-key')?.value.trim();
+            model = this.container.querySelector('#openai-model')?.value;
+            platform = 'openai_embeddings';
+
+            if (!apiKey) {
+                this.showEmbeddingMessage('Please enter OpenAI API key', 'error');
+                return;
+            }
+        }
+
+        try {
+            this.showEmbeddingMessage('Saving embedding configuration...', 'loading');
+
+            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/embedding-config/save`, {
+                user_id: window.currentUserId || 1,
+                provider: provider,
+                platform: platform,
+                api_key: apiKey,
+                model: model,
+                metadata: {
+                    provider: provider,
+                    model: model,
+                    dimensions: provider === 'voyager' ? 1536 : this.getOpenAIDimensions(model)
+                }
+            });
+
+            if (response.success) {
+                this.showEmbeddingMessage(
+                    `${provider === 'voyager' ? 'Voyager' : 'OpenAI'} configuration saved successfully`,
+                    'success'
+                );
+            } else {
+                this.showEmbeddingMessage(`Error: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Save embedding config error:', error);
+            this.showEmbeddingMessage('Failed to save configuration', 'error');
+        }
+    },
+
+    getOpenAIDimensions(model) {
+        switch (model) {
+            case 'text-embedding-3-large':
+                return 3072;
+            case 'text-embedding-3-small':
+            case 'text-embedding-ada-002':
+            default:
+                return 1536;
+        }
+    },
+
+    showEmbeddingMessage(message, type) {
+        const messageEl = this.container.querySelector('#embedding-message');
+        if (!messageEl) return;
+
+        messageEl.textContent = message;
+        messageEl.className = `message-${type}`;
+        messageEl.style.display = 'block';
+
+        if (type !== 'loading') {
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 4000);
+        }
+    },
+
+    // ==================== FILE UPLOAD ====================
+
+    handleFileSelect(files) {
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        const allowedTypes = ['.pdf', '.txt', '.md', '.docx'];
+
+        files.forEach(file => {
+            if (file.size > maxSize) {
+                this.showMessage(`File ${file.name} exceeds 10MB limit`, 'error');
+                return;
+            }
+
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!allowedTypes.includes(ext)) {
+                this.showMessage(`File ${file.name} has unsupported format`, 'error');
+                return;
+            }
+
+            this.state.uploadedFiles.push(file);
+        });
+
+        this.renderUploadedFiles();
+
+        const processBtn = this.container.querySelector('#process-btn');
+        if (processBtn && this.state.uploadedFiles.length > 0) {
+            processBtn.style.display = 'block';
+        }
+    },
+
+    renderUploadedFiles() {
+        const container = this.container.querySelector('#uploaded-files');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        this.state.uploadedFiles.forEach((file, index) => {
+            const fileEl = document.createElement('div');
+            fileEl.className = 'uploaded-file';
+            fileEl.innerHTML = `
+                <div class="file-info">
+                    <div class="file-icon">
+                        <i class="fas fa-file-${this.getFileIcon(file.name)}"></i>
+                    </div>
+                    <div class="file-details">
+                        <div class="file-name">${this.escapeHtml(file.name)}</div>
+                        <div class="file-size">${this.formatFileSize(file.size)}</div>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <button class="file-action-btn delete" data-action="remove-file" data-index="${index}" title="Remove">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(fileEl);
+        });
+
+        // Add listener for remove buttons
+        this.dom.on(container, 'click', '[data-action="remove-file"]', (e) => {
+            const index = parseInt(e.currentTarget.dataset.index);
+            this.removeFile(index);
+        });
+    },
+
+    removeFile(index) {
+        this.state.uploadedFiles.splice(index, 1);
+        this.renderUploadedFiles();
+
+        const processBtn = this.container.querySelector('#process-btn');
+        if (processBtn && this.state.uploadedFiles.length === 0) {
+            processBtn.style.display = 'none';
+        }
+    },
+
+    async processFiles() {
+        if (this.state.uploadedFiles.length === 0) {
+            this.showMessage('No files to process', 'error');
+            return;
+        }
+
+        if (!this.state.isConnected) {
+            this.showMessage('Please connect to Pinecone first', 'error');
+            this.switchTab('credentials');
+            return;
+        }
+
+        const chunkSize = parseInt(this.container.querySelector('#chunk-size')?.value) || 800;
+        const chunkOverlap = parseInt(this.container.querySelector('#chunk-overlap')?.value) || 20;
+        const namespace = this.container.querySelector('#upload-namespace')?.value.trim();
+
+        const progressContainer = this.container.querySelector('#upload-progress');
+        const progressFill = this.container.querySelector('#progress-fill');
+        const progressText = this.container.querySelector('#progress-text');
+        const processBtn = this.container.querySelector('#process-btn');
+
+        try {
+            if (processBtn) processBtn.disabled = true;
+            if (progressContainer) progressContainer.style.display = 'block';
+
+            for (let i = 0; i < this.state.uploadedFiles.length; i++) {
+                const file = this.state.uploadedFiles[i];
+                const progress = ((i + 1) / this.state.uploadedFiles.length) * 100;
+
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (progressText) progressText.textContent = `Processing ${file.name} (${i + 1}/${this.state.uploadedFiles.length})...`;
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('user_id', window.currentUserId || 1);
+                formData.append('chunk_size', chunkSize);
+                formData.append('chunk_overlap', chunkOverlap);
+                formData.append('namespace', namespace || '');
+                formData.append('include_cloud_metadata', 'true');
+                formData.append('enable_ai_retrieval', 'true');
+                formData.append('file_type', file.type || 'application/octet-stream');
+                formData.append('upload_timestamp', new Date().toISOString());
+
+                const response = await fetch(`${this.state.API_BASE_URL}/api/vector-db/upload-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Upload failed');
+                }
+
+                this.log.info(`[VECTOR DB] Processed ${file.name}: ${data.vectors_uploaded} vectors`);
+            }
+
+            if (progressText) progressText.textContent = 'Processing complete!';
+            this.showMessage(`Successfully processed ${this.state.uploadedFiles.length} files`, 'success');
+
+            this.state.uploadedFiles = [];
+            this.renderUploadedFiles();
+            if (processBtn) processBtn.style.display = 'none';
+            await this.loadStats();
+
+            setTimeout(() => {
+                this.switchTab('documents');
+                if (progressContainer) progressContainer.style.display = 'none';
+            }, 2000);
+
+        } catch (error) {
+            this.log.error('[VECTOR DB] Process files error:', error);
+            this.showMessage(`Processing failed: ${error.message}`, 'error');
+            if (progressContainer) progressContainer.style.display = 'none';
+        } finally {
+            if (processBtn) processBtn.disabled = false;
+        }
+    },
+
+    // ==================== STATISTICS & DOCUMENTS ====================
+
+    async loadStats() {
+        try {
+            const response = await this.api.get(
+                `${this.state.API_BASE_URL}/api/vector-db/stats?user_id=${window.currentUserId || 1}`
+            );
+
+            if (response.success && response.stats) {
+                this.state.stats = response.stats;
+                this.updateStatsUI();
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Load stats error:', error);
+        }
+    },
+
+    updateStatsUI() {
+        const docsEl = this.container.querySelector('#stat-documents');
+        const vectorsEl = this.container.querySelector('#stat-vectors');
+        const namespacesEl = this.container.querySelector('#stat-namespaces');
+
+        if (docsEl) docsEl.textContent = this.state.stats.documents || 0;
+        if (vectorsEl) vectorsEl.textContent = this.formatNumber(this.state.stats.vectors || 0);
+        if (namespacesEl) namespacesEl.textContent = this.state.stats.namespaces || 0;
+    },
+
+    async loadDocuments() {
+        const container = this.container.querySelector('#documents-list');
+        if (!container) return;
+
+        try {
+            container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+
+            const response = await this.api.get(
+                `${this.state.API_BASE_URL}/api/vector-db/documents?user_id=${window.currentUserId || 1}&include_metadata=true&include_cloud_links=true`
+            );
+
+            if (response.success && response.documents && response.documents.length > 0) {
+                container.innerHTML = '';
+                response.documents.forEach(doc => {
+                    const docEl = this.createDocumentCard(doc);
+                    container.appendChild(docEl);
+                });
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-database"></i></div>
+                        <div class="empty-text">No documents indexed yet</div>
+                        <div class="empty-hint">Upload documents to get started</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Load documents error:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="empty-text">Failed to load documents</div>
+                </div>
+            `;
+        }
+    },
+
+    createDocumentCard(doc) {
+        const card = document.createElement('div');
+        card.className = 'document-card';
+        card.innerHTML = `
+            <div class="document-header">
+                <div class="document-title">${this.escapeHtml(doc.name)}</div>
+                <button class="file-action-btn delete" data-action="delete-document" data-id="${doc.id}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="document-meta">
+                <span><i class="fas fa-vector-square"></i> ${doc.vector_count} vectors</span>
+                <span><i class="fas fa-calendar"></i> ${this.formatDate(doc.created_at)}</span>
+            </div>
+        `;
+
+        // Add delete listener
+        const deleteBtn = card.querySelector('[data-action="delete-document"]');
+        if (deleteBtn) {
+            this.dom.on(deleteBtn, 'click', () => {
+                this.deleteDocument(doc.id);
+            });
+        }
+
+        return card;
+    },
+
+    async deleteDocument(docId) {
+        if (!confirm('Are you sure you want to delete this document?')) return;
+
+        try {
+            const response = await this.api.delete(
+                `${this.state.API_BASE_URL}/api/vector-db/document/${docId}`,
+                { user_id: window.currentUserId || 1 }
+            );
+
+            if (response.success) {
+                this.showMessage('Document deleted successfully', 'success');
+                await this.loadDocuments();
+                await this.loadStats();
+            } else {
+                this.showMessage(`Error: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Delete document error:', error);
+            this.showMessage('Failed to delete document', 'error');
+        }
+    },
+
+    // ==================== TAB MANAGEMENT ====================
+
+    switchTab(tabName) {
+        this.state.currentTab = tabName;
+
+        // Update tab buttons
+        const tabs = this.container.querySelectorAll('.vector-db-tab');
+        tabs.forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.tab === tabName) {
+                tab.classList.add('active');
+            }
+        });
+
+        // Update tab content
+        const contents = this.container.querySelectorAll('.tab-content');
+        contents.forEach(content => {
+            content.style.display = 'none';
+        });
+
+        const activeContent = this.container.querySelector(`#${tabName}-tab`);
+        if (activeContent) {
+            activeContent.style.display = 'block';
+        }
+
+        // Load data for specific tabs
+        if (tabName === 'documents') {
+            this.loadDocuments();
+        }
+
+        this.log.info(`[VECTOR DB] Switched to ${tabName} tab`);
+    },
+
+    // ==================== UTILITIES ====================
+
+    async refresh() {
+        await this.loadStats();
+        if (this.state.currentTab === 'documents') {
+            await this.loadDocuments();
+        }
+        this.showMessage('Refreshed', 'success');
+    },
+
+    showMessage(message, type) {
+        const msgEl = this.container.querySelector('#credential-message');
+        if (!msgEl) return;
+
+        msgEl.style.display = 'block';
+        msgEl.textContent = message;
+        msgEl.style.padding = '8px 12px';
+        msgEl.style.borderRadius = '6px';
+        msgEl.style.fontSize = '12px';
+
+        if (type === 'success') {
+            msgEl.style.background = 'rgba(63, 185, 80, 0.15)';
+            msgEl.style.color = '#3fb950';
+        } else if (type === 'error') {
+            msgEl.style.background = 'rgba(248, 81, 73, 0.15)';
+            msgEl.style.color = '#f85149';
+        } else if (type === 'loading') {
+            msgEl.style.background = 'rgba(88, 166, 255, 0.15)';
+            msgEl.style.color = '#58a6ff';
+        }
+
+        if (type !== 'loading') {
+            setTimeout(() => {
+                msgEl.style.display = 'none';
+            }, 3000);
+        }
+    },
+
+    getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const icons = {
+            'pdf': 'pdf',
+            'txt': 'alt',
+            'md': 'alt',
+            'docx': 'word'
+        };
+        return icons[ext] || 'alt';
+    },
+
+    formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    },
+
+    formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    },
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        return date.toLocaleDateString();
+    },
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+};
+
+// ES6 export for ModuleLoaderV4 - Module will be dynamically imported

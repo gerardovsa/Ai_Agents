@@ -74,80 +74,79 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
     if limit:
         print(f"[DB LOAD] Pagination: limit={limit}, offset={offset}")
     
-    conn = None
     try:
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Get thread ID from thread_slug
-        cursor.execute("""
-            SELECT id FROM sessions.threads 
-            WHERE thread_slug = %s
-        """, (thread_slug,))
-        
-        thread_row = cursor.fetchone()
-        
-        if not thread_row:
-            print(f"[DB LOAD] ℹ️  Thread not found in database - this is a NEW conversation")
-            print(f"{'='*80}\n")
-            return []  # Empty conversation for new threads
-        
-        thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-        print(f"[DB LOAD] Thread ID: {thread_id}")
-        
-        # Get messages for this thread (with optional pagination)
-        if limit:
-            # Paginated query - get MOST RECENT messages first
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Get thread ID from thread_slug
             cursor.execute("""
-                SELECT role, content, created_at, model, tokens_used
-                FROM sessions.messages 
-                WHERE thread_id = %s 
-                ORDER BY created_at DESC
-                LIMIT %s OFFSET %s
-            """, (thread_id, limit, offset))
-        else:
-            # Get ALL messages (ordered by creation time)
-            cursor.execute("""
-                SELECT role, content, created_at, model, tokens_used
-                FROM sessions.messages 
-                WHERE thread_id = %s 
-                ORDER BY created_at ASC
-            """, (thread_id,))
-        
-        rows = cursor.fetchall()
-        print(f"[DB LOAD] Found {len(rows)} messages in database")
-        
-        messages = []
-        for idx, row in enumerate(rows):
-            if isinstance(row, tuple):
-                role, content, created_at, model, tokens_used = row
+                SELECT id FROM sessions.threads 
+                WHERE thread_slug = %s
+            """, (thread_slug,))
+            
+            thread_row = cursor.fetchone()
+            
+            if not thread_row:
+                print(f"[DB LOAD] ℹ️  Thread not found in database - this is a NEW conversation")
+                print(f"{'='*80}\n")
+                return []  # Empty conversation for new threads
+            
+            thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+            print(f"[DB LOAD] Thread ID: {thread_id}")
+            
+            # Get messages for this thread (with optional pagination)
+            if limit:
+                # Paginated query - get MOST RECENT messages first
+                cursor.execute("""
+                    SELECT role, content, created_at, model, tokens_used
+                    FROM sessions.messages 
+                    WHERE thread_id = %s 
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                """, (thread_id, limit, offset))
             else:
-                role = row['role']
-                content = row['content']
-                created_at = row['created_at']
-                model = row.get('model')
-                tokens_used = row.get('tokens_used')
+                # Get ALL messages (ordered by creation time)
+                cursor.execute("""
+                    SELECT role, content, created_at, model, tokens_used
+                    FROM sessions.messages 
+                    WHERE thread_id = %s 
+                    ORDER BY created_at ASC
+                """, (thread_id,))
             
-            # Parse JSONB content
-            if isinstance(content, str):
-                try:
-                    content = json.loads(content)
-                except Exception as e:
-                    print(f"[DB LOAD] ⚠️  Message {idx} content parse failed: {e}")
-                    content = [{'type': 'text', 'text': content}]
+            rows = cursor.fetchall()
+            print(f"[DB LOAD] Found {len(rows)} messages in database")
             
-            messages.append({
-                'role': role,
-                'content': content
-            })
+            messages = []
+            for idx, row in enumerate(rows):
+                if isinstance(row, tuple):
+                    role, content, created_at, model, tokens_used = row
+                else:
+                    role = row['role']
+                    content = row['content']
+                    created_at = row['created_at']
+                    model = row.get('model')
+                    tokens_used = row.get('tokens_used')
+                
+                # Parse JSONB content
+                if isinstance(content, str):
+                    try:
+                        content = json.loads(content)
+                    except Exception as e:
+                        print(f"[DB LOAD] ⚠️  Message {idx} content parse failed: {e}")
+                        content = [{'type': 'text', 'text': content}]
+                
+                messages.append({
+                    'role': role,
+                    'content': content
+                })
+                
+                content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"
+                print(f"[DB LOAD]   [{idx}] {role}: {content_preview}...")
             
-            content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"
-            print(f"[DB LOAD]   [{idx}] {role}: {content_preview}...")
-        
-        print(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database")
-        print(f"{'='*80}\n")
-        
-        return messages
+            print(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database")
+            print(f"{'='*80}\n")
+            
+            return messages
         
     except Exception as e:
         print(f"[DB LOAD] ❌ ERROR loading conversation: {e}")
@@ -155,13 +154,6 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
         traceback.print_exc()
         print(f"{'='*80}\n")
         return []
-    finally:
-        # CRITICAL FIX: Always close connection
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception:
-                pass
 
 
 def save_message_to_database(thread_slug: str, role: str, content: Any, 
@@ -182,36 +174,36 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
     try:
         from psycopg2.extras import Json
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Begin explicit transaction
-        cursor.execute("BEGIN")
-        
-        # Step 1: Check if thread exists
-        cursor.execute("""
-            SELECT id FROM sessions.threads 
-            WHERE thread_slug = %s
-        """, (thread_slug,))
-        
-        thread_row = cursor.fetchone()
-        
-        if not thread_row:
-            # Thread doesn't exist - create it first
-            print(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}")
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
             
+            # Begin explicit transaction
+            cursor.execute("BEGIN")
+            
+            # Step 1: Check if thread exists
             cursor.execute("""
-                INSERT INTO sessions.threads 
-                (thread_slug, user_id, title, created_at, updated_at)
-                VALUES (%s, %s, %s, NOW(), NOW())
-                RETURNING id
-            """, (thread_slug, user_id or 1, 'New Chat'))
+                SELECT id FROM sessions.threads 
+                WHERE thread_slug = %s
+            """, (thread_slug,))
             
             thread_row = cursor.fetchone()
-            print(f"[DB SAVE] ✅ Thread created: {thread_slug}")
-        
-        thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-        print(f"[DB SAVE] Thread ID: {thread_id}")
+            
+            if not thread_row:
+                # Thread doesn't exist - create it first
+                print(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}")
+                
+                cursor.execute("""
+                    INSERT INTO sessions.threads 
+                    (thread_slug, user_id, title, created_at, updated_at)
+                    VALUES (%s, %s, %s, NOW(), NOW())
+                    RETURNING id
+                """, (thread_slug, user_id or 1, 'New Chat'))
+                
+                thread_row = cursor.fetchone()
+                print(f"[DB SAVE] ✅ Thread created: {thread_slug}")
+            
+            thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+            print(f"[DB SAVE] Thread ID: {thread_id}")
         
         # Step 2: Format content for JSONB storage
         try:
@@ -294,19 +286,6 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
         traceback.print_exc()
         print(f"{'='*80}\n")
         return False
-        
-    finally:
-        # Always close connections
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -618,21 +597,19 @@ def start_agent(agent_id):
         user_id = g.get('user_id', 1)
         
         try:
-            conn = get_database_connection('sessions')
-            cursor = conn.cursor()
-            
-            # Check if thread exists, create if not
-            cursor.execute("""
-                INSERT INTO sessions.threads 
-                (thread_slug, user_id, title, created_at, updated_at)
-                VALUES (%s, %s, %s, NOW(), NOW())
-                ON CONFLICT (thread_slug) DO NOTHING
-            """, (thread_slug, user_id, 'New Chat'))
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-            print(f"[START] ✅ Thread ensured: {thread_slug}")
+            with get_database_connection('sessions') as conn:
+                cursor = conn.cursor()
+                
+                # Check if thread exists, create if not
+                cursor.execute("""
+                    INSERT INTO sessions.threads 
+                    (thread_slug, user_id, title, created_at, updated_at)
+                    VALUES (%s, %s, %s, NOW(), NOW())
+                    ON CONFLICT (thread_slug) DO NOTHING
+                """, (thread_slug, user_id, 'New Chat'))
+                
+                conn.commit()
+                print(f"[START] ✅ Thread ensured: {thread_slug}")
         except Exception as e:
             print(f"[START] ⚠️ Thread creation check failed: {e}")
             # Continue anyway - save_message will handle it
@@ -1048,26 +1025,33 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         system_prompt = system_prompt.replace('{{USER_LOCATION}}', user_context_block)
         
         # ============================================
-        # PROMPT INJECTION SYSTEM (Retained)
+        # PROMPT INJECTION SYSTEM - SINGLE-USE ONLY (Fixed)
         # ============================================
+        # CRITICAL: Prompt library selections should apply ONCE (to this message only)
+        # NOT persist across entire thread - that makes them "sticky"
         try:
             from core.prompt_injection_manager import get_prompt_manager
             
+            # Get prompt parameters (sent ONLY when user explicitly selects prompts)
             quick_actions_str = request.args.get('quick_actions', '')
             library_prompts_str = request.args.get('library_prompts', '')
             custom_prompt = request.args.get('custom_prompt', None)
             
             if quick_actions_str or library_prompts_str or custom_prompt:
-                print(f"[STREAM] 📥 Prompt injection parameters:")
+                print(f"[STREAM] 📥 SINGLE-USE Prompt injection (for THIS message only):")
                 print(f"  - quick_actions: '{quick_actions_str}'")
                 print(f"  - library_prompts: '{library_prompts_str}'")
                 print(f"  - custom_prompt: '{custom_prompt[:50] if custom_prompt else None}'")
+                print(f"[STREAM] ℹ️  These prompts will NOT persist to next message")
             
             quick_actions = [qa.strip() for qa in quick_actions_str.split(',') if qa.strip()] if quick_actions_str else []
             library_prompts = [lp.strip() for lp in library_prompts_str.split(',') if lp.strip()] if library_prompts_str else []
             
             if quick_actions or library_prompts or custom_prompt:
                 prompt_manager = get_prompt_manager()
+                
+                # Inject AFTER base system prompt (appended context, not embedded)
+                # This makes the injection clearly temporary and message-specific
                 system_prompt = prompt_manager.inject_prompts(
                     base_prompt=system_prompt,
                     quick_actions=quick_actions,
@@ -1076,8 +1060,8 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                     user_id=user_id
                 )
                 
-                print(f"[STREAM] ⚡ Prompt injections applied")
-                print(f"[STREAM] 🔍 DEBUG: System prompt after prompt injection: {len(system_prompt):,} characters")
+                print(f"[STREAM] ⚡ SINGLE-USE prompt injections applied (THIS MESSAGE ONLY)")
+                print(f"[STREAM] 🔍 DEBUG: System prompt after injection: {len(system_prompt):,} characters")
         except Exception as e:
             print(f"[STREAM] ⚠️  Error applying prompt injections: {e}")
     else:
@@ -1087,6 +1071,7 @@ Additional Preferences (YOU MUST FOLLOW THESE):
     # ============================================
     # COMPREHENSIVE CONTEXT INJECTION (Retained)
     # ============================================
+    conn = None
     try:
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
@@ -1103,7 +1088,6 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         """, (str(thread_slug),))
         
         thread_row = cursor.fetchone()
-        conn.close()
         
         if thread_row:
             context_sections = []
@@ -1112,19 +1096,18 @@ Additional Preferences (YOU MUST FOLLOW THESE):
             if thread_row['synergy_card_id']:
                 synergy_card_id = thread_row['synergy_card_id']
                 
-                conn = get_database_connection('synergy_sessions')
-                cursor = conn.cursor()
-                
-                cursor.execute("""
-                    SELECT 
-                        title, description, project_name, priority, status,
-                        tags, documents, next_steps, notes, due_date
-                    FROM synergy_sessions.synergy_sessions 
-                    WHERE session_id = %s
-                """, (synergy_card_id,))
-                
-                synergy_row = cursor.fetchone()
-                conn.close()
+                with get_database_connection('synergy_sessions') as conn2:
+                    cursor2 = conn2.cursor()
+                    
+                    cursor2.execute("""
+                        SELECT 
+                            title, description, project_name, priority, status,
+                            tags, documents, next_steps, notes, due_date
+                        FROM synergy_sessions.synergy_sessions 
+                        WHERE session_id = %s
+                    """, (synergy_card_id,))
+                    
+                    synergy_row = cursor2.fetchone()
                 
                 if synergy_row:
                     print(f"[STREAM] 🎯 SYNERGY LINKED → {synergy_card_id} | '{synergy_row['title']}'")
@@ -1161,11 +1144,22 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                     
                     synergy_context += f"\n**Available Tools:**\n"
                     synergy_context += f"- synergy_get_session('{synergy_card_id}') - Get full project details\n"
-                    synergy_context += f"- synergy_update_session('{synergy_card_id}', ...) - Update project\n"
+                    synergy_context += f"- synergy_update_session('{synergy_card_id}', ...) - Update project status, notes, next steps\n"
+                    synergy_context += f"- synergy_list_sessions() - List all Synergy projects\n"
+                    synergy_context += f"- synergy_create_session(...) - Create new Synergy project\n"
+                    synergy_context += f"- synergy_delete_session('{synergy_card_id}') - Archive this project\n"
+                    
+                    synergy_context += f"\n**What You Can Do:**\n"
+                    synergy_context += f"- Help user complete next steps (show progress, mark items done)\n"
+                    synergy_context += f"- Update project status when milestones are reached\n"
+                    synergy_context += f"- Add notes or insights relevant to the project\n"
+                    synergy_context += f"- Suggest action items based on project goals\n"
+                    synergy_context += f"- Track project progress and remind about due dates\n"
+                    synergy_context += f"- Create related Synergy projects if needed\n"
                     
                     context_sections.append(synergy_context)
             
-            # Workflow Automation Context
+            # Workflow Automation Context (ENHANCED)
             if thread_row['workflow_slug']:
                 workflow_slug = thread_row['workflow_slug']
                 workflow_title = thread_row['workflow_title'] or workflow_slug
@@ -1175,12 +1169,25 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 workflow_context = f"\n\n{'='*80}\n"
                 workflow_context += "⚙️ WORKFLOW AUTOMATION CONTEXT\n"
                 workflow_context += f"{'='*80}\n\n"
+                workflow_context += f"This thread is linked to a workflow automation:\n\n"
                 workflow_context += f"**Workflow:** {workflow_title}\n"
                 workflow_context += f"**Slug:** {workflow_slug}\n"
                 
+                workflow_context += f"\n**Available Tools:**\n"
+                workflow_context += f"- automation_get_workflow_by_slug('{workflow_slug}') - Get workflow details\n"
+                workflow_context += f"- automation_execute_workflow('{workflow_slug}', input_data) - Execute workflow\n"
+                workflow_context += f"- automation_get_execution_history('{workflow_slug}') - View past runs\n"
+                workflow_context += f"- automation_schedule_workflow('{workflow_slug}', cron) - Schedule workflow\n"
+                
+                workflow_context += f"\n**What You Can Do:**\n"
+                workflow_context += f"- Explain what this workflow does to the user\n"
+                workflow_context += f"- Offer to execute the workflow if appropriate\n"
+                workflow_context += f"- Show execution history when asked\n"
+                workflow_context += f"- Help modify workflow parameters\n"
+                
                 context_sections.append(workflow_context)
             
-            # Automation Slug Context
+            # Automation Slug Context (ENHANCED)
             if thread_row['automation_slug']:
                 automation_slug = thread_row['automation_slug']
                 automation_title = thread_row['automation_title'] or automation_slug
@@ -1188,13 +1195,27 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 print(f"[STREAM] 🤖 AUTOMATION LINKED → {automation_slug}")
                 
                 automation_context = f"\n\n{'='*80}\n"
-                automation_context += "🤖 AUTOMATION CONTEXT\n"
+                automation_context += "🤖 VISUAL AUTOMATION CONTEXT\n"
                 automation_context += f"{'='*80}\n\n"
+                automation_context += f"This thread is linked to a visual automation:\n\n"
                 automation_context += f"**Automation:** {automation_title}\n"
+                automation_context += f"**Slug:** {automation_slug}\n"
+                
+                automation_context += f"\n**Available Tools:**\n"
+                automation_context += f"- automation_get_workflow_by_slug('{automation_slug}') - Get automation details\n"
+                automation_context += f"- automation_execute_workflow('{automation_slug}', input_data) - Execute automation\n"
+                automation_context += f"- automation_get_execution_history('{automation_slug}') - View execution history\n"
+                automation_context += f"- automation_deactivate_workflow('{automation_slug}') - Deactivate automation\n"
+                
+                automation_context += f"\n**What You Can Do:**\n"
+                automation_context += f"- Explain the automation's trigger and actions\n"
+                automation_context += f"- Show when it last ran\n"
+                automation_context += f"- Offer to execute it manually for testing\n"
+                automation_context += f"- Help configure schedule if needed\n"
                 
                 context_sections.append(automation_context)
             
-            # Internal Documentation Context
+            # Internal Documentation Context (ENHANCED)
             if thread_row['internal_doc_slug']:
                 doc_slug = thread_row['internal_doc_slug']
                 doc_title = thread_row['internal_doc_title'] or doc_slug
@@ -1204,7 +1225,19 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 doc_context = f"\n\n{'='*80}\n"
                 doc_context += "📄 INTERNAL DOCUMENTATION CONTEXT\n"
                 doc_context += f"{'='*80}\n\n"
+                doc_context += f"This thread has access to internal documentation:\n\n"
                 doc_context += f"**Document:** {doc_title}\n"
+                doc_context += f"**Slug:** {doc_slug}\n"
+                
+                doc_context += f"\n**Available Tools:**\n"
+                doc_context += f"- internal_docs_get_by_slug('{doc_slug}') - Get full document content\n"
+                doc_context += f"- internal_docs_search('{doc_slug}', query) - Search within document\n"
+                
+                doc_context += f"\n**What You Can Do:**\n"
+                doc_context += f"- Reference information from this document in your responses\n"
+                doc_context += f"- Answer questions using document content\n"
+                doc_context += f"- Summarize key points when relevant\n"
+                doc_context += f"- Quote specific sections if helpful\n"
                 
                 context_sections.append(doc_context)
             
@@ -1219,6 +1252,10 @@ Additional Preferences (YOU MUST FOLLOW THESE):
     
     except Exception as e:
         print(f"[STREAM] ⚠️ Error injecting context: {e}")
+    finally:
+        if conn:
+            conn.close()
+            print(f"[STREAM] 🔒 Context injection connection closed")
     
     # Append system prompt continuation
     system_prompt_continued = """
@@ -1315,80 +1352,78 @@ Use tools in multiple rounds with interleaved thinking."""
                         if conversation_full:
                             print(f"[STREAM SAVE] Got {len(conversation_full)} messages from complete event")
                             
-                            conn = get_database_connection('sessions')
-                            cursor = conn.cursor()
-                            
-                            cursor.execute("""
-                                SELECT id FROM sessions.threads 
-                                WHERE thread_slug = %s
-                            """, (thread_slug,))
-                            
-                            thread_row = cursor.fetchone()
-                            if thread_row:
-                                db_thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+                            with get_database_connection('sessions') as conn:
+                                cursor = conn.cursor()
                                 
                                 cursor.execute("""
-                                    SELECT COUNT(*) FROM sessions.messages 
-                                    WHERE thread_id = %s
-                                """, (db_thread_id,))
-                                
-                                count_row = cursor.fetchone()
-                                existing_count = count_row[0] if isinstance(count_row, tuple) else count_row['count']
-                                
-                                messages_to_save = conversation_full[existing_count:]
-                                
-                                if messages_to_save:
-                                    print(f"[STREAM SAVE] Saving {len(messages_to_save)} new messages")
-                                    
-                                    from psycopg2.extras import Json
-                                    
-                                    for message in messages_to_save:
-                                        content = message.get('content', '')
-                                        
-                                        if isinstance(content, (list, dict)):
-                                            content_value = Json(content)
-                                        elif isinstance(content, str):
-                                            if not content.strip().startswith(('[', '{')):
-                                                content_value = Json([{'type': 'text', 'text': content}])
-                                            else:
-                                                try:
-                                                    parsed = json.loads(content)
-                                                    content_value = Json(parsed)
-                                                except:
-                                                    content_value = Json([{'type': 'text', 'text': content}])
-                                        else:
-                                            content_value = Json([{'type': 'text', 'text': str(content)}])
-                                        
-                                        model_val = event.get('model', ai_model) if event else ai_model
-                                        tokens_val = message.get('tokens_used', None)
-                                        tool_calls_data = message.get('tool_calls', [])
-                                        tool_calls_val = json.dumps(tool_calls_data) if tool_calls_data else None
-                                        
-                                        metadata = {}
-                                        if message.get('thinking_budget'):
-                                            metadata['thinking_budget'] = message.get('thinking_budget')
-                                        if message.get('round'):
-                                            metadata['round'] = message.get('round')
-                                        metadata_val = json.dumps(metadata) if metadata else None
-                                        
-                                        cursor.execute("""
-                                            INSERT INTO sessions.messages 
-                                            (thread_id, session_id, role, content, user_id, model, tokens_used, tool_calls, metadata, created_at)
-                                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                                        """, (db_thread_id, thread_slug, message['role'], content_value, user_id, model_val, tokens_val, tool_calls_val, metadata_val))
-                                    
-                                    conn.commit()
-                                    print(f"[STREAM SAVE] ✅ Saved {len(messages_to_save)} messages")
-                                
-                                cursor.execute("""
-                                    UPDATE sessions.threads 
-                                    SET updated_at = CURRENT_TIMESTAMP
+                                    SELECT id FROM sessions.threads 
                                     WHERE thread_slug = %s
                                 """, (thread_slug,))
                                 
-                                conn.commit()
-                            
-                            conn.close()
+                                thread_row = cursor.fetchone()
+                                if thread_row:
+                                    db_thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+                                    
+                                    cursor.execute("""
+                                        SELECT COUNT(*) FROM sessions.messages 
+                                        WHERE thread_id = %s
+                                    """, (db_thread_id,))
+                                    
+                                    count_row = cursor.fetchone()
+                                    existing_count = count_row[0] if isinstance(count_row, tuple) else count_row['count']
+                                    
+                                    messages_to_save = conversation_full[existing_count:]
+                                    
+                                    if messages_to_save:
+                                        print(f"[STREAM SAVE] Saving {len(messages_to_save)} new messages")
+                                        
+                                        from psycopg2.extras import Json
+                                        
+                                        for message in messages_to_save:
+                                            content = message.get('content', '')
+                                            
+                                            if isinstance(content, (list, dict)):
+                                                content_value = Json(content)
+                                            elif isinstance(content, str):
+                                                if not content.strip().startswith(('[', '{')):
+                                                    content_value = Json([{'type': 'text', 'text': content}])
+                                                else:
+                                                    try:
+                                                        parsed = json.loads(content)
+                                                        content_value = Json(parsed)
+                                                    except:
+                                                        content_value = Json([{'type': 'text', 'text': content}])
+                                            else:
+                                                content_value = Json([{'type': 'text', 'text': str(content)}])
+                                            
+                                            model_val = event.get('model', ai_model) if event else ai_model
+                                            tokens_val = message.get('tokens_used', None)
+                                            tool_calls_data = message.get('tool_calls', [])
+                                            tool_calls_val = json.dumps(tool_calls_data) if tool_calls_data else None
+                                            
+                                            metadata = {}
+                                            if message.get('thinking_budget'):
+                                                metadata['thinking_budget'] = message.get('thinking_budget')
+                                            if message.get('round'):
+                                                metadata['round'] = message.get('round')
+                                            metadata_val = json.dumps(metadata) if metadata else None
+                                            
+                                            cursor.execute("""
+                                                INSERT INTO sessions.messages 
+                                                (thread_id, session_id, role, content, user_id, model, tokens_used, tool_calls, metadata, created_at)
+                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                            """, (db_thread_id, thread_slug, message['role'], content_value, user_id, model_val, tokens_val, tool_calls_val, metadata_val))
+                                        
+                                        conn.commit()
+                                        print(f"[STREAM SAVE] ✅ Saved {len(messages_to_save)} messages")
+                                    
+                                    cursor.execute("""
+                                        UPDATE sessions.threads 
+                                        SET updated_at = CURRENT_TIMESTAMP
+                                        WHERE thread_slug = %s
+                                    """, (thread_slug,))
+                                    
+                                    conn.commit()
                     
                     except Exception as save_error:
                         print(f"[STREAM SAVE] ❌ Failed to save: {save_error}")

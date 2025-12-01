@@ -42,7 +42,7 @@ class ModulePluginLoader:
     
     def __init__(self):
         self.root_dir = Path(__file__).parent.parent.parent
-        self.modules_dir = self.root_dir / "UI" / "external" / "modules"
+        self.modules_dir = self.root_dir / "UI" / "modules_external"
         self.loaded_modules = {}
         
         print(f"[PLUGIN] [Module Plugin] Initialized")

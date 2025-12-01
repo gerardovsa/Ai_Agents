@@ -275,13 +275,12 @@ def refresh_microsoft_token():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT refresh_token, platform_user_id, platform_email
         FROM user_platform_credentials
         WHERE user_id = ? AND platform = ?
     ''', (user_id, 'microsoft'))
-
-            cursor.execute(sql, params)
+    cursor.execute(sql, params)
     
     result = cursor.fetchone()
     conn.close()
@@ -377,14 +376,12 @@ def microsoft_auth_status():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT platform_email, platform_user_id, token_expiry, updated_at, platform_metadata
         FROM user_platform_credentials
         WHERE user_id = ? AND platform = ?
     ''', (user_id, 'microsoft'))
-
-        
-        cursor.execute(sql, params)
+    cursor.execute(sql, params)
     
     result = cursor.fetchone()
     conn.close()

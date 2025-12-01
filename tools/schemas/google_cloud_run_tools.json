@@ -9,18 +9,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service to deploy",
-          "required": true
+          "description": "Name of the service to deploy"
         },
         "image": {
           "type": "string",
-          "description": "Container image URL (e.g., gcr.io/project/image:tag)",
-          "required": true
+          "description": "Container image URL (e.g., gcr.io/project/image:tag)"
         },
         "region": {
           "type": "string",
@@ -71,8 +68,7 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "region": {
           "type": "string",
@@ -88,18 +84,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         }
       }
     },
@@ -110,18 +103,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         },
         "image": {
           "type": "string",
@@ -162,18 +152,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service to delete",
-          "required": true
+          "description": "Name of the service to delete"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         }
       }
     },
@@ -184,18 +171,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         }
       }
     },
@@ -206,23 +190,19 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         },
         "traffic_splits": {
           "type": "object",
-          "description": "Revision names to traffic percentages (e.g., {'rev-001': 80, 'rev-002': 20})",
-          "required": true
+          "description": "Revision names to traffic percentages (e.g., {'rev-001': 80, 'rev-002': 20})"
         }
       }
     },
@@ -233,18 +213,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         }
       }
     },
@@ -255,18 +232,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         },
         "start_time": {
           "type": "string",
@@ -287,13 +261,11 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
@@ -324,28 +296,23 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "service_name": {
           "type": "string",
-          "description": "Name of the service",
-          "required": true
+          "description": "Name of the service"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         },
         "member": {
           "type": "string",
-          "description": "Member to grant access (e.g., 'allUsers', 'user:email@example.com')",
-          "required": true
+          "description": "Member to grant access (e.g., 'allUsers', 'user:email@example.com')"
         },
         "role": {
           "type": "string",
-          "description": "IAM role (e.g., 'roles/run.invoker')",
-          "required": true
+          "description": "IAM role (e.g., 'roles/run.invoker')"
         }
       }
     },
@@ -356,18 +323,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "job_name": {
           "type": "string",
-          "description": "Name of the job",
-          "required": true
+          "description": "Name of the job"
         },
         "image": {
           "type": "string",
-          "description": "Container image URL",
-          "required": true
+          "description": "Container image URL"
         },
         "region": {
           "type": "string",
@@ -403,18 +367,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "job_name": {
           "type": "string",
-          "description": "Name of the job to execute",
-          "required": true
+          "description": "Name of the job to execute"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         },
         "wait": {
           "type": "boolean",
@@ -430,8 +391,7 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "region": {
           "type": "string",
@@ -447,18 +407,15 @@
       "parameters": {
         "project_id": {
           "type": "string",
-          "description": "Google Cloud project ID",
-          "required": true
+          "description": "Google Cloud project ID"
         },
         "job_name": {
           "type": "string",
-          "description": "Name of the job",
-          "required": true
+          "description": "Name of the job"
         },
         "region": {
           "type": "string",
-          "description": "GCP region",
-          "required": true
+          "description": "GCP region"
         },
         "limit": {
           "type": "integer",

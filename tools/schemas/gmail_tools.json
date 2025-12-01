@@ -11,13 +11,11 @@
       "parameters": {
         "prompt": {
           "type": "string",
-          "description": "Natural language description of what to write. Examples: 'Follow up with John about yesterday's product launch meeting', 'Thank the team for Q4 performance', 'Apologize to customer for order #12345 delay'",
-          "required": true
+          "description": "Natural language description of what to write. Examples: 'Follow up with John about yesterday's product launch meeting', 'Thank the team for Q4 performance', 'Apologize to customer for order #12345 delay'"
         },
         "recipients": {
           "type": "array",
-          "description": "List of email addresses to send to",
-          "required": true
+          "description": "List of email addresses to send to"
         },
         "cc": {
           "type": "array",
@@ -77,18 +75,15 @@
       "parameters": {
         "template": {
           "type": "string",
-          "description": "Email body template with {{variables}}. Example: 'Hi {{name}}, your order {{order_id}} is ready! Total: ${{amount}}'",
-          "required": true
+          "description": "Email body template with {{variables}}. Example: 'Hi {{name}}, your order {{order_id}} is ready! Total: ${{amount}}'"
         },
         "recipients_data": {
           "type": "array",
-          "description": "Array of recipient objects with email and variables. Example: [{'email': 'john@co.com', 'name': 'John', 'order_id': '12345', 'amount': '99.99'}]",
-          "required": true
+          "description": "Array of recipient objects with email and variables. Example: [{'email': 'john@co.com', 'name': 'John', 'order_id': '12345', 'amount': '99.99'}]"
         },
         "subject_template": {
           "type": "string",
-          "description": "Email subject with {{variables}}. Example: 'Your Order {{order_id}} Update'",
-          "required": true
+          "description": "Email subject with {{variables}}. Example: 'Your Order {{order_id}} Update'"
         },
         "cc": {
           "type": "array",
@@ -183,8 +178,7 @@
       "parameters": {
         "message_ids": {
           "type": "array",
-          "description": "List of Gmail message IDs to reply to",
-          "required": true
+          "description": "List of Gmail message IDs to reply to"
         },
         "response_type": {
           "type": "string",
@@ -288,18 +282,15 @@
       "parameters": {
         "to": {
           "type": "array",
-          "description": "Recipient email addresses",
-          "required": true
+          "description": "Recipient email addresses"
         },
         "subject": {
           "type": "string",
-          "description": "Email subject",
-          "required": true
+          "description": "Email subject"
         },
         "body": {
           "type": "string",
-          "description": "Email body (plain text or HTML)",
-          "required": true
+          "description": "Email body (plain text or HTML)"
         },
         "cc": {
           "type": "array",
@@ -894,8 +885,7 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Gmail message ID to retrieve",
-          "required": true
+          "description": "Gmail message ID to retrieve"
         },
         "format": {
           "type": "string",
@@ -1242,8 +1232,7 @@
       "parameters": {
         "message_id": {
           "type": "string",
-          "description": "Gmail message ID to retrieve and parse",
-          "required": true
+          "description": "Gmail message ID to retrieve and parse"
         },
         "include_attachments": {
           "type": "boolean",
@@ -1466,8 +1455,7 @@
       "parameters": {
         "thread_id": {
           "type": "string",
-          "description": "Gmail thread ID (from gmail_list_messages or gmail_get_message)",
-          "required": true
+          "description": "Gmail thread ID (from gmail_list_messages or gmail_get_message)"
         },
         "max_messages": {
           "type": "integer",

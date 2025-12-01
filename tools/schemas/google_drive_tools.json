@@ -48,8 +48,7 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID",
-          "required": true
+          "description": "File ID"
         },
         "download": {
           "type": "boolean",
@@ -75,18 +74,15 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "File name",
-          "required": true
+          "description": "File name"
         },
         "content": {
           "type": "string",
-          "description": "File content (text) or base64 encoded binary",
-          "required": true
+          "description": "File content (text) or base64 encoded binary"
         },
         "mime_type": {
           "type": "string",
-          "description": "MIME type (e.g., 'text/plain', 'image/png', 'application/pdf')",
-          "required": true
+          "description": "MIME type (e.g., 'text/plain', 'image/png', 'application/pdf')"
         },
         "parent_folder_id": {
           "type": "string",
@@ -111,8 +107,7 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID to update",
-          "required": true
+          "description": "File ID to update"
         },
         "name": {
           "type": "string",
@@ -147,8 +142,7 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID to delete",
-          "required": true
+          "description": "File ID to delete"
         },
         "permanent": {
           "type": "boolean",
@@ -169,8 +163,7 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "Folder name",
-          "required": true
+          "description": "Folder name"
         },
         "parent_folder_id": {
           "type": "string",
@@ -195,13 +188,11 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID to move",
-          "required": true
+          "description": "File ID to move"
         },
         "new_parent_folder_id": {
           "type": "string",
-          "description": "Destination folder ID",
-          "required": true
+          "description": "Destination folder ID"
         },
         "remove_from_current": {
           "type": "boolean",
@@ -222,8 +213,7 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID to copy",
-          "required": true
+          "description": "File ID to copy"
         },
         "name": {
           "type": "string",
@@ -248,8 +238,7 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID to share",
-          "required": true
+          "description": "File ID to share"
         },
         "email": {
           "type": "string",
@@ -258,13 +247,11 @@
         },
         "role": {
           "type": "string",
-          "description": "Permission role: reader, writer, commenter, or owner",
-          "required": true
+          "description": "Permission role: reader, writer, commenter, or owner"
         },
         "type": {
           "type": "string",
-          "description": "Permission type: user, group, domain, or anyone (public)",
-          "required": true
+          "description": "Permission type: user, group, domain, or anyone (public)"
         },
         "send_notification": {
           "type": "boolean",
@@ -290,8 +277,7 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID",
-          "required": true
+          "description": "File ID"
         }
       },
       "returns": {
@@ -306,13 +292,11 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID",
-          "required": true
+          "description": "File ID"
         },
         "permission_id": {
           "type": "string",
-          "description": "Permission ID to remove",
-          "required": true
+          "description": "Permission ID to remove"
         }
       },
       "returns": {
@@ -373,13 +357,11 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "Google file ID to export",
-          "required": true
+          "description": "Google file ID to export"
         },
         "mime_type": {
           "type": "string",
-          "description": "Export format (PDF, DOCX, XLSX, PPTX, etc.)",
-          "required": true
+          "description": "Export format (PDF, DOCX, XLSX, PPTX, etc.)"
         }
       },
       "returns": {
@@ -404,8 +386,7 @@
       "parameters": {
         "file_id": {
           "type": "string",
-          "description": "File ID to restore",
-          "required": true
+          "description": "File ID to restore"
         }
       },
       "returns": {

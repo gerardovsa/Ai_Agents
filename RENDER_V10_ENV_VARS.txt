@@ -1,0 +1,10 @@
+﻿#  Required Render Environment Variables for v10
+
+Copy these to Render Dashboard  Your v10 Service  Environment:
+
+FRONTEND_URL=https://ai-agents-v10.onrender.com
+GOOGLE_REDIRECT_URI=https://ai-agents-v10.onrender.com/api/auth/google/callback
+MICROSOFT_REDIRECT_URI=https://ai-agents-v10.onrender.com/api/auth/microsoft/callback
+GOOGLE_OAUTH_REDIRECT_URI=https://ai-agents-v10.onrender.com/oauth2callback
+
+#  After setting these, Render will auto-redeploy (takes 2-3 minutes)

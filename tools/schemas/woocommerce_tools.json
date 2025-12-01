@@ -52,8 +52,7 @@
       "parameters": {
         "order_id": {
           "type": "integer",
-          "description": "Order ID to retrieve",
-          "required": true
+          "description": "Order ID to retrieve"
         }
       },
       "returns": {
@@ -68,13 +67,11 @@
       "parameters": {
         "payment_method": {
           "type": "string",
-          "description": "Payment method ID",
-          "required": true
+          "description": "Payment method ID"
         },
         "payment_method_title": {
           "type": "string",
-          "description": "Payment method title",
-          "required": true
+          "description": "Payment method title"
         },
         "set_paid": {
           "type": "boolean",
@@ -84,8 +81,7 @@
         },
         "billing": {
           "type": "object",
-          "description": "Billing address object",
-          "required": true
+          "description": "Billing address object"
         },
         "shipping": {
           "type": "object",
@@ -94,8 +90,7 @@
         },
         "line_items": {
           "type": "array",
-          "description": "Array of line items with product_id and quantity",
-          "required": true
+          "description": "Array of line items with product_id and quantity"
         },
         "customer_id": {
           "type": "integer",
@@ -115,8 +110,7 @@
       "parameters": {
         "order_id": {
           "type": "integer",
-          "description": "Order ID to update",
-          "required": true
+          "description": "Order ID to update"
         },
         "status": {
           "type": "string",
@@ -151,8 +145,7 @@
       "parameters": {
         "order_id": {
           "type": "integer",
-          "description": "Order ID to delete",
-          "required": true
+          "description": "Order ID to delete"
         },
         "force": {
           "type": "boolean",
@@ -226,8 +219,7 @@
       "parameters": {
         "product_id": {
           "type": "integer",
-          "description": "Product ID to retrieve",
-          "required": true
+          "description": "Product ID to retrieve"
         }
       },
       "returns": {
@@ -242,8 +234,7 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "Product name",
-          "required": true
+          "description": "Product name"
         },
         "type": {
           "type": "string",
@@ -253,8 +244,7 @@
         },
         "regular_price": {
           "type": "string",
-          "description": "Product regular price",
-          "required": true
+          "description": "Product regular price"
         },
         "sale_price": {
           "type": "string",
@@ -310,8 +300,7 @@
       "parameters": {
         "product_id": {
           "type": "integer",
-          "description": "Product ID to update",
-          "required": true
+          "description": "Product ID to update"
         },
         "name": {
           "type": "string",
@@ -351,8 +340,7 @@
       "parameters": {
         "product_id": {
           "type": "integer",
-          "description": "Product ID to delete",
-          "required": true
+          "description": "Product ID to delete"
         },
         "force": {
           "type": "boolean",
@@ -411,8 +399,7 @@
       "parameters": {
         "customer_id": {
           "type": "integer",
-          "description": "Customer ID",
-          "required": true
+          "description": "Customer ID"
         }
       },
       "returns": {
@@ -427,8 +414,7 @@
       "parameters": {
         "email": {
           "type": "string",
-          "description": "Customer email",
-          "required": true
+          "description": "Customer email"
         },
         "first_name": {
           "type": "string",
@@ -485,8 +471,7 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "Category name",
-          "required": true
+          "description": "Category name"
         },
         "slug": {
           "type": "string",
@@ -538,18 +523,15 @@
       "parameters": {
         "code": {
           "type": "string",
-          "description": "Coupon code",
-          "required": true
+          "description": "Coupon code"
         },
         "discount_type": {
           "type": "string",
-          "description": "Discount type (percent, fixed_cart, fixed_product)",
-          "required": true
+          "description": "Discount type (percent, fixed_cart, fixed_product)"
         },
         "amount": {
           "type": "string",
-          "description": "Discount amount",
-          "required": true
+          "description": "Discount amount"
         },
         "individual_use": {
           "type": "boolean",
@@ -579,8 +561,7 @@
       "parameters": {
         "order_id": {
           "type": "integer",
-          "description": "Order ID",
-          "required": true
+          "description": "Order ID"
         }
       },
       "returns": {
@@ -595,8 +576,7 @@
       "parameters": {
         "order_id": {
           "type": "integer",
-          "description": "Order ID",
-          "required": true
+          "description": "Order ID"
         },
         "amount": {
           "type": "string",
@@ -682,8 +662,7 @@
       "parameters": {
         "order_id": {
           "type": "integer",
-          "description": "Order ID",
-          "required": true
+          "description": "Order ID"
         }
       },
       "returns": {
@@ -698,13 +677,11 @@
       "parameters": {
         "order_id": {
           "type": "integer",
-          "description": "Order ID",
-          "required": true
+          "description": "Order ID"
         },
         "note": {
           "type": "string",
-          "description": "Note content",
-          "required": true
+          "description": "Note content"
         },
         "customer_note": {
           "type": "boolean",
@@ -771,18 +748,15 @@
       "parameters": {
         "name": {
           "type": "string",
-          "description": "Webhook name",
-          "required": true
+          "description": "Webhook name"
         },
         "topic": {
           "type": "string",
-          "description": "Webhook topic (e.g., order.created, product.updated)",
-          "required": true
+          "description": "Webhook topic (e.g., order.created, product.updated)"
         },
         "delivery_url": {
           "type": "string",
-          "description": "Delivery URL",
-          "required": true
+          "description": "Delivery URL"
         }
       },
       "returns": {

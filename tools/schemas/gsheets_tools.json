@@ -13,13 +13,11 @@
         "title": {
           "type": "string",
           "description": "Spreadsheet title",
-          "required": true,
           "example": "Q4 Sales Report"
         },
         "data": {
           "type": "array",
           "description": "2D array of data [[row1], [row2], ...]. Each row is an array of values.",
-          "required": true,
           "example": [
             [
               "Widget A",
@@ -93,7 +91,6 @@
         "prompt": {
           "type": "string",
           "description": "Natural language description of the table you want to create",
-          "required": true,
           "example": "Create a sales tracking table with columns for date, product name, quantity sold, unit price, and total revenue. Include 10 sample rows of realistic data."
         },
         "title": {
@@ -135,7 +132,6 @@
         "spreadsheets_configs": {
           "type": "array",
           "description": "List of spreadsheet configurations. Each config is an object with: title, headers (optional), data (2D array), sheet_name (optional)",
-          "required": true,
           "example": [
             {
               "title": "Q1 Sales - NYC",
@@ -195,8 +191,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Spreadsheet title",
-          "required": true
+          "description": "Spreadsheet title"
         },
         "sheets": {
           "type": "array",
@@ -223,13 +218,11 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID from URL",
-          "required": true
+          "description": "Spreadsheet ID from URL"
         },
         "range": {
           "type": "string",
           "description": "Cell range (e.g., 'Sheet1!A1:D10' or just 'A1:D10')",
-          "required": true,
           "example": "Sheet1!A1:D10"
         }
       },
@@ -247,19 +240,16 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID from URL",
-          "required": true
+          "description": "Spreadsheet ID from URL"
         },
         "range": {
           "type": "string",
           "description": "Cell range to write to",
-          "required": true,
           "example": "Sheet1!A1"
         },
         "values": {
           "type": "array",
           "description": "2D array of values to write",
-          "required": true,
           "example": [
             [
               "Name",
@@ -290,19 +280,16 @@
       "parameters": {
         "spreadsheet_id": {
           "type": "string",
-          "description": "Spreadsheet ID from URL",
-          "required": true
+          "description": "Spreadsheet ID from URL"
         },
         "range": {
           "type": "string",
           "description": "Sheet name and starting column (e.g., 'Sheet1!A:D')",
-          "required": true,
           "example": "Sheet1!A:D"
         },
         "values": {
           "type": "array",
           "description": "2D array of values to append",
-          "required": true,
           "example": [
             [
               "New Row 1",

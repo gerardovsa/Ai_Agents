@@ -20,18 +20,15 @@
         "title": {
           "type": "string",
           "description": "Form title",
-          "required": true,
           "example": "Customer Feedback Survey"
         },
         "questions": {
           "type": "array",
           "description": "List of questions to add. Each question is an object with: type (text|paragraph|multiple_choice|checkbox|dropdown|linear_scale), text (question text), options (array, for choice questions), required (boolean), low_value/high_value/low_label/high_label (for linear_scale)",
-          "required": true,
           "example": [
             {
               "type": "text",
-              "text": "What is your name?",
-              "required": true
+              "text": "What is your name?"
             },
             {
               "type": "multiple_choice",
@@ -41,8 +38,7 @@
                 "Satisfied",
                 "Neutral",
                 "Dissatisfied"
-              ],
-              "required": true
+              ]
             },
             {
               "type": "paragraph",
@@ -86,7 +82,6 @@
         "prompt": {
           "type": "string",
           "description": "Natural language description of the form you want to create",
-          "required": true,
           "example": "Create a restaurant feedback survey with questions about food quality, service speed, cleanliness, value for money, and likelihood to return. Include ratings and open-ended questions."
         },
         "form_type": {
@@ -136,7 +131,6 @@
         "forms_configs": {
           "type": "array",
           "description": "List of form configurations. Each config is an object with: title, description (optional), questions (array of question objects), collect_email (boolean)",
-          "required": true,
           "example": [
             {
               "title": "Event Registration - NYC",
@@ -144,13 +138,11 @@
               "questions": [
                 {
                   "type": "text",
-                  "text": "Full Name",
-                  "required": true
+                  "text": "Full Name"
                 },
                 {
                   "type": "text",
-                  "text": "Email",
-                  "required": true
+                  "text": "Email"
                 },
                 {
                   "type": "multiple_choice",
@@ -158,8 +150,7 @@
                   "options": [
                     "In-Person",
                     "Virtual"
-                  ],
-                  "required": true
+                  ]
                 }
               ]
             },
@@ -169,13 +160,11 @@
               "questions": [
                 {
                   "type": "text",
-                  "text": "Full Name",
-                  "required": true
+                  "text": "Full Name"
                 },
                 {
                   "type": "text",
-                  "text": "Email",
-                  "required": true
+                  "text": "Email"
                 }
               ]
             }
@@ -203,8 +192,7 @@
       "parameters": {
         "title": {
           "type": "string",
-          "description": "Form title (REQUIRED - only field allowed during creation)",
-          "required": true
+          "description": "Form title (REQUIRED - only field allowed during creation)"
         },
         "description": {
           "type": "string",
@@ -238,18 +226,15 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "questions_list": {
           "type": "array",
           "description": "List of question objects",
-          "required": true,
           "example": [
             {
               "type": "text",
-              "text": "Question 1",
-              "required": true
+              "text": "Question 1"
             },
             {
               "type": "multiple_choice",
@@ -283,8 +268,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID (required)",
-          "required": true
+          "description": "Form ID (required)"
         },
         "format": {
           "type": "string",
@@ -331,8 +315,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID (required)",
-          "required": true
+          "description": "Form ID (required)"
         },
         "format": {
           "type": "string",
@@ -385,8 +368,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID (required)",
-          "required": true
+          "description": "Form ID (required)"
         }
       },
       "returns": {
@@ -414,13 +396,11 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID (required)",
-          "required": true
+          "description": "Form ID (required)"
         },
         "query": {
           "type": "string",
-          "description": "Text to search for in response answers (case-insensitive, required)",
-          "required": true
+          "description": "Text to search for in response answers (case-insensitive, required)"
         }
       },
       "returns": {
@@ -446,8 +426,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         }
       },
       "returns": {
@@ -464,8 +443,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "analysis_type": {
           "type": "string",
@@ -502,8 +480,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID to clone",
-          "required": true
+          "description": "Form ID to clone"
         },
         "new_title": {
           "type": "string",
@@ -525,8 +502,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID to delete",
-          "required": true
+          "description": "Form ID to delete"
         }
       },
       "returns": {
@@ -543,13 +519,11 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "text": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "paragraph": {
           "type": "boolean",
@@ -584,18 +558,15 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "text": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "options": {
           "type": "array",
           "description": "Answer options",
-          "required": true,
           "example": [
             "Option 1",
             "Option 2",
@@ -629,18 +600,15 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "text": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "options": {
           "type": "array",
-          "description": "Answer options",
-          "required": true
+          "description": "Answer options"
         },
         "required": {
           "type": "boolean",
@@ -669,24 +637,20 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "text": {
           "type": "string",
-          "description": "Question text",
-          "required": true
+          "description": "Question text"
         },
         "low_label": {
           "type": "string",
           "description": "Label for lowest value",
-          "required": true,
           "example": "Poor"
         },
         "high_label": {
           "type": "string",
           "description": "Label for highest value",
-          "required": true,
           "example": "Excellent"
         },
         "low_value": {
@@ -728,8 +692,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         },
         "title": {
           "type": "string",
@@ -756,8 +719,7 @@
       "parameters": {
         "form_id": {
           "type": "string",
-          "description": "Form ID",
-          "required": true
+          "description": "Form ID"
         }
       },
       "returns": {

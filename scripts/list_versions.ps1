@@ -21,7 +21,7 @@
 #>
 
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [bool]$CheckHealth = $true
 )
 
@@ -40,10 +40,12 @@ function Test-UrlHealth {
         $Response = Invoke-WebRequest -Uri "$Url/api/v1/system/check" -TimeoutSec 10 -UseBasicParsing
         if ($Response.StatusCode -eq 200) {
             return @{ Status = "✅ Online"; Color = $SuccessColor }
-        } else {
+        }
+        else {
             return @{ Status = "⚠️  HTTP $($Response.StatusCode)"; Color = $WarningColor }
         }
-    } catch {
+    }
+    catch {
         return @{ Status = "❌ Offline"; Color = $ErrorColor }
     }
 }
@@ -73,7 +75,8 @@ Write-Host ("Expected URL".PadRight(45)) -NoNewline
 Write-Host ("Last Commit".PadRight(15)) -NoNewline
 if ($CheckHealth) {
     Write-Host "Health"
-} else {
+}
+else {
     Write-Host ""
 }
 Write-Host ("-" * 90) -ForegroundColor $InfoColor
@@ -92,7 +95,8 @@ foreach ($Branch in $Branches) {
         if ([string]::IsNullOrEmpty($CommitInfo)) {
             $CommitInfo = "N/A"
         }
-    } catch {
+    }
+    catch {
         $CommitInfo = "N/A"
     }
     
@@ -108,7 +112,8 @@ foreach ($Branch in $Branches) {
     if ($CheckHealth) {
         $HealthResult = Test-UrlHealth -Url $ExpectedUrl
         Write-Host $HealthResult.Status -ForegroundColor $HealthResult.Color
-    } else {
+    }
+    else {
         Write-Host ""
     }
 }

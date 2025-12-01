@@ -1,0 +1,431 @@
+<!-- Debug Sidebar HTML (External Template) -->
+<div class="debug-sidebar collapsed" id="debug-sidebar" data-side="right">
+    <div class="debug-header">
+        <div class="debug-title">
+            <i class="fas fa-bug"></i>
+            <span>Debug Console</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="debug-expand-btn" onclick="DebugSidebar.toggleExpand()">
+                <i class="fas fa-expand-alt"></i>
+                <span id="debug-expand-text">Expand</span>
+            </button>
+            <button class="debug-close-btn" onclick="DebugSidebar.toggleSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="debug-tabs">
+        <button class="debug-tab active" data-tab="logs" onclick="DebugSidebar.switchTab('logs')">
+            <i class="fas fa-file-alt"></i>
+            <span>Console Logs</span>
+        </button>
+        <button class="debug-tab" data-tab="threads" onclick="DebugSidebar.switchTab('threads')">
+            <i class="fas fa-comments"></i>
+            <span>Conversation</span>
+        </button>
+        <button class="debug-tab" data-tab="htmltree" onclick="DebugSidebar.switchTab('htmltree')">
+            <i class="fas fa-sitemap"></i>
+            <span>HTML Tree</span>
+        </button>
+        <button class="debug-tab" data-tab="dbstructure" onclick="DebugSidebar.switchTab('dbstructure')">
+            <i class="fas fa-database"></i>
+            <span>DB Structure</span>
+        </button>
+        <button class="debug-tab" data-tab="parsing" onclick="DebugSidebar.switchTab('parsing')">
+            <i class="fas fa-code"></i>
+            <span>Parsing Test</span>
+        </button>
+        <button class="debug-tab" data-tab="consolelogs" onclick="DebugSidebar.switchTab('consolelogs')">
+            <i class="fas fa-terminal"></i>
+            <span>Console Logs</span>
+        </button>
+        <button class="debug-tab" data-tab="autosave" onclick="DebugSidebar.switchTab('autosave')">
+            <i class="fas fa-clock"></i>
+            <span>Auto-Save</span>
+        </button>
+        <button class="debug-tab" data-tab="validation" onclick="DebugSidebar.switchTab('validation')">
+            <i class="fas fa-check-circle"></i>
+            <span>Validation</span>
+        </button>
+        <button class="debug-tab" data-tab="poolmonitor" onclick="DebugSidebar.switchTab('poolmonitor')">
+            <i class="fas fa-database"></i>
+            <span>Pool Monitor</span>
+        </button>
+        <button class="debug-tab" data-tab="cssextract" onclick="DebugSidebar.switchTab('cssextract')">
+            <i class="fas fa-palette"></i>
+            <span>CSS Extract</span>
+        </button>
+        <button class="debug-tab" data-tab="modulestatus" onclick="DebugSidebar.switchTab('modulestatus')">
+            <i class="fas fa-cube"></i>
+            <span>Module Status</span>
+        </button>
+    </div>
+
+    <!-- Content Wrapper -->
+    <div class="debug-sidebar-content">
+        <!-- Log Extractor Section -->
+        <div class="debug-section active" data-section="logs">
+            <div class="debug-section-header">
+                <h3>Real-Time Console Logs</h3>
+                <p>Live stream of filtered console operations</p>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="debug-filter-group">
+                <label class="debug-checkbox-label">
+                    <input type="checkbox" checked
+                        onchange="DebugModule.filters.threadSave = this.checked; DebugSidebar.renderLogs()">
+                    <span>Thread Save Operations</span>
+                </label>
+                <label class="debug-checkbox-label">
+                    <input type="checkbox" checked
+                        onchange="DebugModule.filters.threadLoad = this.checked; DebugSidebar.renderLogs()">
+                    <span>Thread Load Operations</span>
+                </label>
+                <label class="debug-checkbox-label">
+                    <input type="checkbox" checked
+                        onchange="DebugModule.filters.messageSave = this.checked; DebugSidebar.renderLogs()">
+                    <span>Message Save Operations</span>
+                </label>
+                <label class="debug-checkbox-label">
+                    <input type="checkbox" checked
+                        onchange="DebugModule.filters.apiCalls = this.checked; DebugSidebar.renderLogs()">
+                    <span>API Requests/Responses</span>
+                </label>
+                <label class="debug-checkbox-label">
+                    <input type="checkbox" checked
+                        onchange="DebugModule.filters.errors = this.checked; DebugSidebar.renderLogs()">
+                    <span>Errors and Warnings</span>
+                </label>
+                <label class="debug-checkbox-label">
+                    <input type="checkbox" id="debug-truncate-results" checked
+                        onchange="DebugModule.filters.truncateResults = this.checked; DebugSidebar.renderLogs()">
+                    <span>Truncate Long Tool Results</span>
+                </label>
+            </div>
+
+            <!-- Stats -->
+            <div class="debug-stats-grid" style="margin-bottom: 16px;">
+                <div class="debug-stat-card">
+                    <div class="debug-stat-label">Total Logs</div>
+                    <div class="debug-stat-value" id="debug-total-logs">0</div>
+                </div>
+                <div class="debug-stat-card">
+                    <div class="debug-stat-label">Filtered</div>
+                    <div class="debug-stat-value" id="debug-filtered-logs">0</div>
+                </div>
+            </div>
+
+            <!-- Log Output (Real-time) -->
+            <div class="debug-log-output" id="debug-log-output">
+                Waiting for logs...
+            </div>
+
+            <!-- Optional Export Buttons -->
+            <div class="debug-actions" style="margin-top: 16px;">
+                <button class="debug-btn debug-btn-secondary" onclick="DebugSidebar.copyLogsToClipboard()">
+                    <i class="fas fa-copy"></i>
+                    Copy to Clipboard
+                </button>
+                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportJSON()">
+                    <i class="fas fa-download"></i>
+                    Export JSON
+                </button>
+                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportText()">
+                    <i class="fas fa-file-alt"></i>
+                    Export Text
+                </button>
+                <button class="debug-btn debug-btn-danger" onclick="DebugModule.clearLogs(); DebugSidebar.renderLogs()">
+                    <i class="fas fa-trash"></i>
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Combined Conversation Analysis Section -->
+        <div class="debug-section" data-section="threads">
+            <div class="debug-section-header">
+                <h3>Conversation Analysis</h3>
+                <p>Real-time thread structure and message bubbles</p>
+            </div>
+
+            <!-- Combined Content Container (Real-time) -->
+            <div id="debug-conversation-content" style="flex: 1; overflow-y: auto;">
+                <!-- Populated by DebugSidebar.renderConversation() -->
+            </div>
+
+            <!-- Optional Export Buttons -->
+            <div class="debug-actions" style="margin-top: 16px;">
+                <button class="debug-btn debug-btn-secondary" onclick="DebugSidebar.copyConversationToClipboard()">
+                    <i class="fas fa-copy"></i>
+                    Copy to Clipboard
+                </button>
+                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportThreadStructure()">
+                    <i class="fas fa-download"></i>
+                    Export Thread Structure
+                </button>
+                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportConsoleLogsJSON()">
+                    <i class="fas fa-download"></i>
+                    Export Console Logs
+                </button>
+                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportHTMLTree()">
+                    <i class="fas fa-download"></i>
+                    Export HTML Tree
+                </button>
+            </div>
+        </div>
+
+        <!-- HTML Tree Section -->
+        <div class="debug-section" data-section="htmltree">
+            <div class="debug-section-header">
+                <h3>HTML Tree Inspector</h3>
+                <p>Real-time DOM structure and visibility analysis</p>
+            </div>
+
+            <!-- HTML Tree Output -->
+            <div class="debug-log-output" id="debug-htmltree-output" style="flex: 1; overflow-y: auto;">
+                Loading HTML tree...
+            </div>
+
+            <!-- Optional Export Buttons -->
+            <div class="debug-actions" style="margin-top: 16px;">
+                <button class="debug-btn debug-btn-secondary" onclick="DebugSidebar.copyHTMLTreeToClipboard()">
+                    <i class="fas fa-copy"></i>
+                    Copy to Clipboard
+                </button>
+                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportHTMLTree()">
+                    <i class="fas fa-download"></i>
+                    Export HTML Tree
+                </button>
+            </div>
+        </div>
+
+        <!-- DB STRUCTURE TEST -->
+        <div class="debug-section" data-section="dbstructure">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-database"></i> Database Structure Test</h3>
+                <button class="debug-export-btn" onclick="DebugSidebar.copyDBStructureToClipboard()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                    Check if message content is stored as JSON string or parsed object
+                </p>
+                <div id="debug-dbstructure-output" class="debug-log-output">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <!-- MESSAGE PARSING TEST -->
+        <div class="debug-section" data-section="parsing">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-code"></i> Message Content Parsing Test</h3>
+                <button class="debug-export-btn" onclick="DebugSidebar.copyParsingToClipboard()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                    Test JSON.parse() on database message content
+                </p>
+                <div id="debug-parsing-output" class="debug-log-output">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <!-- CONSOLE LOGS FILTERED -->
+        <div class="debug-section" data-section="consolelogs">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-terminal"></i> Filtered Console Logs</h3>
+                <button class="debug-export-btn" onclick="DebugSidebar.copyConsoleLogsToClipboard()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                    Thread-related logs: save, load, render, interactions
+                </p>
+                <div id="debug-consolelogs-output" class="debug-log-output">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <!-- AUTO-SAVE TIMING TEST -->
+        <div class="debug-section" data-section="autosave">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-clock"></i> Auto-Save Timing Test</h3>
+                <button class="debug-export-btn" onclick="DebugSidebar.copyAutoSaveToClipboard()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                    Track auto-save intervals and verify 60s timing
+                </p>
+                <div id="debug-autosave-output" class="debug-log-output">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <!-- VALIDATION STATUS TEST -->
+        <div class="debug-section" data-section="validation">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-check-circle"></i> Conversation Validation Test</h3>
+                <button class="debug-export-btn" onclick="DebugSidebar.copyValidationToClipboard()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                    Check tool_use/tool_result pairing and message structure
+                </p>
+                <div id="debug-validation-output" class="debug-log-output">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <div class="debug-section" data-section="poolmonitor">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-database"></i> Connection Pool Monitor</h3>
+                <button class="debug-export-btn" onclick="window.open('/api/pool/dashboard', '_blank')">
+                    <i class="fas fa-external-link-alt"></i> Full Dashboard
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                    Real-time database connection pool statistics and health monitoring
+                </p>
+                <div id="debug-poolmonitor-output" class="debug-log-output">
+                    Loading pool stats...
+                </div>
+            </div>
+        </div>
+
+        <!-- CSS Extract Section -->
+        <div class="debug-section" data-section="cssextract">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-palette"></i> CSS Extractor</h3>
+                <button class="debug-export-btn" onclick="CSSExtractor.exportCSS()">
+                    <i class="fas fa-download"></i> Export CSS
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                    Extract computed CSS styles from rendered elements. Select elements below to see their styles.
+                </p>
+
+                <!-- Controls Row 1 -->
+                <div style="margin-bottom: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="debug-btn debug-btn-primary" onclick="CSSExtractor.startInspector()">
+                        <i class="fas fa-crosshairs"></i> Enable Inspector
+                    </button>
+                    <button class="debug-btn debug-btn-primary" onclick="CSSExtractor.rescanDOM()">
+                        <i class="fas fa-sync"></i> Rescan DOM
+                    </button>
+                    <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.selectAllVisible()">
+                        <i class="fas fa-check-square"></i> Select All Visible
+                    </button>
+                    <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.deselectAll()">
+                        <i class="fas fa-square"></i> Deselect All
+                    </button>
+                    <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.copyToClipboard()">
+                        <i class="fas fa-copy"></i> Copy CSS
+                    </button>
+                    <button class="debug-btn debug-btn-danger" onclick="CSSExtractor.clearSelection()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+
+                <!-- Controls Row 2: Dynamic Elements Monitoring -->
+                <div
+                    style="margin-bottom: 16px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <i class="fas fa-magic" style="color: #3B82F6;"></i>
+                        <span style="font-weight: bold; color: var(--text-primary);">Dynamic Elements Monitor</span>
+                        <span style="color: var(--text-secondary); font-size: 11px;">Track script-generated
+                            elements</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.startDynamicMonitoring()">
+                            <i class="fas fa-eye"></i> Monitor Dynamic Elements
+                        </button>
+                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.selectAllDynamic()">
+                            <i class="fas fa-plus-square"></i> Select All Dynamic (<span
+                                id="dynamic-elements-count">0</span>)
+                        </button>
+                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.clearDynamicLog()">
+                            <i class="fas fa-eraser"></i> Clear Log
+                        </button>
+                        <span style="color: var(--text-secondary); font-size: 10px; margin-left: auto;">
+                            Start monitoring, then trigger UI actions (send message, open modal, etc.)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Two-column layout -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: calc(100vh - 400px);">
+                    <!-- Left: HTML Tree with checkboxes -->
+                    <div
+                        style="display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+                        <div
+                            style="background: var(--surface-secondary); padding: 8px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-primary);">
+                            <i class="fas fa-sitemap"></i> HTML Elements
+                        </div>
+                        <div id="css-element-tree"
+                            style="flex: 1; overflow-y: auto; padding: 8px; background: var(--surface-primary); font-family: 'Courier New', monospace; font-size: 11px;">
+                            <div style="color: #888; padding: 20px; text-align: center;">
+                                <div style="margin-bottom: 12px;"><i class="fas fa-info-circle"
+                                        style="font-size: 24px; color: #3B82F6;"></i></div>
+                                <div style="margin-bottom: 8px; font-weight: bold;">CSS Extractor Ready</div>
+                                <div style="font-size: 10px; line-height: 1.6;">
+                                    1. Click "Rescan DOM" to load current page structure<br>
+                                    2. Or use "Enable Inspector" to click elements directly<br>
+                                    3. Select elements to extract their CSS
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Extracted CSS -->
+                    <div
+                        style="display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+                        <div
+                            style="background: var(--surface-secondary); padding: 8px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-primary);">
+                            <i class="fas fa-code"></i> Computed CSS (<span id="css-selected-count">0</span>
+                            elements)
+                        </div>
+                        <div id="css-extracted-output"
+                            style="flex: 1; overflow-y: auto; padding: 12px; background: var(--surface-primary); font-family: 'Courier New', monospace; font-size: 11px; white-space: pre-wrap;">
+                            /* Select elements to see their CSS here */
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module Status Section -->
+        <div class="debug-section" data-section="modulestatus">
+            <div class="debug-section-header">
+                <h3><i class="fas fa-cube"></i> Module System Status</h3>
+                <button class="debug-btn debug-btn-primary" onclick="ModuleStatusDebug.forceLoadModules()">
+                    <i class="fas fa-sync"></i> Force Load Modules
+                </button>
+            </div>
+            <div class="debug-section-content">
+                <div id="module-status-output" style="font-family: monospace; font-size: 12px; line-height: 1.6;">
+                    Loading module status...
+                </div>
+            </div>
+        </div>
+
+    </div><!-- End debug-sidebar-content -->
+</div><!-- End debug-sidebar -->

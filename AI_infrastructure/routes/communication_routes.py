@@ -47,7 +47,7 @@ from auth.user_auth import require_auth
 
 from google_workspace.gmail import (
     gmail_list_messages, 
-    gmail_get_message, 
+    gmail_get_message,  # Used to fetch full message details (already imported)
     gmail_send_email,
     gmail_mark_as_read,
     gmail_delete_message,
@@ -204,23 +204,42 @@ def list_emails():
                 _injected_credentials=True
             )
             
-            if gmail_result.get('success'):
+            # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
+            # NOT {'success': True, ...} - check for 'messages' key instead
+            if 'messages' in gmail_result:
                 gmail_count = len(gmail_result.get('messages', []))
                 print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message(s)")
-                for msg in gmail_result.get('messages', []):
-                    emails.append({
-                        'id': f"gmail_{msg['id']}",
-                        'provider': 'gmail',
-                        'from': msg.get('from', 'Unknown'),
-                        'to': msg.get('to', ''),
-                        'subject': msg.get('subject', 'No Subject'),
-                        'date': msg.get('date', ''),
-                        'is_read': 'UNREAD' not in msg.get('labelIds', []),
-                        'snippet': msg.get('snippet', ''),
-                        'has_attachments': len(msg.get('attachments', [])) > 0
-                    })
+                
+                # Get full message details for each message
+                for msg_summary in gmail_result.get('messages', []):
+                    # msg_summary only has 'id' and 'threadId' - need to fetch full details
+                    try:
+                        msg = gmail_get_message(
+                            message_id=msg_summary['id'],
+                            format='metadata',
+                            _user_id=user_id,
+                            _injected_credentials=True
+                        )
+                        
+                        # Parse message headers
+                        headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
+                        
+                        emails.append({
+                            'id': f"gmail_{msg['id']}",
+                            'provider': 'gmail',
+                            'from': headers.get('from', 'Unknown'),
+                            'to': headers.get('to', ''),
+                            'subject': headers.get('subject', 'No Subject'),
+                            'date': headers.get('date', ''),
+                            'is_read': 'UNREAD' not in msg.get('labelIds', []),
+                            'snippet': msg.get('snippet', ''),
+                            'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', []))
+                        })
+                    except Exception as msg_err:
+                        print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
+                        continue
             else:
-                print(f"[Communication Hub] ⚠️  Gmail returned no messages or error: {gmail_result.get('error', 'Unknown')}")
+                print(f"[Communication Hub] ⚠️  Gmail returned unexpected format: {list(gmail_result.keys())}")
         except Exception as e:
             print(f"[Communication Hub] ❌ Gmail error: {e}")
             import traceback
@@ -282,13 +301,13 @@ def list_emails():
 @require_auth
 def get_email(email_id):
     """
-    Get full email content
+    Get full email content with body parsing
     
     Args:
         email_id: Email ID in format 'provider_id' (e.g., 'gmail_12345')
     
     Returns:
-        JSON with full email content
+        JSON with full email content including body_text and body_html
     """
     user_data = getattr(request, 'user', None)
     if user_data:
@@ -301,29 +320,73 @@ def get_email(email_id):
         provider, message_id = email_id.split('_', 1)
         
         if provider == 'gmail':
-            result = gmail_get_message(
+            # Fetch full message with format='full' to get body content
+            msg = gmail_get_message(
                 message_id=message_id,
+                format='full',
                 _user_id=user_id,
                 _injected_credentials=True
             )
             
-            if result.get('success'):
-                email_data = result.get('message', {})
-                return jsonify({
-                    'success': True,
-                    'email': {
-                        'id': email_id,
-                        'provider': 'gmail',
-                        'from': email_data.get('from', 'Unknown'),
-                        'to': email_data.get('to', ''),
-                        'subject': email_data.get('subject', 'No Subject'),
-                        'date': email_data.get('date', ''),
-                        'body_text': email_data.get('body_text', ''),
-                        'body_html': email_data.get('body_html', ''),
-                        'snippet': email_data.get('snippet', ''),
-                        'attachments': email_data.get('attachments', [])
-                    }
-                })
+            # Parse headers
+            headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
+            
+            # Parse body content
+            import base64
+            body_text = ''
+            body_html = ''
+            
+            def parse_parts(parts):
+                """Recursively parse MIME parts"""
+                text = ''
+                html = ''
+                for part in parts:
+                    mime_type = part.get('mimeType', '')
+                    if mime_type == 'text/plain':
+                        data = part.get('body', {}).get('data', '')
+                        if data:
+                            text = base64.urlsafe_b64decode(data).decode('utf-8', errors='ignore')
+                    elif mime_type == 'text/html':
+                        data = part.get('body', {}).get('data', '')
+                        if data:
+                            html = base64.urlsafe_b64decode(data).decode('utf-8', errors='ignore')
+                    elif 'parts' in part:
+                        # Multipart message - recurse
+                        sub_text, sub_html = parse_parts(part['parts'])
+                        text = text or sub_text
+                        html = html or sub_html
+                return text, html
+            
+            # Check if single part or multipart
+            payload = msg.get('payload', {})
+            if 'parts' in payload:
+                body_text, body_html = parse_parts(payload['parts'])
+            else:
+                # Single part message
+                mime_type = payload.get('mimeType', '')
+                data = payload.get('body', {}).get('data', '')
+                if data:
+                    decoded = base64.urlsafe_b64decode(data).decode('utf-8', errors='ignore')
+                    if mime_type == 'text/html':
+                        body_html = decoded
+                    else:
+                        body_text = decoded
+            
+            return jsonify({
+                'success': True,
+                'email': {
+                    'id': email_id,
+                    'provider': 'gmail',
+                    'from': headers.get('from', 'Unknown'),
+                    'to': headers.get('to', ''),
+                    'subject': headers.get('subject', 'No Subject'),
+                    'date': headers.get('date', ''),
+                    'body_text': body_text,
+                    'body_html': body_html,
+                    'snippet': msg.get('snippet', ''),
+                    'attachments': []
+                }
+            })
         
         elif provider == 'outlook' and OUTLOOK_AVAILABLE:
             result = microsoft_outlook_get_message(
@@ -337,6 +400,11 @@ def get_email(email_id):
                 from_addr = email_data.get('from', {})
                 from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown') if isinstance(from_addr, dict) else str(from_addr)
                 
+                # Outlook body content
+                body = email_data.get('body', {})
+                content = body.get('content', '')
+                content_type = body.get('contentType', 'text')
+                
                 return jsonify({
                     'success': True,
                     'email': {
@@ -346,8 +414,8 @@ def get_email(email_id):
                         'to': email_data.get('toRecipients', [{}])[0].get('emailAddress', {}).get('address', '') if email_data.get('toRecipients') else '',
                         'subject': email_data.get('subject', 'No Subject'),
                         'date': email_data.get('receivedDateTime', ''),
-                        'body_text': email_data.get('body', {}).get('content', ''),
-                        'body_html': email_data.get('body', {}).get('content', ''),
+                        'body_text': content if content_type == 'text' else '',
+                        'body_html': content if content_type == 'html' else '',
                         'snippet': email_data.get('bodyPreview', ''),
                         'attachments': email_data.get('attachments', [])
                     }
@@ -360,6 +428,8 @@ def get_email(email_id):
     
     except Exception as e:
         print(f"[Communication Hub] Error fetching email: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -442,6 +512,130 @@ def send_email():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@communication_bp.route('/emails/<email_id>/markdown', methods=['GET'])
+@require_auth
+def get_email_as_markdown(email_id):
+    """
+    Get email formatted as compact markdown for AI consumption
+    
+    Returns:
+        {
+            'markdown': 'formatted email content',
+            'metadata': {...}
+        }
+    """
+    user_data = getattr(request, 'user', None)
+    if user_data:
+        user_id = user_data.get('user_id')
+    else:
+        user_id = request.args.get('user_id', 1, type=int)
+    
+    try:
+        # Get full email content
+        provider, message_id = email_id.split('_', 1)
+        
+        if provider == 'gmail':
+            email_data = gmail_get_message(
+                message_id=message_id,
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+        elif provider == 'outlook':
+            email_data = outlook_get_message(
+                message_id=message_id,
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+        else:
+            return jsonify({'error': 'Unsupported provider'}), 400
+        
+        # Format as markdown
+        markdown = format_email_as_markdown(email_data)
+        
+        return jsonify({
+            'success': True,
+            'markdown': markdown,
+            'metadata': {
+                'email_id': email_id,
+                'subject': email_data.get('subject'),
+                'from': email_data.get('from'),
+                'date': email_data.get('date'),
+                'provider': provider
+            }
+        })
+        
+    except Exception as e:
+        print(f"[Communication Hub] Error formatting email as markdown: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+def format_email_as_markdown(email_data):
+    """
+    Format email data as compact markdown for AI consumption
+    
+    Args:
+        email_data: Dictionary with email fields
+    
+    Returns:
+        Markdown-formatted string
+    """
+    import re
+    
+    markdown = "# Email Details\n\n"
+    
+    markdown += f"**From:** {email_data.get('from', 'N/A')}\n"
+    markdown += f"**To:** {email_data.get('to', 'N/A')}\n"
+    
+    if email_data.get('cc'):
+        markdown += f"**CC:** {email_data.get('cc')}\n"
+    
+    markdown += f"**Subject:** {email_data.get('subject', 'No Subject')}\n"
+    markdown += f"**Date:** {email_data.get('date', 'N/A')}\n"
+    markdown += f"**Account:** {email_data.get('provider', 'N/A')}\n"
+    
+    # Attachments (listed but not included)
+    attachments = email_data.get('attachments', [])
+    if attachments and len(attachments) > 0:
+        markdown += f"\n**Attachments:** ({len(attachments)} files)\n"
+        for att in attachments:
+            filename = att.get('filename', att.get('name', 'Unnamed'))
+            mime_type = att.get('mimeType', att.get('contentType', 'unknown'))
+            markdown += f"  - {filename} ({mime_type})\n"
+        markdown += "\n*Note: Attachment contents not included in context.*\n"
+    
+    markdown += "\n---\n\n"
+    
+    # Email body
+    body_text = email_data.get('body_text', '')
+    body_html = email_data.get('body_html', '')
+    
+    if body_text:
+        markdown += "## Email Content\n\n"
+        markdown += body_text + "\n"
+    elif body_html:
+        # Strip HTML tags
+        text_content = re.sub(r'<style[^>]*>.*?</style>', '', body_html, flags=re.DOTALL)
+        text_content = re.sub(r'<script[^>]*>.*?</script>', '', text_content, flags=re.DOTALL)
+        text_content = re.sub(r'<[^>]+>', ' ', text_content)
+        text_content = text_content.replace('&nbsp;', ' ')
+        text_content = text_content.replace('&amp;', '&')
+        text_content = text_content.replace('&lt;', '<')
+        text_content = text_content.replace('&gt;', '>')
+        text_content = text_content.replace('&quot;', '"')
+        text_content = text_content.replace('&#39;', "'")
+        text_content = re.sub(r'\s+', ' ', text_content).strip()
+        
+        markdown += "## Email Content\n\n"
+        markdown += text_content + "\n"
+    else:
+        markdown += "## Email Content\n\n*No content available*\n"
+    
+    return markdown
 
 
 @communication_bp.route('/emails/<email_id>/read', methods=['POST'])
@@ -628,6 +822,125 @@ def delete_email(email_id):
 
 
 # Health check endpoint
+@communication_bp.route('/threads/<thread_slug>/emails', methods=['GET'])
+def get_thread_emails(thread_slug):
+    """
+    Get all emails associated with a thread
+    
+    Query Params:
+    - user_id: User ID (required)
+    
+    Returns:
+    - List of email objects in the thread
+    """
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id is required'}), 400
+        
+        print(f"[Communication Hub] Fetching emails for thread: {thread_slug}, user: {user_id}")
+        
+        # Query thread-assignments table for all emails in this thread
+        from shared.database_utils import get_database_connection
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Get all email_thread_ids for this thread_slug
+        cursor.execute("""
+            SELECT email_thread_id, email_subject, email_participants, created_at
+            FROM sessions.thread_assignments
+            WHERE thread_slug = %s AND user_id = %s
+            ORDER BY created_at ASC
+        """, (thread_slug, user_id))
+        
+        assignments = cursor.fetchall()
+        conn.close()
+        
+        if not assignments:
+            return jsonify({
+                'success': True,
+                'emails': [],
+                'count': 0,
+                'message': 'No emails found in thread'
+            })
+        
+        # Fetch full email content for each email_id
+        emails = []
+        for assignment in assignments:
+            email_id, subject, participants, created_at = assignment
+            
+            try:
+                # Fetch full email (reuse existing logic)
+                # Extract provider from email_id format (gmail_xxx or outlook_xxx)
+                if email_id.startswith('gmail_'):
+                    provider = 'gmail'
+                    actual_id = email_id.replace('gmail_', '')
+                    
+                    # Get Google credentials
+                    google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
+                    if google_creds:
+                        # Fetch email from Gmail
+                        email_result = gmail_get_message(
+                            message_id=actual_id,
+                            _user_id=user_id,
+                            _injected_credentials=True,
+                            access_token=google_creds.get('access_token'),
+                            refresh_token=google_creds.get('refresh_token'),
+                            token_uri=google_creds.get('token_uri')
+                        )
+                        
+                        if email_result.get('success'):
+                            email_data = email_result.get('message', {})
+                            email_data['id'] = email_id
+                            email_data['provider'] = 'gmail'
+                            emails.append(email_data)
+                
+                elif email_id.startswith('outlook_'):
+                    provider = 'outlook'
+                    actual_id = email_id.replace('outlook_', '')
+                    
+                    # Get Microsoft credentials
+                    microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
+                    if microsoft_creds and OUTLOOK_AVAILABLE:
+                        # Fetch email from Outlook
+                        from Microsoft_365_Connection.microsoft_outlook_tools import microsoft_outlook_get_message
+                        
+                        email_result = microsoft_outlook_get_message(
+                            message_id=actual_id,
+                            _user_id=user_id,
+                            _injected_credentials=True,
+                            access_token=microsoft_creds.get('access_token')
+                        )
+                        
+                        if email_result.get('success'):
+                            email_data = email_result.get('message', {})
+                            email_data['id'] = email_id
+                            email_data['provider'] = 'outlook'
+                            emails.append(email_data)
+            
+            except Exception as email_error:
+                print(f"[Communication Hub] Error fetching email {email_id}: {email_error}")
+                # Continue with other emails
+                continue
+        
+        return jsonify({
+            'success': True,
+            'emails': emails,
+            'count': len(emails),
+            'thread_slug': thread_slug
+        })
+    
+    except Exception as e:
+        print(f"[Communication Hub] Error fetching thread emails: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @communication_bp.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication Hub Live Test - Real Emails</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .test-section h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status.pending {
+            background: #ffd700;
+            color: #333;
+        }
+
+        .status.success {
+            background: #4CAF50;
+            color: #fff;
+        }
+
+        .status.error {
+            background: #f44336;
+            color: #fff;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .email-list {
+            margin-top: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .email-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .email-item.outlook {
+            border-left-color: #0078d4;
+        }
+
+        .email-from {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .email-subject {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .email-preview {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .email-date {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        .provider-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .provider-badge.gmail {
+            background: #4CAF50;
+        }
+
+        .provider-badge.outlook {
+            background: #0078d4;
+        }
+
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+        }
+
+        .log-entry.info {
+            color: #90caf9;
+        }
+
+        .log-entry.success {
+            color: #4CAF50;
+        }
+
+        .log-entry.error {
+            color: #f44336;
+        }
+
+        .log-entry.warning {
+            color: #ffd700;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Communication Hub Live Test</h1>
+            <p>Fetching Real Emails with Credential Injector</p>
+        </div>
+
+        <div class="test-section">
+            <h2>⚙️ Configuration <span id="configStatus" class="status pending">Checking...</span></h2>
+            <div id="configInfo"></div>
+            <button onclick="testBackend()" id="testBackendBtn">Test Backend Connection</button>
+        </div>
+
+        <div class="test-section">
+            <h2>👤 Available Accounts <span id="accountsStatus" class="status pending">Not Tested</span></h2>
+            <div id="accountsInfo"></div>
+            <button onclick="fetchAccounts()" id="fetchAccountsBtn">Fetch Connected Accounts</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📬 Emails <span id="emailsStatus" class="status pending">Not Loaded</span></h2>
+            <div id="emailsControls">
+                <label>
+                    User ID: <input type="number" id="userIdInput" value="14"
+                        style="padding: 5px; border-radius: 5px; border: none; width: 80px;">
+                </label>
+                <button onclick="fetchEmails()" id="fetchEmailsBtn" style="margin-left: 10px;">Load Emails</button>
+            </div>
+            <div id="emailsList" class="email-list"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Debug Log</h2>
+            <div id="debugLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:5001/api/communication-hub';
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('debugLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        async function testBackend() {
+            const btn = document.getElementById('testBackendBtn');
+            const status = document.getElementById('configStatus');
+            const info = document.getElementById('configInfo');
+
+            btn.disabled = true;
+            status.textContent = 'Testing...';
+            status.className = 'status pending';
+            log('Testing backend connection...', 'info');
+
+            try {
+                const response = await fetch(BACKEND_URL);
+
+                if (response.status === 401) {
+                    status.textContent = 'Backend OK (Auth Required)';
+                    status.className = 'status success';
+                    info.innerHTML = `
+                        <p style="margin-top: 10px;">✅ Backend is running on port 5001</p>
+                        <p>🔒 Authentication required (expected)</p>
+                        <p>📡 Endpoint: ${BACKEND_URL}</p>
+                    `;
+                    log('Backend responding correctly (401 auth required)', 'success');
+                } else {
+                    status.textContent = 'Unexpected Response';
+                    status.className = 'status warning';
+                    info.innerHTML = `<p>Status: ${response.status}</p>`;
+                    log(`Backend returned status ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                status.textContent = 'Connection Failed';
+                status.className = 'status error';
+                info.innerHTML = `<p style="color: #f44336;">❌ ${error.message}</p>`;
+                log(`Backend connection failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function fetchAccounts() {
+            const btn = document.getElementById('fetchAccountsBtn');
+            const status = document.getElementById('accountsStatus');
+            const info = document.getElementById('accountsInfo');
+            const userId = document.getElementById('userIdInput').value;
+
+            btn.disabled = true;
+            status.textContent = 'Loading...';
+            status.className = 'status pending';
+            log(`Fetching accounts for user ${userId}...`, 'info');
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/accounts?user_id=${userId}`);
+
+                if (response.status === 401) {
+                    status.textContent = 'Auth Required';
+                    status.className = 'status error';
+                    info.innerHTML = '<p style="color: #ffd700;">⚠️ Need JWT token for authentication</p>';
+                    log('Authentication required - JWT token needed', 'warning');
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.accounts && data.accounts.length > 0) {
+                    status.textContent = `${data.accounts.length} Accounts`;
+                    status.className = 'status success';
+
+                    const accountsHtml = data.accounts.map(acc => `
+                        <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;">
+                            <span class="provider-badge ${acc.provider}">${acc.provider.toUpperCase()}</span>
+                            <strong>${acc.email}</strong>
+                            <br><small>Status: ${acc.status || 'active'}</small>
+                        </div>
+                    `).join('');
+
+                    info.innerHTML = accountsHtml;
+                    log(`Found ${data.accounts.length} connected accounts`, 'success');
+                } else {
+                    status.textContent = 'No Accounts';
+                    status.className = 'status warning';
+                    info.innerHTML = '<p>No email accounts connected for this user</p>';
+                    log('No connected accounts found', 'warning');
+                }
+            } catch (error) {
+                status.textContent = 'Error';
+                status.className = 'status error';
+                info.innerHTML = `<p style="color: #f44336;">❌ ${error.message}</p>`;
+                log(`Failed to fetch accounts: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function fetchEmails() {
+            const btn = document.getElementById('fetchEmailsBtn');
+            const status = document.getElementById('emailsStatus');
+            const list = document.getElementById('emailsList');
+            const userId = document.getElementById('userIdInput').value;
+
+            btn.disabled = true;
+            status.textContent = 'Loading...';
+            status.className = 'status pending';
+            list.innerHTML = '<p>Fetching emails...</p>';
+            log(`Fetching emails for user ${userId}...`, 'info');
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/emails?user_id=${userId}&limit=10`);
+
+                if (response.status === 401) {
+                    status.textContent = 'Auth Required';
+                    status.className = 'status error';
+                    list.innerHTML = '<p style="color: #ffd700;">⚠️ Need JWT token for authentication</p>';
+                    log('Authentication required - JWT token needed', 'warning');
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.emails && data.emails.length > 0) {
+                    status.textContent = `${data.emails.length} Emails`;
+                    status.className = 'status success';
+
+                    const emailsHtml = data.emails.map(email => `
+                        <div class="email-item ${email.provider}">
+                            <div class="email-from">
+                                <span>
+                                    <span class="provider-badge ${email.provider}">${email.provider}</span>
+                                    ${email.from}
+                                </span>
+                                <span class="email-date">${new Date(email.date).toLocaleString()}</span>
+                            </div>
+                            <div class="email-subject">${email.subject}</div>
+                            <div class="email-preview">${email.preview || email.snippet || '(No preview)'}</div>
+                        </div>
+                    `).join('');
+
+                    list.innerHTML = emailsHtml;
+                    log(`Loaded ${data.emails.length} emails successfully`, 'success');
+                } else {
+                    status.textContent = 'No Emails';
+                    status.className = 'status warning';
+                    list.innerHTML = '<p>No emails found</p>';
+                    log('No emails found for this user', 'warning');
+                }
+            } catch (error) {
+                status.textContent = 'Error';
+                status.className = 'status error';
+                list.innerHTML = `<p style="color: #f44336;">❌ ${error.message}</p>`;
+                log(`Failed to fetch emails: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Auto-test backend on load
+        window.addEventListener('load', () => {
+            log('Page loaded, testing backend connection...', 'info');
+            setTimeout(testBackend, 500);
+        });
+    </script>
+</body>
+
+</html>

@@ -123,21 +123,21 @@ def init_db():
     """Initialize database tables if they don't exist (SQLite & PostgreSQL compatible)"""
     from shared.database_utils import is_using_supabase
     
-    conn = None  # CRITICAL FIX: Initialize connection variable
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Detect database type for syntax compatibility
+        # Using Supabase PostgreSQL exclusively - tables already created
+        # Tables created by user_auth.py and microsoft_auth_routes_V2_FIXED.py
         using_postgres = is_using_supabase()
         
-        if using_postgres:
-            # PostgreSQL syntax (handled by Microsoft OAuth route - skip duplicate creation)
-            # Tables already created by microsoft_auth_routes_V2_FIXED.py
-            pass
-        else:
-            # SQLite syntax - create tables for local development
-            sql, params = convert_sql_placeholders('''
+        if not using_postgres:
+            # This should never run - we only use Supabase PostgreSQL
+            raise Exception("SQLite mode not supported - must use Supabase PostgreSQL")
+        
+        # Skip table creation - already handled by other modules
+        if False:  # Disabled SQLite code
+            cursor.execute('''
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE,
@@ -176,9 +176,9 @@ def init_db():
                     metadata TEXT,
                 UNIQUE(user_id, platform),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-        ''')
-        
+                )
+            ''')
+            
             # User sessions table (for JWT token validation)
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS user_sessions (

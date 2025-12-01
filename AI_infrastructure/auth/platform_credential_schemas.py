@@ -262,6 +262,20 @@ class XeroCredentials(PlatformCredentialSchema):
 
 
 # ============================================================================
+# KNOWLEDGE COMMERCE / E-LEARNING
+# ============================================================================
+
+class KajabiCredentials(PlatformCredentialSchema):
+    """Kajabi Knowledge Commerce Platform API credentials"""
+    api_key: str = Field(..., description="Kajabi API key (Bearer token)")
+    
+    # Optional settings
+    site_id: Optional[str] = Field(default=None, description="Kajabi site ID")
+    site_url: Optional[str] = Field(default=None, description="Custom domain URL")
+    webhook_secret: Optional[str] = Field(default=None, description="Webhook signature secret")
+
+
+# ============================================================================
 # PLATFORM REGISTRY
 # ============================================================================
 
@@ -300,6 +314,9 @@ PLATFORM_SCHEMAS: Dict[str, type[PlatformCredentialSchema]] = {
     
     # Accounting
     "xero": XeroCredentials,
+    
+    # Knowledge Commerce / E-Learning
+    "kajabi": KajabiCredentials,
 }
 
 
