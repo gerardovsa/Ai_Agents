@@ -180,6 +180,41 @@ class SchemaManager:
         """,
         
         # ============================================================
+        # TRANSCRIPTION STORAGE
+        # ============================================================
+        "user_transcriptions": """
+            CREATE TABLE IF NOT EXISTS user_transcriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                source_type TEXT DEFAULT 'recording', -- recording | upload
+                transcript_text TEXT,
+                confidence REAL,
+                language TEXT,
+                duration_seconds REAL,
+                word_count INTEGER,
+                model_used TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                metadata TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+        """,
+
+        "transcription_uploads": """
+            CREATE TABLE IF NOT EXISTS transcription_uploads (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                transcription_id INTEGER NOT NULL,
+                filename TEXT,
+                file_size INTEGER,
+                file_type TEXT,
+                mime_type TEXT,
+                original_duration REAL,
+                processing_time_ms INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (transcription_id) REFERENCES user_transcriptions(id) ON DELETE CASCADE
+            )
+        """,
+
+        # ============================================================
         # SCHEMA VERSION TRACKING
         # ============================================================
         "schema_versions": """
@@ -201,6 +236,9 @@ class SchemaManager:
         "idx_sessions_user": "CREATE INDEX IF NOT EXISTS idx_sessions_user ON user_sessions(user_id)",
         "idx_credentials_user": "CREATE INDEX IF NOT EXISTS idx_credentials_user ON user_platform_credentials(user_id)",
         "idx_credentials_platform": "CREATE INDEX IF NOT EXISTS idx_credentials_platform ON user_platform_credentials(platform)",
+        "idx_user_transcriptions_user_id": "CREATE INDEX IF NOT EXISTS idx_user_transcriptions_user_id ON user_transcriptions(user_id)",
+        "idx_user_transcriptions_created_at": "CREATE INDEX IF NOT EXISTS idx_user_transcriptions_created_at ON user_transcriptions(created_at)",
+        "idx_transcription_uploads_transcription_id": "CREATE INDEX IF NOT EXISTS idx_transcription_uploads_transcription_id ON transcription_uploads(transcription_id)"
     }
     
     def __init__(self, db_path: str = "ai_infrastructure.db"):

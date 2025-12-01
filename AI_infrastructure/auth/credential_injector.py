@@ -1005,6 +1005,25 @@ def get_shopify_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
     return get_platform_credentials(user_id, 'shopify')
 
 
+def get_kajabi_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
+    """
+    Get Kajabi API key and secret
+    
+    Returns:
+        {
+            'api_key': 'kajabi_api_key',
+            'api_secret': 'kajabi_api_secret'
+        }
+    """
+    if '_user_id' in kwargs:
+        user_id = kwargs['_user_id']
+    
+    if not user_id:
+        raise Exception("No user_id provided. User must be authenticated to use Kajabi tools.")
+    
+    return get_platform_credentials(user_id, 'kajabi')
+
+
 def get_openai_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
     """
     Get OpenAI API key
@@ -1206,6 +1225,7 @@ __all__ = [
     'get_stripe_credentials',
     'get_twilio_credentials',
     'get_shopify_credentials',
+    'get_kajabi_credentials',
     'get_openai_credentials',
     'get_anthropic_credentials',
     'get_pinecone_credentials',
