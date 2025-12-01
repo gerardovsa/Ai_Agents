@@ -93,11 +93,30 @@ class MicrosoftOutlookTools:
                           attachments: List[Dict] = None, 
                           request_read_receipt: bool = False, **kwargs) -> Dict:
         """
-        TEMPORARILY DISABLED: Send an email via Outlook
+        🛑 PERMANENTLY DISABLED FOR SENDING - DRAFTS ONLY 🛑
         
-        CURRENT BEHAVIOR: Saves email as draft instead of sending
-        This is a temporary measure - the email will be saved to your Outlook Drafts folder
-        for manual review and sending.
+        ⚠️ WARNING: DO NOT REACTIVATE EMAIL SENDING ⚠️
+        This function has been PERMANENTLY disabled from sending emails.
+        Security and compliance requirements mandate manual review of all outgoing emails.
+        
+        CURRENT BEHAVIOR: Saves email as DRAFT ONLY (does NOT send)
+        - Creates draft in user's Outlook Drafts folder
+        - User MUST manually review and send from Outlook application
+        - NO automatic sending functionality
+        
+        Args:
+            to: Recipient email addresses (saved in draft)
+            subject: Email subject (saved in draft)
+            body: Email body content (saved in draft)
+            body_type: Content type (html/text)
+            cc: CC recipients (saved in draft)
+            bcc: BCC recipients (saved in draft)
+            importance: Email priority (saved in draft)
+            attachments: File attachments (saved in draft)
+            request_read_receipt: Read receipt flag (saved in draft)
+        
+        Returns:
+            Dict with success status and draft information
         """
         
         print(f"\n[MICROSOFT OUTLOOK] outlook_send_email called (SAVING AS DRAFT):")

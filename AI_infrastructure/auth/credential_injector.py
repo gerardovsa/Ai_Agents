@@ -65,6 +65,56 @@ from datetime import datetime, timedelta
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+
+def _should_refresh_token(expires_at, buffer_seconds=600):
+    """
+    Check if token should be refreshed proactively (before expiry)
+    
+    This prevents "token expired" errors for users who are inactive but still logged in.
+    Default buffer is 10 minutes - tokens refresh when 10 minutes or less remaining.
+    
+    Args:
+        expires_at: Token expiry datetime (can be string or datetime object)
+        buffer_seconds: Seconds before expiry to trigger refresh (default: 600 = 10 minutes)
+    
+    Returns:
+        bool: True if token should be refreshed now
+    
+    Examples:
+        Token expires at 3:00 PM
+        Current time is 2:51 PM (9 minutes before expiry)
+        Returns: True (refresh now to prevent expiry during user activity)
+    """
+    if not expires_at:
+        return False
+    
+    # Parse expires_at if string
+    if isinstance(expires_at, str):
+        try:
+            # Handle ISO format with/without microseconds and timezone
+            expires_at_str = expires_at.replace('Z', '+00:00').replace(' ', 'T')
+            expires_at = datetime.fromisoformat(expires_at_str)
+        except Exception as e:
+            print(f"⚠️ Could not parse expires_at '{expires_at}': {e}")
+            return False
+    
+    # Add timezone if naive datetime
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
+    # Calculate buffer time (refresh 10 minutes before actual expiry)
+    now = datetime.now(timezone.utc)
+    buffer_time = expires_at - timedelta(seconds=buffer_seconds)
+    
+    # Return True if we're within the buffer window
+    should_refresh = now >= buffer_time
+    
+    if should_refresh:
+        time_until_expiry = (expires_at - now).total_seconds()
+        print(f"⏰ Token expiring in {int(time_until_expiry)} seconds - triggering proactive refresh")
+    
+    return should_refresh
+
 # Import from same directory
 from .user_auth import UserAuthManager
 
@@ -118,12 +168,13 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
         scopes=cred_dict['scopes']
     )
     
-    # ✅ AUTO-REFRESH: Check if token is expired and refresh if needed
-    if credentials.expired and credentials.refresh_token:
-        print(f"🔄 Google OAuth token expired for user {user_id}, refreshing...")
+    # ✅ PROACTIVE AUTO-REFRESH: Refresh 10 minutes before expiry (not after!)
+    # This prevents "token expired" errors for inactive but logged-in users
+    if _should_refresh_token(credentials.expiry, buffer_seconds=600) and credentials.refresh_token:
+        print(f"🔄 Proactively refreshing Google OAuth token for user {user_id}...")
         try:
             credentials.refresh(Request())
-            print(f"✅ Token refreshed successfully")
+            print(f"✅ Token refreshed successfully (user can stay inactive without re-login)")
             
             # ✅ SAVE REFRESHED TOKEN back to database
             _save_refreshed_google_token(user_id, credentials, cred_dict)
@@ -291,14 +342,15 @@ def create_microsoft_service_with_user_credentials(user_id: int, service_type: s
         else:
             expires_at = None
         
-        # Check if expired (add timezone if naive)
+        # ✅ PROACTIVE REFRESH: Check if token should be refreshed (10 min buffer)
+        # This prevents "token expired" errors for inactive but logged-in users
         if expires_at:
             if expires_at.tzinfo is None:
                 expires_at = expires_at.replace(tzinfo=timezone.utc)
             
-            now = datetime.now(timezone.utc)
-            if expires_at <= now:
-                print(f"🔄 Microsoft OAuth token expired for user {user_id}, refreshing...")
+            # Use proactive refresh helper (refreshes 10 minutes before expiry)
+            if _should_refresh_token(expires_at, buffer_seconds=600):
+                print(f"🔄 Proactively refreshing Microsoft OAuth token for user {user_id}...")
                 
                 # Refresh the token
                 refresh_token = cred_dict.get('refresh_token')
@@ -392,8 +444,12 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
     microsoft_tools_prefixes = ['microsoft_', 'outlook_', 'teams_', 'onedrive_', 
                                 'sharepoint_', 'onenote_', 'planner_', 'todo_', 'word_']
     
+    # Determine if this is a Xero accounting tool
+    xero_tools_prefixes = ['xero_']
+    
     is_google_tool = any(tool_name.startswith(prefix) for prefix in google_tools_prefixes)
     is_microsoft_tool = any(tool_name.startswith(prefix) for prefix in microsoft_tools_prefixes)
+    is_xero_tool = any(tool_name.startswith(prefix) for prefix in xero_tools_prefixes)
     
     if is_google_tool:
         print(f"🔑 Injecting Google credentials for user {user_id} into tool: {tool_name}")
@@ -419,10 +475,31 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
         
         try:
             result = tool_function(**tool_params)
-            print(f" Tool {tool_name} executed successfully with user credentials")
+            print(f"✅ Tool {tool_name} executed successfully with user credentials")
             return result
         except Exception as e:
-            print(f" Tool {tool_name} failed: {e}")
+            print(f"❌ Tool {tool_name} failed: {e}")
+            raise
+    
+    elif is_xero_tool:
+        print(f"🔑 Injecting Xero credentials for user {user_id} into tool: {tool_name}")
+        
+        # Xero tools use environment-based credentials from XeroAPIClient
+        # The client reads from .env.master (XERO_PRINT_CLIENT_ID, etc.)
+        # We still pass user_id for audit logging and future user-specific OAuth
+        tool_params['_user_id'] = user_id
+        tool_params['_injected_credentials'] = True
+        
+        # NOTE: Current Xero implementation uses OAuth2 Client Credentials flow
+        # from environment variables. For user-specific OAuth, credentials would
+        # be retrieved from oauth_tokens table and injected here.
+        
+        try:
+            result = tool_function(**tool_params)
+            print(f"✅ Tool {tool_name} executed successfully")
+            return result
+        except Exception as e:
+            print(f"❌ Tool {tool_name} failed: {e}")
             raise
     
     else:

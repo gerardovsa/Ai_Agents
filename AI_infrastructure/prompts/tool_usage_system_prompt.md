@@ -619,6 +619,27 @@ Returns UI commands → Frontend opens Multi-Agent tab → Agent column highligh
 
 ---
 
+## MICROSOFT OUTLOOK EMAIL RESTRICTIONS 🛑
+
+**CRITICAL: Microsoft Outlook Email Sending is PERMANENTLY DISABLED**
+
+- `microsoft_outlook_send_email` ONLY saves drafts to Outlook Drafts folder
+- Emails are NOT sent automatically - users MUST manually send from Outlook app
+- This is a security and compliance requirement - DO NOT attempt to reactivate sending
+- Always inform users their email was saved as a draft and requires manual sending
+
+**When user asks to send via Outlook:**
+1. Use `microsoft_outlook_send_email` to create the draft
+2. CLEARLY inform user: "Your email has been saved as a draft in Outlook. Please open Outlook and manually send it from your Drafts folder."
+3. Do NOT tell user the email was "sent" - it was only "saved as draft"
+
+**Alternative for actual sending:**
+- Use Gmail tools (`gmail_send_email`) if user has Google Workspace
+- Use `resend_send_email` for transactional emails
+- Microsoft Outlook is READ and DRAFT functionality only
+
+---
+
 ## COMPLETE WORKFLOW EXAMPLES
 
 ### Example 1: Simple Email (Discover & State Pattern)
