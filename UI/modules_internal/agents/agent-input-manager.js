@@ -355,25 +355,30 @@ const AgentInput = (function () {
         // Click collapsed bar to expand (CRITICAL: Must work when clicking visible 30px bar)
         handlers[agentId].containerClick = (e) => {
             const state = getState(agentId);
-            
+
             // Debug logging
             console.log(`[AgentInput] Click detected on agent-${agentId}:`, {
                 isExpanded: state.isExpanded,
                 containerHeight: container.offsetHeight,
                 hasExpandedClass: container.classList.contains('expanded'),
                 target: e.target.className,
-                currentTarget: e.currentTarget.className
+                currentTarget: e.currentTarget.className,
+                computedHeight: window.getComputedStyle(container).height
             });
 
             // Only expand if currently collapsed
+            // Check both state and class to ensure consistency
             if (!state.isExpanded && !container.classList.contains('expanded')) {
-                // Simple check: if container doesn't have 'expanded' class, it's collapsed
-                e.stopPropagation(); // Prevent event bubbling
+                e.preventDefault();
+                e.stopPropagation();
                 expand(agentId);
                 console.log(`✅ [AgentInput] Agent-${agentId} expanded via click`);
+            } else {
+                console.log(`[AgentInput] Agent-${agentId} already expanded, ignoring click`);
             }
         };
-        container.addEventListener('click', handlers[agentId].containerClick);
+        // Use capture phase to intercept clicks before they reach child elements
+        container.addEventListener('click', handlers[agentId].containerClick, true);
 
         // Focus textarea to expand
         handlers[agentId].textareaFocus = () => {

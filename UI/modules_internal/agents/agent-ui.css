@@ -642,12 +642,18 @@
     position: relative;
 }
 
+/* Hover state - subtle background */
+.agent-input-container:not(.expanded):hover {
+    background: rgba(88, 166, 255, 0.02);
+}
+
 /* State 4: Expanded */
 .agent-input-container.expanded {
     height: auto;
     padding: 20px;
     cursor: default;
     overflow: visible;
+    background: transparent;
 }
 
 /* Collapsed bar visual */
@@ -724,9 +730,19 @@
     pointer-events: none;
 }
 
+/* Ensure all child elements don't block clicks when collapsed */
+.agent-input-container:not(.expanded) * {
+    pointer-events: none !important;
+}
+
 /* Expanded state - wrapper visible */
 .agent-input-container.expanded .agent-input-wrapper {
     opacity: 1;
+    pointer-events: auto;
+}
+
+/* Re-enable pointer events for interactive elements when expanded */
+.agent-input-container.expanded * {
     pointer-events: auto;
 }
 
