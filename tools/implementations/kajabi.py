@@ -17,18 +17,63 @@ class KajabiTools:
     def __init__(self):
         """Initialize Kajabi API client"""
         self.base_url = "https://api.kajabi.com"
-        self.api_key = None
-        self.site_id = None
+        self.oauth_url = "https://api.kajabi.com/v1/oauth/token"
+        self.access_token = None
+        self.access_token_cache = {}
+    
+    def _get_access_token(self, client_id: str, client_secret: str) -> str:
+        """
+        Get OAuth access token using client credentials flow
+        Kajabi requires OAuth 2.0 client_credentials grant type
+        """
+        # Check cache first (keyed by client_id)
+        if client_id in self.access_token_cache:
+            return self.access_token_cache[client_id]
+        
+        try:
+            response = requests.post(
+                self.oauth_url,
+                data={
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'grant_type': 'client_credentials'
+                },
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
+            response.raise_for_status()
+            
+            token_data = response.json()
+            access_token = token_data.get('access_token')
+            
+            if not access_token:
+                raise KajabiError("No access_token in OAuth response")
+            
+            # Cache the token (expires in 7 days per Kajabi docs)
+            self.access_token_cache[client_id] = access_token
+            return access_token
+            
+        except requests.exceptions.RequestException as e:
+            raise KajabiError(f"OAuth token request failed: {str(e)}")
     
     def _get_headers(self, **kwargs) -> Dict[str, str]:
-        """Get headers for API requests with credential injection"""
-        api_key = kwargs.get('kajabi_api_key') or kwargs.get('api_key')
+        """Get headers for API requests with OAuth credential injection
         
-        if not api_key:
-            raise KajabiError("Kajabi API key not provided")
+        Kajabi uses OAuth 2.0 client_credentials flow:
+        1. Exchange client_id + client_secret for access_token
+        2. Use access_token as Bearer token in API requests
+        """
+        # Get client credentials
+        client_id = kwargs.get('api_key') or kwargs.get('client_id') or kwargs.get('kajabi_api_key')
+        client_secret = kwargs.get('api_secret') or kwargs.get('client_secret') or kwargs.get('kajabi_api_secret')
+        
+        if not client_id or not client_secret:
+            raise KajabiError("Kajabi API requires both client_id (api_key) and client_secret (api_secret)")
+        
+        # Get OAuth access token
+        access_token = self._get_access_token(client_id, client_secret)
         
         return {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
