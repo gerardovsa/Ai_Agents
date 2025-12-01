@@ -1,0 +1,110 @@
+{
+  "platform": "xero_quotes_smart",
+  "description": "Smart Xero Quote Creation - AI-optimized single-call quote workflow with automatic contact lookup, template selection, and intelligent defaults",
+  "tools": [
+    {
+      "name": "xero_create_quote_smart",
+      "description": "🤖 SMART TOOL - AI-optimized quote creation with automatic contact lookup, template selection, and intelligent defaults. Use this for natural language quote requests. Handles the complete workflow in one call: finds customer, selects template, creates quote, and returns ready-to-send result.",
+      "platform": "xero_quotes_smart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs) - Required"
+          },
+          "customer": {
+            "type": "string",
+            "description": "Customer name, email, or contact ID. Smart lookup will find the contact automatically. Examples: 'John Smith', 'john@example.com', 'ABC Company', or exact ContactID GUID. Required."
+          },
+          "items": {
+            "type": "array",
+            "description": "Quote items - can be simple strings or detailed objects. Smart parser handles both formats. Required. Examples: ['Business Cards 1000qty', 'Flyers A5 500qty'] or [{'description': '...', 'quantity': 1, 'price': 150}]",
+            "items": {
+              "anyOf": [
+                {"type": "string"},
+                {
+                  "type": "object",
+                  "properties": {
+                    "description": {"type": "string", "description": "Item description"},
+                    "quantity": {"type": "number", "description": "Quantity (default: 1)"},
+                    "price": {"type": "number", "description": "Unit price"},
+                    "account_code": {"type": "string", "description": "Account code (optional)"}
+                  }
+                }
+              ]
+            }
+          },
+          "template": {
+            "type": "string",
+            "description": "Template/branding to use. Optional - auto-selects appropriate template if not provided. Examples: 'Standard', 'Professional', 'Default', or exact template name"
+          },
+          "title": {
+            "type": "string",
+            "description": "Quote title. Optional - auto-generates if not provided based on items"
+          },
+          "valid_days": {
+            "type": "integer",
+            "description": "Quote validity in days. Optional - defaults to 30 days. Sets expiry_date automatically"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes/summary for quote. Optional"
+          },
+          "terms": {
+            "type": "string",
+            "description": "Terms and conditions. Optional - uses business defaults if not provided"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Your internal reference number. Optional"
+          },
+          "auto_send": {
+            "type": "boolean",
+            "description": "Automatically mark as SENT after creation. Optional - defaults to false (DRAFT)"
+          }
+        },
+        "required": ["business_id", "customer", "items"]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Comprehensive result with created quote details, contact info, PDF URL, and smart recommendations"
+      },
+      "examples": [
+        {
+          "description": "Simple quote from natural language",
+          "parameters": {
+            "business_id": 1,
+            "customer": "ABC Company",
+            "items": ["Business Cards 1000qty $150", "Flyers A5 500qty $95"]
+          }
+        },
+        {
+          "description": "Detailed quote with customer lookup",
+          "parameters": {
+            "business_id": 1,
+            "customer": "john@example.com",
+            "items": [
+              {"description": "Business Cards - 1000qty, 350GSM Satin", "quantity": 1, "price": 150.00},
+              {"description": "Flyers A5 - 500qty, Full Color", "quantity": 1, "price": 95.00}
+            ],
+            "template": "Professional",
+            "title": "Printing Quote",
+            "valid_days": 14,
+            "notes": "Rush order available for additional fee"
+          }
+        },
+        {
+          "description": "Auto-send quote",
+          "parameters": {
+            "business_id": 1,
+            "customer": "Jane Doe",
+            "items": ["Logo Design $500", "Business Card Design $150"],
+            "valid_days": 7,
+            "auto_send": true
+          }
+        }
+      ]
+    }
+  ]
+}
