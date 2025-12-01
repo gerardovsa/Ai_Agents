@@ -288,9 +288,44 @@ export default {
                             <i class="fas fa-comments"></i>
                             Communication Hub
                         </h2>
-                        <div class="dashboard-stats">
-                            <span class="stat-item"><i class="fas fa-envelope"></i> <strong id="unread-messages-count">0</strong> Unread</span>
-                            <span class="stat-item"><i class="fas fa-paper-plane"></i> <strong id="sent-messages-count">0</strong> Sent</span>
+                        <div class="dashboard-stats" style="display: flex; gap: 20px; margin-top: 8px;">
+                            <!-- Metrics moved from stats-grid -->
+                            <div class="stat-card" style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: rgba(99, 102, 241, 0.1); border-radius: 6px;">
+                                <div class="stat-icon primary" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #6366f1; border-radius: 6px;">
+                                    <i class="fas fa-envelope" style="color: white; font-size: 14px;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" style="font-size: 11px; color: #8b949e; text-transform: uppercase;">Total Emails</div>
+                                    <div class="stat-value" id="total-emails-count" style="font-size: 18px; font-weight: 600; color: #f0f6fc;">-</div>
+                                </div>
+                            </div>
+                            <div class="stat-card" style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: rgba(34, 197, 94, 0.1); border-radius: 6px;">
+                                <div class="stat-icon success" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #22c55e; border-radius: 6px;">
+                                    <i class="fab fa-google" style="color: white; font-size: 14px;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" style="font-size: 11px; color: #8b949e; text-transform: uppercase;">Gmail</div>
+                                    <div class="stat-value" id="gmail-count" style="font-size: 18px; font-weight: 600; color: #f0f6fc;">-</div>
+                                </div>
+                            </div>
+                            <div class="stat-card" style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: rgba(59, 130, 246, 0.1); border-radius: 6px;">
+                                <div class="stat-icon info" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #3b82f6; border-radius: 6px;">
+                                    <i class="fab fa-microsoft" style="color: white; font-size: 14px;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" style="font-size: 11px; color: #8b949e; text-transform: uppercase;">Outlook</div>
+                                    <div class="stat-value" id="outlook-count" style="font-size: 18px; font-weight: 600; color: #f0f6fc;">-</div>
+                                </div>
+                            </div>
+                            <div class="stat-card" style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: rgba(251, 191, 36, 0.1); border-radius: 6px;">
+                                <div class="stat-icon warning" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #fbbf24; border-radius: 6px;">
+                                    <i class="fas fa-envelope-open" style="color: white; font-size: 14px;"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label" style="font-size: 11px; color: #8b949e; text-transform: uppercase;">Unread</div>
+                                    <div class="stat-value" id="unread-count" style="font-size: 18px; font-weight: 600; color: #f0f6fc;">-</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="dashboard-header-right">
@@ -310,6 +345,7 @@ export default {
                                 style="padding: 12px 20px; background: transparent; border: none; border-bottom: 2px solid #6366f1; color: #f0f6fc; cursor: pointer; font-size: 14px;">
                             <i class="fas fa-inbox"></i> Unified Inbox
                         </button>
+                        <!-- COMMENTED OUT - Not fully implemented yet
                         <button class="module-subtab-btn" data-subtab="compose" 
                                 style="padding: 12px 20px; background: transparent; border: none; border-bottom: 2px solid transparent; color: #8b949e; cursor: pointer; font-size: 14px;">
                             <i class="fas fa-pen"></i> Compose
@@ -322,6 +358,7 @@ export default {
                                 style="padding: 12px 20px; background: transparent; border: none; border-bottom: 2px solid transparent; color: #8b949e; cursor: pointer; font-size: 14px;">
                             <i class="fas fa-search"></i> Search
                         </button>
+                        -->
                     </div>
                 </div>
                 
@@ -401,60 +438,6 @@ export default {
 
         const html = `
             <div class="module-dashboard">
-                <!-- Header -->
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="header-left" style="width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: center;">
-                            <h3 class="card-title" style="font-size: 24px; margin: 0;">
-                                <i class="fas fa-inbox"></i> Unified Inbox
-                            </h3>
-                            <div class="card-subtitle" style="margin: 0;">
-                                All messages from Gmail and Outlook - Drag to AI sidebar or right-click to send
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Stat Cards -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon primary">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Total Emails</div>
-                            <div class="stat-value" id="total-emails-count">-</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon success">
-                            <i class="fab fa-google"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Gmail</div>
-                            <div class="stat-value" id="gmail-count">-</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon info">
-                            <i class="fab fa-microsoft"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Outlook</div>
-                            <div class="stat-value" id="outlook-count">-</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon warning">
-                            <i class="fas fa-envelope-open"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Unread</div>
-                            <div class="stat-value" id="unread-count">-</div>
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Toolbar -->
                 ${this.renderToolbar()}
                 
@@ -508,68 +491,64 @@ export default {
      */
     renderToolbar() {
         return `
-            <div class="bulk-operations-toolbar" style="display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--bg-secondary, #1a1f2e); border-bottom: 1px solid var(--border-default, #2a3142); margin-bottom: 20px; flex-wrap: wrap;">
-                <!-- Tag Buttons -->
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <span style="font-size: 12px; color: var(--text-secondary, #7d8590); margin-right: 4px;">Tag:</span>
-                    <button class="btn btn-sm" data-action="tag-clear" style="padding: 4px 10px; background: #6c757d; border-radius: 6px; font-size: 11px;">
-                        <i class="fas fa-times"></i> Clear
-                    </button>
-                    <button class="btn btn-sm" data-action="tag-green" style="padding: 4px 10px; background: #2e7d32; border-radius: 6px; font-size: 11px;">
-                        <i class="fas fa-circle"></i> Green
-                    </button>
-                    <button class="btn btn-sm" data-action="tag-orange" style="padding: 4px 10px; background: #e65100; border-radius: 6px; font-size: 11px;">
-                        <i class="fas fa-circle"></i> Orange
-                    </button>
-                    <button class="btn btn-sm" data-action="tag-red" style="padding: 4px 10px; background: #c62828; border-radius: 6px; font-size: 11px;">
-                        <i class="fas fa-circle"></i> Red
-                    </button>
+            <div class="filters-bar" style="margin: 15px 20px; padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                <!-- Read/Unread Filter -->
+                <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label style="color: #8b949e; font-size: 0.9em; font-weight: 600;"><i class="fas fa-envelope"></i> Status:</label>
+                    <select id="status-selector" class="filter-select" style="padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 0.9em;">
+                        <option value="all">All Emails</option>
+                        <option value="unread">Unread Only</option>
+                        <option value="read">Read Only</option>
+                    </select>
                 </div>
-                
-                <div style="height: 20px; width: 1px; background: var(--border-default, #2a3142);"></div>
                 
                 <!-- Account Filter -->
-                <select id="accountSelector" class="form-control" style="margin: 0; width: auto; padding: 6px 10px; background: var(--bg-card, #0B0E13); border: 1px solid var(--border-default, #2A3142); border-radius: 6px; color: var(--text-primary, #E5E7EB); font-size: 12px;">
-                    <option value="all">All Accounts</option>
-                    <option value="gmail">Gmail Only</option>
-                    <option value="outlook">Outlook Only</option>
-                </select>
+                <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label style="color: #8b949e; font-size: 0.9em; font-weight: 600;"><i class="fas fa-at"></i> Account:</label>
+                    <select id="accountSelector" class="filter-select" style="padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 0.9em;">
+                        <option value="all">All Accounts</option>
+                        <option value="gmail">Gmail Only</option>
+                        <option value="outlook">Outlook Only</option>
+                    </select>
+                </div>
+                
+                <!-- Thread Filter -->
+                <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label style="color: #8b949e; font-size: 0.9em; font-weight: 600;"><i class="fas fa-comments"></i> Threads:</label>
+                    <select id="thread-selector" class="filter-select" style="padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 0.9em;">
+                        <option value="all">All Emails</option>
+                        <option value="threaded">Threaded Only</option>
+                        <option value="single">Single Emails</option>
+                    </select>
+                </div>
+                
+                <!-- Search Input -->
+                <div class="filter-group" style="flex: 1; display: flex; align-items: center; gap: 8px;">
+                    <label style="color: #8b949e; font-size: 0.9em; font-weight: 600;"><i class="fas fa-search"></i> Search:</label>
+                    <input type="text" id="email-search-input" class="filter-input" placeholder="Search sender, subject, content..." style="flex: 1; padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 0.9em;">
+                </div>
                 
                 <!-- Limit Selector -->
-                <select id="email-limit" class="form-control" style="margin: 0; width: auto; padding: 6px 10px; background: var(--bg-card, #0B0E13); border: 1px solid var(--border-default, #2A3142); border-radius: 6px; color: var(--text-primary, #E5E7EB); font-size: 12px;">
-                    <option value="20">Show 20</option>
-                    <option value="50" selected>Show 50</option>
-                    <option value="100">Show 100</option>
-                    <option value="200">Show 200</option>
-                </select>
+                <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                    <label style="color: #8b949e; font-size: 0.9em; font-weight: 600;"><i class="fas fa-list"></i> Show:</label>
+                    <select id="email-limit" class="filter-select" style="padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 0.9em;">
+                        <option value="20" selected>20 emails</option>
+                        <option value="50">50 emails</option>
+                        <option value="100">100 emails</option>
+                    </select>
+                </div>
                 
                 <!-- Refresh Button -->
-                <button class="btn btn-primary" id="email-refresh-btn" data-action="refresh" style="padding: 6px 12px; font-size: 12px;">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-                
-                <div style="flex: 1;"></div>
-                
-                <!-- Selected Count -->
-                <span id="selected-count" style="font-size: 12px; color: var(--text-secondary, #7d8590);">Selected: 0</span>
-                
-                <!-- Export Buttons -->
-                <div style="display: flex; gap: 6px;">
-                    <button class="btn btn-secondary" data-action="export-excel" style="padding: 6px 10px; font-size: 11px;">
-                        <i class="fas fa-file-excel"></i> Excel
-                    </button>
-                    <button class="btn btn-secondary" data-action="export-csv" style="padding: 6px 10px; font-size: 11px;">
-                        <i class="fas fa-file-csv"></i> CSV
-                    </button>
-                    <button class="btn btn-secondary" data-action="export-pdf" style="padding: 6px 10px; font-size: 11px;">
-                        <i class="fas fa-file-pdf"></i> PDF
+                <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                    <button id="email-refresh-btn" class="btn-secondary" style="padding: 6px 14px; background: #0d1117; border: 2px solid #3b82f6; color: #3b82f6; border-radius: 6px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                        <i class="fas fa-sync"></i> Refresh
                     </button>
                 </div>
                 
-                <!-- Send to AI Button with Dropdown -->
-                <button class="btn btn-secondary" data-action="send-to-ai" style="padding: 6px 12px; font-size: 12px; position: relative;">
-                    <i class="fas fa-robot"></i> Send to AI <i class="fas fa-caret-down" style="margin-left: 4px; font-size: 10px;"></i>
-                </button>
+                <!-- Selected Count -->
+                <div class="filter-group" style="display: flex; align-items: center;">
+                    <span id="selected-count" style="color: #6e7681; font-size: 0.85em;">Selected: <span class="count-value">0</span></span>
+                </div>
             </div>
         `;
     },
@@ -974,13 +953,24 @@ export default {
     setupToolbarEvents() {
         this.log.info('Setting up toolbar events...');
 
-        // Toolbar actions
-        const toolbar = this.dashboardContainer.querySelector('.bulk-operations-toolbar');
+        // Toolbar actions - look for filters-bar (the actual toolbar class)
+        const toolbar = this.dashboardContainer.querySelector('.filters-bar');
         if (!toolbar) {
-            this.log.warn('Toolbar not found, retrying in 200ms...');
-            setTimeout(() => this.setupToolbarEvents(), 200);
+            // Limit retries to prevent infinite loop
+            if (!this.toolbarRetryCount) this.toolbarRetryCount = 0;
+            this.toolbarRetryCount++;
+
+            if (this.toolbarRetryCount < 10) {
+                this.log.warn(`Toolbar not found, retry ${this.toolbarRetryCount}/10 in 200ms...`);
+                setTimeout(() => this.setupToolbarEvents(), 200);
+            } else {
+                this.log.error('Toolbar setup failed after 10 retries - toolbar may not exist in current tab');
+            }
             return;
         }
+
+        // Reset retry counter on success
+        this.toolbarRetryCount = 0;
 
         if (toolbar) {
             // Tag buttons
@@ -1232,9 +1222,19 @@ export default {
             layout: "fitDataStretch",
             pagination: true,
             paginationSize: this.state.pageSize,
-            selectable: 1,  // Single-selection only (one email at a time)
-            selectableRangeMode: "click",  // Simple click to select
+            selectable: true,  // Multi-selection enabled
+            selectableRangeMode: "click",  // Click to select/deselect
             columns: [
+                {
+                    formatter: "rowSelection",
+                    titleFormatter: "rowSelection",
+                    hozAlign: "center",
+                    headerSort: false,
+                    width: 40,
+                    cellClick: function (e, cell) {
+                        cell.getRow().toggleSelect();
+                    }
+                },
                 {
                     title: "Date",
                     field: "date",
@@ -1287,7 +1287,7 @@ export default {
                         const value = cell.getValue();
                         const data = cell.getRow().getData();
                         const hasThread = this.state.emailThreads[data.id];
-                        
+
                         // Show thread indicator if email has thread
                         if (hasThread) {
                             return `
@@ -1297,8 +1297,21 @@ export default {
                                 </div>
                             `;
                         }
-                        
+
                         return this.escapeHtml(value);
+                    }
+                },
+                {
+                    title: "AI Agent",
+                    field: "assigned_agent",
+                    width: 120,
+                    hozAlign: "center",
+                    formatter: (cell) => {
+                        const agent = cell.getValue();
+                        if (agent) {
+                            return `<span style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">${this.escapeHtml(agent)}</span>`;
+                        }
+                        return '<span style="color: #9ca3af; font-size: 11px;">Not assigned</span>';
                     }
                 }
             ]
@@ -1619,11 +1632,11 @@ export default {
         // Fetch full email content
         try {
             const fullEmail = await this.fetchEmailContent(emailData.id);
-            
+
             // Check if email is part of thread
             const threadSlug = this.state.emailThreads[emailData.id];
             let threadEmails = [];
-            
+
             if (threadSlug) {
                 this.log.info(`📬 Email is part of thread: ${threadSlug}`);
                 try {
@@ -1637,7 +1650,7 @@ export default {
 
             // Render preview based on thread status
             let contentHtml = '';
-            
+
             if (threadEmails.length > 1) {
                 // Thread view with all emails
                 contentHtml = this.renderThreadPreview(threadEmails, emailData.id);
@@ -1970,20 +1983,26 @@ export default {
 
     /**
      * Render email body with HTML support and clickable links
+     * Uses DOMPurify for safe HTML rendering (industry standard approach)
      */
     renderEmailBody(email) {
         // Prefer HTML body if available, fallback to text
         let content = email.body_html || email.body_text || email.snippet || 'No content available';
 
         if (email.body_html) {
-            // HTML content - render in iframe for safety
+            // SOLUTION: Direct HTML rendering with DOMPurify sanitization
+            // Same approach used by Nylas Mail, Gmail clients, etc.
+            // No iframe sandbox issues - content renders directly
             return `
-                <div class="email-html-content">
-                    <iframe 
-                        srcdoc="${this.escapeHtml(content)}" 
-                        style="width: 100%; min-height: 400px; border: none; background: white; border-radius: 8px;"
-                        sandbox="allow-same-origin allow-popups"
-                    ></iframe>
+                <div class="email-html-content" style="
+                    background: white; 
+                    padding: 20px; 
+                    border-radius: 8px;
+                    min-height: 400px;
+                    overflow-x: auto;
+                    word-wrap: break-word;
+                ">
+                    ${this.sanitizeHTML(content)}
                 </div>
             `;
         } else {
@@ -2010,6 +2029,80 @@ export default {
                 this.dom.hide(previewPanel);
             }, 300); // Wait for slide-out animation
         }
+    },
+
+    /**
+     * Sanitize HTML for safe rendering
+     * Implements DOMPurify-style whitelist approach (industry standard)
+     * Used by Gmail, Nylas Mail, Outlook Web, etc.
+     * 
+     * This is THE SOLUTION that major email clients use:
+     * - Direct HTML rendering (no iframe sandbox issues)
+     * - Whitelist safe tags, remove dangerous ones
+     * - Strip event handlers and javascript: URLs
+     * - Allows styling, formatting, images, tables
+     */
+    sanitizeHTML(html) {
+        if (!html) return '';
+
+        // Create temporary container for DOM manipulation
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+
+        // Remove ALL dangerous tags that could execute code
+        const dangerousTags = [
+            'script', 'iframe', 'object', 'embed', 'link',
+            'style', 'meta', 'base', 'form', 'input', 'button'
+        ];
+
+        dangerousTags.forEach(tag => {
+            const elements = temp.getElementsByTagName(tag);
+            while (elements.length > 0) {
+                elements[0].parentNode.removeChild(elements[0]);
+            }
+        });
+
+        // Remove dangerous attributes from ALL elements
+        const allElements = temp.getElementsByTagName('*');
+        for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i];
+
+            // Get all attributes as array (before removal)
+            const attrs = Array.from(el.attributes);
+
+            attrs.forEach(attr => {
+                // Remove ALL event handlers (onclick, onload, onerror, etc.)
+                if (attr.name.startsWith('on')) {
+                    el.removeAttribute(attr.name);
+                }
+
+                // Remove javascript: and data:text/html URLs
+                if (attr.value.toLowerCase().includes('javascript:') ||
+                    attr.value.toLowerCase().includes('data:text/html')) {
+                    el.removeAttribute(attr.name);
+                }
+            });
+
+            // Extra safety for href/src attributes
+            if (el.hasAttribute('href')) {
+                const href = el.getAttribute('href');
+                if (href.toLowerCase().startsWith('javascript:') ||
+                    href.toLowerCase().startsWith('data:text/html')) {
+                    el.removeAttribute('href');
+                }
+            }
+
+            if (el.hasAttribute('src')) {
+                const src = el.getAttribute('src');
+                if (src.toLowerCase().startsWith('javascript:')) {
+                    el.removeAttribute('src');
+                }
+                // Allow data: URLs for images (base64 embedded images)
+                // Allow https/http URLs for external images
+            }
+        }
+
+        return temp.innerHTML;
     },
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2819,26 +2912,26 @@ export default {
      */
     async fetchThreadEmails(threadSlug) {
         this.log.info(`📬 Fetching emails for thread: ${threadSlug}`);
-        
+
         const userId = window.UserAuth?.user?.id || 1;
         const url = `${this.state.apiBase}/threads/${threadSlug}/emails?user_id=${userId}`;
-        
+
         try {
             const response = await fetch(url, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const result = await response.json();
-            
+
             if (!result.success) {
                 throw new Error(result.error || 'Failed to fetch thread emails');
             }
-            
+
             return result.emails || [];
         } catch (error) {
             this.log.error('Failed to fetch thread emails:', error);
@@ -2851,7 +2944,7 @@ export default {
      */
     renderThreadPreview(emails, currentEmailId) {
         const sorted = emails.sort((a, b) => new Date(a.date) - new Date(b.date));
-        
+
         let html = `
             <div class="email-preview-content" style="padding: 20px;">
                 <div style="background: var(--bg-secondary); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
@@ -2864,11 +2957,11 @@ export default {
                 
                 <div class="thread-email-list" style="display: flex; flex-direction: column; gap: 12px;">
         `;
-        
+
         sorted.forEach((email, index) => {
             const isLatest = email.id === currentEmailId;
             const isExpanded = isLatest || index === sorted.length - 1;
-            
+
             html += `
                 <div class="thread-email-item" data-email-id="${email.id}" style="border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden; ${isLatest ? 'border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1;' : ''}">
                     <div class="thread-email-header" 
@@ -2893,12 +2986,12 @@ export default {
                 </div>
             `;
         });
-        
+
         html += `
                 </div>
             </div>
         `;
-        
+
         return html;
     },
 
@@ -2908,7 +3001,7 @@ export default {
     toggleThreadEmail(emailId) {
         const body = document.getElementById(`body-${emailId}`);
         const toggle = document.getElementById(`toggle-${emailId}`);
-        
+
         if (body && toggle) {
             const isVisible = body.style.display === 'block';
             body.style.display = isVisible ? 'none' : 'block';

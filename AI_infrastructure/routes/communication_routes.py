@@ -208,11 +208,14 @@ def list_emails():
             # NOT {'success': True, ...} - check for 'messages' key instead
             if 'messages' in gmail_result:
                 gmail_count = len(gmail_result.get('messages', []))
-                print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message(s)")
+                print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message IDs")
                 
-                # Get full message details for each message
-                for msg_summary in gmail_result.get('messages', []):
-                    # msg_summary only has 'id' and 'threadId' - need to fetch full details
+                # ⚡ PARALLEL FETCH: Get all message details at once using ThreadPoolExecutor
+                from concurrent.futures import ThreadPoolExecutor, as_completed
+                import time
+                
+                def fetch_single_message(msg_summary):
+                    """Fetch a single message metadata"""
                     try:
                         msg = gmail_get_message(
                             message_id=msg_summary['id'],
@@ -224,7 +227,7 @@ def list_emails():
                         # Parse message headers
                         headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
                         
-                        emails.append({
+                        return {
                             'id': f"gmail_{msg['id']}",
                             'provider': 'gmail',
                             'from': headers.get('from', 'Unknown'),
@@ -234,10 +237,25 @@ def list_emails():
                             'is_read': 'UNREAD' not in msg.get('labelIds', []),
                             'snippet': msg.get('snippet', ''),
                             'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', []))
-                        })
+                        }
                     except Exception as msg_err:
                         print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
-                        continue
+                        return None
+                
+                # Execute all fetches in parallel (max 10 workers to avoid rate limits)
+                start_time = time.time()
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    # Submit all tasks at once
+                    future_to_msg = {executor.submit(fetch_single_message, msg): msg for msg in gmail_result.get('messages', [])}
+                    
+                    # Collect results as they complete
+                    for future in as_completed(future_to_msg):
+                        result = future.result()
+                        if result:
+                            emails.append(result)
+                
+                elapsed = time.time() - start_time
+                print(f"[Communication Hub] ⚡ Fetched {len(emails)} emails in {elapsed:.2f}s (parallel)")
             else:
                 print(f"[Communication Hub] ⚠️  Gmail returned unexpected format: {list(gmail_result.keys())}")
         except Exception as e:
