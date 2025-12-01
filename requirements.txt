@@ -28,13 +28,13 @@ numpy==1.26.2
 # Environment
 python-dotenv==1.0.0
 
-# Google APIs
-google-auth==2.23.4
-google-auth-oauthlib==1.1.0
-google-api-python-client==2.108.0
-google-cloud-run==0.10.5
-google-cloud-logging==3.8.0
-google-cloud-monitoring==2.16.0
+# Google APIs (loosened constraints to resolve dependency conflicts)
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-api-python-client>=2.100.0
+google-cloud-run>=0.10.0
+google-cloud-logging>=3.8.0
+google-cloud-monitoring>=2.16.0
 
 # Database
 psycopg2-binary==2.9.9
