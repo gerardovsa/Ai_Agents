@@ -676,11 +676,14 @@ class DatabaseConnection:
     """
     Connection wrapper that provides automatic SQL placeholder conversion
     
-    Wraps psycopg2.Connection and returns DatabaseCursor when cursor() is called,
+    Wraps psycopg2.Connection (or PooledConnection) and returns DatabaseCursor when cursor() is called,
     which automatically converts ? to %s for PostgreSQL.
+    
+    CRITICAL: Delegates close() to wrapped connection (PooledConnection returns to pool)
     """
-    def __init__(self, connection):
+    def __init__(self, connection, pool=None, schema_name=None):
         self._wrapped_conn = connection
+        self._closed = False  # ✅ FIX: Track if already closed to prevent double-close
     
     def cursor(self, *args, **kwargs):
         """Return DatabaseCursor that auto-converts placeholders"""
@@ -696,13 +699,16 @@ class DatabaseConnection:
         return self._wrapped_conn.rollback()
     
     def close(self):
-        return self._wrapped_conn.close()
+        """Delegate to wrapped connection (PooledConnection returns to pool)"""
+        if not self._closed:
+            self._closed = True
+            return self._wrapped_conn.close()
     
     def __enter__(self):
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Ensure connection is properly closed/returned to pool"""
+        """Ensure connection is properly returned to pool"""
         try:
             if exc_type is not None:
                 # Exception occurred - rollback transaction
@@ -713,11 +719,8 @@ class DatabaseConnection:
         except Exception as e:
             print(f"⚠️  [DatabaseConnection] Error in __exit__ transaction handling: {e}")
         finally:
-            # CRITICAL: Always close connection to return to pool
-            try:
-                self.close()
-            except Exception as e:
-                print(f"❌ [DatabaseConnection] Error closing connection in __exit__: {e}")
+            # ✅ CRITICAL FIX: Close only once (delegates to PooledConnection.close())
+            self.close()
         return False  # Don't suppress exceptions
     
     # Delegate other attributes to wrapped connection

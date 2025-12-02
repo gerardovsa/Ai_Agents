@@ -65,12 +65,15 @@ class AutomationScheduler:
             print("✅ [SCHEDULER] Using Supabase - skipping table creation")
             return
         
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        # Create scheduled_tasks table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS scheduled_tasks (
+        conn = None
+        cursor = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Create scheduled_tasks table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS scheduled_tasks (
                 task_id TEXT PRIMARY KEY,
                 task_name TEXT NOT NULL,
                 description TEXT,
@@ -122,14 +125,14 @@ class AutomationScheduler:
                 priority INTEGER DEFAULT 5,  -- 1-10 (10 = highest)
                 timeout_seconds INTEGER DEFAULT 300,
                 
-                FOREIGN KEY (created_by_user_id) REFERENCES users(user_id),
-                FOREIGN KEY (synergy_session_id) REFERENCES synergy_sessions(session_id)
-            )
-        ''')
-        
-        # Create task_executions table (execution history/logs)
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS task_executions (
+                    FOREIGN KEY (created_by_user_id) REFERENCES users(user_id),
+                    FOREIGN KEY (synergy_session_id) REFERENCES synergy_sessions(session_id)
+                )
+            ''')
+            
+            # Create task_executions table (execution history/logs)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS task_executions (
                 execution_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id TEXT NOT NULL,
                 started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -139,23 +142,27 @@ class AutomationScheduler:
                 error_message TEXT,
                 retry_attempt INTEGER DEFAULT 0,
                 execution_duration_ms INTEGER,
-                
-                FOREIGN KEY (task_id) REFERENCES scheduled_tasks(task_id)
-            )
-        ''')
+                    
+                    FOREIGN KEY (task_id) REFERENCES scheduled_tasks(task_id)
+                )
+            ''')
         
-        # Create indexes for performance
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_enabled ON scheduled_tasks(enabled)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_next_execution ON scheduled_tasks(next_execution_time)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_synergy ON scheduled_tasks(synergy_session_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_thread ON scheduled_tasks(thread_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_executions_task ON task_executions(task_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_executions_status ON task_executions(status)')
-        
-        conn.commit()
-        conn.close()
-        
-        logger.info("Scheduler database initialized")
+            # Create indexes for performance
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_enabled ON scheduled_tasks(enabled)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_next_execution ON scheduled_tasks(next_execution_time)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_synergy ON scheduled_tasks(synergy_session_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_tasks_thread ON scheduled_tasks(thread_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_executions_task ON task_executions(task_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_executions_status ON task_executions(status)')
+            
+            conn.commit()
+            
+            logger.info("Scheduler database initialized")
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def start(self):
         """Start the scheduler"""
@@ -183,6 +190,7 @@ class AutomationScheduler:
     def _load_active_tasks(self):
         """Load existing tasks from database on startup"""
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -203,6 +211,8 @@ class AutomationScheduler:
             logger.warning(f"Could not load scheduled tasks (table may not exist): {e}")
             # Non-critical - scheduler can work without persisted tasks
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
     
@@ -257,28 +267,26 @@ class AutomationScheduler:
         conn = get_connection('ai_infrastructure')
         cursor = conn.cursor()
         
-        # Get task details
-        cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
-        task = cursor.fetchone()
-        
-        if not task:
-            logger.error(f"Task {task_id} not found")
-            conn.close()
-            return
-        
-        task = dict(task)
-        
-        # Create execution record
-        cursor.execute('''
-            INSERT INTO task_executions (task_id, status)
-            VALUES (%s, 'running')
-        ''', (task_id,))
-        execution_id = cursor.lastrowid
-        conn.commit()
-        
-        start_time = datetime.now()
-        
         try:
+            # Get task details
+            cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
+            task = cursor.fetchone()
+            
+            if not task:
+                logger.error(f"Task {task_id} not found")
+                return
+            
+            task = dict(task)
+            
+            # Create execution record
+            cursor.execute('''
+                INSERT INTO task_executions (task_id, status)
+                VALUES (%s, 'running')
+            ''', (task_id,))
+            execution_id = cursor.lastrowid
+            conn.commit()
+            
+            start_time = datetime.now()
             # Execute based on action type
             action_type = task['action_type']
             result = None
@@ -350,7 +358,10 @@ class AutomationScheduler:
                 logger.info(f"Scheduled retry for {task['task_name']} at {retry_time}")
         
         finally:
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def _execute_resume_session(self, task: Dict) -> Dict:
         """Execute resume_session action"""
@@ -443,6 +454,7 @@ class AutomationScheduler:
     def _check_pending_approvals(self):
         """Check for tasks pending approval and notify users"""
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -460,12 +472,15 @@ class AutomationScheduler:
                 logger.info(f"Found {len(pending_tasks)} tasks pending approval")
                 # TODO: Send notifications to users
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
     
     def create_task(self, task_data: Dict) -> str:
         """Create a new scheduled task"""
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -507,12 +522,15 @@ class AutomationScheduler:
             logger.info(f"Created task: {task_id}")
             return task_id
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
     
     def update_task(self, task_id: str, updates: Dict) -> bool:
         """Update an existing task"""
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -537,6 +555,8 @@ class AutomationScheduler:
             
             conn.commit()
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
         
@@ -575,6 +595,7 @@ class AutomationScheduler:
         
         # Delete from database
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -584,12 +605,15 @@ class AutomationScheduler:
             logger.info(f"Deleted task: {task_id}")
             return True
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
     
     def get_task(self, task_id: str) -> Optional[Dict]:
         """Get task by ID"""
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -598,12 +622,15 @@ class AutomationScheduler:
             
             return dict(task) if task else None
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
     
     def list_tasks(self, filters: Optional[Dict] = None) -> List[Dict]:
         """List all tasks with optional filters"""
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -630,12 +657,15 @@ class AutomationScheduler:
             
             return [dict(task) for task in tasks]
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
     
     def get_execution_history(self, task_id: str, limit: int = 50) -> List[Dict]:
         """Get execution history for a task"""
         conn = None
+        cursor = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -651,6 +681,8 @@ class AutomationScheduler:
             
             return [dict(execution) for execution in executions]
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
 

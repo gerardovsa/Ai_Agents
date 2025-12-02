@@ -31,7 +31,7 @@ def _get_client(business_id: int):
         RuntimeError: If XeroAPIClient not available
     """
     try:
-        from UI.external.modules.xero.xero_routes import XeroAPIClient
+        from UI.modules_external.xero.xero_routes import XeroAPIClient
         return XeroAPIClient(business_id=business_id)
     except ImportError as e:
         raise RuntimeError(f"XeroAPIClient not available. Ensure xero_routes.py is accessible: {str(e)}")

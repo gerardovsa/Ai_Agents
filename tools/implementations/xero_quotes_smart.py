@@ -19,11 +19,11 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime, timedelta
 
 
-def _get_client(business_id: int):
-    """Get XeroAPIClient instance"""
+def _get_client(business_id: int, user_id: Optional[int] = None):
+    """Get XeroAPIClient instance with user credentials"""
     try:
-        from UI.external.modules.xero.xero_routes import XeroAPIClient
-        return XeroAPIClient(business_id=business_id)
+        from UI.modules_external.xero.xero_routes import XeroAPIClient
+        return XeroAPIClient(business_id=business_id, user_id=user_id)
     except ImportError as e:
         raise RuntimeError(f"XeroAPIClient not available: {str(e)}")
 
@@ -297,7 +297,10 @@ def xero_create_quote_smart(
         )
     """
     try:
-        client = _get_client(business_id)
+        # Extract user_id from kwargs (injected by credential system)
+        user_id = kwargs.get('_user_id', kwargs.get('user_id'))
+        
+        client = _get_client(business_id, user_id=user_id)
         workflow_log = []
         
         # Step 1: Find customer

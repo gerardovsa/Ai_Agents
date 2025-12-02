@@ -40,7 +40,7 @@ from datetime import datetime
 # Try to import the Xero client from the UI module. If it isn't available
 # at import time, functions will raise a clear error.
 try:
-    from UI.external.modules.xero.xero_routes import XeroAPIClient
+    from UI.modules_external.xero.xero_routes import XeroAPIClient
 except Exception:
     # Defer import error to runtime to avoid import-time failures of the registry
     XeroAPIClient = None

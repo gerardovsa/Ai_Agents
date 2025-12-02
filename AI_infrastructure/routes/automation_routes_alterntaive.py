@@ -1,4 +1,4 @@
-﻿"""
+"""
 Automation Visual Workflows API Routes
 =======================================
 REST API endpoints for visual automation canvas and AI-interpreted workflows.

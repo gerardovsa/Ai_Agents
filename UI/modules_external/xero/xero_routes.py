@@ -67,26 +67,105 @@ TOKEN_CACHE = {}
 class XeroAPIClient:
     """Xero API client with OAuth2 authentication"""
     
-    def __init__(self, business_id):
-        """Initialize Xero client for specific business"""
+    def __init__(self, business_id, user_id=None):
+        """
+        Initialize Xero client for specific business
+        
+        Args:
+            business_id: Business ID (1=Print, 2=Publishing, 3=Signs)
+            user_id: User ID for database credential lookup (optional, defaults to user 1)
+        """
         if business_id not in BUSINESS_CONFIGS:
             raise ValueError(f"Invalid business_id: {business_id}")
         
         self.business_id = business_id
         self.config = BUSINESS_CONFIGS[business_id]
+        self.user_id = user_id or 1  # Default to user 1 if not provided
         
-        # Get credentials from environment
-        self.client_id = os.getenv(self.config['client_id_env'])
-        self.client_secret = os.getenv(self.config['client_secret_env'])
+        # Get credentials from database
+        self.client_id, self.client_secret = self._get_credentials_from_db()
         
         if not self.client_id or not self.client_secret:
-            raise ValueError(
-                f"Xero credentials not found for {self.config['name']}. "
-                f"Set {self.config['client_id_env']} and {self.config['client_secret_env']} in .env.master"
-            )
+            # Fallback to environment variables
+            self.client_id = os.getenv(self.config['client_id_env'])
+            self.client_secret = os.getenv(self.config['client_secret_env'])
+            
+            if not self.client_id or not self.client_secret:
+                raise ValueError(
+                    f"Xero credentials not found for {self.config['name']}. "
+                    f"Add credentials via Account Settings or set {self.config['client_id_env']} "
+                    f"and {self.config['client_secret_env']} in environment"
+                )
         
         self.access_token = None
         self.tenant_id = None
+    
+    def _get_credentials_from_db(self):
+        """
+        Get Xero credentials from database
+        
+        Returns:
+            Tuple of (client_id, client_secret) or (None, None) if not found
+        """
+        try:
+            import sys
+            from pathlib import Path
+            
+            # Add AI_agents root to path for imports
+            root_path = Path(__file__).parent.parent.parent.parent
+            if str(root_path) not in sys.path:
+                sys.path.insert(0, str(root_path))
+            
+            from AI_infrastructure.shared.db_connection_wrapper import get_connection
+            import json
+            
+            # Platform name mapping: business_id -> platform name in database
+            platform_map = {
+                1: 'xero_print',      # InHouse Print
+                2: 'xero_pub',        # InHouse Publishing
+                3: 'xero_signs'       # InHouse Signs
+            }
+            
+            platform = platform_map.get(self.business_id)
+            if not platform:
+                return None, None
+            
+            with get_connection('ai_infrastructure') as conn:
+                cursor = conn.cursor()
+                
+                # Query user_platform_credentials for Xero credentials
+                cursor.execute("""
+                    SELECT credentials
+                    FROM ai_infrastructure.user_platform_credentials
+                    WHERE user_id = %s 
+                    AND platform = %s 
+                    AND is_active = TRUE
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                """, (self.user_id, platform))
+                
+                row = cursor.fetchone()
+                
+                if row:
+                    # Extract credentials from JSONB column
+                    creds = row[0] if isinstance(row, tuple) else row['credentials']
+                    
+                    # Parse JSON if it's a string
+                    if isinstance(creds, str):
+                        creds = json.loads(creds)
+                    
+                    client_id = creds.get('client_id')
+                    client_secret = creds.get('client_secret')
+                    
+                    if client_id and client_secret:
+                        print(f"✅ Loaded Xero credentials from database for {self.config['name']}")
+                        return client_id, client_secret
+                
+                return None, None
+                
+        except Exception as e:
+            print(f"⚠️ Failed to load Xero credentials from database: {e}")
+            return None, None
     
     def get_access_token(self):
         """Get OAuth2 access token using client credentials flow"""
