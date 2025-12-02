@@ -234,9 +234,31 @@ def _pool_cleanup_worker():
 
 
 def _start_pool_cleanup_thread():
-    """Start the pool cleanup background thread if not already running"""
+    """Start the pool cleanup background thread if not already running
+    
+    GEVENT COMPATIBILITY: DISABLED in gevent environments
+    - Render production uses Gunicorn with gevent workers
+    - Gevent monkey-patches threading.Lock() which causes deadlocks
+    - Error: "This operation would block forever" (gevent.exceptions.LoopExit)
+    - Cleanup thread only works in development (Flask dev server with standard threading)
+    """
     global _pool_cleanup_thread, _pool_cleanup_stop
     
+    # CRITICAL: Detect gevent BEFORE acquiring any locks
+    # Check if gevent has monkey-patched threading (Render production)
+    try:
+        import threading as _threading_check
+        # If threading.Lock is gevent's BoundedSemaphore, we're in gevent
+        if 'gevent' in str(type(_threading_check.Lock())):
+            print("⚠️  [POOL CLEANUP] Gevent detected - cleanup thread DISABLED (prevents LoopExit)")
+            print("ℹ️  [POOL] Running in production mode (Gunicorn+Gevent) - connections managed by Gunicorn")
+            return
+    except Exception as e:
+        print(f"⚠️  [POOL CLEANUP] Error detecting gevent: {e}")
+        # If detection fails, skip thread to be safe
+        return
+    
+    # Only start thread in development environments (non-Gevent)
     with _pool_lock:
         if _pool_cleanup_thread is None or not _pool_cleanup_thread.is_alive():
             _pool_cleanup_stop.clear()
@@ -246,6 +268,8 @@ def _start_pool_cleanup_thread():
                 daemon=True
             )
             _pool_cleanup_thread.start()
+            print(f"🧹 [POOL CLEANUP] Background thread started (development mode - Flask dev server)")
+
 
 
 def stop_pool_cleanup():
