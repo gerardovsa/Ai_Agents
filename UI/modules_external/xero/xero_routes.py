@@ -75,8 +75,14 @@ class XeroAPIClient:
             business_id: Business ID (1=Print, 2=Publishing, 3=Signs)
             user_id: User ID for database credential lookup (optional, defaults to user 1)
         """
+        # Convert business_id to integer if it's a string (handle Claude API sending strings)
+        try:
+            business_id = int(business_id)
+        except (ValueError, TypeError):
+            pass
+        
         if business_id not in BUSINESS_CONFIGS:
-            raise ValueError(f"Invalid business_id: {business_id}")
+            raise ValueError(f"Invalid business_id: {business_id}. Must be 1, 2, or 3. Got type: {type(business_id)}")
         
         self.business_id = business_id
         self.config = BUSINESS_CONFIGS[business_id]
