@@ -1081,74 +1081,219 @@ const DEFAULT_SETTINGS = {
 
 const SETTINGS_STORAGE_KEY = 'accountSettings';
 
-function loadAccountSettings() {
-    // Try to load from localStorage, fallback to defaults
-    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    const settings = stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+async function loadAccountSettings() {
+    console.log('📥 [ACCOUNT SETTINGS] Loading from backend database...');
 
-    // Update UI with loaded settings - Model Options
-    document.getElementById('modelSelect').value = settings.model || DEFAULT_SETTINGS.model;
-    document.getElementById('temperature').value = settings.temperature || DEFAULT_SETTINGS.temperature;
-    document.getElementById('tempValue').textContent = settings.temperature || DEFAULT_SETTINGS.temperature;
-    document.getElementById('topP').value = settings.topP || DEFAULT_SETTINGS.topP;
-    document.getElementById('toppValue').textContent = settings.topP || DEFAULT_SETTINGS.topP;
-    document.getElementById('enableThinking').checked = settings.enableThinking || false;
+    try {
+        // 1. Fetch from backend database
+        const backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+        const token = localStorage.getItem('authToken');
 
-    // Update UI - Round Parameters
-    document.getElementById('maxRounds').value = settings.maxRounds || DEFAULT_SETTINGS.maxRounds;
-    document.getElementById('roundsValue').textContent = settings.maxRounds || DEFAULT_SETTINGS.maxRounds;
-    document.getElementById('roundTimeout').value = settings.roundTimeout || DEFAULT_SETTINGS.roundTimeout;
-    document.getElementById('timeoutValue').textContent = settings.roundTimeout || DEFAULT_SETTINGS.roundTimeout;
-    document.getElementById('enableStreaming').checked = settings.enableStreaming !== false;
-
-    // Update UI - Token Parameters
-    document.getElementById('maxTokens').value = settings.maxTokens || DEFAULT_SETTINGS.maxTokens;
-    document.getElementById('tokensValue').textContent = settings.maxTokens || DEFAULT_SETTINGS.maxTokens;
-    document.getElementById('thinkingBudgetSlider').value = settings.thinkingBudget || DEFAULT_SETTINGS.thinkingBudget;
-    document.getElementById('thinkingValue').textContent = settings.thinkingBudget || DEFAULT_SETTINGS.thinkingBudget;
-
-    // Update UI - Personalisation Settings (NEW)
-    if (document.getElementById('userNickname')) {
-        document.getElementById('userNickname').value = settings.nickname || '';
-    }
-    if (document.getElementById('communicationStyle')) {
-        document.getElementById('communicationStyle').value = settings.communicationStyle || 'professional';
-    }
-    if (document.querySelector('input[name="detailLevel"]')) {
-        const detailLevelRadio = document.querySelector(`input[name="detailLevel"][value="${settings.detailLevel || 'standard'}"]`);
-        if (detailLevelRadio) {
-            detailLevelRadio.checked = true;
+        if (!token) {
+            console.warn('⚠️ No auth token - using localStorage fallback');
+            throw new Error('No auth token');
         }
-    }
-    if (document.getElementById('authPlatform')) {
-        document.getElementById('authPlatform').value = settings.authPlatform || 'auto';
-    }
 
-    // Update UI - Location & Timezone (NEW)
-    if (document.getElementById('useManualLocation')) {
-        document.getElementById('useManualLocation').checked = settings.useManualLocation || false;
-        document.getElementById('manualLocation').disabled = !settings.useManualLocation;
-    }
-    if (document.getElementById('useManualTimezone')) {
-        document.getElementById('useManualTimezone').checked = settings.useManualTimezone || false;
-        document.getElementById('manualTimezone').disabled = !settings.useManualTimezone;
-    }
-    if (document.getElementById('manualLocation')) {
-        document.getElementById('manualLocation').value = settings.manualLocation || '';
-    }
-    if (document.getElementById('manualTimezone')) {
-        document.getElementById('manualTimezone').value = settings.manualTimezone || '';
-    }
+        const response = await fetch(`${backendUrl}/api/user/preferences`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-    // Load and display detected geolocation
-    if (document.getElementById('detectedLocation')) {
-        detectAndDisplayGeolocation();
-    }
+        if (!response.ok) {
+            console.warn('⚠️ Backend fetch failed - using localStorage fallback');
+            throw new Error(`Backend returned ${response.status}`);
+        }
 
-    // Enable/disable thinking budget slider based on extended thinking checkbox
-    const thinkingBudgetSlider = document.getElementById('thinkingBudgetSlider');
-    if (thinkingBudgetSlider) {
-        thinkingBudgetSlider.disabled = !document.getElementById('enableThinking').checked;
+        const result = await response.json();
+        const data = result.data || result;
+
+        console.log('✅ [ACCOUNT SETTINGS] Loaded from backend:', {
+            nickname: data.nickname,
+            communication_style: data.communication_style,
+            ai_model: data.ai_model,
+            ai_temperature: data.ai_temperature
+        });
+
+        // 2. Populate UI from backend data
+        // AI Model Options
+        if (document.getElementById('modelSelect')) {
+            document.getElementById('modelSelect').value = data.ai_model || DEFAULT_SETTINGS.model;
+        }
+        if (document.getElementById('temperature')) {
+            const temp = data.ai_temperature || DEFAULT_SETTINGS.temperature;
+            document.getElementById('temperature').value = temp;
+            document.getElementById('tempValue').textContent = temp;
+        }
+        if (document.getElementById('topP')) {
+            const topP = data.ai_top_p || DEFAULT_SETTINGS.topP;
+            document.getElementById('topP').value = topP;
+            document.getElementById('toppValue').textContent = topP;
+        }
+        if (document.getElementById('enableThinking')) {
+            document.getElementById('enableThinking').checked = data.ai_thinking_enabled === 1;
+        }
+
+        // Token Parameters
+        if (document.getElementById('maxTokens')) {
+            const maxTokens = data.ai_max_tokens || DEFAULT_SETTINGS.maxTokens;
+            document.getElementById('maxTokens').value = maxTokens;
+            document.getElementById('tokensValue').textContent = maxTokens;
+        }
+        if (document.getElementById('thinkingBudgetSlider')) {
+            const thinkingBudget = data.ai_thinking_budget || DEFAULT_SETTINGS.thinkingBudget;
+            document.getElementById('thinkingBudgetSlider').value = thinkingBudget;
+            document.getElementById('thinkingValue').textContent = thinkingBudget;
+        }
+        if (document.getElementById('enableStreaming')) {
+            document.getElementById('enableStreaming').checked = data.ai_streaming_enabled !== 0;
+        }
+
+        // Round Parameters (fallback to localStorage/defaults for non-DB fields)
+        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        const localSettings = stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+
+        if (document.getElementById('maxRounds')) {
+            document.getElementById('maxRounds').value = localSettings.maxRounds || DEFAULT_SETTINGS.maxRounds;
+            document.getElementById('roundsValue').textContent = localSettings.maxRounds || DEFAULT_SETTINGS.maxRounds;
+        }
+        if (document.getElementById('roundTimeout')) {
+            document.getElementById('roundTimeout').value = localSettings.roundTimeout || DEFAULT_SETTINGS.roundTimeout;
+            document.getElementById('timeoutValue').textContent = localSettings.roundTimeout || DEFAULT_SETTINGS.roundTimeout;
+        }
+
+        // Personalisation Settings
+        if (document.getElementById('userNickname')) {
+            document.getElementById('userNickname').value = data.nickname || '';
+        }
+        if (document.getElementById('communicationStyle')) {
+            document.getElementById('communicationStyle').value = data.communication_style || 'professional';
+        }
+        if (document.querySelector('input[name="detailLevel"]')) {
+            const detailLevelRadio = document.querySelector(`input[name="detailLevel"][value="${data.detail_level || 'standard'}"]`);
+            if (detailLevelRadio) {
+                detailLevelRadio.checked = true;
+            }
+        }
+        if (document.getElementById('authPlatform')) {
+            document.getElementById('authPlatform').value = data.auth_platform || 'auto';
+        }
+
+        // Location & Timezone
+        if (document.getElementById('useManualLocation')) {
+            document.getElementById('useManualLocation').checked = data.use_manual_location === 1;
+            if (document.getElementById('manualLocation')) {
+                document.getElementById('manualLocation').disabled = data.use_manual_location !== 1;
+            }
+        }
+        if (document.getElementById('useManualTimezone')) {
+            document.getElementById('useManualTimezone').checked = data.use_manual_timezone === 1;
+            if (document.getElementById('manualTimezone')) {
+                document.getElementById('manualTimezone').disabled = data.use_manual_timezone !== 1;
+            }
+        }
+        if (document.getElementById('manualLocation')) {
+            document.getElementById('manualLocation').value = data.manual_location_override || '';
+        }
+        if (document.getElementById('manualTimezone')) {
+            document.getElementById('manualTimezone').value = data.manual_timezone_override || '';
+        }
+
+        // Display detected geolocation from backend
+        if (data.detected_country || data.detected_city || data.detected_timezone) {
+            displayGeolocationData({
+                country: data.detected_country || 'Unknown',
+                city: data.detected_city || '',
+                timezone: data.detected_timezone || 'Unknown',
+                ip_address: data.detected_ip_address || 'Unknown'
+            });
+        } else if (document.getElementById('detectedLocation')) {
+            detectAndDisplayGeolocation();
+        }
+
+        // Enable/disable thinking budget slider based on extended thinking checkbox
+        const thinkingBudgetSlider = document.getElementById('thinkingBudgetSlider');
+        if (thinkingBudgetSlider) {
+            thinkingBudgetSlider.disabled = !document.getElementById('enableThinking').checked;
+        }
+
+        console.log('✅ [ACCOUNT SETTINGS] UI populated from backend database');
+
+    } catch (error) {
+        console.error('❌ [ACCOUNT SETTINGS] Backend fetch failed, using localStorage fallback:', error);
+
+        // FALLBACK: Load from localStorage if backend fails
+        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        const settings = stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+
+        // Update UI with localStorage settings - Model Options
+        document.getElementById('modelSelect').value = settings.model || DEFAULT_SETTINGS.model;
+        document.getElementById('temperature').value = settings.temperature || DEFAULT_SETTINGS.temperature;
+        document.getElementById('tempValue').textContent = settings.temperature || DEFAULT_SETTINGS.temperature;
+        document.getElementById('topP').value = settings.topP || DEFAULT_SETTINGS.topP;
+        document.getElementById('toppValue').textContent = settings.topP || DEFAULT_SETTINGS.topP;
+        document.getElementById('enableThinking').checked = settings.enableThinking || false;
+
+        // Update UI - Round Parameters
+        document.getElementById('maxRounds').value = settings.maxRounds || DEFAULT_SETTINGS.maxRounds;
+        document.getElementById('roundsValue').textContent = settings.maxRounds || DEFAULT_SETTINGS.maxRounds;
+        document.getElementById('roundTimeout').value = settings.roundTimeout || DEFAULT_SETTINGS.roundTimeout;
+        document.getElementById('timeoutValue').textContent = settings.roundTimeout || DEFAULT_SETTINGS.roundTimeout;
+        document.getElementById('enableStreaming').checked = settings.enableStreaming !== false;
+
+        // Update UI - Token Parameters
+        document.getElementById('maxTokens').value = settings.maxTokens || DEFAULT_SETTINGS.maxTokens;
+        document.getElementById('tokensValue').textContent = settings.maxTokens || DEFAULT_SETTINGS.maxTokens;
+        document.getElementById('thinkingBudgetSlider').value = settings.thinkingBudget || DEFAULT_SETTINGS.thinkingBudget;
+        document.getElementById('thinkingValue').textContent = settings.thinkingBudget || DEFAULT_SETTINGS.thinkingBudget;
+
+        // Update UI - Personalisation Settings
+        if (document.getElementById('userNickname')) {
+            document.getElementById('userNickname').value = settings.nickname || '';
+        }
+        if (document.getElementById('communicationStyle')) {
+            document.getElementById('communicationStyle').value = settings.communicationStyle || 'professional';
+        }
+        if (document.querySelector('input[name="detailLevel"]')) {
+            const detailLevelRadio = document.querySelector(`input[name="detailLevel"][value="${settings.detailLevel || 'standard'}"]`);
+            if (detailLevelRadio) {
+                detailLevelRadio.checked = true;
+            }
+        }
+        if (document.getElementById('authPlatform')) {
+            document.getElementById('authPlatform').value = settings.authPlatform || 'auto';
+        }
+
+        // Update UI - Location & Timezone
+        if (document.getElementById('useManualLocation')) {
+            document.getElementById('useManualLocation').checked = settings.useManualLocation || false;
+            document.getElementById('manualLocation').disabled = !settings.useManualLocation;
+        }
+        if (document.getElementById('useManualTimezone')) {
+            document.getElementById('useManualTimezone').checked = settings.useManualTimezone || false;
+            document.getElementById('manualTimezone').disabled = !settings.useManualTimezone;
+        }
+        if (document.getElementById('manualLocation')) {
+            document.getElementById('manualLocation').value = settings.manualLocation || '';
+        }
+        if (document.getElementById('manualTimezone')) {
+            document.getElementById('manualTimezone').value = settings.manualTimezone || '';
+        }
+
+        // Load and display detected geolocation
+        if (document.getElementById('detectedLocation')) {
+            detectAndDisplayGeolocation();
+        }
+
+        // Enable/disable thinking budget slider based on extended thinking checkbox
+        const thinkingBudgetSlider = document.getElementById('thinkingBudgetSlider');
+        if (thinkingBudgetSlider) {
+            thinkingBudgetSlider.disabled = !document.getElementById('enableThinking').checked;
+        }
+
+        console.log('✅ [ACCOUNT SETTINGS] UI populated from localStorage (fallback mode)');
     }
 }
 

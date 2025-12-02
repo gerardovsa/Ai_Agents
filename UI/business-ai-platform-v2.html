@@ -571,10 +571,10 @@
     <!-- ==================== AGENT MODULES (Nov 2025) ==================== -->
     <!-- Multi-agent system components extracted for modularity -->
     <!-- Note: Message renderer loaded from shared/utilities/message_renderer.js above -->
-    <link rel="stylesheet" href="modules_internal/agents/agent-ui.css?v=20251121">
+    <link rel="stylesheet" href="modules_internal/agents/agent-ui.css?v=20251202">
     <script src="modules_internal/agents/error_recovery_manager.js?v=20251122k"></script>
     <script src="modules_internal/agents/agent-column.js?v=20251122k"></script>
-    <script src="modules_internal/agents/agent-input.js?v=20251122k"></script>
+    <script src="modules_internal/agents/agent-input-manager.js?v=20251202"></script>
     <script src="modules_internal/agents/agent-js.js?v=20251122r"></script>
     <script src="modules_internal/agents/agent-ui.js?v=20251122k"></script>
     <script src="modules_internal/agents/prime_ai_chat.js?v=20251122k"></script>
@@ -24401,8 +24401,27 @@
             // Render sessions
             sessionsList.innerHTML = activeSessions.map(session => {
                 const device = session.device_info || {};
-                const browser = device.browser || 'Unknown';
-                const os = device.os || 'Unknown';
+
+                // Extract browser and OS from user_agent if device_info is incomplete
+                let browser = device.browser || 'Unknown';
+                let os = device.os || 'Unknown';
+                const userAgent = session.user_agent || '';
+
+                if (browser === 'Unknown' && userAgent) {
+                    if (userAgent.includes('Chrome')) browser = 'Chrome';
+                    else if (userAgent.includes('Firefox')) browser = 'Firefox';
+                    else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+                    else if (userAgent.includes('Edge')) browser = 'Edge';
+                }
+
+                if (os === 'Unknown' && userAgent) {
+                    if (userAgent.includes('Windows')) os = 'Windows';
+                    else if (userAgent.includes('Mac')) os = 'macOS';
+                    else if (userAgent.includes('Linux')) os = 'Linux';
+                    else if (userAgent.includes('Android')) os = 'Android';
+                    else if (userAgent.includes('iOS') || userAgent.includes('iPhone')) os = 'iOS';
+                }
+
                 const deviceType = device.device_type || 'desktop';
                 const isCurrent = session.is_current;
 
@@ -24417,19 +24436,31 @@
                     browserColor = 'var(--accent-primary)';
                 }
 
-                // Format date
-                const createdDate = new Date(session.created_at);
-                const now = new Date();
-                const diffMs = now - createdDate;
-                const diffMins = Math.floor(diffMs / 60000);
-                const diffHours = Math.floor(diffMins / 60);
-                const diffDays = Math.floor(diffHours / 24);
+                // Format date - FIX: Handle both ISO and timestamp formats
+                let timeAgo = 'Unknown time';
+                try {
+                    const createdAt = session.created_at || session.last_activity;
+                    if (createdAt) {
+                        const createdDate = new Date(createdAt);
 
-                let timeAgo = '';
-                if (diffMins < 1) timeAgo = 'Just now';
-                else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
-                else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
-                else timeAgo = `${diffDays}d ago`;
+                        // Validate date is valid
+                        if (!isNaN(createdDate.getTime())) {
+                            const now = new Date();
+                            const diffMs = now - createdDate;
+                            const diffMins = Math.floor(diffMs / 60000);
+                            const diffHours = Math.floor(diffMins / 60);
+                            const diffDays = Math.floor(diffHours / 24);
+
+                            if (diffMins < 1) timeAgo = 'Just now';
+                            else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
+                            else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
+                            else if (diffDays < 7) timeAgo = `${diffDays}d ago`;
+                            else timeAgo = createdDate.toLocaleDateString();
+                        }
+                    }
+                } catch (e) {
+                    console.error('[SESSIONS] Date parse error:', e, session.created_at);
+                }
 
                 return `
                     <div style="padding: 12px; background: ${isCurrent ? 'var(--bg-success-subtle, rgba(34, 197, 94, 0.05))' : 'var(--bg-secondary)'}; border-radius: 8px; margin-bottom: 8px; border: 1px solid ${isCurrent ? 'var(--border-success, rgba(34, 197, 94, 0.2))' : 'var(--border-default)'};">

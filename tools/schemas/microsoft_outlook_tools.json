@@ -96,12 +96,10 @@
         "subject",
         "body"
       ],
-      
       "user_facing_language": {
         "action_verb": "send",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "send an email",
           "send a message",
@@ -109,26 +107,21 @@
           "compose and send",
           "draft and send an email"
         ],
-        
         "capability_description": "I can send emails through your Outlook account with HTML formatting, attachments, CC/BCC recipients, and importance flags. Currently saves to Drafts for manual sending.",
-        
         "example_ai_responses": [
           "I'll send that email to the team.",
           "I'll compose and send that message for you.",
           "I'll draft that email and save it to your Drafts folder for review."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_get_message → microsoft_outlook_send_email (review then send)",
           "microsoft_outlook_create_draft → microsoft_outlook_send_draft (two-step send)",
           "microsoft_outlook_send_email → microsoft_outlook_get_message (verify delivery)",
           "microsoft_outlook_search_messages → microsoft_outlook_reply_to_message (find and reply)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "draft saved",
@@ -144,7 +137,6 @@
             "User doesn't report email not received"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "failed to create draft",
@@ -162,7 +154,6 @@
             "User shows frustration about manual sending requirement"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 800,
           "rate_limit_per_minute": 30,
@@ -170,7 +161,6 @@
           "timeout_seconds": 30
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "to",
@@ -178,7 +168,6 @@
           "message_id",
           "importance"
         ],
-        
         "search_keywords": [
           "outlook",
           "email",
@@ -189,13 +178,11 @@
           "draft email",
           "send mail"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Customer communication - User sends product update to customer list via Outlook",
           "Team notification - User sends project status update to team members",
@@ -203,7 +190,6 @@
           "Document sharing - User sends email with attachments to colleagues",
           "Urgent communication - User sends high-importance email to manager"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Recipient email addresses, subject lines, message IDs, draft IDs, importance levels, attachment names",
           "search_context": "When user asks about 'emails I sent via Outlook', 'messages I composed', 'drafts I created', 'Outlook communications'",
@@ -218,7 +204,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_smart_bulk_send_personalized",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_bulk_send_personalized', ...) - DO NOT call directly!\n\n🎯 SMART: Send personalized emails to multiple recipients with mail merge. Automatically handles rate limiting, personalization with merge fields, and tracks delivery status. Much more efficient than calling outlook_send_email in a loop.",
@@ -278,12 +263,10 @@
         "body_template",
         "recipients"
       ],
-      
       "user_facing_language": {
         "action_verb": "send",
         "resource_name": "personalized emails",
         "resource_plural": "personalized emails",
-        
         "natural_phrases": [
           "send personalized emails",
           "send bulk emails with mail merge",
@@ -291,25 +274,20 @@
           "do a mail merge",
           "send personalized batch emails"
         ],
-        
         "capability_description": "I can send personalized emails to multiple recipients using mail merge. Each person gets a customized email with their specific details automatically inserted.",
-        
         "example_ai_responses": [
           "I'll send personalized emails to all 50 recipients with their names and details.",
           "I'll do a mail merge and send customized messages to everyone on the list.",
           "I'll send bulk emails with each person's specific information merged in."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_smart_bulk_send_personalized (reply to multiple)",
           "microsoft_outlook_smart_bulk_send_personalized → microsoft_outlook_search_messages (verify sends)",
           "spreadsheet_read → microsoft_outlook_smart_bulk_send_personalized (import contacts then send)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "all emails sent",
@@ -325,7 +303,6 @@
             "User shares delivery report with team"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "some failed to send",
@@ -343,7 +320,6 @@
             "User reports complaints from recipients about missing data"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 5000,
           "rate_limit_per_minute": 20,
@@ -351,14 +327,12 @@
           "timeout_seconds": 120
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "subject_template",
           "recipients",
           "merge_fields"
         ],
-        
         "search_keywords": [
           "bulk email",
           "mail merge",
@@ -369,13 +343,11 @@
           "newsletter",
           "broadcast"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Marketing campaign - User sends personalized product announcement to customer list",
           "Event invitations - User sends customized event invites with personal details",
@@ -383,7 +355,6 @@
           "Team announcements - User sends department-wide update with role-specific details",
           "Survey distribution - User sends personalized survey links to participants"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Subject templates, recipient counts, merge field names, delivery statistics, failed sends",
           "search_context": "When user asks about 'bulk emails I sent', 'mail merge campaigns', 'mass emails', 'personalized email batches'",
@@ -397,7 +368,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_list_messages",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_messages', ...) - DO NOT call directly!\n\n🎯 PERFORMANCE TIP: ALWAYS use filtering parameters (max_results, unread_only, search, filter) to reduce data size and improve response time!\n\nList emails from inbox or specific folder. Returns message metadata including sender, subject, preview, and date.\n\nFILTERING EXAMPLES:\n• max_results=10 (limit to 10 emails)\n• unread_only=True (only unread)\n• search='project update' (keyword search)\n• filter='receivedDateTime ge 2025-11-15' (date filter)\n\nWithout filters, may return 500+ emails causing slow performance and truncated results!",
@@ -435,28 +405,37 @@
             "description": "Return only unread messages (default: false)",
             "default": false
           },
-          
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): AI-friendly brief overview with sender, subject, preview\n- 'detailed': Full metadata including recipients, importance, flags\n- 'raw': Complete API response structure",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Human-readable formatted list\n- 'json': Structured data for processing\n- 'text': Plain text list",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Create Synergy dashboard card\n- 'google_doc': Create Google Doc with email list\n- 'google_sheet': Create spreadsheet with email data",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
@@ -466,12 +445,10 @@
         "required": []
       },
       "required": [],
-      
       "user_facing_language": {
         "action_verb": "check",
         "resource_name": "emails",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "check your Outlook inbox",
           "look at your emails",
@@ -479,45 +456,37 @@
           "see what emails you have",
           "list your inbox"
         ],
-        
         "capability_description": "I can check your Outlook inbox, filter messages by folder or criteria, and show you summaries or detailed views. I can also save results to your dashboard or create reports.",
-        
         "mode_translations": {
           "summary": "quick overview",
           "detailed": "complete details with all metadata",
           "raw": "full technical data"
         },
-        
         "format_translations": {
           "markdown": "formatted list",
           "json": "structured data",
           "text": "plain text list"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create a document",
           "google_sheet": "create a spreadsheet",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll check your unread Outlook emails and give you a quick summary.",
           "I'll look at your inbox from the last week and show you the details.",
           "I'll get your emails from the Projects folder and save them to a spreadsheet."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_get_message (review list then read specific)",
           "microsoft_outlook_list_messages → microsoft_outlook_mark_as_read (batch mark)",
           "microsoft_outlook_list_messages → microsoft_outlook_reply_to_message (find then reply)",
           "microsoft_outlook_list_messages → microsoft_outlook_move_message (organize inbox)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "found X emails",
@@ -533,7 +502,6 @@
             "User continues to organize/respond to emails"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "no emails found",
@@ -550,14 +518,12 @@
             "User reports unexpected empty results"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 1200,
           "rate_limit_per_minute": 60,
           "max_retries": 3,
           "timeout_seconds": 30
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=summary, format=markdown (quick inbox review)",
@@ -571,7 +537,6 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "folder",
@@ -579,7 +544,6 @@
           "filter",
           "message_ids"
         ],
-        
         "search_keywords": [
           "outlook inbox",
           "email list",
@@ -590,13 +554,11 @@
           "unread emails",
           "email folder"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Morning inbox review - User checks unread Outlook emails to start day",
           "Project email tracking - User filters emails by sender or keyword for specific project",
@@ -604,7 +566,6 @@
           "Cleanup workflow - User lists old emails in specific folder before archiving",
           "Priority inbox - User checks high-importance unread emails first"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Folder names, search queries, filters used, message counts, frequently checked senders",
           "search_context": "When user asks about 'emails I checked', 'Outlook inbox reviews', 'messages I looked at', 'inbox queries I ran'",
@@ -616,30 +577,66 @@
             "message IDs"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet'",
           "columns": [
-            {"name": "received_date", "type": "date", "format": "YYYY-MM-DD HH:MM", "auto": true, "source": "message.receivedDateTime"},
-            {"name": "from", "type": "string", "source": "message.from.emailAddress"},
-            {"name": "subject", "type": "string", "source": "message.subject"},
-            {"name": "is_read", "type": "boolean", "source": "message.isRead"},
-            {"name": "importance", "type": "string", "source": "message.importance"},
-            {"name": "has_attachments", "type": "boolean", "source": "message.hasAttachments"},
-            {"name": "preview", "type": "string", "source": "message.bodyPreview"}
+            {
+              "name": "received_date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:MM",
+              "auto": true,
+              "source": "message.receivedDateTime"
+            },
+            {
+              "name": "from",
+              "type": "string",
+              "source": "message.from.emailAddress"
+            },
+            {
+              "name": "subject",
+              "type": "string",
+              "source": "message.subject"
+            },
+            {
+              "name": "is_read",
+              "type": "boolean",
+              "source": "message.isRead"
+            },
+            {
+              "name": "importance",
+              "type": "string",
+              "source": "message.importance"
+            },
+            {
+              "name": "has_attachments",
+              "type": "boolean",
+              "source": "message.hasAttachments"
+            },
+            {
+              "name": "preview",
+              "type": "string",
+              "source": "message.bodyPreview"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
             "auto_filter": true,
             "conditional_formatting": [
-              {"column": "is_read", "rule": "false", "format": "bold"},
-              {"column": "importance", "rule": "high", "format": "red_text"}
+              {
+                "column": "is_read",
+                "rule": "false",
+                "format": "bold"
+              },
+              {
+                "column": "importance",
+                "rule": "high",
+                "format": "red_text"
+              }
             ]
           }
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_get_message",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_get_message', ...) - DO NOT call directly!\n\nGet complete details of a specific email including full body content, attachments, and metadata.",
@@ -658,28 +655,37 @@
             "description": "Include attachment content (default: false)",
             "default": false
           },
-          
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): Key details and body preview\n- 'detailed': Full email with all headers and metadata\n- 'raw': Complete API response",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Formatted email display\n- 'json': Structured data\n- 'text': Plain text",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save email to dashboard\n- 'google_doc': Create document with email content\n- 'google_sheet': Not recommended for single email",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {subject} placeholders",
@@ -693,12 +699,10 @@
       "required": [
         "message_id"
       ],
-      
       "user_facing_language": {
         "action_verb": "read",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "read that email",
           "show me the full email",
@@ -706,45 +710,37 @@
           "open that email",
           "retrieve the email details"
         ],
-        
         "capability_description": "I can retrieve the complete contents of any Outlook email including body, attachments, and metadata. I can show you summaries or full details.",
-        
         "mode_translations": {
           "summary": "key details and preview",
           "detailed": "full email with all information",
           "raw": "complete technical data"
         },
-        
         "format_translations": {
           "markdown": "formatted display",
           "json": "structured data",
           "text": "plain text"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create a document",
           "google_sheet": "add to spreadsheet (not recommended for single email)",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll read that email and show you the full content.",
           "I'll retrieve the message details for you.",
           "I'll get that email and save it to your dashboard."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_get_message (browse then read)",
           "microsoft_outlook_search_messages → microsoft_outlook_get_message (find then read)",
           "microsoft_outlook_get_message → microsoft_outlook_reply_to_message (read then reply)",
           "microsoft_outlook_get_message → microsoft_outlook_get_attachments (check attachments)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "retrieved email",
@@ -760,7 +756,6 @@
             "User continues to read other emails"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "message not found",
@@ -776,14 +771,12 @@
             "User tries alternative message ID"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 600,
           "rate_limit_per_minute": 60,
           "max_retries": 3,
           "timeout_seconds": 20
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=detailed, format=markdown (thorough email review)",
@@ -797,7 +790,6 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_id",
@@ -805,7 +797,6 @@
           "sender",
           "body_preview"
         ],
-        
         "search_keywords": [
           "read email",
           "get message",
@@ -815,13 +806,11 @@
           "full email",
           "email body"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Read customer inquiry - User retrieves full email from customer to understand issue",
           "Review attachment details - User reads email to see what files are attached",
@@ -829,7 +818,6 @@
           "Verify email content - User checks what was actually sent in a message",
           "Prepare reply - User reads full email before composing response"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Message IDs, email subjects, sender emails, read timestamps, whether attachments were included",
           "search_context": "When user asks about 'emails I read', 'messages I retrieved', 'Outlook emails I looked at', 'specific email about [topic]'",
@@ -841,25 +829,50 @@
             "read timestamps"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet' (not recommended for single email)",
           "columns": [
-            {"name": "received_date", "type": "date", "format": "YYYY-MM-DD HH:MM", "source": "message.receivedDateTime"},
-            {"name": "from", "type": "string", "source": "message.from.emailAddress"},
-            {"name": "subject", "type": "string", "source": "message.subject"},
-            {"name": "body", "type": "string", "source": "message.body.content"},
-            {"name": "importance", "type": "string", "source": "message.importance"},
-            {"name": "has_attachments", "type": "boolean", "source": "message.hasAttachments"}
+            {
+              "name": "received_date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:MM",
+              "source": "message.receivedDateTime"
+            },
+            {
+              "name": "from",
+              "type": "string",
+              "source": "message.from.emailAddress"
+            },
+            {
+              "name": "subject",
+              "type": "string",
+              "source": "message.subject"
+            },
+            {
+              "name": "body",
+              "type": "string",
+              "source": "message.body.content"
+            },
+            {
+              "name": "importance",
+              "type": "string",
+              "source": "message.importance"
+            },
+            {
+              "name": "has_attachments",
+              "type": "boolean",
+              "source": "message.hasAttachments"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
-            "wrap_text": ["body"]
+            "wrap_text": [
+              "body"
+            ]
           }
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_search_messages",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_search_messages', ...) - DO NOT call directly!\n\n🎯 BEST FOR: Date range searches and multi-criteria filtering!\n\nAdvanced search across all email folders with multiple criteria. Supports date ranges, sender filters, attachment checks, and keyword search.\n\nRECOMMENDED USAGE:\n• ALWAYS use date_from/date_to for time-based queries ('last week', 'this month')\n• Set max_results to reasonable limit (default: 50)\n• Combine filters for precision (date + sender + keywords)\n\nEXAMPLE: query='invoice', date_from='2025-11-01', date_to='2025-11-19', max_results=20",
@@ -894,28 +907,37 @@
             "description": "⚠️ IMPORTANT: Maximum results to return (default: 50). Use lower values (10-25) for focused searches. Higher values (50-100) only when user needs comprehensive results.",
             "default": 50
           },
-          
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): Brief search results with key info\n- 'detailed': Full message details for each result\n- 'raw': Complete API response",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Formatted search results\n- 'json': Structured data\n- 'text': Plain text list",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save search results to dashboard\n- 'google_doc': Create document with results\n- 'google_sheet': Create spreadsheet for analysis",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {count}, {query} placeholders",
@@ -929,12 +951,10 @@
       "required": [
         "query"
       ],
-      
       "user_facing_language": {
         "action_verb": "search",
         "resource_name": "emails",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "search your Outlook emails",
           "find emails about",
@@ -942,45 +962,37 @@
           "search for emails from",
           "find emails with attachments"
         ],
-        
         "capability_description": "I can search your Outlook emails with advanced filters including keywords, senders, date ranges, and attachments. I can show summaries or export results for analysis.",
-        
         "mode_translations": {
           "summary": "brief search results",
           "detailed": "complete message details",
           "raw": "full technical data"
         },
-        
         "format_translations": {
           "markdown": "formatted results",
           "json": "structured data",
           "text": "plain text list"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create a document",
           "google_sheet": "create a spreadsheet for analysis",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll search for emails about 'invoice' from the last month.",
           "I'll find all emails from John with attachments and export to a spreadsheet.",
           "I'll look for messages containing 'project update' and show you a summary."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_search_messages → microsoft_outlook_get_message (find then read specific)",
           "microsoft_outlook_search_messages → microsoft_outlook_reply_to_message (find then respond)",
           "microsoft_outlook_search_messages → microsoft_outlook_move_message (find then organize)",
           "microsoft_outlook_search_messages → export=google_sheet (search then analyze)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "found X results",
@@ -997,7 +1009,6 @@
             "User continues to related emails"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "no results found",
@@ -1014,14 +1025,12 @@
             "User reports expecting more results"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 1500,
           "rate_limit_per_minute": 30,
           "max_retries": 3,
           "timeout_seconds": 45
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=summary, format=markdown (quick review of findings)",
@@ -1035,7 +1044,6 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "query",
@@ -1043,7 +1051,6 @@
           "date_from",
           "date_to"
         ],
-        
         "search_keywords": [
           "search outlook",
           "find emails",
@@ -1053,13 +1060,11 @@
           "locate emails",
           "email query"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Find invoice emails - User searches for 'invoice' to locate billing communications",
           "Track project emails - User finds all emails about specific project from date range",
@@ -1067,7 +1072,6 @@
           "Find emails with attachments - User searches for messages with files attached",
           "Audit email history - User exports search results to spreadsheet for compliance review"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Search queries, date ranges, sender filters, result counts, frequently searched keywords",
           "search_context": "When user asks about 'emails I searched for', 'Outlook searches I ran', 'when I looked for [topic]', 'emails about [keyword]'",
@@ -1079,24 +1083,60 @@
             "attachment types"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet'",
           "columns": [
-            {"name": "received_date", "type": "date", "format": "YYYY-MM-DD HH:MM", "source": "message.receivedDateTime"},
-            {"name": "from", "type": "string", "source": "message.from.emailAddress"},
-            {"name": "subject", "type": "string", "source": "message.subject"},
-            {"name": "preview", "type": "string", "source": "message.bodyPreview"},
-            {"name": "has_attachments", "type": "boolean", "source": "message.hasAttachments"},
-            {"name": "importance", "type": "string", "source": "message.importance"},
-            {"name": "is_read", "type": "boolean", "source": "message.isRead"}
+            {
+              "name": "received_date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:MM",
+              "source": "message.receivedDateTime"
+            },
+            {
+              "name": "from",
+              "type": "string",
+              "source": "message.from.emailAddress"
+            },
+            {
+              "name": "subject",
+              "type": "string",
+              "source": "message.subject"
+            },
+            {
+              "name": "preview",
+              "type": "string",
+              "source": "message.bodyPreview"
+            },
+            {
+              "name": "has_attachments",
+              "type": "boolean",
+              "source": "message.hasAttachments"
+            },
+            {
+              "name": "importance",
+              "type": "string",
+              "source": "message.importance"
+            },
+            {
+              "name": "is_read",
+              "type": "boolean",
+              "source": "message.isRead"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
             "auto_filter": true,
             "conditional_formatting": [
-              {"column": "importance", "rule": "high", "format": "red_text"},
-              {"column": "has_attachments", "rule": "true", "format": "bold"}
+              {
+                "column": "importance",
+                "rule": "high",
+                "format": "red_text"
+              },
+              {
+                "column": "has_attachments",
+                "rule": "true",
+                "format": "bold"
+              }
             ]
           }
         }
@@ -1132,12 +1172,10 @@
         "message_ids",
         "is_read"
       ],
-      
       "user_facing_language": {
         "action_verb": "mark",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "mark emails as read",
           "mark messages as unread",
@@ -1145,26 +1183,21 @@
           "mark those as read",
           "change read status"
         ],
-        
         "capability_description": "I can mark your Outlook emails as read or unread, either individually or in batches. This helps you manage your inbox status.",
-        
         "example_ai_responses": [
           "I'll mark those 5 emails as read for you.",
           "I'll set that message to unread so you remember to review it later.",
           "I'll mark all those messages as read to clear your unread count."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_mark_as_read (review then mark)",
           "microsoft_outlook_search_messages → microsoft_outlook_mark_as_read (find then mark)",
           "microsoft_outlook_get_message → microsoft_outlook_mark_as_read (read then mark unread for follow-up)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_mark_as_read (organize then update status)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "marked as read",
@@ -1180,7 +1213,6 @@
             "User proceeds to organize other emails"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "failed to mark",
@@ -1196,7 +1228,6 @@
             "User manually marks emails in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 400,
           "rate_limit_per_minute": 120,
@@ -1204,13 +1235,11 @@
           "timeout_seconds": 15
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_ids",
           "is_read"
         ],
-        
         "search_keywords": [
           "mark read",
           "mark unread",
@@ -1219,13 +1248,11 @@
           "unread count",
           "inbox management"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Inbox cleanup - User marks old emails as read to clear unread count",
           "Follow-up reminder - User marks important email as unread to remember to respond",
@@ -1233,7 +1260,6 @@
           "Email triage - User marks low-priority emails as read after quick scan",
           "Status reset - User marks emails as unread after accidental read"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Message IDs marked, read/unread status, batch sizes, timestamps of status changes",
           "search_context": "When user asks about 'emails I marked as read', 'messages I updated', 'inbox status changes I made'",
@@ -1246,7 +1272,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_move_message",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_move_message', ...) - DO NOT call directly!\n\nMove message(s) to a different folder.",
@@ -1277,12 +1302,10 @@
         "message_ids",
         "destination_folder"
       ],
-      
       "user_facing_language": {
         "action_verb": "move",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "move emails to folder",
           "organize emails into folders",
@@ -1290,26 +1313,21 @@
           "file emails",
           "relocate messages"
         ],
-        
         "capability_description": "I can move your Outlook emails to different folders, helping you organize your inbox and file messages appropriately.",
-        
         "example_ai_responses": [
           "I'll move those 10 emails to the Projects folder.",
           "I'll file that message in the Archive folder.",
           "I'll organize those emails into the appropriate folders for you."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_move_message (review then organize)",
           "microsoft_outlook_search_messages → microsoft_outlook_move_message (find then file)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_move_message (auto-organize workflow)",
           "microsoft_outlook_create_folder → microsoft_outlook_move_message (create folder then move)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "moved successfully",
@@ -1325,7 +1343,6 @@
             "User doesn't ask to undo move"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "failed to move",
@@ -1342,7 +1359,6 @@
             "User manually moves in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 600,
           "rate_limit_per_minute": 60,
@@ -1350,13 +1366,11 @@
           "timeout_seconds": 20
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_ids",
           "destination_folder"
         ],
-        
         "search_keywords": [
           "move email",
           "organize inbox",
@@ -1365,13 +1379,11 @@
           "relocate email",
           "inbox organization"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Project organization - User moves project-related emails to dedicated project folder",
           "Inbox cleanup - User files old emails into archive folder",
@@ -1379,7 +1391,6 @@
           "Client management - User organizes client emails into client-specific folders",
           "Topic categorization - User moves emails by topic into subject folders"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Message IDs moved, destination folders, move timestamps, batch sizes",
           "search_context": "When user asks about 'emails I moved', 'where I filed messages', 'folders I organized emails into'",
@@ -1393,7 +1404,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_delete_message",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_delete_message', ...) - DO NOT call directly!\n\nDelete message(s). Can soft delete (move to deleted items) or hard delete (permanent).",
@@ -1423,12 +1433,10 @@
       "required": [
         "message_ids"
       ],
-      
       "user_facing_language": {
         "action_verb": "delete",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "delete emails",
           "remove messages",
@@ -1436,26 +1444,21 @@
           "get rid of emails",
           "permanently delete messages"
         ],
-        
         "capability_description": "I can delete your Outlook emails either by moving them to Deleted Items (recoverable) or permanently deleting them (not recoverable).",
-        
         "example_ai_responses": [
           "I'll delete those 5 spam emails and move them to Deleted Items.",
           "I'll permanently delete those old messages - they won't be recoverable.",
           "I'll remove that email for you (you can still recover it from Deleted Items if needed)."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_delete_message (review then delete)",
           "microsoft_outlook_search_messages → microsoft_outlook_delete_message (find then delete)",
           "microsoft_outlook_get_message → microsoft_outlook_delete_message (read then delete)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_delete_message (organize then clean up)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "deleted successfully",
@@ -1471,7 +1474,6 @@
             "User checks deleted items folder if needed"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "failed to delete",
@@ -1488,7 +1490,6 @@
             "User asks about recovery options"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 500,
           "rate_limit_per_minute": 60,
@@ -1496,13 +1497,11 @@
           "timeout_seconds": 20
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_ids",
           "permanent"
         ],
-        
         "search_keywords": [
           "delete email",
           "remove message",
@@ -1511,13 +1510,11 @@
           "email deletion",
           "trash email"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Spam cleanup - User deletes spam emails from inbox",
           "Inbox management - User removes old unnecessary emails",
@@ -1525,7 +1522,6 @@
           "Storage management - User deletes large emails with attachments to free space",
           "Duplicate removal - User deletes duplicate messages"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Message IDs deleted, whether permanent deletion, deletion timestamps, subjects of deleted emails",
           "search_context": "When user asks about 'emails I deleted', 'messages I removed', 'what I deleted recently'",
@@ -1539,7 +1535,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_create_folder",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_folder', ...) - DO NOT call directly!\n\nCreate a new mail folder.",
@@ -1565,12 +1560,10 @@
       "required": [
         "display_name"
       ],
-      
       "user_facing_language": {
         "action_verb": "create",
         "resource_name": "folder",
         "resource_plural": "folders",
-        
         "natural_phrases": [
           "create an email folder",
           "make a new folder",
@@ -1578,26 +1571,21 @@
           "create a folder for organizing",
           "add a new folder"
         ],
-        
         "capability_description": "I can create new folders in your Outlook to help organize your emails by project, client, topic, or any structure you prefer.",
-        
         "example_ai_responses": [
           "I'll create a 'Project Alpha' folder in your Outlook.",
           "I'll set up that folder for organizing your client emails.",
           "I'll make a new folder called 'Invoices' for you."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_create_folder → microsoft_outlook_move_message (create then organize)",
           "microsoft_outlook_list_folders → microsoft_outlook_create_folder (check existing then create)",
           "microsoft_outlook_create_folder → microsoft_outlook_create_inbox_rule (create folder then auto-route)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_create_folder (organize workflow)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "folder created",
@@ -1613,7 +1601,6 @@
             "User continues organizing emails"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "folder already exists",
@@ -1629,7 +1616,6 @@
             "User manually creates folder in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 400,
           "rate_limit_per_minute": 30,
@@ -1637,14 +1623,12 @@
           "timeout_seconds": 15
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "display_name",
           "folder_id",
           "parent_folder"
         ],
-        
         "search_keywords": [
           "create folder",
           "new folder",
@@ -1653,13 +1637,11 @@
           "organize folders",
           "folder structure"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Project organization - User creates folder for new project emails",
           "Client management - User creates client-specific folders for correspondence",
@@ -1667,7 +1649,6 @@
           "Archive structure - User creates year-based archive folders",
           "Team collaboration - User creates shared team folders"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Folder names, folder IDs, parent folders, creation timestamps, folder purposes",
           "search_context": "When user asks about 'folders I created', 'email folders I set up', 'organizational folders'",
@@ -1681,7 +1662,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_list_folders",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_folders', ...) - DO NOT call directly!\n\nList all mail folders in the mailbox.",
@@ -1693,25 +1673,35 @@
         "properties": {
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): Folder names and IDs\n- 'detailed': Full folder details with child counts\n- 'raw': Complete API response",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Formatted folder tree\n- 'json': Structured data\n- 'text': Plain text list",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save folder list to dashboard\n- 'google_doc': Create document with folder structure\n- 'google_sheet': Create spreadsheet with folder details",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
@@ -1721,12 +1711,10 @@
         "required": []
       },
       "required": [],
-      
       "user_facing_language": {
         "action_verb": "list",
         "resource_name": "folders",
         "resource_plural": "folders",
-        
         "natural_phrases": [
           "list email folders",
           "show me my folders",
@@ -1734,45 +1722,37 @@
           "get folder list",
           "show folder structure"
         ],
-        
         "capability_description": "I can show you all your Outlook folders with their structure and details, helping you understand your email organization.",
-        
         "mode_translations": {
           "summary": "folder names and IDs",
           "detailed": "complete folder details",
           "raw": "full technical data"
         },
-        
         "format_translations": {
           "markdown": "formatted folder tree",
           "json": "structured data",
           "text": "plain text list"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create a document",
           "google_sheet": "create a spreadsheet",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll show you all your Outlook folders and their structure.",
           "I'll list your email folders with details about each one.",
           "I'll export your folder structure to a spreadsheet for reference."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_folders → microsoft_outlook_create_folder (check existing then create)",
           "microsoft_outlook_list_folders → microsoft_outlook_move_message (view structure then organize)",
           "microsoft_outlook_list_folders → microsoft_outlook_list_messages (check folders then review contents)",
           "microsoft_outlook_list_folders → export=google_sheet (document folder structure)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "found X folders",
@@ -1788,7 +1768,6 @@
             "User uses folder IDs for other operations"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "no folders found",
@@ -1802,14 +1781,12 @@
             "User reports expecting more folders"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 800,
           "rate_limit_per_minute": 30,
           "max_retries": 3,
           "timeout_seconds": 20
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=summary, format=markdown (quick folder overview)",
@@ -1823,13 +1800,11 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "folder_names",
           "folder_ids"
         ],
-        
         "search_keywords": [
           "outlook folders",
           "email folders",
@@ -1838,13 +1813,11 @@
           "mailbox folders",
           "folder hierarchy"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Folder audit - User reviews all folders to understand organization structure",
           "Before creating folder - User checks existing folders before creating new one",
@@ -1852,7 +1825,6 @@
           "Documentation - User exports folder structure for team reference",
           "Rule setup - User gets folder IDs for creating inbox rules"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Folder names, folder IDs, folder hierarchy, custom folders created",
           "search_context": "When user asks about 'my Outlook folders', 'folder structure', 'what folders I have'",
@@ -1863,16 +1835,39 @@
             "well-known folders (inbox, sent items)"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet'",
           "columns": [
-            {"name": "folder_name", "type": "string", "source": "folder.displayName"},
-            {"name": "folder_id", "type": "string", "source": "folder.id"},
-            {"name": "parent_folder", "type": "string", "source": "folder.parentFolderId"},
-            {"name": "child_folder_count", "type": "integer", "source": "folder.childFolderCount"},
-            {"name": "unread_item_count", "type": "integer", "source": "folder.unreadItemCount"},
-            {"name": "total_item_count", "type": "integer", "source": "folder.totalItemCount"}
+            {
+              "name": "folder_name",
+              "type": "string",
+              "source": "folder.displayName"
+            },
+            {
+              "name": "folder_id",
+              "type": "string",
+              "source": "folder.id"
+            },
+            {
+              "name": "parent_folder",
+              "type": "string",
+              "source": "folder.parentFolderId"
+            },
+            {
+              "name": "child_folder_count",
+              "type": "integer",
+              "source": "folder.childFolderCount"
+            },
+            {
+              "name": "unread_item_count",
+              "type": "integer",
+              "source": "folder.unreadItemCount"
+            },
+            {
+              "name": "total_item_count",
+              "type": "integer",
+              "source": "folder.totalItemCount"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
@@ -1881,7 +1876,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_create_draft",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_draft', ...) - DO NOT call directly!\n\nCreate a draft email without sending it. Useful for preparing emails for later review/sending.",
@@ -1934,12 +1928,10 @@
         "subject",
         "body"
       ],
-      
       "user_facing_language": {
         "action_verb": "create",
         "resource_name": "draft",
         "resource_plural": "drafts",
-        
         "natural_phrases": [
           "create a draft email",
           "save as draft",
@@ -1947,26 +1939,21 @@
           "prepare an email for later",
           "compose a draft"
         ],
-        
         "capability_description": "I can create draft emails in your Outlook that you can review and send later. This is useful for preparing messages that need review before sending.",
-        
         "example_ai_responses": [
           "I'll create a draft email for you to review before sending.",
           "I'll save that as a draft in your Outlook.",
           "I'll prepare that email as a draft so you can edit it later."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_create_draft → microsoft_outlook_send_draft (create then send after review)",
           "microsoft_outlook_list_messages → microsoft_outlook_create_draft (review then draft reply)",
           "microsoft_outlook_get_message → microsoft_outlook_create_draft (read then draft response)",
           "microsoft_outlook_create_draft → microsoft_outlook_get_message (create then review draft)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "draft created",
@@ -1982,7 +1969,6 @@
             "User edits draft before sending"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "failed to create draft",
@@ -1997,7 +1983,6 @@
             "User manually creates draft in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 600,
           "rate_limit_per_minute": 30,
@@ -2005,14 +1990,12 @@
           "timeout_seconds": 20
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "to",
           "subject",
           "draft_id"
         ],
-        
         "search_keywords": [
           "create draft",
           "draft email",
@@ -2021,13 +2004,11 @@
           "prepare email",
           "unsent email"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Review before sending - User creates draft to review carefully before sending important email",
           "Collaborative editing - User creates draft for team to review and edit",
@@ -2035,7 +2016,6 @@
           "Scheduled sending - User creates draft to send at specific later time",
           "Multi-step composition - User creates draft to work on email over multiple sessions"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Draft IDs, recipients, subjects, creation timestamps, whether drafts were later sent",
           "search_context": "When user asks about 'drafts I created', 'emails I prepared', 'unsent messages', 'draft about [topic]'",
@@ -2049,144 +2029,6 @@
         }
       }
     },
-    {
-      "name": "microsoft_outlook_send_draft",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_send_draft', ...) - DO NOT call directly!\n\nSend a previously created draft email.",
-      "platform": "microsoft_outlook",
-      "category": "basic",
-      "priority": "medium",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "message_id": {
-            "type": "string",
-            "description": "Draft message ID to send"
-          }
-        },
-        "required": [
-          "message_id"
-        ]
-      },
-      "required": [
-        "message_id"
-      ],
-      
-      "user_facing_language": {
-        "action_verb": "send",
-        "resource_name": "draft",
-        "resource_plural": "drafts",
-        
-        "natural_phrases": [
-          "send that draft",
-          "send the draft email",
-          "send the prepared email",
-          "finalize and send draft",
-          "deliver that draft"
-        ],
-        
-        "capability_description": "I can send draft emails that have been previously created and reviewed, finalizing them and delivering them to recipients.",
-        
-        "example_ai_responses": [
-          "I'll send that draft email now.",
-          "I'll finalize and send that draft for you.",
-          "I'll deliver that prepared email to the recipients."
-        ]
-      },
-      
-      "tool_intelligence": {
-        "category": "email",
-        
-        "typical_workflow_patterns": [
-          "microsoft_outlook_create_draft → microsoft_outlook_send_draft (two-step sending)",
-          "microsoft_outlook_list_messages → microsoft_outlook_send_draft (review drafts then send)",
-          "microsoft_outlook_get_message → microsoft_outlook_send_draft (review draft then send)",
-          "microsoft_outlook_send_draft → microsoft_outlook_get_message (send then verify)"
-        ],
-        
-        "success_indicators": {
-          "keywords": [
-            "draft sent",
-            "email sent",
-            "message delivered",
-            "sent successfully",
-            "delivery complete"
-          ],
-          "behavioral": [
-            "User confirms email was received",
-            "User doesn't ask about send status",
-            "User proceeds to next task",
-            "User checks sent items folder"
-          ]
-        },
-        
-        "failure_indicators": {
-          "keywords": [
-            "failed to send",
-            "draft not found",
-            "invalid message ID",
-            "send error",
-            "delivery failed"
-          ],
-          "behavioral": [
-            "User asks if email was sent",
-            "User checks draft folder",
-            "User reports recipient didn't receive",
-            "User retries sending",
-            "User manually sends from Outlook"
-          ]
-        },
-        
-        "performance_expectations": {
-          "typical_duration_ms": 800,
-          "rate_limit_per_minute": 30,
-          "max_retries": 3,
-          "timeout_seconds": 30
-        }
-      },
-      
-      "memory_context": {
-        "vectorization_fields": [
-          "message_id",
-          "draft_subject"
-        ],
-        
-        "search_keywords": [
-          "send draft",
-          "finalize email",
-          "deliver draft",
-          "send prepared email",
-          "complete email",
-          "dispatch draft"
-        ],
-        
-        "related_synergy_platforms": [
-          "microsoft_outlook",
-          "microsoft_365",
-          "office_365"
-        ],
-        
-        "typical_use_cases": [
-          "Approved email - User sends draft after manager approval",
-          "Scheduled delivery - User sends draft at appropriate time",
-          "Post-review send - User sends draft after proofreading",
-          "Batch sending - User sends multiple reviewed drafts sequentially",
-          "Collaborative email - User sends draft after team edits"
-        ],
-        
-        "conversation_memory_hints": {
-          "what_to_remember": "Draft IDs sent, send timestamps, recipients of sent drafts, subjects of sent emails",
-          "search_context": "When user asks about 'drafts I sent', 'emails I finalized', 'messages I delivered from drafts'",
-          "related_entities": [
-            "draft IDs",
-            "message IDs",
-            "recipients",
-            "send timestamps",
-            "email subjects"
-          ]
-        }
-      }
-    },
-    
     {
       "name": "microsoft_outlook_reply_to_message",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_reply_to_message', ...) - DO NOT call directly!\n\nReply to an email. Can reply to sender only or reply-all to all recipients.",
@@ -2228,12 +2070,10 @@
         "message_id",
         "body"
       ],
-      
       "user_facing_language": {
         "action_verb": "reply",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "reply to that email",
           "respond to the message",
@@ -2241,26 +2081,21 @@
           "reply to everyone",
           "send a response"
         ],
-        
         "capability_description": "I can reply to Outlook emails either to the sender only or to all recipients in the thread. The reply will maintain the conversation thread.",
-        
         "example_ai_responses": [
           "I'll reply to that email for you.",
           "I'll send a response to the sender.",
           "I'll reply to everyone in that thread with your message."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_get_message → microsoft_outlook_reply_to_message (inbox review workflow)",
           "microsoft_outlook_search_messages → microsoft_outlook_reply_to_message (find then reply)",
           "microsoft_outlook_get_message → microsoft_outlook_reply_to_message (read then respond)",
           "microsoft_outlook_reply_to_message → microsoft_outlook_mark_as_read (reply then mark done)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "reply sent",
@@ -2276,7 +2111,6 @@
             "User marks original as read/archived"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "reply failed",
@@ -2293,7 +2127,6 @@
             "User manually replies in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 900,
           "rate_limit_per_minute": 30,
@@ -2301,14 +2134,12 @@
           "timeout_seconds": 30
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_id",
           "original_subject",
           "reply_all"
         ],
-        
         "search_keywords": [
           "reply email",
           "respond message",
@@ -2317,13 +2148,11 @@
           "email response",
           "answer email"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Customer response - User replies to customer inquiry with solution",
           "Team communication - User replies to team member question",
@@ -2331,7 +2160,6 @@
           "Document feedback - User replies with feedback on shared document",
           "Thread continuation - User replies to ongoing email conversation"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Original message IDs, reply content summaries, whether reply-all was used, reply timestamps",
           "search_context": "When user asks about 'emails I replied to', 'responses I sent', 'conversations I participated in'",
@@ -2345,7 +2173,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_forward_message",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_forward_message', ...) - DO NOT call directly!\n\nForward an email to one or more recipients.",
@@ -2380,12 +2207,10 @@
         "message_id",
         "to"
       ],
-      
       "user_facing_language": {
         "action_verb": "forward",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "forward that email",
           "forward the message to",
@@ -2393,26 +2218,21 @@
           "share that email with",
           "pass along that message"
         ],
-        
         "capability_description": "I can forward Outlook emails to other recipients, optionally adding your comments before the forwarded content.",
-        
         "example_ai_responses": [
           "I'll forward that email to the team.",
           "I'll send that message to John with your comment.",
           "I'll share that email with the project group."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_get_message → microsoft_outlook_forward_message (read then forward)",
           "microsoft_outlook_search_messages → microsoft_outlook_forward_message (find then forward)",
           "microsoft_outlook_list_messages → microsoft_outlook_forward_message (browse then forward)",
           "microsoft_outlook_forward_message → microsoft_outlook_mark_as_read (forward then mark done)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "forwarded successfully",
@@ -2428,7 +2248,6 @@
             "User receives acknowledgment from recipients"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "forward failed",
@@ -2445,7 +2264,6 @@
             "User manually forwards in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 900,
           "rate_limit_per_minute": 30,
@@ -2453,14 +2271,12 @@
           "timeout_seconds": 30
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_id",
           "to",
           "original_subject"
         ],
-        
         "search_keywords": [
           "forward email",
           "forward message",
@@ -2469,13 +2285,11 @@
           "email forwarding",
           "pass along message"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Team collaboration - User forwards customer email to team for discussion",
           "Information sharing - User forwards important announcement to colleagues",
@@ -2483,7 +2297,6 @@
           "Documentation - User forwards email thread to project archive",
           "Request routing - User forwards inquiry to appropriate department"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Original message IDs, forward recipients, comments added, forward timestamps",
           "search_context": "When user asks about 'emails I forwarded', 'messages I shared', 'emails I sent to [person]'",
@@ -2497,7 +2310,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_add_category",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_add_category', ...) - DO NOT call directly!\n\nAdd one or more categories (labels/tags) to message(s) for organization.",
@@ -2531,12 +2343,10 @@
         "message_ids",
         "categories"
       ],
-      
       "user_facing_language": {
         "action_verb": "categorize",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "add categories to emails",
           "tag emails",
@@ -2544,26 +2354,21 @@
           "categorize emails",
           "apply tags to messages"
         ],
-        
         "capability_description": "I can add categories (color-coded labels) to your Outlook emails to help you organize and filter messages by topic, priority, or project.",
-        
         "example_ai_responses": [
           "I'll add the 'Important' category to those emails.",
           "I'll tag those messages with 'Project Alpha' and 'Follow Up'.",
           "I'll categorize that email as 'Customer Support'."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_add_category (review then categorize)",
           "microsoft_outlook_search_messages → microsoft_outlook_add_category (find then tag)",
           "microsoft_outlook_get_message → microsoft_outlook_add_category (read then label)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_add_category (organize workflow)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "categories added",
@@ -2579,7 +2384,6 @@
             "User uses categories for organization"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "category not found",
@@ -2596,7 +2400,6 @@
             "User manually adds categories in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 500,
           "rate_limit_per_minute": 60,
@@ -2604,13 +2407,11 @@
           "timeout_seconds": 20
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_ids",
           "categories"
         ],
-        
         "search_keywords": [
           "add category",
           "tag email",
@@ -2619,13 +2420,11 @@
           "email categories",
           "outlook tags"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Project organization - User tags project-related emails with project category",
           "Priority marking - User adds 'Important' or 'Urgent' category to critical emails",
@@ -2633,7 +2432,6 @@
           "Follow-up tracking - User adds 'Follow Up' category to emails needing response",
           "Client labeling - User tags client emails with client-specific categories"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Category names used, message IDs categorized, categorization timestamps, common categories",
           "search_context": "When user asks about 'emails I categorized', 'tags I applied', 'categories I use', 'messages labeled as [category]'",
@@ -2647,7 +2445,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_flag_message",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_flag_message', ...) - DO NOT call directly!\n\nFlag message(s) for follow-up with optional due date and reminder.",
@@ -2687,12 +2484,10 @@
         "message_ids",
         "flag_status"
       ],
-      
       "user_facing_language": {
         "action_verb": "flag",
         "resource_name": "email",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "flag emails for follow-up",
           "mark emails for action",
@@ -2700,19 +2495,15 @@
           "flag messages",
           "mark as complete"
         ],
-        
         "capability_description": "I can flag your Outlook emails for follow-up, set due dates, and mark tasks as complete. This helps you track action items from emails.",
-        
         "example_ai_responses": [
           "I'll flag those emails for follow-up by Friday.",
           "I'll mark that message for action with a reminder.",
           "I'll mark those flagged emails as complete."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_flag_message (review then flag)",
           "microsoft_outlook_search_messages → microsoft_outlook_flag_message (find then flag)",
@@ -2720,7 +2511,6 @@
           "microsoft_outlook_smart_follow_up_reminder → microsoft_outlook_flag_message (auto-flag workflow)",
           "microsoft_outlook_reply_to_message → microsoft_outlook_flag_message (reply then mark complete)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "flagged successfully",
@@ -2737,7 +2527,6 @@
             "User marks flags complete after action taken"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "failed to flag",
@@ -2754,7 +2543,6 @@
             "User manually flags in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 500,
           "rate_limit_per_minute": 60,
@@ -2762,14 +2550,12 @@
           "timeout_seconds": 20
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_ids",
           "flag_status",
           "due_date"
         ],
-        
         "search_keywords": [
           "flag email",
           "follow-up",
@@ -2778,13 +2564,11 @@
           "task email",
           "due date"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Task tracking - User flags emails that require action with due dates",
           "Follow-up management - User flags emails needing response by specific date",
@@ -2792,7 +2576,6 @@
           "Completion tracking - User marks flagged emails as complete after action",
           "Reminder system - User sets flags with reminders for time-sensitive emails"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Message IDs flagged, due dates set, flag statuses, when flags were marked complete",
           "search_context": "When user asks about 'emails I flagged', 'follow-up items', 'flagged messages', 'emails due [date]'",
@@ -2806,7 +2589,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_smart_organize_inbox",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_organize_inbox', ...) - DO NOT call directly!\n\n🎯 SMART: Intelligently organize inbox using rules. Automatically moves emails to folders based on sender, subject keywords, or importance. Creates folders if they don't exist.",
@@ -2866,12 +2648,10 @@
       "required": [
         "rules"
       ],
-      
       "user_facing_language": {
         "action_verb": "organize",
         "resource_name": "inbox",
         "resource_plural": "inboxes",
-        
         "natural_phrases": [
           "organize my inbox",
           "clean up my emails",
@@ -2879,26 +2659,21 @@
           "apply organization rules",
           "tidy up my email folders"
         ],
-        
         "capability_description": "I can automatically organize your Outlook inbox by applying rules to move emails to folders based on sender, subject, or other criteria. I'll create folders as needed.",
-        
         "example_ai_responses": [
           "I'll organize your inbox by moving emails to appropriate folders.",
           "I'll apply those rules to clean up your inbox automatically.",
           "I'll sort your emails into folders based on sender and subject."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_messages → microsoft_outlook_smart_organize_inbox (review then auto-organize)",
           "microsoft_outlook_create_folder → microsoft_outlook_smart_organize_inbox (create folders then organize)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_list_folders (organize then review structure)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_mark_as_read (organize then update status)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "organized successfully",
@@ -2916,7 +2691,6 @@
             "User doesn't need to manually organize"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "organization failed",
@@ -2934,7 +2708,6 @@
             "User refines rule criteria"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 5000,
           "rate_limit_per_minute": 10,
@@ -2942,14 +2715,12 @@
           "timeout_seconds": 120
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "rules",
           "folders_created",
           "emails_moved"
         ],
-        
         "search_keywords": [
           "organize inbox",
           "auto organize",
@@ -2958,13 +2729,11 @@
           "folder organization",
           "smart organize"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Daily inbox cleanup - User organizes inbox each morning with automated rules",
           "Project email sorting - User moves project emails to project-specific folders",
@@ -2972,7 +2741,6 @@
           "Client organization - User sorts client emails into client folders",
           "Spam filtering - User moves promotional emails to separate folder"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Organization rules applied, folders created, email counts moved, organization timestamps",
           "search_context": "When user asks about 'inbox organization', 'rules I applied', 'how I organized emails', 'automated cleanup'",
@@ -3021,28 +2789,37 @@
             "description": "Maximum messages to analyze (default: 200)",
             "default": 200
           },
-          
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): High-level overview grouped by criteria\n- 'detailed': Full summary with message previews\n- 'raw': Complete analysis data",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Formatted summary with sections\n- 'json': Structured data\n- 'text': Plain text summary",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save summary to dashboard\n- 'google_doc': Create document with summary\n- 'google_sheet': Create spreadsheet with grouped data",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {count}, {days} placeholders",
@@ -3052,12 +2829,10 @@
         "required": []
       },
       "required": [],
-      
       "user_facing_language": {
         "action_verb": "summarize",
         "resource_name": "emails",
         "resource_plural": "emails",
-        
         "natural_phrases": [
           "summarize my emails",
           "give me an email summary",
@@ -3065,45 +2840,37 @@
           "what did I miss in my emails",
           "review my recent emails"
         ],
-        
         "capability_description": "I can generate an intelligent summary of your recent Outlook emails, grouping them by sender, importance, or topic. Perfect for catching up after being away.",
-        
         "mode_translations": {
           "summary": "high-level overview",
           "detailed": "complete summary with previews",
           "raw": "full analysis data"
         },
-        
         "format_translations": {
           "markdown": "formatted summary",
           "json": "structured data",
           "text": "plain text summary"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create a summary document",
           "google_sheet": "create analysis spreadsheet",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll summarize your unread emails from the past week.",
           "I'll catch you up on your inbox grouped by sender.",
           "I'll create an email summary and save it to your dashboard."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_smart_email_summary → microsoft_outlook_get_message (review summary then read specific)",
           "microsoft_outlook_smart_email_summary → microsoft_outlook_reply_to_message (identify priorities then respond)",
           "microsoft_outlook_smart_email_summary → export=synergy (generate and save daily summary)",
           "vacation_return → microsoft_outlook_smart_email_summary (catch up workflow)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "summary generated",
@@ -3120,7 +2887,6 @@
             "User saves time vs manual review"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "no emails found",
@@ -3136,14 +2902,12 @@
             "User falls back to manual review"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 3000,
           "rate_limit_per_minute": 10,
           "max_retries": 2,
           "timeout_seconds": 90
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=summary, format=markdown (daily inbox catch-up)",
@@ -3157,14 +2921,12 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "days_back",
           "group_by",
           "key_senders"
         ],
-        
         "search_keywords": [
           "email summary",
           "inbox summary",
@@ -3173,13 +2935,11 @@
           "email overview",
           "inbox analysis"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Morning catch-up - User generates daily summary to prioritize inbox review",
           "Post-vacation review - User summarizes emails from time away",
@@ -3187,7 +2947,6 @@
           "Priority identification - User groups by importance to find urgent items",
           "Team reporting - User exports summary for manager review"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Summary parameters used, key senders identified, email counts, important topics, summary timestamps",
           "search_context": "When user asks about 'email summaries', 'inbox digests I created', 'when I caught up on emails'",
@@ -3199,28 +2958,55 @@
             "email counts"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet'",
           "columns": [
-            {"name": "group_name", "type": "string", "source": "group.name"},
-            {"name": "email_count", "type": "integer", "source": "group.count"},
-            {"name": "unread_count", "type": "integer", "source": "group.unread"},
-            {"name": "high_importance", "type": "integer", "source": "group.high_importance"},
-            {"name": "latest_date", "type": "date", "format": "YYYY-MM-DD", "source": "group.latest_email"},
-            {"name": "key_subjects", "type": "string", "source": "group.subjects"}
+            {
+              "name": "group_name",
+              "type": "string",
+              "source": "group.name"
+            },
+            {
+              "name": "email_count",
+              "type": "integer",
+              "source": "group.count"
+            },
+            {
+              "name": "unread_count",
+              "type": "integer",
+              "source": "group.unread"
+            },
+            {
+              "name": "high_importance",
+              "type": "integer",
+              "source": "group.high_importance"
+            },
+            {
+              "name": "latest_date",
+              "type": "date",
+              "format": "YYYY-MM-DD",
+              "source": "group.latest_email"
+            },
+            {
+              "name": "key_subjects",
+              "type": "string",
+              "source": "group.subjects"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
             "auto_filter": true,
             "conditional_formatting": [
-              {"column": "high_importance", "rule": ">0", "format": "red_text"}
+              {
+                "column": "high_importance",
+                "rule": ">0",
+                "format": "red_text"
+              }
             ]
           }
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_smart_follow_up_reminder",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_follow_up_reminder', ...) - DO NOT call directly!\n\n🎯 SMART: Find emails that need follow-up based on age, importance, and response status. Automatically flags them with reminders.",
@@ -3254,28 +3040,37 @@
             "description": "Automatically flag identified emails (default: true)",
             "default": true
           },
-          
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): List of emails needing follow-up\n- 'detailed': Complete analysis with reasoning\n- 'raw': Full detection data",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Formatted follow-up list\n- 'json': Structured data\n- 'text': Plain text list",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save follow-up list to dashboard\n- 'google_doc': Create follow-up report\n- 'google_sheet': Create action item spreadsheet",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
@@ -3285,12 +3080,10 @@
         "required": []
       },
       "required": [],
-      
       "user_facing_language": {
         "action_verb": "find",
         "resource_name": "follow-up emails",
         "resource_plural": "follow-up emails",
-        
         "natural_phrases": [
           "find emails I need to follow up on",
           "what emails need responses",
@@ -3298,45 +3091,37 @@
           "identify emails needing action",
           "show me emails to respond to"
         ],
-        
         "capability_description": "I can intelligently find emails that need follow-up based on age, sender importance, and keywords. I'll automatically flag them with reminders.",
-        
         "mode_translations": {
           "summary": "list of follow-up items",
           "detailed": "complete analysis with reasons",
           "raw": "full detection data"
         },
-        
         "format_translations": {
           "markdown": "formatted follow-up list",
           "json": "structured data",
           "text": "plain text list"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create follow-up report",
           "google_sheet": "create action item list",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll find emails from the past 3 days that need responses.",
           "I'll identify overdue emails and flag them for you.",
           "I'll check for emails from important senders that need follow-up."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_smart_follow_up_reminder → microsoft_outlook_reply_to_message (identify then respond)",
           "microsoft_outlook_smart_follow_up_reminder → microsoft_outlook_flag_message (find and auto-flag)",
           "microsoft_outlook_smart_follow_up_reminder → export=synergy (daily follow-up check)",
           "microsoft_outlook_list_messages → microsoft_outlook_smart_follow_up_reminder (manual review then smart detection)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "found X emails",
@@ -3353,7 +3138,6 @@
             "User exports for task tracking"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "no emails found",
@@ -3370,14 +3154,12 @@
             "User falls back to manual review"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 2500,
           "rate_limit_per_minute": 10,
           "max_retries": 2,
           "timeout_seconds": 60
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=summary, format=markdown (daily follow-up check)",
@@ -3391,14 +3173,12 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "days_without_response",
           "important_senders",
           "keywords"
         ],
-        
         "search_keywords": [
           "follow-up",
           "overdue emails",
@@ -3407,13 +3187,11 @@
           "pending emails",
           "unanswered emails"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Daily review - User identifies emails needing responses each morning",
           "Client management - User tracks overdue client emails for follow-up",
@@ -3421,7 +3199,6 @@
           "Response tracking - User monitors emails with 'urgent' or 'response needed' keywords",
           "Task management - User exports follow-ups as action items for project tracking"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Follow-up criteria used, emails identified, important senders, flagging patterns, follow-up completion",
           "search_context": "When user asks about 'emails I need to follow up on', 'overdue responses', 'action items from emails'",
@@ -3433,30 +3210,65 @@
             "completion rates"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet'",
           "columns": [
-            {"name": "received_date", "type": "date", "format": "YYYY-MM-DD", "source": "message.receivedDateTime"},
-            {"name": "days_old", "type": "integer", "source": "analysis.days_old"},
-            {"name": "from", "type": "string", "source": "message.from.emailAddress"},
-            {"name": "subject", "type": "string", "source": "message.subject"},
-            {"name": "importance", "type": "string", "source": "message.importance"},
-            {"name": "reason", "type": "string", "source": "analysis.follow_up_reason"},
-            {"name": "flagged", "type": "boolean", "source": "analysis.auto_flagged"}
+            {
+              "name": "received_date",
+              "type": "date",
+              "format": "YYYY-MM-DD",
+              "source": "message.receivedDateTime"
+            },
+            {
+              "name": "days_old",
+              "type": "integer",
+              "source": "analysis.days_old"
+            },
+            {
+              "name": "from",
+              "type": "string",
+              "source": "message.from.emailAddress"
+            },
+            {
+              "name": "subject",
+              "type": "string",
+              "source": "message.subject"
+            },
+            {
+              "name": "importance",
+              "type": "string",
+              "source": "message.importance"
+            },
+            {
+              "name": "reason",
+              "type": "string",
+              "source": "analysis.follow_up_reason"
+            },
+            {
+              "name": "flagged",
+              "type": "boolean",
+              "source": "analysis.auto_flagged"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
             "auto_filter": true,
             "conditional_formatting": [
-              {"column": "days_old", "rule": ">5", "format": "red_background"},
-              {"column": "importance", "rule": "high", "format": "bold"}
+              {
+                "column": "days_old",
+                "rule": ">5",
+                "format": "red_background"
+              },
+              {
+                "column": "importance",
+                "rule": "high",
+                "format": "bold"
+              }
             ]
           }
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_create_inbox_rule",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_inbox_rule', ...) - DO NOT call directly!\n\nCreate an automatic inbox rule that runs on incoming emails (server-side filtering).",
@@ -3490,12 +3302,10 @@
         "conditions",
         "actions"
       ],
-      
       "user_facing_language": {
         "action_verb": "create",
         "resource_name": "inbox rule",
         "resource_plural": "inbox rules",
-        
         "natural_phrases": [
           "create an inbox rule",
           "set up automatic email sorting",
@@ -3503,26 +3313,21 @@
           "automate email organization",
           "add inbox automation"
         ],
-        
         "capability_description": "I can create automatic inbox rules that run on incoming emails, moving them to folders, marking them, or performing other actions based on criteria you specify.",
-        
         "example_ai_responses": [
           "I'll create a rule to automatically move newsletter emails to a folder.",
           "I'll set up an inbox rule to flag emails from your manager.",
           "I'll create a filter to automatically organize project emails."
         ]
       },
-      
       "tool_intelligence": {
         "category": "automation",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_create_folder → microsoft_outlook_create_inbox_rule (create folder then auto-route)",
           "microsoft_outlook_list_inbox_rules → microsoft_outlook_create_inbox_rule (check existing then create)",
           "microsoft_outlook_smart_organize_inbox → microsoft_outlook_create_inbox_rule (manual organize then automate)",
           "microsoft_outlook_create_inbox_rule → microsoft_outlook_list_messages (create rule then verify)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "rule created",
@@ -3538,7 +3343,6 @@
             "User monitors rule effectiveness"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "rule already exists",
@@ -3555,7 +3359,6 @@
             "User asks why emails aren't being filtered"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 600,
           "rate_limit_per_minute": 20,
@@ -3563,14 +3366,12 @@
           "timeout_seconds": 20
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "display_name",
           "conditions",
           "actions"
         ],
-        
         "search_keywords": [
           "inbox rule",
           "email automation",
@@ -3579,13 +3380,11 @@
           "inbox automation",
           "email sorting rule"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Newsletter management - User creates rule to move newsletters to dedicated folder",
           "Project automation - User auto-routes project emails to project folder",
@@ -3593,7 +3392,6 @@
           "Spam filtering - User moves promotional emails to separate folder automatically",
           "Team routing - User creates rule to categorize emails by team/department"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Rule names, rule IDs, conditions defined, actions configured, rule creation dates",
           "search_context": "When user asks about 'inbox rules I created', 'email automation I set up', 'filters I configured'",
@@ -3607,7 +3405,6 @@
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_list_inbox_rules",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_inbox_rules', ...) - DO NOT call directly!\n\nList all inbox rules configured for the mailbox.",
@@ -3619,25 +3416,35 @@
         "properties": {
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): Rule names and basic info\n- 'detailed': Complete rule definitions with conditions and actions\n- 'raw': Full API response",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Formatted rule list\n- 'json': Structured data\n- 'text': Plain text list",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save rule list to dashboard\n- 'google_doc': Create rules documentation\n- 'google_sheet': Create rules inventory spreadsheet",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
@@ -3647,12 +3454,10 @@
         "required": []
       },
       "required": [],
-      
       "user_facing_language": {
         "action_verb": "list",
         "resource_name": "inbox rules",
         "resource_plural": "inbox rules",
-        
         "natural_phrases": [
           "list my inbox rules",
           "show email automation rules",
@@ -3660,45 +3465,37 @@
           "show my email filters",
           "list automatic sorting rules"
         ],
-        
         "capability_description": "I can show you all your configured Outlook inbox rules with their conditions and actions, helping you understand your email automation.",
-        
         "mode_translations": {
           "summary": "rule names and basics",
           "detailed": "complete rule definitions",
           "raw": "full technical data"
         },
-        
         "format_translations": {
           "markdown": "formatted rule list",
           "json": "structured data",
           "text": "plain text list"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create documentation",
           "google_sheet": "create rules inventory",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll show you all your inbox rules and what they do.",
           "I'll list your email automation rules with their conditions.",
           "I'll export your rule configuration to a document for reference."
         ]
       },
-      
       "tool_intelligence": {
         "category": "automation",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_list_inbox_rules → microsoft_outlook_create_inbox_rule (check existing then create new)",
           "microsoft_outlook_list_inbox_rules → export=google_doc (document automation setup)",
           "microsoft_outlook_list_inbox_rules → microsoft_outlook_list_folders (review rules then check folders)",
           "rule_troubleshooting → microsoft_outlook_list_inbox_rules (verify rule configuration)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "found X rules",
@@ -3714,7 +3511,6 @@
             "User verifies rule is active"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "no rules found",
@@ -3728,14 +3524,12 @@
             "User checks authentication"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 500,
           "rate_limit_per_minute": 30,
           "max_retries": 3,
           "timeout_seconds": 15
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=summary, format=markdown (quick rule overview)",
@@ -3749,13 +3543,11 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "rule_names",
           "rule_ids"
         ],
-        
         "search_keywords": [
           "inbox rules",
           "email automation",
@@ -3764,13 +3556,11 @@
           "outlook rules",
           "automation list"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Automation audit - User reviews all configured rules for cleanup",
           "Troubleshooting - User checks rules when emails aren't being sorted correctly",
@@ -3778,7 +3568,6 @@
           "Before creating rule - User checks existing rules to avoid duplicates",
           "Migration prep - User documents rules before moving to new system"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Rule names, rule IDs, rule purposes, when rules were created, rule effectiveness",
           "search_context": "When user asks about 'inbox rules I have', 'email automation setup', 'what filters are active'",
@@ -3790,28 +3579,54 @@
             "action types"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet'",
           "columns": [
-            {"name": "rule_name", "type": "string", "source": "rule.displayName"},
-            {"name": "rule_id", "type": "string", "source": "rule.id"},
-            {"name": "is_enabled", "type": "boolean", "source": "rule.isEnabled"},
-            {"name": "sequence", "type": "integer", "source": "rule.sequence"},
-            {"name": "conditions", "type": "string", "source": "rule.conditions"},
-            {"name": "actions", "type": "string", "source": "rule.actions"}
+            {
+              "name": "rule_name",
+              "type": "string",
+              "source": "rule.displayName"
+            },
+            {
+              "name": "rule_id",
+              "type": "string",
+              "source": "rule.id"
+            },
+            {
+              "name": "is_enabled",
+              "type": "boolean",
+              "source": "rule.isEnabled"
+            },
+            {
+              "name": "sequence",
+              "type": "integer",
+              "source": "rule.sequence"
+            },
+            {
+              "name": "conditions",
+              "type": "string",
+              "source": "rule.conditions"
+            },
+            {
+              "name": "actions",
+              "type": "string",
+              "source": "rule.actions"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
             "auto_filter": true,
             "conditional_formatting": [
-              {"column": "is_enabled", "rule": "false", "format": "gray_text"}
+              {
+                "column": "is_enabled",
+                "rule": "false",
+                "format": "gray_text"
+              }
             ]
           }
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_get_attachments",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_get_attachments', ...) - DO NOT call directly!\n\nGet all attachments from a message with download URLs or content.",
@@ -3830,28 +3645,37 @@
             "description": "Download attachment content (base64 encoded) - default: false",
             "default": false
           },
-          
           "mode": {
             "type": "string",
-            "enum": ["summary", "detailed", "raw"],
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
             "description": "Output mode:\n- 'summary' (default): Attachment names and sizes\n- 'detailed': Complete metadata with download URLs\n- 'raw': Full API response with content if download_content=true",
             "default": "summary"
           },
-          
           "format": {
             "type": "string",
-            "enum": ["markdown", "json", "text"],
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
             "description": "Output format:\n- 'markdown' (default): Formatted attachment list\n- 'json': Structured data\n- 'text': Plain text list",
             "default": "markdown"
           },
-          
           "export": {
             "type": "string",
-            "enum": ["none", "synergy", "google_doc", "google_sheet"],
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
             "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save attachment list to dashboard\n- 'google_doc': Create document with attachment inventory\n- 'google_sheet': Create spreadsheet with attachment details",
             "default": "none"
           },
-          
           "export_title": {
             "type": "string",
             "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
@@ -3865,12 +3689,10 @@
       "required": [
         "message_id"
       ],
-      
       "user_facing_language": {
         "action_verb": "get",
         "resource_name": "attachments",
         "resource_plural": "attachments",
-        
         "natural_phrases": [
           "get email attachments",
           "show attachments",
@@ -3878,45 +3700,37 @@
           "what files are attached",
           "retrieve attachments"
         ],
-        
         "capability_description": "I can retrieve information about all attachments in an Outlook email, including names, sizes, and download options.",
-        
         "mode_translations": {
           "summary": "attachment names and sizes",
           "detailed": "complete details with download links",
           "raw": "full data with content"
         },
-        
         "format_translations": {
           "markdown": "formatted attachment list",
           "json": "structured data",
           "text": "plain text list"
         },
-        
         "export_translations": {
           "synergy": "save to your dashboard",
           "google_doc": "create attachment inventory",
           "google_sheet": "create attachment spreadsheet",
           "none": "just show you"
         },
-        
         "example_ai_responses": [
           "I'll get the attachments from that email.",
           "I'll show you what files are attached to that message.",
           "I'll retrieve the attachment list and save it to your dashboard."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_get_message → microsoft_outlook_get_attachments (read email then check attachments)",
           "microsoft_outlook_search_messages → microsoft_outlook_get_attachments (find emails with attachments)",
           "microsoft_outlook_get_attachments → microsoft_outlook_download_attachment (list then download specific)",
           "microsoft_outlook_list_messages → microsoft_outlook_get_attachments (browse then check attachments)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "found X attachments",
@@ -3932,7 +3746,6 @@
             "User saves attachment inventory"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "no attachments found",
@@ -3948,14 +3761,12 @@
             "User manually checks in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 600,
           "rate_limit_per_minute": 60,
           "max_retries": 3,
           "timeout_seconds": 20
         },
-        
         "multi_modal_usage_patterns": {
           "common_mode_combinations": [
             "mode=summary, format=markdown (quick attachment check)",
@@ -3969,14 +3780,12 @@
           ]
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_id",
           "attachment_names",
           "attachment_count"
         ],
-        
         "search_keywords": [
           "attachments",
           "email files",
@@ -3985,13 +3794,11 @@
           "email downloads",
           "message files"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "File inventory - User checks what files are attached before downloading",
           "Document verification - User confirms invoice/contract is attached",
@@ -3999,7 +3806,6 @@
           "Download planning - User reviews file sizes before downloading all",
           "Missing file check - User verifies expected attachments are present"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Message IDs checked, attachment names found, file sizes, file types, download timestamps",
           "search_context": "When user asks about 'attachments I checked', 'files from that email', 'documents attached to [subject]'",
@@ -4011,28 +3817,54 @@
             "email subjects"
           ]
         },
-        
         "sheet_export_structure": {
           "when_export_google_sheet": "If user selects export='google_sheet'",
           "columns": [
-            {"name": "attachment_name", "type": "string", "source": "attachment.name"},
-            {"name": "file_type", "type": "string", "source": "attachment.contentType"},
-            {"name": "size_bytes", "type": "integer", "source": "attachment.size"},
-            {"name": "size_mb", "type": "number", "source": "attachment.size_mb"},
-            {"name": "attachment_id", "type": "string", "source": "attachment.id"},
-            {"name": "is_inline", "type": "boolean", "source": "attachment.isInline"}
+            {
+              "name": "attachment_name",
+              "type": "string",
+              "source": "attachment.name"
+            },
+            {
+              "name": "file_type",
+              "type": "string",
+              "source": "attachment.contentType"
+            },
+            {
+              "name": "size_bytes",
+              "type": "integer",
+              "source": "attachment.size"
+            },
+            {
+              "name": "size_mb",
+              "type": "number",
+              "source": "attachment.size_mb"
+            },
+            {
+              "name": "attachment_id",
+              "type": "string",
+              "source": "attachment.id"
+            },
+            {
+              "name": "is_inline",
+              "type": "boolean",
+              "source": "attachment.isInline"
+            }
           ],
           "sheet_formatting": {
             "freeze_header_row": true,
             "auto_filter": true,
             "conditional_formatting": [
-              {"column": "size_mb", "rule": ">5", "format": "orange_text"}
+              {
+                "column": "size_mb",
+                "rule": ">5",
+                "format": "orange_text"
+              }
             ]
           }
         }
       }
     },
-    
     {
       "name": "microsoft_outlook_download_attachment",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_download_attachment', ...) - DO NOT call directly!\n\nDownload a specific attachment from a message.",
@@ -4060,12 +3892,10 @@
         "message_id",
         "attachment_id"
       ],
-      
       "user_facing_language": {
         "action_verb": "download",
         "resource_name": "attachment",
         "resource_plural": "attachments",
-        
         "natural_phrases": [
           "download that attachment",
           "get that file",
@@ -4073,26 +3903,21 @@
           "retrieve that document",
           "download the attachment"
         ],
-        
         "capability_description": "I can download specific attachments from Outlook emails, providing you with the file content (base64 encoded) for saving or processing.",
-        
         "example_ai_responses": [
           "I'll download that attachment for you.",
           "I'll retrieve that file from the email.",
           "I'll download the PDF attachment."
         ]
       },
-      
       "tool_intelligence": {
         "category": "email",
-        
         "typical_workflow_patterns": [
           "microsoft_outlook_get_attachments → microsoft_outlook_download_attachment (list then download)",
           "microsoft_outlook_get_message → microsoft_outlook_download_attachment (read email then download file)",
           "microsoft_outlook_search_messages → microsoft_outlook_download_attachment (find email then download)",
           "microsoft_outlook_list_messages → microsoft_outlook_download_attachment (browse then download)"
         ],
-        
         "success_indicators": {
           "keywords": [
             "downloaded successfully",
@@ -4108,7 +3933,6 @@
             "User downloads additional attachments"
           ]
         },
-        
         "failure_indicators": {
           "keywords": [
             "download failed",
@@ -4126,7 +3950,6 @@
             "User manually downloads in Outlook"
           ]
         },
-        
         "performance_expectations": {
           "typical_duration_ms": 1500,
           "rate_limit_per_minute": 30,
@@ -4134,14 +3957,12 @@
           "timeout_seconds": 60
         }
       },
-      
       "memory_context": {
         "vectorization_fields": [
           "message_id",
           "attachment_id",
           "attachment_name"
         ],
-        
         "search_keywords": [
           "download attachment",
           "get file",
@@ -4150,13 +3971,11 @@
           "download file",
           "attachment download"
         ],
-        
         "related_synergy_platforms": [
           "microsoft_outlook",
           "microsoft_365",
           "office_365"
         ],
-        
         "typical_use_cases": [
           "Invoice download - User downloads invoice attachment for processing",
           "Document retrieval - User downloads contract or agreement for review",
@@ -4164,7 +3983,6 @@
           "Image download - User downloads photo attachment for viewing",
           "Batch download - User downloads multiple attachments from emails"
         ],
-        
         "conversation_memory_hints": {
           "what_to_remember": "Message IDs, attachment IDs, file names downloaded, download timestamps, file sizes",
           "search_context": "When user asks about 'attachments I downloaded', 'files I got from emails', 'documents I retrieved'",

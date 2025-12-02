@@ -477,54 +477,129 @@ class MicrosoftOutlookTools:
         return result
     
     def outlook_send_draft(self, message_id: str, **kwargs) -> Dict:
-        """Send a draft message"""
+        """
+        DEACTIVATED - This function no longer sends emails.
+        Returns draft information for manual sending.
+        """
         
-        result = self._make_request('POST', f'/me/messages/{message_id}/send', **kwargs)
+        # Get the draft message details instead of sending
+        result = self._make_request('GET', f'/me/messages/{message_id}', **kwargs)
         
         if result['success']:
+            message_data = result.get('data', {})
             return {
                 'success': True,
-                'message': 'Draft sent successfully',
-                'message_id': message_id
+                'message': '⚠️ EMAIL SAVED AS DRAFT (not sent)',
+                'note': 'This email was saved to your Outlook Drafts folder and was NOT sent',
+                'action_required': 'Please open Outlook and manually send this draft if needed',
+                'message_id': message_id,
+                'subject': message_data.get('subject', 'N/A'),
+                'to': [r.get('emailAddress', {}).get('address') for r in message_data.get('toRecipients', [])],
+                'draft_folder': 'Drafts'
             }
         return result
     
     def outlook_reply_to_message(self, message_id: str, body: str, 
                                 reply_all: bool = False, body_type: str = 'html', **kwargs) -> Dict:
-        """Reply to a message"""
+        """Create a reply draft (does not send)"""
         
-        comment_data = {
-            'comment': body
+        # Get original message details
+        original_result = self._make_request('GET', f'/me/messages/{message_id}', **kwargs)
+        
+        if not original_result['success']:
+            return original_result
+        
+        original = original_result.get('data', {})
+        reply_type = 'Reply All' if reply_all else 'Reply'
+        
+        # Extract sender email properly
+        sender = original.get('from', {})
+        sender_email = sender.get('emailAddress', {}) if isinstance(sender, dict) else {}
+        
+        # Create draft reply message
+        draft_message = {
+            'subject': f"RE: {original.get('subject', 'No Subject')}",
+            'body': {
+                'contentType': body_type,
+                'content': body
+            },
+            'toRecipients': [sender_email] if sender_email else []
         }
         
-        endpoint = f'/me/messages/{message_id}/replyAll' if reply_all else f'/me/messages/{message_id}/reply'
-        result = self._make_request('POST', endpoint, comment_data, **kwargs)
+        if reply_all and original.get('toRecipients'):
+            draft_message['toRecipients'].extend(original.get('toRecipients', []))
+            if original.get('ccRecipients'):
+                draft_message['ccRecipients'] = original.get('ccRecipients', [])
+        
+        # Save as draft instead of sending
+        result = self._make_request('POST', '/me/messages', draft_message, **kwargs)
         
         if result['success']:
+            draft = result.get('data', {})
             return {
                 'success': True,
-                'message': f'Reply sent successfully (reply_all: {reply_all})',
-                'original_message_id': message_id
+                'message': f'⚠️ {reply_type.upper()} SAVED AS DRAFT (not sent)',
+                'note': f'Reply draft created in Outlook Drafts folder for manual sending',
+                'action_required': 'Please open Outlook and send this reply manually from your Drafts folder',
+                'draft_id': draft.get('id'),
+                'original_message_id': message_id,
+                'reply_type': reply_type
             }
         return result
     
     def outlook_forward_message(self, message_id: str, to: List[str], comment: str = None, **kwargs) -> Dict:
-        """Forward a message"""
+        """Create a forward draft (does not send)"""
         
-        data = {
-            'toRecipients': [{'emailAddress': {'address': email}} for email in to]
+        # Get original message details
+        original_result = self._make_request('GET', f'/me/messages/{message_id}', **kwargs)
+        
+        if not original_result['success']:
+            return original_result
+        
+        original = original_result.get('data', {})
+        
+        # Parse recipient emails (handle both string and list inputs)
+        def parse_recipients(recipients):
+            if isinstance(recipients, str):
+                return [addr.strip() for addr in recipients.split(',') if addr.strip()]
+            elif isinstance(recipients, list):
+                result = []
+                for item in recipients:
+                    if isinstance(item, str):
+                        result.append(item.strip())
+                    elif isinstance(item, dict) and 'emailAddress' in item:
+                        result.append(item['emailAddress'].get('address', ''))
+                return [r for r in result if r]
+            return []
+        
+        to_emails = parse_recipients(to)
+        
+        if not to_emails:
+            return {'success': False, 'error': 'At least one recipient is required in "to" field'}
+        
+        # Create draft forward message
+        draft_message = {
+            'subject': f"FW: {original.get('subject', 'No Subject')}",
+            'body': {
+                'contentType': 'html',
+                'content': f"{comment or ''}<br><br>---------- Forwarded message ----------<br>{original.get('bodyPreview', '')}"
+            },
+            'toRecipients': [{'emailAddress': {'address': email}} for email in to_emails]
         }
         
-        if comment:
-            data['comment'] = comment
-        
-        result = self._make_request('POST', f'/me/messages/{message_id}/forward', data, **kwargs)
+        # Save as draft instead of sending
+        result = self._make_request('POST', '/me/messages', draft_message, **kwargs)
         
         if result['success']:
+            draft = result.get('data', {})
             return {
                 'success': True,
-                'message': f'Message forwarded to {len(to)} recipient(s)',
-                'recipients': to
+                'message': f'⚠️ FORWARD SAVED AS DRAFT (not sent) - {len(to_emails)} recipient(s)',
+                'note': 'Forward draft created in Outlook Drafts folder for manual sending',
+                'action_required': 'Please open Outlook and send this forward manually from your Drafts folder',
+                'draft_id': draft.get('id'),
+                'recipients': to_emails,
+                'original_message_id': message_id
             }
         return result
     
