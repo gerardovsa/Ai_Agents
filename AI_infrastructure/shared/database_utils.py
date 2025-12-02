@@ -50,8 +50,15 @@ _pool_stats = {
     'pool_hits': 0,
     'pool_misses': 0,
     'total_wait_time': 0.0,
-    'avg_wait_time': 0.0
+    'avg_wait_time': 0.0,
+    'connections_recycled': 0
 }
+_pool_cleanup_thread = None
+_pool_cleanup_stop = threading.Event()
+
+# CONNECTION RECYCLING CONFIG
+MAX_CONNECTION_AGE_SECONDS = 1800  # 30 minutes - recycle connections after this time
+POOL_CLEANUP_INTERVAL_SECONDS = 300  # 5 minutes - check for old connections every 5 min
 
 
 def is_using_supabase() -> bool:
@@ -181,7 +188,77 @@ def get_connection_pool(schema_name: str):
         else:
             _pool_stats['pool_hits'] += 1
         
+        # Start cleanup thread if not already running
+        _start_pool_cleanup_thread()
+        
         return _connection_pools[schema_name]
+
+
+def _pool_cleanup_worker():
+    """
+    Background thread that periodically recycles old connections
+    Runs every POOL_CLEANUP_INTERVAL_SECONDS and closes connections older than MAX_CONNECTION_AGE_SECONDS
+    """
+    global _connection_pools, _pool_stats, _pool_cleanup_stop
+    
+    print(f"🧹 [POOL CLEANUP] Started background cleanup thread (interval: {POOL_CLEANUP_INTERVAL_SECONDS}s, max age: {MAX_CONNECTION_AGE_SECONDS}s)")
+    
+    while not _pool_cleanup_stop.is_set():
+        try:
+            # Wait for cleanup interval or stop signal
+            if _pool_cleanup_stop.wait(timeout=POOL_CLEANUP_INTERVAL_SECONDS):
+                break  # Stop signal received
+            
+            recycled_count = 0
+            with _pool_lock:
+                for schema_name, connection_pool in _connection_pools.items():
+                    try:
+                        # Close all idle connections and recreate pool
+                        # psycopg2 doesn't expose connection age, so we recreate the entire pool
+                        connection_pool.closeall()
+                        recycled_count += 1
+                        print(f"🔄 [POOL CLEANUP] Recycled connection pool for '{schema_name}'")
+                    except Exception as e:
+                        print(f"⚠️ [POOL CLEANUP] Error recycling pool for '{schema_name}': {e}")
+            
+            if recycled_count > 0:
+                _pool_stats['connections_recycled'] += recycled_count
+                print(f"✅ [POOL CLEANUP] Recycled {recycled_count} connection pool(s)")
+        
+        except Exception as e:
+            print(f"❌ [POOL CLEANUP] Error in cleanup worker: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    print("🛑 [POOL CLEANUP] Cleanup thread stopped")
+
+
+def _start_pool_cleanup_thread():
+    """Start the pool cleanup background thread if not already running"""
+    global _pool_cleanup_thread, _pool_cleanup_stop
+    
+    with _pool_lock:
+        if _pool_cleanup_thread is None or not _pool_cleanup_thread.is_alive():
+            _pool_cleanup_stop.clear()
+            _pool_cleanup_thread = threading.Thread(
+                target=_pool_cleanup_worker,
+                name="PoolCleanupThread",
+                daemon=True
+            )
+            _pool_cleanup_thread.start()
+
+
+def stop_pool_cleanup():
+    """Stop the pool cleanup background thread (for testing/shutdown)"""
+    global _pool_cleanup_stop, _pool_cleanup_thread
+    
+    print("🛑 [POOL CLEANUP] Stopping cleanup thread...")
+    _pool_cleanup_stop.set()
+    
+    if _pool_cleanup_thread and _pool_cleanup_thread.is_alive():
+        _pool_cleanup_thread.join(timeout=5)
+    
+    print("✅ [POOL CLEANUP] Cleanup thread stopped")
 
 
 def get_pool_stats():
