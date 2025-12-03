@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MODAL SYSTEM STYLES
  * Version: 1.0.0
  * Created: November 12, 2025
@@ -125,7 +125,7 @@
 
 .modal-title {
     font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
+    /* font-weight: var(--font-weight-bold); */
     color: var(--color-text-primary);
     margin: 0;
 }
@@ -355,7 +355,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: var(--font-weight-bold);
+    /* font-weight: var(--font-weight-bold); */
     color: var(--color-text-secondary);
     transition: all 0.3s ease;
 }
@@ -380,7 +380,7 @@
 
 .wizard-step.active .step-title {
     color: var(--color-text-primary);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
 }
 
 .wizard-content {
@@ -464,7 +464,7 @@
 
 .form-field label {
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     color: var(--color-text-primary);
 }
 
@@ -525,7 +525,7 @@
 .modal-actions .btn {
     padding: var(--spacing-3) var(--spacing-6);
     font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     border-radius: var(--border-radius-md);
     cursor: pointer;
     transition: all 0.2s ease;

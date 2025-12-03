@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Workflow Slug Integration Styles
  * 
  * CSS for workflow slug linking, display, and drag-drop interactions
@@ -18,7 +18,7 @@
     border-radius: 6px;
     color: white;
     font-size: 12px;
-    font-weight: 500;
+    /* font-weight: 500; */
     transition: all 0.2s ease;
 }
 
@@ -34,7 +34,7 @@
 
 .thread-info-workflow .workflow-title {
     flex: 1;
-    font-weight: 500;
+    /* font-weight: 500; */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -82,7 +82,7 @@
     border-radius: 6px;
     color: white;
     font-size: 12px;
-    font-weight: 500;
+    /* font-weight: 500; */
     transition: all 0.2s ease;
 }
 
@@ -98,7 +98,7 @@
 
 .thread-info-document .document-title {
     flex: 1;
-    font-weight: 500;
+    /* font-weight: 500; */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

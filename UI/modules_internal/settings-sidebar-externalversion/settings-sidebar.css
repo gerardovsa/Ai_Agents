@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/external/modules/settings-sidebar/settings-sidebar.css
  * PURPOSE: Enhanced Settings Sidebar Module Styles
  * 
@@ -108,7 +108,7 @@ input:disabled {
     align-items: center;
     gap: 10px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 12px;
 }
@@ -168,7 +168,7 @@ input:disabled {
 
 .setting-label {
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 4px;
     display: flex;
@@ -281,7 +281,7 @@ input:disabled {
 
 .stat-value {
     font-size: 28px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary, #c9d1d9);
     line-height: 1;
     margin-bottom: 4px;
@@ -330,13 +330,13 @@ input:disabled {
 
 .error-type-label {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
 }
 
 .error-type-count {
     font-size: 14px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--accent-primary, #58a6ff);
 }
 
@@ -375,7 +375,7 @@ input:disabled {
 }
 
 .success-rate {
-    font-weight: 600;
+    /* font-weight: 600; */
     padding: 2px 8px;
     border-radius: 12px;
 }
@@ -440,7 +440,7 @@ input:disabled {
 
 .timeline-type {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
 }
 
@@ -449,7 +449,7 @@ input:disabled {
     padding: 2px 8px;
     border-radius: 12px;
     text-transform: uppercase;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .timeline-status.success {
@@ -509,7 +509,7 @@ input:disabled {
 .error-logs-table th {
     text-align: left;
     padding: 8px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
     border-bottom: 2px solid var(--border-default, #30363d);
 }
@@ -535,7 +535,7 @@ input:disabled {
     color: var(--accent-primary, #58a6ff);
     border-radius: 12px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .status-badge {
@@ -543,7 +543,7 @@ input:disabled {
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     text-transform: uppercase;
 }
 
@@ -602,7 +602,7 @@ input:disabled {
 
 .effectiveness-header {
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary, #8b949e);
     margin-bottom: 8px;
     text-transform: uppercase;
@@ -611,7 +611,7 @@ input:disabled {
 
 .effectiveness-value {
     font-size: 32px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 4px;
 }
@@ -639,7 +639,7 @@ input:disabled {
     padding: 8px 16px;
     border-radius: 6px;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
@@ -743,7 +743,7 @@ input:disabled {
     align-items: center;
     gap: 10px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 16px;
     padding-bottom: 12px;
@@ -794,7 +794,7 @@ input:disabled {
 
 .stat-value {
     font-size: 24px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary, #c9d1d9);
     line-height: 1;
 }
@@ -815,7 +815,7 @@ input:disabled {
     border-radius: 6px;
     color: var(--text-primary, #c9d1d9);
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;

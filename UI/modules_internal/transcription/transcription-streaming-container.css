@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TRANSCRIPTION STREAMING CONTAINER - Styling
  * 
  * Pattern: Matches V7_MustCare transcription container
@@ -59,7 +59,7 @@
 .ai-transcription-header h4 {
     margin: 0;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #e6edf3);
     display: flex;
     align-items: center;
@@ -286,7 +286,7 @@
 
 .ai-transcript-final {
     color: var(--text-primary, #e6edf3);
-    font-weight: 400;
+    /* font-weight: 400; */
 }
 
 .ai-transcript-interim {
@@ -301,7 +301,7 @@
     padding: 2px 6px;
     border-radius: 4px;
     margin-left: 4px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .ai-transcript-confidence.high {
@@ -469,7 +469,7 @@ body.dark-mode .ai-transcription-text {
 .ai-transcript-final[data-confidence="high"] {
     color: #3fb950;
     /* Green */
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* Medium confidence (browser STT 50-79%) */

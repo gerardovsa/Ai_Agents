@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/modules/transcription/tts-module.css
  * PURPOSE: Styling for TTS transcript container and visual feedback
  * 
@@ -177,7 +177,7 @@
 
 .tts-transcript-status {
     margin-left: auto;
-    font-weight: 500;
+    /* font-weight: 500; */
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -257,7 +257,7 @@
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     display: none;
     align-items: center;
     gap: 8px;

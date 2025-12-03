@@ -1,4 +1,4 @@
-/* ==================== SYNERGY DASHBOARD STYLES ==================== */
+﻿/* ==================== SYNERGY DASHBOARD STYLES ==================== */
 
 /* Synergy Dashboard Container */
 .synergy-dashboard-wrapper {
@@ -31,7 +31,7 @@
     align-items: center;
     gap: var(--space-3);
     font-size: 24px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0;
 }
@@ -76,7 +76,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -116,7 +116,7 @@
     border: 1px solid var(--border-default);
     border-radius: 6px;
     font-size: 12px;
-    font-weight: 500;
+    /* font-weight: 500; */
     transition: all 0.3s ease;
     cursor: pointer;
 }
@@ -215,7 +215,7 @@
 
 .column-title {
     font-size: 20px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0;
 }
@@ -226,7 +226,7 @@
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .column-menu-btn {
@@ -239,7 +239,7 @@
     padding: var(--space-1);
     border-radius: 6px;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     align-items: center;
     justify-content: center;
@@ -289,7 +289,7 @@
     align-items: center;
     gap: var(--space-3);
     font-size: 24px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0;
 }
@@ -317,7 +317,7 @@
 
 .dashboard-stats .stat-item strong {
     color: var(--text-primary);
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .dashboard-action-btn {
@@ -329,7 +329,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -390,7 +390,7 @@
 .quick-nav-bar .module-subtab-btn.active {
     color: var(--text-primary);
     border-bottom-color: #6366f1;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .quick-nav-bar .module-subtab-btn i {
@@ -426,7 +426,7 @@
     align-items: center;
     gap: var(--space-3);
     font-size: 24px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0;
 }
@@ -454,7 +454,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -504,7 +504,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -549,7 +549,7 @@
     border-radius: 10px;
     padding: 2px 6px;
     font-size: 11px;
-    font-weight: 700;
+    /* font-weight: 700; */
     min-width: 20px;
 }
 
@@ -587,7 +587,7 @@
 
 .agent-tooltip-title {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     margin-bottom: 8px;
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -760,7 +760,7 @@
 /* Card Title */
 .card-title {
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: var(--space-3);
     line-height: 1.4;
@@ -794,7 +794,7 @@
 .status-badge {
     padding: 2px 8px;
     border-radius: 4px;
-    font-weight: 500;
+    /* font-weight: 500; */
     font-size: 11px;
 }
 
@@ -849,7 +849,7 @@
     margin-bottom: var(--space-1);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .activity-item {
@@ -865,7 +865,7 @@
 .activity-item::before {
     content: "•";
     color: var(--accent-primary);
-    font-weight: bold;
+    /* font-weight: bold; */
     margin-top: 1px;
 }
 
@@ -883,7 +883,7 @@
     font-size: 10px;
     color: var(--text-secondary);
     font-family: var(--font-mono);
-    font-weight: 500;
+    /* font-weight: 500; */
     width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -903,7 +903,7 @@
     padding: 3px 8px;
     border-radius: 4px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 /* Card Actions */
@@ -959,7 +959,7 @@
     border: none;
     border-radius: 4px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -983,7 +983,7 @@
     border-radius: 6px;
     color: white;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1028,7 +1028,7 @@
     gap: var(--space-2);
     color: var(--text-secondary);
     font-size: 16px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .kanban-add-column:hover .add-column-content {
@@ -1230,7 +1230,7 @@
 
 .card-title-large {
     font-size: 18px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     margin-bottom: var(--space-4);
 }
@@ -1299,7 +1299,7 @@
 /* Markdown Rendering Styles */
 .markdown-content h1 {
     font-size: 1.5em;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     margin-top: 8px;
     margin-bottom: 4px;
@@ -1308,7 +1308,7 @@
 
 .markdown-content h2 {
     font-size: 1.3em;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-top: 6px;
     margin-bottom: 3px;
@@ -1317,7 +1317,7 @@
 
 .markdown-content h3 {
     font-size: 1.15em;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-top: 5px;
     margin-bottom: 3px;
@@ -1325,7 +1325,7 @@
 }
 
 .markdown-content strong {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
 }
 
@@ -1383,7 +1383,7 @@
 
 .section-title {
     font-size: 14px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     margin-bottom: var(--space-4);
     margin-top: var(--space-4);
@@ -1561,7 +1561,7 @@
 
 .agent-name {
     font-family: inherit;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .document-link,
@@ -1570,7 +1570,7 @@
     color: var(--accent-primary);
     text-decoration: none;
     font-size: 12px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .document-link:hover,
@@ -1588,7 +1588,7 @@
 .doc-name {
     font-size: 12px;
     color: var(--text-primary);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .doc-type {
@@ -1771,7 +1771,7 @@
     border: 1px solid var(--border-default);
     border-radius: 4px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -1866,7 +1866,7 @@
 
 .popout-card-title {
     font-size: 15px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -1937,7 +1937,7 @@
 
 .popout-card-content .card-title-large {
     font-size: 18px;
-    font-weight: 700;
+    /* font-weight: 700; */
     margin-bottom: var(--space-4);
 }
 
@@ -2069,7 +2069,7 @@
     align-items: center;
     gap: var(--space-2);
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary);
     margin-bottom: var(--space-2);
 }
@@ -2121,7 +2121,7 @@
     color: var(--bg-primary);
     border-radius: 6px;
     font-size: 12px;
-    font-weight: 700;
+    /* font-weight: 700; */
     letter-spacing: 0.5px;
 }
 
@@ -2211,7 +2211,7 @@
 .modal-header h3 {
     margin: 0;
     font-size: 18px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -2271,7 +2271,7 @@
 .form-group label {
     display: block;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: var(--space-2);
 }
@@ -2328,7 +2328,7 @@ textarea.form-control {
 
 .section-header label {
     font-size: 14px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -2347,7 +2347,7 @@ textarea.form-control {
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -2386,7 +2386,7 @@ textarea.form-control {
     height: 32px;
     background: linear-gradient(135deg, #58a6ff 0%, #4a8fe7 100%);
     color: white;
-    font-weight: 700;
+    /* font-weight: 700; */
     border-radius: 6px;
     font-size: 13px;
     padding: 0 8px;
@@ -2402,7 +2402,7 @@ textarea.form-control {
     height: 28px;
     background: #e3f2fd;
     color: #1976d2;
-    font-weight: 600;
+    /* font-weight: 600; */
     border-radius: 4px;
     font-size: 13px;
     padding: 0 6px;
@@ -2419,7 +2419,7 @@ textarea.form-control {
     font-size: 12px;
     color: #666;
     text-align: center;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .item-row input[type="checkbox"] {
@@ -2478,7 +2478,7 @@ textarea.form-control {
 .checkbox-label span {
     font-size: 13px;
     color: var(--text-primary);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .modal-footer {
@@ -2496,7 +2496,7 @@ textarea.form-control {
     border: none;
     border-radius: 6px;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -2564,7 +2564,7 @@ textarea.form-control {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     font-size: 16px;
 }
@@ -2618,7 +2618,7 @@ textarea.form-control {
 }
 
 .settings-field label {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     font-size: 14.5px;
     display: flex;
@@ -2628,7 +2628,7 @@ textarea.form-control {
 }
 
 .settings-value {
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--accent-primary);
     font-size: 13px;
     background: var(--bg-tertiary);
@@ -2754,7 +2754,7 @@ textarea.form-control {
 .settings-checkbox label {
     flex: 1;
     cursor: pointer;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary);
     margin: 0;
     font: 14px;
@@ -2921,7 +2921,7 @@ textarea.form-control {
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 14px;
 }
 
@@ -2954,7 +2954,7 @@ textarea.form-control {
 .form-section label {
     display: block;
     margin-bottom: 15px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #34495e;
     font-size: 16px;
 }
@@ -3030,7 +3030,7 @@ textarea.form-control {
     border: none;
     border-radius: 6px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -3157,7 +3157,7 @@ textarea.form-control {
     font-size: 11px;
     color: #7f8c8d;
     margin-left: 8px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 /* ============================================================================
@@ -3182,7 +3182,7 @@ textarea.form-control {
     border: none;
     background: transparent;
     font-size: inherit;
-    font-weight: inherit;
+    /* font-weight: inherit; */
     flex: 1;
     padding: 4px 8px;
     border-radius: 4px;
@@ -3400,7 +3400,7 @@ textarea.form-control {
     font-size: 11px;
     font-family: 'Courier New', monospace;
     color: #677eea;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* Copy Thread Button */
@@ -3432,7 +3432,7 @@ textarea.form-control {
     padding: 4px 10px;
     border-radius: 4px;
     font-size: 11px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .thread-pill-synergy {

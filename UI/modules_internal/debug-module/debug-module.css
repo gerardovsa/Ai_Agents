@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DEBUG MODULE - STYLING
  * Advanced debugging sidebar for thread/message persistence
  */
@@ -57,7 +57,7 @@
     align-items: center;
     gap: 12px;
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
 }
 
@@ -146,7 +146,7 @@
     color: var(--text-secondary);
     cursor: pointer;
     font-size: 11px;
-    font-weight: 500;
+    /* font-weight: 500; */
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -218,7 +218,7 @@
 
 .debug-section-header h3 {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0 0 4px 0;
 }
@@ -243,7 +243,7 @@
     border: none;
     border-radius: 6px;
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -314,7 +314,7 @@
 }
 
 .debug-log-output span {
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .debug-log-output::-webkit-scrollbar {
@@ -364,12 +364,12 @@
     margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .debug-stat-value {
     font-size: 22px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     word-break: break-all;
 }
@@ -412,7 +412,7 @@
 
 .debug-thread-title {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: 6px;
     overflow: hidden;
@@ -447,7 +447,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s;
 }

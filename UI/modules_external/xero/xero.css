@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Xero Accounting Module Styles
  * Comprehensive styling for Xero integration
  */
@@ -32,7 +32,7 @@
     gap: 6px;
     font-size: 14px;
     color: var(--text-primary);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .xero-select {
@@ -109,7 +109,7 @@
 
 .xero-stat-value {
     font-size: 28px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     margin-bottom: 4px;
 }
@@ -135,7 +135,7 @@
 
 .xero-chart-title {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: 16px;
 }
@@ -153,7 +153,7 @@
 
 .xero-section-title {
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: 16px;
 }
@@ -186,7 +186,7 @@
     background: var(--background-primary);
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -259,7 +259,7 @@
 }
 
 .xero-invoice-number {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--xero-primary);
 }
 
@@ -287,7 +287,7 @@
     padding: 4px 10px;
     border-radius: 4px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }

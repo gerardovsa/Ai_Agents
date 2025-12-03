@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/external/modules/communication-hub/communication-hub.css
  * PURPOSE: Styles for Communication Hub module with drag-and-drop support
  * LAST MODIFIED: 2025-11-10 - Initial creation
@@ -30,7 +30,7 @@
 }
 
 .account-selector label {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #1f2937);
     display: flex;
     align-items: center;
@@ -74,7 +74,7 @@
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -167,7 +167,7 @@
 
 /* Email content styling */
 .email-from {
-    font-weight: 500;
+    /* font-weight: 500; */
     color: #374151;
 }
 
@@ -176,7 +176,7 @@
 }
 
 .email-subject.unread {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #111827;
 }
 
@@ -190,7 +190,7 @@
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -244,7 +244,7 @@
     color: white;
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-    font-weight: 500;
+    /* font-weight: 500; */
     pointer-events: none;
     z-index: 10000;
 }
@@ -309,7 +309,7 @@
     align-items: center;
     gap: 10px;
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #E5E7EB);
 }
 
@@ -336,7 +336,7 @@
 .email-preview-subject h4 {
     margin: 0;
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #E5E7EB);
     line-height: 1.4;
 }
@@ -361,7 +361,7 @@
 }
 
 .meta-label {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary, #7D8590);
     min-width: 80px;
     font-size: 13px;
@@ -409,7 +409,7 @@
 .email-header h3 {
     margin: 0 0 16px 0;
     font-size: 20px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #111827;
     line-height: 1.4;
 }
@@ -429,7 +429,7 @@
 
 .email-meta strong {
     color: #1f2937;
-    font-weight: 600;
+    /* font-weight: 600; */
     margin-right: 8px;
 }
 
@@ -584,7 +584,7 @@
 .modal-content h3 {
     margin: 0 0 12px 0;
     font-size: 22px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #111827;
 }
 
@@ -607,7 +607,7 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 15px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: #374151;
     transition: all 0.2s;
     display: flex;
@@ -634,7 +634,7 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: #6b7280;
     transition: all 0.2s;
 }
@@ -655,7 +655,7 @@
 .compose-email h3 {
     margin: 0 0 24px 0;
     font-size: 24px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #111827;
     display: flex;
     align-items: center;
@@ -669,7 +669,7 @@
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: #374151;
     font-size: 14px;
 }
@@ -718,7 +718,7 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 15px;
-    font-weight: 600;
+    /* font-weight: 600; */
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -739,7 +739,7 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 15px;
-    font-weight: 500;
+    /* font-weight: 500; */
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -762,7 +762,7 @@
 .email-search h3 {
     margin: 0 0 16px 0;
     font-size: 24px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #111827;
     display: flex;
     align-items: center;
@@ -810,7 +810,7 @@
     color: #1e40af;
     border-radius: 6px;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .search-result {
@@ -973,7 +973,7 @@
 
 .email-ai-section h4 {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #E5E7EB);
 }
 
@@ -985,7 +985,7 @@
     border-radius: 8px;
     color: var(--text-primary, #E5E7EB);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -1037,7 +1037,7 @@
     border: none;
     border-radius: 8px;
     color: white;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: background 0.2s ease;
     display: flex;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/modules/transcription/stt-module.css
  * PURPOSE: Styling for STT (Speech-to-Text) controls and transcript display
  * 
@@ -181,7 +181,7 @@
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     display: none;
     align-items: center;
     gap: 8px;
@@ -297,7 +297,7 @@
 
 .transcription-controls-label {
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary, #c9d1d9);
 }
 
@@ -339,7 +339,7 @@
     color: white;
     border-radius: 24px;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     display: none;
     align-items: center;
     gap: 8px;

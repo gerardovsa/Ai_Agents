@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shopify Module Styles with Dark Mode Support
  * Color scheme: Shopify Green (#95bf47, #5e8e3e)
  * Version: 1.2.0
@@ -65,7 +65,7 @@
     margin: 0 0 2px 0;
     font-size: 24px;
     color: var(--text-primary);
-    font-weight: 700;
+    /* font-weight: 700; */
     line-height: 1.2;
 }
 
@@ -93,7 +93,7 @@
 }
 
 .shopify-period-selector label {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary);
 }
 
@@ -105,7 +105,7 @@
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .shopify-period-btn:hover {
@@ -176,7 +176,7 @@
 }
 
 .shopify-orders-filters label {
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-secondary);
     font-size: 14px;
 }
@@ -237,7 +237,7 @@
 .shopify-data-table th {
     padding: 12px;
     text-align: left;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #374151;
 }
 
@@ -260,7 +260,7 @@
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     text-transform: capitalize;
 }
 
@@ -394,7 +394,7 @@
 }
 
 .shopify-query-examples label {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #374151;
 }
 
@@ -485,7 +485,7 @@
 .shopify-results-table th {
     padding: 10px;
     text-align: left;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #374151;
     border-bottom: 2px solid #e5e7eb;
 }
@@ -579,7 +579,7 @@
     padding: 10px 20px;
     border: none;
     border-radius: 6px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
@@ -649,7 +649,7 @@
 
 #shopify-orders-table-container .tabulator-col-title {
     color: white;
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -754,7 +754,7 @@
     background: linear-gradient(135deg, #95bf47, #7ea73f);
     color: white;
     border-color: #95bf47;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 #shopify-orders-table-container .tabulator-pages {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ========== AUTOMATION SETTINGS STYLING ==========
  * Styles for automation settings panels in both:
  * - Automations Sidebar (right panel)
@@ -60,7 +60,7 @@
 .settings-panel-title h3 {
     margin: 0;
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #ffffff);
 }
 
@@ -123,7 +123,7 @@
     gap: 10px;
     margin: 0;
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #ffffff);
 }
 
@@ -194,7 +194,7 @@
 .settings-section-header h4 {
     margin: 0;
     font-size: 15px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #ffffff);
 }
 
@@ -219,7 +219,7 @@
 
 .form-group label {
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary, #ffffff);
 }
 
@@ -362,7 +362,7 @@
     border: none;
     border-radius: 6px;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -442,7 +442,7 @@
     border-radius: 6px;
     color: #ffffff;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -500,7 +500,7 @@
 
 .execution-stat-card strong {
     font-size: 18px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary, #ffffff);
 }
 
@@ -574,7 +574,7 @@
     gap: 12px;
     margin: 0;
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #ffffff);
 }
 
@@ -650,7 +650,7 @@
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #ffffff);
 }
 

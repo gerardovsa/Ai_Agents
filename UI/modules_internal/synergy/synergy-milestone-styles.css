@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/external/styles/synergy-milestone-styles.css
  * PURPOSE: Styling for milestone-based task hierarchy UI
  * 
@@ -28,7 +28,7 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #1f2937);
     font-size: 14px;
 }
@@ -111,7 +111,7 @@
     height: 28px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 6px;
-    font-weight: 700;
+    /* font-weight: 700; */
     font-size: 12px;
     font-family: 'Courier New', monospace;
 }
@@ -125,7 +125,7 @@
 
 .milestone-name {
     flex: 1;
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 14px;
     line-height: 1.4;
 }
@@ -135,7 +135,7 @@
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     white-space: nowrap;
 }
 
@@ -154,7 +154,7 @@
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 10px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 /* ==================== MILESTONE BODY ==================== */
@@ -244,7 +244,7 @@
     background: var(--accent-primary, #3b82f6);
     color: white;
     border-radius: 4px;
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 11px;
     font-family: 'Courier New', monospace;
     white-space: nowrap;
@@ -281,7 +281,7 @@
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 10px;
-    font-weight: 600;
+    /* font-weight: 600; */
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -344,7 +344,7 @@
     font-family: 'Courier New', monospace;
     font-size: 9px;
     color: #6b7280;
-    font-weight: 600;
+    /* font-weight: 600; */
     white-space: nowrap;
 }
 
@@ -586,7 +586,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* Milestone Number Badge (M1, M2, M3) */
@@ -594,7 +594,7 @@
     background: rgba(255, 255, 255, 0.25);
     padding: 4px 10px;
     border-radius: 6px;
-    font-weight: 700;
+    /* font-weight: 700; */
     font-size: 13px;
     min-width: 38px;
     text-align: center;
@@ -606,7 +606,7 @@
 .milestone-progress {
     margin-left: auto;
     font-size: 12px;
-    font-weight: 700;
+    /* font-weight: 700; */
     padding: 4px 10px;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.25);
@@ -617,7 +617,7 @@
 /* Milestone Due Date Badge */
 .milestone-due {
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     padding: 4px 10px;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.2);
@@ -630,7 +630,7 @@
 /* AI Prediction Badge (Estimated completion date) */
 .milestone-prediction {
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     padding: 5px 10px;
     border-radius: 6px;
     background: rgba(251, 191, 36, 0.15);
@@ -673,7 +673,7 @@
     border-top: 1px solid var(--border-default, #e5e7eb);
     font-size: 11px;
     color: var(--text-muted, #9ca3af);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .milestone-footer span {
@@ -691,7 +691,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
@@ -707,7 +707,7 @@
 /* Milestone Dependencies Badge */
 .milestone-depends {
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     padding: 4px 10px;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.15);
@@ -729,7 +729,7 @@
     color: white;
     border-radius: 6px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     margin-top: 8px;
     box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
     animation: pulse-warning 2s ease-in-out infinite;
@@ -775,7 +775,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* Dark Mode Support for New Classes */
@@ -835,7 +835,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 13px;
     color: var(--text-secondary, #6b7280);
     margin-bottom: 10px;
@@ -880,7 +880,7 @@
     min-width: 42px;
     padding: 2px 8px;
     font-size: 11px;
-    font-weight: 700;
+    /* font-weight: 700; */
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
     border-radius: 4px;
@@ -892,7 +892,7 @@
     align-items: center;
     padding: 2px 6px;
     font-size: 10px;
-    font-weight: 600;
+    /* font-weight: 600; */
     background: #10b981;
     color: white;
     border-radius: 3px;
@@ -906,7 +906,7 @@
     color: var(--text-primary, #1f2937);
     text-decoration: none;
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     transition: color 0.2s ease;
     cursor: pointer;
 }
@@ -927,7 +927,7 @@
     margin-top: 10px;
     padding: 8px 12px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--primary-color, #3b82f6);
     background: transparent;
     border: 1px dashed var(--border-default, #d1d5db);
@@ -988,7 +988,7 @@
     padding: 4px 8px;
     font-size: inherit;
     font-family: inherit;
-    font-weight: inherit;
+    /* font-weight: inherit; */
     color: inherit;
     background: var(--bg-primary, #ffffff);
     border: 2px solid var(--primary-color, #3b82f6);
@@ -1121,7 +1121,7 @@ body.dark-mode .inline-edit-input {
 }
 
 .synergy-title-text {
-    font-weight: 400;
+    /* font-weight: 400; */
     font-style: normal;
     font-size: 20px;
     color: var(--text-primary, #f3f4f6);
@@ -1140,7 +1140,7 @@ body.dark-mode .inline-edit-input {
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     text-transform: uppercase;
     white-space: nowrap;
 }
@@ -1169,7 +1169,7 @@ body.dark-mode .inline-edit-input {
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     display: flex;
     align-items: center;
     gap: 4px;
@@ -1334,7 +1334,7 @@ body.dark-mode .inline-edit-input {
 }
 
 .synergy-project {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary, #d1d5db);
     white-space: nowrap;
     overflow: hidden;
@@ -1355,7 +1355,7 @@ body.dark-mode .inline-edit-input {
     border-radius: 12px;
     font-size: 13px;
     /* Increased from 12px */
-    font-weight: 500;
+    /* font-weight: 500; */
     /* Added weight */
     color: var(--text-secondary, #d1d5db);
 }
@@ -1448,7 +1448,7 @@ body.dark-mode .inline-edit-input {
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 12px;
-    font-weight: 400;
+    /* font-weight: 400; */
     font-style: normal;
     letter-spacing: 0.5px;
 }
@@ -1465,7 +1465,7 @@ body.dark-mode .inline-edit-input {
 
 .milestone-name-compact {
     font-size: 13px;
-    font-weight: 400;
+    /* font-weight: 400; */
     font-style: normal;
     color: var(--text-primary);
     flex: 1;
@@ -1474,7 +1474,7 @@ body.dark-mode .inline-edit-input {
 .milestone-progress-compact {
     font-size: 12px;
     color: var(--accent-primary);
-    font-weight: 400;
+    /* font-weight: 400; */
     font-style: normal;
 }
 
@@ -1531,7 +1531,7 @@ body.dark-mode .inline-edit-input {
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 12px;
-    font-weight: 400;
+    /* font-weight: 400; */
     font-style: normal;
 }
 
@@ -1678,7 +1678,7 @@ body.dark-mode .inline-edit-input {
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 10px;
-    font-weight: 600;
+    /* font-weight: 600; */
     letter-spacing: 0.5px;
     margin-left: 8px;
     white-space: nowrap;
@@ -1714,7 +1714,7 @@ body.dark-mode .inline-edit-input {
 .synergy-flat-description h2,
 .synergy-flat-description h3 {
     margin: 12px 0 8px 0;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #1f2937);
 }
 
@@ -1733,7 +1733,7 @@ body.dark-mode .inline-edit-input {
 }
 
 .synergy-flat-description strong {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #1f2937);
 }
 

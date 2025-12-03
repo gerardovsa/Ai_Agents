@@ -50,7 +50,7 @@
 .inhouse-kanban-filter-group label {
     font-size: 14px;
     color: #9CA3AF;
-    font-weight: 500;
+    /* font-weight: 500; */
     display: flex;
     align-items: center;
     gap: 6px;
@@ -102,7 +102,7 @@
     border-radius: 6px;
     color: white;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -123,7 +123,7 @@
 
 .inhouse-kanban-time-value {
     color: #E5E7EB;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* ============================================
@@ -145,7 +145,7 @@
     border-bottom: 3px solid transparent;
     color: #9CA3AF;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -214,7 +214,7 @@
 
 .inhouse-kanban-metric-value {
     font-size: 24px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: #E5E7EB;
     line-height: 1.2;
 }
@@ -272,7 +272,7 @@
 
 .inhouse-kanban-column-title {
     font-size: 16px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: #E5E7EB;
     margin: 0;
     display: flex;
@@ -304,11 +304,11 @@
 }
 
 .inhouse-kanban-job-count {
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .inhouse-kanban-stage-value {
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .inhouse-kanban-column-body {
@@ -353,12 +353,12 @@
     align-items: center;
     gap: 4px;
     font-size: 16px;
-    font-weight: 700;
+    /* font-weight: 700; */
 }
 
 .inhouse-kanban-card-title {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #E5E7EB;
     line-height: 1.4;
     margin-bottom: 8px;
@@ -396,7 +396,7 @@
     padding: 3px 8px;
     border-radius: 4px;
     font-size: 10px;
-    font-weight: 700;
+    /* font-weight: 700; */
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -433,7 +433,7 @@
     border-left: 2px solid #00D9FF;
     border-radius: 3px;
     margin-top: 8px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .card-stage-time i {
@@ -584,7 +584,7 @@
 .kanban-modal-title {
     color: #E5E7EB !important;
     font-size: 16px !important;
-    font-weight: 700 !important;
+    /* font-weight: 700 !important; */
     display: flex !important;
     align-items: center !important;
     gap: 12px !important;
@@ -638,7 +638,7 @@
 /* SECTION TITLE - Uppercase with icon (collapsible) */
 .kanban-section-title {
     font-size: 13px !important;
-    font-weight: 700 !important;
+    /* font-weight: 700 !important; */
     color: #00D9FF !important;
     margin-bottom: 14px !important;
     display: flex !important;
@@ -696,7 +696,7 @@
 
 .kanban-detail-label {
     font-size: 10px !important;
-    font-weight: 600 !important;
+    /* font-weight: 600 !important; */
     color: #00D9FF !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
@@ -705,7 +705,7 @@
 .kanban-detail-value {
     font-size: 14px !important;
     color: #FFFFFF !important;
-    font-weight: 600 !important;
+    /* font-weight: 600 !important; */
 }
 
 /* NOTES TEXT - For multi-line content */
@@ -744,7 +744,7 @@
     padding: 6px 12px !important;
     border-radius: 6px !important;
     font-size: 12px !important;
-    font-weight: 600 !important;
+    /* font-weight: 600 !important; */
     color: white !important;
 }
 
@@ -826,7 +826,7 @@
 
 .inhouse-kanban-loading-spinner p {
     font-size: 16px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* ============================================

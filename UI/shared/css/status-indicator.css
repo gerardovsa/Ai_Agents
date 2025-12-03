@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/css/status-indicator.css
  * PURPOSE: Styles for bottom-left status indicator
  * LAST MODIFIED: 2025-11-24 - Created
@@ -56,7 +56,7 @@
 .status-text {
     color: #e5e7eb;
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

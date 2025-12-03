@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/external/modules/synergy/synergy-flat-spacing.css
  * PURPOSE: FLAT SPACING CSS - Optimized for 350px width containers
  * 
@@ -83,7 +83,7 @@
     padding: 6px 12px;
     border-radius: 8px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     max-width: 100%;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -130,7 +130,7 @@
 .synergy-flat-empty div:first-of-type {
     color: var(--text-secondary);
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .synergy-flat-empty-hint {
@@ -176,7 +176,7 @@
 
 .synergy-flat-index {
     font-size: 13px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-secondary);
     font-family: 'Courier New', monospace;
     min-width: 40px;
@@ -464,7 +464,7 @@
     color: white;
     border-radius: 4px;
     font-size: 11px;
-    font-weight: 700;
+    /* font-weight: 700; */
 }
 
 .synergy-flat-blocker {
@@ -479,7 +479,7 @@
 .synergy-flat-blocker-header {
     color: #dc2626;
     font-size: 13px;
-    font-weight: 700;
+    /* font-weight: 700; */
     margin-bottom: 4px;
 }
 
@@ -657,7 +657,7 @@
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 10px;
-    font-weight: 700;
+    /* font-weight: 700; */
     text-transform: uppercase;
 }
 
@@ -702,7 +702,7 @@
     background: var(--bg-secondary);
     color: var(--text-primary);
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     outline: none;
     transition: all 0.2s ease;
@@ -985,7 +985,7 @@
     padding: 3px 8px;
     border-radius: 12px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     background: var(--bg-quaternary);
     color: var(--text-secondary);
 }
@@ -1010,7 +1010,7 @@
 
 .synergy-linked-thread-card .thread-card-title {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: 6px;
     overflow: hidden;

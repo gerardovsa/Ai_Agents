@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/modules_external/voip-demo/voip-demo.css
  * PURPOSE: Styles for VoIP Demo module
  */
@@ -50,7 +50,7 @@
 
 .status-text {
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: #374151;
 }
 
@@ -109,7 +109,7 @@
     border: none;
     border-radius: 8px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -213,7 +213,7 @@
 #voip-timer-display {
     font-family: 'Courier New', monospace;
     font-size: 18px;
-    font-weight: bold;
+    /* font-weight: bold; */
     color: #1e40af;
 }
 
@@ -292,7 +292,7 @@
 .call-time {
     font-size: 14px;
     color: #111827;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .call-duration {
@@ -304,7 +304,7 @@
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .call-status.completed {
@@ -323,7 +323,7 @@
     margin-bottom: 8px;
     font-size: 14px;
     color: #374151;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .meter-bar {
@@ -430,7 +430,7 @@
 
 .status-value {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: #111827;
 }
 
@@ -449,7 +449,7 @@
     border: none;
     border-radius: 8px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     display: flex;
     align-items: center;

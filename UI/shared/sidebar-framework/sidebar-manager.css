@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Universal Sidebar Manager Styles
  * 
  * PURPOSE: Base styles for all module sidebars managed by SidebarManager
@@ -162,7 +162,7 @@
     align-items: center;
     justify-content: space-between;
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
 }
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/module_builder/templates/dashboard-module/dashboard-module.css
  * PURPOSE: Styling for dashboard module template with charts and metrics
  * 
@@ -54,7 +54,7 @@
     gap: var(--spacing-sm);
     margin: 0;
     font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     color: var(--color-text-primary);
 }
 
@@ -127,14 +127,14 @@
 
 .metric-value {
     font-size: var(--font-size-xxl);
-    font-weight: var(--font-weight-bold);
+    /* font-weight: var(--font-weight-bold); */
     color: var(--color-text-primary);
     margin-bottom: var(--spacing-xs);
 }
 
 .metric-change {
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    /* font-weight: var(--font-weight-medium); */
     padding: 2px 8px;
     border-radius: var(--border-radius-sm);
     display: inline-block;
@@ -183,7 +183,7 @@
 .chart-title {
     margin: 0;
     font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     color: var(--color-text-primary);
 }
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TRANSCRIPTION SIDEBAR STYLES
  * Pattern: Similar to Synergy Sidebar (450px width, collapsible, tabbed)
  * 
@@ -58,7 +58,7 @@
     align-items: center;
     gap: 8px;
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
 }
 
@@ -121,7 +121,7 @@
 
 .section-title-compact {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
 }
 
@@ -132,7 +132,7 @@
     border-radius: 10px;
     color: var(--text-muted, #8b949e);
     font-family: 'Courier New', monospace;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .section-toggle-icon {
@@ -273,7 +273,7 @@
 .transcription-file-upload-compact span {
     font-size: 13px;
     color: var(--text-primary, #c9d1d9);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .transcription-file-upload-compact small {
@@ -365,7 +365,7 @@
 
 .transcription-section h3 {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 16px;
     display: flex;
@@ -379,7 +379,7 @@
 
 .transcription-section h4 {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 12px;
     display: flex;
@@ -411,7 +411,7 @@
 .transcription-field label {
     display: block;
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 6px;
 }
@@ -486,7 +486,7 @@
     border-radius: 6px;
     color: white;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -531,7 +531,7 @@
     border-radius: 8px;
     color: white;
     font-size: 16px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -594,7 +594,7 @@
 
 .status-value {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--accent-primary, #58a6ff);
 }
 
@@ -752,7 +752,7 @@
 
 .transcription-status-card h4 {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
     margin-bottom: 12px;
     display: flex;
@@ -799,7 +799,7 @@
 
 .support-status {
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .support-status.supported {
@@ -817,7 +817,7 @@
 
 .stat-value {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--accent-primary, #58a6ff);
 }
 
@@ -921,7 +921,7 @@
 
 .recording-status-left .status-label {
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-muted, #8b949e);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -929,7 +929,7 @@
 
 .recording-status-left .status-value {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #c9d1d9);
 }
 

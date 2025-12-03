@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VECTOR DATABASE SIDEBAR MODULE - CSS
  * 
  * Follows Synergy sidebar pattern (450px width)
@@ -60,7 +60,7 @@
     align-items: center;
     gap: var(--space-2, 8px);
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
 }
 
@@ -113,7 +113,7 @@
 
 .vector-db-stat-value {
     font-size: 20px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     display: block;
 }
@@ -141,7 +141,7 @@
     border: none;
     color: var(--text-secondary);
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
     border-bottom: 2px solid transparent;
@@ -182,7 +182,7 @@
 
 .credentials-title {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -193,7 +193,7 @@
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 11px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .credential-status.connected {
@@ -220,7 +220,7 @@
 
 .form-label {
     font-size: 12px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-secondary);
 }
 
@@ -304,7 +304,7 @@
     border-radius: 6px;
     color: white;
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -325,7 +325,7 @@
     border-radius: 6px;
     color: var(--text-secondary);
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -414,7 +414,7 @@
 
 .file-name {
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary);
     margin-bottom: 4px;
 }
@@ -472,7 +472,7 @@
 
 .section-title {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -503,7 +503,7 @@
 
 .document-title {
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary);
 }
 

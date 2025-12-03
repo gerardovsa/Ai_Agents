@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SYNERGY SIDEBAR MODULE - Standalone CSS
  * Matches Automations sidebar structure (450px width)
  * Created: November 20, 2025
@@ -46,7 +46,7 @@
     align-items: center;
     gap: var(--space-2);
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
 }
 
@@ -99,7 +99,7 @@
 
 .synergy-stat-value {
     font-size: 20px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     display: block;
 }
@@ -232,7 +232,7 @@
 }
 
 .synergy-card-title {
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 14px;
     color: var(--text-primary);
     margin-bottom: 8px;
@@ -252,7 +252,7 @@
     padding: 3px 10px;
     border-radius: 12px;
     font-size: 10px;
-    font-weight: 700;
+    /* font-weight: 700; */
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: white;
@@ -278,7 +278,7 @@
     padding: 3px 10px;
     border-radius: 12px;
     font-size: 10px;
-    font-weight: 600;
+    /* font-weight: 600; */
     background: var(--bg-quaternary);
     color: var(--text-secondary);
 }
@@ -311,7 +311,7 @@
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .synergy-card-btn-primary:hover {
@@ -343,7 +343,7 @@
 
 .synergy-card-section-title {
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary);
     margin-bottom: var(--space-2);
     text-transform: uppercase;
@@ -373,12 +373,12 @@
 
 .synergy-card-field-label {
     color: var(--text-muted);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .synergy-card-field-value {
     color: var(--text-primary);
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 /* Loading State */

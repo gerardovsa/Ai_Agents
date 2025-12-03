@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AUTOMATION WORKFLOWS MODULE - STYLES
  * 
  * Visual automation canvas with drag-and-drop flow builder
@@ -123,7 +123,7 @@
 
 .workflow-title {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: var(--space-1);
     overflow: hidden;
@@ -185,7 +185,7 @@
     font-size: 10px;
     padding: 2px 6px;
     border-radius: 10px;
-    font-weight: 500;
+    /* font-weight: 500; */
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -266,7 +266,7 @@
 
 .floating-palette-title {
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -388,7 +388,7 @@
     transform: translate(-50%, -50%);
     color: white;
     font-size: 14px;
-    font-weight: bold;
+    /* font-weight: bold; */
     text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
 }
 
@@ -407,7 +407,7 @@
 
 .automation-sidebar-title {
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: var(--space-2);
     display: flex;
@@ -432,7 +432,7 @@
 
 .palette-section-title {
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary);
     margin-bottom: var(--space-3);
     text-transform: uppercase;
@@ -484,7 +484,7 @@
     font-size: 11px;
     color: var(--text-secondary);
     text-align: center;
-    font-weight: 500;
+    /* font-weight: 500; */
     margin-top: auto;
 }
 
@@ -495,7 +495,7 @@
     left: 50%;
     transform: translateX(-50%);
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -609,7 +609,7 @@
     left: 50%;
     transform: translateX(-50%);
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -761,7 +761,7 @@
 
 .automation-list-item-title {
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     color: var(--text-primary);
 }
 
@@ -771,7 +771,7 @@
     border-radius: 4px;
     font-size: 10px;
     color: var(--accent-primary);
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .automation-list-item-meta {
@@ -814,7 +814,7 @@
 
 .canvas-toolbar-title {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -843,7 +843,7 @@
     border-radius: 6px;
     color: var(--text-secondary);
     font-size: 13px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -991,7 +991,7 @@
 
 .workflow-modal-title {
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -1030,7 +1030,7 @@
 .workflow-form-label {
     display: block;
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary);
     margin-bottom: var(--space-2);
 }
@@ -1126,7 +1126,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -1274,7 +1274,7 @@
     right: 0;
     text-align: center;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1655,7 +1655,7 @@
 .automation-slug-text {
     font-size: 13px;
     color: var(--text-primary);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .automation-slug-id {
@@ -1731,7 +1731,7 @@
 
 .automation-empty-title {
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary);
     margin-bottom: var(--space-2);
 }
@@ -1757,7 +1757,7 @@
     justify-content: center;
     gap: 8px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: 8px;
     padding: 8px;

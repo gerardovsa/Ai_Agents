@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tabulator Enhancements - Complete Styling Suite
  * Version: 2.0.0
  * Last Updated: November 7, 2025
@@ -154,14 +154,14 @@
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     margin-left: 10px;
 }
 
 /* Row number column */
 .row-number-column {
     background: rgba(139, 92, 246, 0.05);
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--accent-primary, #8b5cf6);
 }
 
@@ -314,7 +314,7 @@
 }
 
 .bulk-actions-header span {
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
 }
 
@@ -358,7 +358,7 @@
     cursor: pointer;
     transition: all 0.2s;
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .bulk-action-btn:hover {
@@ -464,7 +464,7 @@
 .history-table thead th {
     background: var(--background-tertiary);
     color: var(--text-primary);
-    font-weight: 600;
+    /* font-weight: 600; */
     text-align: left;
     padding: var(--space-3) var(--space-4);
     border-bottom: 2px solid var(--border-default);
@@ -542,7 +542,7 @@
     border-radius: var(--border-radius-sm);
     cursor: pointer;
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     transition: all 0.2s;
 }
 
@@ -604,7 +604,7 @@
 
 .mobile-card-title {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin-bottom: var(--space-1);
 }
@@ -630,13 +630,13 @@
 .mobile-card-label {
     font-size: 13px;
     color: var(--text-secondary);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .mobile-card-value {
     font-size: 14px;
     color: var(--text-primary);
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .mobile-card-status-critical {
@@ -695,7 +695,7 @@
     border-radius: var(--border-radius-md);
     cursor: pointer;
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -740,7 +740,7 @@
     margin: 0;
     font-size: 14px;
     color: var(--text-primary);
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .filter-builder-row {
@@ -793,7 +793,7 @@
     border-radius: var(--border-radius-md);
     cursor: pointer;
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -857,7 +857,7 @@
     border-radius: var(--border-radius-md);
     color: var(--success-color);
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .auto-refresh-indicator i {

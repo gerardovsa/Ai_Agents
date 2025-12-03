@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/module_builder/templates/form-module/form-module.css
  * PURPOSE: Styling for form module template with multi-step wizard
  * 
@@ -46,7 +46,7 @@
     gap: var(--spacing-sm);
     margin: 0;
     font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     color: var(--color-text-primary);
 }
 
@@ -94,7 +94,7 @@
     background: var(--color-bg-tertiary);
     border: 2px solid var(--color-border-medium);
     color: var(--color-text-secondary);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     transition: var(--transition-base);
 }
 
@@ -118,7 +118,7 @@
 
 .progress-step.active .step-label {
     color: var(--color-accent-blue);
-    font-weight: var(--font-weight-medium);
+    /* font-weight: var(--font-weight-medium); */
 }
 
 .progress-connector {
@@ -161,7 +161,7 @@
 .step-title {
     margin: 0 0 var(--spacing-xs) 0;
     font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     color: var(--color-text-primary);
 }
 
@@ -182,7 +182,7 @@
     display: block;
     margin-bottom: var(--spacing-xs);
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    /* font-weight: var(--font-weight-medium); */
     color: var(--color-text-primary);
 }
 
@@ -270,7 +270,7 @@
 .review-title {
     margin: 0 0 var(--spacing-md) 0;
     font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
+    /* font-weight: var(--font-weight-semibold); */
     color: var(--color-text-primary);
 }
 
@@ -293,7 +293,7 @@
 .review-label {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
-    font-weight: var(--font-weight-medium);
+    /* font-weight: var(--font-weight-medium); */
 }
 
 .review-value {

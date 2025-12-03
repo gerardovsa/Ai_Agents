@@ -184,13 +184,16 @@ window.ThreadCardTemplates = {
                  style="cursor: pointer;" 
                  title="Double-click to load in Prime">
                 
-                <!-- Row 1: Title + Chevron -->
-                <div class="thread-item-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <!-- Row 1: Title + Agent Badge + Chevron -->
+                <div class="thread-item-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 0;">
                     <span class="thread-item-title" style="flex: 1; font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         ${thread.title || 'Untitled'}
                     </span>
+                    <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0; font-size: 13px;">
+                        <i class="fas ${agent.icon}"></i> ${agent.name}
+                    </div>
                     <button class="thread-card-expand-btn" 
-                            onclick="ThreadCardExpansion.toggleCard(event, '${thread.id}')"
+                            onclick="ThreadCardExpansion.toggleCard(event, '${thread.id}'); return false;"
                             aria-label="Expand details"
                             title="Click to expand/collapse details"
                             style="flex-shrink: 0;">
@@ -198,10 +201,7 @@ window.ThreadCardTemplates = {
                     </button>
                 </div>
                 
-                <!-- Row 2: Agent Badge + Action Buttons -->
-                ${headerHtml}
-                
-                <!-- Row 3: Meta (msgs/date/time) -->
+                <!-- Row 2: Meta (msgs/date/time) + Action Buttons -->
                 <div class="thread-meta-row-always-visible" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
                     <span class="thread-meta-item" title="Message count">
                         <i class="fas fa-comments"></i> ${meta.msgCount} msgs
@@ -212,6 +212,7 @@ window.ThreadCardTemplates = {
                     <span class="thread-meta-item" title="Time">
                         <i class="fas fa-clock"></i> ${meta.timeStr}
                     </span>
+                    ${headerHtml}
                 </div>
                 
                 <!-- HOVER EXPAND: Rows 3-7 -->
@@ -268,8 +269,24 @@ window.ThreadCardTemplates = {
                  style="cursor: pointer;" 
                  title="Double-click to load in Prime">
                 
-                ${this.headerRowClean(thread, location, agent)}
+                <!-- Row 1: Title + Agent Badge + Chevron -->
+                <div class="thread-item-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 0;">
+                    <span class="thread-item-title" style="flex: 1; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${thread.title || 'Untitled'}
+                    </span>
+                    <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0; font-size: 13px;">
+                        <i class="fas ${agent.icon}"></i> ${agent.name}
+                    </div>
+                    <button class="thread-card-expand-btn" 
+                            onclick="ThreadCardExpansion.toggleCard(event, '${thread.id}'); return false;"
+                            aria-label="Expand details"
+                            title="Click to expand/collapse details"
+                            style="flex-shrink: 0;">
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </button>
+                </div>
                 
+                <!-- Row 2: Meta (msgs/date/time) - ALWAYS VISIBLE -->
                 <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
                     <span class="thread-meta-item" title="Message count">
                         <i class="fas fa-comments"></i> ${meta.msgCount} msgs
@@ -282,16 +299,21 @@ window.ThreadCardTemplates = {
                     </span>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
-                    ${this._copyThreadDropdown(thread)}
-                    ${this._threadIdBadge(thread, slug)}
+                <!-- EXPAND ON CLICK: Rows 3-7 -->
+                <div class="thread-expand-on-hover">
+                    
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                        ${this._copyThreadDropdown(thread)}
+                        ${this._threadIdBadge(thread, slug)}
+                    </div>
+                    
+                    ${this._synergyRow(thread, synergyMeta)}
+                    
+                    ${this.tagsRow(thread, location, true)}
+                    
+                    ${this.lockControlsRow(thread)}
+                    
                 </div>
-                
-                ${this._synergyRow(thread, synergyMeta)}
-                
-                ${this.tagsRow(thread, location, true)}
-                
-                ${this.lockControlsRow(thread)}
                 
             </div>
         `;
@@ -307,15 +329,8 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for clean header row
      */
     headerRowClean(thread, location, agent) {
-        // NO title or chevron here - those are in Row 1 (separate)
-        // This is ONLY Row 2: Agent badge
-        return `
-            <div style="display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin-top: 0;">
-                <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
-                    <i class="fas ${agent.icon}"></i> ${agent.name}
-                </div>
-            </div>
-        `;
+        // Agent badge now in Row 1 with title - this returns empty for Prime (clean header)
+        return '';
     },
 
     /**
@@ -328,20 +343,14 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for header row with unload button
      */
     headerRowWithUnload(thread, location, agent) {
-        // NO title or chevron here - those are in Row 1 (separate)
-        // This is ONLY Row 2: Agent badge + unload button
+        // Agent badge now in Row 1 with title - this only shows unload button
         return `
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 0;">
-                <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
-                    <i class="fas ${agent.icon}"></i> ${agent.name}
-                </div>
-                <button class="agent-unload-btn" 
-                        onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
-                        title="Unload thread from agent (move to Prime)"
-                        style="flex-shrink: 0;">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
+            <button class="agent-unload-btn" 
+                    onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
+                    title="Unload thread from agent (move to Prime)"
+                    style="flex-shrink: 0; margin-left: auto;">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
         `;
     },
 
@@ -358,52 +367,46 @@ window.ThreadCardTemplates = {
     headerRowWithActions(thread, location, agent, currentLocation) {
         const isInAgent = currentLocation && currentLocation.startsWith('agent-');
 
-        // NO title or chevron here - those are in Row 1 (separate)
-        // This is ONLY Row 2: Agent badge + action buttons
+        // Agent badge now in Row 1 with title - this only shows action buttons
         return `
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 0;">
-                <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
-                    <i class="fas ${agent.icon}"></i> ${agent.name}
-                </div>
-                <div class="thread-item-actions" style="display: flex; gap: 4px; flex-shrink: 0;">
-                    ${isInAgent ? `
-                    <button class="thread-action-btn unload"
-                        onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
-                        title="Unload thread from agent (move to Prime)">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                    ` : ''}
-                    <button class="thread-action-btn rename"
-                        onclick="event.stopPropagation(); ThreadManager.startRename('${thread.id}')"
-                        title="Rename thread">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    <button class="thread-action-btn edit"
-                        onclick="event.stopPropagation(); ThreadManager.editThread('${thread.id}')"
-                        title="Edit thread">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="thread-action-btn fork"
-                        onclick="event.stopPropagation(); ThreadManager.forkThread('${thread.id}')"
-                        title="Fork thread (branch from current point)">
-                        <i class="fas fa-code-branch"></i>
-                    </button>
-                    <button class="thread-action-btn clone"
-                        onclick="event.stopPropagation(); ThreadManager.cloneThread('${thread.id}')"
-                        title="Clone thread (duplicate all messages)">
-                        <i class="fas fa-clone"></i>
-                    </button>
-                    <button class="thread-action-btn archive"
-                        onclick="event.stopPropagation(); ThreadManager.archiveThread('${thread.id}')"
-                        title="Archive thread">
-                        <i class="fas fa-archive"></i>
-                    </button>
-                    <button class="thread-action-btn delete"
-                        onclick="event.stopPropagation(); ThreadManager.deleteThread('${thread.id}')"
-                        title="Delete thread">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+            <div class="thread-item-actions" style="display: flex; gap: 4px; flex-shrink: 0; margin-left: auto;">
+                ${isInAgent ? `
+                <button class="thread-action-btn unload"
+                    onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
+                    title="Unload thread from agent (move to Prime)">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+                ` : ''}
+                <button class="thread-action-btn rename"
+                    onclick="event.stopPropagation(); ThreadManager.startRename('${thread.id}')"
+                    title="Rename thread">
+                    <i class="fas fa-pen"></i>
+                </button>
+                <button class="thread-action-btn edit"
+                    onclick="event.stopPropagation(); ThreadManager.editThread('${thread.id}')"
+                    title="Edit thread">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="thread-action-btn fork"
+                    onclick="event.stopPropagation(); ThreadManager.forkThread('${thread.id}')"
+                    title="Fork thread (branch from current point)">
+                    <i class="fas fa-code-branch"></i>
+                </button>
+                <button class="thread-action-btn clone"
+                    onclick="event.stopPropagation(); ThreadManager.cloneThread('${thread.id}')"
+                    title="Clone thread (duplicate all messages)">
+                    <i class="fas fa-clone"></i>
+                </button>
+                <button class="thread-action-btn archive"
+                    onclick="event.stopPropagation(); ThreadManager.archiveThread('${thread.id}')"
+                    title="Archive thread">
+                    <i class="fas fa-archive"></i>
+                </button>
+                <button class="thread-action-btn delete"
+                    onclick="event.stopPropagation(); ThreadManager.deleteThread('${thread.id}')"
+                    title="Delete thread">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         `;
     },

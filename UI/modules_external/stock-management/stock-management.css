@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Stock Management Module - Custom Styles
  * Professional design with blue/teal color scheme
  * NO EMOJIS - Only Font Awesome icons and status circles
@@ -117,7 +117,7 @@
 
 .sm-control-group label {
     color: var(--text-primary, #e6edf3);
-    font-weight: 500;
+    /* font-weight: 500; */
     margin: 0;
 }
 
@@ -213,7 +213,7 @@
 
 .sm-stat-value {
     font-size: 20px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary, #e6edf3);
     line-height: 1;
 }
@@ -332,7 +332,7 @@ canvas {
     margin: 0 0 5px 0;
     color: var(--text-primary, #e6edf3);
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .dashboard-card .card-header .card-title i {

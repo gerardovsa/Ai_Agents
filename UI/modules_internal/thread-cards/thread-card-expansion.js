@@ -39,19 +39,21 @@ window.ThreadCardExpansion = {
      * @param {string} threadId - Thread ID to toggle
      */
     toggleCard(event, threadId) {
-        // Prevent event bubbling (don't trigger double-click)
+        // CRITICAL: Prevent event bubbling (don't trigger double-click or parent handlers)
         if (event) {
             event.stopPropagation();
             event.preventDefault();
+            event.stopImmediatePropagation(); // Stop ALL handlers on this element
         }
 
         const card = this.findCardElement(threadId);
         if (!card) {
-            console.warn(`Thread card not found for ID: ${threadId}`);
+            console.warn(`[ThreadCardExpansion] Card not found for ID: ${threadId}`);
             return;
         }
 
         const isExpanded = card.classList.contains('expanded');
+        console.log(`[ThreadCardExpansion] Toggling ${threadId}: ${isExpanded ? 'collapse' : 'expand'}`);
 
         if (isExpanded) {
             this.collapseCard(threadId);

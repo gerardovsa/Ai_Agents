@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/external/modules/synergy/synergy-doc-picker.css
  * PURPOSE: Styles for internal document picker modal
  * LAST MODIFIED: 2025-11-24 - Initial implementation
@@ -69,7 +69,7 @@
     align-items: center;
     gap: 12px;
     font-size: 18px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #ffffff);
 }
 
@@ -146,7 +146,7 @@
 
 .synergy-doc-filter-group label {
     font-size: 12px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary, rgba(255, 255, 255, 0.6));
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -181,7 +181,7 @@
     background: var(--bg-tertiary, rgba(0, 0, 0, 0.2));
     border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
     font-size: 13px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-secondary, rgba(255, 255, 255, 0.6));
 }
 
@@ -255,7 +255,7 @@
 
 .synergy-doc-item-title {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary, #ffffff);
     margin-bottom: 4px;
     overflow: hidden;
@@ -363,7 +363,7 @@
     padding: 10px 20px;
     color: #ffffff;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -388,7 +388,7 @@
     border: none;
     border-radius: 8px;
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/modules/agents/agent-ui.css
  * PURPOSE: Centralized styling for multi-agent column UI system
  * 
@@ -76,7 +76,7 @@
 .agent-name-vertical {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 14px;
     color: var(--text-primary);
     white-space: nowrap;
@@ -115,7 +115,7 @@
 
 .agent-title-wrapper h2 {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0;
     display: flex;
@@ -265,11 +265,11 @@
     display: none;
     position: absolute;
     top: 100%;
-    right: 0;
+    right: 10px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-default);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     min-width: 180px;
     margin-top: 4px;
@@ -708,7 +708,7 @@
 .processing-text {
     color: var(--text-secondary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* Dark theme */
@@ -792,7 +792,7 @@
 .agent-input-container::after {
     content: '\f077\A\f077';
     font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
+    /* font-weight: 900; */
     white-space: pre;
     line-height: 0.5;
     position: absolute;
@@ -875,11 +875,12 @@
 .agent-input-center {
     flex: 1;
     min-width: 0;
+    margin-right: 40px;
+    /* Space for 32px button column + 8px gap */
 }
 
 .agent-input-textarea {
-    width: calc(100% - 20px);
-    /* 20px right margin for button spacing */
+    width: 100%;
     min-height: 80px;
     padding: 12px;
     padding-right: 50px;
@@ -1063,7 +1064,7 @@
 }
 
 .feedback-header-text {
-    font-weight: 600;
+    /* font-weight: 600; */
     font-size: 14px;
 }
 

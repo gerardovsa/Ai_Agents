@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: UI/styles/onboarding.css
  * PURPOSE: Complete styling for onboarding system components
  * 
@@ -245,7 +245,7 @@
 
 .fre-title {
   font-size: 28px;
-  font-weight: 700;
+  /* font-weight: 700; */
   color: white;
   margin: 0 0 12px 0;
 }
@@ -293,7 +293,7 @@
 
 .fre-feature h3 {
   font-size: 16px;
-  font-weight: 600;
+  /* font-weight: 600; */
   color: white;
   margin: 0 0 8px 0;
 }
@@ -316,7 +316,7 @@
   padding: 14px 32px;
   border-radius: 12px;
   font-size: 16px;
-  font-weight: 600;
+  /* font-weight: 600; */
   cursor: pointer;
   border: none;
   display: inline-flex;
@@ -403,7 +403,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 10px;
-  font-weight: 600;
+  /* font-weight: 600; */
   color: white;
   background: var(--onboarding-primary);
   padding: 2px 6px;
@@ -451,7 +451,7 @@
   margin: 0;
   color: white;
   font-size: 18px;
-  font-weight: 600;
+  /* font-weight: 600; */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -590,7 +590,7 @@
 
 .item-xp {
   font-size: 12px;
-  font-weight: 600;
+  /* font-weight: 600; */
   color: var(--onboarding-primary);
   background: #ede9fe;
   padding: 2px 8px;
@@ -623,7 +623,7 @@
 
 .xp-count {
   font-size: 20px;
-  font-weight: 700;
+  /* font-weight: 700; */
 }
 
 .xp-label {
@@ -668,7 +668,7 @@
 .shepherd-theme-custom .shepherd-title {
   color: white;
   font-size: 18px;
-  font-weight: 600;
+  /* font-weight: 600; */
   margin: 0;
 }
 
@@ -690,7 +690,7 @@
   padding: 10px 20px;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
+  /* font-weight: 600; */
   border: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -751,7 +751,7 @@
   padding: 12px 20px;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  /* font-weight: 500; */
   color: white;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   z-index: var(--z-toast);
@@ -836,7 +836,7 @@
 
 .activation-content h2 {
   font-size: 28px;
-  font-weight: 700;
+  /* font-weight: 700; */
   color: var(--text-primary);
   margin: 0 0 16px 0;
 }
@@ -865,7 +865,7 @@
 
 .activation-badge span {
   font-size: 14px;
-  font-weight: 600;
+  /* font-weight: 600; */
   color: var(--text-primary);
 }
 
@@ -873,7 +873,7 @@
   padding: 14px 32px;
   border-radius: 12px;
   font-size: 16px;
-  font-weight: 600;
+  /* font-weight: 600; */
   background: var(--onboarding-primary);
   color: white;
   border: none;

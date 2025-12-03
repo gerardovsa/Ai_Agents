@@ -58,7 +58,7 @@
     align-items: center;
     gap: var(--space-3);
     font-size: 24px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0;
 }
@@ -86,7 +86,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -122,7 +122,7 @@
 .filter-group label {
     font-size: 14px;
     color: var(--text-secondary);
-    font-weight: 500;
+    /* font-weight: 500; */
     display: flex;
     align-items: center;
     gap: var(--space-1);
@@ -187,7 +187,7 @@
 
 .time-value {
     color: var(--text-secondary);
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 /* ===================================================================
@@ -208,7 +208,7 @@
     border-bottom: 2px solid transparent;
     color: var(--text-secondary);
     font-size: 14px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -276,7 +276,7 @@
 
 .metric-value {
     font-size: 24px;
-    font-weight: 700;
+    /* font-weight: 700; */
     color: var(--text-primary);
     line-height: 1.2;
     margin-bottom: 2px;
@@ -332,7 +332,7 @@
 
 .column-title {
     font-size: 16px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     margin: 0;
     display: flex;
@@ -365,7 +365,7 @@
 
 .job-count,
 .stage-value {
-    font-weight: 500;
+    /* font-weight: 500; */
 }
 
 .column-body {
@@ -409,7 +409,7 @@
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 11px;
-    font-weight: 600;
+    /* font-weight: 600; */
     display: flex;
     align-items: center;
     gap: 4px;
@@ -443,7 +443,7 @@
 
 .job-description {
     font-size: 14px;
-    font-weight: 600;
+    /* font-weight: 600; */
     color: var(--text-primary);
     line-height: 1.4;
     word-break: break-word;
@@ -561,12 +561,12 @@
 /* Due Date Status Colors */
 .due-date.overdue {
     color: #ef4444;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .due-date.due-soon {
     color: #f59e0b;
-    font-weight: 600;
+    /* font-weight: 600; */
 }
 
 .due-date.on-track {
@@ -590,7 +590,7 @@
     border-radius: 4px;
     color: var(--text-primary);
     font-size: 12px;
-    font-weight: 500;
+    /* font-weight: 500; */
     cursor: pointer;
     display: flex;
     align-items: center;
