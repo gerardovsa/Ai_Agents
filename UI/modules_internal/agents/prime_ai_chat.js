@@ -5,6 +5,15 @@
 // Auto-scroll state
 let autoScrollEnabled = true;
 
+// Message visibility state tracking (Prime chat)
+// Combined view modes:
+// 1. 'all-collapsed': Show all - tools collapsed
+// 2. 'all-expanded': Show all - expand all
+// 3. 'ai-collapsed': Show AI only - collapsed tools
+// 4. 'ai-expanded': Show AI only - expanded tools
+// 5. 'ai-user': Show AI and user - no tools/no tool results
+let primeViewMode = 'all-expanded';
+
 // Layout constants - centralized magic numbers
 const LAYOUT_CONSTANTS = {
     SCROLL_CLEARANCE: 50,      // Extra pixels for comfortable reading
@@ -115,8 +124,13 @@ function initChatPanel() {
         isExpanded = true;
         inputContainer?.classList.add('expanded');
 
+        // ALWAYS scroll to bottom when expanding (compensate for lost message space)
+        // This is separate from auto-scroll toggle - expansion changes viewport
         setTimeout(() => {
-            performAutoScroll();
+            const messagesContainer = document.querySelector('.ai-chat-messages');
+            if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight + LAYOUT_CONSTANTS.SCROLL_CLEARANCE;
+            }
         }, 100);
 
         input?.focus();
@@ -1951,10 +1965,10 @@ async function sendChatMessageWithFiles(message, sessionId, startTime) {
 
         const uploadData = await uploadResponse.json();
         console.log('[OK] Files uploaded and processed:', uploadData);
-        
+
         // Files are now in session context, send the chat message
         console.log('📨 Sending chat message with file context...');
-        
+
         // Clear files after successful upload
         console.log('[CLEAN] Clearing attached files from UI after successful upload...');
         if (window.clearChatAttachedFiles) {
@@ -2320,6 +2334,110 @@ function initThemeToggle() {
     });
 }
 
+/**
+ * Cycle through view modes for Prime chat
+ */
+function cycleExpandModePrime() {
+    const modes = ['all-collapsed', 'all-expanded', 'ai-collapsed', 'ai-expanded', 'ai-user'];
+    const currentIndex = modes.indexOf(primeViewMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    const nextMode = modes[nextIndex];
+
+    primeViewMode = nextMode;
+
+    // Update button icon and title
+    const btn = document.getElementById('prime-expand-btn');
+    if (btn) {
+        const icon = btn.querySelector('i');
+        const modeLabels = {
+            'all-collapsed': { icon: 'fa-list', title: 'All Collapsed → All Expanded' },
+            'all-expanded': { icon: 'fa-expand-alt', title: 'All Expanded → AI Collapsed' },
+            'ai-collapsed': { icon: 'fa-robot', title: 'AI Collapsed → AI Expanded' },
+            'ai-expanded': { icon: 'fa-bolt', title: 'AI Expanded → AI+User Only' },
+            'ai-user': { icon: 'fa-users', title: 'AI+User → All Collapsed' }
+        };
+
+        icon.className = `fas ${modeLabels[nextMode].icon}`;
+        btn.title = modeLabels[nextMode].title;
+    }
+
+    // Apply view mode to all messages
+    applyViewModeToPrime(nextMode);
+
+    console.log(`📐 [PrimeAI] View mode: ${nextMode}`);
+}
+
+/**
+ * Apply view mode to Prime messages
+ * @param {string} mode - View mode
+ */
+function applyViewModeToPrime(mode) {
+    const messagesContainer = document.getElementById('ai-chat-messages');
+    if (!messagesContainer) return;
+
+    const messages = messagesContainer.querySelectorAll('.ai-message');
+
+    messages.forEach(message => {
+        const isAI = message.classList.contains('assistant');
+        const isUser = message.classList.contains('user');
+        const isThinking = message.classList.contains('thinking-bubble');
+        const isTool = message.classList.contains('tool-bubble') || message.classList.contains('tool');
+
+        // Reset classes and visibility
+        message.classList.remove('expanded', 'collapsed');
+        message.style.display = '';
+
+        switch (mode) {
+            case 'all-collapsed':
+                // Show all - tools collapsed
+                message.classList.add('collapsed');
+                break;
+
+            case 'all-expanded':
+                // Show all - expand all
+                message.classList.add('expanded');
+                break;
+
+            case 'ai-collapsed':
+                // Show AI only - collapsed tools
+                if (isAI) {
+                    message.classList.add('expanded');
+                } else if (isTool) {
+                    message.classList.add('collapsed');
+                } else if (isUser || isThinking) {
+                    message.style.display = 'none';
+                }
+                break;
+
+            case 'ai-expanded':
+                // Show AI only - expanded tools
+                if (isAI || isTool) {
+                    message.classList.add('expanded');
+                } else if (isUser || isThinking) {
+                    message.style.display = 'none';
+                }
+                break;
+
+            case 'ai-user':
+                // Show AI and user - no tools/no tool results
+                if (isAI || isUser) {
+                    message.classList.add('expanded');
+                } else if (isTool || isThinking) {
+                    message.style.display = 'none';
+                }
+                break;
+        }
+    });
+}
+
+/**
+ * Legacy function - now just calls cycleExpandModePrime
+ */
+function toggleThinkingToolBubblesPrime() {
+    // For backward compatibility, just cycle to next mode
+    cycleExpandModePrime();
+}
+
 // ========================================
 // EXPORTS - Make functions globally accessible
 // ========================================
@@ -2329,6 +2447,13 @@ function initChatPanelResize() {
     console.log('[CHAT PANEL] Resize functionality already initialized in initChatPanel()');
 }
 
+// Create PrimeAI namespace object for cleaner API
+const PrimeAI = {
+    cycleExpandMode: cycleExpandModePrime,
+    toggleThinkingToolBubbles: toggleThinkingToolBubblesPrime
+};
+
 window.initChatPanel = initChatPanel;
 window.initChatPanelResize = initChatPanelResize;
 window.initThemeToggle = initThemeToggle;
+window.PrimeAI = PrimeAI;

@@ -863,37 +863,37 @@ class SynergySidebarRendererV2 {
      */
     renderMarkdown(text) {
         if (!text) return '';
-        
+
         // Escape HTML first for safety
         let html = this.escapeHtml(text);
-        
+
         // Headers (# H1, ## H2, etc.)
         html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
         html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
         html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-        
+
         // Bold **text**
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        
+
         // Italic *text*
         html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-        
+
         // Inline code `code`
         html = html.replace(/`(.+?)`/g, '<code>$1</code>');
-        
+
         // Links [text](url)
         html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-        
+
         // Unordered lists (- item or * item)
         html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
         html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-        
+
         // Ordered lists (1. item)
         html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-        
+
         // Line breaks
         html = html.replace(/\n/g, '<br>');
-        
+
         return html;
     }
 

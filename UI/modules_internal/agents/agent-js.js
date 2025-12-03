@@ -380,17 +380,11 @@ const MultiAgent = {
             messagesContainer.innerHTML = '';
         }
 
-        // Update thread info header - Show thread selector dropdown
+        // Update thread info header - Keep EMPTY when no thread loaded
         const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
         if (threadInfoContainer) {
             threadInfoContainer.innerHTML = `
                 <div class="thread-info-wrapper">
-                    <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
-                        <i class="fas fa-inbox"></i> 
-                        <span>Click to select a thread</span>
-                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                    </div>
-                    <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
                 </div>
             `;
         }
@@ -1687,17 +1681,11 @@ const MultiAgent = {
             console.error('[UNLOAD] Error updating backend assignment:', error);
         }
 
-        // Clear agent column UI - Show thread selector dropdown
+        // Clear agent column UI - Keep EMPTY when no thread loaded
         const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
         if (threadInfoContainer) {
             threadInfoContainer.innerHTML = `
                 <div class="thread-info-wrapper">
-                    <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
-                        <i class="fas fa-inbox"></i> 
-                        <span>Click to select a thread</span>
-                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                    </div>
-                    <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
                 </div>
             `;
         }
@@ -2527,7 +2515,7 @@ function handleAgentFileSelection(agentId, files) {
     updateAgentAttachedFilesUI(agentId);
 
     // Reset file input
-    const fileInput = document.getElementById(`file-input-${agentId}`);
+    const fileInput = document.getElementById(`agent-file-input-${agentId}`) || document.getElementById(`file-input-${agentId}`);
     if (fileInput) fileInput.value = '';
 }
 
@@ -2561,7 +2549,7 @@ function updateAgentAttachedFilesUI(agentId) {
     });
 
     // Update padding when files change (if input is focused)
-    const textarea = document.getElementById(`input-${agentId}`);
+    const textarea = document.getElementById(`agent-input-${agentId}`) || document.getElementById(`input-${agentId}`);
     const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
     const inputContainer = document.querySelector(`#agent-column-${agentId} .agent-input-container`);
     if (textarea === document.activeElement && messagesContainer && inputContainer) {
@@ -2579,7 +2567,7 @@ function clearAgentAttachedFiles(agentId) {
         updateAgentAttachedFilesUI(agentId);
 
         // Update padding when files are cleared (if input is focused)
-        const textarea = document.getElementById(`input-${agentId}`);
+        const textarea = document.getElementById(`agent-input-${agentId}`) || document.getElementById(`input-${agentId}`);
         const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
         const inputContainer = document.querySelector(`#agent-column-${agentId} .agent-input-container`);
         if (textarea === document.activeElement && messagesContainer && inputContainer) {
@@ -3067,8 +3055,15 @@ function handleAgentKeypress(event, agentId) {
 }
 
 async function sendAgentMessage(agentId) {
-    const input = document.getElementById(`input-${agentId}`);
-    const sendBtn = document.getElementById(`send-${agentId}`);
+    // Try new naming convention first (agent-input-*), fall back to old (input-*)
+    const input = document.getElementById(`agent-input-${agentId}`) || document.getElementById(`input-${agentId}`);
+    const sendBtn = document.getElementById(`agent-send-${agentId}`) || document.getElementById(`send-${agentId}`);
+
+    if (!input) {
+        console.error(`[sendAgentMessage] Input not found for agent ${agentId}`);
+        return;
+    }
+
     const message = input.value.trim();
 
     if (!message) return;
@@ -3114,7 +3109,9 @@ async function sendAgentMessage(agentId) {
     if (typeof AgentStatusIndicator !== 'undefined') {
         AgentStatusIndicator.update('thinking', agentId);
     }
-    sendBtn.disabled = true;
+    if (sendBtn) {
+        sendBtn.disabled = true;
+    }
 
     // Show processing indicator (will be removed when first bubble appears)
     const processingIndicator = createProcessingIndicator(agentId);
@@ -4121,7 +4118,9 @@ async function sendAgentMessage(agentId) {
         if (typeof AgentStatusIndicator !== 'undefined') {
             AgentStatusIndicator.clear(agentId);
         }
-        sendBtn.disabled = false;
+        if (sendBtn) {
+            sendBtn.disabled = false;
+        }
 
         // Update quick-nav badge to highlight it (has messages now)
         MultiAgent.updateQuickNavBadge(agentId);

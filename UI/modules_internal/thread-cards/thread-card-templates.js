@@ -719,6 +719,30 @@ window.ThreadCardTemplates = {
                         <span>Link Internal Doc</span>
                     </div>
                 `}
+
+                <!-- Email Thread (TEAL pill) - Shows when thread has email data -->
+                ${thread.email_thread_id ? `
+                    <div class="thread-item-email thread-item-email-linked" data-email-id="${safeEscape(thread.email_thread_id)}">
+                        <button class="email-badge" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); color: white; border: none; padding: 8px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(20, 184, 166, 0.4)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(20, 184, 166, 0.3)'"
+                            onclick="event.stopPropagation(); window.CommunicationHub?.openEmailPreview('${safeEscape(thread.email_thread_id)}')"
+                            title="${safeEscape(thread.email_subject || 'Email')}">
+                            <i class="fas fa-envelope" style="font-size: 14px; opacity: 0.95;"></i>
+                            <span class="email-badge-title" style="letter-spacing: 0.01em;">${safeEscape(thread.email_subject || 'Email Thread')}</span>
+                            ${thread.email_participants ? `<span style="opacity: 0.8; font-size: 11px; margin-left: 4px;">from ${safeEscape(thread.email_participants)}</span>` : ''}
+                        </button>
+                        ${location !== 'synergy' ? `
+                            <button class="email-unlink" title="Unlink email" 
+                                style="background: rgba(220, 38, 38, 0.1); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.3); padding: 6px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;"
+                                onmouseover="this.style.background='rgba(220, 38, 38, 0.2)'; this.style.borderColor='rgba(220, 38, 38, 0.5)'"
+                                onmouseout="this.style.background='rgba(220, 38, 38, 0.1)'; this.style.borderColor='rgba(220, 38, 38, 0.3)'"
+                                onclick="event.stopPropagation(); ThreadManager.unlinkEmail('${thread.id}', '${safeEscape(thread.email_thread_id)}')">
+                                <i class="fas fa-unlink"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                ` : ''}
                 
             </div>
         `;

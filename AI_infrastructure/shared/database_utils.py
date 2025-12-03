@@ -188,7 +188,7 @@ def get_connection_pool(schema_name: str):
         else:
             _pool_stats['pool_hits'] += 1
         
-        # Start cleanup thread if not already running
+        # Start cleanup thread if not already running (non-blocking with timeout)
         _start_pool_cleanup_thread()
         
         return _connection_pools[schema_name]
@@ -247,19 +247,23 @@ def _start_pool_cleanup_thread():
     # CRITICAL: Detect gevent BEFORE acquiring any locks
     # Check if gevent has monkey-patched threading (Render production)
     try:
-        import threading as _threading_check
-        # If threading.Lock is gevent's BoundedSemaphore, we're in gevent
-        if 'gevent' in str(type(_threading_check.Lock())):
+        import sys
+        # Simple check: look for gevent in loaded modules
+        if 'gevent' in sys.modules:
             print("⚠️  [POOL CLEANUP] Gevent detected - cleanup thread DISABLED (prevents LoopExit)")
             print("ℹ️  [POOL] Running in production mode (Gunicorn+Gevent) - connections managed by Gunicorn")
             return
     except Exception as e:
         print(f"⚠️  [POOL CLEANUP] Error detecting gevent: {e}")
-        # If detection fails, skip thread to be safe
-        return
     
     # Only start thread in development environments (non-Gevent)
-    with _pool_lock:
+    # Use a timeout to prevent hanging
+    acquired = _pool_lock.acquire(timeout=1.0)
+    if not acquired:
+        print("⚠️  [POOL CLEANUP] Could not acquire lock - skipping cleanup thread start")
+        return
+    
+    try:
         if _pool_cleanup_thread is None or not _pool_cleanup_thread.is_alive():
             _pool_cleanup_stop.clear()
             _pool_cleanup_thread = threading.Thread(
@@ -269,6 +273,8 @@ def _start_pool_cleanup_thread():
             )
             _pool_cleanup_thread.start()
             print(f"🧹 [POOL CLEANUP] Background thread started (development mode - Flask dev server)")
+    finally:
+        _pool_lock.release()
 
 
 

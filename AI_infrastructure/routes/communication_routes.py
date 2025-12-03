@@ -242,9 +242,9 @@ def list_emails():
                         print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
                         return None
                 
-                # Execute all fetches in parallel (max 10 workers to avoid rate limits)
+                # Execute all fetches in parallel (max 20 workers for faster loading)
                 start_time = time.time()
-                with ThreadPoolExecutor(max_workers=10) as executor:
+                with ThreadPoolExecutor(max_workers=20) as executor:
                     # Submit all tasks at once
                     future_to_msg = {executor.submit(fetch_single_message, msg): msg for msg in gmail_result.get('messages', [])}
                     
@@ -454,82 +454,89 @@ def get_email(email_id):
         }), 500
 
 
-@communication_bp.route('/send', methods=['POST'])
-@require_auth
-def send_email():
-    """
-    Send email via selected account
-    
-    Request body:
-        - from: Account ID ('gmail' or 'outlook')
-        - to: Recipient email address
-        - cc: CC recipients (optional)
-        - subject: Email subject
-        - body: Email body
-        - user_id: User ID (optional, default: 1)
-    
-    Returns:
-        JSON with success status
-    """
-    data = request.json
-    # Prefer authenticated user; allow override for compatibility
-    user_data = getattr(request, 'user', None)
-    if user_data:
-        user_id = user_data.get('user_id')
-    else:
-        user_id = data.get('user_id', 1)
-    account = data.get('from')
-    to = data.get('to')
-    cc = data.get('cc', '')
-    subject = data.get('subject')
-    body = data.get('body')
-    
-    if not all([account, to, subject, body]):
-        return jsonify({
-            'success': False,
-            'error': 'Missing required fields: from, to, subject, body'
-        }), 400
-    
-    try:
-        if account == 'gmail':
-            result = gmail_send_email(
-                to=to,
-                subject=subject,
-                body=body,
-                cc=cc if cc else None,
-                _user_id=user_id,
-                _injected_credentials=True
-            )
-            
-            return jsonify(result)
-        
-        elif account == 'outlook' and OUTLOOK_AVAILABLE:
-            # Convert 'to' to list if string
-            to_list = [to] if isinstance(to, str) else to
-            cc_list = [cc] if cc and isinstance(cc, str) else (cc if cc else None)
-            
-            result = microsoft_outlook_send_email(
-                to=to_list,
-                subject=subject,
-                body=body,
-                cc=cc_list,
-                _user_id=user_id,
-                _injected_credentials=True
-            )
-            
-            return jsonify(result)
-        
-        return jsonify({
-            'success': False,
-            'error': f'Invalid account: {account}'
-        }), 400
-    
-    except Exception as e:
-        print(f"[Communication Hub] Error sending email: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+# DISABLED FOR SECURITY: Email sending endpoint commented out (Dec 3, 2025)
+# Microsoft Outlook email sending must be done manually from Outlook application
+# Drafts can still be created via microsoft_outlook_create_draft tool
+
+# @communication_bp.route('/send', methods=['POST'])
+# @require_auth
+# def send_email():
+#     """
+#     DISABLED: Send email via selected account
+#     
+#     This endpoint is disabled for security reasons. Microsoft Outlook emails
+#     cannot be sent programmatically - only drafts can be created.
+#     
+#     Request body:
+#         - from: Account ID ('gmail' or 'outlook')
+#         - to: Recipient email address
+#         - cc: CC recipients (optional)
+#         - subject: Email subject
+#         - body: Email body
+#         - user_id: User ID (optional, default: 1)
+#     
+#     Returns:
+#         JSON with success status
+#     """
+#     data = request.json
+#     # Prefer authenticated user; allow override for compatibility
+#     user_data = getattr(request, 'user', None)
+#     if user_data:
+#         user_id = user_data.get('user_id')
+#     else:
+#         user_id = data.get('user_id', 1)
+#     account = data.get('from')
+#     to = data.get('to')
+#     cc = data.get('cc', '')
+#     subject = data.get('subject')
+#     body = data.get('body')
+#     
+#     if not all([account, to, subject, body]):
+#         return jsonify({
+#             'success': False,
+#             'error': 'Missing required fields: from, to, subject, body'
+#         }), 400
+#     
+#     try:
+#         if account == 'gmail':
+#             result = gmail_send_email(
+#                 to=to,
+#                 subject=subject,
+#                 body=body,
+#                 cc=cc if cc else None,
+#                 _user_id=user_id,
+#                 _injected_credentials=True
+#             )
+#             
+#             return jsonify(result)
+#         
+#         elif account == 'outlook' and OUTLOOK_AVAILABLE:
+#             # Convert 'to' to list if string
+#             to_list = [to] if isinstance(to, str) else to
+#             cc_list = [cc] if cc and isinstance(cc, str) else (cc if cc else None)
+#             
+#             result = microsoft_outlook_send_email(
+#                 to=to_list,
+#                 subject=subject,
+#                 body=body,
+#                 cc=cc_list,
+#                 _user_id=user_id,
+#                 _injected_credentials=True
+#             )
+#             
+#             return jsonify(result)
+#         
+#         return jsonify({
+#             'success': False,
+#             'error': f'Invalid account: {account}'
+#         }), 400
+#     
+#     except Exception as e:
+#         print(f"[Communication Hub] Error sending email: {e}")
+#         return jsonify({
+#             'success': False,
+#             'error': str(e)
+#         }), 500
 
 
 @communication_bp.route('/emails/<email_id>/markdown', methods=['GET'])

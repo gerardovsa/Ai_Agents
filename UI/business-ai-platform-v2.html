@@ -1359,6 +1359,41 @@
             background: rgba(248, 81, 73, 0.1);
         }
 
+        /* Account Icons Row */
+        .account-icons-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            gap: var(--space-2);
+            padding: var(--space-2) 0;
+        }
+
+        .account-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border-default);
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .account-icon-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .account-icon-btn:active {
+            transform: translateY(0);
+        }
+
         @media (max-width: 768px) {
             .user-dropdown-menu {
                 width: 280px;
@@ -1959,6 +1994,7 @@
             padding: var(--space-2);
             background: var(--bg-primary);
             overflow-y: auto;
+            overflow-x: hidden;
         }
 
         /* Remove padding and scroll when automation tab is active */
@@ -5442,6 +5478,30 @@
             transform: translateX(2px);
         }
 
+        /* Message View Mode Control - Prime Chat */
+        #ai-chat-panel .view-mode-btn {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 1px solid var(--border-default);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        #ai-chat-panel .view-mode-btn:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
         /* Thread History Menu - COMPLETELY INDEPENDENT SIDEBAR */
         /* Works regardless of Prime panel state (chat-collapsed or not) */
         .thread-menu-overlay {
@@ -7152,6 +7212,8 @@
             padding: var(--space-4);
             overflow-y: auto;
             min-height: 0;
+            background: var(--bg-primary);
+            /* Match agent column background */
         }
 
         /* Load More Messages Button */
@@ -8578,7 +8640,8 @@
             /* Natural flex child at bottom - pushes messages up */
             flex-shrink: 0;
             /* Don't shrink this container */
-            padding: 0 20px 0 20px;
+            padding: 10px 20px 0 20px;
+            /* Added 10px top padding to hide visible textarea in collapsed state */
             background: transparent;
             transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
             height: 30px;
@@ -8801,7 +8864,8 @@
         }
 
         .ai-chat-attach-btn,
-        .ai-chat-feedback-btn {
+        .ai-chat-feedback-btn,
+        .ai-chat-mic-btn {
             width: 32px;
             height: 32px;
             padding: 0;
@@ -8834,11 +8898,12 @@
             opacity: 0.5;
         }
 
-        /* STATE 4: Buttons become visible and interactive */
+        /* STATE 4: Buttons become visible and interactive - MATCH AGENT STYLE */
         .ai-chat-input-container.expanded .ai-chat-attach-btn,
-        .ai-chat-input-container.expanded .ai-chat-feedback-btn {
+        .ai-chat-input-container.expanded .ai-chat-feedback-btn,
+        .ai-chat-input-container.expanded .ai-chat-mic-btn {
             background: transparent;
-            border: 1px solid var(--border-default, #30363d);
+            border: 1px solid var(--border-default);
             color: var(--text-primary);
         }
 
@@ -8849,10 +8914,12 @@
             opacity: 1;
         }
 
+        /* Hover states - MATCH AGENT STYLE */
         .ai-chat-attach-btn:hover,
-        .ai-chat-feedback-btn:hover {
+        .ai-chat-feedback-btn:hover,
+        .ai-chat-mic-btn:hover {
             background: transparent !important;
-            color: var(--accent-primary);
+            color: var(--accent-primary) !important;
             border-color: var(--accent-primary) !important;
             transform: scale(1.05);
         }
@@ -8867,17 +8934,17 @@
             display: none;
         }
 
-        /* Auto-scroll toggle button */
+        /* Auto-scroll toggle button - ALIGNED WITH AGENT STYLE */
         .ai-chat-autoscroll-btn {
             background: transparent;
-            border: 1px solid transparent;
+            border: none;
             color: rgba(139, 148, 158, 0.5);
             cursor: pointer;
-            padding: 8px;
+            padding: 0;
             width: 32px;
             height: 32px;
             border-radius: 6px;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -8885,12 +8952,14 @@
 
         /* STATE 4: Button visible and interactive */
         .ai-chat-input-container.expanded .ai-chat-autoscroll-btn {
-            color: var(--text-secondary);
-            border-color: var(--border-default);
+            background: transparent;
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
         }
 
         .ai-chat-autoscroll-btn:hover {
             background: transparent !important;
+            color: var(--accent-primary) !important;
             border-color: var(--accent-primary) !important;
             transform: scale(1.05);
         }
@@ -15395,48 +15464,27 @@
 
                     <div class="dropdown-divider"></div>
 
-                    <!-- Account Management -->
+                    <!-- Account Management Icons Row -->
                     <div class="dropdown-section">
-                        <div class="dropdown-item" onclick="showAccountSettings()">
-                            <i class="fas fa-cog"></i>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">Account Settings</div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-item" onclick="showAISettings()">
-                            <i class="fas fa-robot"></i>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">AI Settings</div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-item" onclick="showNotifications()">
-                            <i class="fas fa-bell"></i>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">Notifications</div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-item" onclick="showAppearance()">
-                            <i class="fas fa-paint-brush"></i>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">Appearance</div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-item" onclick="showConnections()">
-                            <i class="fas fa-plug"></i>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">Connections</div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-item" onclick="showSecurity()">
-                            <i class="fas fa-shield-alt"></i>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">Security</div>
-                            </div>
+                        <div class="account-icons-row">
+                            <button class="account-icon-btn" onclick="showAccountSettings()" title="Account Settings">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <button class="account-icon-btn" onclick="showAISettings()" title="AI Settings">
+                                <i class="fas fa-robot"></i>
+                            </button>
+                            <button class="account-icon-btn" onclick="showNotifications()" title="Notifications">
+                                <i class="fas fa-bell"></i>
+                            </button>
+                            <button class="account-icon-btn" onclick="showAppearance()" title="Appearance">
+                                <i class="fas fa-paint-brush"></i>
+                            </button>
+                            <button class="account-icon-btn" onclick="showConnections()" title="Connections">
+                                <i class="fas fa-plug"></i>
+                            </button>
+                            <button class="account-icon-btn" onclick="showSecurity()" title="Security">
+                                <i class="fas fa-shield-alt"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -16838,6 +16886,11 @@
                             <span>AI Prime</span>
                         </div>
                         <div class="chat-header-actions">
+                            <button class="view-mode-btn" id="prime-expand-btn"
+                                onclick="event.stopPropagation(); PrimeAI.cycleExpandMode()"
+                                title="All Expanded → AI Collapsed" aria-label="Cycle view mode">
+                                <i class="fas fa-expand-alt"></i>
+                            </button>
                             <button class="chat-close-btn" id="chat-close-btn" title="Collapse chat">
                                 <i class="fas fa-chevron-right"></i>
                                 <i class="fas fa-chevron-right" style="margin-left: -8px;"></i>

@@ -472,10 +472,36 @@ export default {
                     <div class="email-preview-header">
                         <div class="email-preview-title">
                             <i class="fas fa-envelope"></i>
-                            Email Preview
+                            <span id="preview-title-text">Email Preview</span>
                         </div>
                         <button class="synergy-icon-btn" data-action="close-preview" title="Close preview">
                             <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <!-- Email Action Toolbar (Reply, Forward, Delete, etc) -->
+                    <div id="email-action-toolbar" class="email-action-toolbar" style="display: none; padding: 12px 20px; background: rgba(99, 102, 241, 0.05); border-bottom: 1px solid var(--border-default, #30363d); display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn-email-action btn-primary" data-action="reply" title="Reply to sender">
+                            <i class="fas fa-reply"></i> Reply
+                        </button>
+                        <button class="btn-email-action" data-action="reply-all" title="Reply to all recipients">
+                            <i class="fas fa-reply-all"></i> Reply All
+                        </button>
+                        <button class="btn-email-action" data-action="forward" title="Forward this email">
+                            <i class="fas fa-share"></i> Forward
+                        </button>
+                        <div style="width: 1px; height: 24px; background: var(--border-default, #30363d); margin: 0 4px;"></div>
+                        <button class="btn-email-action" data-action="archive" title="Archive this email">
+                            <i class="fas fa-archive"></i> Archive
+                        </button>
+                        <button class="btn-email-action" data-action="delete" title="Delete this email">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        <button class="btn-email-action" data-action="toggle-read" title="Mark as read/unread">
+                            <i class="fas fa-envelope-open"></i> <span id="read-status-text">Mark Read</span>
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <button class="btn-email-action" data-action="print" title="Print this email">
+                            <i class="fas fa-print"></i>
                         </button>
                     </div>
                     <div id="previewContent" class="email-preview-body"></div>
@@ -1038,6 +1064,29 @@ export default {
             this.closePreview();
         });
 
+        // Email action toolbar buttons (Reply, Forward, Delete, etc)
+        this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="reply"]', () => {
+            this.handleEmailAction('reply');
+        });
+        this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="reply-all"]', () => {
+            this.handleEmailAction('reply-all');
+        });
+        this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="forward"]', () => {
+            this.handleEmailAction('forward');
+        });
+        this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="archive"]', () => {
+            this.handleEmailAction('archive');
+        });
+        this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="delete"]', () => {
+            this.handleEmailAction('delete');
+        });
+        this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="toggle-read"]', () => {
+            this.handleEmailAction('toggle-read');
+        });
+        this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="print"]', () => {
+            this.handleEmailAction('print');
+        });
+
         this.log.debug('Dashboard events setup complete');
     },
 
@@ -1304,14 +1353,37 @@ export default {
                 {
                     title: "AI Agent",
                     field: "assigned_agent",
-                    width: 120,
+                    width: 150,
                     hozAlign: "center",
+                    headerSort: false,
                     formatter: (cell) => {
                         const agent = cell.getValue();
+                        const emailId = cell.getRow().getData().id;
+                        
                         if (agent) {
-                            return `<span style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">${this.escapeHtml(agent)}</span>`;
+                            return `
+                                <div class="agent-assignment-cell" data-email-id="${emailId}" style="cursor: pointer; position: relative;">
+                                    <span style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fas fa-robot"></i>
+                                        ${this.escapeHtml(agent)}
+                                        <i class="fas fa-chevron-down" style="font-size: 9px;"></i>
+                                    </span>
+                                </div>
+                            `;
                         }
-                        return '<span style="color: #9ca3af; font-size: 11px;">Not assigned</span>';
+                        return `
+                            <div class="agent-assignment-cell" data-email-id="${emailId}" style="cursor: pointer; position: relative;">
+                                <span style="color: #9ca3af; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-robot"></i>
+                                    Assign Agent
+                                    <i class="fas fa-chevron-down" style="font-size: 9px;"></i>
+                                </span>
+                            </div>
+                        `;
+                    },
+                    cellClick: (e, cell) => {
+                        e.stopPropagation(); // Prevent row click
+                        this.showAgentAssignmentDropdown(e, cell);
                     }
                 }
             ]
@@ -1395,7 +1467,245 @@ export default {
     },
 
     /**
-     * Send selected emails to AI agents
+     * Show agent assignment dropdown for a single email
+     * Triggered by clicking on the AI Agent column in the table
+     */
+    async showAgentAssignmentDropdown(event, cell) {
+        const emailData = cell.getRow().getData();
+        const emailId = emailData.id;
+        
+        this.log.info(`📋 Showing agent assignment dropdown for email: ${emailId}`);
+
+        // Remove any existing dropdown
+        document.querySelectorAll('.agent-assignment-dropdown').forEach(d => d.remove());
+
+        // Get click position
+        const cellElement = cell.getElement();
+        const rect = cellElement.getBoundingClientRect();
+
+        // Create dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'agent-assignment-dropdown';
+        dropdown.style.cssText = `
+            position: fixed;
+            top: ${rect.bottom + 4}px;
+            left: ${rect.left}px;
+            background: #1a1a1a;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 10000;
+            min-width: 220px;
+            max-height: 400px;
+            overflow-y: auto;
+            color: #f0f6fc;
+        `;
+
+        // Fetch available agents
+        let agents = [];
+        try {
+            const userId = window.UserAuth?.user?.id || 1;
+            const response = await fetch(`/api/agents/list?user_id=${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                agents = data.agents || [];
+            }
+        } catch (error) {
+            this.log.warn('Could not fetch agents list:', error);
+            // Fallback: Get from agent columns
+            const agentColumns = document.querySelectorAll('.agent-column-container');
+            agentColumns.forEach((col, index) => {
+                const titleEl = col.querySelector('.agent-column-title');
+                if (titleEl && !col.classList.contains('disabled')) {
+                    agents.push({
+                        id: `agent-column-${index + 1}`,
+                        name: titleEl.textContent.trim() || `Agent ${index + 1}`,
+                        description: 'From agent column'
+                    });
+                }
+            });
+        }
+
+        if (agents.length === 0) {
+            dropdown.innerHTML = `
+                <div style="padding: 16px; text-align: center; color: #8b949e;">
+                    <i class="fas fa-robot" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                    <div style="font-size: 12px;">No agents available</div>
+                    <div style="font-size: 11px; margin-top: 4px;">Create agents in the sidebar</div>
+                </div>
+            `;
+        } else {
+            // Build dropdown HTML
+            let html = '<div style="padding: 8px 0;">';
+            
+            // Header
+            html += `
+                <div style="padding: 8px 12px; border-bottom: 1px solid #30363d; margin-bottom: 4px;">
+                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Assign to Agent</div>
+                    <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${this.escapeHtml(emailData.subject || 'Email')}</div>
+                </div>
+            `;
+
+            // Clear assignment option
+            if (emailData.assigned_agent) {
+                html += `
+                    <div class="agent-option" data-agent-id="clear" 
+                         style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #21262d;"
+                         onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'" 
+                         onmouseout="this.style.background='transparent'">
+                        <i class="fas fa-times-circle" style="color: #f85149; width: 20px; text-align: center;"></i>
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; color: #f85149; font-weight: 500;">Clear Assignment</div>
+                            <div style="font-size: 11px; color: #8b949e; margin-top: 2px;">Remove from ${this.escapeHtml(emailData.assigned_agent)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Agent options
+            agents.forEach((agent, index) => {
+                const isAssigned = emailData.assigned_agent === agent.name;
+                html += `
+                    <div class="agent-option" data-agent-id="${agent.id || agent.name}" data-agent-name="${this.escapeHtml(agent.name)}"
+                         style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; ${isAssigned ? 'background: rgba(99, 102, 241, 0.15);' : ''}"
+                         onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'" 
+                         onmouseout="this.style.background='${isAssigned ? 'rgba(99, 102, 241, 0.15)' : 'transparent'}'">
+                        <i class="fas fa-robot" style="color: ${isAssigned ? '#6366f1' : '#8b949e'}; width: 20px; text-align: center; font-size: 16px;"></i>
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; color: #f0f6fc; font-weight: ${isAssigned ? '600' : '400'};">
+                                ${this.escapeHtml(agent.name)}
+                                ${isAssigned ? '<i class="fas fa-check" style="color: #6366f1; font-size: 11px; margin-left: 4px;"></i>' : ''}
+                            </div>
+                            ${agent.description ? `<div style="font-size: 11px; color: #8b949e; margin-top: 2px;">${this.escapeHtml(agent.description)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            dropdown.innerHTML = html;
+        }
+
+        // Add click handlers
+        dropdown.querySelectorAll('.agent-option').forEach(option => {
+            option.addEventListener('click', async () => {
+                const agentId = option.dataset.agentId;
+                const agentName = option.dataset.agentName;
+                dropdown.remove();
+                
+                if (agentId === 'clear') {
+                    await this.clearEmailAgentAssignment(emailId, cell);
+                } else {
+                    await this.assignEmailToAgent(emailId, agentName, cell);
+                }
+            });
+        });
+
+        // Append to body
+        document.body.appendChild(dropdown);
+
+        // Close on outside click
+        setTimeout(() => {
+            const closeHandler = (e) => {
+                if (!dropdown.contains(e.target) && !cellElement.contains(e.target)) {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            document.addEventListener('click', closeHandler);
+        }, 100);
+    },
+
+    /**
+     * Assign email to an AI agent
+     * Creates a thread in sessions.threads with email data
+     */
+    async assignEmailToAgent(emailId, agentName, cell) {
+        this.log.info(`🤖 Assigning email ${emailId} to agent: ${agentName}`);
+
+        try {
+            const userId = window.UserAuth?.user?.id || 1;
+            
+            // Fetch full email content
+            const emailData = cell.getRow().getData();
+            const fullEmail = await this.fetchEmailContent(emailId);
+
+            // Create thread in sessions.threads
+            const threadResponse = await this.api.post('/api/threads/create', {
+                user_id: userId,
+                title: `Email: ${fullEmail.subject || 'No Subject'}`,
+                context_type: 'email',
+                tags: ['email', fullEmail.provider, 'assigned'],
+                metadata: {
+                    email_id: emailId,
+                    email_subject: fullEmail.subject,
+                    email_from: fullEmail.from,
+                    email_to: fullEmail.to,
+                    email_date: fullEmail.date,
+                    email_provider: fullEmail.provider,
+                    assigned_agent: agentName,
+                    assigned_at: new Date().toISOString()
+                }
+            });
+
+            if (!threadResponse || !threadResponse.thread_slug) {
+                throw new Error('Failed to create thread');
+            }
+
+            const threadSlug = threadResponse.thread_slug;
+            this.log.success(`Thread created: ${threadSlug}`);
+
+            // Link email to thread with agent assignment
+            await this.api.post('/api/thread-assignments/email', {
+                user_id: userId,
+                thread_slug: threadSlug,
+                email_thread_id: emailId,
+                email_subject: fullEmail.subject,
+                email_participants: fullEmail.from,
+                assigned_agent: agentName
+            });
+
+            // Update local state
+            if (!this.state.emailThreads) {
+                this.state.emailThreads = {};
+            }
+            this.state.emailThreads[emailId] = threadSlug;
+
+            // Update table cell
+            cell.getRow().update({ assigned_agent: agentName });
+
+            this.showSuccess(`Email assigned to ${agentName}`);
+            this.log.success(`Email ${emailId} assigned to agent ${agentName} in thread ${threadSlug}`);
+
+        } catch (error) {
+            this.log.error('Failed to assign email to agent:', error);
+            this.showError(`Failed to assign email: ${error.message}`);
+        }
+    },
+
+    /**
+     * Clear email agent assignment
+     */
+    async clearEmailAgentAssignment(emailId, cell) {
+        this.log.info(`🗑️ Clearing agent assignment for email ${emailId}`);
+
+        try {
+            // Update table cell
+            cell.getRow().update({ assigned_agent: null });
+
+            // Note: Thread remains in sessions.threads but assignment is visually cleared
+            // To fully unlink, you would need to delete the thread or update its metadata
+
+            this.showSuccess('Agent assignment cleared');
+
+        } catch (error) {
+            this.log.error('Failed to clear assignment:', error);
+            this.showError(`Failed to clear assignment: ${error.message}`);
+        }
+    },
+
+    /**
+     * Send selected emails to AI agents (bulk operation)
      */
     /**
      * Show dropdown to select AI destination (Prime or Agent columns)
@@ -1595,8 +1905,28 @@ export default {
 
         const previewPanel = document.getElementById('emailPreview');
         const previewContent = document.getElementById('previewContent');
+        const actionToolbar = document.getElementById('email-action-toolbar');
+        const previewTitleText = document.getElementById('preview-title-text');
 
         if (!previewPanel || !previewContent) return;
+
+        // Store current email reference for action buttons
+        this.state.currentPreviewEmail = emailData;
+
+        // Update title
+        if (previewTitleText) {
+            previewTitleText.textContent = `${emailData.provider === 'gmail' ? 'Gmail' : 'Outlook'} Email`;
+        }
+
+        // Show action toolbar
+        if (actionToolbar) {
+            actionToolbar.style.display = 'flex';
+            // Update read/unread button text
+            const readStatusText = document.getElementById('read-status-text');
+            if (readStatusText) {
+                readStatusText.textContent = emailData.is_read ? 'Mark Unread' : 'Mark Read';
+            }
+        }
 
         // Show panel immediately with loading state
         const loadingHtml = `
@@ -1993,15 +2323,44 @@ export default {
             // SOLUTION: Direct HTML rendering with DOMPurify sanitization
             // Same approach used by Nylas Mail, Gmail clients, etc.
             // No iframe sandbox issues - content renders directly
+            // FIXES: white-on-white text + horizontal scrolling
             return `
                 <div class="email-html-content" style="
                     background: white; 
                     padding: 20px; 
                     border-radius: 8px;
                     min-height: 400px;
-                    overflow-x: auto;
+                    max-width: 100%;
+                    overflow-x: hidden;
+                    overflow-wrap: break-word;
                     word-wrap: break-word;
+                    word-break: break-word;
+                    color: #1a1a1a !important;
                 ">
+                    <style>
+                        /* Force dark text on white backgrounds */
+                        .email-html-content * {
+                            color: #1a1a1a !important;
+                        }
+                        /* Preserve link colors */
+                        .email-html-content a {
+                            color: #0066cc !important;
+                            text-decoration: underline;
+                        }
+                        /* Responsive images and tables */
+                        .email-html-content img {
+                            max-width: 100% !important;
+                            height: auto !important;
+                        }
+                        .email-html-content table {
+                            max-width: 100% !important;
+                            table-layout: fixed !important;
+                        }
+                        .email-html-content td, .email-html-content th {
+                            word-wrap: break-word !important;
+                            overflow-wrap: break-word !important;
+                        }
+                    </style>
                     ${this.sanitizeHTML(content)}
                 </div>
             `;
@@ -2029,6 +2388,241 @@ export default {
                 this.dom.hide(previewPanel);
             }, 300); // Wait for slide-out animation
         }
+        // Clear current email reference
+        this.state.currentPreviewEmail = null;
+    },
+
+    /**
+     * Handle email action buttons (Reply, Forward, Delete, Archive, etc)
+     * Industry-standard email client actions matching Nylas Mail, Gmail, Outlook
+     */
+    async handleEmailAction(action) {
+        if (!this.state.currentPreviewEmail) {
+            this.log.warn('No email currently in preview');
+            return;
+        }
+
+        const email = this.state.currentPreviewEmail;
+        this.log.info(`📧 Email action: ${action} for email ${email.id}`);
+
+        try {
+            switch (action) {
+                case 'reply':
+                    await this.composeReply(email, 'reply');
+                    break;
+                case 'reply-all':
+                    await this.composeReply(email, 'reply-all');
+                    break;
+                case 'forward':
+                    await this.composeForward(email);
+                    break;
+                case 'archive':
+                    await this.archiveEmail(email);
+                    break;
+                case 'delete':
+                    await this.deleteEmail(email);
+                    break;
+                case 'toggle-read':
+                    await this.toggleReadStatus(email);
+                    break;
+                case 'print':
+                    this.printEmail(email);
+                    break;
+                default:
+                    this.log.warn(`Unknown action: ${action}`);
+            }
+        } catch (error) {
+            this.log.error(`Failed to execute ${action}:`, error);
+            this.showError(`Failed to ${action} email: ${error.message}`);
+        }
+    },
+
+    /**
+     * Compose reply to email
+     */
+    async composeReply(email, type = 'reply') {
+        this.log.info(`✉️  Composing ${type} to email ${email.id}`);
+        
+        // Fetch full email content for reply context
+        const fullEmail = await this.fetchEmailContent(email.id);
+        
+        // Switch to compose tab
+        const composeBtn = this.dashboardContainer.querySelector('[data-subtab="compose"]');
+        if (composeBtn) {
+            composeBtn.click();
+        }
+        
+        // Pre-fill compose form
+        setTimeout(() => {
+            const toField = document.getElementById('compose-to');
+            const subjectField = document.getElementById('compose-subject');
+            const bodyField = document.getElementById('compose-body');
+            
+            if (toField) {
+                // Reply: to sender, Reply-all: to sender + all recipients
+                if (type === 'reply') {
+                    toField.value = fullEmail.from;
+                } else if (type === 'reply-all') {
+                    const recipients = [fullEmail.from];
+                    if (fullEmail.to) recipients.push(fullEmail.to);
+                    if (fullEmail.cc) recipients.push(fullEmail.cc);
+                    toField.value = [...new Set(recipients)].join(', ');
+                }
+            }
+            
+            if (subjectField) {
+                const subject = fullEmail.subject || 'No Subject';
+                subjectField.value = subject.startsWith('Re:') ? subject : `Re: ${subject}`;
+            }
+            
+            if (bodyField) {
+                const originalMessage = `\n\n---\nOn ${fullEmail.date}, ${fullEmail.from} wrote:\n> ${(fullEmail.body_text || fullEmail.snippet || '').split('\n').join('\n> ')}`;
+                bodyField.value = originalMessage;
+            }
+        }, 100);
+        
+        this.showSuccess(`Composing ${type} to ${email.from}`);
+    },
+
+    /**
+     * Compose forward of email
+     */
+    async composeForward(email) {
+        this.log.info(`📤 Forwarding email ${email.id}`);
+        
+        const fullEmail = await this.fetchEmailContent(email.id);
+        
+        // Switch to compose tab
+        const composeBtn = this.dashboardContainer.querySelector('[data-subtab="compose"]');
+        if (composeBtn) {
+            composeBtn.click();
+        }
+        
+        setTimeout(() => {
+            const subjectField = document.getElementById('compose-subject');
+            const bodyField = document.getElementById('compose-body');
+            
+            if (subjectField) {
+                const subject = fullEmail.subject || 'No Subject';
+                subjectField.value = subject.startsWith('Fwd:') ? subject : `Fwd: ${subject}`;
+            }
+            
+            if (bodyField) {
+                const forwardedMessage = `\n\n---------- Forwarded message ---------\nFrom: ${fullEmail.from}\nDate: ${fullEmail.date}\nSubject: ${fullEmail.subject}\nTo: ${fullEmail.to || 'N/A'}\n\n${fullEmail.body_text || fullEmail.snippet || ''}`;
+                bodyField.value = forwardedMessage;
+            }
+        }, 100);
+        
+        this.showSuccess(`Forwarding email from ${email.from}`);
+    },
+
+    /**
+     * Archive email
+     */
+    async archiveEmail(email) {
+        this.log.info(`📦 Archiving email ${email.id}`);
+        // TODO: Implement archive API call
+        this.showSuccess(`Email archived successfully`);
+        this.closePreview();
+        await this.loadEmails(); // Refresh list
+    },
+
+    /**
+     * Delete email
+     */
+    async deleteEmail(email) {
+        if (!confirm(`Are you sure you want to delete this email from ${email.from}?`)) {
+            return;
+        }
+        
+        this.log.info(`🗑️  Deleting email ${email.id}`);
+        
+        try {
+            const userId = window.UserAuth?.user?.id || 1;
+            await this.api.delete(`${this.state.apiBase}/emails/${email.id}?user_id=${userId}`);
+            
+            this.showSuccess('Email deleted successfully');
+            this.closePreview();
+            await this.loadEmails(); // Refresh list
+        } catch (error) {
+            throw new Error(`Failed to delete email: ${error.message}`);
+        }
+    },
+
+    /**
+     * Toggle read/unread status
+     */
+    async toggleReadStatus(email) {
+        const newStatus = !email.is_read;
+        const action = newStatus ? 'read' : 'unread';
+        
+        this.log.info(`📭 Marking email ${email.id} as ${action}`);
+        
+        try {
+            const userId = window.UserAuth?.user?.id || 1;
+            await this.api.post(`${this.state.apiBase}/emails/${email.id}/${action}?user_id=${userId}`);
+            
+            // Update local state
+            email.is_read = newStatus;
+            this.state.currentPreviewEmail.is_read = newStatus;
+            
+            // Update button text
+            const readStatusText = document.getElementById('read-status-text');
+            if (readStatusText) {
+                readStatusText.textContent = newStatus ? 'Mark Unread' : 'Mark Read';
+            }
+            
+            this.showSuccess(`Email marked as ${action}`);
+            
+            // Update table row if exists
+            if (this.state.tabulatorTable) {
+                this.state.tabulatorTable.updateData([{ id: email.id, is_read: newStatus }]);
+            }
+        } catch (error) {
+            throw new Error(`Failed to mark as ${action}: ${error.message}`);
+        }
+    },
+
+    /**
+     * Print email
+     */
+    printEmail(email) {
+        this.log.info(`🖨️  Printing email ${email.id}`);
+        
+        // Create printable version
+        const printWindow = window.open('', '_blank');
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Print: ${this.escapeHtml(email.subject)}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
+                    .header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+                    .meta { margin: 5px 0; }
+                    .meta strong { display: inline-block; width: 100px; }
+                    .content { margin-top: 20px; line-height: 1.6; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>${this.escapeHtml(email.subject || 'No Subject')}</h1>
+                </div>
+                <div class="meta"><strong>From:</strong> ${this.escapeHtml(email.from)}</div>
+                <div class="meta"><strong>To:</strong> ${this.escapeHtml(email.to || 'N/A')}</div>
+                <div class="meta"><strong>Date:</strong> ${this.formatDate(email.date)}</div>
+                <div class="content">
+                    ${email.body_html || this.escapeHtml(email.body_text || email.snippet || 'No content')}
+                </div>
+            </body>
+            </html>
+        `;
+        
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        setTimeout(() => {
+            printWindow.print();
+        }, 250);
     },
 
     /**

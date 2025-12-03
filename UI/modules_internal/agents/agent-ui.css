@@ -126,6 +126,17 @@
     text-overflow: ellipsis;
 }
 
+/* Agent icon in header - match ai-icon size */
+.agent-title-wrapper h2 i {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
 .agent-header-controls {
     display: flex;
     gap: var(--space-1);
@@ -152,6 +163,31 @@
 .collapse-btn:hover,
 .width-toggle-btn:hover,
 .agent-hamburger-button:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+/* ==================== MESSAGE VIEW MODE CONTROL ==================== */
+
+.view-mode-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.view-mode-btn:hover {
     background: var(--bg-hover);
     color: var(--accent-primary);
     border-color: var(--accent-primary);
@@ -656,6 +692,17 @@
     background: transparent;
 }
 
+/* Drag-over state for file drop */
+.agent-input-container.drag-over {
+    background: rgba(88, 166, 255, 0.08) !important;
+    border: 2px dashed var(--accent-primary) !important;
+}
+
+.agent-input-container.drag-over::before {
+    background: var(--accent-primary);
+    box-shadow: 0 0 12px rgba(88, 166, 255, 0.7);
+}
+
 /* Collapsed bar visual */
 .agent-input-container::before {
     content: '';
@@ -759,23 +806,34 @@
 }
 
 .agent-input-textarea {
-    width: 100%;
+    width: calc(100% - 20px);
+    /* 20px right margin for button spacing */
     min-height: 80px;
     padding: 12px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-default);
-    border-radius: 8px;
+    padding-right: 50px;
+    /* Space for button column overlay */
+    background: transparent;
+    /* Match Prime chat input transparency */
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
     color: var(--text-primary);
     font-size: 14px;
     line-height: 1.5;
     resize: vertical;
-    transition: all 0.3s ease;
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.agent-input-textarea:hover {
+    background: rgba(0, 0, 0, 0.60) !important;
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
 }
 
 .agent-input-textarea:focus {
     outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+    background: rgba(0, 0, 0, 0.60) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
 }
 
 /* Right Button Stack (6 buttons) */
@@ -810,6 +868,11 @@
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+}
+
+/* Hide microphone button (not yet implemented) */
+.agent-mic-btn {
+    display: none !important;
 }
 
 .agent-send-btn {

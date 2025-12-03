@@ -61,9 +61,12 @@ log_config(logger, f"SUPABASE_URL: {'SET' if os.getenv('SUPABASE_URL') else 'NOT
 log_config(logger, f"SUPABASE_DB_URL: {'SET' if os.getenv('SUPABASE_DB_URL') else 'NOT SET'}")
 log_config(logger, f"SUPABASE_KEY: {'SET' if os.getenv('SUPABASE_KEY') else 'NOT SET'}")
 
+print("[DEBUG] About to import db_path_helper...")
 # Stock Management - ENABLED (Supabase + local fallback)
 from AI_infrastructure.utils.db_path_helper import get_stock_db_path
+print("[DEBUG] Calling get_stock_db_path()...")
 STOCK_DB_PATH = get_stock_db_path()
+print(f"[DEBUG] STOCK_DB_PATH={STOCK_DB_PATH}")
 
 # Check if using Supabase stock database
 if STOCK_DB_PATH == 'supabase://stock_data':
@@ -110,22 +113,38 @@ from core.unified_session_manager import session_manager
 from core.unified_ai_client import initialize_ai_client
 
 # Import routes (blueprints) - Working In_House_SQL implementation
+print("[DEBUG] Importing agent_routes_v4...")
 from routes.agent_routes_v4 import agent_bp  # V4 modular architecture with tool execution
+print("[DEBUG] Importing thread_routes...")
 from routes.thread_routes import thread_bp
+print("[DEBUG] Importing chat_routes...")
 from routes.chat_routes import chat_bp  # NEW: Chat with file uploads
+print("[DEBUG] Importing message_operations...")
 from routes.message_operations import message_ops_bp  # NEW: Message operations (fork, clone, copy, delete)
+print("[DEBUG] Importing export_routes...")
 from routes.export_routes import export_bp
+print("[DEBUG] Importing woocommerce_routes...")
 from routes.woocommerce_routes import woocommerce_bp
+print("[DEBUG] Importing auth_routes...")
 from routes.auth_routes import auth_bp  # NEW: User authentication
+print("[DEBUG] Importing oauth_routes...")
 from routes.oauth_routes import oauth_bp  # NEW: OAuth workspace integration (Google Workspace + M365)
+print("[DEBUG] Importing google_auth_routes_V2_FIXED...")
 from routes.google_auth_routes_V2_FIXED import google_auth_bp  # NEW: Google OAuth V2
+print("[DEBUG] Importing microsoft_auth_routes_V2_FIXED...")
 from routes.microsoft_auth_routes_V2_FIXED import microsoft_auth_bp  # NEW: Microsoft OAuth V2
+print("[DEBUG] Importing account_linking_routes...")
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
+print("[DEBUG] Importing kanban_routes...")
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
 # from routes.database_visualizer_routes import database_visualizer_bp  # DISABLED: Needs migration to Supabase PostgreSQL
+print("[DEBUG] Importing synergy_routes...")
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
+print("[DEBUG] Importing scheduler_routes...")
 from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
-from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
+print("[DEBUG] Done with main route imports!")
+# TEMP DISABLED: from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
+automation_bp = None  # Temporarily disabled
 
 # Optional: InHousePrint production workflow (requires pymssql)
 try:
@@ -143,11 +162,18 @@ from routes.cloud_folder_sync_routes import cloud_sync_bp  # NEW: Cloud folder s
 from routes.production_log_routes import production_log_bp  # NEW: Production Log (comprehensive job tracking)
 from routes.user_preferences_routes import user_preferences_bp  # NEW: User personalization preferences
 from routes.geolocation_routes import geolocation_bp  # NEW: Geolocation detection
+# TEMP: Testing which route causes hang
+print("[DEBUG] Loading thread_assignment_routes...")
 from routes.thread_assignment_routes import thread_assignment_bp  # NEW: Thread assignments (JSON storage)
+print("[DEBUG] Loading vector_db_routes...")
 from routes.vector_db_routes import vector_db_bp  # NEW: Vector Database management (Pinecone + embeddings)
+print("[DEBUG] Loading workspace_routes...")
 from routes.workspace_routes import workspace_bp  # NEW: Workspace management (CRUD, members, invitations)
+print("[DEBUG] Loading thread_sharing_routes...")
 from routes.thread_sharing_routes import thread_sharing_bp  # NEW: Thread sharing (multi-user collaboration)
+print("[DEBUG] Loading communication_routes...")
 from routes.communication_routes import communication_bp  # NEW: Communication Hub (Gmail + Outlook unified inbox)
+print("[DEBUG] Loading user_management_routes...")
 from routes.user_management_routes import user_management_bp  # NEW: Sub-user management (parent-child hierarchy)
 from routes.render_routes import render_bp  # NEW: Render cloud management (deploy, logs, metrics)
 from routes.file_routes import file_bp  # NEW: File storage management (upload, download, delete)

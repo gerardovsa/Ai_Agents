@@ -56,6 +56,15 @@ const AgentColumn = (function () {
         8: 'Hotel'
     };
 
+    // Message visibility state tracking (per agent)
+    // Combined view modes:
+    // 1. 'all-collapsed': Show all - tools collapsed
+    // 2. 'all-expanded': Show all - expand all
+    // 3. 'ai-collapsed': Show AI only - collapsed tools
+    // 4. 'ai-expanded': Show AI only - expanded tools
+    // 5. 'ai-user': Show AI and user - no tools/no tool results
+    const viewModes = {}; // Tracks current view mode per agent
+
     /**
      * Create a new agent column
      * @param {number} agentId - Agent ID
@@ -72,14 +81,9 @@ const AgentColumn = (function () {
         column.dataset.agentId = agentId;
 
         // Get thread info if exists (assumes MultiAgent.getLoadedThread exists)
+        // Keep thread-info-wrapper EMPTY when no thread is loaded
         let threadInfoHtml = `
             <div class="thread-info-wrapper">
-                <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
-                    <i class="fas fa-inbox"></i> 
-                    <span>Click to select a thread</span>
-                    <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                </div>
-                <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
             </div>
         `;
 
@@ -116,6 +120,13 @@ const AgentColumn = (function () {
                     </div>
                     
                     <div class="agent-header-controls">
+                        <button class="view-mode-btn" 
+                                id="expand-btn-${agentId}"
+                                onclick="event.stopPropagation(); AgentColumn.cycleExpandMode(${agentId})" 
+                                title="All Expanded → AI Collapsed" 
+                                aria-label="Cycle view mode">
+                            <i class="fas fa-expand-alt"></i>
+                        </button>
                         <button class="width-toggle-btn" onclick="event.stopPropagation(); AgentColumn.toggleWidth(${agentId})" title="Toggle column width" aria-label="Toggle column width">
                             <i class="fas fa-chevron-right" id="width-icon-${agentId}"></i>
                         </button>
@@ -305,14 +316,14 @@ const AgentColumn = (function () {
                     <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
                         <button class="btn btn-primary" 
                                 onclick="event.stopPropagation(); AgentColumn.newThread(${agentId})" 
-                                style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                            <i class="fas fa-plus" style="font-size: 12px;"></i>
+                                style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1;">
+                            <i class="fas fa-plus" style="font-size: 14px;"></i>
                             Start New Chat
                         </button>
                         <button class="btn btn-secondary" 
                                 onclick="event.stopPropagation(); AgentColumn.showHistory(${agentId})" 
-                                style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                            <i class="fas fa-history" style="font-size: 12px;"></i>
+                                style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1;">
+                            <i class="fas fa-history" style="font-size: 14px;"></i>
                             Thread History
                         </button>
                     </div>
@@ -408,14 +419,9 @@ const AgentColumn = (function () {
         if (threadData && typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
             container.innerHTML = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, threadData.threadId, true);
         } else {
+            // Keep thread-info-wrapper EMPTY when no thread is loaded
             container.innerHTML = `
                 <div class="thread-info-wrapper">
-                    <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
-                        <i class="fas fa-inbox"></i> 
-                        <span>Click to select a thread</span>
-                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                    </div>
-                    <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
                 </div>
             `;
         }
@@ -743,15 +749,9 @@ const AgentColumn = (function () {
             if (container) {
                 const hasThread = container.querySelector('.thread-info-card:not(.empty)');
                 if (!hasThread) {
-                    // Update with clickable thread selector
+                    // Keep thread-info-wrapper EMPTY when no thread is loaded
                     container.innerHTML = `
                         <div class="thread-info-wrapper">
-                            <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${i})">
-                                <i class="fas fa-inbox"></i> 
-                                <span>Click to select a thread</span>
-                                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                            </div>
-                            <div class="thread-selector-dropdown" id="thread-selector-${i}" style="display: none;"></div>
                         </div>
                     `;
                 }
@@ -942,6 +942,114 @@ const AgentColumn = (function () {
         }
     }
 
+    /**
+     * Cycle through view modes
+     * @param {number} agentId - Agent ID
+     */
+    function cycleExpandMode(agentId) {
+        const modes = ['all-collapsed', 'all-expanded', 'ai-collapsed', 'ai-expanded', 'ai-user'];
+        const currentMode = viewModes[agentId] || 'all-expanded';
+        const currentIndex = modes.indexOf(currentMode);
+        const nextIndex = (currentIndex + 1) % modes.length;
+        const nextMode = modes[nextIndex];
+
+        viewModes[agentId] = nextMode;
+
+        // Update button icon and title
+        const btn = document.getElementById(`expand-btn-${agentId}`);
+        if (btn) {
+            const icon = btn.querySelector('i');
+            const modeLabels = {
+                'all-collapsed': { icon: 'fa-list', title: 'All Collapsed → All Expanded' },
+                'all-expanded': { icon: 'fa-expand-alt', title: 'All Expanded → AI Collapsed' },
+                'ai-collapsed': { icon: 'fa-robot', title: 'AI Collapsed → AI Expanded' },
+                'ai-expanded': { icon: 'fa-bolt', title: 'AI Expanded → AI+User Only' },
+                'ai-user': { icon: 'fa-users', title: 'AI+User → All Collapsed' }
+            };
+
+            icon.className = `fas ${modeLabels[nextMode].icon}`;
+            btn.title = modeLabels[nextMode].title;
+        }
+
+        // Apply view mode to all messages in this column
+        applyViewModeToColumn(agentId, nextMode);
+
+        console.log(`📐 [AgentColumn] View mode for agent ${agentId}: ${nextMode}`);
+    }
+
+    /**
+     * Apply view mode to messages
+     * @param {number} agentId - Agent ID
+     * @param {string} mode - View mode
+     */
+    function applyViewModeToColumn(agentId, mode) {
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (!messagesContainer) return;
+
+        const messages = messagesContainer.querySelectorAll('.ai-message');
+
+        messages.forEach(message => {
+            const isAI = message.classList.contains('assistant');
+            const isUser = message.classList.contains('user');
+            const isThinking = message.classList.contains('thinking-bubble');
+            const isTool = message.classList.contains('tool-bubble') || message.classList.contains('tool');
+
+            // Reset classes and visibility
+            message.classList.remove('expanded', 'collapsed');
+            message.style.display = '';
+
+            switch (mode) {
+                case 'all-collapsed':
+                    // Show all - tools collapsed
+                    message.classList.add('collapsed');
+                    break;
+
+                case 'all-expanded':
+                    // Show all - expand all
+                    message.classList.add('expanded');
+                    break;
+
+                case 'ai-collapsed':
+                    // Show AI only - collapsed tools
+                    if (isAI) {
+                        message.classList.add('expanded');
+                    } else if (isTool) {
+                        message.classList.add('collapsed');
+                    } else if (isUser || isThinking) {
+                        message.style.display = 'none';
+                    }
+                    break;
+
+                case 'ai-expanded':
+                    // Show AI only - expanded tools
+                    if (isAI || isTool) {
+                        message.classList.add('expanded');
+                    } else if (isUser || isThinking) {
+                        message.style.display = 'none';
+                    }
+                    break;
+
+                case 'ai-user':
+                    // Show AI and user - no tools/no tool results
+                    if (isAI || isUser) {
+                        message.classList.add('expanded');
+                    } else if (isTool || isThinking) {
+                        message.style.display = 'none';
+                    }
+                    break;
+            }
+        });
+    }
+
+    /**
+     * Legacy function - now just calls cycleExpandMode
+     * @param {number} agentId - Agent ID
+     */
+    function toggleThinkingToolBubbles(agentId) {
+        // For backward compatibility, just cycle to next mode
+        cycleExpandMode(agentId);
+    }
+
     // Public API
     return {
         create,
@@ -962,7 +1070,9 @@ const AgentColumn = (function () {
         showPrimeThreadSelector,
         hidePrimeThreadSelector,
         loadThreadIntoPrime,
-        refreshAllAgentThreadInfos
+        refreshAllAgentThreadInfos,
+        cycleExpandMode,
+        toggleThinkingToolBubbles
     };
 })();
 

@@ -75,6 +75,16 @@ class RegistryV3:
         """Load schemas from tools/schemas/ with UTF-8 encoding"""
         schemas_dir = self.tools_dir / "schemas"
         
+        # CRITICAL SECURITY: Exclude email sending tools from loading
+        # These tools are kept in codebase but not accessible to AI agents
+        EXCLUDED_TOOLS = [
+            'microsoft_outlook_send_email',
+            'microsoft_outlook_smart_bulk_send_personalized',
+            'microsoft_outlook_reply_to_message',
+            'microsoft_outlook_forward_message',
+            'microsoft_outlook_send_draft'
+        ]
+        
         if not schemas_dir.exists():
             logger.warning(f"Schemas directory not found: {schemas_dir}")
             return
@@ -95,6 +105,12 @@ class RegistryV3:
                 if "tools" in schema_data:
                     for tool in schema_data["tools"]:
                         tool_name = tool.get("name")
+                        
+                        # Skip excluded email sending tools
+                        if tool_name in EXCLUDED_TOOLS:
+                            logger.info(f"  [SECURITY] Excluded {tool_name} - Email sending disabled for safety")
+                            continue
+                        
                         if tool_name:
                             # CRITICAL FIX: Apply schema-level platform to tools
                             if schema_platform:

@@ -105,47 +105,47 @@ def list_user_connections():
                     }
                 }
                 connections.append(connection)
-        
-        # 2. Query user_platform_credentials (API keys, databases, etc.)
-        cursor.execute("""
-            SELECT 
-                id,
-                platform,
-                credential_type,
-                credential_key,
-                credential_value,
-                is_active,
-                created_at,
-                updated_at,
-                metadata,
-                credentials
-            FROM ai_infrastructure.user_platform_credentials
-            WHERE user_id = %s
-            ORDER BY created_at DESC
-        """, (user_id,))
-        
-        platform_rows = cursor.fetchall()
-        
-        # Import encryptor for masking
-        from AI_infrastructure.auth.credential_encryptor import get_encryptor
-        encryptor = get_encryptor()
-        
-        for row in platform_rows:
-            if isinstance(row, dict):
-                row_data = row
-            else:
-                row_data = {
-                    'id': row[0],
-                    'platform': row[1],
-                    'credential_type': row[2],
-                    'credential_key': row[3],
-                    'credential_value': row[4],
-                    'is_active': row[5],
-                    'created_at': row[6],
-                    'updated_at': row[7],
-                    'metadata': row[8],
-                    'credentials': row[9]
-                }
+            
+            # 2. Query user_platform_credentials (API keys, databases, etc.)
+            cursor.execute("""
+                SELECT 
+                    id,
+                    platform,
+                    credential_type,
+                    credential_key,
+                    credential_value,
+                    is_active,
+                    created_at,
+                    updated_at,
+                    metadata,
+                    credentials
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+            """, (user_id,))
+            
+            platform_rows = cursor.fetchall()
+            
+            # Import encryptor for masking
+            from AI_infrastructure.auth.credential_encryptor import get_encryptor
+            encryptor = get_encryptor()
+            
+            for row in platform_rows:
+                if isinstance(row, dict):
+                    row_data = row
+                else:
+                    row_data = {
+                        'id': row[0],
+                        'platform': row[1],
+                        'credential_type': row[2],
+                        'credential_key': row[3],
+                        'credential_value': row[4],
+                        'is_active': row[5],
+                        'created_at': row[6],
+                        'updated_at': row[7],
+                        'metadata': row[8],
+                        'credentials': row[9]
+                    }
             
             # Parse metadata JSON if string
             metadata = row_data['metadata']
@@ -194,27 +194,20 @@ def list_user_connections():
             }
             connections.append(connection)
         
-        return jsonify({
-            'success': True,
-            'connections': connections,
-            'total_count': len(connections)
-        }), 200
+            return jsonify({
+                'success': True,
+                'connections': connections,
+                'total_count': len(connections)
+            }), 200
         
     except Exception as e:
-        print(f"Error loading connections for user {user_id}: {e}")
+        print(f"❌ [CONNECTIONS] Error loading connections for user {user_id}: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
-    finally:
-        # ✅ CRITICAL FIX: Always close connection
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
 
 @connections_bp.route('/api/connections', methods=['POST'])

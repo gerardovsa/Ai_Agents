@@ -46,6 +46,20 @@ const AgentInput = (function () {
     // Event handler storage for cleanup
     const handlers = {};
 
+    // Configuration for file attachments
+    const FILE_CONFIG = {
+        maxPdfSize: 32 * 1024 * 1024,    // 32MB
+        maxImageSize: 5 * 1024 * 1024,   // 5MB
+        validTypes: [
+            'application/pdf',
+            'image/png',
+            'image/jpeg',
+            'image/jpg',
+            'image/gif',
+            'image/webp'
+        ]
+    };
+
     /**
      * Initialize state for specific agent
      * @param {number} agentId - Agent ID
@@ -118,11 +132,13 @@ const AgentInput = (function () {
             console.warn(`⚠️ [AgentInput] Textarea not found for agent-${agentId}`);
         }
 
-        // Auto-scroll messages if enabled
+        // ALWAYS scroll to bottom when expanding (compensate for lost message space)
+        // This is separate from auto-scroll toggle - expansion changes viewport
         setTimeout(() => {
             const messagesContainer = document.getElementById(`messages-${agentId}`);
-            if (messagesContainer && state.isAutoScrollEnabled) {
+            if (messagesContainer) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                console.log(`[AgentInput] Scrolled messages to bottom after expand for agent-${agentId}`);
             }
         }, 100);
     }
@@ -246,6 +262,9 @@ const AgentInput = (function () {
             state.isRecording = false;
             console.log(`[AgentInput] Agent-${agentId} transcription stopped`);
         } else {
+            // ✅ AUTO-EXPAND: Expand input area when starting transcription
+            expand(agentId);
+
             // Start recording (target this agent's input)
             if (window.SharedTranscriptionState && typeof window.SharedTranscriptionState.startRecording === 'function') {
                 // Pass target selector so transcription knows where to route text
@@ -262,6 +281,9 @@ const AgentInput = (function () {
                     if (finalTranscript) {
                         targetInput.value += finalTranscript + ' ';
                         console.log(`[AgentInput] Agent-${agentId} received transcript: "${finalTranscript}"`);
+
+                        // Auto-expand textarea if needed (dispatch input event)
+                        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                 })
                     .then(() => {
@@ -269,7 +291,7 @@ const AgentInput = (function () {
                         micBtn.querySelector('i').className = 'fas fa-stop';
                         micBtn.title = 'Stop recording';
                         state.isRecording = true;
-                        console.log(`[AgentInput] Agent-${agentId} transcription started`);
+                        console.log(`[AgentInput] Agent-${agentId} transcription started and input expanded`);
                     })
                     .catch(error => {
                         console.error(`[AgentInput] Agent-${agentId} transcription failed:`, error);
@@ -420,21 +442,52 @@ const AgentInput = (function () {
                 const files = Array.from(e.target.files);
                 console.log(`[AgentInput] Agent-${agentId} files selected:`, files.length);
 
-                // Store files in state
-                const state = getState(agentId);
-                state.attachedFiles = files;
+                // Use attachFiles function for validation and UI update
+                attachFiles(agentId, files);
 
-                // Call file attachment handler if available
+                // Call MultiAgent handler if available (for backward compatibility)
                 if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.handleFileAttachment === 'function') {
                     MultiAgent.handleFileAttachment(agentId, files);
-                } else {
-                    console.warn(`[AgentInput] Agent-${agentId} no file attachment handler available`);
                 }
             };
             fileInput.addEventListener('change', handlers[agentId].fileChange);
         }
 
-        console.log(`[AgentInput] Agent-${agentId} handlers initialized`);
+        // Drag-and-drop handlers
+        handlers[agentId].dragOver = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            container.classList.add('drag-over');
+        };
+
+        handlers[agentId].dragLeave = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            container.classList.remove('drag-over');
+        };
+
+        handlers[agentId].drop = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            container.classList.remove('drag-over');
+
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                console.log(`[AgentInput] Agent-${agentId} files dropped:`, files.length);
+                attachFiles(agentId, files);
+
+                // Call MultiAgent handler if available
+                if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.handleFileAttachment === 'function') {
+                    MultiAgent.handleFileAttachment(agentId, files);
+                }
+            }
+        };
+
+        container.addEventListener('dragover', handlers[agentId].dragOver);
+        container.addEventListener('dragleave', handlers[agentId].dragLeave);
+        container.addEventListener('drop', handlers[agentId].drop);
+
+        console.log(`[AgentInput] Agent-${agentId} handlers initialized (with drag-drop)`);
     }
 
     /**
@@ -450,8 +503,19 @@ const AgentInput = (function () {
 
         const agentHandlers = handlers[agentId];
 
-        if (container && agentHandlers.containerClick) {
-            container.removeEventListener('click', agentHandlers.containerClick);
+        if (container) {
+            if (agentHandlers.containerClick) {
+                container.removeEventListener('click', agentHandlers.containerClick);
+            }
+            if (agentHandlers.dragOver) {
+                container.removeEventListener('dragover', agentHandlers.dragOver);
+            }
+            if (agentHandlers.dragLeave) {
+                container.removeEventListener('dragleave', agentHandlers.dragLeave);
+            }
+            if (agentHandlers.drop) {
+                container.removeEventListener('drop', agentHandlers.drop);
+            }
         }
 
         if (textarea) {
@@ -476,6 +540,137 @@ const AgentInput = (function () {
         console.log(`[AgentInput] Agent-${agentId} handlers cleaned up`);
     }
 
+    // ==================== FILE ATTACHMENT FUNCTIONS ====================
+
+    /**
+     * Handle file selection for agent
+     * @param {number} agentId - Agent ID
+     * @param {File[]} files - Array of files to attach
+     */
+    function attachFiles(agentId, files) {
+        const state = getState(agentId);
+
+        for (const file of files) {
+            // Validate file type
+            if (!FILE_CONFIG.validTypes.includes(file.type)) {
+                console.warn(`[AgentInput] Invalid file type for agent-${agentId}:`, file.name);
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification(
+                        `Invalid file type: ${file.name}. Only PDF and images are supported.`,
+                        'error'
+                    );
+                }
+                continue;
+            }
+
+            // Validate file size
+            const maxSize = file.type === 'application/pdf' ? FILE_CONFIG.maxPdfSize : FILE_CONFIG.maxImageSize;
+            if (file.size > maxSize) {
+                const maxSizeMB = (maxSize / 1024 / 1024).toFixed(0);
+                console.warn(`[AgentInput] File too large for agent-${agentId}:`, file.name);
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification(
+                        `File too large: ${file.name}. Max size: ${maxSizeMB}MB`,
+                        'error'
+                    );
+                }
+                continue;
+            }
+
+            // Add to attached files
+            state.attachedFiles.push(file);
+        }
+
+        // Update UI
+        updateAttachedFilesUI(agentId);
+
+        console.log(`[AgentInput] Agent-${agentId} attached ${files.length} file(s)`);
+    }
+
+    /**
+     * Update attached files UI display
+     * @param {number} agentId - Agent ID
+     */
+    function updateAttachedFilesUI(agentId) {
+        const state = getState(agentId);
+        const container = document.getElementById(`agent-attached-files-${agentId}`);
+
+        if (!container) {
+            console.warn(`[AgentInput] Agent-${agentId} attached files container not found`);
+            return;
+        }
+
+        const files = state.attachedFiles || [];
+        container.innerHTML = '';
+
+        files.forEach((file, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'agent-file-chip';
+
+            const icon = file.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-image';
+            const size = (file.size / 1024).toFixed(1);
+
+            chip.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${file.name} (${size}KB)</span>
+                <button class="agent-file-chip-remove" data-index="${index}" aria-label="Remove file">×</button>
+            `;
+
+            // Remove file on click
+            chip.querySelector('.agent-file-chip-remove').addEventListener('click', () => {
+                state.attachedFiles.splice(index, 1);
+                updateAttachedFilesUI(agentId);
+            });
+
+            container.appendChild(chip);
+        });
+    }
+
+    /**
+     * Clear attached files for agent
+     * @param {number} agentId - Agent ID
+     */
+    function clearFiles(agentId) {
+        const state = getState(agentId);
+        state.attachedFiles = [];
+        updateAttachedFilesUI(agentId);
+        console.log(`[AgentInput] Agent-${agentId} cleared attached files`);
+    }
+
+    /**
+     * Get attached files for agent
+     * @param {number} agentId - Agent ID
+     * @returns {File[]} Array of attached files
+     */
+    function getFiles(agentId) {
+        const state = getState(agentId);
+        return state.attachedFiles || [];
+    }
+
+    /**
+     * Get textarea value for agent
+     * @param {number} agentId - Agent ID
+     * @returns {string} Textarea value
+     */
+    function getValue(agentId) {
+        const textarea = document.getElementById(`agent-input-${agentId}`);
+        return textarea ? textarea.value : '';
+    }
+
+    /**
+     * Set textarea value for agent
+     * @param {number} agentId - Agent ID
+     * @param {string} value - New value
+     */
+    function setValue(agentId, value) {
+        const textarea = document.getElementById(`agent-input-${agentId}`);
+        if (textarea) {
+            textarea.value = value;
+            // Trigger input event for any listeners
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
     // Public API
     return {
         initState,
@@ -489,7 +684,13 @@ const AgentInput = (function () {
         showPromptLibrary,
         showFileDialog,
         setupHandlers,
-        cleanupHandlers
+        cleanupHandlers,
+        // File attachment functions
+        attachFiles,
+        clearFiles,
+        getFiles,
+        getValue,
+        setValue
     };
 })();
 

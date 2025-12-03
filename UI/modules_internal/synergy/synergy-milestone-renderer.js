@@ -51,13 +51,13 @@ class SynergyMilestoneRenderer {
      */
     getPriorityBadge(priority) {
         if (!priority || priority === 'medium') return ''; // Don't show badge for default priority
-        
+
         const badges = {
             'critical': '<span class="priority-badge priority-critical" title="Critical Priority">🔴 CRITICAL</span>',
             'high': '<span class="priority-badge priority-high" title="High Priority">🟠 HIGH</span>',
             'low': '<span class="priority-badge priority-low" title="Low Priority">🟢 LOW</span>'
         };
-        
+
         return badges[priority] || '';
     }
 

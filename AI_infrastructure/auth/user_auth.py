@@ -418,15 +418,30 @@ class UserAuthManager:
         
         token = jwt.encode(token_payload, self.jwt_secret, algorithm='HS256')
         
-        # Store session in database
+        # Capture device info from Flask request context
+        device_info = {}
+        ip_address = None
+        user_agent = None
+        
+        try:
+            from flask import request
+            if request:
+                ip_address = request.remote_addr
+                user_agent = request.headers.get('User-Agent', '')
+                device_info = self.parse_user_agent(user_agent)
+        except (ImportError, RuntimeError):
+            pass
+        
+        # Store session in database with device info
         try:
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
-                    VALUES (%s, %s, %s)
-                ''', (user_data.get('id'), token, token_payload['exp']))
+                    INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at, ip_address, user_agent, device_info)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                ''', (user_data.get('id'), token, token_payload['exp'], ip_address, user_agent, json.dumps(device_info) if device_info else '{}'))
                 conn.commit()
+                print(f"✅ Session created for user {user_data.get('id')} from {device_info.get('browser', 'Unknown')} on {device_info.get('os', 'Unknown')}")
         except Exception as e:
             print(f"⚠️ Could not store session: {e}")
         
@@ -512,11 +527,25 @@ class UserAuthManager:
                 
                 token = jwt.encode(token_payload, self.jwt_secret, algorithm='HS256')
                 
-                # Store session
+                # Capture device info from Flask request context
+                device_info = {}
+                ip_address = None
+                user_agent = None
+                
+                try:
+                    from flask import request
+                    if request:
+                        ip_address = request.remote_addr
+                        user_agent = request.headers.get('User-Agent', '')
+                        device_info = self.parse_user_agent(user_agent)
+                except (ImportError, RuntimeError):
+                    pass
+                
+                # Store session with device info
                 cursor.execute('''
-                    INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
-                    VALUES (%s, %s, %s)
-                ''', (user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S')))
+                    INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at, ip_address, user_agent, device_info)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                ''', (user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S'), ip_address, user_agent, json.dumps(device_info) if device_info else '{}'))
                 
                 # Update last active
                 cursor.execute('''
