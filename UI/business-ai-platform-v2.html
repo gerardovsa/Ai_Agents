@@ -4262,71 +4262,85 @@
 
         .account-tabs {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 4px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-default);
+            background: var(--bg-primary);
         }
 
         .account-logout-btn {
             display: flex;
             align-items: center;
-            gap: var(--space-2);
-            padding: 12px 16px;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
             background: transparent;
             border: none;
-            border-left: 3px solid transparent;
-            border-top: 1px solid var(--border-default);
-            margin-top: 8px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
             color: var(--danger, #ef4444);
-            font-size: 14px;
-            font-weight: 600;
-            text-align: left;
+            margin-left: auto;
         }
 
         .account-logout-btn i {
-            font-size: 16px;
-            width: 20px;
-            text-align: center;
+            font-size: 18px;
         }
 
         .account-logout-btn:hover {
             background: rgba(239, 68, 68, 0.1);
-            border-left-color: var(--danger, #ef4444);
+            transform: scale(1.1);
         }
 
         .account-tab {
             display: flex;
             align-items: center;
-            gap: var(--space-2);
-            padding: 12px 16px;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
             background: transparent;
             border: none;
-            border-left: 3px solid transparent;
+            border-bottom: 3px solid transparent;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
             color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 500;
-            text-align: left;
+            position: relative;
         }
 
         .account-tab i {
-            font-size: 16px;
-            width: 20px;
-            text-align: center;
+            font-size: 18px;
         }
 
         .account-tab:hover {
             background: var(--bg-secondary);
             color: var(--text-primary);
+            transform: scale(1.1);
         }
 
         .account-tab.active {
             background: var(--bg-secondary);
-            border-left-color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
             color: var(--accent-primary);
-            font-weight: 600;
+        }
+
+        .account-tab[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-tooltip, rgba(0, 0, 0, 0.9));
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
         }
 
         .account-sidebar-content {
@@ -5480,9 +5494,9 @@
 
         /* Message View Mode Control - Prime Chat */
         #ai-chat-panel .view-mode-btn {
-            width: 28px;
-            height: 28px;
-            padding: 0;
+            width: 32px;
+            height: 32px;
+            padding: 8px;
             border: 1px solid var(--border-default);
             background: var(--bg-secondary);
             color: var(--text-secondary);
@@ -5500,6 +5514,55 @@
             background: var(--bg-hover);
             color: var(--accent-primary);
             border-color: var(--accent-primary);
+        }
+
+        #ai-chat-panel .view-mode-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 45px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            min-width: 200px;
+            margin-top: 4px;
+        }
+
+        #ai-chat-panel .view-mode-dropdown.show {
+            display: block;
+        }
+
+        #ai-chat-panel .view-mode-item {
+            padding: var(--space-2) var(--space-3);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 13px;
+        }
+
+        #ai-chat-panel .view-mode-item i {
+            width: 16px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        #ai-chat-panel .view-mode-item:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+        }
+
+        #ai-chat-panel .view-mode-item.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        #ai-chat-panel .view-mode-item.active:hover {
+            background: var(--accent-hover);
         }
 
         /* Thread History Menu - COMPLETELY INDEPENDENT SIDEBAR */
@@ -16886,11 +16949,38 @@
                             <span>AI Prime</span>
                         </div>
                         <div class="chat-header-actions">
-                            <button class="view-mode-btn" id="prime-expand-btn"
-                                onclick="event.stopPropagation(); PrimeAI.cycleExpandMode()"
-                                title="All Expanded → AI Collapsed" aria-label="Cycle view mode">
-                                <i class="fas fa-expand-alt"></i>
+                            <button class="view-mode-btn" id="prime-view-mode-btn"
+                                onclick="event.stopPropagation(); PrimeAI.toggleViewModeMenu()" title="Change view mode"
+                                aria-label="Change view mode">
+                                <i class="fas fa-expand-alt" id="prime-view-mode-icon"></i>
                             </button>
+                            <div class="view-mode-dropdown" id="prime-view-mode-menu">
+                                <div class="view-mode-item active" data-mode="all-expanded"
+                                    onclick="event.stopPropagation(); PrimeAI.setViewMode('all-expanded')">
+                                    <i class="fas fa-expand-alt"></i>
+                                    <span>All Expanded</span>
+                                </div>
+                                <div class="view-mode-item" data-mode="all-collapsed"
+                                    onclick="event.stopPropagation(); PrimeAI.setViewMode('all-collapsed')">
+                                    <i class="fas fa-list"></i>
+                                    <span>All Collapsed</span>
+                                </div>
+                                <div class="view-mode-item" data-mode="ai-expanded"
+                                    onclick="event.stopPropagation(); PrimeAI.setViewMode('ai-expanded')">
+                                    <i class="fas fa-bolt"></i>
+                                    <span>AI + Tools Expanded</span>
+                                </div>
+                                <div class="view-mode-item" data-mode="ai-collapsed"
+                                    onclick="event.stopPropagation(); PrimeAI.setViewMode('ai-collapsed')">
+                                    <i class="fas fa-robot"></i>
+                                    <span>AI + Tools Collapsed</span>
+                                </div>
+                                <div class="view-mode-item" data-mode="ai-user"
+                                    onclick="event.stopPropagation(); PrimeAI.setViewMode('ai-user')">
+                                    <i class="fas fa-users"></i>
+                                    <span>AI + User Only</span>
+                                </div>
+                            </div>
                             <button class="chat-close-btn" id="chat-close-btn" title="Collapse chat">
                                 <i class="fas fa-chevron-right"></i>
                                 <i class="fas fa-chevron-right" style="margin-left: -8px;"></i>
@@ -17432,36 +17522,35 @@
                 </div>
             </div>
 
-            <!-- Tabs -->
+            <!-- Tabs - Icon Row -->
             <div class="account-tabs">
-                <button class="account-tab active" data-tab="profile" onclick="AccountSidebar.switchTab('profile')">
+                <button class="account-tab active" data-tab="profile" onclick="AccountSidebar.switchTab('profile')"
+                    title="Profile">
                     <i class="fas fa-user"></i>
-                    <span>Profile</span>
                 </button>
-                <button class="account-tab" data-tab="ai-settings" onclick="AccountSidebar.switchTab('ai-settings')">
+                <button class="account-tab" data-tab="ai-settings" onclick="AccountSidebar.switchTab('ai-settings')"
+                    title="AI Settings">
                     <i class="fas fa-robot"></i>
-                    <span>AI Settings</span>
                 </button>
-                <button class="account-tab" data-tab="notifications"
-                    onclick="AccountSidebar.switchTab('notifications')">
+                <button class="account-tab" data-tab="notifications" onclick="AccountSidebar.switchTab('notifications')"
+                    title="Notifications">
                     <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
                 </button>
-                <button class="account-tab" data-tab="appearance" onclick="AccountSidebar.switchTab('appearance')">
+                <button class="account-tab" data-tab="appearance" onclick="AccountSidebar.switchTab('appearance')"
+                    title="Appearance">
                     <i class="fas fa-paint-brush"></i>
-                    <span>Appearance</span>
                 </button>
-                <button class="account-tab" data-tab="connections" onclick="AccountSidebar.switchTab('connections')">
+                <button class="account-tab" data-tab="connections" onclick="AccountSidebar.switchTab('connections')"
+                    title="Connections">
                     <i class="fas fa-plug"></i>
-                    <span>Connections</span>
                 </button>
-                <button class="account-tab" data-tab="security" onclick="AccountSidebar.switchTab('security')">
+                <button class="account-tab" data-tab="security" onclick="AccountSidebar.switchTab('security')"
+                    title="Security">
                     <i class="fas fa-shield-alt"></i>
-                    <span>Security</span>
                 </button>
 
                 <!-- Logout Button -->
-                <button class="account-logout-btn" onclick="logoutUser()" title="Log out from your account">
+                <button class="account-logout-btn" onclick="logoutUser()" title="Log out">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Log Out</span>
                 </button>
@@ -19143,481 +19232,8 @@
     </div> <!-- Close modal-overlay -->
     </div> <!-- Close account-settings-modal -->
 
-    <!-- ==================== DEBUG SIDEBAR ==================== -->
-    <!-- Debug Sidebar HTML loaded dynamically from modules_external/debug-module/debug-module.html -->
-    <div class="debug-header">
-        <div class="debug-title">
-            <i class="fas fa-bug"></i>
-            <span>Debug Console</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <button class="debug-expand-btn" onclick="DebugSidebar.toggleExpand()">
-                <i class="fas fa-expand-alt"></i>
-                <span id="debug-expand-text">Expand</span>
-            </button>
-            <button class="debug-close-btn" onclick="DebugSidebar.toggleSidebar()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="debug-tabs">
-        <button class="debug-tab active" data-tab="logs" onclick="DebugSidebar.switchTab('logs')">
-            <i class="fas fa-file-alt"></i>
-            <span>Console Logs</span>
-        </button>
-        <button class="debug-tab" data-tab="threads" onclick="DebugSidebar.switchTab('threads')">
-            <i class="fas fa-comments"></i>
-            <span>Conversation</span>
-        </button>
-        <button class="debug-tab" data-tab="htmltree" onclick="DebugSidebar.switchTab('htmltree')">
-            <i class="fas fa-sitemap"></i>
-            <span>HTML Tree</span>
-        </button>
-        <button class="debug-tab" data-tab="dbstructure" onclick="DebugSidebar.switchTab('dbstructure')">
-            <i class="fas fa-database"></i>
-            <span>DB Structure</span>
-        </button>
-        <button class="debug-tab" data-tab="parsing" onclick="DebugSidebar.switchTab('parsing')">
-            <i class="fas fa-code"></i>
-            <span>Parsing Test</span>
-        </button>
-        <button class="debug-tab" data-tab="consolelogs" onclick="DebugSidebar.switchTab('consolelogs')">
-            <i class="fas fa-terminal"></i>
-            <span>Console Logs</span>
-        </button>
-        <button class="debug-tab" data-tab="autosave" onclick="DebugSidebar.switchTab('autosave')">
-            <i class="fas fa-clock"></i>
-            <span>Auto-Save</span>
-        </button>
-        <button class="debug-tab" data-tab="validation" onclick="DebugSidebar.switchTab('validation')">
-            <i class="fas fa-check-circle"></i>
-            <span>Validation</span>
-        </button>
-        <button class="debug-tab" data-tab="poolmonitor" onclick="DebugSidebar.switchTab('poolmonitor')">
-            <i class="fas fa-database"></i>
-            <span>Pool Monitor</span>
-        </button>
-        <button class="debug-tab" data-tab="cssextract" onclick="DebugSidebar.switchTab('cssextract')">
-            <i class="fas fa-palette"></i>
-            <span>CSS Extract</span>
-        </button>
-        <button class="debug-tab" data-tab="modulestatus" onclick="DebugSidebar.switchTab('modulestatus')">
-            <i class="fas fa-cube"></i>
-            <span>Module Status</span>
-        </button>
-        <button class="debug-tab" data-tab="automation" onclick="DebugSidebar.switchTab('automation')">
-            <i class="fas fa-project-diagram"></i>
-            <span>Automation Canvas</span>
-        </button>
-    </div>
-
-    <!-- Content Wrapper -->
-    <div class="debug-sidebar-content">
-        <!-- Log Extractor Section -->
-        <div class="debug-section active" data-section="logs">
-            <div class="debug-section-header">
-                <h3>Real-Time Console Logs</h3>
-                <p>Live stream of filtered console operations</p>
-            </div>
-
-            <!-- Filter Controls -->
-            <div class="debug-filter-group">
-                <label class="debug-checkbox-label">
-                    <input type="checkbox" checked
-                        onchange="DebugModule.filters.threadSave = this.checked; DebugSidebar.renderLogs()">
-                    <span>Thread Save Operations</span>
-                </label>
-                <label class="debug-checkbox-label">
-                    <input type="checkbox" checked
-                        onchange="DebugModule.filters.threadLoad = this.checked; DebugSidebar.renderLogs()">
-                    <span>Thread Load Operations</span>
-                </label>
-                <label class="debug-checkbox-label">
-                    <input type="checkbox" checked
-                        onchange="DebugModule.filters.messageSave = this.checked; DebugSidebar.renderLogs()">
-                    <span>Message Save Operations</span>
-                </label>
-                <label class="debug-checkbox-label">
-                    <input type="checkbox" checked
-                        onchange="DebugModule.filters.apiCalls = this.checked; DebugSidebar.renderLogs()">
-                    <span>API Requests/Responses</span>
-                </label>
-                <label class="debug-checkbox-label">
-                    <input type="checkbox" checked
-                        onchange="DebugModule.filters.errors = this.checked; DebugSidebar.renderLogs()">
-                    <span>Errors and Warnings</span>
-                </label>
-                <label class="debug-checkbox-label">
-                    <input type="checkbox" id="debug-truncate-results" checked
-                        onchange="DebugModule.filters.truncateResults = this.checked; DebugSidebar.renderLogs()">
-                    <span>Truncate Long Tool Results</span>
-                </label>
-            </div>
-
-            <!-- Stats -->
-            <div class="debug-stats-grid" style="margin-bottom: 16px;">
-                <div class="debug-stat-card">
-                    <div class="debug-stat-label">Total Logs</div>
-                    <div class="debug-stat-value" id="debug-total-logs">0</div>
-                </div>
-                <div class="debug-stat-card">
-                    <div class="debug-stat-label">Filtered</div>
-                    <div class="debug-stat-value" id="debug-filtered-logs">0</div>
-                </div>
-            </div>
-
-            <!-- Log Output (Real-time) -->
-            <div class="debug-log-output" id="debug-log-output">
-                Waiting for logs...
-            </div>
-
-            <!-- Optional Export Buttons -->
-            <div class="debug-actions" style="margin-top: 16px;">
-                <button class="debug-btn debug-btn-secondary" onclick="DebugSidebar.copyLogsToClipboard()">
-                    <i class="fas fa-copy"></i>
-                    Copy to Clipboard
-                </button>
-                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportJSON()">
-                    <i class="fas fa-download"></i>
-                    Export JSON
-                </button>
-                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportText()">
-                    <i class="fas fa-file-alt"></i>
-                    Export Text
-                </button>
-                <button class="debug-btn debug-btn-danger" onclick="DebugModule.clearLogs(); DebugSidebar.renderLogs()">
-                    <i class="fas fa-trash"></i>
-                    Clear
-                </button>
-            </div>
-        </div>
-
-        <!-- Combined Conversation Analysis Section -->
-        <div class="debug-section" data-section="threads">
-            <div class="debug-section-header">
-                <h3>Conversation Analysis</h3>
-                <p>Real-time thread structure and message bubbles</p>
-            </div>
-
-            <!-- Combined Content Container (Real-time) -->
-            <div id="debug-conversation-content" style="flex: 1; overflow-y: auto;">
-                <!-- Populated by DebugSidebar.renderConversation() -->
-            </div>
-
-            <!-- Optional Export Buttons -->
-            <div class="debug-actions" style="margin-top: 16px;">
-                <button class="debug-btn debug-btn-secondary" onclick="DebugSidebar.copyConversationToClipboard()">
-                    <i class="fas fa-copy"></i>
-                    Copy to Clipboard
-                </button>
-                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportThreadStructure()">
-                    <i class="fas fa-download"></i>
-                    Export Thread Structure
-                </button>
-                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportConsoleLogsJSON()">
-                    <i class="fas fa-download"></i>
-                    Export Console Logs
-                </button>
-                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportHTMLTree()">
-                    <i class="fas fa-download"></i>
-                    Export HTML Tree
-                </button>
-            </div>
-        </div>
-
-        <!-- HTML Tree Section -->
-        <div class="debug-section" data-section="htmltree">
-            <div class="debug-section-header">
-                <h3>HTML Tree Inspector</h3>
-                <p>Real-time DOM structure and visibility analysis</p>
-            </div>
-
-            <!-- HTML Tree Output -->
-            <div class="debug-log-output" id="debug-htmltree-output" style="flex: 1; overflow-y: auto;">
-                Loading HTML tree...
-            </div>
-
-            <!-- Optional Export Buttons -->
-            <div class="debug-actions" style="margin-top: 16px;">
-                <button class="debug-btn debug-btn-secondary" onclick="DebugSidebar.copyHTMLTreeToClipboard()">
-                    <i class="fas fa-copy"></i>
-                    Copy to Clipboard
-                </button>
-                <button class="debug-btn debug-btn-secondary" onclick="DebugModule.exportHTMLTree()">
-                    <i class="fas fa-download"></i>
-                    Export HTML Tree
-                </button>
-            </div>
-        </div>
-
-        <!-- DB STRUCTURE TEST -->
-        <div class="debug-section" data-section="dbstructure">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-database"></i> Database Structure Test</h3>
-                <button class="debug-export-btn" onclick="DebugSidebar.copyDBStructureToClipboard()">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Check if message content is stored as JSON string or parsed object
-                </p>
-                <div id="debug-dbstructure-output" class="debug-log-output">
-                    Loading...
-                </div>
-            </div>
-        </div>
-
-        <!-- MESSAGE PARSING TEST -->
-        <div class="debug-section" data-section="parsing">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-code"></i> Message Content Parsing Test</h3>
-                <button class="debug-export-btn" onclick="DebugSidebar.copyParsingToClipboard()">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Test JSON.parse() on database message content
-                </p>
-                <div id="debug-parsing-output" class="debug-log-output">
-                    Loading...
-                </div>
-            </div>
-        </div>
-
-        <!-- CONSOLE LOGS FILTERED -->
-        <div class="debug-section" data-section="consolelogs">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-terminal"></i> Filtered Console Logs</h3>
-                <button class="debug-export-btn" onclick="DebugSidebar.copyConsoleLogsToClipboard()">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Thread-related logs: save, load, render, interactions
-                </p>
-                <div id="debug-consolelogs-output" class="debug-log-output">
-                    Loading...
-                </div>
-            </div>
-        </div>
-
-        <!-- AUTO-SAVE TIMING TEST -->
-        <div class="debug-section" data-section="autosave">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-clock"></i> Auto-Save Timing Test</h3>
-                <button class="debug-export-btn" onclick="DebugSidebar.copyAutoSaveToClipboard()">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Track auto-save intervals and verify 60s timing
-                </p>
-                <div id="debug-autosave-output" class="debug-log-output">
-                    Loading...
-                </div>
-            </div>
-        </div>
-
-        <!-- VALIDATION STATUS TEST -->
-        <div class="debug-section" data-section="validation">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-check-circle"></i> Conversation Validation Test</h3>
-                <button class="debug-export-btn" onclick="DebugSidebar.copyValidationToClipboard()">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Check tool_use/tool_result pairing and message structure
-                </p>
-                <div id="debug-validation-output" class="debug-log-output">
-                    Loading...
-                </div>
-            </div>
-        </div>
-
-        <div class="debug-section" data-section="poolmonitor">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-database"></i> Connection Pool Monitor</h3>
-                <button class="debug-export-btn" onclick="window.open('/api/pool/dashboard', '_blank')">
-                    <i class="fas fa-external-link-alt"></i> Full Dashboard
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Real-time database connection pool statistics and health monitoring
-                </p>
-                <div id="debug-poolmonitor-output" class="debug-log-output">
-                    Loading pool stats...
-                </div>
-            </div>
-        </div>
-
-        <!-- CSS Extract Section -->
-        <div class="debug-section" data-section="cssextract">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-palette"></i> CSS Extractor</h3>
-                <button class="debug-export-btn" onclick="CSSExtractor.exportCSS()">
-                    <i class="fas fa-download"></i> Export CSS
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Extract computed CSS styles from rendered elements. Select elements below to see their
-                    styles.
-                </p>
-
-                <!-- Controls Row 1 -->
-                <div style="margin-bottom: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="debug-btn debug-btn-primary" onclick="CSSExtractor.startInspector()">
-                        <i class="fas fa-crosshairs"></i> Enable Inspector
-                    </button>
-                    <button class="debug-btn debug-btn-primary" onclick="CSSExtractor.rescanDOM()">
-                        <i class="fas fa-sync"></i> Rescan DOM
-                    </button>
-                    <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.selectAllVisible()">
-                        <i class="fas fa-check-square"></i> Select All Visible
-                    </button>
-                    <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.deselectAll()">
-                        <i class="fas fa-square"></i> Deselect All
-                    </button>
-                    <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.copyToClipboard()">
-                        <i class="fas fa-copy"></i> Copy CSS
-                    </button>
-                    <button class="debug-btn debug-btn-danger" onclick="CSSExtractor.clearSelection()">
-                        <i class="fas fa-trash"></i> Clear
-                    </button>
-                </div>
-
-                <!-- Controls Row 2: Dynamic Elements Monitoring -->
-                <div
-                    style="margin-bottom: 16px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 4px;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <i class="fas fa-magic" style="color: #3B82F6;"></i>
-                        <span style="font-weight: bold; color: var(--text-primary);">Dynamic Elements
-                            Monitor</span>
-                        <span style="color: var(--text-secondary); font-size: 11px;">Track script-generated
-                            elements</span>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.startDynamicMonitoring()">
-                            <i class="fas fa-eye"></i> Monitor Dynamic Elements
-                        </button>
-                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.selectAllDynamic()">
-                            <i class="fas fa-plus-square"></i> Select All Dynamic (<span
-                                id="dynamic-elements-count">0</span>)
-                        </button>
-                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.clearDynamicLog()">
-                            <i class="fas fa-eraser"></i> Clear Log
-                        </button>
-                        <span style="color: var(--text-secondary); font-size: 10px; margin-left: auto;">
-                            ?? Start monitoring, then trigger UI actions (send message, open modal, etc.)
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Two-column layout -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: calc(100vh - 400px);">
-                    <!-- Left: HTML Tree with checkboxes -->
-                    <div
-                        style="display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
-                        <div
-                            style="background: var(--surface-secondary); padding: 8px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-primary);">
-                            <i class="fas fa-sitemap"></i> HTML Elements
-                        </div>
-                        <div id="css-element-tree"
-                            style="flex: 1; overflow-y: auto; padding: 8px; background: var(--surface-primary); font-family: 'Courier New', monospace; font-size: 11px;">
-                            <div style="color: #888; padding: 20px; text-align: center;">
-                                <div style="margin-bottom: 12px;"><i class="fas fa-info-circle"
-                                        style="font-size: 24px; color: #3B82F6;"></i></div>
-                                <div style="margin-bottom: 8px; font-weight: bold;">CSS Extractor Ready</div>
-                                <div style="font-size: 10px; line-height: 1.6;">
-                                    1. Click "Rescan DOM" to load current page structure<br>
-                                    2. Or use "Enable Inspector" to click elements directly<br>
-                                    3. Select elements to extract their CSS
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right: Extracted CSS -->
-                    <div
-                        style="display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
-                        <div
-                            style="background: var(--surface-secondary); padding: 8px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-primary);">
-                            <i class="fas fa-code"></i> Computed CSS (<span id="css-selected-count">0</span>
-                            elements)
-                        </div>
-                        <div id="css-extracted-output"
-                            style="flex: 1; overflow-y: auto; padding: 12px; background: var(--surface-primary); font-family: 'Courier New', monospace; font-size: 11px; white-space: pre-wrap;">
-                            /* Select elements to see their CSS here */
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Module Status Section -->
-        <div class="debug-section" data-section="modulestatus">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-cube"></i> Module System Status</h3>
-                <div style="display: flex; gap: 8px;">
-                    <button class="debug-btn debug-btn-primary" onclick="ModuleStatusDebug.runDiagnostics()"
-                        title="Run comprehensive diagnostic tests (check console)">
-                        <i class="fas fa-stethoscope"></i> Run Diagnostics
-                    </button>
-                    <button class="debug-btn debug-btn-primary" onclick="ModuleStatusDebug.forceLoadModules()">
-                        <i class="fas fa-sync"></i> Force Load Modules
-                    </button>
-                </div>
-            </div>
-            <div class="debug-section-content">
-                <div id="module-status-output" style="font-family: monospace; font-size: 12px; line-height: 1.6;">
-                    Loading module status...
-                </div>
-            </div>
-        </div>
-
-        <!-- Automation Canvas Debug Section -->
-        <div class="debug-section" data-section="automation">
-            <div class="debug-section-header">
-                <h3><i class="fas fa-project-diagram"></i> Automation Canvas Debug</h3>
-                <button class="debug-btn debug-btn-primary" onclick="AutomationDebug.refresh()">
-                    <i class="fas fa-sync"></i> Refresh
-                </button>
-            </div>
-            <div class="debug-section-content">
-                <div id="automation-debug-output"
-                    style="font-family: monospace; font-size: 11px; line-height: 1.6; padding: 12px;">
-                    Loading automation canvas status...
-                </div>
-                <div style="margin-top: 16px; display: flex; gap: 8px;">
-                    <button class="debug-btn debug-btn-secondary" style="flex: 1;"
-                        onclick="AutomationDebug.testCreateShape()">
-                        <i class="fas fa-plus"></i> Test Create Shape
-                    </button>
-                    <button class="debug-btn debug-btn-secondary" style="flex: 1;"
-                        onclick="AutomationDebug.consoleDump()">
-                        <i class="fas fa-terminal"></i> Console Dump
-                    </button>
-                </div>
-            </div>
-        </div>
-
-    </div><!-- End debug-sidebar-content -->
-    </div><!-- End debug-sidebar -->
-
-    <!-- Debug Toggle Button (floating) -->
-    <button class="debug-toggle-btn" id="debug-toggle-btn" onclick="DebugSidebar.toggleSidebar()"
-        title="Toggle Debug Console">
-        <i class="fas fa-bug"></i>
-    </button>
+    <!-- ==================== DEBUG SIDEBAR REMOVED ==================== -->
+    <!-- Debug sidebar and toggle button removed to prevent flashing during page load -->
 
     <!-- ==================== JAVASCRIPT ==================== -->
     <script>

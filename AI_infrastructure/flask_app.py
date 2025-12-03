@@ -142,9 +142,9 @@ print("[DEBUG] Importing synergy_routes...")
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
 print("[DEBUG] Importing scheduler_routes...")
 from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
+print("[DEBUG] Importing automation_routes...")
+from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
 print("[DEBUG] Done with main route imports!")
-# TEMP DISABLED: from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
-automation_bp = None  # Temporarily disabled
 
 # Optional: InHousePrint production workflow (requires pymssql)
 try:

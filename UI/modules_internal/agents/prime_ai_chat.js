@@ -2335,7 +2335,81 @@ function initThemeToggle() {
 }
 
 /**
- * Cycle through view modes for Prime chat
+ * Toggle view mode dropdown menu for Prime chat
+ */
+function toggleViewModeMenuPrime() {
+    const menu = document.getElementById('prime-view-mode-menu');
+    if (!menu) return;
+
+    // Close agent dropdowns if any
+    document.querySelectorAll('.view-mode-dropdown.show').forEach(dropdown => {
+        if (dropdown.id !== 'prime-view-mode-menu') {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    // Toggle Prime dropdown
+    menu.classList.toggle('show');
+}
+
+/**
+ * Set view mode for Prime chat
+ * @param {string} mode - View mode to set
+ */
+function setViewModePrime(mode) {
+    primeViewMode = mode;
+
+    // Update button icon and title
+    const btn = document.getElementById('prime-view-mode-btn');
+    const icon = document.getElementById('prime-view-mode-icon');
+    if (icon) {
+        const modeIcons = {
+            'all-collapsed': 'fa-list',
+            'all-expanded': 'fa-expand-alt',
+            'ai-collapsed': 'fa-robot',
+            'ai-expanded': 'fa-bolt',
+            'ai-user': 'fa-users'
+        };
+        icon.className = `fas ${modeIcons[mode]}`;
+    }
+
+    // Update hover text with current mode
+    if (btn) {
+        const modeNames = {
+            'all-collapsed': 'All Collapsed',
+            'all-expanded': 'All Expanded',
+            'ai-collapsed': 'AI + Tools Collapsed',
+            'ai-expanded': 'AI + Tools Expanded',
+            'ai-user': 'AI + User Only'
+        };
+        btn.title = `Change View Mode\nCurrent: ${modeNames[mode]}`;
+    }
+
+    // Update active state in menu
+    const menu = document.getElementById('prime-view-mode-menu');
+    if (menu) {
+        menu.querySelectorAll('.view-mode-item').forEach(item => {
+            if (item.dataset.mode === mode) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    // Close dropdown
+    if (menu) {
+        menu.classList.remove('show');
+    }
+
+    // Apply view mode to all messages
+    applyViewModeToPrime(mode);
+
+    console.log(`📐 [PrimeAI] View mode: ${mode}`);
+}
+
+/**
+ * Legacy function - cycle through view modes (for backward compatibility)
  */
 function cycleExpandModePrime() {
     const modes = ['all-collapsed', 'all-expanded', 'ai-collapsed', 'ai-expanded', 'ai-user'];
@@ -2343,28 +2417,7 @@ function cycleExpandModePrime() {
     const nextIndex = (currentIndex + 1) % modes.length;
     const nextMode = modes[nextIndex];
 
-    primeViewMode = nextMode;
-
-    // Update button icon and title
-    const btn = document.getElementById('prime-expand-btn');
-    if (btn) {
-        const icon = btn.querySelector('i');
-        const modeLabels = {
-            'all-collapsed': { icon: 'fa-list', title: 'All Collapsed → All Expanded' },
-            'all-expanded': { icon: 'fa-expand-alt', title: 'All Expanded → AI Collapsed' },
-            'ai-collapsed': { icon: 'fa-robot', title: 'AI Collapsed → AI Expanded' },
-            'ai-expanded': { icon: 'fa-bolt', title: 'AI Expanded → AI+User Only' },
-            'ai-user': { icon: 'fa-users', title: 'AI+User → All Collapsed' }
-        };
-
-        icon.className = `fas ${modeLabels[nextMode].icon}`;
-        btn.title = modeLabels[nextMode].title;
-    }
-
-    // Apply view mode to all messages
-    applyViewModeToPrime(nextMode);
-
-    console.log(`📐 [PrimeAI] View mode: ${nextMode}`);
+    setViewModePrime(nextMode);
 }
 
 /**
@@ -2450,10 +2503,22 @@ function initChatPanelResize() {
 // Create PrimeAI namespace object for cleaner API
 const PrimeAI = {
     cycleExpandMode: cycleExpandModePrime,
-    toggleThinkingToolBubbles: toggleThinkingToolBubblesPrime
+    toggleThinkingToolBubbles: toggleThinkingToolBubblesPrime,
+    toggleViewModeMenu: toggleViewModeMenuPrime,
+    setViewMode: setViewModePrime
 };
 
 window.initChatPanel = initChatPanel;
 window.initChatPanelResize = initChatPanelResize;
 window.initThemeToggle = initThemeToggle;
 window.PrimeAI = PrimeAI;
+
+// Close Prime dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#prime-view-mode-btn') && !e.target.closest('#prime-view-mode-menu')) {
+        const menu = document.getElementById('prime-view-mode-menu');
+        if (menu) {
+            menu.classList.remove('show');
+        }
+    }
+});

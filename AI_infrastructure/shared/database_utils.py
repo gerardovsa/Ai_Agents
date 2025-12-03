@@ -257,10 +257,11 @@ def _start_pool_cleanup_thread():
         print(f"⚠️  [POOL CLEANUP] Error detecting gevent: {e}")
     
     # Only start thread in development environments (non-Gevent)
-    # Use a timeout to prevent hanging
+    # Use a timeout to prevent hanging during startup
     acquired = _pool_lock.acquire(timeout=1.0)
     if not acquired:
-        print("⚠️  [POOL CLEANUP] Could not acquire lock - skipping cleanup thread start")
+        # During startup, lock is busy - skip silently
+        # Thread will be started by first connection after startup
         return
     
     try:
@@ -272,7 +273,7 @@ def _start_pool_cleanup_thread():
                 daemon=True
             )
             _pool_cleanup_thread.start()
-            print(f"🧹 [POOL CLEANUP] Background thread started (development mode - Flask dev server)")
+            print(f"🧹 [POOL CLEANUP] Background thread started (every {POOL_CLEANUP_INTERVAL_SECONDS}s)")
     finally:
         _pool_lock.release()
 

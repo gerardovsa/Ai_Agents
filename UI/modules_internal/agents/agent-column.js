@@ -121,12 +121,34 @@ const AgentColumn = (function () {
                     
                     <div class="agent-header-controls">
                         <button class="view-mode-btn" 
-                                id="expand-btn-${agentId}"
-                                onclick="event.stopPropagation(); AgentColumn.cycleExpandMode(${agentId})" 
-                                title="All Expanded → AI Collapsed" 
-                                aria-label="Cycle view mode">
-                            <i class="fas fa-expand-alt"></i>
+                                id="view-mode-btn-${agentId}"
+                                onclick="event.stopPropagation(); AgentColumn.toggleViewModeMenu(${agentId})" 
+                                title="Change view mode" 
+                                aria-label="Change view mode">
+                            <i class="fas fa-expand-alt" id="view-mode-icon-${agentId}"></i>
                         </button>
+                        <div class="view-mode-dropdown" id="view-mode-menu-${agentId}">
+                            <div class="view-mode-item active" data-mode="all-expanded" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'all-expanded')">
+                                <i class="fas fa-expand-alt"></i>
+                                <span>All Expanded</span>
+                            </div>
+                            <div class="view-mode-item" data-mode="all-collapsed" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'all-collapsed')">
+                                <i class="fas fa-list"></i>
+                                <span>All Collapsed</span>
+                            </div>
+                            <div class="view-mode-item" data-mode="ai-expanded" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'ai-expanded')">
+                                <i class="fas fa-bolt"></i>
+                                <span>AI + Tools Expanded</span>
+                            </div>
+                            <div class="view-mode-item" data-mode="ai-collapsed" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'ai-collapsed')">
+                                <i class="fas fa-robot"></i>
+                                <span>AI + Tools Collapsed</span>
+                            </div>
+                            <div class="view-mode-item" data-mode="ai-user" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'ai-user')">
+                                <i class="fas fa-users"></i>
+                                <span>AI + User Only</span>
+                            </div>
+                        </div>
                         <button class="width-toggle-btn" onclick="event.stopPropagation(); AgentColumn.toggleWidth(${agentId})" title="Toggle column width" aria-label="Toggle column width">
                             <i class="fas fa-chevron-right" id="width-icon-${agentId}"></i>
                         </button>
@@ -541,9 +563,17 @@ const AgentColumn = (function () {
 
     // Close menus when clicking outside
     document.addEventListener('click', (e) => {
+        // Close hamburger menus
         if (!e.target.closest('.agent-hamburger-button') && !e.target.closest('.agent-menu-dropdown')) {
             document.querySelectorAll('.agent-menu-dropdown.show').forEach(menu => {
                 menu.classList.remove('show');
+            });
+        }
+
+        // Close view mode dropdowns
+        if (!e.target.closest('.view-mode-btn') && !e.target.closest('.view-mode-dropdown')) {
+            document.querySelectorAll('.view-mode-dropdown.show').forEach(dropdown => {
+                dropdown.classList.remove('show');
             });
         }
     });
@@ -943,7 +973,83 @@ const AgentColumn = (function () {
     }
 
     /**
-     * Cycle through view modes
+     * Toggle view mode dropdown menu
+     * @param {number} agentId - Agent ID
+     */
+    function toggleViewModeMenu(agentId) {
+        const menu = document.getElementById(`view-mode-menu-${agentId}`);
+        if (!menu) return;
+
+        // Close any other open dropdowns
+        document.querySelectorAll('.view-mode-dropdown.show').forEach(dropdown => {
+            if (dropdown.id !== `view-mode-menu-${agentId}`) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Toggle this dropdown
+        menu.classList.toggle('show');
+    }
+
+    /**
+     * Set view mode (called from dropdown menu)
+     * @param {number} agentId - Agent ID
+     * @param {string} mode - View mode to set
+     */
+    function setViewMode(agentId, mode) {
+        viewModes[agentId] = mode;
+
+        // Update button icon and title
+        const btn = document.getElementById(`view-mode-btn-${agentId}`);
+        const icon = document.getElementById(`view-mode-icon-${agentId}`);
+        if (icon) {
+            const modeIcons = {
+                'all-collapsed': 'fa-list',
+                'all-expanded': 'fa-expand-alt',
+                'ai-collapsed': 'fa-robot',
+                'ai-expanded': 'fa-bolt',
+                'ai-user': 'fa-users'
+            };
+            icon.className = `fas ${modeIcons[mode]}`;
+        }
+
+        // Update hover text with current mode
+        if (btn) {
+            const modeNames = {
+                'all-collapsed': 'All Collapsed',
+                'all-expanded': 'All Expanded',
+                'ai-collapsed': 'AI + Tools Collapsed',
+                'ai-expanded': 'AI + Tools Expanded',
+                'ai-user': 'AI + User Only'
+            };
+            btn.title = `Change View Mode\nCurrent: ${modeNames[mode]}`;
+        }
+
+        // Update active state in menu
+        const menu = document.getElementById(`view-mode-menu-${agentId}`);
+        if (menu) {
+            menu.querySelectorAll('.view-mode-item').forEach(item => {
+                if (item.dataset.mode === mode) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        // Close dropdown
+        if (menu) {
+            menu.classList.remove('show');
+        }
+
+        // Apply view mode to all messages in this column
+        applyViewModeToColumn(agentId, mode);
+
+        console.log(`📐 [AgentColumn] View mode for agent ${agentId}: ${mode}`);
+    }
+
+    /**
+     * Legacy function - cycle through view modes (for backward compatibility)
      * @param {number} agentId - Agent ID
      */
     function cycleExpandMode(agentId) {
@@ -953,28 +1059,7 @@ const AgentColumn = (function () {
         const nextIndex = (currentIndex + 1) % modes.length;
         const nextMode = modes[nextIndex];
 
-        viewModes[agentId] = nextMode;
-
-        // Update button icon and title
-        const btn = document.getElementById(`expand-btn-${agentId}`);
-        if (btn) {
-            const icon = btn.querySelector('i');
-            const modeLabels = {
-                'all-collapsed': { icon: 'fa-list', title: 'All Collapsed → All Expanded' },
-                'all-expanded': { icon: 'fa-expand-alt', title: 'All Expanded → AI Collapsed' },
-                'ai-collapsed': { icon: 'fa-robot', title: 'AI Collapsed → AI Expanded' },
-                'ai-expanded': { icon: 'fa-bolt', title: 'AI Expanded → AI+User Only' },
-                'ai-user': { icon: 'fa-users', title: 'AI+User → All Collapsed' }
-            };
-
-            icon.className = `fas ${modeLabels[nextMode].icon}`;
-            btn.title = modeLabels[nextMode].title;
-        }
-
-        // Apply view mode to all messages in this column
-        applyViewModeToColumn(agentId, nextMode);
-
-        console.log(`📐 [AgentColumn] View mode for agent ${agentId}: ${nextMode}`);
+        setViewMode(agentId, nextMode);
     }
 
     /**
@@ -1072,7 +1157,9 @@ const AgentColumn = (function () {
         loadThreadIntoPrime,
         refreshAllAgentThreadInfos,
         cycleExpandMode,
-        toggleThinkingToolBubbles
+        toggleThinkingToolBubbles,
+        toggleViewModeMenu,
+        setViewMode
     };
 })();
 

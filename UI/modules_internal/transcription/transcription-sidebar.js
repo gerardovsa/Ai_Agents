@@ -49,14 +49,15 @@ class SharedTranscriptionState {
     }
 
     // Start recording (called by either button)
-    async startRecording(source = 'sidebar') {
+    async startRecording(source = 'sidebar', transcriptCallback = null) {
         if (this.isRecording) {
             console.warn('[SHARED STATE] Already recording');
             return;
         }
 
         this.recordingSource = source;
-        console.log(`[SHARED STATE] Starting recording from ${source}...`);
+        this.customTranscriptCallback = transcriptCallback; // Store custom callback for agent-specific routing
+        console.log(`[SHARED STATE] Starting recording from ${source}${transcriptCallback ? ' with custom callback' : ''}...`);
 
         try {
             // If we already have a preview stream, use it for recording
@@ -167,6 +168,11 @@ class SharedTranscriptionState {
                         confidence: confidence.toFixed(2)
                     });
 
+                    // Call custom callback if provided (for agent-specific routing)
+                    if (this.customTranscriptCallback) {
+                        this.customTranscriptCallback(finalTranscript, interimTranscript);
+                    }
+
                     this.trigger('onTranscript', {
                         interim: interimTranscript,
                         final: finalTranscript,
@@ -270,6 +276,7 @@ class SharedTranscriptionState {
         const audioSource = this.currentAudioSource || 'unknown';
         this.recordingSource = null;
         this.currentAudioSource = null;
+        this.customTranscriptCallback = null; // Clear custom callback
         console.log(`[SHARED STATE] ✅ Recording stopped (was from ${source}, audio: ${audioSource})`);
     }
 
@@ -793,7 +800,7 @@ class TranscriptionSidebarController {
                         confidence: null,
                         language: null,
                         duration_seconds: null,
-                        metadata: {origin: 'upload'}
+                        metadata: { origin: 'upload' }
                     });
                 } catch (err) {
                     console.warn('[TRANSCRIPTION] Failed to save uploaded transcription:', err);
@@ -1870,7 +1877,7 @@ class TranscriptionSidebarController {
                 confidence: null,
                 language: null,
                 duration_seconds: null,
-                metadata: {audioSource: transcript.audioSource}
+                metadata: { audioSource: transcript.audioSource }
             });
         } catch (err) {
             console.warn('[TRANSCRIPTION SIDEBAR] Failed to enqueue save to server:', err);
@@ -1973,7 +1980,7 @@ class TranscriptionSidebarController {
                 const dt = new Date(it.created_at);
                 div.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                        <div style="font-size:13px; color:var(--text-primary);">${(it.transcript||'').slice(0,200)}</div>
+                        <div style="font-size:13px; color:var(--text-primary);">${(it.transcript || '').slice(0, 200)}</div>
                         <div style="font-size:11px; color:#8b949e; text-align:right; min-width:120px;">${it.model_used || ''}<br>${dt.toLocaleString()}</div>
                     </div>
                 `;

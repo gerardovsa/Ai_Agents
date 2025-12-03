@@ -537,7 +537,7 @@ window.ThreadCardTemplates = {
         // ✅ ALWAYS use fallback rendering (Dec 1, 2025 fix)
         // ThreadCardRegistry.renderPlaceholder() was generating malformed HTML
         // Fallback system has correct HTML structure, colors, icons, and functions
-        
+
         // Check if ThreadCardRegistry has linked badges to inject
         if (window.ThreadCardRegistry && window.ThreadCardRegistry.initialized) {
             try {
@@ -552,11 +552,11 @@ window.ThreadCardTemplates = {
                 // If registry returned content, it's ONLY linked badges (no placeholders)
                 // We still need to merge with fallback to show placeholders for unlinked items
                 // Silent merge - no log needed
-                
+
                 // ✅ TODO: Merge linked badges from registry with placeholders from fallback
                 // For now, just use fallback (which includes both linked and unlinked)
                 return this._fallbackBadgeRendering(thread, location, synergyMeta);
-                
+
             } catch (error) {
                 console.error('[ThreadCardTemplates] Error from ThreadCardRegistry:', error);
             }

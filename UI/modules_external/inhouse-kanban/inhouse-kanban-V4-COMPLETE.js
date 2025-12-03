@@ -1586,7 +1586,7 @@ export default {
         const finishingIcons = this.getFinishingIcons(job);
         const paperSpecs = this.getPaperSpecsSummary(job);
         const businessBadge = job.InvoicingBusiness ? `<span class="business-badge" title="${this.escapeHtml(job.InvoicingBusiness)}"><i class="fas fa-building"></i> ${this.escapeHtml(job.InvoicingBusiness.substring(0, 10))}</span>` : '';
-        
+
         // Get description with fallback priority
         const description = job.ProductionNotes || job.TicketNotes || job.ShortJobDesc || job.description || job.job_name || 'No description';
         const quantity = job.QTY || job.Quantity || job.quantity || 0;
@@ -1687,7 +1687,7 @@ export default {
         // Try multiple date fields from database
         const dateField = job.OrderDate || job.DateCreated || job.created_at || job.CreatedDate;
         if (!dateField) return 0;
-        
+
         const created = new Date(dateField);
         const now = new Date();
         const diffTime = Math.abs(now - created);
@@ -1698,7 +1698,7 @@ export default {
     calculateStageTimeInfo(job, stage, daysInStage) {
         // Get stage entry time from job data
         const stageEntryTime = job.stage_entered_at || job.StageEnteredAt || job.LastUpdated;
-        
+
         if (stageEntryTime) {
             const entered = new Date(stageEntryTime);
             const now = new Date();
@@ -1706,10 +1706,10 @@ export default {
             const hours = Math.floor(diffMs / (1000 * 60 * 60));
             const days = Math.floor(hours / 24);
             const remainingHours = hours % 24;
-            
+
             let cssClass = 'stage-normal';
             let display = '';
-            
+
             if (days > 0) {
                 display = `${days}d ${remainingHours}h`;
                 if (days > 7) cssClass = 'stage-overdue';
@@ -1721,10 +1721,10 @@ export default {
                 const minutes = Math.floor(diffMs / (1000 * 60));
                 display = `${minutes}m`;
             }
-            
+
             return { cssClass, display };
         }
-        
+
         // Fallback to old calculation
         const stageName = stage?.name || 'stage';
         let cssClass = 'stage-normal';
@@ -1780,27 +1780,27 @@ export default {
      */
     getFinishingIcons(job) {
         const icons = [];
-        
+
         if (job.CelloYes || job.FrontCelloGloss || job.FrontCelloMatt || job.BackCelloGloss || job.BackCelloMatt) {
             icons.push('<span class="finishing-icon" title="Cellophane Finish"><i class="fas fa-star"></i></span>');
         }
-        
+
         if (job.FoldYes || job.FoldDesc) {
             icons.push('<span class="finishing-icon" title="Folding"><i class="fas fa-folder"></i></span>');
         }
-        
+
         if (job.StitchYes) {
             icons.push('<span class="finishing-icon" title="Stitching"><i class="fas fa-th"></i></span>');
         }
-        
+
         if (job.RingBind) {
             icons.push('<span class="finishing-icon" title="Ring Binding"><i class="fas fa-ring"></i></span>');
         }
-        
+
         if (job.PerfectBind) {
             icons.push('<span class="finishing-icon" title="Perfect Binding"><i class="fas fa-book"></i></span>');
         }
-        
+
         return icons.join('');
     },
 
@@ -1811,19 +1811,19 @@ export default {
      */
     getPaperSpecsSummary(job) {
         const specs = [];
-        
+
         if (job.PaperType) {
             specs.push(job.PaperType);
         }
-        
+
         if (job.GSM) {
             specs.push(job.GSM);
         }
-        
+
         if (job.PaperSize && specs.length === 0) {
             specs.push(job.PaperSize);
         }
-        
+
         return specs.length > 0 ? `| ${specs.join(' • ')}` : '';
     },
 
@@ -1834,7 +1834,7 @@ export default {
      */
     getFinishingText(job) {
         const finishes = [];
-        
+
         if (job.CelloYes || job.FrontCelloGloss || job.FrontCelloMatt || job.BackCelloGloss || job.BackCelloMatt) {
             const celloTypes = [];
             if (job.FrontCelloGloss) celloTypes.push('Front Gloss');
@@ -1843,23 +1843,23 @@ export default {
             if (job.BackCelloMatt) celloTypes.push('Back Matt');
             finishes.push(celloTypes.length > 0 ? `Cello: ${celloTypes.join(', ')}` : 'Cello');
         }
-        
+
         if (job.FoldYes || job.FoldDesc) {
             finishes.push(job.FoldDesc ? `Fold: ${job.FoldDesc}` : 'Folding');
         }
-        
+
         if (job.StitchYes) {
             finishes.push('Stitching');
         }
-        
+
         if (job.RingBind) {
             finishes.push('Ring Binding');
         }
-        
+
         if (job.PerfectBind) {
             finishes.push('Perfect Binding');
         }
-        
+
         return finishes.join(' | ');
     },
 
@@ -2791,7 +2791,7 @@ export default {
 
         const stage = this.state.stages.find(s => s.id === job.current_stage_id);
         const stageInfo = this.stageMapping[stage?.name] || { icon: 'fa-cube', color: '#6c757d' };
-        
+
         // Get tier info and priority
         const tierInfo = this.getCustomerTierInfo(job.CustomerOrderCount || 0);
         const priorityIcon = this.getPriorityIcon(job.Priority || 'Normal');
@@ -3108,7 +3108,7 @@ export default {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
+
         // Load production log entries after modal is added to DOM
         setTimeout(() => this.loadProductionLogEntries(job.TicketID), 100);
     },

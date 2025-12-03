@@ -1359,7 +1359,7 @@ export default {
                     formatter: (cell) => {
                         const agent = cell.getValue();
                         const emailId = cell.getRow().getData().id;
-                        
+
                         if (agent) {
                             return `
                                 <div class="agent-assignment-cell" data-email-id="${emailId}" style="cursor: pointer; position: relative;">
@@ -1473,7 +1473,7 @@ export default {
     async showAgentAssignmentDropdown(event, cell) {
         const emailData = cell.getRow().getData();
         const emailId = emailData.id;
-        
+
         this.log.info(`📋 Showing agent assignment dropdown for email: ${emailId}`);
 
         // Remove any existing dropdown
@@ -1537,7 +1537,7 @@ export default {
         } else {
             // Build dropdown HTML
             let html = '<div style="padding: 8px 0;">';
-            
+
             // Header
             html += `
                 <div style="padding: 8px 12px; border-bottom: 1px solid #30363d; margin-bottom: 4px;">
@@ -1592,7 +1592,7 @@ export default {
                 const agentId = option.dataset.agentId;
                 const agentName = option.dataset.agentName;
                 dropdown.remove();
-                
+
                 if (agentId === 'clear') {
                     await this.clearEmailAgentAssignment(emailId, cell);
                 } else {
@@ -1625,7 +1625,7 @@ export default {
 
         try {
             const userId = window.UserAuth?.user?.id || 1;
-            
+
             // Fetch full email content
             const emailData = cell.getRow().getData();
             const fullEmail = await this.fetchEmailContent(emailId);
@@ -2442,22 +2442,22 @@ export default {
      */
     async composeReply(email, type = 'reply') {
         this.log.info(`✉️  Composing ${type} to email ${email.id}`);
-        
+
         // Fetch full email content for reply context
         const fullEmail = await this.fetchEmailContent(email.id);
-        
+
         // Switch to compose tab
         const composeBtn = this.dashboardContainer.querySelector('[data-subtab="compose"]');
         if (composeBtn) {
             composeBtn.click();
         }
-        
+
         // Pre-fill compose form
         setTimeout(() => {
             const toField = document.getElementById('compose-to');
             const subjectField = document.getElementById('compose-subject');
             const bodyField = document.getElementById('compose-body');
-            
+
             if (toField) {
                 // Reply: to sender, Reply-all: to sender + all recipients
                 if (type === 'reply') {
@@ -2469,18 +2469,18 @@ export default {
                     toField.value = [...new Set(recipients)].join(', ');
                 }
             }
-            
+
             if (subjectField) {
                 const subject = fullEmail.subject || 'No Subject';
                 subjectField.value = subject.startsWith('Re:') ? subject : `Re: ${subject}`;
             }
-            
+
             if (bodyField) {
                 const originalMessage = `\n\n---\nOn ${fullEmail.date}, ${fullEmail.from} wrote:\n> ${(fullEmail.body_text || fullEmail.snippet || '').split('\n').join('\n> ')}`;
                 bodyField.value = originalMessage;
             }
         }, 100);
-        
+
         this.showSuccess(`Composing ${type} to ${email.from}`);
     },
 
@@ -2489,30 +2489,30 @@ export default {
      */
     async composeForward(email) {
         this.log.info(`📤 Forwarding email ${email.id}`);
-        
+
         const fullEmail = await this.fetchEmailContent(email.id);
-        
+
         // Switch to compose tab
         const composeBtn = this.dashboardContainer.querySelector('[data-subtab="compose"]');
         if (composeBtn) {
             composeBtn.click();
         }
-        
+
         setTimeout(() => {
             const subjectField = document.getElementById('compose-subject');
             const bodyField = document.getElementById('compose-body');
-            
+
             if (subjectField) {
                 const subject = fullEmail.subject || 'No Subject';
                 subjectField.value = subject.startsWith('Fwd:') ? subject : `Fwd: ${subject}`;
             }
-            
+
             if (bodyField) {
                 const forwardedMessage = `\n\n---------- Forwarded message ---------\nFrom: ${fullEmail.from}\nDate: ${fullEmail.date}\nSubject: ${fullEmail.subject}\nTo: ${fullEmail.to || 'N/A'}\n\n${fullEmail.body_text || fullEmail.snippet || ''}`;
                 bodyField.value = forwardedMessage;
             }
         }, 100);
-        
+
         this.showSuccess(`Forwarding email from ${email.from}`);
     },
 
@@ -2534,13 +2534,13 @@ export default {
         if (!confirm(`Are you sure you want to delete this email from ${email.from}?`)) {
             return;
         }
-        
+
         this.log.info(`🗑️  Deleting email ${email.id}`);
-        
+
         try {
             const userId = window.UserAuth?.user?.id || 1;
             await this.api.delete(`${this.state.apiBase}/emails/${email.id}?user_id=${userId}`);
-            
+
             this.showSuccess('Email deleted successfully');
             this.closePreview();
             await this.loadEmails(); // Refresh list
@@ -2555,25 +2555,25 @@ export default {
     async toggleReadStatus(email) {
         const newStatus = !email.is_read;
         const action = newStatus ? 'read' : 'unread';
-        
+
         this.log.info(`📭 Marking email ${email.id} as ${action}`);
-        
+
         try {
             const userId = window.UserAuth?.user?.id || 1;
             await this.api.post(`${this.state.apiBase}/emails/${email.id}/${action}?user_id=${userId}`);
-            
+
             // Update local state
             email.is_read = newStatus;
             this.state.currentPreviewEmail.is_read = newStatus;
-            
+
             // Update button text
             const readStatusText = document.getElementById('read-status-text');
             if (readStatusText) {
                 readStatusText.textContent = newStatus ? 'Mark Unread' : 'Mark Read';
             }
-            
+
             this.showSuccess(`Email marked as ${action}`);
-            
+
             // Update table row if exists
             if (this.state.tabulatorTable) {
                 this.state.tabulatorTable.updateData([{ id: email.id, is_read: newStatus }]);
@@ -2588,7 +2588,7 @@ export default {
      */
     printEmail(email) {
         this.log.info(`🖨️  Printing email ${email.id}`);
-        
+
         // Create printable version
         const printWindow = window.open('', '_blank');
         const printContent = `
@@ -2617,7 +2617,7 @@ export default {
             </body>
             </html>
         `;
-        
+
         printWindow.document.write(printContent);
         printWindow.document.close();
         setTimeout(() => {
