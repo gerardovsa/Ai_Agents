@@ -571,6 +571,9 @@ async function sendChatMessage() {
         return;
     }
 
+    // Initialize stream timeout ID for cleanup
+    let streamTimeoutId = null;
+
     // Check for attached files
     const hasFiles = window.chatAttachedFiles && window.chatAttachedFiles.length > 0;
     console.log(`[ATTACH] File check: hasFiles=${hasFiles}, count=${window.chatAttachedFiles?.length || 0}`);
