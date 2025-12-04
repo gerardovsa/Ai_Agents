@@ -744,7 +744,8 @@ def google_slides_insert_text(presentation_id, slide_id, text,
                               x=50, y=50, width=600, height=100,
                               font_family='Arial', font_size=14, 
                               bold=False, italic=False, 
-                              color_hex='#000000', alignment='LEFT', **kwargs):
+                              color_hex='#000000', alignment='LEFT',
+                              _user_id=None, _injected_credentials=None, **kwargs):
     """
     Insert text box with formatting
     
@@ -760,12 +761,20 @@ def google_slides_insert_text(presentation_id, slide_id, text,
         italic (bool): Italic text
         color_hex (str): Text color in hex (#RRGGBB)
         alignment (str): LEFT, CENTER, RIGHT, JUSTIFIED
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
         
     Returns:
         dict: Text box object ID and properties
     """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         # Generate unique ID
         text_box_id = f"textBox_{int(time.time() * 1000)}"
@@ -863,7 +872,8 @@ def google_slides_insert_text(presentation_id, slide_id, text,
 # ==================== IMAGE OPERATIONS ====================
 
 def google_slides_insert_image(presentation_id, slide_id, image_url,
-                               x=50, y=50, width=400, height=300, **kwargs):
+                               x=50, y=50, width=400, height=300,
+                               _user_id=None, _injected_credentials=None, **kwargs):
     """
     Insert image from URL
     
@@ -873,12 +883,20 @@ def google_slides_insert_image(presentation_id, slide_id, image_url,
         image_url (str): Public image URL
         x, y (float): Position in points
         width, height (float): Size in points
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
         
     Returns:
         dict: Image object ID and properties
     """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         image_id = f"image_{int(time.time() * 1000)}"
         
@@ -932,7 +950,8 @@ def google_slides_insert_image(presentation_id, slide_id, image_url,
 def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE',
                                x=50, y=50, width=200, height=100,
                                fill_color='#4285F4', border_color='#000000',
-                               border_width=1, **kwargs):
+                               border_width=1,
+                               _user_id=None, _injected_credentials=None, **kwargs):
     """
     Insert shape
     
@@ -946,12 +965,20 @@ def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE'
         fill_color (str): Fill color hex
         border_color (str): Border color hex
         border_width (float): Border width in points
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
         
     Returns:
         dict: Shape object ID and properties
     """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         shape_id = f"shape_{int(time.time() * 1000)}"
         
@@ -1035,7 +1062,8 @@ def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE'
 
 def google_slides_insert_table(presentation_id, slide_id, rows, columns,
                                x=50, y=50, width=600, height=400,
-                               data=None, **kwargs):
+                               data=None,
+                               _user_id=None, _injected_credentials=None, **kwargs):
     """
     Insert table
     
@@ -1047,12 +1075,20 @@ def google_slides_insert_table(presentation_id, slide_id, rows, columns,
         x, y (float): Position in points
         width, height (float): Size in points
         data (list[list]): Optional 2D array of cell data
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
         
     Returns:
         dict: Table object ID and properties
     """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         table_id = f"table_{int(time.time() * 1000)}"
         
@@ -1118,7 +1154,8 @@ def google_slides_insert_table(presentation_id, slide_id, rows, columns,
 
 def google_slides_insert_chart_from_sheets(presentation_id, slide_id,
                                            spreadsheet_id, chart_id,
-                                           x=50, y=50, width=500, height=300, **kwargs):
+                                           x=50, y=50, width=500, height=300,
+                                           _user_id=None, _injected_credentials=None, **kwargs):
     """
     Insert chart from Google Sheets
     
@@ -1129,12 +1166,20 @@ def google_slides_insert_chart_from_sheets(presentation_id, slide_id,
         chart_id (int): Chart ID from spreadsheet
         x, y (float): Position in points
         width, height (float): Size in points
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
         
     Returns:
         dict: Chart object ID and properties
     """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         chart_obj_id = f"chart_{int(time.time() * 1000)}"
         
