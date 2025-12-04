@@ -1489,10 +1489,12 @@ def run_simple_agent_worker(
             'recommend_tools_for_task'
         ]
         
-        all_tools_dict = {t['name']: t for t in registry.get_anthropic_tools()}
-        tools = [all_tools_dict[name] for name in meta_tool_names if name in all_tools_dict]
+        # CRITICAL FIX (Dec 4, 2025): Load ALL tools, not just meta-tools
+        # Previous code only loaded 8 meta-tools, causing all platform tools to be unavailable
+        # (Gmail, Outlook, Calculator, Fred DB, etc. were not accessible to AI agent)
+        tools = registry.get_anthropic_tools()
         
-        print(f"{log_prefix} 🔷 Sending {len(tools)} meta-tools")
+        print(f"{log_prefix} 🔷 Sending {len(tools)} tools (ALL platforms + meta-tools)")
         
         # Get system prompt
         prompt_name = 'data_agent_chat'
@@ -2597,7 +2599,34 @@ Proceed to the NEXT step now."""
             }
     
     except Exception as e:
-        print(f"{log_prefix} ERROR: {str(e)}")
+        error_details = {
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'session_id': session_id,
+            'round': current_round
+        }
+        
+        # Add more context for specific error types
+        if 'timeout' in str(e).lower():
+            error_details['error_category'] = 'TIMEOUT'
+            error_details['user_message'] = 'Request timed out. The AI service took too long to respond. Please try again with a simpler request.'
+        elif '413' in str(e) or 'too large' in str(e).lower():
+            error_details['error_category'] = 'REQUEST_TOO_LARGE'
+            error_details['user_message'] = 'Request too large. Try shortening your message or removing attachments.'
+        elif '429' in str(e) or 'rate limit' in str(e).lower():
+            error_details['error_category'] = 'RATE_LIMIT'
+            error_details['user_message'] = 'Rate limit exceeded. Please wait a moment and try again.'
+        elif 'api key' in str(e).lower() or 'authentication' in str(e).lower():
+            error_details['error_category'] = 'AUTH_ERROR'
+            error_details['user_message'] = 'Authentication error. Please contact support.'
+        else:
+            error_details['error_category'] = 'UNKNOWN'
+            error_details['user_message'] = f'An error occurred: {str(e)}'
+        
+        print(f"{log_prefix} ❌ ERROR [{error_details['error_category']}]: {str(e)}")
         import traceback
-        traceback.print_exc()
-        yield {'type': 'error', 'error': str(e), 'session_id': session_id, 'round': current_round}
+        error_details['stack_trace'] = traceback.format_exc()
+        print(error_details['stack_trace'])
+        
+        # Send detailed error to frontend
+        yield {'type': 'error', **error_details}

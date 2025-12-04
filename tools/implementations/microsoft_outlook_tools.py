@@ -204,11 +204,16 @@ class MicrosoftOutlookTools:
     def outlook_smart_bulk_send_personalized(self, subject_template: str, body_template: str,
                                             recipients: List[Dict], importance: str = 'normal',
                                             delay_seconds: int = 1, **kwargs) -> Dict:
-        """Send personalized bulk emails with mail merge"""
+        """
+        TEMPORARILY DISABLED: Create personalized bulk email drafts (does not send)
+        
+        CURRENT BEHAVIOR: Creates personalized draft emails for each recipient
+        All emails will be saved to your Outlook Drafts folder for manual review and sending.
+        """
         
         results = {
             'success': True,
-            'sent': [],
+            'created_drafts': [],
             'failed': [],
             'total': len(recipients)
         }
@@ -226,16 +231,21 @@ class MicrosoftOutlookTools:
                 personalized_subject = personalized_subject.replace(placeholder, str(value))
                 personalized_body = personalized_body.replace(placeholder, str(value))
             
-            # Send email
+            # Create draft (not send)
             send_result = self.outlook_send_email(
                 to=[email],
                 subject=personalized_subject,
                 body=personalized_body,
-                importance=importance
+                importance=importance,
+                **kwargs
             )
             
             if send_result['success']:
-                results['sent'].append({'email': email, 'status': 'sent'})
+                results['created_drafts'].append({
+                    'email': email, 
+                    'status': 'draft_created',
+                    'draft_id': send_result.get('draft_id')
+                })
             else:
                 results['failed'].append({'email': email, 'error': send_result.get('error')})
             
@@ -244,7 +254,9 @@ class MicrosoftOutlookTools:
                 time.sleep(delay_seconds)
         
         results['success'] = len(results['failed']) == 0
-        results['message'] = f"Sent {len(results['sent'])}/{results['total']} emails"
+        results['message'] = f"⚠️ Created {len(results['created_drafts'])}/{results['total']} draft emails (not sent)"
+        results['note'] = 'All personalized emails were saved to your Outlook Drafts folder'
+        results['action_required'] = 'Please open Outlook and send these drafts manually'
         
         return results
     
