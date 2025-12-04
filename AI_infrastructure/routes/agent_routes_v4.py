@@ -837,12 +837,31 @@ def stream_agent(agent_id):
         except:
             preferred_tools = []
     
+    # Get custom_preferences (handle double-encoded JSON)
+    custom_preferences_raw = user_prefs.get('custom_preferences', '') if user_prefs else ''
+    custom_preferences = []
+    if custom_preferences_raw:
+        try:
+            if isinstance(custom_preferences_raw, str):
+                # First parse
+                parsed = json.loads(custom_preferences_raw) if custom_preferences_raw else []
+                # Check if result is still a string (double-encoded)
+                if isinstance(parsed, str):
+                    parsed = json.loads(parsed)
+                custom_preferences = parsed if isinstance(parsed, list) else []
+            elif isinstance(custom_preferences_raw, list):
+                custom_preferences = custom_preferences_raw
+        except Exception as e:
+            print(f"[STREAM] ⚠️ Failed to parse custom_preferences: {e}")
+            custom_preferences = []
+    
     if nickname:
         print(f"[STREAM] 👤 User nickname: {nickname}")
     print(f"[STREAM] 🔐 Auth platform: {auth_platform}")
     print(f"[STREAM] 💬 Communication style: {communication_style}")
     print(f"[STREAM] 📊 Detail level: {detail_level}")
     print(f"[STREAM] 📋 Preferred tools: {preferred_tools}")
+    print(f"[STREAM] 🎯 Custom preferences: {custom_preferences}")
     
     # ============================================
     # LOCATION DETECTION AND WEATHER (Retained)
@@ -1011,6 +1030,11 @@ Additional Preferences (YOU MUST FOLLOW THESE):
             user_context_block += "\n\nSpecial Instructions (CRITICAL - MUST FOLLOW):"
             for tool_pref in preferred_tools:
                 user_context_block += f"\n- {tool_pref}"
+        
+        if custom_preferences:
+            user_context_block += "\n\nCustom Preferences (APPLY THESE):"
+            for pref in custom_preferences:
+                user_context_block += f"\n- {pref}"
         
         if ai_memories:
             user_context_block += "\n\nKey Memories About This User:"
