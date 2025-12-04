@@ -384,7 +384,7 @@
           },
           "max_results": {
             "type": "integer",
-            "description": "⚠️ CRITICAL: Maximum number of messages to return (default: 50, max: 500). ALWAYS set this to prevent returning hundreds of emails! Recommended: 10-25 for quick scans, 50 for thorough reviews.",
+            "description": "⚠️ MANDATORY: Maximum number of messages to return (default: 50, max: 500). ALWAYS set this explicitly! Recommended values: 10-25 for quick scans, 50 for thorough reviews, 100 for comprehensive searches. Without setting this, may return 500+ emails causing slow performance and truncated results.",
             "default": 50
           },
           "filter": {
