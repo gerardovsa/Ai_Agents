@@ -146,53 +146,53 @@ def list_user_connections():
                         'metadata': row[8],
                         'credentials': row[9]
                     }
-                
-                # Parse metadata JSON if string
-                metadata = row_data['metadata']
-                if isinstance(metadata, str):
-                    try:
-                        metadata = json.loads(metadata)
-                    except:
-                        metadata = {}
-                
-                # Parse credentials JSON if string
-                credentials = row_data['credentials']
-                if isinstance(credentials, str):
-                    try:
-                        credentials = json.loads(credentials)
-                    except:
-                        credentials = {}
-                
-                # Mask the credential value for display
-                credential_value = row_data.get('credential_value')
-                masked_value = None
-                if credential_value:
-                    masked_value = encryptor.mask_credential(credential_value)
-                
-                # Extract account name from metadata
-                account_name = None
-                if metadata:
-                    account_name = (
-                        metadata.get('email') or 
-                        metadata.get('account_name') or 
-                        metadata.get('username') or
-                        metadata.get('display_name')
-                    )
-                
-                connection = {
-                    'id': f"platform_{row_data['id']}",
-                    'platform': row_data['platform'],
-                    'credential_type': row_data['credential_type'],
-                    'credential_key': row_data['credential_key'],  # API key name/identifier
-                    'credential_value_masked': masked_value,  # ✅ ADD MASKED VALUE
-                    'account_name': account_name,  # ✅ ADD ACCOUNT NAME
-                    'is_active': row_data['is_active'],
-                    'created_at': row_data['created_at'].isoformat() if row_data['created_at'] else None,
-                    'updated_at': row_data['updated_at'].isoformat() if row_data['updated_at'] else None,
-                    'metadata': metadata,
-                    'has_credentials': bool(credentials)
-                }
-                connections.append(connection)
+            
+            # Parse metadata JSON if string
+            metadata = row_data['metadata']
+            if isinstance(metadata, str):
+                try:
+                    metadata = json.loads(metadata)
+                except:
+                    metadata = {}
+            
+            # Parse credentials JSON if string
+            credentials = row_data['credentials']
+            if isinstance(credentials, str):
+                try:
+                    credentials = json.loads(credentials)
+                except:
+                    credentials = {}
+            
+            # Mask the credential value for display
+            credential_value = row_data.get('credential_value')
+            masked_value = None
+            if credential_value:
+                masked_value = encryptor.mask_credential(credential_value)
+            
+            # Extract account name from metadata
+            account_name = None
+            if metadata:
+                account_name = (
+                    metadata.get('email') or 
+                    metadata.get('account_name') or 
+                    metadata.get('username') or
+                    metadata.get('display_name')
+                )
+            
+            connection = {
+                'id': f"platform_{row_data['id']}",
+                'platform': row_data['platform'],
+                'credential_type': row_data['credential_type'],
+                'credential_key': row_data['credential_key'],  # API key name/identifier
+                'credential_value_masked': masked_value,  # ✅ ADD MASKED VALUE
+                'account_name': account_name,  # ✅ ADD ACCOUNT NAME
+                'is_active': row_data['is_active'],
+                'created_at': row_data['created_at'].isoformat() if row_data['created_at'] else None,
+                'updated_at': row_data['updated_at'].isoformat() if row_data['updated_at'] else None,
+                'metadata': metadata,
+                'has_credentials': bool(credentials)
+            }
+            connections.append(connection)
         
             return jsonify({
                 'success': True,

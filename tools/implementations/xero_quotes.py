@@ -17,22 +17,23 @@ from typing import Dict, Any, List, Optional
 from datetime import date, datetime
 
 
-def _get_client(business_id: int):
+def _get_client(business_id: int, user_id: int = None):
     """
     Get XeroAPIClient instance for specified business
     
     Args:
         business_id: 1=InHouse Print, 2=Publishing, 3=Signs
+        user_id: User ID for database OAuth credential lookup (optional)
     
     Returns:
-        XeroAPIClient instance
+        XeroAPIClient instance with user's credentials
     
     Raises:
         RuntimeError: If XeroAPIClient not available
     """
     try:
         from UI.modules_external.xero.xero_routes import XeroAPIClient
-        return XeroAPIClient(business_id=business_id)
+        return XeroAPIClient(business_id=business_id, user_id=user_id)
     except ImportError as e:
         raise RuntimeError(f"XeroAPIClient not available. Ensure xero_routes.py is accessible: {str(e)}")
 
@@ -48,6 +49,7 @@ def xero_create_quote(
     title: Optional[str] = None,
     summary: Optional[str] = None,
     terms: Optional[str] = None,
+    _user_id: Optional[int] = None,
     reference: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
@@ -102,7 +104,7 @@ def xero_create_quote(
         )
     """
     try:
-        client = _get_client(business_id)
+        client = _get_client(business_id, user_id=_user_id)
         
         # If template_name provided, look up the BrandingThemeID
         resolved_branding_theme_id = branding_theme_id
@@ -218,6 +220,7 @@ def xero_list_quotes(
     quote_number: Optional[str] = None,
     page: int = 1,
     page_size: int = 100,
+    _user_id: Optional[int] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -234,7 +237,8 @@ def xero_list_quotes(
         quote_number: Filter by specific quote number (exact match)
         page: Page number (default 1)
         page_size: Records per page (default 100, max 100)
-        **kwargs: Credential injection (unused, for compatibility)
+        _user_id: User ID for OAuth credential lookup from database
+        **kwargs: Additional parameters
     
     Returns:
         Dict with pagination metadata and quotes array
@@ -335,6 +339,7 @@ def xero_list_quotes(
 def xero_get_quote_by_id(
     business_id: int,
     quote_id: str,
+    _user_id: Optional[int] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -343,7 +348,8 @@ def xero_get_quote_by_id(
     Args:
         business_id: Business ID (1=InHouse Print, 2=Publishing, 3=Signs)
         quote_id: Xero QuoteID (GUID format)
-        **kwargs: Credential injection (unused, for compatibility)
+        _user_id: User ID for OAuth credential lookup from database
+        **kwargs: Additional parameters
     
     Returns:
         Dict with complete quote details
@@ -359,7 +365,7 @@ def xero_get_quote_by_id(
         )
     """
     try:
-        client = _get_client(business_id)
+        client = _get_client(business_id, user_id=_user_id)
         
         # Make API request
         endpoint = f'Quotes/{quote_id}'
@@ -413,6 +419,7 @@ def xero_update_quote(
     summary: Optional[str] = None,
     terms: Optional[str] = None,
     reference: Optional[str] = None,
+    _user_id: Optional[int] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -431,7 +438,8 @@ def xero_update_quote(
         summary: Update summary text max 3000 chars (optional)
         terms: Update terms text max 4000 chars (optional)
         reference: Update reference number max 4000 chars (optional)
-        **kwargs: Credential injection (unused, for compatibility)
+        _user_id: User ID for OAuth credential lookup from database
+        **kwargs: Additional parameters
     
     Returns:
         Dict with updated quote details
@@ -443,12 +451,12 @@ def xero_update_quote(
     Example:
         xero_update_quote(
             business_id=1,
-            quote_id="d5b89e36-8a28-4c40-b8e4-2a0d3f5d7c93",
+            quote_id="abc-123",
             status="SENT"
         )
     """
     try:
-        client = _get_client(business_id)
+        client = _get_client(business_id, user_id=_user_id)
         
         # Build update payload (only include provided fields)
         update_data = {
@@ -535,6 +543,7 @@ def xero_update_quote(
 
 def xero_get_branding_themes(
     business_id: int,
+    _user_id: Optional[int] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -545,7 +554,8 @@ def xero_get_branding_themes(
     
     Args:
         business_id: Business ID (1=InHouse Print, 2=Publishing, 3=Signs)
-        **kwargs: Credential injection (unused, for compatibility)
+        _user_id: User ID for OAuth credential lookup from database
+        **kwargs: Additional parameters
     
     Returns:
         Dict with branding themes array (BrandingThemeID, Name, LogoUrl, SortOrder)
@@ -558,7 +568,7 @@ def xero_get_branding_themes(
         xero_get_branding_themes(business_id=1)
     """
     try:
-        client = _get_client(business_id)
+        client = _get_client(business_id, user_id=_user_id)
         
         # Make API request
         response = client.make_request('GET', 'BrandingThemes')

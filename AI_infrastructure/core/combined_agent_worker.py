@@ -94,8 +94,10 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
                 continue
             
             # RULE 2a: Signature field validation (Extended Thinking)
-            # NOTE: For old messages without signatures, we OMIT the field entirely
-            # (empty string is INVALID per Anthropic API)
+            # CRITICAL FIX (Dec 4, 2025): DO NOT MODIFY THINKING BLOCKS
+            # Anthropic API explicitly forbids modifying thinking blocks from previous turns
+            # Per API error: "thinking blocks in the latest assistant message cannot be modified"
+            # We must preserve blocks EXACTLY as Claude generated them, even with empty signatures
             print(f"[Combined Worker] 🔍 Thinking block validation:")
             print(f"  - Has 'signature' key: {'signature' in block}")
             if 'signature' in block:
@@ -105,12 +107,11 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
                 print(f"  - Is empty string: {sig_value == ''}")
                 print(f"  - Is None: {sig_value is None}")
                 print(f"  - Is falsy: {not sig_value}")
-            
-            # If signature exists but is empty string, remove it
-            if 'signature' in block and block['signature'] == '':
-                print(f"[Combined Worker] ⚠️ Removing invalid empty signature field")
-                del block['signature']
-                print(f"[Combined Worker] ✅ Signature field removed, block now has keys: {list(block.keys())}")
+                
+                # WARNING: Do not delete empty signatures - that modifies the block!
+                if sig_value == '':
+                    print(f"[Combined Worker] ⚠️ WARNING: Thinking block has empty signature (preserving unchanged)")
+                    print(f"[Combined Worker] ℹ️  Thinking blocks must remain unmodified per Anthropic API requirements")
         
         # RULE 3: Validate text blocks
         elif block_type == 'text':
@@ -1489,12 +1490,10 @@ def run_simple_agent_worker(
             'recommend_tools_for_task'
         ]
         
-        # CRITICAL FIX (Dec 4, 2025): Load ALL tools, not just meta-tools
-        # Previous code only loaded 8 meta-tools, causing all platform tools to be unavailable
-        # (Gmail, Outlook, Calculator, Fred DB, etc. were not accessible to AI agent)
-        tools = registry.get_anthropic_tools()
+        all_tools_dict = {t['name']: t for t in registry.get_anthropic_tools()}
+        tools = [all_tools_dict[name] for name in meta_tool_names if name in all_tools_dict]
         
-        print(f"{log_prefix} 🔷 Sending {len(tools)} tools (ALL platforms + meta-tools)")
+        print(f"{log_prefix} 🔷 Sending {len(tools)} meta-tools")
         
         # Get system prompt
         prompt_name = 'data_agent_chat'

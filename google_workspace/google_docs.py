@@ -2788,13 +2788,12 @@ def google_docs_update_content(document_id, content, mode='replace_all', find_te
     print(f"Updating document {document_id} with mode: {mode}")
     
     try:
-        # Get credentials
-        credentials = _get_user_credentials_if_available({'_user_id': _user_id, '_injected_credentials': _injected_credentials})
-        if credentials:
-            print("Using user-provided OAuth credentials")
-            service = build('docs', 'v1', credentials=credentials)
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
         else:
-            print("Using service account credentials")
             service = _get_docs_service()
         
         requests = []
@@ -3077,7 +3076,7 @@ def google_docs_insert_page_break(document_id, index=1, _user_id=None, _injected
     return google_docs_batch_update(document_id, requests, _user_id=_user_id, _injected_credentials=_injected_credentials)
 
 
-def google_docs_add_formatted_content(document_id, **kwargs):
+def google_docs_add_formatted_content(document_id, _user_id=None, _injected_credentials=None, **kwargs):
     """Add sample formatted content with various styles to demonstrate capabilities
     
     This adds:
@@ -3088,9 +3087,20 @@ def google_docs_add_formatted_content(document_id, **kwargs):
     - Bulleted list
     - Numbered list
     - Mixed formatting (bold + italic)
+    
+    Args:
+        document_id: Document ID
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
     """
     try:
-        service = _get_docs_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            service = _get_docs_service()
         
         # Build all requests in a single batch for efficiency
         requests = []
@@ -3458,13 +3468,26 @@ def google_docs_add_formatted_content(document_id, **kwargs):
 
 # ==================== EXPORT ====================
 
-def google_docs_export_as_pdf(document_id, **kwargs):
-    """Export document as PDF"""
+def google_docs_export_as_pdf(document_id, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Export document as PDF
+    
+    Args:
+        document_id: Document ID
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        service = _get_docs_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            service = _get_docs_service()
         
         # Note: Need to use Drive API for export
         drive_service = build('drive', 'v3', credentials=service._http.credentials)
@@ -3525,9 +3548,23 @@ def google_docs_add_page_numbers(document_id, position='FOOTER', alignment='CENT
     
     IMPORTANT: Google Docs API does not support automatic page number insertion.
     This function prepares the document settings and provides instructions for manual insertion.
+    
+    Args (with credential injection):
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
     """
+    # Extract credentials from kwargs if passed
+    _user_id = kwargs.get('_user_id')
+    _injected_credentials = kwargs.get('_injected_credentials')
+    
     try:
-        service = _get_docs_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            service = _get_docs_service()
         
         print(f"🔧 Configuring page numbering for document {document_id}...")
         print(f"   Starting number: {starting_number}")
@@ -3606,13 +3643,27 @@ The document is now ready - page numbering will begin at page {starting_number} 
         raise
 
 
-def google_docs_export_as_html(document_id, **kwargs):
-    """Export document as HTML"""
+def google_docs_export_as_html(document_id, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Export document as HTML
+    
+    Args:
+        document_id: Document ID
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        service = _get_docs_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            service = _get_docs_service()
+        
         drive_service = build('drive', 'v3', credentials=service._http.credentials)
         
         request = drive_service.files().export_media(
@@ -3638,13 +3689,27 @@ def google_docs_export_as_html(document_id, **kwargs):
         raise
 
 
-def google_docs_export_as_markdown(document_id, **kwargs):
-    """Export document as Markdown"""
+def google_docs_export_as_markdown(document_id, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Export document as Markdown
+    
+    Args:
+        document_id: Document ID
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        service = _get_docs_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            service = _get_docs_service()
+        
         drive_service = build('drive', 'v3', credentials=service._http.credentials)
         
         request = drive_service.files().export_media(
@@ -3674,13 +3739,28 @@ def google_docs_export_as_markdown(document_id, **kwargs):
 
 # ==================== ADVANCED ====================
 
-def google_docs_create_from_template(template_id, title, **kwargs):
-    """Create document from template"""
+def google_docs_create_from_template(template_id, title, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Create document from template
+    
+    Args:
+        template_id: Template document ID
+        title: New document title
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
         # Copy template using Drive API
         from googleapiclient.discovery import build
         
-        service = _get_docs_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            service = _get_docs_service()
+        
         drive_service = build('drive', 'v3', credentials=service._http.credentials)
         
         body = {'name': title}
@@ -3696,10 +3776,23 @@ def google_docs_create_from_template(template_id, title, **kwargs):
         raise
 
 
-def google_docs_get_suggestions(document_id, **kwargs):
-    """Get document suggestions"""
+def google_docs_get_suggestions(document_id, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Get document suggestions
+    
+    Args:
+        document_id: Document ID
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
-        service = _get_docs_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            service = _get_docs_service()
         
         document = service.documents().get(
             documentId=document_id,

@@ -365,7 +365,7 @@ def google_forms_get_form(form_id, format='summary', **kwargs):
         raise
 
 
-def google_forms_get_questions_markdown(form_id, **kwargs):
+def google_forms_get_questions_markdown(form_id, _user_id=None, _injected_credentials=None, **kwargs):
     """
     ⭐ ULTRA-COMPACT: Get ONLY form questions in minimal markdown format for AI reading
     
@@ -404,7 +404,9 @@ def google_forms_get_questions_markdown(form_id, **kwargs):
     
     Args:
         form_id: Form ID
-        **kwargs: Credential injection
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+        **kwargs: Additional parameters
     
     Returns:
         dict with:
@@ -414,7 +416,8 @@ def google_forms_get_questions_markdown(form_id, **kwargs):
         - format: 'questions_markdown'
     """
     try:
-        service = _get_forms_service(**kwargs)
+        # Pass credentials explicitly to service helper
+        service = _get_forms_service(_user_id=_user_id, _injected_credentials=_injected_credentials, **kwargs)
         form = service.forms().get(formId=form_id).execute()
         
         title = form.get('info', {}).get('title', 'Untitled Form')

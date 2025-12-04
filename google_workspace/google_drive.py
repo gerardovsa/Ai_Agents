@@ -443,9 +443,17 @@ def google_drive_remove_permission(file_id, permission_id, _user_id=None, _injec
 
 # ==================== SEARCH & ADVANCED ====================
 
-def google_drive_search_files(query, max_results=10, **kwargs):
-    """Search for files"""
-    return google_drive_list_files(max_results=max_results, query=query)
+def google_drive_search_files(query, max_results=10, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Search for files
+    
+    Args:
+        query: Search query
+        max_results: Maximum results to return
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
+    return google_drive_list_files(max_results=max_results, query=query, _user_id=_user_id, _injected_credentials=_injected_credentials, **kwargs)
 
 
 def google_drive_export_file(file_id, mime_type, _user_id=None, _injected_credentials=None, **kwargs):
