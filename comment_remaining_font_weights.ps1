@@ -60,7 +60,8 @@ Write-Host ""
 
 if ($stats.FilesModified -gt 0) {
     Write-Host "[OK] COMPLETE - All remaining font-weight declarations commented" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "[WARN] NO CHANGES MADE" -ForegroundColor Yellow
 }
 

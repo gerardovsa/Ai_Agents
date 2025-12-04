@@ -2508,31 +2508,90 @@ Proceed to the NEXT step now."""
                 tool_input = tool_use['input'].copy()
                 tool_id = tool_use['id']
                 
+                # CRITICAL FIX (Dec 4, 2025): Add timeout and detailed error logging
+                print(f"{log_prefix} 🔧 Executing tool: {tool_name} (ID: {tool_id[:8]}...)")
+                print(f"{log_prefix}    Input parameters: {list(tool_input.keys())}")
+                
                 try:
-                    # Handle meta-tools specially
-                    if tool_name in ['get_tool_schema', 'execute_tool']:
-                        from tools.implementations.meta_tools import execute_tool as execute_tool_fn, get_tool_schema as get_tool_schema_fn
-                        
-                        if tool_name == 'execute_tool':
-                            result = execute_tool_fn(**tool_input, _user_id=user_id, _injected_credentials=True)
-                        else:
-                            result = get_tool_schema_fn(**tool_input)
-                    else:
-                        # Regular tools with credential injection
-                        if tool_name.startswith(('google_', 'microsoft_')):
-                            result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
-                        else:
-                            result = registry.execute_tool(tool_name=tool_name, **tool_input)
+                    import signal
+                    from contextlib import contextmanager
                     
-                    # Smart truncation for large tool results to avoid 413 errors
-                    result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)
-                    tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': result_str})
-                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': result_str, 'success': True}
+                    @contextmanager
+                    def timeout_context(seconds):
+                        """Timeout context manager for tool execution"""
+                        def timeout_handler(signum, frame):
+                            raise TimeoutError(f"Tool execution exceeded {seconds}s timeout")
+                        
+                        # Skip timeout on Windows (signal.SIGALRM not supported)
+                        if hasattr(signal, 'SIGALRM'):
+                            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+                            signal.alarm(seconds)
+                            try:
+                                yield
+                            finally:
+                                signal.alarm(0)
+                                signal.signal(signal.SIGALRM, old_handler)
+                        else:
+                            # No timeout on Windows - just yield
+                            yield
+                    
+                    # Execute tool with 60-second timeout
+                    with timeout_context(60):
+                        # Handle meta-tools specially
+                        if tool_name in ['get_tool_schema', 'execute_tool']:
+                            from tools.implementations.meta_tools import execute_tool as execute_tool_fn, get_tool_schema as get_tool_schema_fn
+                            
+                            if tool_name == 'execute_tool':
+                                result = execute_tool_fn(**tool_input, _user_id=user_id, _injected_credentials=True)
+                            else:
+                                result = get_tool_schema_fn(**tool_input)
+                        else:
+                            # Regular tools with credential injection
+                            if tool_name.startswith(('google_', 'microsoft_')):
+                                result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
+                            else:
+                                result = registry.execute_tool(tool_name=tool_name, **tool_input)
+                    
+                    # Check if tool returned an error in its result
+                    is_error = False
+                    if isinstance(result, dict) and result.get('success') is False:
+                        is_error = True
+                        error_msg = result.get('error', 'Tool execution failed')
+                        error_type = result.get('error_type', 'unknown')
+                        details = result.get('details', '')
+                        result_str = f"❌ {error_msg}\n\nError Type: {error_type}\n{details}" if details else f"❌ {error_msg}\n\nError Type: {error_type}"
+                        tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': result_str, 'is_error': True})
+                        print(f"{log_prefix} ⚠️ Tool returned error: {tool_name} - {error_msg}")
+                        yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': result_str, 'success': False, 'error': error_msg}
+                    else:
+                        # Smart truncation for large tool results to avoid 413 errors
+                        result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)
+                        tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': result_str})
+                        print(f"{log_prefix} ✅ Tool executed successfully: {tool_name}")
+                        yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': result_str, 'success': True}
+                
+                except TimeoutError as timeout_err:
+                    import traceback
+                    full_trace = traceback.format_exc()
+                    error_msg = f"⏱️ Tool execution timeout: {tool_name} exceeded 60 seconds\n\nThis usually means:\n- Database connection hanging\n- Network request not responding\n- Infinite loop in tool code\n\nTool: {tool_name}\nError: {str(timeout_err)}"
+                    
+                    print(f"{log_prefix} ❌ TIMEOUT ERROR: {tool_name}")
+                    print(f"{log_prefix} {full_trace}")
+                    
+                    tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': error_msg, 'is_error': True})
+                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': error_msg[:500], 'success': False, 'error': str(timeout_err)}
                 
                 except Exception as e:
-                    error_msg = f"Tool execution failed: {str(e)}"
+                    import traceback
+                    full_trace = traceback.format_exc()
+                    error_msg = f"Tool execution failed: {str(e)}\n\nTool: {tool_name}\nInput: {tool_input}\n\nStack trace:\n{full_trace}"
+                    
+                    print(f"{log_prefix} ❌ TOOL EXECUTION ERROR: {tool_name}")
+                    print(f"{log_prefix} Input parameters: {tool_input}")
+                    print(f"{log_prefix} {full_trace}")
+                    
                     tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': error_msg, 'is_error': True})
-                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': error_msg, 'success': False, 'error': error_msg}
+                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': error_msg[:500], 'success': False, 'error': str(e)}
             
             # Add tool results to history
             conversation_history.append({'role': 'user', 'content': tool_results})

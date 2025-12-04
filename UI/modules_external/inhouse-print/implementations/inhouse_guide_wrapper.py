@@ -640,12 +640,13 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
         "tool": "inhouse_database_guide",
         
         "what_you_get": [
-            "Complete table schemas (Orders, JobTickets, PaperSize, BindType, ReorderAlerts)",
+            "Complete table schemas (Orders, JobTickets, PaperSize, BindType, Clients) for InHouse Fred database",
             "Column names and types (prevents 'Invalid column name' errors)",
-            "Critical notes (what columns DON'T exist: DateCreated, Width/Height, bt.[Desc])",
+            "Critical notes (what columns DON'T exist: Status, TotalCost, DateCreated, Width/Height, bt.[Desc])",
+            "Database architecture (InHouse Fred vs Supabase Stock - two separate databases)",
             "Common JOIN patterns (Orders → JobTickets → PaperSize → BindType)",
-            "SQL templates (correct query patterns)",
-            "Common mistakes to avoid (with explanations of WHY errors happen)"
+            "SQL templates (TESTED and VERIFIED query patterns)",
+            "Common mistakes to avoid (with real testing results from Dec 2025)"
         ],
         
         "schema": {
@@ -655,12 +656,18 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "primary_key": "OrderID",
                 "key_columns": {
                     "OrderID": "int (Primary Key)",
+                    "CustomerMYOB_ID": "uniqueidentifier - MYOB customer reference",
                     "ClientName": "nvarchar(255) - Customer name",
-                    "OrderDate": "datetime - Order creation date (USE THIS for date filtering, NOT jt.DateCreated!)",
-                    "Status": "nvarchar(50) - Order status",
-                    "TotalCost": "decimal(10,2) - Order total"
+                    "OrderDate": "date - Order creation date (USE THIS for date filtering)",
+                    "ReadToInvoice": "bit - Ready for invoicing flag",
+                    "Invoiced": "bit - Invoice status",
+                    "CustomerPickup": "bit - Pickup vs delivery",
+                    "Urgent": "bit - Rush order flag",
+                    "DateRequired": "date - Customer requested date",
+                    "InvoiceNumber": "nvarchar(50) - Invoice reference",
+                    "InvoiceDate": "date - When invoiced"
                 },
-                "critical_note": "Use o.OrderDate for date filtering - JobTickets does NOT have DateCreated column"
+                "critical_note": "❌ NO Status column! ❌ NO TotalCost column! Use Invoiced flag (bit) for order status. Use o.OrderDate for date filtering - JobTickets does NOT have DateCreated column"
             },
             "JobTickets": {
                 "table": "JobTickets",
@@ -704,26 +711,51 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 },
                 "critical_note": "NO [Desc] column! Use bt.BindTypeDesc instead (not bt.[Desc])."
             },
-            "ReorderAlerts": {
-                "table": "ReorderAlerts",
-                "description": "Stock inventory and reorder tracking",
+            "Clients": {
+                "table": "Clients",
+                "alias": "c",
+                "primary_key": "ClientID",
                 "key_columns": {
-                    "StockID": "int (Primary Key)",
-                    "Description": "nvarchar(255) - Stock description",
-                    "CurrentLevel": "int - Current stock quantity",
-                    "ReorderPoint": "int - Reorder threshold",
-                    "CriticalLevel": "int - Critical shortage threshold",
-                    "AlertDate": "datetime - Last alert date"
+                    "ClientID": "int (Primary Key)",
+                    "ClientName": "nvarchar(255) - Client/company name",
+                    "ContactName": "nvarchar(255) - Primary contact",
+                    "Email": "nvarchar(255) - Contact email",
+                    "Phone": "nvarchar(50) - Contact phone",
+                    "Address": "nvarchar(500) - Physical address",
+                    "MYOB_ID": "uniqueidentifier - MYOB customer reference"
                 },
-                "use_case": "Stock level queries, reorder alerts, inventory management"
+                "use_case": "Customer data, contact info lookups"
+            }
+        },
+        
+        "important_database_note": {
+            "title": "🚨 STOCK DATABASE IS SEPARATE 🚨",
+            "message": "ReorderAlerts, StockLevels, ConsumableInventory are in SUPABASE (stock_data schema), NOT in InHouse Fred database",
+            "what_this_means": [
+                "InHouse Fred Database = Orders, JobTickets, Clients, PaperSize, BindType (production data)",
+                "Stock Database (Supabase) = StockLevels, ReorderAlerts, ConsumableInventory, CorfluteMaterials (inventory data)",
+                "You CANNOT JOIN between these databases in a single query",
+                "Use inhouse_execute_sql() for InHouse Fred queries ONLY",
+                "Stock queries require separate Supabase/PostgreSQL connection"
+            ],
+            "examples": {
+                "correct_inhouse_query": "SELECT o.OrderID, jt.QTY FROM Orders o JOIN JobTickets jt ON o.OrderID = jt.OrderID",
+                "incorrect_inhouse_query": "SELECT * FROM ReorderAlerts -- ❌ This table is in Supabase, not InHouse!",
+                "correct_stock_query": "Use Supabase connection to query stock_data.reorderalerts"
             }
         },
         
         "sql_patterns": {
             "basic_order_query": """
             SELECT TOP 20
-                o.OrderID, o.ClientName, o.OrderDate, o.Status,
-                jt.TicketNotes, jt.QTY, jt.Cost,
+                o.OrderID, 
+                o.ClientName, 
+                o.OrderDate,
+                o.Invoiced,
+                o.Urgent,
+                jt.TicketNotes, 
+                jt.QTY, 
+                jt.Cost,
                 ps.[Desc] AS PaperSize,
                 bt.BindTypeDesc AS BindType
             FROM Orders o
@@ -733,18 +765,29 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
             WHERE o.ClientName LIKE '%customer%'
             ORDER BY o.OrderDate DESC
             """,
-            "stock_query": """
+            "recent_orders_with_client_info": """
             SELECT TOP 20
-                StockID, Description, CurrentLevel, ReorderPoint,
-                CASE
-                    WHEN CurrentLevel < CriticalLevel THEN 'CRITICAL'
-                    WHEN CurrentLevel < ReorderPoint THEN 'WARNING'
-                    ELSE 'OK'
-                END AS Status
-            FROM ReorderAlerts
-            WHERE CurrentLevel < ReorderPoint
-            ORDER BY CurrentLevel ASC
+                o.OrderID,
+                o.ClientName,
+                o.OrderDate,
+                o.Invoiced,
+                o.InvoiceNumber,
+                o.DateRequired,
+                o.Urgent,
+                COUNT(jt.TicketID) AS TotalJobs
+            FROM Orders o
+            LEFT JOIN JobTickets jt ON o.OrderID = jt.OrderID
+            WHERE o.OrderDate > DATEADD(month, -3, GETDATE())
+            GROUP BY o.OrderID, o.ClientName, o.OrderDate, o.Invoiced, o.InvoiceNumber, o.DateRequired, o.Urgent
+            ORDER BY o.OrderDate DESC
             """
+        },
+        
+        "removed_tables": {
+            "ReorderAlerts": "❌ NOT in InHouse Fred - moved to Supabase stock_data.reorderalerts",
+            "StockLevels": "❌ NOT in InHouse Fred - moved to Supabase stock_data.stocklevels",
+            "ConsumableInventory": "❌ NOT in InHouse Fred - moved to Supabase stock_data.consumableinventory",
+            "note": "Stock/inventory data migrated from SQLite to Supabase PostgreSQL. Use separate connection for stock queries."
         },
         
         "best_practices": [
@@ -785,20 +828,28 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "frequency": "COMMON - inconsistent naming"
             },
             {
-                "mistake": "Querying Status from JobTickets/PrintTickets",
+                "mistake": "Querying Status from Orders",
                 "error": "Invalid column name 'Status'",
-                "fix": "Status is in Orders table, not JobTickets/PrintTickets - JOIN Orders first",
-                "why_it_happens": "Assumed Status would be in job/ticket table, but it's at order level",
-                "real_world_example": "AI tried: SELECT Status FROM PrintTickets → FAILED. Must use: SELECT o.Status FROM Orders o JOIN PrintTickets t ON o.OrderID = t.OrderID",
-                "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
+                "fix": "❌ Status column does NOT exist! Use o.Invoiced (bit flag) instead",
+                "why_it_happens": "Assumed Orders would have Status column - it doesn't",
+                "real_world_example": "AI tried: SELECT o.Status FROM Orders o → FAILED. Use: SELECT o.Invoiced, o.ReadToInvoice FROM Orders o",
+                "frequency": "VERY COMMON - tested and confirmed Dec 2025"
             },
             {
-                "mistake": "Querying TotalCost from JobTickets/PrintTickets",
+                "mistake": "Querying TotalCost from Orders",
                 "error": "Invalid column name 'TotalCost'",
-                "fix": "TotalCost is in Orders table, not JobTickets/PrintTickets - JOIN Orders first",
-                "why_it_happens": "Assumed TotalCost would be at ticket level, but it's at order level",
-                "real_world_example": "AI tried: SELECT TotalCost FROM PrintTickets → FAILED. Must use: SELECT o.TotalCost FROM Orders o",
-                "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
+                "fix": "❌ TotalCost column does NOT exist! Calculate from JobTickets.Cost instead",
+                "why_it_happens": "Assumed Orders would have TotalCost - must calculate from tickets",
+                "real_world_example": "AI tried: SELECT o.TotalCost FROM Orders o → FAILED. Use: SELECT SUM(jt.Cost) AS TotalCost FROM JobTickets jt WHERE jt.OrderID = ?",
+                "frequency": "VERY COMMON - tested and confirmed Dec 2025"
+            },
+            {
+                "mistake": "Querying ReorderAlerts from InHouse database",
+                "error": "Invalid object name 'ReorderAlerts'",
+                "fix": "❌ ReorderAlerts table NOT in InHouse! It's in Supabase stock_data.reorderalerts",
+                "why_it_happens": "Stock data was migrated from InHouse to Supabase (separate database)",
+                "real_world_example": "AI tried: SELECT * FROM ReorderAlerts → FAILED. This table is in Supabase PostgreSQL, not InHouse SQL Server",
+                "frequency": "CRITICAL - tested and confirmed Dec 2025"
             },
             {
                 "mistake": "Assuming ColourStatus is print color",
@@ -893,13 +944,22 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                     "error_if_wrong": "Incorrect syntax near 'TOP'"
                 },
                 {
-                    "feature": "Column Location Awareness",
-                    "wrong": "SELECT Status, TotalCost FROM PrintTickets",
-                    "correct": "SELECT o.Status, o.TotalCost FROM Orders o JOIN PrintTickets t ON o.OrderID = t.OrderID",
-                    "note": "Status and TotalCost are in Orders table, not PrintTickets",
+                    "feature": "Column Existence Verification",
+                    "wrong": "SELECT o.Status, o.TotalCost FROM Orders o",
+                    "correct": "SELECT o.Invoiced, o.ReadToInvoice, SUM(jt.Cost) AS TotalCost FROM Orders o LEFT JOIN JobTickets jt ON o.OrderID = jt.OrderID",
+                    "note": "❌ Status and TotalCost columns do NOT exist in Orders table!",
                     "error_if_wrong": "Invalid column name 'Status' or 'TotalCost'",
-                    "real_occurrence": "HAPPENED IN PRODUCTION - AI assumed columns were in PrintTickets",
-                    "prevention": "ALWAYS call inhouse_database_guide() first to know which table has which columns"
+                    "real_occurrence": "CONFIRMED BY TESTING - Dec 2025. Guide's own SQL pattern failed.",
+                    "prevention": "ALWAYS call inhouse_database_guide() first AND verify actual table structure"
+                },
+                {
+                    "feature": "Stock Database Separation",
+                    "wrong": "SELECT * FROM ReorderAlerts",
+                    "correct": "Use Supabase connection: SELECT * FROM stock_data.reorderalerts",
+                    "note": "Stock tables (ReorderAlerts, StockLevels, etc.) are in Supabase PostgreSQL, NOT InHouse SQL Server",
+                    "error_if_wrong": "Invalid object name 'ReorderAlerts'",
+                    "real_occurrence": "CONFIRMED BY TESTING - Dec 2025. ReorderAlerts does not exist in InHouse.",
+                    "prevention": "Understand database architecture: InHouse = Orders/Jobs, Supabase = Stock/Inventory"
                 },
                 {
                     "feature": "Date Filtering",
@@ -915,14 +975,16 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "✅ USE TOP N (not LIMIT N) - SQL Server syntax",
                 "✅ USE [brackets] (not `backticks`) - SQL Server escaping",
                 "✅ USE 'single quotes' (not \"double quotes\") for strings",
-                "✅ JOIN Orders first if you need: OrderDate, Status, TotalCost",
+                "✅ JOIN Orders first if you need: OrderDate, Invoiced, ClientName",
                 "✅ LEFT JOIN PaperSize if you use ps.anything",
                 "✅ LEFT JOIN BindType if you use bt.anything",
                 "✅ Use o.OrderDate (NOT jt.DateCreated - doesn't exist)",
-                "✅ Use o.Status (NOT jt.Status or t.Status - doesn't exist)",
-                "✅ Use o.TotalCost (NOT jt.TotalCost or t.TotalCost - doesn't exist)",
+                "❌ DO NOT use o.Status - column doesn't exist! Use o.Invoiced instead",
+                "❌ DO NOT use o.TotalCost - column doesn't exist! Calculate SUM(jt.Cost)",
+                "❌ DO NOT query ReorderAlerts - table is in Supabase, not InHouse!",
                 "✅ Use bt.BindTypeDesc (NOT bt.[Desc] - doesn't exist)",
-                "✅ Call inhouse_database_guide() BEFORE writing SQL (prevents 2-3 wasted queries)"
+                "✅ Call inhouse_database_guide() BEFORE writing SQL (prevents 2-3 wasted queries)",
+                "✅ Verify column existence - don't assume common columns exist"
             ]
         },
         

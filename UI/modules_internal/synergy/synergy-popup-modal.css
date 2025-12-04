@@ -1,68 +1,59 @@
 ﻿/**
- * Synergy Session Popup Modal
- * Full-screen modal for viewing/editing synergy sessions
+ * Synergy Session Popup
+ * Draggable, resizable popup for viewing/editing synergy sessions
  * 
  * FEATURES:
- * - Full-screen overlay with close button
+ * - Draggable popup box (no modal overlay wrapper)
+ * - Resizable with resize handles
  * - Complete session details with all sections
- * - Inline editing mode (toggle edit/view)
- * - Responsive and accessible
+ * - Inline editing mode
+ * - Persistent until user clicks X
  * 
- * LAST MODIFIED: 2025-11-23
+ * LAST MODIFIED: 2025-12-05 - Removed modal wrapper, kept draggable popup
  */
 
-/* ==================== MODAL OVERLAY ==================== */
-
-.synergy-popup-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(8px);
-    z-index: 99999;
-    display: none;
-    /* Hidden by default */
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.2s ease;
-}
-
-.synergy-popup-modal.active {
-    display: flex;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-/* ==================== MODAL CONTAINER ==================== */
+/* ==================== POPUP CONTAINER (STANDALONE DRAGGABLE BOX) ==================== */
 
 .synergy-popup-container {
-    position: absolute;
+    /* Positioned absolutely so it can be dragged anywhere */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    /* Popup box dimensions */
     width: 520px;
-    max-width: 1200px;
+    max-width: 90vw;
     height: 90vh;
+
+    /* Visual styling */
     background: var(--bg-secondary);
     border-radius: 16px;
-    border: 2px solid transparent;
+    border: 2px solid var(--accent-primary, #4f6cff);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    display: flex;
+
+    /* Layout */
+    display: none;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUp 0.3s ease;
+
+    /* Resizable */
     resize: both;
     min-width: 400px;
     min-height: 400px;
-    cursor: move;
+    max-width: 95vw;
+    max-height: 95vh;
+
+    /* High z-index so it floats above everything */
+    z-index: 99999;
+
+    /* Transitions */
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    animation: slideUp 0.3s ease;
+}
+
+.synergy-popup-container.active {
+    display: flex;
 }
 
 .synergy-popup-container:hover {
@@ -72,17 +63,17 @@
 
 @keyframes slideUp {
     from {
-        transform: translateY(50px);
+        transform: translate(-50%, -50%) translateY(50px);
         opacity: 0;
     }
 
     to {
-        transform: translateY(0);
+        transform: translate(-50%, -50%);
         opacity: 1;
     }
 }
 
-/* ==================== MODAL HEADER ==================== */
+/* ==================== POPUP HEADER (DRAGGABLE) ==================== */
 
 .synergy-popup-header {
     display: flex;
@@ -92,6 +83,14 @@
     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
     border-bottom: 1px solid var(--border-default);
     flex-shrink: 0;
+    cursor: move;
+    /* Indicate draggable */
+    user-select: none;
+    /* Prevent text selection while dragging */
+}
+
+.synergy-popup-header:active {
+    cursor: grabbing;
 }
 
 .synergy-popup-title {
@@ -142,7 +141,12 @@
 .synergy-popup-close {
     background: rgba(220, 38, 38, 0.3);
     border-color: rgba(220, 38, 38, 0.5);
-    /* font-weight: 700; */
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .synergy-popup-close:hover {
@@ -152,16 +156,18 @@
 }
 
 .synergy-popup-close i {
-    font-size: 16px;
+    font-size: 18px;
+    margin: 0;
 }
 
-/* ==================== MODAL CONTENT ==================== */
+/* ==================== POPUP CONTENT ==================== */
 
 .synergy-popup-content {
     flex: 1;
     overflow-y: auto;
     padding: 24px;
     background: var(--bg-primary);
+    position: relative;
 }
 
 .synergy-popup-content::-webkit-scrollbar {
@@ -183,11 +189,11 @@
 
 /* ==================== EDIT MODE STYLING ==================== */
 
-.synergy-popup-modal[data-edit-mode="true"] .synergy-popup-content {
+.synergy-popup-container[data-edit-mode="true"] .synergy-popup-content {
     background: var(--bg-secondary);
 }
 
-.synergy-popup-modal[data-edit-mode="true"] .editable-field {
+.synergy-popup-container[data-edit-mode="true"] .editable-field {
     background: var(--bg-tertiary);
     border: 2px dashed var(--accent-primary);
     padding: 12px;
@@ -196,12 +202,12 @@
     transition: all 0.2s;
 }
 
-.synergy-popup-modal[data-edit-mode="true"] .editable-field:hover {
+.synergy-popup-container[data-edit-mode="true"] .editable-field:hover {
     background: var(--bg-hover);
     border-color: var(--accent-secondary);
 }
 
-.synergy-popup-modal[data-edit-mode="true"] .editable-field::before {
+.synergy-popup-container[data-edit-mode="true"] .editable-field::before {
     content: "✏️ Click to edit";
     position: absolute;
     top: -8px;
@@ -216,7 +222,7 @@
     transition: opacity 0.2s;
 }
 
-.synergy-popup-modal[data-edit-mode="true"] .editable-field:hover::before {
+.synergy-popup-container[data-edit-mode="true"] .editable-field:hover::before {
     opacity: 1;
 }
 

@@ -459,11 +459,17 @@ UI_DIR = os.path.join(os.path.dirname(__file__), '..', 'UI')
 
 @app.route('/')
 def serve_ui():
-    """Serve the main UI page with no-cache headers to prevent stale JS/CSS"""
-    response = send_from_directory(UI_DIR, 'business-ai-platform-v2.html')
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    """Serve the main UI page with aggressive no-cache headers"""
+    # Force read from disk every time (no Flask caching)
+    html_path = os.path.join(UI_DIR, 'business-ai-platform-v2.html')
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+    
+    response = Response(html_content, mimetype='text/html')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     return response
 
 @app.route('/<path:filename>')

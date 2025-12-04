@@ -459,6 +459,7 @@ from utils.file_encoding import process_file_uploads, FileValidationError
 from utils.response_helpers import (
     success_response, error_response, list_response, stream_sse_event
 )
+import sys
 
 # Create blueprint
 agent_bp = Blueprint('agent', __name__, url_prefix='/api/agent')
@@ -1323,8 +1324,17 @@ Use tools in multiple rounds with interleaved thinking."""
     from core.combined_agent_worker import execute_streaming_request
     
     def generate():
+        """Generator with flush and close signal to prevent incomplete chunked encoding"""
+        def flush_stream():
+            """Force flush SSE stream to prevent buffering"""
+            try:
+                sys.stdout.flush()
+            except:
+                pass
+        
         try:
             yield stream_sse_event('start', {'session_id': thread_slug, 'agent_id': agent_id})
+            flush_stream()
             
             for event in execute_streaming_request(
                 session_id=thread_slug,
@@ -1341,6 +1351,7 @@ Use tools in multiple rounds with interleaved thinking."""
             ):
                 event_type = event.get('type', 'unknown')
                 yield stream_sse_event(event_type, event)
+                flush_stream()  # Force immediate streaming
                 
                 # REMOVED (Nov 23, 2025): Auto-save on completion is now IMMEDIATE in combined_agent_worker.py
                 # Messages are saved immediately after generation to prevent orphaned tool_use blocks
@@ -1437,6 +1448,13 @@ Use tools in multiple rounds with interleaved thinking."""
             import traceback
             print(f"[STREAM ERROR] {traceback.format_exc()}")
             yield stream_sse_event('error', {'error': str(e)})
+            flush_stream()
+        
+        finally:
+            # CRITICAL: Always send close signal to prevent ERR_INCOMPLETE_CHUNKED_ENCODING
+            print(f"[STREAM] Sending close signal for thread {thread_slug}")
+            yield "event: close\ndata: {}\n\n"
+            flush_stream()
     
     # Add timeout protection and better error handling for SSE streams
     response = Response(generate(), mimetype='text/event-stream', headers={

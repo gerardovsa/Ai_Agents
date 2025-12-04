@@ -621,6 +621,11 @@ class TwoRuleStreamProcessor {
                 }
             });
 
+            // 🎨 ENHANCE CODE BLOCKS: Apply syntax highlighting after rendering
+            if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
+                window.codeBlockEnhancer.enhanceContainer(lastElement);
+            }
+
             console.log(`📝 TWO-RULE: Raw text concatenated and re-rendered (total: ${newRawText.length} chars)`);
 
         } else {
@@ -664,6 +669,12 @@ class TwoRuleStreamProcessor {
 
             // Store reference to this markdown container for future concatenation
             this.markdownContainer.appendChild(contentElement);
+            
+            // 🎨 ENHANCE CODE BLOCKS: Apply syntax highlighting to new content
+            if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
+                window.codeBlockEnhancer.enhanceContainer(contentElement);
+            }
+            
             console.log(`📝 TWO-RULE: New markdown element created (${pkg.content.length} chars)`);
         }
     }

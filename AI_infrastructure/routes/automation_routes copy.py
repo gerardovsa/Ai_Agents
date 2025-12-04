@@ -1484,35 +1484,32 @@ def convert_to_automation(automation_id):
         if not user_id:
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get workflow (allow system templates)
-        cursor.execute("""
-            SELECT * FROM visual_automations
-            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-        """, (automation_id, user_id))
-        
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'error': 'Automation not found'}), 404
-        
-        if row['status'] != 'draft':
-            conn.close()
-            return jsonify({'error': 'Workflow is already automated'}), 400
-        
-        # Update status to inactive (automated but not scheduled)
-        cursor.execute("""
-            UPDATE visual_automations
-            SET status = 'inactive',
-                updated_at = CURRENT_TIMESTAMP
-            WHERE automation_id = %s
-        """, (automation_id,))
-        
-        conn.commit()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get workflow (allow system templates)
+            cursor.execute("""
+                SELECT * FROM visual_automations
+                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+            """, (automation_id, user_id))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': 'Automation not found'}), 404
+            
+            if row['status'] != 'draft':
+                return jsonify({'error': 'Workflow is already automated'}), 400
+            
+            # Update status to inactive (automated but not scheduled)
+            cursor.execute("""
+                UPDATE visual_automations
+                SET status = 'inactive',
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE automation_id = %s
+            """, (automation_id,))
+            
+            conn.commit()
         
         return jsonify({
             'success': True,
@@ -1538,53 +1535,51 @@ def test_automation(automation_id):
             cursor = conn.cursor()
             
             # Get automation (allow system templates)
-        cursor.execute("""
-            SELECT * FROM visual_automations
-            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-        """, (automation_id, user_id))
-        
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'error': 'Automation not found'}), 404
-        
-        # Parse execution JSON
-        execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
-        
-        # Record execution start
-        cursor.execute("""
-            INSERT INTO automation_executions 
-            (automation_id, user_id, triggered_by, status, started_at)
-            VALUES (%s, %s, 'manual_test', 'running', CURRENT_TIMESTAMP)
-            RETURNING execution_id
-        """, (automation_id, user_id))
-        
-        result = cursor.fetchone()
-        execution_id = result['execution_id'] if isinstance(result, dict) else result[0]
-        
-        conn.commit()
-        
-        # TODO: Implement actual execution logic here
-        # For now, just mark as completed
-        cursor.execute("""
-            UPDATE automation_executions
-            SET status = 'completed',
-                completed_at = CURRENT_TIMESTAMP,
-                result_summary = 'Test execution completed successfully'
-            WHERE execution_id = %s
-        """, (execution_id,))
-        
-        # Update last executed timestamp
-        cursor.execute("""
-            UPDATE visual_automations
-            SET last_executed_at = CURRENT_TIMESTAMP,
-                execution_count = execution_count + 1
-            WHERE automation_id = %s
-        """, (automation_id,))
-        
-        conn.commit()
-        conn.close()
+            cursor.execute("""
+                SELECT * FROM visual_automations
+                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+            """, (automation_id, user_id))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': 'Automation not found'}), 404
+            
+            # Parse execution JSON
+            execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
+            
+            # Record execution start
+            cursor.execute("""
+                INSERT INTO automation_executions 
+                (automation_id, user_id, triggered_by, status, started_at)
+                VALUES (%s, %s, 'manual_test', 'running', CURRENT_TIMESTAMP)
+                RETURNING execution_id
+            """, (automation_id, user_id))
+            
+            result = cursor.fetchone()
+            execution_id = result['execution_id'] if isinstance(result, dict) else result[0]
+            
+            conn.commit()
+            
+            # TODO: Implement actual execution logic here
+            # For now, just mark as completed
+            cursor.execute("""
+                UPDATE automation_executions
+                SET status = 'completed',
+                    completed_at = CURRENT_TIMESTAMP,
+                    result_summary = 'Test execution completed successfully'
+                WHERE execution_id = %s
+            """, (execution_id,))
+            
+            # Update last executed timestamp
+            cursor.execute("""
+                UPDATE visual_automations
+                SET last_executed_at = CURRENT_TIMESTAMP,
+                    execution_count = execution_count + 1
+                WHERE automation_id = %s
+            """, (automation_id,))
+            
+            conn.commit()
         
         return jsonify({
             'success': True,
@@ -1608,40 +1603,37 @@ def schedule_automation(automation_id):
         
         data = request.json
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get automation (allow system templates)
-        cursor.execute("""
-            SELECT * FROM visual_automations
-            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-        """, (automation_id, user_id))
-        
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'error': 'Automation not found'}), 404
-        
-        # Validate cron expression
-        cron_expression = data.get('schedule_cron')
-        if not cron_expression:
-            conn.close()
-            return jsonify({'error': 'schedule_cron is required'}), 400
-        
-        # Update schedule
-        cursor.execute("""
-            UPDATE visual_automations
-            SET schedule_cron = %s,
-                timezone = %s,
-                is_scheduled = TRUE,
-                status = 'active',
-                updated_at = CURRENT_TIMESTAMP
-            WHERE automation_id = %s
-        """, (cron_expression, data.get('timezone', 'UTC'), automation_id))
-        
-        conn.commit()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get automation (allow system templates)
+            cursor.execute("""
+                SELECT * FROM visual_automations
+                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+            """, (automation_id, user_id))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': 'Automation not found'}), 404
+            
+            # Validate cron expression
+            cron_expression = data.get('schedule_cron')
+            if not cron_expression:
+                return jsonify({'error': 'schedule_cron is required'}), 400
+            
+            # Update schedule
+            cursor.execute("""
+                UPDATE visual_automations
+                SET schedule_cron = %s,
+                    timezone = %s,
+                    is_scheduled = TRUE,
+                    status = 'active',
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE automation_id = %s
+            """, (cron_expression, data.get('timezone', 'UTC'), automation_id))
+            
+            conn.commit()
         
         return jsonify({
             'success': True,
@@ -1665,18 +1657,17 @@ def get_execution_history(automation_id):
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         limit = int(request.args.get('limit', 10))
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT * FROM automation_executions
-            WHERE automation_id = %s AND user_id = %s
-            ORDER BY started_at DESC
-            LIMIT %s
-        """, (automation_id, user_id, limit))
-        
-        rows = cursor.fetchall()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT * FROM automation_executions
+                WHERE automation_id = %s AND user_id = %s
+                ORDER BY started_at DESC
+                LIMIT %s
+            """, (automation_id, user_id, limit))
+            
+            rows = cursor.fetchall()
         
         executions = []
         for row in rows:
@@ -1711,16 +1702,15 @@ def export_automation(automation_id):
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         format_type = request.args.get('format', 'detailed')
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT * FROM visual_automations
-            WHERE automation_id = %s AND user_id = %s
-        """, (automation_id, user_id))
-        
-        row = cursor.fetchone()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT * FROM visual_automations
+                WHERE automation_id = %s AND user_id = %s
+            """, (automation_id, user_id))
+            
+            row = cursor.fetchone()
         
         if not row:
             return jsonify({'error': 'Automation not found'}), 404
@@ -1806,115 +1796,112 @@ def publish_workflow(slug):
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         data = request.json or {}
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get workflow by slug
-        cursor.execute("""
-            SELECT automation_id, slug, title, ui_json, execution_json, status
-            FROM visual_automations
-            WHERE slug = %s AND user_id = %s
-        """, (slug, user_id))
-        
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
-        
-        # Parse workflow JSON for validation
-        ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
-        
-        # STEP 1: Validate workflow structure
-        validation_result = validate_workflow_structure(ui_json)
-        
-        if not validation_result['valid']:
-            conn.close()
-            return jsonify({
-                'success': False,
-                'error': 'Workflow validation failed',
-                'validation': validation_result
-            }), 400
-        
-        # STEP 2: Update workflow status to 'active'
-        automation_title = data.get('automation_title', f"{row['title']} (Live)")
-        
-        cursor.execute("""
-            UPDATE visual_automations
-            SET status = 'active',
-                title = %s,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE slug = %s
-        """, (automation_title, slug))
-        
-        # STEP 3: Link to thread if provided
-        thread_id = data.get('thread_id')
-        if thread_id:
-            # Update thread with automation_slug
-            try:
-                cursor.execute("""
-                    UPDATE sessions.threads
-                    SET automation_slug = %s,
-                        automation_title = %s,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                """, (slug, automation_title, thread_id))
-            except Exception as e:
-                # Thread linking failed, but continue with publish
-                print(f"Warning: Could not link to thread {thread_id}: {e}")
-        
-        # STEP 4: Create schedule if provided
-        scheduled = False
-        next_run = None
-        task_id = None
-        
-        schedule_cron = data.get('schedule_cron')
-        if schedule_cron:
-            try:
-                scheduler = get_scheduler()
-                
-                execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
-                
-                task_data = {
-                    'task_name': f'Automation: {automation_title}',
-                    'description': f'Published workflow: {slug}',
-                    'created_by': 'user',
-                    'created_by_user_id': user_id,
-                    'trigger_type': 'cron',
-                    'cron_expression': schedule_cron,
-                    'action_type': 'execute_automation',
-                    'action_payload': json.dumps({
-                        'automation_id': row['automation_id'],
-                        'slug': slug,
-                        'ui_json': ui_json,
-                        'execution_json': execution_json
-                    }),
-                    'requires_approval': False,
-                    'enabled': True
-                }
-                
-                task_id = scheduler.create_task(task_data)
-                scheduled = True
-                
-                # Get next run time
-                task = scheduler.get_task(task_id)
-                next_run = task.get('next_run')
-                
-                # Update workflow with scheduler info
-                cursor.execute("""
-                    UPDATE visual_automations
-                    SET is_scheduled = 1,
-                        scheduler_task_id = %s,
-                        schedule_cron = %s,
-                        timezone = %s
-                    WHERE slug = %s
-                """, (task_id, schedule_cron, data.get('timezone', 'UTC'), slug))
-                
-            except Exception as e:
-                print(f"Warning: Could not create schedule: {e}")
-        
-        conn.commit()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get workflow by slug
+            cursor.execute("""
+                SELECT automation_id, slug, title, ui_json, execution_json, status
+                FROM visual_automations
+                WHERE slug = %s AND user_id = %s
+            """, (slug, user_id))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
+            
+            # Parse workflow JSON for validation
+            ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+            
+            # STEP 1: Validate workflow structure
+            validation_result = validate_workflow_structure(ui_json)
+            
+            if not validation_result['valid']:
+                return jsonify({
+                    'success': False,
+                    'error': 'Workflow validation failed',
+                    'validation': validation_result
+                }), 400
+            
+            # STEP 2: Update workflow status to 'active'
+            automation_title = data.get('automation_title', f"{row['title']} (Live)")
+            
+            cursor.execute("""
+                UPDATE visual_automations
+                SET status = 'active',
+                    title = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE slug = %s
+            """, (automation_title, slug))
+            
+            # STEP 3: Link to thread if provided
+            thread_id = data.get('thread_id')
+            if thread_id:
+                # Update thread with automation_slug
+                try:
+                    cursor.execute("""
+                        UPDATE sessions.threads
+                        SET automation_slug = %s,
+                            automation_title = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (slug, automation_title, thread_id))
+                except Exception as e:
+                    # Thread linking failed, but continue with publish
+                    print(f"Warning: Could not link to thread {thread_id}: {e}")
+            
+            # STEP 4: Create schedule if provided
+            scheduled = False
+            next_run = None
+            task_id = None
+            
+            schedule_cron = data.get('schedule_cron')
+            if schedule_cron:
+                try:
+                    scheduler = get_scheduler()
+                    
+                    execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
+                    
+                    task_data = {
+                        'task_name': f'Automation: {automation_title}',
+                        'description': f'Published workflow: {slug}',
+                        'created_by': 'user',
+                        'created_by_user_id': user_id,
+                        'trigger_type': 'cron',
+                        'cron_expression': schedule_cron,
+                        'action_type': 'execute_automation',
+                        'action_payload': json.dumps({
+                            'automation_id': row['automation_id'],
+                            'slug': slug,
+                            'ui_json': ui_json,
+                            'execution_json': execution_json
+                        }),
+                        'requires_approval': False,
+                        'enabled': True
+                    }
+                    
+                    task_id = scheduler.create_task(task_data)
+                    scheduled = True
+                    
+                    # Get next run time
+                    task = scheduler.get_task(task_id)
+                    next_run = task.get('next_run')
+                    
+                    # Update workflow with scheduler info
+                    cursor.execute("""
+                        UPDATE visual_automations
+                        SET is_scheduled = 1,
+                            scheduler_task_id = %s,
+                            schedule_cron = %s,
+                            timezone = %s
+                        WHERE slug = %s
+                    """, (task_id, schedule_cron, data.get('timezone', 'UTC'), slug))
+                    
+                except Exception as e:
+                    print(f"Warning: Could not create schedule: {e}")
+            
+            conn.commit()
         
         response = {
             'success': True,
@@ -1981,37 +1968,35 @@ def link_workflow_to_thread():
         automation_slug = data.get('automation_slug')
         automation_title = data.get('automation_title')
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Build update query based on what's provided
-        update_fields = ['workflow_slug = %s', 'workflow_title = %s', 'updated_at = CURRENT_TIMESTAMP']
-        params = [workflow_slug, workflow_title]
-        
-        if automation_slug:
-            update_fields.append('automation_slug = %s')
-            params.append(automation_slug)
-        
-        if automation_title:
-            update_fields.append('automation_title = %s')
-            params.append(automation_title)
-        
-        params.append(thread_id)
-        
-        query = f"""
-            UPDATE sessions.threads SET
-                {', '.join(update_fields)}
-            WHERE id = %s
-        """
-        
-        cursor.execute(query, params)
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            return jsonify({'error': f'Thread {thread_id} not found'}), 404
-        
-        conn.commit()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Build update query based on what's provided
+            update_fields = ['workflow_slug = %s', 'workflow_title = %s', 'updated_at = CURRENT_TIMESTAMP']
+            params = [workflow_slug, workflow_title]
+            
+            if automation_slug:
+                update_fields.append('automation_slug = %s')
+                params.append(automation_slug)
+            
+            if automation_title:
+                update_fields.append('automation_title = %s')
+                params.append(automation_title)
+            
+            params.append(thread_id)
+            
+            query = f"""
+                UPDATE sessions.threads SET
+                    {', '.join(update_fields)}
+                WHERE id = %s
+            """
+            
+            cursor.execute(query, params)
+            
+            if cursor.rowcount == 0:
+                return jsonify({'error': f'Thread {thread_id} not found'}), 404
+            
+            conn.commit()
         
         response = {
             'success': True,
@@ -2070,60 +2055,55 @@ def get_workflow_status(slug):
         if not user_id:
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get workflow info
-        cursor.execute("""
-            SELECT automation_id, slug, title, status, is_scheduled, 
-                   schedule_cron, scheduler_task_id, execution_count,
-                   last_executed_at, created_at, updated_at
-            FROM visual_automations
-            WHERE slug = %s AND user_id = %s
-        """, (slug, user_id))
-        
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
-        
-        # Get next run time from scheduler
-        next_run = None
-        if row['scheduler_task_id']:
-            try:
-                scheduler = get_scheduler()
-                task = scheduler.get_task(row['scheduler_task_id'])
-                next_run = task.get('next_run')
-            except:
-                pass
-        
-        # Get execution statistics
-        cursor.execute("""
-            SELECT 
-                COUNT(*) as total_executions,
-                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful_executions,
-                MAX(CASE WHEN status IN ('running', 'pending') THEN 1 ELSE 0 END) as currently_running
-            FROM automation_executions
-            WHERE automation_id = %s
-        """, (row['automation_id'],))
-        
-        stats_row = cursor.fetchone()
-        
-        # Get last execution
-        cursor.execute("""
-            SELECT execution_id, started_at, completed_at, status, duration_ms, error_message
-            FROM automation_executions
-            WHERE automation_id = %s
-            ORDER BY started_at DESC
-            LIMIT 1
-        """, (row['automation_id'],))
-        
-        last_exec_row = cursor.fetchone()
-        
-        conn.close()
-        
-        # Calculate success rate
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get workflow info
+            cursor.execute("""
+                SELECT automation_id, slug, title, status, is_scheduled, 
+                       schedule_cron, scheduler_task_id, execution_count,
+                       last_executed_at, created_at, updated_at
+                FROM visual_automations
+                WHERE slug = %s AND user_id = %s
+            """, (slug, user_id))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
+            
+            # Get next run time from scheduler
+            next_run = None
+            if row['scheduler_task_id']:
+                try:
+                    scheduler = get_scheduler()
+                    task = scheduler.get_task(row['scheduler_task_id'])
+                    next_run = task.get('next_run')
+                except:
+                    pass
+            
+            # Get execution statistics
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_executions,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful_executions,
+                    MAX(CASE WHEN status IN ('running', 'pending') THEN 1 ELSE 0 END) as currently_running
+                FROM automation_executions
+                WHERE automation_id = %s
+            """, (row['automation_id'],))
+            
+            stats_row = cursor.fetchone()
+            
+            # Get last execution
+            cursor.execute("""
+                SELECT execution_id, started_at, completed_at, status, duration_ms, error_message
+                FROM automation_executions
+                WHERE automation_id = %s
+                ORDER BY started_at DESC
+                LIMIT 1
+            """, (row['automation_id'],))
+            
+            last_exec_row = cursor.fetchone()        # Calculate success rate
         total_execs = stats_row['total_executions'] if stats_row else 0
         successful_execs = stats_row['successful_executions'] if stats_row else 0
         success_rate = (successful_execs / total_execs) if total_execs > 0 else 0.0

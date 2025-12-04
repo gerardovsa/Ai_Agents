@@ -170,7 +170,8 @@ def google_slides_create_presentation(title, template_id=None, _user_id=None, _i
         raise
 
 
-def google_slides_get_presentation(presentation_id, format='summary', **kwargs):
+def google_slides_get_presentation(presentation_id, format='summary', 
+                                   _user_id=None, _injected_credentials=None, **kwargs):
     """
     Get presentation content with format control to prevent token overflow
     
@@ -183,13 +184,21 @@ def google_slides_get_presentation(presentation_id, format='summary', **kwargs):
     Args:
         presentation_id: Presentation ID
         format: Output format ('summary', 'text', 'markdown', 'full')
-        **kwargs: Credential injection (_user_id, _injected_credentials)
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+        **kwargs: Additional parameters
         
     Returns:
         dict: Content in requested format
     """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         presentation = slides_service.presentations().get(
             presentationId=presentation_id
@@ -610,7 +619,8 @@ def google_slides_search_presentation(presentation_id, query, **kwargs):
 
 # ==================== SLIDE OPERATIONS ====================
 
-def google_slides_add_slide(presentation_id, layout='BLANK', index=None, **kwargs):
+def google_slides_add_slide(presentation_id, layout='BLANK', index=None,
+                           _user_id=None, _injected_credentials=None, **kwargs):
     """
     Add a new slide to presentation
     
@@ -620,7 +630,9 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None, **kwarg
                      TITLE_ONLY, SECTION_HEADER, SECTION_TITLE_AND_DESCRIPTION,
                      ONE_COLUMN_TEXT, MAIN_POINT, BIG_NUMBER
         index (int): Position to insert (None = end)
-        **kwargs: Credential injection (_user_id, _injected_credentials)
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+        **kwargs: Additional parameters
         
     Returns:
         dict: {
@@ -630,7 +642,13 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None, **kwarg
         }
     """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         # Get presentation to find layout ID
         presentation = slides_service.presentations().get(
@@ -683,10 +701,25 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None, **kwarg
         raise
 
 
-def google_slides_delete_slide(presentation_id, slide_id, **kwargs):
-    """Delete a slide"""
+def google_slides_delete_slide(presentation_id, slide_id,
+                               _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Delete a slide
+    
+    Args:
+        presentation_id: Presentation ID
+        slide_id: Slide ID to delete
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         requests = [{
             'deleteObject': {
@@ -708,10 +741,25 @@ def google_slides_delete_slide(presentation_id, slide_id, **kwargs):
         raise
 
 
-def google_slides_duplicate_slide(presentation_id, slide_id, **kwargs):
-    """Duplicate a slide"""
+def google_slides_duplicate_slide(presentation_id, slide_id,
+                                  _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Duplicate a slide
+    
+    Args:
+        presentation_id: Presentation ID
+        slide_id: Slide ID to duplicate
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
-        slides_service = _get_slides_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            slides_service = _get_slides_service()
         
         requests = [{
             'duplicateObject': {
@@ -1228,13 +1276,27 @@ def google_slides_insert_chart_from_sheets(presentation_id, slide_id,
 
 # ==================== EXPORT OPERATIONS ====================
 
-def google_slides_export_as_pdf(presentation_id, **kwargs):
-    """Export presentation as PDF"""
+def google_slides_export_as_pdf(presentation_id,
+                                _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Export presentation as PDF
+    
+    Args:
+        presentation_id: Presentation ID
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        drive_service = build_drive_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            drive_service = build_drive_service()
         
         request = drive_service.files().export_media(
             fileId=presentation_id,
@@ -1261,13 +1323,27 @@ def google_slides_export_as_pdf(presentation_id, **kwargs):
         raise
 
 
-def google_slides_export_as_pptx(presentation_id, **kwargs):
-    """Export presentation as PowerPoint"""
+def google_slides_export_as_pptx(presentation_id,
+                                 _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Export presentation as PowerPoint
+    
+    Args:
+        presentation_id: Presentation ID
+        _user_id: User ID for credential injection
+        _injected_credentials: OAuth credentials flag
+    """
     try:
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        drive_service = build_drive_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            drive_service = build_drive_service()
         
         request = drive_service.files().export_media(
             fileId=presentation_id,

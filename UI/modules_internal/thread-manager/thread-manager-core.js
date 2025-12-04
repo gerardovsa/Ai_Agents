@@ -574,7 +574,7 @@ const ThreadManager = {
                 .trim();
         };
 
-        const showSynergyTooltip = (badge, event) => {
+        const showSynergyTooltip = async (badge, event) => {
             clearTimeout(hideTimeout);
             clearTimeout(tooltipTimeout);
             currentTooltipBadge = badge;
@@ -586,9 +586,36 @@ const ThreadManager = {
 
             const container = badge.closest('.thread-item-synergy') || badge.closest('.ai-chat-header-info');
             const sessionId = container?.getAttribute('data-synergy-id') || badge.getAttribute('data-synergy-id') || '';
-            const title = badge.getAttribute('data-tooltip-title') || sessionId || 'Unknown Session';
-            const rawDesc = badge.getAttribute('data-tooltip-desc') || '';
-            const desc = stripMarkdown(rawDesc);
+
+            // Default/placeholder values (will be overridden by DB fetch when available)
+            let title = badge.getAttribute('data-tooltip-title') || sessionId || 'Unknown Session';
+            let rawDesc = badge.getAttribute('data-tooltip-desc') || '';
+            let desc = stripMarkdown(rawDesc);
+
+            // If we have a sessionId, prefer authoritative data from the backend
+            if (sessionId) {
+                try {
+                    const resp = await fetch(`${ThreadManager.apiBaseUrl}/api/synergy/${encodeURIComponent(sessionId)}`);
+                    if (resp && resp.ok) {
+                        const json = await resp.json();
+                        if (json && json.success && json.session) {
+                            const s = json.session;
+                            // Use session fields returned by backend
+                            title = s.title || title;
+                            rawDesc = s.description || rawDesc || '';
+                            // If description is stored as JSON string, attempt parse
+                            if (typeof rawDesc === 'object') {
+                                // If the DB returns an object, stringify primary text
+                                rawDesc = rawDesc.description || JSON.stringify(rawDesc);
+                            }
+                            desc = stripMarkdown(rawDesc || '');
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[ThreadManager] Failed to fetch synergy session', sessionId, err);
+                    // fall back to badge-provided data
+                }
+            }
             const users = badge.getAttribute('data-tooltip-users') || '';
             const updated = badge.getAttribute('data-tooltip-updated') || '';
             const priority = badge.querySelector('.synergy-badge-priority')?.textContent?.toLowerCase() || '';
@@ -674,9 +701,21 @@ const ThreadManager = {
         };
 
         // Tooltip event listeners (delegated)
+        // NOTE: Skip automatic hover tooltip when the badge is rendered inside
+        // a thread info card ('.thread-item-synergy'). Those cards expose a
+        // dedicated "Show description" button and a popup button — to avoid
+        // duplicate/annoying hover behavior we only show the tooltip on hover
+        // for badges outside thread-item-synergy containers. Explicit calls to
+        // `showSynergyTooltip(badge, event)` (e.g. from the Info button) still work.
         document.addEventListener('mouseover', (e) => {
             const badge = e.target.closest('.synergy-badge[data-tooltip-title]');
             if (badge) {
+                // If badge is inside a thread info card that already has
+                // its own description/popup controls, skip the automatic hover
+                // tooltip to avoid duplication.
+                const inThreadInfo = Boolean(badge.closest('.thread-item-synergy'));
+                if (inThreadInfo) return;
+
                 showSynergyTooltip(badge, e);
             }
         });

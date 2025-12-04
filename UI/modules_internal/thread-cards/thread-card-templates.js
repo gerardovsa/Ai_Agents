@@ -202,7 +202,7 @@ window.ThreadCardTemplates = {
                 </div>
                 
                 <!-- Row 2: Meta (msgs/date/time) + Action Buttons -->
-                <div class="thread-meta-row-always-visible" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                <div class="thread-meta-row-always-visible" style="display: flex; align-items: center; gap: 12px;">
                     <span class="thread-meta-item" title="Message count">
                         <i class="fas fa-comments"></i> ${meta.msgCount} msgs
                     </span>
@@ -219,7 +219,7 @@ window.ThreadCardTemplates = {
                 <div class="thread-expand-on-hover">
                     
                     <!-- Row 3: Copy + Thread ID -->
-                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         ${this._copyThreadDropdown(thread)}
                         ${this._threadIdBadge(thread, slug)}
                     </div>
@@ -598,6 +598,17 @@ window.ThreadCardTemplates = {
                 <!-- Synergy Session (GREEN pill) -->
                 ${thread.synergy_card_id ? `
                     <div class="thread-item-synergy thread-item-synergy-linked" data-synergy-id="${thread.synergy_card_id}">
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; padding: 8px; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
+                            <div style="font-weight: 600; font-size: 13px; color: #10b981;">
+                                <i class="fas fa-link" style="margin-right: 4px;"></i>
+                                ${safeEscape(synergyDisplay)}
+                            </div>
+                            ${synergyMeta && synergyMeta.description ? `
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; opacity: 0.9;">
+                                    ${safeEscape(synergyMeta.description).substring(0, 120)}${synergyMeta.description.length > 120 ? '...' : ''}
+                                </div>
+                            ` : ''}
+                        </div>
                         <button class="synergy-badge" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex: 1;"
                             onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${safeEscape(thread.synergy_card_id)}', '${safeEscape(synergyDisplay)}')"
                             data-tooltip-title="${safeEscape(synergyDisplay)}"

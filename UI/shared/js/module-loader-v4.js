@@ -587,7 +587,7 @@ class ModuleLoaderV4 {
 
             const tab = document.createElement('div');
             tab.id = `tab-${tabId}`;
-            tab.className = 'content-section';
+            tab.className = 'tab-content';  // MUST be tab-content, not content-section
             tab.style.display = 'none';
             mainContent.appendChild(tab);
         }

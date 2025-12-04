@@ -772,7 +772,7 @@ document.addEventListener('click', function (e) {
     // This prevents cross-container editing (sidebar → dashboard, popup → sidebar, etc.)
     const clickedInSidebar = target.closest('#synergy-sidebar');
     const clickedInDashboard = target.closest('#synergy-dashboard-container');
-    const clickedInPopup = target.closest('#synergy-popup-modal');
+    const clickedInPopup = target.closest('.synergy-popup-container');
 
     // If not in any synergy container, ignore
     if (!clickedInSidebar && !clickedInDashboard && !clickedInPopup) return;
@@ -785,7 +785,7 @@ document.addEventListener('click', function (e) {
         // Verify container is in the same context (sidebar, dashboard, or popup)
         const containerInSidebar = container.closest('#synergy-sidebar');
         const containerInDashboard = container.closest('#synergy-dashboard-container');
-        const containerInPopup = container.closest('#synergy-popup-modal');
+        const containerInPopup = container.closest('.synergy-popup-container');
 
         // Only allow editing if click and container are in the SAME context
         if (clickedInSidebar && !containerInSidebar) {
@@ -820,7 +820,7 @@ document.addEventListener('click', function (e) {
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
         const containerInDashboard = container.closest('#synergy-dashboard-container');
-        const containerInPopup = container.closest('#synergy-popup-modal');
+        const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
             console.warn('[SYNERGY SAVE] Ignoring sidebar click - target not in sidebar');
@@ -854,7 +854,7 @@ document.addEventListener('click', function (e) {
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
         const containerInDashboard = container.closest('#synergy-dashboard-container');
-        const containerInPopup = container.closest('#synergy-popup-modal');
+        const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
             console.warn('[SYNERGY CANCEL] Ignoring sidebar click - target not in sidebar');
@@ -887,7 +887,7 @@ document.addEventListener('click', function (e) {
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
         const containerInDashboard = container.closest('#synergy-dashboard-container');
-        const containerInPopup = container.closest('#synergy-popup-modal');
+        const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
             console.warn('[SYNERGY DELETE] Ignoring sidebar click - target not in sidebar');
@@ -921,7 +921,7 @@ document.addEventListener('click', function (e) {
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
         const containerInDashboard = container.closest('#synergy-dashboard-container');
-        const containerInPopup = container.closest('#synergy-popup-modal');
+        const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
             console.warn('[SYNERGY LINK] Ignoring sidebar click - target not in sidebar');
@@ -1058,7 +1058,7 @@ document.addEventListener('change', function (e) {
         // CRITICAL FIX: Verify checkbox is in correct container (sidebar, dashboard, or popup)
         const clickedInSidebar = target.closest('#synergy-sidebar');
         const clickedInDashboard = target.closest('#synergy-dashboard-container');
-        const clickedInPopup = target.closest('#synergy-popup-modal');
+        const clickedInPopup = target.closest('.synergy-popup-container');
 
         if (!clickedInSidebar && !clickedInDashboard && !clickedInPopup) return;
 
@@ -1068,7 +1068,7 @@ document.addEventListener('change', function (e) {
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
         const containerInDashboard = container.closest('#synergy-dashboard-container');
-        const containerInPopup = container.closest('#synergy-popup-modal');
+        const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
             console.warn('[SYNERGY CHECKBOX] Ignoring sidebar change - target not in sidebar');

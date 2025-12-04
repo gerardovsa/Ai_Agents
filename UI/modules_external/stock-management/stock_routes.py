@@ -1,31 +1,31 @@
 """
-Stock Management API Routes - SQLite Stock Database
+Stock Management API Routes - Supabase PostgreSQL Stock Database
 ========================================================================
-from shared.database_utils import convert_sql_placeholders
 
 This module provides Flask API endpoints for the Stock Management module.
-Uses SQLite database (stock_data.db) with AI-extracted job data.
+Uses Supabase PostgreSQL database (stock_data schema) with AI-extracted job data.
 
 Database Architecture:
-- SQL Server (Production): JobTickets, Orders, Quote_DigitalStocks (read-only reference)
-- SQLite (stock_data.db): extracted_jobs, unified_stocks (PRIMARY for analytics)
+- InHouse Fred (SQL Server): JobTickets, Orders (production data)
+- Supabase PostgreSQL (stock_data schema): extracted_jobs, unified_stocks, stocklevels, reorderalerts
 
 Architecture:
-- Frontend (stock-management.js) → Flask endpoints → SQLite stock_data.db
+- Frontend (stock-management.js) → Flask endpoints → Supabase PostgreSQL (stock_data schema)
 
+Migration: Dec 4, 2025 - Migrated from SQLite to Supabase PostgreSQL
 Created: October 30, 2025
 """
 
 import sys
 import os
 import traceback
-import sqlite3
 from flask import jsonify, request
 from flask_cors import cross_origin
 from pathlib import Path
 
-# SQLite stock database path - Local AI_agents copy (independent of G_Folder)
-STOCK_DB_PATH = str(Path(__file__).parent.parent.parent.parent.parent / 'data' / 'stock_data.db')
+# Import Supabase connection utility
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'AI_infrastructure'))
+from shared.database_utils import get_database_connection
 
 # Will be set by flask_app.py
 STOCK_DB_CONFIG = None
@@ -112,33 +112,26 @@ def stock_usage_analytics():
         return '', 204
     
     try:
-        if not os.path.exists(STOCK_DB_PATH):
-            return jsonify({
-                'status': 'error', 
-                'message': f'Stock database not found: {STOCK_DB_PATH}'
-            }), 503
-        
         days = int(request.args.get('days', 30))
         
-        # Connect to SQLite stock database
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row  # Return rows as dictionaries
+        # Connect to Supabase PostgreSQL (stock_data schema)
+        conn = get_database_connection('stock_data')
         cursor = conn.cursor()
         
         # Query AI-extracted jobs with stock information
-        # Uses extracted_jobs (AI data) + unified_stocks (stock master)
-        # Column: quantity_ordered (not quantity)
+        # Uses stock_data.extracted_jobs (AI data) + stock_data.unified_stocks (stock master)
+        # PostgreSQL syntax: NOW() - INTERVAL, CONCAT for strings
         query = f"""
         SELECT 
-            u.stock_id AS StockID,
-            u.stock_type_name AS StockType,
+            u.stock_id AS "StockID",
+            u.stock_type_name AS "StockType",
             COUNT(e.ticket_id) as usage_count,
             SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) as total_quantity,
-            u.gsm AS GSM,
-            (CAST(u.length_mm AS TEXT) || 'x' || CAST(u.width_mm AS TEXT) || 'mm') AS Dimensions
-        FROM extracted_jobs e
-        INNER JOIN unified_stocks u ON e.stock_id = u.stock_id
-        WHERE date(e.order_date) >= date('now', '-{days} days')
+            u.gsm AS "GSM",
+            CONCAT(u.length_mm, 'x', u.width_mm, 'mm') AS "Dimensions"
+        FROM stock_data.extracted_jobs e
+        INNER JOIN stock_data.unified_stocks u ON e.stock_id = u.stock_id
+        WHERE e.order_date >= CURRENT_DATE - INTERVAL '{days} days'
           AND e.stock_id IS NOT NULL
         GROUP BY u.stock_id, u.stock_type_name, u.gsm, u.length_mm, u.width_mm
         ORDER BY usage_count DESC
@@ -148,16 +141,17 @@ def stock_usage_analytics():
         cursor.execute(query)
         rows = cursor.fetchall()
         
-        # Convert rows to list of dictionaries
-        data = [dict(row) for row in rows]
+        # Convert rows to list of dictionaries (PostgreSQL cursor)
+        columns = [desc[0] for desc in cursor.description]
+        data = [dict(zip(columns, row)) for row in rows]
         
         conn.close()
         
         return jsonify({
             'status': 'ok',
             'days': days,
-            'database': 'SQLite (stock_data.db)',
-            'tables': 'extracted_jobs + unified_stocks',
+            'database': 'Supabase PostgreSQL (stock_data schema)',
+            'tables': 'stock_data.extracted_jobs + stock_data.unified_stocks',
             'data': data
         })
         
@@ -180,24 +174,24 @@ def stock_hierarchy():
     try:
         days = int(request.args.get('days', 90))
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('stock_data')
         cursor = conn.cursor()
         
         # Get hierarchical data: category -> type -> stock
+        # PostgreSQL syntax: CONCAT, CURRENT_DATE - INTERVAL, ROUND with NUMERIC
         query = f"""
         SELECT 
             COALESCE(u.stock_category, 'Unknown') as category,
             COALESCE(u.stock_type_name, 'Unknown Type') as stock_type,
             u.stock_id,
             u.gsm,
-            (CAST(u.length_mm AS TEXT) || 'x' || CAST(u.width_mm AS TEXT)) as dimensions,
+            CONCAT(u.length_mm, 'x', u.width_mm) as dimensions,
             COUNT(e.ticket_id) as usage_count,
             SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) as total_quantity,
-            ROUND(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand / 1000.0, 2) as total_cost
-        FROM extracted_jobs e
-        INNER JOIN unified_stocks u ON e.stock_id = u.stock_id
-        WHERE date(e.order_date) >= date('now', '-{days} days')
+            ROUND(CAST(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand / 1000.0 AS NUMERIC), 2) as total_cost
+        FROM stock_data.extracted_jobs e
+        INNER JOIN stock_data.unified_stocks u ON e.stock_id = u.stock_id
+        WHERE e.order_date >= CURRENT_DATE - INTERVAL '{days} days'
           AND e.stock_id IS NOT NULL
         GROUP BY u.stock_category, u.stock_type_name, u.stock_id, u.gsm, u.length_mm, u.width_mm, u.cost_per_thousand
         ORDER BY category, stock_type, usage_count DESC
@@ -205,7 +199,8 @@ def stock_hierarchy():
         
         cursor.execute(query)
         rows = cursor.fetchall()
-        data = [dict(row) for row in rows]
+        columns = [desc[0] for desc in cursor.description]
+        data = [dict(zip(columns, row)) for row in rows]
         conn.close()
         
         return jsonify({
@@ -243,11 +238,11 @@ def stock_reorder_dashboard():
         return '', 204
     
     try:
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('stock_data')
         cursor = conn.cursor()
         
-        # Query StockLevels table (has real inventory columns: CurrentStockLevel, ReorderPoint, CriticalLevel)
+        # Query stock_data.stocklevels table (has real inventory columns: CurrentStockLevel, ReorderPoint, CriticalLevel)
+        # PostgreSQL syntax: CURRENT_DATE - INTERVAL
         query = """
         WITH StockUsage AS (
             SELECT 
@@ -352,38 +347,39 @@ def stock_profit_analysis():
     try:
         days = int(request.args.get('days', 90))
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('stock_data')
         cursor = conn.cursor()
         
         # Calculate profitability by stock with cost and revenue estimates
+        # PostgreSQL syntax: CONCAT, CURRENT_DATE - INTERVAL, ROUND with NUMERIC
         query = f"""
         SELECT 
             u.stock_id,
             u.stock_type_name,
             u.gsm,
-            (CAST(u.length_mm AS TEXT) || 'x' || CAST(u.width_mm AS TEXT) || 'mm') AS dimensions,
+            CONCAT(u.length_mm, 'x', u.width_mm, 'mm') AS dimensions,
             COUNT(e.ticket_id) as total_jobs,
             SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) as total_sheets,
-            ROUND(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand / 1000.0, 2) as total_cost,
-            ROUND(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand * u.markup / 1000.0, 2) as estimated_revenue,
-            ROUND(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand * (u.markup - 1.0) / 1000.0, 2) as gross_profit,
-            ROUND(((u.markup - 1.0) / u.markup) * 100, 1) as margin_percent,
+            ROUND(CAST(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand / 1000.0 AS NUMERIC), 2) as total_cost,
+            ROUND(CAST(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand * u.markup / 1000.0 AS NUMERIC), 2) as estimated_revenue,
+            ROUND(CAST(SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) * u.cost_per_thousand * (u.markup - 1.0) / 1000.0 AS NUMERIC), 2) as gross_profit,
+            ROUND(CAST(((u.markup - 1.0) / u.markup) * 100 AS NUMERIC), 1) as margin_percent,
             u.supplier_name
-        FROM extracted_jobs e
-        INNER JOIN unified_stocks u ON e.stock_id = u.stock_id
-        WHERE date(e.order_date) >= date('now', '-{days} days')
+        FROM stock_data.extracted_jobs e
+        INNER JOIN stock_data.unified_stocks u ON e.stock_id = u.stock_id
+        WHERE e.order_date >= CURRENT_DATE - INTERVAL '{days} days'
           AND e.stock_id IS NOT NULL
           AND u.cost_per_thousand > 0
         GROUP BY u.stock_id, u.stock_type_name, u.gsm, u.length_mm, u.width_mm, u.cost_per_thousand, u.markup, u.supplier_name
-        HAVING total_sheets > 0
+        HAVING SUM(COALESCE(e.total_sheets_consumed, e.quantity_ordered, 0)) > 0
         ORDER BY gross_profit DESC
         LIMIT 50
         """
         
         cursor.execute(query)
         rows = cursor.fetchall()
-        data = [dict(row) for row in rows]
+        columns = [desc[0] for desc in cursor.description]
+        data = [dict(zip(columns, row)) for row in rows]
         conn.close()
         
         # Calculate summary statistics (handle NULL values)
@@ -395,7 +391,7 @@ def stock_profit_analysis():
         return jsonify({
             'status': 'ok',
             'days': days,
-            'database': 'SQLite (stock_data.db)',
+            'database': 'Supabase PostgreSQL (stock_data schema)',
             'summary': {
                 'total_cost': round(total_cost, 2),
                 'total_revenue': round(total_revenue, 2),
@@ -427,20 +423,33 @@ def stock_sql_query():
         return '', 204
     
     try:
-        # GET: Return table list
+        # GET: Return table list from PostgreSQL stock_data schema
         if request.method == 'GET':
-            conn = sqlite3.connect(STOCK_DB_PATH)
+            conn = get_database_connection('stock_data')
             cursor = conn.cursor()
             
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            # PostgreSQL: Query information_schema for tables in stock_data schema
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'stock_data' 
+                ORDER BY table_name
+            """)
             tables = [row[0] for row in cursor.fetchall()]
             
             table_info = {}
             for table in tables:
-                cursor.execute(f"PRAGMA table_info({table})")
+                # PostgreSQL: Query information_schema for column info
+                cursor.execute("""
+                    SELECT column_name, data_type, is_nullable
+                    FROM information_schema.columns
+                    WHERE table_schema = 'stock_data' 
+                      AND table_name = %s
+                    ORDER BY ordinal_position
+                """, (table,))
                 columns = cursor.fetchall()
                 table_info[table] = [
-                    {'name': col[1], 'type': col[2], 'nullable': not col[3]}
+                    {'name': col[0], 'type': col[1], 'nullable': col[2] == 'YES'}
                     for col in columns
                 ]
             
@@ -450,7 +459,7 @@ def stock_sql_query():
                 'status': 'ok',
                 'tables': tables,
                 'table_info': table_info,
-                'database': 'SQLite (stock_data.db)'
+                'database': 'Supabase PostgreSQL (stock_data schema)'
             })
         
         # POST: Execute query
@@ -472,15 +481,14 @@ def stock_sql_query():
         import time
         start_time = time.time()
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('stock_data')
         cursor = conn.cursor()
         
         cursor.execute(query)
         rows = cursor.fetchall()
         
         columns = [desc[0] for desc in cursor.description] if cursor.description else []
-        results = [dict(row) for row in rows]
+        results = [dict(zip(columns, row)) for row in rows]
         execution_time = round((time.time() - start_time) * 1000, 2)
         
         conn.commit()  # Commit if UPDATE/INSERT/DELETE
@@ -536,18 +544,19 @@ def stock_update_cell():
         if table not in allowed_tables:
             return jsonify({'status': 'error', 'message': f'Table must be one of: {allowed_tables}'}), 400
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
+        conn = get_database_connection('stock_data')
         cursor = conn.cursor()
         
         # Use parameterized query to prevent SQL injection
-        update_query = f"UPDATE {table} SET {column} = ? WHERE {where_col} = ?"
+        # PostgreSQL uses %s placeholders, and schema-qualified table names
+        update_query = f"UPDATE stock_data.{table} SET {column} = %s WHERE {where_col} = %s"
         cursor.execute(update_query, (value, where_val))
         
         conn.commit()
         rows_affected = cursor.rowcount
         
         # Get updated record
-        cursor.execute(f"SELECT * FROM {table} WHERE {where_col} = ?", (where_val,))
+        cursor.execute(f"SELECT * FROM stock_data.{table} WHERE {where_col} = %s", (where_val,))
         updated_record = cursor.fetchone()
         
         conn.close()

@@ -1348,10 +1348,7 @@
     /* Deprecated - redirects to inhouse-kanban-card */
 }
 
-padding: 4px;
-font-size: 14px;
-transition: color 0.2s;
-}
+/* Removed orphaned CSS properties - likely leftover from font-weight cleanup */
 
 .kanban-card .card-mute-btn:hover {
     color: #f85149;

@@ -513,7 +513,16 @@ def calculate_flyers_god(
         from inhouse_modules.db_connector import InHousePrintDB
         from decimal import Decimal
         
-        db = InHousePrintDB()
+        try:
+            db = InHousePrintDB()
+        except (FileNotFoundError, ConnectionError) as db_error:
+            return {
+                "success": False,
+                "error": f"Database unavailable: {str(db_error)}",
+                "error_type": "database_connection",
+                "details": "InHousePrint SQL Server database is required for GOD calculators"
+            }
+        
         calculator = FlyerCalculatorGOD(db)
         
         result = calculator.calculate(

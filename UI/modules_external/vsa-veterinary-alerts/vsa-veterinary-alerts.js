@@ -79,26 +79,23 @@ const VSAVeterinaryAlerts = {
         this.log.info('🔷 VSA Alerts Dashboard loading (V4 Modern Framework)...');
 
         try {
-            // Get dashboard container using V4 API
-            this.container = this.dom.getContainer();
-
-            if (!this.container) {
-                throw new Error('Dashboard container not found');
+            // Get main container - same pattern as InHouse Kanban
+            const container = document.getElementById('vsa-veterinary-alerts-main-container');
+            
+            if (!container) {
+                throw new Error('Main container not found: #vsa-veterinary-alerts-main-container');
             }
-
+            
+            this.container = container;
             log.info('✅ Container found:', this.container.id);
 
-            // ✅ FIX: Activate parent container (remove display: none)
-            // This matches BaseModule.initialize() behavior from classical pattern
-            // Without this, container stays hidden despite .active class
-            if (this.container) {
-                this.container.style.display = 'flex';
-                this.container.style.flexDirection = 'column';
-                this.container.style.width = '100%';
-                this.container.style.height = '100%';
-                this.container.style.overflow = 'auto';
-                log.info('✅ Parent container activated (display: flex)');
-            }
+            // ❌ REMOVED: Do NOT override display property
+            // The tab system (.tab-content / .tab-content.active) handles visibility
+            // Overriding display breaks tab switching - multiple tabs show at once
+            // The CSS already defines:
+            //   .tab-content { display: none; }
+            //   .tab-content.active { display: block; }
+            // Let the framework handle tab visibility - module just renders content
 
             // Initialize V4 dashboard structure (wrapper + header + sub-tabs)
             this.initializeSubTabs();

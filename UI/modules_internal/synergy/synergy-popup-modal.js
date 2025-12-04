@@ -23,11 +23,10 @@ class SynergyPopupModal {
      * Initialize modal HTML and event listeners
      */
     init() {
-        // Create modal HTML if it doesn't exist
-        if (!document.getElementById('synergy-popup-modal')) {
+        // Create popup HTML if it doesn't exist
+        if (!document.querySelector('.synergy-popup-container')) {
             const modalHTML = `
-                <div id="synergy-popup-modal" class="synergy-popup-modal" data-edit-mode="false">
-                    <div class="synergy-popup-container">
+                <div class="synergy-popup-container" data-edit-mode="false">
                         <!-- Header -->
                         <div class="synergy-popup-header">
                             <div class="synergy-popup-title">
@@ -38,7 +37,6 @@ class SynergyPopupModal {
                                 <!-- Edit button removed - each field has its own Edit button inline -->
                                 <button class="synergy-popup-btn synergy-popup-close" id="synergy-popup-close-btn" title="Close">
                                     <i class="fas fa-times"></i>
-                                    <span>Close</span>
                                 </button>
                             </div>
                         </div>
@@ -66,6 +64,7 @@ class SynergyPopupModal {
 
     /**
      * Make popup container draggable by header
+     * Allows dragging ANYWHERE on screen (no modal bounds)
      */
     makeDraggable() {
         const container = document.querySelector('.synergy-popup-container');
@@ -74,33 +73,38 @@ class SynergyPopupModal {
         if (!container || !header) return;
 
         let isDragging = false;
-        let currentX = 0;
-        let currentY = 0;
-        let initialX = 0;
-        let initialY = 0;
-
-        header.style.cursor = 'move';
+        let offsetX = 0;
+        let offsetY = 0;
 
         header.addEventListener('mousedown', (e) => {
             // Don't drag if clicking buttons
             if (e.target.closest('button')) return;
 
             isDragging = true;
-            initialX = e.clientX - currentX;
-            initialY = e.clientY - currentY;
+            
+            // Calculate offset from mouse to container top-left
+            const rect = container.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            
             header.style.cursor = 'grabbing';
+            e.preventDefault();
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
 
             e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
+            
+            // Calculate new position (mouse position - offset)
+            const newLeft = e.clientX - offsetX;
+            const newTop = e.clientY - offsetY;
 
-            container.style.left = currentX + 'px';
-            container.style.top = currentY + 'px';
-            container.style.transform = 'none';
+            // Apply position directly - NO BOUNDS CHECKING
+            // User can drag it anywhere, even partially off-screen
+            container.style.left = newLeft + 'px';
+            container.style.top = newTop + 'px';
+            container.style.transform = 'none'; // Override centered transform
         });
 
         document.addEventListener('mouseup', () => {
@@ -115,32 +119,19 @@ class SynergyPopupModal {
      * Bind modal event listeners
      */
     bindEvents() {
-        const modal = document.getElementById('synergy-popup-modal');
+        const container = document.querySelector('.synergy-popup-container');
         const closeBtn = document.getElementById('synergy-popup-close-btn');
         const editBtn = document.getElementById('synergy-popup-edit-btn');
 
-        // Close button
+        // Close button ONLY - no click outside, no ESC (user must explicitly close)
         if (closeBtn) {
             closeBtn.addEventListener('click', () => this.close());
         }
 
         // Edit mode toggle removed - using inline editing per field
 
-        // Close on overlay click (not container)
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.close();
-                }
-            });
-        }
-
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
-                this.close();
-            }
-        });
+        // NO ESC KEY - popup persists until X is clicked
+        // NO CLICK OUTSIDE - popup is standalone, no overlay to click
     }
 
     /**
@@ -149,18 +140,18 @@ class SynergyPopupModal {
      */
     async open(sessionId) {
         this.currentSessionId = sessionId;
-        const modal = document.getElementById('synergy-popup-modal');
+        const container = document.querySelector('.synergy-popup-container');
         const content = document.getElementById('synergy-popup-content');
         const title = document.getElementById('synergy-popup-session-title');
 
-        if (!modal || !content) {
-            console.error('[SYNERGY POPUP] Modal elements not found');
+        if (!container || !content) {
+            console.error('[SYNERGY POPUP] Popup elements not found');
             return;
         }
 
-        // Show modal
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        // Show popup
+        container.classList.add('active');
+        // Don't prevent background scrolling - popup is floating, user can still work on page
 
         // Show loading state
         content.innerHTML = `
@@ -192,6 +183,9 @@ class SynergyPopupModal {
             // Render full content using renderer
             content.innerHTML = this.renderer.renderExpandedCardContent(session, milestones, sessionId);
 
+            // Load linked threads after content is rendered
+            this.loadLinkedThreadsInPopup(sessionId);
+
             console.log(`[SYNERGY POPUP] Loaded session: ${sessionId}`);
 
         } catch (error) {
@@ -218,19 +212,110 @@ class SynergyPopupModal {
     }
 
     /**
+     * Load linked threads and render them as thread info cards
+     */
+    async loadLinkedThreadsInPopup(sessionId) {
+        const container = document.querySelector('.synergy-linked-threads-container');
+        if (!container) {
+            console.warn('[SYNERGY POPUP] Linked threads container not found');
+            return;
+        }
+
+        try {
+            // Fetch linked threads
+            const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/linked-threads`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load linked threads');
+
+            const threads = data.threads || [];
+
+            if (threads.length === 0) {
+                container.innerHTML = `
+                    <div class="synergy-flat-empty">
+                        <i class="fas fa-comments"></i>
+                        <div>No linked threads</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Fetch full thread details for each linked thread
+            const threadDetailsPromises = threads.map(async (thread) => {
+                try {
+                    const resp = await fetch(`${this.API_BASE_URL}/api/threads/${thread.thread_id}`);
+                    if (resp.ok) {
+                        const threadData = await resp.json();
+                        return threadData.thread || thread;
+                    }
+                } catch (err) {
+                    console.warn('[SYNERGY POPUP] Failed to fetch thread details for', thread.thread_id, err);
+                }
+                return thread;
+            });
+
+            const fullThreads = await Promise.all(threadDetailsPromises);
+
+            // Render thread info cards using ThreadCardTemplates
+            if (typeof ThreadCardTemplates !== 'undefined' && typeof ThreadCardTemplates.compactCard === 'function') {
+                container.innerHTML = fullThreads.map(thread => 
+                    ThreadCardTemplates.compactCard(thread, 'synergy')
+                ).join('');
+            } else {
+                // Fallback: simple thread list
+                container.innerHTML = fullThreads.map(thread => `
+                    <div class="thread-card-compact" 
+                         data-thread-id="${thread.id}"
+                         onclick="ThreadManager.switchThread('${thread.id}')">
+                        <div class="thread-card-title">${this.escapeHtml(thread.title || 'Untitled Thread')}</div>
+                        <div class="thread-card-meta">
+                            <span><i class="fas fa-comment"></i> ${thread.message_count || 0}</span>
+                            <span><i class="fas fa-clock"></i> ${new Date(thread.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            console.log(`[SYNERGY POPUP] Loaded ${threads.length} linked thread(s)`);
+
+        } catch (error) {
+            console.error('[SYNERGY POPUP] Error loading linked threads:', error);
+            container.innerHTML = `
+                <div class="synergy-flat-empty" style="color: #dc2626;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>Failed to load linked threads</div>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Escape HTML for safe rendering
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
      * Close popup modal
      */
     close() {
-        const modal = document.getElementById('synergy-popup-modal');
-        if (modal) {
-            modal.classList.remove('active');
-            document.body.style.overflow = ''; // Restore scrolling
+        const container = document.querySelector('.synergy-popup-container');
+        if (container) {
+            container.classList.remove('active');
+            // Reset position to center for next time
+            container.style.left = '';
+            container.style.top = '';
+            container.style.transform = '';
         }
 
         // Reset edit mode
         this.isEditMode = false;
-        if (modal) {
-            modal.setAttribute('data-edit-mode', 'false');
+        if (container) {
+            container.setAttribute('data-edit-mode', 'false');
         }
 
         const editBtn = document.getElementById('synergy-popup-edit-btn');
@@ -247,11 +332,11 @@ class SynergyPopupModal {
      */
     toggleEditMode() {
         this.isEditMode = !this.isEditMode;
-        const modal = document.getElementById('synergy-popup-modal');
+        const container = document.querySelector('.synergy-popup-container');
         const editBtn = document.getElementById('synergy-popup-edit-btn');
 
-        if (modal) {
-            modal.setAttribute('data-edit-mode', this.isEditMode ? 'true' : 'false');
+        if (container) {
+            container.setAttribute('data-edit-mode', this.isEditMode ? 'true' : 'false');
         }
 
         if (editBtn) {

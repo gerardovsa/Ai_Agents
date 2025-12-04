@@ -3715,6 +3715,129 @@ if (window.communicationHub) {
 
 ---
 
+## ⚠️ TAB VISIBILITY SYSTEM - CRITICAL RULES
+
+### DO NOT Override Container Display Property
+
+**CRITICAL:** Modules load into `.tab-content` containers that use CSS classes to control visibility. **NEVER** override the `display` property with inline styles.
+
+### How Tab Visibility Works
+
+```css
+/* CSS controls tab visibility */
+.tab-content {
+    display: none;  /* Hidden by default */
+}
+
+.tab-content.active {
+    display: flex;  /* Only active tab visible */
+}
+```
+
+**JavaScript tab switching:**
+```javascript
+// Framework toggles .active class
+document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');  // Hide all
+});
+targetTab.classList.add('active');    // Show one
+```
+
+### ❌ WRONG - Breaks Tab System
+
+```javascript
+async onDashboardLoad(utilities) {
+    this.container = dom.getContainer();  // Returns #tab-my-module
+    
+    // ❌ NEVER DO THIS - Breaks tab visibility
+    this.container.style.display = 'flex';  // INLINE STYLE = HIGHEST PRIORITY
+    this.container.style.display = 'block';
+    this.container.style.visibility = 'visible';
+    
+    // Result: Tab ALWAYS visible, even when not active
+    // All tabs stack vertically instead of switching
+}
+```
+
+### ✅ CORRECT - Let CSS Handle Visibility
+
+```javascript
+async onDashboardLoad(utilities) {
+    Object.assign(this, utilities);
+    this.container = this.dom.getContainer();  // Returns #tab-my-module
+    
+    // ✅ CORRECT - Just render content, CSS handles visibility
+    this.container.innerHTML = `
+        <div class="dashboard-wrapper my-module">
+            <div class="dashboard-header">...</div>
+            <div class="quick-nav-bar">...</div>
+            <div class="sub-tab-content">...</div>
+        </div>
+    `;
+    
+    // CSS .tab-content.active controls when this shows
+}
+```
+
+### Why Inline Styles Break Tab Switching
+
+**CSS Specificity:**
+```
+Priority: Inline styles > ID > Class > Element
+
+inline style.display = 'flex'  [HIGHEST]
+  vs
+.tab-content { display: none; }  [LOWER]
+
+→ Inline always wins → Tab always visible ❌
+```
+
+**Correct Pattern:**
+```
+.tab-content { display: none; }     [Only priority]
+.tab-content.active { display: flex; }  [Only priority]
+
+→ CSS controls visibility → Tab shows only when .active ✅
+```
+
+### DOM Hierarchy
+
+```html
+<div class="main-content-wrapper">
+    <div class="main-content">
+        <!-- Only ONE tab has .active at a time -->
+        
+        <div class="tab-content" id="tab-module-a">
+            <!-- Hidden: display: none via CSS -->
+            <div class="dashboard-wrapper">...</div>
+        </div>
+        
+        <div class="tab-content active" id="tab-module-b">
+            <!-- Visible: display: flex via CSS -->
+            <div class="dashboard-wrapper">...</div>
+        </div>
+        
+        <div class="tab-content" id="tab-module-c">
+            <!-- Hidden: display: none via CSS -->
+            <div class="dashboard-wrapper">...</div>
+        </div>
+    </div>
+</div>
+```
+
+### Symptoms of Display Override Bug
+
+- ✗ Multiple module dashboards visible simultaneously
+- ✗ Modules stacking vertically instead of switching
+- ✗ Tab buttons don't match visible content
+- ✗ Clicking tab button doesn't hide other modules
+
+### Documentation Reference
+
+See `MODULE_TAB_HIERARCHY_FIX_DEC5_2025.md` for complete analysis and examples.
+
+---
+
 ## 🚨 Critical Rules (NEVER VIOLATE)
 
 1. **ALWAYS** use `export default { ... }` (not class)
@@ -3727,8 +3850,9 @@ if (window.communicationHub) {
 8. **NEVER** manually instantiate modules
 9. **NEVER** use manual event listener cleanup
 10. **NEVER** access utilities without `Object.assign(this, utilities)` first
-11. **INTERNAL MODULES:** Always use correct CSS selectors (`.multi-agent-dashboard-wrapper`, `.agent-quick-nav-bar`)
-12. **INTERNAL MODULES:** Always create complete utilities object with all 5 namespaces (dom, api, storage, events, log)
+11. **NEVER** override container display property (`container.style.display = ...`) ← **BREAKS TAB SYSTEM**
+12. **INTERNAL MODULES:** Always use correct CSS selectors (`.multi-agent-dashboard-wrapper`, `.agent-quick-nav-bar`)
+13. **INTERNAL MODULES:** Always create complete utilities object with all 5 namespaces (dom, api, storage, events, log)
 
 ---
 

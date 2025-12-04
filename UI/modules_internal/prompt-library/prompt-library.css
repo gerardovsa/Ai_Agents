@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PROMPT LIBRARY MODULE - STYLES
  * 
  * Modular CSS for the prompt library feature
@@ -26,6 +26,7 @@
     transition: all 0.3s ease;
     position: relative;
 }
+
 
 /* Show border on parent hover */
 .ai-chat-input-container:hover .ai-chat-prompt-library-btn {
@@ -62,7 +63,7 @@
     background: var(--accent-primary, #58a6ff);
     color: white;
     font-size: 9px;
-    /* font-weight: 600; */
+    font-weight: 600;
     width: 14px;
     height: 14px;
     border-radius: 50%;
@@ -126,13 +127,13 @@
 }
 
 .active-prompt-tag .name {
-    /* font-weight: 500; */
+    font-weight: 500;
 }
 
 .active-prompt-tag .remove {
     cursor: pointer;
     color: var(--accent-error, #f85149);
-    /* font-weight: bold; */
+    font-weight: bold;
     margin-left: 4px;
     font-size: 14px;
     line-height: 1;
@@ -215,7 +216,7 @@
     align-items: center;
     gap: var(--space-2, 8px);
     font-size: 16px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--text-primary, #f3f4f6);
 }
 
@@ -298,7 +299,7 @@
     border-radius: 8px;
     color: var(--text-primary, #f3f4f6);
     font-size: 14px;
-    /* font-weight: 500; */
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -373,7 +374,7 @@
     padding: 6px 10px;
     border-radius: 6px;
     font-size: 12px;
-    /* font-weight: 500; */
+    font-weight: 500;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
@@ -505,7 +506,7 @@
 
 .prompt-name {
     font-size: 15px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--text-primary, #f3f4f6);
     margin-bottom: 4px;
     display: flex;
@@ -525,7 +526,7 @@
     padding: 4px 10px;
     border-radius: 6px;
     font-size: 11px;
-    /* font-weight: 600; */
+    font-weight: 600;
     background: var(--bg-tertiary, #1c2128);
     color: var(--text-muted, #9ca3af);
     flex-shrink: 0;
@@ -641,7 +642,7 @@
     align-items: center;
     gap: 10px;
     font-size: 18px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--text-primary);
 }
 
@@ -667,7 +668,7 @@
     background: var(--bg-tertiary);
     color: var(--text-secondary);
     font-size: 13px;
-    /* font-weight: 500; */
+    font-weight: 500;
     cursor: pointer;
     border-radius: 6px;
     transition: all 0.2s;
@@ -856,7 +857,7 @@
 
 .prompt-modal-header h2 {
     font-size: 18px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--text-primary, #f3f4f6);
     display: flex;
     align-items: center;
@@ -899,7 +900,7 @@
 .form-label {
     display: block;
     font-size: 13px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--text-secondary, #d1d5db);
     margin-bottom: var(--space-2, 8px);
 }
@@ -1027,7 +1028,7 @@
     border: 1px solid var(--border-default, #30363d);
     border-radius: 8px;
     font-size: 14px;
-    /* font-weight: 600; */
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -1197,7 +1198,7 @@
 .prompt-modal-header h3 {
     margin: 0;
     font-size: 18px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--text-primary, #f0f6fc);
 }
 
@@ -1215,7 +1216,7 @@
     border: none;
     color: var(--text-secondary, #8b949e);
     font-size: 14px;
-    /* font-weight: 500; */
+    font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1329,7 +1330,7 @@
 }
 
 .edit-prompt-item-name {
-    /* font-weight: 500; */
+    font-weight: 500;
     color: var(--text-primary, #f0f6fc);
     font-size: 14px;
 }
@@ -1339,7 +1340,7 @@
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 11px;
-    /* font-weight: 500; */
+    font-weight: 500;
 }
 
 .edit-prompt-item-type.quick {
@@ -1441,7 +1442,7 @@
 .form-group label {
     display: block;
     font-size: 14px;
-    /* font-weight: 500; */
+    font-weight: 500;
     color: var(--text-primary, #f0f6fc);
     margin-bottom: 8px;
 }
@@ -1523,7 +1524,7 @@ select.form-control {
 
 .prompt-type-btn span {
     font-size: 14px;
-    /* font-weight: 600; */
+    font-weight: 600;
     margin-bottom: 4px;
     display: block;
 }
@@ -1565,7 +1566,7 @@ select.form-control {
 
 .radio-label span {
     display: block;
-    /* font-weight: 500; */
+    font-weight: 500;
     color: var(--text-primary, #f0f6fc);
     margin-bottom: 2px;
 }
@@ -1585,7 +1586,7 @@ select.form-control {
     border: none;
     border-radius: 6px;
     font-size: 14px;
-    /* font-weight: 500; */
+    font-weight: 500;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -1665,7 +1666,7 @@ select.form-control {
 
 .prompt-breadcrumb span:last-child {
     color: var(--text-primary, #f0f6fc);
-    /* font-weight: 500; */
+    font-weight: 500;
 }
 
 /* ==================== CATEGORY GROUPING ==================== */
@@ -1680,7 +1681,7 @@ select.form-control {
     padding: 12px 20px;
     background: var(--bg-primary, #0d1117);
     border-left: 3px solid var(--accent-primary, #58a6ff);
-    /* font-weight: 600; */
+    font-weight: 600;
     font-size: 18px;
     color: var(--text-primary, #f0f6fc);
     position: sticky;
@@ -1708,7 +1709,7 @@ select.form-control {
 .category-count {
     margin-left: auto;
     font-size: 14px;
-    /* font-weight: 500; */
+    font-weight: 500;
     padding: 2px 8px;
     background: var(--bg-secondary, #161b22);
     border-radius: 12px;
@@ -1777,7 +1778,7 @@ select.form-control {
     background: rgba(248, 129, 73, 0.1);
     border-radius: 12px;
     font-size: 11px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--accent-warning, #d29922);
 }
 
@@ -1844,7 +1845,7 @@ select.form-control {
 
 .overlay-panel-title {
     font-size: 18px;
-    /* font-weight: 600; */
+    font-weight: 600;
     color: var(--text-primary, #f0f6fc);
     display: flex;
     align-items: center;

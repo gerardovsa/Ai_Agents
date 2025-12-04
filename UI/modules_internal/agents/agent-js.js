@@ -3477,6 +3477,11 @@ async function sendAgentMessage(agentId) {
                                     thinkingBubble.classList.add('collapsed'); // Start collapsed
                                     messagesContainer.appendChild(thinkingBubble);
 
+                                    // Add fullscreen double-click handler
+                                    if (typeof window.addMessageFullscreenHandler === 'function') {
+                                        window.addMessageFullscreenHandler(thinkingBubble);
+                                    }
+
                                     thinkingBubble._fullThinkingText = '';
                                 }
 
@@ -3587,6 +3592,11 @@ async function sendAgentMessage(agentId) {
                             toolBubble.appendChild(contentDiv);
                             toolBubble.classList.add('collapsed'); // Start collapsed
                             messagesContainer.appendChild(toolBubble);
+
+                            // Add fullscreen double-click handler
+                            if (typeof window.addMessageFullscreenHandler === 'function') {
+                                window.addMessageFullscreenHandler(toolBubble);
+                            }
 
                             lastEventType = 'tool_use';
                             toolsUsed.push({
@@ -3710,6 +3720,11 @@ async function sendAgentMessage(agentId) {
                             toolResultBubble.classList.add('collapsed'); // Start collapsed
                             messagesContainer.appendChild(toolResultBubble);
 
+                            // Add fullscreen double-click handler
+                            if (typeof window.addMessageFullscreenHandler === 'function') {
+                                window.addMessageFullscreenHandler(toolResultBubble);
+                            }
+
                             if (typeof AgentStatusIndicator !== 'undefined') {
                                 AgentStatusIndicator.update('tool-success', agentId);
                             }
@@ -3830,6 +3845,11 @@ async function sendAgentMessage(agentId) {
 
                                 messagesContainer.appendChild(textBubble);
                                 console.log(`[Agent ${agentId}] Text bubble created`);
+
+                                // Add fullscreen double-click handler
+                                if (typeof window.addMessageFullscreenHandler === 'function') {
+                                    window.addMessageFullscreenHandler(textBubble);
+                                }
 
                                 // Initialize TwoRuleStreamProcessor
                                 if (typeof TwoRuleStreamProcessor !== 'undefined') {

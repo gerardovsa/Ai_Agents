@@ -46,11 +46,11 @@ class InHousePrintDB:
             with open(config_path, 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
-            print(f"Configuration file not found: {config_path}")
-            sys.exit(1)
+            print(f"⚠️  Configuration file not found: {config_path}")
+            raise FileNotFoundError(f"Database config not found: {config_path}")
         except json.JSONDecodeError:
-            print(f"Invalid JSON in configuration file: {config_path}")
-            sys.exit(1)
+            print(f"⚠️  Invalid JSON in configuration file: {config_path}")
+            raise ValueError(f"Invalid database config: {config_path}")
     
     def connect(self) -> bool:
         """Establish connection to SQL Server database."""
@@ -87,7 +87,7 @@ class InHousePrintDB:
             connection_successful = False
             for driver in drivers:
                 try:
-                    # Build pyodbc connection string
+                    # Build pyodbc connection string with timeouts
                     pyodbc_conn_str = (
                         f"DRIVER={{{driver}}};"
                         f"SERVER={server};"
@@ -96,9 +96,11 @@ class InHousePrintDB:
                         f"PWD={pwd};"
                         f"TrustServerCertificate=yes;"
                         f"Encrypt=no;"
+                        f"Connection Timeout=3;"  # 3 second connection timeout
+                        f"Login Timeout=3;"       # 3 second login timeout
                     )
                     
-                    self.connection = pyodbc.connect(pyodbc_conn_str)
+                    self.connection = pyodbc.connect(pyodbc_conn_str, timeout=3)
                     print(f" Connected to database: {database} using {driver}")
                     connection_successful = True
                     break
@@ -112,12 +114,13 @@ class InHousePrintDB:
             return True
             
         except Exception as e:
-            print(f" Failed to connect to database: {str(e)}")
+            print(f"⚠️  Failed to connect to database: {str(e)}")
             print("💡 Troubleshooting:")
             print("   1. Install Microsoft ODBC Driver 17 or 18 for SQL Server")
             print("   2. Check if SQL Server is running and accessible")
             print("   3. Verify connection details in config file")
-            return False
+            # Don't exit - raise exception so caller can handle it
+            raise ConnectionError(f"Database connection failed: {str(e)}")
     
     def execute_query(self, query: str, params: tuple = None) -> pd.DataFrame:
         """

@@ -908,6 +908,11 @@ async function sendChatMessage() {
                                             thinkingBubble.classList.add('collapsed');
                                             chatMessages.appendChild(thinkingBubble);
                                             console.log('[OK] Thinking bubble created and added');
+
+                                            // Add fullscreen double-click handler
+                                            if (typeof window.addMessageFullscreenHandler === 'function') {
+                                                window.addMessageFullscreenHandler(thinkingBubble);
+                                            }
                                         }
 
                                         lastEventType = 'thinking';
@@ -1024,6 +1029,11 @@ async function sendChatMessage() {
                                         toolBubble.appendChild(contentDiv);
                                         toolBubble.classList.add('collapsed');
                                         chatMessages.appendChild(toolBubble);
+
+                                        // Add fullscreen double-click handler
+                                        if (typeof window.addMessageFullscreenHandler === 'function') {
+                                            window.addMessageFullscreenHandler(toolBubble);
+                                        }
 
                                         lastEventType = 'tool_use';
 
@@ -1155,6 +1165,11 @@ async function sendChatMessage() {
 
                                             chatMessages.appendChild(textBubble);
                                             console.log('[OK] Text bubble created and added');
+
+                                            // Add fullscreen double-click handler
+                                            if (typeof window.addMessageFullscreenHandler === 'function') {
+                                                window.addMessageFullscreenHandler(textBubble);
+                                            }
 
                                             if (typeof TwoRuleStreamProcessor !== 'undefined') {
                                                 console.log('🎨 Initializing TwoRuleStreamProcessor for visualization rendering...');

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Loading Test</title>
+    
+    <!-- CSS Link (same as main HTML) -->
+    <link rel="stylesheet" href="modules_internal/thread-manager/thread.css">
+    
+    <style>
+        /* Same CSS variables as main HTML */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --text-primary: #f3f4f6;
+            --border-default: #30363d;
+            --space-5: 24px;
+        }
+        
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: Arial, sans-serif;
+            padding: 40px;
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #1c2128;
+            border-radius: 6px;
+        }
+        
+        .status {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .status.success {
+            background: #3fb950;
+            color: #000;
+        }
+        
+        .status.error {
+            background: #f85149;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 CSS Loading Diagnostic Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: CSS File Loading</h2>
+        <p>If the box below has proper padding, background, and border - CSS is loading ✅</p>
+        <div class="multi-agent-dashboard-header" style="margin-top: 10px;">
+            <div>Multi-Agent Dashboard Header</div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: CSS Variables</h2>
+        <p>Background should be #161b22 (dark gray)</p>
+        <div style="padding: 20px; background: var(--bg-secondary); border: 1px solid var(--border-default); margin-top: 10px;">
+            Testing CSS variables: --bg-secondary and --border-default
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Browser Console Check</h2>
+        <p>Open browser DevTools (F12) → Console tab</p>
+        <p>Check for any 404 errors loading thread.css</p>
+        <p id="css-check-result">Checking CSS load status...</p>
+    </div>
+    
+    <script>
+        // Check if CSS loaded
+        setTimeout(() => {
+            const testEl = document.querySelector('.multi-agent-dashboard-header');
+            const computedStyle = window.getComputedStyle(testEl);
+            const display = computedStyle.display;
+            const padding = computedStyle.padding;
+            const background = computedStyle.backgroundColor;
+            
+            const resultEl = document.getElementById('css-check-result');
+            
+            if (display === 'flex' && padding !== '0px') {
+                resultEl.innerHTML = `
+                    <span class="status success">✅ SUCCESS</span><br><br>
+                    CSS is loading correctly!<br>
+                    - display: ${display}<br>
+                    - padding: ${padding}<br>
+                    - background: ${background}<br>
+                `;
+            } else {
+                resultEl.innerHTML = `
+                    <span class="status error">❌ FAILED</span><br><br>
+                    CSS is NOT loading!<br>
+                    - display: ${display} (expected: flex)<br>
+                    - padding: ${padding} (expected: 24px)<br>
+                    - background: ${background}<br>
+                `;
+            }
+        }, 500);
+    </script>
+</body>
+</html>
