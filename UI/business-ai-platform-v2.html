@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -79,15 +79,15 @@
     <!-- Supabase Client for Real-Time Database Updates -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- ✨ Status Indicator - Bottom-left loading/connection status -->
+    <!-- ? Status Indicator - Bottom-left loading/connection status -->
     <link rel="stylesheet" href="shared/css/status-indicator.css">
     <script src="shared/js/status-indicator.js"></script>
 
-    <!-- ✨ NEW: Supabase Connection Manager - MUST LOAD BEFORE REALTIME MODULES -->
+    <!-- ? NEW: Supabase Connection Manager - MUST LOAD BEFORE REALTIME MODULES -->
     <!-- Prevents duplicate connections, adds health monitoring and auto-reconnect -->
     <script src="shared/js/supabase-connection-manager.js?v=20251124O"></script>
 
-    <!-- ✨ NEW: Supabase Heartbeat Listener - Server-side heartbeat system -->
+    <!-- ? NEW: Supabase Heartbeat Listener - Server-side heartbeat system -->
     <!-- Listens to pg_cron broadcasts every 60s, detects stale connections -->
     <script src="shared/js/supabase-heartbeat-listener.js?v=20251124A"></script>
 
@@ -97,7 +97,7 @@
     <!-- Data Loader - Centralized data loading with caching and batching -->
     <script src="shared/js/data-loader.js"></script>
 
-    <!-- ✨ VOICE TRANSCRIPTION MODULES -->
+    <!-- ? VOICE TRANSCRIPTION MODULES -->
     <link rel="stylesheet" href="modules_internal/transcription/transcription-streaming-container.css">
     <link rel="stylesheet" href="modules_internal/transcription/transcription-sidebar.css">
     <link rel="stylesheet" href="modules_internal/transcription/stt-module.css">
@@ -273,9 +273,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof SynergyManager !== 'undefined') {
                 window.synergyManager = new SynergyManager();
-                console.log('✅ [INIT] SynergyManager initialized');
+                console.log('? [INIT] SynergyManager initialized');
             } else {
-                console.error('❌ [INIT] SynergyManager class not loaded - check synergy-manager.js');
+                console.error('? [INIT] SynergyManager class not loaded - check synergy-manager.js');
             }
         });
     </script>
@@ -330,9 +330,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof WorkflowManager !== 'undefined') {
                 window.workflowManager = new WorkflowManager();
-                console.log('✅ [INIT] WorkflowManager initialized');
+                console.log('? [INIT] WorkflowManager initialized');
             } else {
-                console.error('❌ [INIT] WorkflowManager class not loaded - check workflow-manager.js');
+                console.error('? [INIT] WorkflowManager class not loaded - check workflow-manager.js');
             }
         });
     </script>
@@ -352,7 +352,7 @@
         }
 
         function initCommunicationHub() {
-            console.log('🔷 [CORE] Initializing Communication Hub...');
+            console.log('?? [CORE] Initializing Communication Hub...');
 
             // Make globally accessible
             window.communicationHub = CommunicationHub;
@@ -362,9 +362,9 @@
             if (container && typeof CommunicationHub.initialize === 'function') {
                 try {
                     CommunicationHub.initialize('communication-main-container');
-                    console.log('✅ [CORE] Communication Hub initialized');
+                    console.log('? [CORE] Communication Hub initialized');
                 } catch (error) {
-                    console.error('❌ [CORE] Communication Hub init failed:', error);
+                    console.error('? [CORE] Communication Hub init failed:', error);
                 }
             }
         }
@@ -401,23 +401,23 @@
 
             // Public API that works even before module loads
             window.initializeModuleSystem = async function (forceReload = false) {
-                console.log('🔷 [initializeModuleSystem] Called (moduleLoaderReady:', moduleLoaderReady, ', forceReload:', forceReload, ')');
+                console.log('?? [initializeModuleSystem] Called (moduleLoaderReady:', moduleLoaderReady, ', forceReload:', forceReload, ')');
 
-                // ✅ FIX: Use window.moduleLoader (instance) instead of window.ModuleLoaderV4 (class)
+                // ? FIX: Use window.moduleLoader (instance) instead of window.ModuleLoaderV4 (class)
                 if (moduleLoaderReady && window.moduleLoader) {
                     // Module is ready, initialize directly
                     if (window.moduleLoader.initialized && !forceReload) {
-                        console.log('✅ [initializeModuleSystem] Already initialized');
+                        console.log('? [initializeModuleSystem] Already initialized');
                         return;
                     }
 
                     const userId = window.UserAuth?.user?.id || window.UserAuth?.user?.user_id || parseInt(localStorage.getItem('user_id')) || 1;
-                    console.log(`🔷 [initializeModuleSystem] Initializing for user ${userId}...`);
+                    console.log(`?? [initializeModuleSystem] Initializing for user ${userId}...`);
                     await window.moduleLoader.initialize(userId);
-                    console.log('✅ [initializeModuleSystem] Complete');
+                    console.log('? [initializeModuleSystem] Complete');
                 } else {
                     // Module not ready yet, queue the initialization
-                    console.log('⏳ [initializeModuleSystem] Module not ready, queuing initialization...');
+                    console.log('? [initializeModuleSystem] Module not ready, queuing initialization...');
                     return new Promise((resolve) => {
                         pendingInitializations.push({ forceReload, resolve });
                     });
@@ -426,7 +426,7 @@
 
             // Internal function called by ES6 module when it loads
             window._moduleLoaderReady = function () {
-                console.log('✅ [ModuleLoaderV4] Module loaded, processing', pendingInitializations.length, 'queued initializations');
+                console.log('? [ModuleLoaderV4] Module loaded, processing', pendingInitializations.length, 'queued initializations');
                 moduleLoaderReady = true;
 
                 // Process any queued initializations
@@ -437,13 +437,13 @@
                 pendingInitializations = [];
             };
 
-            console.log('✅ [Pre-loader] window.initializeModuleSystem defined (synchronous)');
+            console.log('? [Pre-loader] window.initializeModuleSystem defined (synchronous)');
         })();
     </script>
 
     <!-- Modern ES6 module loader with composition pattern -->
     <script type="module">
-        // ✅ FIX: module-loader-v4.js exports an INSTANCE, not a class
+        // ? FIX: module-loader-v4.js exports an INSTANCE, not a class
         // Cache-busting timestamp added to force reload
         import moduleLoader from './shared/js/module-loader-v4.js?v=20251130235959';
 
@@ -451,32 +451,32 @@
         window.moduleLoader = moduleLoader;
         window.ModuleLoaderV4 = moduleLoader; // Alias for backward compatibility
 
-        console.log('🔷 ModuleLoaderV4 loaded, notifying pre-loader...');
+        console.log('?? ModuleLoaderV4 loaded, notifying pre-loader...');
 
         // Notify the pre-loader that the module is ready
         if (window._moduleLoaderReady) {
             window._moduleLoaderReady();
         }
 
-        // ✅ FIX: Wait for authentication BEFORE initializing module loader
+        // ? FIX: Wait for authentication BEFORE initializing module loader
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('⏳ [ModuleLoaderV4] Module system will initialize after authentication via user_auth.js');
+            console.log('? [ModuleLoaderV4] Module system will initialize after authentication via user_auth.js');
 
             // Keep authComplete listener as backup (defensive programming)
             if (!UserAuth || !UserAuth.token) {
-                console.log('⏳ [ModuleLoaderV4] Setting up authComplete listener as fallback...');
+                console.log('? [ModuleLoaderV4] Setting up authComplete listener as fallback...');
                 document.addEventListener('authComplete', async () => {
-                    console.log('✅ [ModuleLoaderV4] Auth complete event received (fallback path)');
-                    // ✅ FIX: Use moduleLoader from import or window.moduleLoader (global scope)
+                    console.log('? [ModuleLoaderV4] Auth complete event received (fallback path)');
+                    // ? FIX: Use moduleLoader from import or window.moduleLoader (global scope)
                     // Only initialize if not already done by user_auth.js
                     if (moduleLoader && !moduleLoader.initialized && !moduleLoader.initializing) {
-                        console.log('⚠️ [ModuleLoaderV4] user_auth.js did not initialize modules, using fallback path');
+                        console.log('?? [ModuleLoaderV4] user_auth.js did not initialize modules, using fallback path');
                         const userId = UserAuth.user.id || UserAuth.user.user_id || parseInt(localStorage.getItem('user_id')) || 1;
                         await moduleLoader.initialize(userId);
                     } else if (!moduleLoader) {
-                        console.error('❌ [ModuleLoaderV4] moduleLoader instance not found - module system failed to load');
+                        console.error('? [ModuleLoaderV4] moduleLoader instance not found - module system failed to load');
                     } else {
-                        console.log('✅ [ModuleLoaderV4] Modules already initialized by user_auth.js');
+                        console.log('? [ModuleLoaderV4] Modules already initialized by user_auth.js');
                     }
                 }, { once: true });
             }
@@ -484,8 +484,8 @@
     </script>
 
     <!-- ==================== API CONFIGURATION (CRITICAL - MUST LOAD BEFORE ALL MODULES) ==================== -->
-    <!-- 🎯 AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development -->
-    <!-- ⚡ ZERO HARDCODED URLS - Pure auto-detection based on current URL -->
+    <!-- ?? AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development -->
+    <!-- ? ZERO HARDCODED URLS - Pure auto-detection based on current URL -->
     <script>
         // Detect environment
         const isFileProtocol = window.location.protocol === 'file:';
@@ -493,24 +493,24 @@
             window.location.hostname === '127.0.0.1' ||
             window.location.hostname === '';
 
-        // 🔧 CONFIGURATION FLAGS (for testing only)
+        // ?? CONFIGURATION FLAGS (for testing only)
         const FORCE_LOCAL = false;   // Override: Force localhost backend
 
-        // 🎯 PURE AUTO-DETECTION: Use current URL as backend
+        // ?? PURE AUTO-DETECTION: Use current URL as backend
         let API_BASE_URL;
 
         if (FORCE_LOCAL || isLocalhost || isFileProtocol) {
             // Local development mode
             API_BASE_URL = 'http://localhost:5001';
-            console.log('🔧 [API CONFIG] Mode: LOCAL DEVELOPMENT');
+            console.log('?? [API CONFIG] Mode: LOCAL DEVELOPMENT');
         } else {
-            // ✅ PRODUCTION: Use current domain as backend
+            // ? PRODUCTION: Use current domain as backend
             // This automatically works for:
-            // - https://ai-agents-v10.onrender.com → backend: https://ai-agents-v10.onrender.com
-            // - https://ai-agents-backend-singapore.onrender.com → backend: https://ai-agents-backend-singapore.onrender.com
-            // - Any future domain → backend: same domain
+            // - https://ai-agents-v10.onrender.com ? backend: https://ai-agents-v10.onrender.com
+            // - https://ai-agents-backend-singapore.onrender.com ? backend: https://ai-agents-backend-singapore.onrender.com
+            // - Any future domain ? backend: same domain
             API_BASE_URL = window.location.origin;
-            console.log('🚀 [API CONFIG] Mode: PRODUCTION (Auto-detected from URL)');
+            console.log('?? [API CONFIG] Mode: PRODUCTION (Auto-detected from URL)');
         }
 
         // VSA Agent (separate service)
@@ -518,15 +518,15 @@
             'http://localhost:5300' :
             'https://vsa-agent-service.onrender.com';
 
-        // ✅ CRITICAL: Make API URLs globally accessible IMMEDIATELY (before any modules load)
+        // ? CRITICAL: Make API URLs globally accessible IMMEDIATELY (before any modules load)
         window.API_BASE_URL = API_BASE_URL;
         window.VSA_API_BASE_URL = VSA_API_BASE_URL;
 
         // Log configuration
-        console.log('🌐 [API CONFIG] Frontend URL:', window.location.origin);
-        console.log('🌐 [API CONFIG] Backend API:', API_BASE_URL);
-        console.log('🌐 [API CONFIG] VSA API:', VSA_API_BASE_URL);
-        console.log('🌐 [API CONFIG] Match:', window.location.origin === API_BASE_URL ? '✅ Same domain (correct)' : '⚠️ Different domains');
+        console.log('?? [API CONFIG] Frontend URL:', window.location.origin);
+        console.log('?? [API CONFIG] Backend API:', API_BASE_URL);
+        console.log('?? [API CONFIG] VSA API:', VSA_API_BASE_URL);
+        console.log('?? [API CONFIG] Match:', window.location.origin === API_BASE_URL ? '? Same domain (correct)' : '?? Different domains');
     </script>
 
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
@@ -549,7 +549,7 @@
 
     <!-- Initialize after authentication -->
     <script>
-        // ❌ REMOVED (Nov 28, 2025): Early ThreadManager.init() call from DOMContentLoaded
+        // ? REMOVED (Nov 28, 2025): Early ThreadManager.init() call from DOMContentLoaded
         // Problem: This runs BEFORE initMultiAgent() creates agent DOM containers
         // Solution: ThreadManager.init() is called at proper time in initializeMainApp()
         //           after initMultiAgent() completes (line ~19284)
@@ -557,13 +557,13 @@
         // REMOVED CODE:
         // document.addEventListener('DOMContentLoaded', async () => {
         //     if (typeof UserAuth !== 'undefined' && UserAuth.token) {
-        //         await ThreadManager.init(); // ← TOO EARLY!
+        //         await ThreadManager.init(); // ? TOO EARLY!
         //     }
         // });
         //
         // ThreadManager.init() now called in correct sequence:
-        // 1. user_auth.js → showMainApp()
-        // 2. business-ai-platform-v2.html → initializeMainApp()
+        // 1. user_auth.js ? showMainApp()
+        // 2. business-ai-platform-v2.html ? initializeMainApp()
         // 3. initMultiAgent() creates DOM
         // 4. ThreadManager.init() loads threads (line 19284)
     </script>
@@ -16347,7 +16347,7 @@
                                         style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); font-size: 18px; font-weight: bold; transition: all 0.2s;"
                                         onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--accent-red)'"
                                         onmouseout="this.style.background='var(--bg-primary)'; this.style.color='var(--text-primary)'"
-                                        title="Close panel">×</button>
+                                        title="Close panel"></button>
                                 </div>
 
                                 <!-- Search and Filters (Enhanced) -->
@@ -18759,7 +18759,7 @@
                         <div
                             style="padding: 12px; background: #EFF6FF; border-left: 3px solid #3B82F6; border-radius: 6px; margin-bottom: 14px;">
                             <div style="font-size: 13px; color: #1E40AF; line-height: 1.6;">
-                                <strong>🔒 Security Notes:</strong> Database connections require network access and
+                                <strong>?? Security Notes:</strong> Database connections require network access and
                                 proper credentials:
                                 <ul style="margin: 8px 0 0 20px; padding: 0;">
                                     <li><strong>Firewall Rules:</strong> Ensure database server allows connections from
@@ -18773,7 +18773,7 @@
                                 </ul>
                                 <div
                                     style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                                    💡 <strong>Tip:</strong> Test connection from your network first using tools like
+                                    ?? <strong>Tip:</strong> Test connection from your network first using tools like
                                     SQL Server Management Studio or pgAdmin before adding here.
                                 </div>
                             </div>
@@ -18868,7 +18868,7 @@
                             <input type="password" id="apiKeyValue" placeholder="sk-..." required
                                 style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
                             <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                                Your API key will be securely encrypted and masked as ••••• when displayed
+                                Your API key will be securely encrypted and masked as  when displayed
                             </div>
                         </div>
 
@@ -18949,7 +18949,7 @@
                             <div class="settings-field">
                                 <label style="font-size: 14px; font-weight: 600;">Password <span
                                         style="color: var(--danger);">*</span></label>
-                                <input type="password" id="databasePassword" placeholder="••••••••" required
+                                <input type="password" id="databasePassword" placeholder="" required
                                     style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
                             </div>
                         </div>
@@ -19244,17 +19244,17 @@
          * Show processing indicator in AI Prime chat
          */
         function showPrimeProcessingIndicator() {
-            console.log('🔄 [Prime] showPrimeProcessingIndicator called');
+            console.log('?? [Prime] showPrimeProcessingIndicator called');
 
             // Get or create indicator
             let indicator = document.getElementById('prime-processing-indicator');
 
             if (!indicator) {
-                console.log('🔨 [Prime] Creating processing indicator element...');
+                console.log('?? [Prime] Creating processing indicator element...');
                 const messagesContainer = document.getElementById('ai-chat-messages');
 
                 if (!messagesContainer) {
-                    console.error('❌ [Prime] Messages container not found!');
+                    console.error('? [Prime] Messages container not found!');
                     return;
                 }
 
@@ -19273,11 +19273,11 @@
 
                 // Append to messages container
                 messagesContainer.appendChild(indicator);
-                console.log('✅ [Prime] Processing indicator created and added to DOM');
+                console.log('? [Prime] Processing indicator created and added to DOM');
             } else {
                 indicator.classList.add('active');
                 indicator.style.display = 'flex';
-                console.log('✅ [Prime] Processing indicator shown - classList:', indicator.classList.toString());
+                console.log('? [Prime] Processing indicator shown - classList:', indicator.classList.toString());
             }
         }
 
@@ -19286,11 +19286,11 @@
          */
         function hidePrimeProcessingIndicator() {
             const indicator = document.getElementById('prime-processing-indicator');
-            console.log('🔄 [Prime] hidePrimeProcessingIndicator called');
+            console.log('?? [Prime] hidePrimeProcessingIndicator called');
             if (indicator) {
                 indicator.classList.remove('active');
                 indicator.style.display = 'none';
-                console.log('✅ [Prime] Processing indicator hidden - classList:', indicator.classList.toString());
+                console.log('? [Prime] Processing indicator hidden - classList:', indicator.classList.toString());
             }
         }
 
@@ -19313,7 +19313,7 @@
         window.updatePrimeProcessingText = updatePrimeProcessingText;
 
         function signInWithMicrosoft() {
-            console.log('🔐 Initiating Microsoft 365 OAuth login...');
+            console.log('?? Initiating Microsoft 365 OAuth login...');
 
             // Use API_BASE_URL which is already set correctly for Render or localhost
             const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
@@ -19325,15 +19325,15 @@
 
             const oauthUrl = `${baseUrl}/api/auth/microsoft/login?redirect_uri=${redirectUri}`;
 
-            console.log('📍 OAuth Base URL:', baseUrl);
-            console.log('🔙 Redirect URI:', currentUrl);
-            console.log('🌐 Full OAuth URL:', oauthUrl);
+            console.log('?? OAuth Base URL:', baseUrl);
+            console.log('?? Redirect URI:', currentUrl);
+            console.log('?? Full OAuth URL:', oauthUrl);
 
             window.location.href = oauthUrl;
         }
 
         function signInWithGoogle() {
-            console.log('🔐 Initiating Google OAuth login...');
+            console.log('?? Initiating Google OAuth login...');
 
             // Use API_BASE_URL which is already set correctly for Render or localhost
             const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
@@ -19345,9 +19345,9 @@
 
             const oauthUrl = `${baseUrl}/api/auth/google/login?redirect_uri=${redirectUri}`;
 
-            console.log('📍 OAuth Base URL:', baseUrl);
-            console.log('🔙 Redirect URI:', currentUrl);
-            console.log('🌐 Full OAuth URL:', oauthUrl);
+            console.log('?? OAuth Base URL:', baseUrl);
+            console.log('?? Redirect URI:', currentUrl);
+            console.log('?? Full OAuth URL:', oauthUrl);
 
             window.location.href = oauthUrl;
         }
@@ -19402,7 +19402,7 @@
         });
 
         // ==================== API CONFIGURATION (MOVED TO LINE ~280) ====================
-        // ✅ API_BASE_URL is now set EARLY in the document (before ThreadManager loads)
+        // ? API_BASE_URL is now set EARLY in the document (before ThreadManager loads)
         // This was moved to prevent ThreadManager from reading undefined and falling back to localhost
 
         // The configuration below is LEGACY and NO LONGER NEEDED:
@@ -19411,15 +19411,15 @@
 
         // Verbose logging for debugging (can be removed after verification)
         console.log('='.repeat(70));
-        console.log('🌍 [RENDER CONFIG] Environment Detection (LEGACY LOGS)');
+        console.log('?? [RENDER CONFIG] Environment Detection (LEGACY LOGS)');
         console.log('='.repeat(70));
         console.log(' Current URL:', window.location.href);
         console.log(' Current protocol:', window.location.protocol);
         console.log(' Current hostname:', window.location.hostname || '(none - file:// protocol)');
         console.log(' Current origin:', window.location.origin || '(no origin)');
         console.log('');
-        console.log(' ✅ API Base URL (set at line ~280):', window.API_BASE_URL);
-        console.log(' ✅ VSA Agent URL (set at line ~280):', window.VSA_API_BASE_URL);
+        console.log(' ? API Base URL (set at line ~280):', window.API_BASE_URL);
+        console.log(' ? VSA Agent URL (set at line ~280):', window.VSA_API_BASE_URL);
         console.log('='.repeat(70));
 
         // ? Supabase Global Configuration (loaded from Flask backend)
@@ -19445,7 +19445,7 @@
                     window.SUPABASE_CONFIG_LOADED = true;
                     console.log('? [SUPABASE] Config loaded:', window.SUPABASE_URL);
 
-                    // ✅ DO NOT CREATE CLIENT HERE - SupabaseConnectionManager handles this
+                    // ? DO NOT CREATE CLIENT HERE - SupabaseConnectionManager handles this
                     // Client creation moved to connection manager to prevent duplicates
                     window.SUPABASE_REALTIME_ENABLED = true;
                     console.log('? [SUPABASE] Config ready for connection manager');
@@ -20636,11 +20636,11 @@
             if (typeof window.initMultiAgent === 'function') {
                 console.log('? [INIT] initMultiAgent found, initializing...');
 
-                // ✅ FIX: Ensure multi-agent tab is active before creating columns
+                // ? FIX: Ensure multi-agent tab is active before creating columns
                 // This prevents DOM elements from being created in a hidden state
                 const multiAgentTab = document.getElementById('tab-multi-agent');
                 if (multiAgentTab && !multiAgentTab.classList.contains('active')) {
-                    console.log('⚠️ [INIT] Multi-agent tab is hidden, activating for DOM initialization...');
+                    console.log('?? [INIT] Multi-agent tab is hidden, activating for DOM initialization...');
                     multiAgentTab.classList.add('active');
 
                     // Also hide home tab temporarily
@@ -20649,12 +20649,12 @@
                         homeTab.classList.remove('active');
                     }
 
-                    console.log('✅ [INIT] Multi-agent tab activated (DOM elements will be visible during creation)');
+                    console.log('? [INIT] Multi-agent tab activated (DOM elements will be visible during creation)');
                 }
 
                 await window.initMultiAgent(); // WAIT for agent columns to be created before restoring threads
 
-                console.log('✅ [INIT] initMultiAgent completed successfully');
+                console.log('? [INIT] initMultiAgent completed successfully');
             } else {
                 console.error('? [INIT] initMultiAgent is not defined - agent-js.js may not have loaded');
                 console.error('? [INIT] Available window properties:', Object.keys(window).filter(k => k.includes('Multi') || k.includes('Agent')));
@@ -20663,14 +20663,14 @@
 
             await loadPlatformStatus();
 
-            // ✅ NOW SAFE: ThreadManager.init() has duplicate prevention with _initialized flag
+            // ? NOW SAFE: ThreadManager.init() has duplicate prevention with _initialized flag
             // It will automatically skip if already initialized by initMultiAgent()
             if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.init === 'function') {
-                console.log('🔧 [INIT] Calling ThreadManager.init() (duplicate-safe)...');
+                console.log('?? [INIT] Calling ThreadManager.init() (duplicate-safe)...');
                 await ThreadManager.init();
-                console.log('✅ [INIT] ThreadManager.init() completed');
+                console.log('? [INIT] ThreadManager.init() completed');
             } else {
-                console.error('❌ [INIT] ThreadManager.init() not available');
+                console.error('? [INIT] ThreadManager.init() not available');
             }
 
             // DISPLAY TOOL STATISTICS
@@ -20811,47 +20811,47 @@
          * - Method availability
          */
         window.debugSidebars = function (sidebarId = null) {
-            console.log('\n🔍 ==================== SIDEBAR DIAGNOSTICS ====================');
-            console.log('⏰ Timestamp:', new Date().toLocaleTimeString());
+            console.log('\n?? ==================== SIDEBAR DIAGNOSTICS ====================');
+            console.log('? Timestamp:', new Date().toLocaleTimeString());
 
             // 1. Check SidebarManager existence
-            console.log('\n📦 SIDEBAR MANAGER STATUS:');
+            console.log('\n?? SIDEBAR MANAGER STATUS:');
             if (typeof window.SidebarManager === 'undefined') {
-                console.error('❌ SidebarManager is NOT defined on window');
-                console.log('   → Check if sidebar-manager.js loaded correctly');
+                console.error('? SidebarManager is NOT defined on window');
+                console.log('   ? Check if sidebar-manager.js loaded correctly');
                 return;
             }
-            console.log('✅ SidebarManager exists:', typeof window.SidebarManager);
+            console.log('? SidebarManager exists:', typeof window.SidebarManager);
             console.log('   Class:', window.SidebarManager.constructor.name);
 
             // 2. List available methods
-            console.log('\n🛠️ AVAILABLE METHODS:');
+            console.log('\n??? AVAILABLE METHODS:');
             const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(window.SidebarManager))
                 .filter(name => typeof window.SidebarManager[name] === 'function' && name !== 'constructor');
             methods.forEach(method => {
-                console.log(`   ✓ ${method}()`);
+                console.log(`   ? ${method}()`);
             });
 
             // 3. Get all registered sidebars
-            console.log('\n📋 REGISTERED SIDEBARS:');
+            console.log('\n?? REGISTERED SIDEBARS:');
             const allSidebars = window.SidebarManager.getAll();
             console.log(`   Total registered: ${allSidebars.length}`);
 
             if (allSidebars.length === 0) {
-                console.warn('⚠️ No sidebars registered! Check sidebar-init.js');
+                console.warn('?? No sidebars registered! Check sidebar-init.js');
                 return;
             }
 
             allSidebars.forEach((sidebar, index) => {
                 const isTarget = sidebarId ? sidebar.id === sidebarId : false;
-                const prefix = isTarget ? '🎯' : '  ';
+                const prefix = isTarget ? '??' : '  ';
 
                 console.log(`\n${prefix} [${index + 1}] ${sidebar.id}`);
                 console.log(`${prefix}     Title: "${sidebar.title}"`);
                 console.log(`${prefix}     Side: ${sidebar.side}`);
                 console.log(`${prefix}     Width: ${sidebar.width}`);
-                console.log(`${prefix}     Open: ${sidebar.isOpen ? '✅ YES' : '❌ NO'}`);
-                console.log(`${prefix}     Initialized: ${sidebar.initialized ? '✅ YES' : '❌ NO'}`);
+                console.log(`${prefix}     Open: ${sidebar.isOpen ? '? YES' : '? NO'}`);
+                console.log(`${prefix}     Initialized: ${sidebar.initialized ? '? YES' : '? NO'}`);
                 console.log(`${prefix}     Toggle Button ID: ${sidebar.toggleButtonId}`);
                 console.log(`${prefix}     Z-Index: ${sidebar.zIndex}`);
 
@@ -20859,7 +20859,7 @@
                 const element = sidebar.element;
                 const button = sidebar.toggleButton;
 
-                console.log(`${prefix}     DOM Element: ${element ? '✅ EXISTS' : '❌ MISSING'}`);
+                console.log(`${prefix}     DOM Element: ${element ? '? EXISTS' : '? MISSING'}`);
                 if (element) {
                     console.log(`${prefix}       - ID: ${element.id}`);
                     console.log(`${prefix}       - Classes: ${element.className}`);
@@ -20874,37 +20874,37 @@
                     const inViewport = rect.left >= 0 && rect.top >= 0 &&
                         rect.right <= window.innerWidth &&
                         rect.bottom <= window.innerHeight;
-                    console.log(`${prefix}       - In Viewport: ${inViewport ? '✅ YES' : '⚠️ NO'}`);
+                    console.log(`${prefix}       - In Viewport: ${inViewport ? '? YES' : '?? NO'}`);
                     console.log(`${prefix}       - Position: (${Math.round(rect.left)}, ${Math.round(rect.top)}) ${Math.round(rect.width)}x${Math.round(rect.height)}`);
                 }
 
-                console.log(`${prefix}     Toggle Button: ${button ? '✅ EXISTS' : '❌ MISSING'}`);
+                console.log(`${prefix}     Toggle Button: ${button ? '? EXISTS' : '? MISSING'}`);
                 if (button) {
                     console.log(`${prefix}       - ID: ${button.id}`);
                     console.log(`${prefix}       - Classes: ${button.className}`);
-                    console.log(`${prefix}       - Visible: ${window.getComputedStyle(button).display !== 'none' ? '✅ YES' : '❌ NO'}`);
+                    console.log(`${prefix}       - Visible: ${window.getComputedStyle(button).display !== 'none' ? '? YES' : '? NO'}`);
                 }
 
                 // Check callbacks
                 console.log(`${prefix}     Callbacks:`);
-                console.log(`${prefix}       - onInit: ${sidebar.onInit ? '✅ SET' : '⚠️ NOT SET'}`);
-                console.log(`${prefix}       - onOpen: ${sidebar.onOpen ? '✅ SET' : '⚠️ NOT SET'}`);
-                console.log(`${prefix}       - onClose: ${sidebar.onClose ? '✅ SET' : '⚠️ NOT SET'}`);
+                console.log(`${prefix}       - onInit: ${sidebar.onInit ? '? SET' : '?? NOT SET'}`);
+                console.log(`${prefix}       - onOpen: ${sidebar.onOpen ? '? SET' : '?? NOT SET'}`);
+                console.log(`${prefix}       - onClose: ${sidebar.onClose ? '? SET' : '?? NOT SET'}`);
             });
 
             // 4. Check active sidebars
-            console.log('\n🔓 CURRENTLY OPEN SIDEBARS:');
+            console.log('\n?? CURRENTLY OPEN SIDEBARS:');
             const activeSidebars = Array.from(window.SidebarManager.activeSidebars || []);
             if (activeSidebars.length === 0) {
                 console.log('   None (all closed)');
             } else {
                 activeSidebars.forEach(id => {
-                    console.log(`   ✓ ${id}`);
+                    console.log(`   ? ${id}`);
                 });
             }
 
             // 5. Check specific sidebar buttons
-            console.log('\n🔘 SIDEBAR BUTTONS IN DOM:');
+            console.log('\n?? SIDEBAR BUTTONS IN DOM:');
             const buttonSelectors = [
                 '[data-action="universal-search"]',
                 '[data-action="vectordb"]',
@@ -20915,51 +20915,51 @@
                 const btn = document.querySelector(`.sidebar-icon-btn${selector}`);
                 console.log(`   ${selector}:`);
                 if (btn) {
-                    console.log(`     ✅ Button exists`);
+                    console.log(`     ? Button exists`);
                     console.log(`     - Classes: ${btn.className}`);
                     console.log(`     - Title: ${btn.title}`);
-                    console.log(`     - Has click listener: ${btn.onclick ? '✅ YES' : '⚠️ Via event delegation'}`);
-                    console.log(`     - Visible: ${window.getComputedStyle(btn).display !== 'none' ? '✅ YES' : '❌ NO'}`);
+                    console.log(`     - Has click listener: ${btn.onclick ? '? YES' : '?? Via event delegation'}`);
+                    console.log(`     - Visible: ${window.getComputedStyle(btn).display !== 'none' ? '? YES' : '? NO'}`);
                 } else {
-                    console.error(`     ❌ Button NOT FOUND in DOM`);
+                    console.error(`     ? Button NOT FOUND in DOM`);
                 }
             });
 
             // 6. Test method calls (if specific sidebar requested)
             if (sidebarId) {
-                console.log(`\n🧪 TESTING METHODS FOR: ${sidebarId}`);
+                console.log(`\n?? TESTING METHODS FOR: ${sidebarId}`);
 
                 try {
                     const isOpen = window.SidebarManager.isOpen(sidebarId);
-                    console.log(`   ✓ isOpen("${sidebarId}"): ${isOpen}`);
+                    console.log(`   ? isOpen("${sidebarId}"): ${isOpen}`);
                 } catch (error) {
-                    console.error(`   ❌ isOpen() failed:`, error.message);
+                    console.error(`   ? isOpen() failed:`, error.message);
                 }
 
                 try {
                     const sidebar = window.SidebarManager.sidebars.get(sidebarId);
                     if (sidebar) {
-                        console.log(`   ✓ Found in sidebars Map`);
-                        console.log(`   ✓ Can call open(): ${typeof window.SidebarManager.open === 'function'}`);
-                        console.log(`   ✓ Can call close(): ${typeof window.SidebarManager.close === 'function'}`);
-                        console.log(`   ✓ Can call toggle(): ${typeof window.SidebarManager.toggle === 'function'}`);
+                        console.log(`   ? Found in sidebars Map`);
+                        console.log(`   ? Can call open(): ${typeof window.SidebarManager.open === 'function'}`);
+                        console.log(`   ? Can call close(): ${typeof window.SidebarManager.close === 'function'}`);
+                        console.log(`   ? Can call toggle(): ${typeof window.SidebarManager.toggle === 'function'}`);
                     } else {
-                        console.error(`   ❌ Sidebar "${sidebarId}" not found in Map`);
+                        console.error(`   ? Sidebar "${sidebarId}" not found in Map`);
                     }
                 } catch (error) {
-                    console.error(`   ❌ Map access failed:`, error.message);
+                    console.error(`   ? Map access failed:`, error.message);
                 }
             }
 
             // 7. Recommendations
-            console.log('\n💡 QUICK ACTIONS:');
+            console.log('\n?? QUICK ACTIONS:');
             console.log('   Test open:  window.SidebarManager.open("universal-search")');
             console.log('   Test close: window.SidebarManager.close("universal-search")');
             console.log('   Test toggle: window.SidebarManager.toggle("vector-database")');
             console.log('   Deep dive:  debugSidebars("communication-hub")');
             console.log('   List all:   window.SidebarManager.getAll()');
 
-            console.log('\n🔍 ==================== END DIAGNOSTICS ====================\n');
+            console.log('\n?? ==================== END DIAGNOSTICS ====================\n');
 
             // Return data object for programmatic use
             return {
@@ -20980,10 +20980,10 @@
         window.dbg = window.debugSidebars;
 
         // Auto-run on console command
-        console.log('🔧 Sidebar diagnostics available:');
-        console.log('   • debugSidebars() - Full diagnostic report');
-        console.log('   • debugSidebars("sidebar-id") - Detailed single sidebar check');
-        console.log('   • dbg() - Shorthand alias');
+        console.log('?? Sidebar diagnostics available:');
+        console.log('    debugSidebars() - Full diagnostic report');
+        console.log('    debugSidebars("sidebar-id") - Detailed single sidebar check');
+        console.log('    dbg() - Shorthand alias');
 
         // ==================== ON PAGE LOAD - AUTH CHECK ONLY ====================
         document.addEventListener('DOMContentLoaded', async () => {
@@ -21018,7 +21018,7 @@
 
             console.log('? [AUTH] UserAuth is now available');
 
-            // ✅ CRITICAL FIX (Nov 27, 2025): Check for OAuth token FIRST before session check
+            // ? CRITICAL FIX (Nov 27, 2025): Check for OAuth token FIRST before session check
             // OAuth callback flow needs special handling because userProfile isn't stored yet
             const urlParams = new URLSearchParams(window.location.search);
             const hasOAuthToken = urlParams.has('token');
@@ -21026,32 +21026,32 @@
             if (hasOAuthToken) {
                 // OAuth callback detected - handle immediately without session check
                 const token = urlParams.get('token');
-                console.log('🔐 [AUTH INIT] OAuth callback detected - token in URL');
-                console.log('🔐 [AUTH INIT] Token length:', token.length);
-                console.log('🔐 [AUTH INIT] Token preview:', token.substring(0, 50) + '...');
+                console.log('?? [AUTH INIT] OAuth callback detected - token in URL');
+                console.log('?? [AUTH INIT] Token length:', token.length);
+                console.log('?? [AUTH INIT] Token preview:', token.substring(0, 50) + '...');
 
                 // Store token in localStorage
                 localStorage.setItem('authToken', token);
-                console.log('✅ [AUTH INIT] Token stored in localStorage');
+                console.log('? [AUTH INIT] Token stored in localStorage');
 
                 if (typeof UserAuth !== 'undefined') {
                     UserAuth.token = token;
-                    console.log('✅ [AUTH INIT] Token set in UserAuth.token');
+                    console.log('? [AUTH INIT] Token set in UserAuth.token');
                 }
 
                 // Clean URL immediately (remove token from browser history)
                 window.history.replaceState({}, document.title, window.location.pathname);
-                console.log('✅ [AUTH INIT] URL cleaned (token removed from browser history)');
+                console.log('? [AUTH INIT] URL cleaned (token removed from browser history)');
 
                 // Call initializeAccountProfile to handle OAuth flow
                 // This will load user profile, then call showMainApp()
-                console.log('🚀 [AUTH INIT] Calling initializeAccountProfile() for OAuth flow...');
+                console.log('?? [AUTH INIT] Calling initializeAccountProfile() for OAuth flow...');
                 if (typeof window.initializeAccountProfile === 'function') {
                     await window.initializeAccountProfile();
                 } else {
-                    console.error('❌ [AUTH INIT] initializeAccountProfile not available!');
+                    console.error('? [AUTH INIT] initializeAccountProfile not available!');
                 }
-                return; // ✅ CRITICAL: Exit early - don't run checkExistingSession()
+                return; // ? CRITICAL: Exit early - don't run checkExistingSession()
             }
 
             try {
@@ -21060,9 +21060,9 @@
                 const isAuthenticated = await UserAuth.checkExistingSession();
 
                 if (isAuthenticated) {
-                    console.log('✅ [AUTH] Session found - Loading main app...');
+                    console.log('? [AUTH] Session found - Loading main app...');
                     await UserAuth.showMainApp();
-                    console.log('✅ [AUTH] Main app loaded (modules initialized)')
+                    console.log('? [AUTH] Main app loaded (modules initialized)')
                 } else {
                     console.log('[AUTH] No active session - Showing login screen...');
 
@@ -21070,7 +21070,7 @@
                     if (typeof window.initializeAccountProfile === 'function') {
                         await window.initializeAccountProfile();
                     } else {
-                        console.warn('⚠️ [AUTH] initializeAccountProfile not available - showing login screen manually');
+                        console.warn('?? [AUTH] initializeAccountProfile not available - showing login screen manually');
                         const loginOverlay = document.getElementById('loginOverlay');
                         if (loginOverlay) {
                             loginOverlay.style.display = 'flex';
@@ -21766,10 +21766,10 @@
                                 },
                                 log: {
                                     info: (...args) => console.log('[CommunicationHub]', ...args),
-                                    success: (...args) => console.log('✅ [CommunicationHub]', ...args),
-                                    error: (...args) => console.error('❌ [CommunicationHub]', ...args),
-                                    warn: (...args) => console.warn('⚠️ [CommunicationHub]', ...args),
-                                    debug: (...args) => console.log('🔍 [CommunicationHub]', ...args)
+                                    success: (...args) => console.log('? [CommunicationHub]', ...args),
+                                    error: (...args) => console.error('? [CommunicationHub]', ...args),
+                                    warn: (...args) => console.warn('?? [CommunicationHub]', ...args),
+                                    debug: (...args) => console.log('?? [CommunicationHub]', ...args)
                                 }
                             };
 
@@ -21790,28 +21790,28 @@
         }
 
         function switchTab(tabId) {
-            console.log(`🔍 [DIAGNOSTIC] ========== SWITCH TAB CALLED ==========`);
-            console.log(`🔍 [DIAGNOSTIC] Target tabId: "${tabId}"`);
-            console.log(`🔍 [DIAGNOSTIC] Looking for element ID: "tab-${tabId}"`);
+            console.log(`?? [DIAGNOSTIC] ========== SWITCH TAB CALLED ==========`);
+            console.log(`?? [DIAGNOSTIC] Target tabId: "${tabId}"`);
+            console.log(`?? [DIAGNOSTIC] Looking for element ID: "tab-${tabId}"`);
 
-            // 🔍 DIAGNOSTIC: Check main-content container
+            // ?? DIAGNOSTIC: Check main-content container
             const mainContent = document.querySelector('.main-content');
-            console.log(`🔍 [DIAGNOSTIC] .main-content exists:`, !!mainContent);
+            console.log(`?? [DIAGNOSTIC] .main-content exists:`, !!mainContent);
             if (mainContent) {
-                console.log(`🔍 [DIAGNOSTIC] .main-content children count:`, mainContent.children.length);
-                console.log(`🔍 [DIAGNOSTIC] .main-content display style:`, window.getComputedStyle(mainContent).display);
+                console.log(`?? [DIAGNOSTIC] .main-content children count:`, mainContent.children.length);
+                console.log(`?? [DIAGNOSTIC] .main-content display style:`, window.getComputedStyle(mainContent).display);
             } else {
-                console.error(`❌ [CRITICAL] .main-content container MISSING!`);
+                console.error(`? [CRITICAL] .main-content container MISSING!`);
             }
 
-            // 🔍 DIAGNOSTIC: List all tab-content elements
+            // ?? DIAGNOSTIC: List all tab-content elements
             const allTabs = document.querySelectorAll('.tab-content');
-            console.log(`🔍 [DIAGNOSTIC] Total .tab-content elements found:`, allTabs.length);
-            console.log(`🔍 [DIAGNOSTIC] All tab IDs:`, Array.from(allTabs).map(t => t.id));
-            console.log(`🔍 [DIAGNOSTIC] Active tabs before switch:`,
+            console.log(`?? [DIAGNOSTIC] Total .tab-content elements found:`, allTabs.length);
+            console.log(`?? [DIAGNOSTIC] All tab IDs:`, Array.from(allTabs).map(t => t.id));
+            console.log(`?? [DIAGNOSTIC] Active tabs before switch:`,
                 Array.from(allTabs).filter(t => t.classList.contains('active')).map(t => t.id));
 
-            console.log(`📍 Switching to tab: ${tabId}`);
+            console.log(`?? Switching to tab: ${tabId}`);
 
             // Disconnect WebSocket if leaving Synergy tab
             if (AppState.currentTab === 'synergy' && tabId !== 'synergy') {
@@ -21825,37 +21825,37 @@
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            console.log(`🔍 [DIAGNOSTIC] All tabs hidden (active class removed)`);
+            console.log(`?? [DIAGNOSTIC] All tabs hidden (active class removed)`);
 
             // Show selected tab
             const targetTab = document.getElementById(`tab-${tabId}`);
-            console.log(`🔍 [DIAGNOSTIC] getElementById("tab-${tabId}") result:`, !!targetTab);
+            console.log(`?? [DIAGNOSTIC] getElementById("tab-${tabId}") result:`, !!targetTab);
 
             if (targetTab) {
-                console.log(`✅ [DIAGNOSTIC] Target tab FOUND! Adding active class...`);
+                console.log(`? [DIAGNOSTIC] Target tab FOUND! Adding active class...`);
                 targetTab.classList.add('active');
                 AppState.currentTab = tabId;
 
                 // Verify tab is actually visible
                 const computedDisplay = window.getComputedStyle(targetTab).display;
-                console.log(`🔍 [DIAGNOSTIC] Target tab display after activation:`, computedDisplay);
-                console.log(`🔍 [DIAGNOSTIC] Target tab classes:`, targetTab.className);
+                console.log(`?? [DIAGNOSTIC] Target tab display after activation:`, computedDisplay);
+                console.log(`?? [DIAGNOSTIC] Target tab classes:`, targetTab.className);
 
-                // ✅ FIX: Notify ModuleLoader about tab switch
+                // ? FIX: Notify ModuleLoader about tab switch
                 if (window.moduleLoader) {
                     console.log('[ModuleLoader] Switching to main tab:', tabId);
                     // ModuleLoader will handle showing the module's content
                 }
             } else {
-                console.error(`❌ [CRITICAL] Tab not found: tab-${tabId}`);
-                console.error(`❌ [CRITICAL] This tab does not exist in the DOM!`);
-                console.error(`❌ [CRITICAL] Available tabs:`, Array.from(allTabs).map(t => t.id));
+                console.error(`? [CRITICAL] Tab not found: tab-${tabId}`);
+                console.error(`? [CRITICAL] This tab does not exist in the DOM!`);
+                console.error(`? [CRITICAL] Available tabs:`, Array.from(allTabs).map(t => t.id));
             }
 
-            console.log(`🔍 [DIAGNOSTIC] Active tabs after switch:`,
+            console.log(`?? [DIAGNOSTIC] Active tabs after switch:`,
                 Array.from(document.querySelectorAll('.tab-content'))
                     .filter(t => t.classList.contains('active')).map(t => t.id));
-            console.log(`🔍 [DIAGNOSTIC] ========== SWITCH TAB COMPLETE ==========`);
+            console.log(`?? [DIAGNOSTIC] ========== SWITCH TAB COMPLETE ==========`);
 
             // Update sidebar button active states
             document.querySelectorAll('.sidebar-icon-btn').forEach(btn => {
@@ -21878,13 +21878,13 @@
 
                 const initSynergyBoard = async () => {
                     if (typeof window.synergyBoard !== 'undefined' && window.synergyBoard) {
-                        console.log('✅ [SYNERGY] synergyBoard available immediately');
+                        console.log('? [SYNERGY] synergyBoard available immediately');
                         try {
                             await window.synergyBoard.ensureInitialized();
-                            console.log('✅ [SYNERGY] Board initialized and sessions loaded');
+                            console.log('? [SYNERGY] Board initialized and sessions loaded');
                             window.synergyBoard.refreshBoard();
                         } catch (err) {
-                            console.error('❌ [SYNERGY] Error initializing board:', err);
+                            console.error('? [SYNERGY] Error initializing board:', err);
                             // Try refreshBoard anyway
                             if (typeof window.synergyBoard.refreshBoard === 'function') {
                                 window.synergyBoard.refreshBoard();
@@ -21893,11 +21893,11 @@
                     } else if (retryCount < maxRetries) {
                         retryCount++;
                         if (retryCount === 1 || retryCount % 10 === 0) {
-                            console.log(`⏳ [SYNERGY] Waiting for synergyBoard to load... (${retryCount}/${maxRetries})`);
+                            console.log(`? [SYNERGY] Waiting for synergyBoard to load... (${retryCount}/${maxRetries})`);
                         }
                         setTimeout(initSynergyBoard, 100);
                     } else {
-                        console.error('❌ [SYNERGY] Timeout: window.synergyBoard not loaded after 5 seconds');
+                        console.error('? [SYNERGY] Timeout: window.synergyBoard not loaded after 5 seconds');
                         console.error('   Check if <script> defining synergyBoard is present in HTML');
                     }
                 };
@@ -21943,13 +21943,13 @@
                 } else {
                     console.log('[AUTOMATION] Canvas already initialized');
 
-                    // ✅ FIX: Always verify and re-attach event listeners when tab becomes active
-                    console.log('[AUTOMATION] ⚡ Verifying event listeners...');
+                    // ? FIX: Always verify and re-attach event listeners when tab becomes active
+                    console.log('[AUTOMATION] ? Verifying event listeners...');
                     if (typeof window.automationCanvas.verifyEventListeners === 'function') {
                         const result = window.automationCanvas.verifyEventListeners();
-                        console.log(`[AUTOMATION] ✅ Event listeners ready (${result.attached} attached, ${result.missing} missing)`);
+                        console.log(`[AUTOMATION] ? Event listeners ready (${result.attached} attached, ${result.missing} missing)`);
                     } else {
-                        console.warn('[AUTOMATION] ⚠️ verifyEventListeners() not found - using fallback');
+                        console.warn('[AUTOMATION] ?? verifyEventListeners() not found - using fallback');
                         if (typeof window.automationCanvas.setupEventListeners === 'function') {
                             window.automationCanvas.setupEventListeners();
                         }
@@ -23383,7 +23383,7 @@
                 const btn = event.target.closest('button');
                 const originalHTML = btn.innerHTML;
 
-                console.log('%c🔧 [DEBUG] Forcing module load...', 'color: #ff6b6b; font-size: 16px; font-weight: bold');
+                console.log('%c?? [DEBUG] Forcing module load...', 'color: #ff6b6b; font-size: 16px; font-weight: bold');
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
                 btn.disabled = true;
 
@@ -23392,7 +23392,7 @@
                     const mods = window.ModuleManager?.getModules() || [];
                     btn.innerHTML = `<i class="fas fa-check"></i> Loaded ${mods.length}`;
                     btn.style.background = '#51cf66';
-                    console.log(`%c✅ Loaded ${mods.length} modules`, 'color: #51cf66; font-weight: bold', mods.map(m => m.name));
+                    console.log(`%c? Loaded ${mods.length} modules`, 'color: #51cf66; font-weight: bold', mods.map(m => m.name));
                     this.updateStatus();
 
                     setTimeout(() => {
@@ -23403,7 +23403,7 @@
                 } catch (e) {
                     btn.innerHTML = '<i class="fas fa-times"></i> Error';
                     btn.style.background = '#ff6b6b';
-                    console.error('%c❌ Failed:', 'color: red; font-weight: bold', e);
+                    console.error('%c? Failed:', 'color: red; font-weight: bold', e);
                     this.updateStatus();
 
                     setTimeout(() => {
@@ -23416,78 +23416,78 @@
 
             async runDiagnostics() {
                 console.clear();
-                console.log('%c═══════════════════════════════════════════════════', 'color: #3B82F6; font-weight: bold');
+                console.log('%c---------------------------------------------------', 'color: #3B82F6; font-weight: bold');
                 console.log('%c    MODULE SYSTEM DIAGNOSTIC TEST', 'color: #3B82F6; font-size: 16px; font-weight: bold');
-                console.log('%c═══════════════════════════════════════════════════', 'color: #3B82F6; font-weight: bold');
+                console.log('%c---------------------------------------------------', 'color: #3B82F6; font-weight: bold');
                 console.log('');
 
                 // TEST 1: Check Classes
-                console.log('%c▶ TEST 1: Core Classes', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
-                console.log('  ModuleManager class:', typeof ModuleManager !== 'undefined' ? '✅ FOUND' : '❌ MISSING');
-                console.log('  ModuleLoader class:', typeof ModuleLoader !== 'undefined' ? '✅ FOUND' : '❌ MISSING');
-                console.log('  window.initializeModuleSystem:', typeof window.initializeModuleSystem === 'function' ? '✅ FOUND' : '❌ MISSING');
+                console.log('%c? TEST 1: Core Classes', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('  ModuleManager class:', typeof ModuleManager !== 'undefined' ? '? FOUND' : '? MISSING');
+                console.log('  ModuleLoader class:', typeof ModuleLoader !== 'undefined' ? '? FOUND' : '? MISSING');
+                console.log('  window.initializeModuleSystem:', typeof window.initializeModuleSystem === 'function' ? '? FOUND' : '? MISSING');
                 console.log('');
 
                 // TEST 2: Check DOM
-                console.log('%c▶ TEST 2: DOM Elements', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c? TEST 2: DOM Elements', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 const sidebar = document.querySelector('.sidebar');
                 const mainContent = document.querySelector('.main-content');
                 const moduleSection = document.getElementById('sidebarModulesSection');
-                console.log('  .sidebar:', sidebar ? '✅ FOUND' : '❌ MISSING');
-                console.log('    - Visible:', sidebar ? (sidebar.offsetParent !== null ? '✅ YES' : '⚠️ NO') : 'N/A');
-                console.log('  .main-content:', mainContent ? '✅ FOUND' : '❌ MISSING');
-                console.log('    - Visible:', mainContent ? (mainContent.offsetParent !== null ? '✅ YES' : '⚠️ NO') : 'N/A');
-                console.log('  #sidebarModulesSection:', moduleSection ? '✅ FOUND' : '❌ MISSING');
+                console.log('  .sidebar:', sidebar ? '? FOUND' : '? MISSING');
+                console.log('    - Visible:', sidebar ? (sidebar.offsetParent !== null ? '? YES' : '?? NO') : 'N/A');
+                console.log('  .main-content:', mainContent ? '? FOUND' : '? MISSING');
+                console.log('    - Visible:', mainContent ? (mainContent.offsetParent !== null ? '? YES' : '?? NO') : 'N/A');
+                console.log('  #sidebarModulesSection:', moduleSection ? '? FOUND' : '? MISSING');
                 console.log('');
 
                 // TEST 3: Check ModuleManager Instance
-                console.log('%c▶ TEST 3: ModuleManager Instance', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c? TEST 3: ModuleManager Instance', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 if (window.ModuleManager) {
-                    console.log('  window.ModuleManager:', '✅ EXISTS');
+                    console.log('  window.ModuleManager:', '? EXISTS');
                     console.log('  Type:', typeof window.ModuleManager);
-                    console.log('  Has initialize():', typeof window.ModuleManager.initialize === 'function' ? '✅ YES' : '❌ NO');
-                    console.log('  Has getModules():', typeof window.ModuleManager.getModules === 'function' ? '✅ YES' : '❌ NO');
-                    console.log('  sidebar property:', window.ModuleManager.sidebar ? '✅ SET' : '⚠️ NULL');
-                    console.log('  mainContent property:', window.ModuleManager.mainContent ? '✅ SET' : '⚠️ NULL');
+                    console.log('  Has initialize():', typeof window.ModuleManager.initialize === 'function' ? '? YES' : '? NO');
+                    console.log('  Has getModules():', typeof window.ModuleManager.getModules === 'function' ? '? YES' : '? NO');
+                    console.log('  sidebar property:', window.ModuleManager.sidebar ? '? SET' : '?? NULL');
+                    console.log('  mainContent property:', window.ModuleManager.mainContent ? '? SET' : '?? NULL');
                 } else {
-                    console.log('  window.ModuleManager:', '❌ NOT FOUND');
+                    console.log('  window.ModuleManager:', '? NOT FOUND');
                 }
                 console.log('');
 
                 // TEST 4: Try to fetch manifest.json
-                console.log('%c▶ TEST 4: Manifest Access', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c? TEST 4: Manifest Access', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 try {
                     const response = await fetch('modules_external/manifest.json');
-                    console.log('  HTTP Status:', response.status === 200 ? '✅ 200 OK' : `❌ ${response.status}`);
+                    console.log('  HTTP Status:', response.status === 200 ? '? 200 OK' : `? ${response.status}`);
                     if (response.ok) {
                         const data = await response.json();
                         console.log('  Module count in manifest:', data.length);
                         console.log('  Modules:', data.map(m => m.name).join(', '));
                     }
                 } catch (e) {
-                    console.log('  Fetch error:', '❌', e.message);
+                    console.log('  Fetch error:', '?', e.message);
                 }
                 console.log('');
 
                 // TEST 5: Check current module state
-                console.log('%c▶ TEST 5: Current Module State', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c? TEST 5: Current Module State', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 if (window.ModuleManager && window.ModuleManager.getModules) {
                     const modules = window.ModuleManager.getModules();
-                    console.log('  Loaded modules count:', modules.length > 0 ? `✅ ${modules.length}` : '⚠️ 0');
+                    console.log('  Loaded modules count:', modules.length > 0 ? `? ${modules.length}` : '?? 0');
                     if (modules.length > 0) {
                         console.log('  Module names:');
                         modules.forEach(m => console.log(`    - ${m.name} (${m.id})`));
                     }
                 } else {
-                    console.log('  Cannot check:', '❌ ModuleManager.getModules not available');
+                    console.log('  Cannot check:', '? ModuleManager.getModules not available');
                 }
                 console.log('');
 
                 // TEST 6: Check sidebar icons
-                console.log('%c▶ TEST 6: Sidebar Icon Count', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c? TEST 6: Sidebar Icon Count', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 if (moduleSection) {
                     const iconCount = moduleSection.children.length;
-                    console.log('  Icons in sidebar:', iconCount > 0 ? `✅ ${iconCount}` : '⚠️ 0');
+                    console.log('  Icons in sidebar:', iconCount > 0 ? `? ${iconCount}` : '?? 0');
                     if (iconCount > 0) {
                         console.log('  Icon elements:');
                         Array.from(moduleSection.children).forEach((el, i) => {
@@ -23496,27 +23496,27 @@
                         });
                     }
                 } else {
-                    console.log('  Cannot check:', '❌ #sidebarModulesSection not found');
+                    console.log('  Cannot check:', '? #sidebarModulesSection not found');
                 }
                 console.log('');
 
                 // TEST 7: Try manual initialization
-                console.log('%c▶ TEST 7: Manual Initialization Test', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c? TEST 7: Manual Initialization Test', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 console.log('  Calling window.initializeModuleSystem(true)...');
                 try {
                     await window.initializeModuleSystem(true);
-                    console.log('  Result:', '✅ SUCCESS (no error thrown)');
+                    console.log('  Result:', '? SUCCESS (no error thrown)');
                     const mods = window.ModuleManager?.getModules() || [];
                     console.log('  Modules after init:', mods.length);
                 } catch (e) {
-                    console.log('  Result:', '❌ ERROR');
+                    console.log('  Result:', '? ERROR');
                     console.error('  Error details:', e);
                 }
                 console.log('');
 
-                console.log('%c═══════════════════════════════════════════════════', 'color: #22C55E; font-weight: bold');
+                console.log('%c---------------------------------------------------', 'color: #22C55E; font-weight: bold');
                 console.log('%c    DIAGNOSTIC COMPLETE', 'color: #22C55E; font-size: 16px; font-weight: bold');
-                console.log('%c═══════════════════════════════════════════════════', 'color: #22C55E; font-weight: bold');
+                console.log('%c---------------------------------------------------', 'color: #22C55E; font-weight: bold');
 
                 this.updateStatus();
             },
@@ -23561,7 +23561,7 @@
                         html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(34, 197, 94, 0.2);">';
                         html += '<div style="font-size: 11px; color: #6B7280; margin-bottom: 4px;">Loaded Modules:</div>';
                         modules.forEach(m => {
-                            html += `<div style="font-size: 11px; color: #9CA3AF; padding-left: 8px;">• ${m.name}</div>`;
+                            html += `<div style="font-size: 11px; color: #9CA3AF; padding-left: 8px;"> ${m.name}</div>`;
                         });
                         html += '</div>';
                     }
@@ -23689,10 +23689,10 @@
                 // Canvas instance details
                 if (canvas) {
                     html += '<div style="font-weight: bold; color: #60A5FA; margin-top: 12px; margin-bottom: 8px; padding-top: 12px; border-top: 1px solid #374151;"><i class="fas fa-info-circle"></i> Canvas Instance</div>';
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• panX: <span style="color: #A78BFA;">${canvas.panX || 0}</span></div>`;
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• panY: <span style="color: #A78BFA;">${canvas.panY || 0}</span></div>`;
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• zoom: <span style="color: #A78BFA;">${canvas.zoom || 1}</span></div>`;
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• isDragging: <span style="color: #A78BFA;">${canvas.isDragging || false}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> panX: <span style="color: #A78BFA;">${canvas.panX || 0}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> panY: <span style="color: #A78BFA;">${canvas.panY || 0}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> zoom: <span style="color: #A78BFA;">${canvas.zoom || 1}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> isDragging: <span style="color: #A78BFA;">${canvas.isDragging || false}</span></div>`;
                 }
 
                 output.innerHTML = html;
@@ -23751,7 +23751,7 @@
 
                 console.log('='.repeat(60));
 
-                alert('✅ Debug info dumped to console (F12)');
+                alert('? Debug info dumped to console (F12)');
             }
         };
 
@@ -23762,11 +23762,12 @@
             AutomationDebug.init();
         }
     </script>
+</script>
 
     <!-- ==================== VOICE TRANSCRIPTION INTEGRATION ==================== -->
     <!-- CRITICAL: Load config.js FIRST - provides centralized API endpoint management -->
     <script src="modules_internal/transcription/config.js"></script>
-    <!-- ❌ STT-MODULE.JS DISABLED - CAUSES WHISPER BACKEND ERRORS -->
+    <!-- ? STT-MODULE.JS DISABLED - CAUSES WHISPER BACKEND ERRORS -->
     <!-- This module creates MediaRecorder that conflicts with Browser STT -->
     <!-- <script src="modules_internal/transcription/stt-module.js"></script> -->
     <script src="modules_internal/transcription/tts-module.js"></script>
@@ -23803,7 +23804,7 @@
                     console.log('[TRANSCRIPTION] Sidebar loaded and initialized');
                 }
 
-                // ✅ Register chat button UI updates with SharedTranscriptionState
+                // ? Register chat button UI updates with SharedTranscriptionState
                 if (window.SharedTranscriptionState) {
                     window.SharedTranscriptionState.on('onStart', () => {
                         const micBtn = document.getElementById('ai-chat-mic-btn');
@@ -23828,7 +23829,7 @@
                     console.log('[TRANSCRIPTION] Chat button UI callbacks registered with SharedTranscriptionState');
                 }
 
-                // ✅ Define toggleTranscriptionRecording function AFTER SharedTranscriptionState is available
+                // ? Define toggleTranscriptionRecording function AFTER SharedTranscriptionState is available
                 window.toggleTranscriptionRecording = function () {
                     // Use shared transcription state (connected to sidebar)
                     if (!window.SharedTranscriptionState) {
@@ -23842,8 +23843,8 @@
                         console.log('[TRANSCRIPTION] Stopping via chat button');
                         window.SharedTranscriptionState.stopRecording();
                     } else {
-                        console.log('[TRANSCRIPTION] Starting via chat button → will stream to chat input');
-                        window.SharedTranscriptionState.startRecording('chat')  // ✅ Pass 'chat' as source
+                        console.log('[TRANSCRIPTION] Starting via chat button ? will stream to chat input');
+                        window.SharedTranscriptionState.startRecording('chat')  // ? Pass 'chat' as source
                             .catch(error => {
                                 console.error('[TRANSCRIPTION] Failed to start:', error);
                                 alert('Could not start recording: ' + error.message);
@@ -23857,20 +23858,20 @@
                 console.error('[TRANSCRIPTION] Failed to load sidebar:', error);
             });
 
-        // ✅ REMOVED: Duplicate STTModule initialization
+        // ? REMOVED: Duplicate STTModule initialization
         // SharedTranscriptionState already handles recording via Browser Web Speech API
-        // ❌ COMPLETELY DISABLED - Causes microphone conflict with SharedTranscriptionState
+        // ? COMPLETELY DISABLED - Causes microphone conflict with SharedTranscriptionState
         let sttModule = null;
 
         function initializeSTTModule() {
-            console.log('[TRANSCRIPTION] ❌ STTModule DISABLED - Using SharedTranscriptionState only');
+            console.log('[TRANSCRIPTION] ? STTModule DISABLED - Using SharedTranscriptionState only');
             console.log('[TRANSCRIPTION] Do NOT initialize STTModule - causes audio-capture errors');
             // CRITICAL: STTModule MediaRecorder conflicts with SharedTranscriptionState browserRecognition
             // Browser only allows ONE audio consumer at a time
             // SharedTranscriptionState provides instant streaming via Web Speech API
-            return; // ← EXIT IMMEDIATELY - DO NOT CREATE STTMODULE
+            return; // ? EXIT IMMEDIATELY - DO NOT CREATE STTMODULE
 
-            /* ❌❌❌ NEVER UNCOMMENT THIS - CAUSES AUDIO-CAPTURE ERRORS ❌❌❌
+            /* ??? NEVER UNCOMMENT THIS - CAUSES AUDIO-CAPTURE ERRORS ???
             if (sttModule) return;
 
             sttModule = new STTModule({
@@ -23945,7 +23946,7 @@
             });
 
             console.log('[TRANSCRIPTION] STT Module initialized');
-            */ // ← END OF COMMENTED OUT CODE
+            */ // ? END OF COMMENTED OUT CODE
         }
 
         // Note: toggleTranscriptionRecording() is defined in the sidebar initialization callback above
@@ -24362,7 +24363,7 @@
                     if (!sidebar.classList.contains('collapsed')) {
                         console.log('[ACCOUNT SIDEBAR] Sidebar opened - loading user info and OAuth connections');
                         this.loadUserInfo();
-                        this.loadOAuthConnections(); // ✅ Auto-load connections when sidebar opens
+                        this.loadOAuthConnections(); // ? Auto-load connections when sidebar opens
                         this.loadTabContent(this.currentTab);
                     }
                 }
@@ -24558,7 +24559,7 @@
                     return;
                 }
 
-                // ✅ Auto-expand OAuth section when connections are present
+                // ? Auto-expand OAuth section when connections are present
                 const expandSection = document.getElementById('oauthConnectionsExpand');
                 const chevron = document.getElementById('userExpandChevron');
                 if (expandSection && expandSection.classList.contains('collapsed')) {
@@ -24694,7 +24695,7 @@
                             role: roleEl?.textContent
                         });
 
-                        // ✅ Auto-load OAuth connections after user info loads
+                        // ? Auto-load OAuth connections after user info loads
                         console.log('[ACCOUNT SIDEBAR] Auto-loading OAuth connections after profile load');
                         this.loadOAuthConnections();
                     }
@@ -25492,7 +25493,7 @@
          */
         const platformGuidance = {
             'xero': {
-                title: '🔁 Two-Way Connection Required',
+                title: '?? Two-Way Connection Required',
                 content: `
                     <strong>Important:</strong> Xero requires bidirectional OAuth setup, not just API key entry.
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25503,18 +25504,18 @@
                         <li><strong>Configure Webhooks:</strong> After connecting, set up webhook endpoint for real-time invoice/payment updates</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">
-                        ⚠️ Connection is incomplete until webhooks are verified. You must handle webhook signatures and respond to Xero's validation requests.
+                        ?? Connection is incomplete until webhooks are verified. You must handle webhook signatures and respond to Xero's validation requests.
                     </div>
                 `
             },
             'shopify': {
-                title: '🛍️ App Installation Required',
+                title: '??? App Installation Required',
                 content: `
                     <strong>Setup Steps:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
-                        <li><strong>Admin Access:</strong> Go to your Shopify Admin → Apps → Develop apps</li>
+                        <li><strong>Admin Access:</strong> Go to your Shopify Admin ? Apps ? Develop apps</li>
                         <li><strong>Create App:</strong> Click "Create an app" and name it (e.g., "AI Agent Integration")</li>
-                        <li><strong>Configure Scopes:</strong> Under API credentials → Admin API, select required scopes:
+                        <li><strong>Configure Scopes:</strong> Under API credentials ? Admin API, select required scopes:
                             <ul style="margin: 4px 0 0 20px;">
                                 <li>read_products, write_products (inventory management)</li>
                                 <li>read_orders, write_orders (order processing)</li>
@@ -25525,12 +25526,12 @@
                         <li><strong>Store URL:</strong> Your store URL is <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">yourstore.myshopify.com</code></li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        💡 <strong>Tip:</strong> Use custom app for private integrations. For public apps, use OAuth flow instead.
+                        ?? <strong>Tip:</strong> Use custom app for private integrations. For public apps, use OAuth flow instead.
                     </div>
                 `
             },
             'stripe': {
-                title: '💳 Test vs Production Keys',
+                title: '?? Test vs Production Keys',
                 content: `
                     <strong>Getting Your Keys:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25545,42 +25546,42 @@
                         <li><strong>Restricted Keys:</strong> For security, create restricted keys with only needed permissions</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">
-                        ⚠️ <strong>Never</strong> commit live keys to code. Always use test keys for development/staging.
+                        ?? <strong>Never</strong> commit live keys to code. Always use test keys for development/staging.
                     </div>
                 `
             },
             'openai': {
-                title: '🤖 OpenAI API Setup',
+                title: '?? OpenAI API Setup',
                 content: `
                     <strong>Quick Setup:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
                         <li><strong>Account:</strong> Visit <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #3B82F6;">OpenAI Platform</a></li>
                         <li><strong>Create Key:</strong> Click "Create new secret key" and name it (e.g., "AI Agent Integration")</li>
                         <li><strong>Copy Key:</strong> Key format: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">sk-...</code> (save immediately - shown only once!)</li>
-                        <li><strong>Set Limits:</strong> Configure usage limits in Settings → Limits to prevent unexpected charges</li>
+                        <li><strong>Set Limits:</strong> Configure usage limits in Settings ? Limits to prevent unexpected charges</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        💡 <strong>Usage:</strong> Monitor token usage in Usage dashboard. GPT-4 costs more than GPT-3.5 - set appropriate model defaults.
+                        ?? <strong>Usage:</strong> Monitor token usage in Usage dashboard. GPT-4 costs more than GPT-3.5 - set appropriate model defaults.
                     </div>
                 `
             },
             'anthropic': {
-                title: '🧠 Claude API Setup',
+                title: '?? Claude API Setup',
                 content: `
                     <strong>Getting Started:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
                         <li><strong>Console:</strong> Visit <a href="https://console.anthropic.com/" target="_blank" style="color: #3B82F6;">Anthropic Console</a></li>
-                        <li><strong>Create Key:</strong> Go to Settings → API Keys → Create Key</li>
+                        <li><strong>Create Key:</strong> Go to Settings ? API Keys ? Create Key</li>
                         <li><strong>Key Format:</strong> <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">sk-ant-...</code></li>
                         <li><strong>Workspaces:</strong> Claude supports multiple workspaces for team organization</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        💡 <strong>Features:</strong> Claude excels at analysis, coding, and long context windows (200K tokens). Use for complex reasoning tasks.
+                        ?? <strong>Features:</strong> Claude excels at analysis, coding, and long context windows (200K tokens). Use for complex reasoning tasks.
                     </div>
                 `
             },
             'pinecone': {
-                title: '🔍 Vector Database Setup',
+                title: '?? Vector Database Setup',
                 content: `
                     <strong>Setup Process:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25592,16 +25593,16 @@
                                 <li>3072 dimensions - OpenAI text-embedding-3-large</li>
                             </ul>
                         </li>
-                        <li><strong>Get Credentials:</strong> Go to API Keys → Copy your API key and environment (e.g., us-west1-gcp, us-east-1-aws)</li>
+                        <li><strong>Get Credentials:</strong> Go to API Keys ? Copy your API key and environment (e.g., us-west1-gcp, us-east-1-aws)</li>
                         <li><strong>Index Details:</strong> Note your index name and optionally create namespaces for multi-tenant isolation</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        💡 <strong>Use Case:</strong> Pinecone stores vector embeddings for semantic search, RAG (Retrieval-Augmented Generation), and document similarity matching. Namespace field is optional - use for organizing vectors by user, project, or category.
+                        ?? <strong>Use Case:</strong> Pinecone stores vector embeddings for semantic search, RAG (Retrieval-Augmented Generation), and document similarity matching. Namespace field is optional - use for organizing vectors by user, project, or category.
                     </div>
                 `
             },
             'voyager': {
-                title: '🚀 Voyager AI Embedding Provider',
+                title: '?? Voyager AI Embedding Provider',
                 content: `
                     <strong>Getting Started:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25617,23 +25618,23 @@
                         <li><strong>Pricing:</strong> Pay-as-you-go based on tokens processed</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        💡 <strong>Use Case:</strong> Voyager AI generates vector embeddings for text. Use with Pinecone for semantic search. Model selection affects embedding quality and dimensions - ensure your Pinecone index matches model dimensions!
+                        ?? <strong>Use Case:</strong> Voyager AI generates vector embeddings for text. Use with Pinecone for semantic search. Model selection affects embedding quality and dimensions - ensure your Pinecone index matches model dimensions!
                     </div>
                 `
             },
             'twilio': {
-                title: '📱 SMS/Voice API Setup',
+                title: '?? SMS/Voice API Setup',
                 content: `
                     <strong>Getting Credentials:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
                         <li><strong>Console:</strong> Visit <a href="https://console.twilio.com/" target="_blank" style="color: #3B82F6;">Twilio Console</a></li>
                         <li><strong>Account SID:</strong> Find on console home page (starts with AC...)</li>
                         <li><strong>Auth Token:</strong> Click "Show" to reveal auth token</li>
-                        <li><strong>Phone Numbers:</strong> Buy/configure phone numbers under Phone Numbers → Manage → Buy a number</li>
+                        <li><strong>Phone Numbers:</strong> Buy/configure phone numbers under Phone Numbers ? Manage ? Buy a number</li>
                         <li><strong>Webhooks:</strong> Configure webhook URLs for incoming messages/calls</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        💡 <strong>Requirements:</strong> You need both Account SID and Auth Token. Phone numbers cost $1-2/month each.
+                        ?? <strong>Requirements:</strong> You need both Account SID and Auth Token. Phone numbers cost $1-2/month each.
                     </div>
                 `
             }
@@ -25758,9 +25759,9 @@
                     <div style="padding: 10px; background: #F0F9FF; border-left: 3px solid #3B82F6; border-radius: 6px; margin-top: 10px;">
                         <div style="font-size: 12px; color: #1E40AF; line-height: 1.6;">
                             <strong>Model Selection Guide:</strong><br>
-                            • <strong>voyage-2</strong>: Best for general text, documents, and semantic search (1024 dims)<br>
-                            • <strong>voyage-large-2</strong>: Higher quality embeddings, better accuracy (1536 dims)<br>
-                            • <strong>voyage-code-2</strong>: Optimized for code, technical documentation, and programming content (1536 dims)
+                             <strong>voyage-2</strong>: Best for general text, documents, and semantic search (1024 dims)<br>
+                             <strong>voyage-large-2</strong>: Higher quality embeddings, better accuracy (1536 dims)<br>
+                             <strong>voyage-code-2</strong>: Optimized for code, technical documentation, and programming content (1536 dims)
                         </div>
                     </div>
                 `;
@@ -26168,7 +26169,7 @@
                                 ` : ''}
                                 <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
                                     <span style="font-family: monospace; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 11px;">
-                                        ${cred.credential_value_masked || '••••••••'}
+                                        ${cred.credential_value_masked || ''}
                                     </span>
                                     ${cred.credential_key ? `<span style="opacity: 0.7;">(${cred.credential_key})</span>` : ''}
                                 </div>
