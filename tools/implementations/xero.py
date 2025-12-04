@@ -517,18 +517,20 @@ def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
                 'currency': inv.get('CurrencyCode')
             })
         
-        # Render as Markdown table
-        markdown_output = _render_invoices_markdown(formatted_invoices, client.config['name'])
-        
-        # CRITICAL FIX (Dec 4, 2025): Truncate large result sets to prevent token overflow
+        # CRITICAL FIX (Dec 4, 2025): Truncate large result sets BEFORE rendering
         # Xero can return thousands of invoices causing 5M+ token responses
         MAX_INVOICES = 100
         truncated = False
+        truncated_count = len(formatted_invoices)
+        
         if len(formatted_invoices) > MAX_INVOICES:
             truncated = True
-            truncated_count = len(formatted_invoices)
             formatted_invoices = formatted_invoices[:MAX_INVOICES]
-            markdown_output = _render_invoices_markdown(formatted_invoices, client.config['name'])
+        
+        # Render ONLY the truncated list (not the full list)
+        markdown_output = _render_invoices_markdown(formatted_invoices, client.config['name'])
+        
+        if truncated:
             markdown_output += f"\n\n⚠️ **TRUNCATED**: Showing {MAX_INVOICES} of {truncated_count} invoices. Use filters (status, contact_name, date_range) to narrow results."
         
         return {
