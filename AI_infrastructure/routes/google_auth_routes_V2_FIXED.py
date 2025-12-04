@@ -644,6 +644,10 @@ def google_callback():
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # PostgreSQL needs TRUE/FALSE for boolean columns (define BEFORE conditional)
+        from shared.database_utils import is_using_supabase
+        bool_true = True if is_using_supabase() else 1
+        
         # Check if token exists for this user+platform
         cursor.execute('SELECT id FROM ai_infrastructure.oauth_tokens WHERE user_id = %s AND platform = %s', (user_id, 'google'))
         existing = cursor.fetchone()
@@ -651,10 +655,6 @@ def google_callback():
         if existing:
             # UPDATE existing token
             print(f'   Updating existing token for user {user_id}')
-            
-            # PostgreSQL needs TRUE/FALSE for boolean columns
-            from shared.database_utils import is_using_supabase
-            bool_true = True if is_using_supabase() else 1
             
             sql, params = convert_sql_placeholders('''
                 UPDATE ai_infrastructure.oauth_tokens SET
