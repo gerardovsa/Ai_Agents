@@ -418,3 +418,9 @@ class CalculatorWrapper:
             
         except Exception as e:
             return self._format_error(f"Could not get requirements: {str(e)}")
+
+
+# ============================================================================
+# GLOBAL INSTANCE - Required for registry_v3 to find the calculator functions
+# ============================================================================
+calculator = CalculatorWrapper()

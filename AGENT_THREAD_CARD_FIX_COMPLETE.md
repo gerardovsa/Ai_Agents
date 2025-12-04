@@ -150,7 +150,6 @@ headerRowWithUnload(thread, location, agent) {
     opacity: 1 !important;
     max-height: 50px !important;
     overflow: visible !important;
-    margin-top: 8px !important;
 }
 
 /* Expandable content (hidden by default) */

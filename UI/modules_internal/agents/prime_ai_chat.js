@@ -1571,12 +1571,26 @@ async function sendChatMessage() {
                                         console.log('[OK] Server tool bubble created');
 
                                     } else if (data.type === 'error') {
-                                        console.error('[ERROR] [ERROR EVENT] Stream error:', data.error);
+                                        // Enhanced error logging with full context
+                                        console.error('═══════════════════════════════════════════════════');
+                                        console.error('❌ [STREAM ERROR RECEIVED]');
+                                        console.error('═══════════════════════════════════════════════════');
+                                        console.error('Error Type:', data.error_type || 'Unknown');
+                                        console.error('Error Category:', data.error_category || 'Unknown');
+                                        console.error('Error Message:', data.error_message || data.error);
+                                        console.error('User Message:', data.user_message || 'No user message');
+                                        console.error('Session ID:', data.session_id);
+                                        console.error('Round:', data.round);
+                                        if (data.stack_trace) {
+                                            console.error('Stack Trace:', data.stack_trace);
+                                        }
+                                        console.error('═══════════════════════════════════════════════════');
 
                                         const is413Error = data.error && (
                                             data.error.includes('413') ||
                                             data.error.includes('request_too_large') ||
-                                            data.error.includes('Request exceeds the maximum size')
+                                            data.error.includes('Request exceeds the maximum size') ||
+                                            data.error_category === 'REQUEST_TOO_LARGE'
                                         );
 
                                         if (is413Error) {
@@ -1623,13 +1637,55 @@ async function sendChatMessage() {
 
                                             fullResponse = '';
                                         } else {
-                                            fullResponse = `Error: ${JSON.stringify(data.error)}`;
+                                            // Use user-friendly message if available, otherwise show technical details
+                                            const displayMessage = data.user_message || data.error_message || data.error || 'Unknown error occurred';
+                                            const errorCategory = data.error_category || 'ERROR';
+
+                                            // Determine icon based on error category
+                                            let errorIcon = '❌';
+                                            if (errorCategory === 'TIMEOUT') errorIcon = '⏱️';
+                                            else if (errorCategory === 'RATE_LIMIT') errorIcon = '🚦';
+                                            else if (errorCategory === 'AUTH_ERROR') errorIcon = '🔒';
+
+                                            fullResponse = `Error: ${displayMessage}`;
                                             const lastMsg = document.querySelector('.ai-message.assistant:last-child .ai-message-content');
                                             if (lastMsg) {
-                                                lastMsg.innerHTML = `<div style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border-left: 4px solid #ef4444;">
-                                                    <strong>❌ Stream Error:</strong><br>
-                                                    <pre style="margin-top: 8px; white-space: pre-wrap;">${JSON.stringify(data.error, null, 2)}</pre>
+                                                lastMsg.innerHTML = `<div style="color: #ef4444; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 4px solid #ef4444;">
+                                                    <div style="display: flex; align-items: start; gap: 12px;">
+                                                        <div style="font-size: 24px;">${errorIcon}</div>
+                                                        <div style="flex: 1;">
+                                                            <strong style="display: block; margin-bottom: 8px;">${errorCategory.replace(/_/g, ' ')}</strong>
+                                                            <div style="margin-bottom: 8px;">${displayMessage}</div>
+                                                            ${data.error_type ? `<div style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Error Type: ${data.error_type}</div>` : ''}
+                                                            ${data.round ? `<div style="font-size: 12px; opacity: 0.7;">Round: ${data.round}</div>` : ''}
+                                                        </div>
+                                                    </div>
                                                 </div>`;
+                                            }
+
+                                            // Show notification for critical errors
+                                            if (errorCategory === 'TIMEOUT' || errorCategory === 'RATE_LIMIT') {
+                                                const container = document.getElementById('notification-container');
+                                                if (container) {
+                                                    const notification = document.createElement('div');
+                                                    notification.className = 'notification error';
+                                                    notification.innerHTML = `
+                                                        <div class="notification-icon">
+                                                            <i class="fas fa-exclamation-triangle"></i>
+                                                        </div>
+                                                        <div class="notification-content">
+                                                            <div class="notification-message">
+                                                                <strong>${errorIcon} ${errorCategory.replace(/_/g, ' ')}</strong><br>
+                                                                ${displayMessage}
+                                                            </div>
+                                                        </div>
+                                                        <button class="notification-close" onclick="this.parentElement.remove()">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    `;
+                                                    container.appendChild(notification);
+                                                    setTimeout(() => notification.remove(), 6000);
+                                                }
                                             }
                                         }
                                     }
@@ -1656,6 +1712,11 @@ async function sendChatMessage() {
 
             if (threadFailed) {
                 addChatMessage('assistant', `❌ Thread error: Too many parse errors. Please try again.`);
+            }
+
+            // Clean up timeout check
+            if (streamTimeoutId) {
+                clearInterval(streamTimeoutId);
             }
 
             removeThinkingIndicator();

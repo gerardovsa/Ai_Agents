@@ -1438,10 +1438,15 @@ Use tools in multiple rounds with interleaved thinking."""
             print(f"[STREAM ERROR] {traceback.format_exc()}")
             yield stream_sse_event('error', {'error': str(e)})
     
-    return Response(generate(), mimetype='text/event-stream', headers={
+    # Add timeout protection and better error handling for SSE streams
+    response = Response(generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no'
+        'X-Accel-Buffering': 'no',
+        'Connection': 'keep-alive',
+        'X-Stream-Timeout': '300'  # 5 minute timeout hint
     })
+    
+    return response
 
 
 # ============================================================

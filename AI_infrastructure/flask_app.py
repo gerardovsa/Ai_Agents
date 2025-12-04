@@ -33,6 +33,7 @@ from flask_socketio import SocketIO
 import json
 from queue import Queue, Empty
 import threading
+import traceback
 
 # Load environment variables from .env or .env.master file (local development only)
 from dotenv import load_dotenv
@@ -190,9 +191,15 @@ from routes.module_routes import module_bp  # NEW: Self-registering module syste
 from routes.session_management_routes import session_management_bp  # NEW: Session management (list/revoke sessions, 3 endpoints)
 from routes.connection_routes import connections_bp  # Platform connections (2 endpoints)
 
-# Initialize Flask app
-app = Flask(__name__)
-app.config.from_object(Config)
+# Initialize Flask app with error handling
+try:
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    log_success(logger, "Flask app created successfully")
+except Exception as e:
+    log_error(logger, f"CRITICAL: Failed to create Flask app: {e}")
+    logger.error(traceback.format_exc())
+    raise
 
 # Note: OAuth state tokens are stored in database (oauth_states table) instead of Flask sessions
 # This ensures cloud compatibility on Render (multi-instance, ephemeral filesystem)
@@ -1726,6 +1733,83 @@ def cleanup_resources():
         print("✅ [SHUTDOWN] Connection pools closed")
     except Exception as e:
         print(f"⚠️  [SHUTDOWN] Failed to close pools: {e}")
+
+# ============================================================================
+# GLOBAL ERROR HANDLERS (Dec 3, 2025)
+# ============================================================================
+
+@app.errorhandler(Exception)
+def handle_uncaught_exception(error):
+    """
+    Global error handler for all uncaught exceptions.
+    Ensures ALL errors are logged to server logs and returned to UI.
+    """
+    error_details = {
+        'error_type': type(error).__name__,
+        'error_message': str(error),
+        'timestamp': datetime.now().isoformat(),
+        'path': request.path,
+        'method': request.method
+    }
+    
+    # Log error with full traceback to server logs
+    logger.error('='*80)
+    logger.error(f'❌ UNCAUGHT EXCEPTION: {error_details["error_type"]}')
+    logger.error('='*80)
+    logger.error(f'Path: {request.path}')
+    logger.error(f'Method: {request.method}')
+    logger.error(f'Error: {error}')
+    logger.error('Stack Trace:')
+    logger.error(traceback.format_exc())
+    logger.error('='*80)
+    
+    # Return user-friendly error to UI
+    return jsonify({
+        'success': False,
+        'error': str(error),
+        'error_type': error_details['error_type'],
+        'user_message': 'An unexpected error occurred. Please try again or contact support if the problem persists.',
+        'timestamp': error_details['timestamp']
+    }), 500
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    """Handle 404 errors with logging"""
+    logger.warning(f'404 Not Found: {request.method} {request.path}')
+    return jsonify({
+        'success': False,
+        'error': 'Resource not found',
+        'path': request.path
+    }), 404
+
+@app.errorhandler(500)
+def handle_internal_error(error):
+    """Handle 500 errors with logging"""
+    logger.error(f'500 Internal Server Error: {request.path}')
+    logger.error(traceback.format_exc())
+    return jsonify({
+        'success': False,
+        'error': 'Internal server error',
+        'user_message': 'Something went wrong on our end. Please try again later.'
+    }), 500
+
+@app.before_request
+def log_request_info():
+    """Log incoming requests for debugging"""
+    # Only log non-static requests
+    if not request.path.startswith('/static') and not request.path.startswith('/UI'):
+        logger.info(f'➡️  {request.method} {request.path}')
+
+@app.after_request
+def log_response_info(response):
+    """Log outgoing responses for debugging"""
+    # Only log non-static responses and errors
+    if not request.path.startswith('/static') and not request.path.startswith('/UI'):
+        if response.status_code >= 400:
+            logger.warning(f'⬅️  {response.status_code} {request.method} {request.path}')
+        elif response.status_code >= 300:
+            logger.info(f'⬅️  {response.status_code} {request.method} {request.path}')
+    return response
 
 # ============================================================================
 # CACHE CONTROL FOR MODULE LOADING FIX (Dec 1, 2025)

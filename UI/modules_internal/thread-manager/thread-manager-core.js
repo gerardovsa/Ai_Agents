@@ -633,7 +633,7 @@ const ThreadManager = {
                 ${updated ? `<div class="synergy-tooltip-meta"><i class="fas fa-clock"></i> ${updated}</div>` : ''}
                 ${sessionId ? `
                     <div class="synergy-tooltip-actions">
-                        <a class="synergy-tooltip-link" onclick="event.stopPropagation(); if(typeof synergyBoard !== 'undefined') { if(synergyBoard.sessions.length === 0) { synergyBoard.loadSessions().then(() => synergyBoard.popOutCard('${sessionId}')); } else { synergyBoard.popOutCard('${sessionId}'); } } document.querySelector('.synergy-tooltip')?.remove();">
+                        <a class="synergy-tooltip-link" onclick="event.stopPropagation(); if(window.synergyPopupModal && typeof window.synergyPopupModal.open === 'function') { window.synergyPopupModal.open('${sessionId}'); } else if(typeof synergyBoard !== 'undefined' && typeof synergyBoard.popOutCard === 'function') { if(synergyBoard.sessions.length === 0) { synergyBoard.loadSessions().then(() => synergyBoard.popOutCard('${sessionId}')); } else { synergyBoard.popOutCard('${sessionId}'); } } else { console.error('Synergy popup not available'); alert('Synergy popup not loaded. Please refresh the page.'); } document.querySelector('.synergy-tooltip')?.remove();">
                             <i class="fas fa-window-restore"></i>
                             Open in Popup
                         </a>
@@ -808,13 +808,24 @@ const ThreadManager = {
             const synergyBadge = e.target.closest('.agent-tooltip-synergy-badge');
             if (synergyBadge) {
                 const synergyId = synergyBadge.getAttribute('data-synergy-id');
-                if (synergyId && typeof synergyBoard !== 'undefined') {
+                if (synergyId) {
                     console.log('[Agent Badge] Opening Synergy session:', synergyId);
-                    if (synergyBoard.sessions.length === 0) {
-                        synergyBoard.loadSessions().then(() => synergyBoard.popOutCard(synergyId));
+                    
+                    // Use modern popup modal if available, otherwise fallback to popOutCard
+                    if (window.synergyPopupModal && typeof window.synergyPopupModal.open === 'function') {
+                        window.synergyPopupModal.open(synergyId);
+                    } else if (typeof synergyBoard !== 'undefined' && typeof synergyBoard.popOutCard === 'function') {
+                        if (synergyBoard.sessions.length === 0) {
+                            synergyBoard.loadSessions().then(() => synergyBoard.popOutCard(synergyId));
+                        } else {
+                            synergyBoard.popOutCard(synergyId);
+                        }
                     } else {
-                        synergyBoard.popOutCard(synergyId);
+                        console.error('[Agent Badge] Synergy popup methods not available');
+                        alert('Synergy popup not loaded. Please refresh the page.');
                     }
+                    
+                    // Close agent tooltip
                     const agentTooltip = document.querySelector('.agent-badge-tooltip');
                     if (agentTooltip) {
                         agentTooltip.classList.remove('show');

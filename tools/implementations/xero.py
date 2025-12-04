@@ -520,17 +520,31 @@ def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
         # Render as Markdown table
         markdown_output = _render_invoices_markdown(formatted_invoices, client.config['name'])
         
+        # CRITICAL FIX (Dec 4, 2025): Truncate large result sets to prevent token overflow
+        # Xero can return thousands of invoices causing 5M+ token responses
+        MAX_INVOICES = 100
+        truncated = False
+        if len(formatted_invoices) > MAX_INVOICES:
+            truncated = True
+            truncated_count = len(formatted_invoices)
+            formatted_invoices = formatted_invoices[:MAX_INVOICES]
+            markdown_output = _render_invoices_markdown(formatted_invoices, client.config['name'])
+            markdown_output += f"\n\n⚠️ **TRUNCATED**: Showing {MAX_INVOICES} of {truncated_count} invoices. Use filters (status, contact_name, date_range) to narrow results."
+        
         return {
             "success": True, 
             "business_id": business_id, 
             "business_name": client.config['name'],
             "invoice_count": len(formatted_invoices),
+            "total_invoice_count": truncated_count if truncated else len(formatted_invoices),
+            "truncated": truncated,
             "invoices": formatted_invoices,
             "markdown_table": markdown_output,
             "export_options": {
                 "google_sheets": GOOGLE_SHEETS_AVAILABLE,
                 "excel": PANDAS_AVAILABLE
-            }
+            },
+            "note": f"⚠️ Showing {MAX_INVOICES} of {truncated_count} invoices - use filters to narrow results" if truncated else None
         }
     except Exception as e:
         return {

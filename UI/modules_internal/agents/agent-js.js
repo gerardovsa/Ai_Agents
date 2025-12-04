@@ -599,12 +599,25 @@ const MultiAgent = {
         // Links row
         let links = [];
 
-        // Synergy link (clickable)
+        // Synergy link (clickable) - Enhanced with more info
         if (threadInfo?.synergyCardId) {
             const synergyName = threadInfo.synergySessionName || threadInfo.synergyCardId;
-            links.push(`<div class="agent-tooltip-synergy-badge" data-synergy-id="${threadInfo.synergyCardId}" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; background: #10b981; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'" title="Click to open Synergy session">
+            const synergyDesc = threadInfo.synergyDescription || '';
+            const synergyPriority = threadInfo.synergyPriority || '';
+            
+            // Build tooltip text with description and priority
+            let tooltipText = `Click to open Synergy session: ${synergyName}`;
+            if (synergyDesc) {
+                tooltipText += `\n\n${synergyDesc.substring(0, 150)}${synergyDesc.length > 150 ? '...' : ''}`;
+            }
+            if (synergyPriority) {
+                tooltipText += `\n\nPriority: ${synergyPriority}`;
+            }
+            
+            links.push(`<div class="agent-tooltip-synergy-badge" data-synergy-id="${threadInfo.synergyCardId}" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; background: #10b981; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'" title="${tooltipText.replace(/"/g, '&quot;')}">
                         <i class="fas fa-link"></i>
                         <span>${synergyName}</span>
+                        ${synergyPriority ? `<span style="background: white; color: #10b981; padding: 2px 4px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-left: 4px;">${synergyPriority.toUpperCase()}</span>` : ''}
                     </div>`);
             // Store synergy ID on badge for click handler
             badge.setAttribute('data-synergy-id', threadInfo.synergyCardId);

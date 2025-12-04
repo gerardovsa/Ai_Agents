@@ -251,6 +251,8 @@ def oauth_workspace_callback():
         session['user_email'] = user_email
         session['user_id'] = user_id
         session['oauth_connected'] = True
+        session['google_connected'] = True
+        session.permanent = True  # Make session persistent
         
         # Generate JWT token for the user
         from auth.user_auth import user_auth_manager
@@ -258,11 +260,15 @@ def oauth_workspace_callback():
             'id': user_id,
             'username': username if not user_row else None,
             'email': user_email,
-            'role': 'user'
+            'role': 'user',
+            'oauth_connected': True,
+            'google_connected': True
         })
         
-        # Redirect to main app with JWT token
-        print(f"✅ OAuth login successful, redirecting with JWT token")
+        # Store OAuth connection info in JWT for client-side detection
+        print(f"✅ OAuth login successful, redirecting with JWT token (OAuth connected: True)")
+        print(f"   User: {user_email} (ID: {user_id})")
+        print(f"   Session persisted: True")
         
         # SMART URL DETECTION: Automatically detect frontend URL
         frontend_url = get_frontend_url(request, session)

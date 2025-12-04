@@ -1424,7 +1424,16 @@ async function saveAllSettingsToBackend(userId, settings) {
 
             // User Preferences (from tag system)
             preferred_tools: JSON.stringify(preferredTools || []),
-            custom_preferences: JSON.stringify(customPreferences || [])
+            custom_preferences: JSON.stringify(customPreferences || []),
+
+            // AI Model Settings (CRITICAL - was missing!)
+            ai_model: settings.model || 'claude-sonnet-4-5-20250929',
+            ai_temperature: settings.temperature !== undefined ? parseFloat(settings.temperature) : 1.0,
+            ai_top_p: settings.topP !== undefined ? parseFloat(settings.topP) : 1.0,
+            ai_max_tokens: settings.maxTokens !== undefined ? parseInt(settings.maxTokens) : 4096,
+            ai_thinking_enabled: settings.enableThinking ? 1 : 0,
+            ai_thinking_budget: settings.thinkingBudget !== undefined ? parseInt(settings.thinkingBudget) : 10000,
+            ai_streaming_enabled: settings.enableStreaming !== false ? 1 : 0
         };
 
         console.log('Sending comprehensive payload to backend:', payload);
