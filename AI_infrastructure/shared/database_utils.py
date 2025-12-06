@@ -50,15 +50,8 @@ _pool_stats = {
     'pool_hits': 0,
     'pool_misses': 0,
     'total_wait_time': 0.0,
-    'avg_wait_time': 0.0,
-    'connections_recycled': 0
+    'avg_wait_time': 0.0
 }
-_pool_cleanup_thread = None
-_pool_cleanup_stop = threading.Event()
-
-# CONNECTION RECYCLING CONFIG
-MAX_CONNECTION_AGE_SECONDS = 1800  # 30 minutes - recycle connections after this time
-POOL_CLEANUP_INTERVAL_SECONDS = 300  # 5 minutes - check for old connections every 5 min
 
 
 def is_using_supabase() -> bool:
@@ -188,108 +181,7 @@ def get_connection_pool(schema_name: str):
         else:
             _pool_stats['pool_hits'] += 1
         
-        # Start cleanup thread if not already running (non-blocking with timeout)
-        _start_pool_cleanup_thread()
-        
         return _connection_pools[schema_name]
-
-
-def _pool_cleanup_worker():
-    """
-    Background thread that periodically recycles old connections
-    Runs every POOL_CLEANUP_INTERVAL_SECONDS and closes connections older than MAX_CONNECTION_AGE_SECONDS
-    """
-    global _connection_pools, _pool_stats, _pool_cleanup_stop
-    
-    print(f"🧹 [POOL CLEANUP] Started background cleanup thread (interval: {POOL_CLEANUP_INTERVAL_SECONDS}s, max age: {MAX_CONNECTION_AGE_SECONDS}s)")
-    
-    while not _pool_cleanup_stop.is_set():
-        try:
-            # Wait for cleanup interval or stop signal
-            if _pool_cleanup_stop.wait(timeout=POOL_CLEANUP_INTERVAL_SECONDS):
-                break  # Stop signal received
-            
-            recycled_count = 0
-            with _pool_lock:
-                for schema_name, connection_pool in _connection_pools.items():
-                    try:
-                        # Close all idle connections and recreate pool
-                        # psycopg2 doesn't expose connection age, so we recreate the entire pool
-                        connection_pool.closeall()
-                        recycled_count += 1
-                        print(f"🔄 [POOL CLEANUP] Recycled connection pool for '{schema_name}'")
-                    except Exception as e:
-                        print(f"⚠️ [POOL CLEANUP] Error recycling pool for '{schema_name}': {e}")
-            
-            if recycled_count > 0:
-                _pool_stats['connections_recycled'] += recycled_count
-                print(f"✅ [POOL CLEANUP] Recycled {recycled_count} connection pool(s)")
-        
-        except Exception as e:
-            print(f"❌ [POOL CLEANUP] Error in cleanup worker: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    print("🛑 [POOL CLEANUP] Cleanup thread stopped")
-
-
-def _start_pool_cleanup_thread():
-    """Start the pool cleanup background thread if not already running
-    
-    GEVENT COMPATIBILITY: DISABLED in gevent environments
-    - Render production uses Gunicorn with gevent workers
-    - Gevent monkey-patches threading.Lock() which causes deadlocks
-    - Error: "This operation would block forever" (gevent.exceptions.LoopExit)
-    - Cleanup thread only works in development (Flask dev server with standard threading)
-    """
-    global _pool_cleanup_thread, _pool_cleanup_stop
-    
-    # CRITICAL: Detect gevent BEFORE acquiring any locks
-    # Check if gevent has monkey-patched threading (Render production)
-    try:
-        import sys
-        # Simple check: look for gevent in loaded modules
-        if 'gevent' in sys.modules:
-            print("⚠️  [POOL CLEANUP] Gevent detected - cleanup thread DISABLED (prevents LoopExit)")
-            print("ℹ️  [POOL] Running in production mode (Gunicorn+Gevent) - connections managed by Gunicorn")
-            return
-    except Exception as e:
-        print(f"⚠️  [POOL CLEANUP] Error detecting gevent: {e}")
-    
-    # Only start thread in development environments (non-Gevent)
-    # Use a timeout to prevent hanging during startup
-    acquired = _pool_lock.acquire(timeout=1.0)
-    if not acquired:
-        # During startup, lock is busy - skip silently
-        # Thread will be started by first connection after startup
-        return
-    
-    try:
-        if _pool_cleanup_thread is None or not _pool_cleanup_thread.is_alive():
-            _pool_cleanup_stop.clear()
-            _pool_cleanup_thread = threading.Thread(
-                target=_pool_cleanup_worker,
-                name="PoolCleanupThread",
-                daemon=True
-            )
-            _pool_cleanup_thread.start()
-            print(f"🧹 [POOL CLEANUP] Background thread started (every {POOL_CLEANUP_INTERVAL_SECONDS}s)")
-    finally:
-        _pool_lock.release()
-
-
-
-def stop_pool_cleanup():
-    """Stop the pool cleanup background thread (for testing/shutdown)"""
-    global _pool_cleanup_stop, _pool_cleanup_thread
-    
-    print("🛑 [POOL CLEANUP] Stopping cleanup thread...")
-    _pool_cleanup_stop.set()
-    
-    if _pool_cleanup_thread and _pool_cleanup_thread.is_alive():
-        _pool_cleanup_thread.join(timeout=5)
-    
-    print("✅ [POOL CLEANUP] Cleanup thread stopped")
 
 
 def get_pool_stats():
@@ -324,20 +216,15 @@ def log_pool_usage():
             # Try to get pool statistics
             try:
                 # psycopg2 pools expose _used and _pool attributes
-                used = len(pool_instance._used) if hasattr(pool_instance, '_used') else None
-                available = len(pool_instance._pool) if hasattr(pool_instance, '_pool') else None
-                maxconn = pool_instance._maxconn if hasattr(pool_instance, '_maxconn') else None
+                used = len(pool_instance._used) if hasattr(pool_instance, '_used') else '?'
+                available = len(pool_instance._pool) if hasattr(pool_instance, '_pool') else '?'
+                maxconn = pool_instance._maxconn if hasattr(pool_instance, '_maxconn') else '?'
                 
                 print(f"\nSchema: {schema_name}")
-                print(f"  Active connections: {used if used is not None else '?'}")
-                print(f"  Available in pool: {available if available is not None else '?'}")
-                print(f"  Max connections: {maxconn if maxconn is not None else '?'}")
-                
-                # Only show status if we have numeric values
-                if used is not None and maxconn is not None:
-                    print(f"  Status: {'OK' if used < maxconn else 'EXHAUSTED'}")
-                else:
-                    print(f"  Status: UNKNOWN")
+                print(f"  Active connections: {used}")
+                print(f"  Available in pool: {available}")
+                print(f"  Max connections: {maxconn}")
+                print(f"  Status: {'OK' if used < maxconn else 'EXHAUSTED'}")
             except Exception as e:
                 print(f"\nSchema: {schema_name}")
                 print(f"  Error getting stats: {e}")
@@ -784,14 +671,11 @@ class DatabaseConnection:
     """
     Connection wrapper that provides automatic SQL placeholder conversion
     
-    Wraps psycopg2.Connection (or PooledConnection) and returns DatabaseCursor when cursor() is called,
+    Wraps psycopg2.Connection and returns DatabaseCursor when cursor() is called,
     which automatically converts ? to %s for PostgreSQL.
-    
-    CRITICAL: Delegates close() to wrapped connection (PooledConnection returns to pool)
     """
-    def __init__(self, connection, pool=None, schema_name=None):
+    def __init__(self, connection):
         self._wrapped_conn = connection
-        self._closed = False  # ✅ FIX: Track if already closed to prevent double-close
     
     def cursor(self, *args, **kwargs):
         """Return DatabaseCursor that auto-converts placeholders"""
@@ -807,29 +691,13 @@ class DatabaseConnection:
         return self._wrapped_conn.rollback()
     
     def close(self):
-        """Delegate to wrapped connection (PooledConnection returns to pool)"""
-        if not self._closed:
-            self._closed = True
-            return self._wrapped_conn.close()
+        return self._wrapped_conn.close()
     
     def __enter__(self):
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Ensure connection is properly returned to pool"""
-        try:
-            if exc_type is not None:
-                # Exception occurred - rollback transaction
-                self.rollback()
-            else:
-                # No exception - commit transaction
-                self.commit()
-        except Exception as e:
-            print(f"⚠️  [DatabaseConnection] Error in __exit__ transaction handling: {e}")
-        finally:
-            # ✅ CRITICAL FIX: Close only once (delegates to PooledConnection.close())
-            self.close()
-        return False  # Don't suppress exceptions
+        self._wrapped_conn.__exit__(exc_type, exc_val, exc_tb)
     
     # Delegate other attributes to wrapped connection
     def __getattr__(self, name):

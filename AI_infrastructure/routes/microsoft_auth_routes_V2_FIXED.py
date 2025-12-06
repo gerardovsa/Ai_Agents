@@ -826,14 +826,6 @@ def microsoft_callback():
             'success': False,
             'error': str(e)
         }), 500
-    finally:
-        # CRITICAL FIX: Close connection if it was opened for token storage
-        # Connection opened at line ~622 (STEP 5)
-        if 'conn' in locals() and conn:
-            try:
-                conn.close()
-            except:
-                pass
 
 
 @microsoft_auth_bp.route('/status', methods=['GET'])

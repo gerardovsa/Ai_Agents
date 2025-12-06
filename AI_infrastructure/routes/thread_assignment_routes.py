@@ -90,8 +90,9 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             (user_id,)
         )
         cursor.execute(sql, params)
+        user_exists = cursor.fetchone()
         
-        if not cursor.fetchone():
+        if not user_exists:
             logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
             sql, params = convert_sql_placeholders("""
                 INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
@@ -201,6 +202,7 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
                 'previous_location': previous_location,
                 'displaced_thread': displaced_thread
             }
+        # ✅ Cursor auto-closed by context manager
     
     # ✅ Connection auto-closed by context manager - return result
     return result_data
@@ -233,41 +235,40 @@ def get_thread_assignments():
         
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Read from sessions.threads.location (single source of truth in Supabase)
-            # CRITICAL: Include prime-loaded (frontend needs this for page load)
-            logger.info(f"🔍 [Assignment] Executing query for user {user_id}")
-            
-            sql, params = convert_sql_placeholders("""
-                SELECT thread_slug, location 
-                FROM sessions.threads 
-                WHERE user_id = %s 
-                  AND location IS NOT NULL 
-                  AND location != 'prime'
-                ORDER BY updated_at DESC
-            """, (user_id,))
-            
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-            logger.info(f"📊 [Assignment] Query returned {len(rows) if rows else 0} rows")
-            
-            if not rows:
-                logger.info(f"No thread assignments found for user {user_id}")
-                assignments = {}
-            else:
-                # Build assignments dict: {"agent-1": "thread_slug", "prime-loaded": "thread_slug", ...}
-                assignments = {}
-                for row in rows:
-                    thread_slug = str(row['thread_slug'])
-                    location = row['location']
-                    
-                    # Include agent locations AND prime-loaded (needed for page load)
-                    if location and (location.startswith('agent-') or location == 'prime-loaded'):
-                        assignments[location] = thread_slug
+            with conn.cursor() as cursor:
+                # Read from sessions.threads.location (single source of truth in Supabase)
+                # CRITICAL: Include prime-loaded (frontend needs this for page load)
+                logger.info(f"🔍 [Assignment] Executing query for user {user_id}")
                 
-                logger.info(f"Loaded {len(assignments)} thread assignments from sessions.threads for user {user_id}")
-        
+                sql, params = convert_sql_placeholders("""
+                    SELECT thread_slug, location 
+                    FROM sessions.threads 
+                    WHERE user_id = %s 
+                      AND location IS NOT NULL 
+                      AND location != 'prime'
+                    ORDER BY updated_at DESC
+                """, (user_id,))
+                
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
+                logger.info(f"📊 [Assignment] Query returned {len(rows) if rows else 0} rows")
+                
+                if not rows:
+                    logger.info(f"No thread assignments found for user {user_id}")
+                    assignments = {}
+                else:
+                    # Build assignments dict: {"agent-1": "thread_slug", "prime-loaded": "thread_slug", ...}
+                    assignments = {}
+                    for row in rows:
+                        thread_slug = str(row['thread_slug'])
+                        location = row['location']
+                        
+                        # Include agent locations AND prime-loaded (needed for page load)
+                        if location and (location.startswith('agent-') or location == 'prime-loaded'):
+                            assignments[location] = thread_slug
+                    
+                    logger.info(f"Loaded {len(assignments)} thread assignments from sessions.threads for user {user_id}")
+            # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager
         
         return jsonify({
@@ -322,56 +323,55 @@ def save_thread_assignments():
         
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            # CRITICAL FIX: Ensure user row exists before UPDATE
-            sql, params = convert_sql_placeholders(
-                "SELECT id FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            cursor.execute(sql, params)
-            
-            if not cursor.fetchone():
-                logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
-                sql, params = convert_sql_placeholders("""
-                    INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
-                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
-                """, (user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'))
+            with conn.cursor() as cursor:
+                # CRITICAL FIX: Ensure user row exists before UPDATE
+                sql, params = convert_sql_placeholders(
+                    "SELECT id FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
                 cursor.execute(sql, params)
-            
-            # Get existing metadata
-            sql, params = convert_sql_placeholders(
-                "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            # Parse or create metadata
-            metadata_value = row['metadata'] if row else None
-            if metadata_value:
-                try:
-                    metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
-                except (json.JSONDecodeError, TypeError):
-                    logger.warning(f"Invalid JSON in user {user_id} metadata, resetting")
+                
+                if not cursor.fetchone():
+                    logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
+                    sql, params = convert_sql_placeholders("""
+                        INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+                    """, (user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'))
+                    cursor.execute(sql, params)
+                
+                # Get existing metadata
+                sql, params = convert_sql_placeholders(
+                    "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                # Parse or create metadata
+                metadata_value = row['metadata'] if row else None
+                if metadata_value:
+                    try:
+                        metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
+                    except (json.JSONDecodeError, TypeError):
+                        logger.warning(f"Invalid JSON in user {user_id} metadata, resetting")
+                        metadata = {}
+                else:
                     metadata = {}
-            else:
-                metadata = {}
-            
-            # Update thread assignments
-            metadata['thread_assignments'] = agent_assignments
-            
-            # Save back to database
-            sql, params = convert_sql_placeholders("""
-                UPDATE ai_infrastructure.users 
-                SET metadata = %s, last_active = CURRENT_TIMESTAMP
-                WHERE id = %s
-            """, (json.dumps(metadata), user_id))
-            cursor.execute(sql, params)
-            conn.commit()
-            
-            logger.info(f"Saved {len(agent_assignments)} thread assignments for user {user_id}")
-        
+                
+                # Update thread assignments
+                metadata['thread_assignments'] = agent_assignments
+                
+                # Save back to database
+                sql, params = convert_sql_placeholders("""
+                    UPDATE ai_infrastructure.users 
+                    SET metadata = %s, last_active = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (json.dumps(metadata), user_id))
+                cursor.execute(sql, params)
+                conn.commit()
+                
+                logger.info(f"Saved {len(agent_assignments)} thread assignments for user {user_id}")
+            # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager
         
         return jsonify({
@@ -536,39 +536,38 @@ def clear_location(location):
         
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            metadata_value = row['metadata'] if row else None
-            
-            if metadata_value:
-                try:
-                    metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
-                    assignments = metadata.get('thread_assignments', {})
-                    
-                    if location in assignments:
-                        session_id = assignments[location]
-                        del assignments[location]
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders(
+                    "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                metadata_value = row['metadata'] if row else None
+                
+                if metadata_value:
+                    try:
+                        metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
+                        assignments = metadata.get('thread_assignments', {})
                         
-                        metadata['thread_assignments'] = assignments
-                        
-                        sql, params = convert_sql_placeholders("""
-                            UPDATE ai_infrastructure.users 
-                            SET metadata = %s
-                            WHERE id = %s
-                        """, (json.dumps(metadata), user_id))
-                        cursor.execute(sql, params)
-                        conn.commit()
-                        logger.info(f"Cleared {location} (was {session_id})")
-                except (json.JSONDecodeError, TypeError):
-                    logger.warning(f"Invalid JSON in metadata for user {user_id}")
-        
+                        if location in assignments:
+                            session_id = assignments[location]
+                            del assignments[location]
+                            
+                            metadata['thread_assignments'] = assignments
+                            
+                            sql, params = convert_sql_placeholders("""
+                                UPDATE ai_infrastructure.users 
+                                SET metadata = %s
+                                WHERE id = %s
+                            """, (json.dumps(metadata), user_id))
+                            cursor.execute(sql, params)
+                            conn.commit()
+                            logger.info(f"Cleared {location} (was {session_id})")
+                    except (json.JSONDecodeError, TypeError):
+                        logger.warning(f"Invalid JSON in metadata for user {user_id}")
+            # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager
         
         return jsonify({
@@ -609,29 +608,28 @@ def get_thread_location(session_id):
         
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            metadata_value = row['metadata'] if row else None
-            if metadata_value:
-                try:
-                    metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
-                    assignments = metadata.get('thread_assignments', {})
-                    
-                    # Find location for this thread
-                    for loc, sid in assignments.items():
-                        if sid == session_id:
-                            location = loc
-                            break
-                except (json.JSONDecodeError, TypeError):
-                    pass
-        
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders(
+                    "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                metadata_value = row['metadata'] if row else None
+                if metadata_value:
+                    try:
+                        metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
+                        assignments = metadata.get('thread_assignments', {})
+                        
+                        # Find location for this thread
+                        for loc, sid in assignments.items():
+                            if sid == session_id:
+                                location = loc
+                                break
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager
         
         return jsonify({
@@ -671,53 +669,52 @@ def validate_assignments():
         
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            metadata_value = row['metadata'] if row else None
-            if metadata_value:
-                try:
-                    metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
-                    assignments = metadata.get('thread_assignments', {})
-                    
-                    # Check for duplicate thread assignments
-                    seen = {}
-                    duplicates = []
-                    
-                    for location, session_id in assignments.items():
-                        if session_id in seen:
-                            duplicates.append(session_id)
-                            errors.append(f"Thread {session_id} in multiple locations: {seen[session_id]}, {location}")
-                        else:
-                            seen[session_id] = location
-                    
-                    # Remove duplicates (keep first occurrence)
-                    if duplicates:
-                        for session_id in duplicates:
-                            first_location = seen[session_id]
-                            for location in list(assignments.keys()):
-                                if assignments[location] == session_id and location != first_location:
-                                    del assignments[location]
-                                    fixed += 1
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders(
+                    "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                metadata_value = row['metadata'] if row else None
+                if metadata_value:
+                    try:
+                        metadata = json.loads(metadata_value) if isinstance(metadata_value, str) else metadata_value
+                        assignments = metadata.get('thread_assignments', {})
                         
-                        # Save fixed metadata
-                        metadata['thread_assignments'] = assignments
-                        sql, params = convert_sql_placeholders(
-                            "UPDATE ai_infrastructure.users SET metadata = %s WHERE id = %s",
-                            (json.dumps(metadata), user_id)
-                        )
-                        cursor.execute(sql, params)
-                        conn.commit()
-                    
-                except (json.JSONDecodeError, TypeError):
-                    errors.append("Invalid JSON in metadata")
-        
+                        # Check for duplicate thread assignments
+                        seen = {}
+                        duplicates = []
+                        
+                        for location, session_id in assignments.items():
+                            if session_id in seen:
+                                duplicates.append(session_id)
+                                errors.append(f"Thread {session_id} in multiple locations: {seen[session_id]}, {location}")
+                            else:
+                                seen[session_id] = location
+                        
+                        # Remove duplicates (keep first occurrence)
+                        if duplicates:
+                            for session_id in duplicates:
+                                first_location = seen[session_id]
+                                for location in list(assignments.keys()):
+                                    if assignments[location] == session_id and location != first_location:
+                                        del assignments[location]
+                                        fixed += 1
+                            
+                            # Save fixed metadata
+                            metadata['thread_assignments'] = assignments
+                            sql, params = convert_sql_placeholders(
+                                "UPDATE ai_infrastructure.users SET metadata = %s WHERE id = %s",
+                                (json.dumps(metadata), user_id)
+                            )
+                            cursor.execute(sql, params)
+                            conn.commit()
+                        
+                    except (json.JSONDecodeError, TypeError):
+                        errors.append("Invalid JSON in metadata")
+            # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager
         
         logger.info(f"Validation complete: {len(errors)} errors, {fixed} fixed")
@@ -773,30 +770,29 @@ def assign_email_thread():
         
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Update thread with email metadata
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads 
-                SET email_thread_id = %s,
-                    email_subject = %s,
-                    email_participants = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE thread_slug = %s AND user_id = %s
-            """, (email_thread_id, email_subject, json.dumps(email_participants), thread_slug, user_id))
-            
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({
-                    'success': False,
-                    'error': f'Thread {thread_slug} not found for user {user_id}'
-                }), 404
-            
-            conn.commit()
-            
-            logger.info(f"📧 [EMAIL-THREAD] Linked email '{email_subject}' to thread {thread_slug}")
-        
+            with conn.cursor() as cursor:
+                # Update thread with email metadata
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET email_thread_id = %s,
+                        email_subject = %s,
+                        email_participants = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE thread_slug = %s AND user_id = %s
+                """, (email_thread_id, email_subject, json.dumps(email_participants), thread_slug, user_id))
+                
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Thread {thread_slug} not found for user {user_id}'
+                    }), 404
+                
+                conn.commit()
+                
+                logger.info(f"📧 [EMAIL-THREAD] Linked email '{email_subject}' to thread {thread_slug}")
+            # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager
         
         return jsonify({
@@ -840,29 +836,28 @@ def unlink_email_thread():
         
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads 
-                SET email_thread_id = NULL,
-                    email_subject = NULL,
-                    email_participants = NULL,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE thread_slug = %s AND user_id = %s
-            """, (thread_slug, user_id))
-            
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({
-                    'success': False,
-                    'error': f'Thread {thread_slug} not found for user {user_id}'
-                }), 404
-            
-            conn.commit()
-            
-            logger.info(f"📧 [EMAIL-THREAD] Unlinked email from thread {thread_slug}")
-        
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET email_thread_id = NULL,
+                        email_subject = NULL,
+                        email_participants = NULL,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE thread_slug = %s AND user_id = %s
+                """, (thread_slug, user_id))
+                
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Thread {thread_slug} not found for user {user_id}'
+                    }), 404
+                
+                conn.commit()
+                
+                logger.info(f"📧 [EMAIL-THREAD] Unlinked email from thread {thread_slug}")
+            # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager
         
         return jsonify({
