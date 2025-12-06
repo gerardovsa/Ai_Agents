@@ -277,8 +277,12 @@ const UnifiedMessageRenderer = (function () {
         pre.appendChild(code);
         contentDiv.appendChild(pre);
 
-        // Apply syntax highlighting if Prism.js available
-        if (typeof Prism !== 'undefined') {
+        // 🎨 ENHANCED CODE BLOCK SUPPORT
+        // Use the full CodeBlockEnhancer if available (copy buttons, language labels, etc.)
+        if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
+            window.codeBlockEnhancer.enhanceContainer(contentDiv);
+        } else if (typeof Prism !== 'undefined') {
+            // Fallback: Basic syntax highlighting only
             Prism.highlightElement(code);
         }
     }
@@ -293,8 +297,12 @@ const UnifiedMessageRenderer = (function () {
             try {
                 contentDiv.innerHTML = marked.parse(markdown);
 
-                // Apply syntax highlighting to code blocks
-                if (typeof Prism !== 'undefined') {
+                // 🎨 ENHANCED CODE BLOCK SUPPORT
+                // Use the full CodeBlockEnhancer if available (copy buttons, language labels, etc.)
+                if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
+                    window.codeBlockEnhancer.enhanceContainer(contentDiv);
+                } else if (typeof Prism !== 'undefined') {
+                    // Fallback: Basic syntax highlighting only
                     contentDiv.querySelectorAll('pre code').forEach(block => {
                         Prism.highlightElement(block);
                     });

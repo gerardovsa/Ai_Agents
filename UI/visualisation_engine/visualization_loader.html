@@ -1,0 +1,57 @@
+<!-- 
+    VISUALIZATION ENGINE LOADER
+    ===========================
+    
+    This file loads all visualization engine components in the correct order.
+    Include this in your HTML before using the visualization engine.
+    
+    Usage:
+    <script src="visualisation_engine/visualization_loader.html"></script>
+    
+    OR manually include in your HTML:
+    <script src="visualisation_engine/apexcharts_renderer.js"></script>
+    <script src="visualisation_engine/lottie_renderer.js"></script>
+    <script src="visualisation_engine/gsap_renderer.js"></script>
+    <script src="visualisation_engine/cad_renderer.js"></script>
+    <script src="visualisation_engine/schematic_renderer.js"></script>
+    <script src="visualisation_engine/visualisation_copy.js"></script>
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Visualization Engine Loader</title>
+</head>
+
+<body>
+    <!-- Load theme detector FIRST (all renderers depend on it) -->
+    <script src="theme_detector.js"></script>
+
+    <!-- Load modular renderers -->
+    <script src="apexcharts_renderer.js"></script>
+    <script src="lottie_renderer.js"></script>
+    <script src="gsap_renderer.js"></script>
+    <script src="cad_renderer.js"></script>
+    <script src="schematic_renderer.js"></script>
+
+    <!-- Load main visualization engine LAST -->
+    <script src="visualisation_copy.js"></script>
+
+    <script>
+        console.log('✅ Visualization Engine Loader: All modules loaded');
+        console.log('Current theme:', window.ThemeDetector?.getTheme());
+        console.log('Available renderers:', {
+            themeDetector: !!window.ThemeDetector,
+            apexcharts: !!window.ApexChartsRenderer,
+            lottie: !!window.LottieRenderer,
+            gsap: !!window.GSAPRenderer,
+            cad: !!window.CADRenderer,
+            schematic: !!window.SchematicRenderer,
+            engine: !!window.VisualizationEngine
+        });
+    </script>
+</body>
+
+</html>

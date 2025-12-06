@@ -334,10 +334,9 @@ const ThreadManager = {
 
             const data = await response.json();
             console.log(`📦 [ThreadManager] API response keys:`, Object.keys(data));
-            console.log(`📦 [ThreadManager] Raw response:`, data);
 
             const threads = data.threads || (data.data && data.data.threads) || [];
-            console.log(`🔢 [ThreadManager] Extracted ${threads.length} threads from response`);
+            console.log(`🔢 [ThreadManager] Loaded ${threads.length} threads`);
 
             if (data.success && threads.length > 0) {
                 console.log(`🔄 [ThreadManager] Processing ${threads.length} threads...`);
@@ -401,11 +400,6 @@ const ThreadManager = {
 
                 console.log('✅ [ThreadManager] Threads loaded:', this.threads.length);
                 console.log('📊 [ThreadManager] Location distribution:', locationCounts);
-                console.log('📋 [ThreadManager] All thread locations:', this.threads.map(t => `${t.id}: ${t.location}`));
-
-                // REMOVED: refreshAllAgentThreadInfos() call - it interferes with CASCADE pattern
-                // CASCADE handles UI updates properly, this was resetting agent UIs prematurely
-                // Only call on initial load (in init()), not on every reload
 
                 return true;
             } else {

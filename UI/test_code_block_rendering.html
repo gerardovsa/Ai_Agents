@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Block Rendering Test</title>
+
+    <!-- Prism.js -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+
+    <!-- Code Block Enhancements -->
+    <link rel="stylesheet" href="shared/styles/code-blocks.css" />
+    <script src="shared/utilities/codeBlockEnhancer.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #FF7A00;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        button {
+            background: #FF7A00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #e66d00;
+        }
+
+        #diagnostics {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+
+        .test-output {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔬 Code Block Rendering Test</h1>
+
+    <div class="test-section">
+        <h2>System Diagnostic</h2>
+        <button onclick="runDiagnostics()">Run Diagnostics</button>
+        <pre id="diagnostics">Click "Run Diagnostics" to check system status...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 1: Basic Python Code Block</h2>
+        <pre><code class="language-python">def hello_world():
+    """A simple function"""
+    print("Hello, World!")
+    return True
+
+if __name__ == "__main__":
+    hello_world()</code></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: JavaScript Code Block</h2>
+        <pre><code class="language-javascript">function fetchData(url) {
+    return fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Data fetched:', data);
+            return data;
+        })
+        .catch(error => console.error('Error:', error));
+}</code></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: SQL Code Block</h2>
+        <pre><code class="language-sql">SELECT u.id, u.name, COUNT(o.id) as order_count
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.created_at > '2025-01-01'
+GROUP BY u.id, u.name
+HAVING COUNT(o.id) > 5
+ORDER BY order_count DESC;</code></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Auto-detected Code (No Language Class)</h2>
+        <pre><code>function test() {
+    const data = { name: "test", value: 123 };
+    return JSON.stringify(data);
+}</code></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Dynamic Code Block Insertion</h2>
+        <button onclick="addDynamicCodeBlock()">Add Dynamic Code Block</button>
+        <div id="dynamic-container" class="test-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 6: Manual Enhancement Trigger</h2>
+        <button onclick="manualEnhance()">Manually Enhance All Code Blocks</button>
+        <div id="manual-result" class="test-output"></div>
+    </div>
+
+    <script>
+        function runDiagnostics() {
+            const results = [];
+
+            results.push('=== CODE BLOCK ENHANCEMENT DIAGNOSTIC ===\n');
+            results.push(`Timestamp: ${new Date().toISOString()}\n`);
+
+            // Check Prism.js
+            results.push('\n1. PRISM.JS STATUS:');
+            if (typeof Prism !== 'undefined') {
+                results.push('   ✅ Prism is loaded');
+                results.push(`   ✅ Version: ${Prism.version || 'unknown'}`);
+                const languages = Object.keys(Prism.languages || {}).filter(l => l !== 'extend' && l !== 'insertBefore' && l !== 'DFS');
+                results.push(`   ✅ Languages: ${languages.join(', ')}`);
+            } else {
+                results.push('   ❌ Prism is NOT loaded');
+            }
+
+            // Check CodeBlockEnhancer
+            results.push('\n2. CODE BLOCK ENHANCER STATUS:');
+            if (typeof window.codeBlockEnhancer !== 'undefined') {
+                results.push('   ✅ codeBlockEnhancer is available');
+                results.push(`   ✅ Initialized: ${window.codeBlockEnhancer.initialized}`);
+                results.push(`   ✅ Options: ${JSON.stringify(window.codeBlockEnhancer.options, null, 2)}`);
+            } else {
+                results.push('   ❌ codeBlockEnhancer is NOT available');
+            }
+
+            // Check CSS
+            results.push('\n3. CSS STATUS:');
+            const styleSheets = Array.from(document.styleSheets);
+            const codeBlocksCSS = styleSheets.find(sheet =>
+                sheet.href && sheet.href.includes('code-blocks.css')
+            );
+            if (codeBlocksCSS) {
+                results.push('   ✅ code-blocks.css is loaded');
+            } else {
+                results.push('   ⚠️  code-blocks.css may not be loaded');
+            }
+
+            // Check existing code blocks
+            results.push('\n4. CODE BLOCKS ON PAGE:');
+            const codeBlocks = document.querySelectorAll('pre code');
+            results.push(`   Total code blocks: ${codeBlocks.length}`);
+
+            let enhanced = 0;
+            let unenhanced = 0;
+            codeBlocks.forEach(block => {
+                const pre = block.parentElement;
+                if (pre && pre.classList.contains('code-block-enhanced')) {
+                    enhanced++;
+                } else {
+                    unenhanced++;
+                }
+            });
+
+            results.push(`   ✅ Enhanced: ${enhanced}`);
+            results.push(`   ⚠️  Unenhanced: ${unenhanced}`);
+
+            // Check for copy buttons
+            results.push('\n5. COPY BUTTONS:');
+            const copyButtons = document.querySelectorAll('.code-copy-btn');
+            results.push(`   Copy buttons found: ${copyButtons.length}`);
+            const iconCopyButtons = document.querySelectorAll('.code-copy-btn i.fa-copy');
+            results.push(`   FontAwesome icons: ${iconCopyButtons.length}`);
+
+            // Check for language labels
+            results.push('\n6. LANGUAGE LABELS:');
+            const languageLabels = document.querySelectorAll('.code-language-label');
+            results.push(`   Language labels found: ${languageLabels.length}`);
+
+            // Check for syntax highlighting
+            results.push('\n7. SYNTAX HIGHLIGHTING:');
+            const highlightedTokens = document.querySelectorAll('.token');
+            results.push(`   Highlighted tokens found: ${highlightedTokens.length}`);
+
+            if (highlightedTokens.length > 0) {
+                results.push('   ✅ Syntax highlighting is ACTIVE');
+            } else {
+                results.push('   ❌ Syntax highlighting is NOT active');
+            }
+
+            results.push('\n=== END DIAGNOSTIC ===');
+
+            document.getElementById('diagnostics').textContent = results.join('\n');
+        }
+
+        function addDynamicCodeBlock() {
+            const container = document.getElementById('dynamic-container');
+            const pre = document.createElement('pre');
+            const code = document.createElement('code');
+            code.className = 'language-python';
+            code.textContent = `# Dynamic code block added at ${new Date().toLocaleTimeString()}
+def dynamic_function():
+    data = {"timestamp": "${new Date().toISOString()}"}
+    return data`;
+
+            pre.appendChild(code);
+            container.appendChild(pre);
+
+            // Trigger enhancement if available
+            if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
+                window.codeBlockEnhancer.enhanceContainer(container);
+                container.innerHTML += '<p>✅ Enhancement triggered automatically</p>';
+            } else {
+                container.innerHTML += '<p>⚠️ Enhancement not available</p>';
+            }
+        }
+
+        function manualEnhance() {
+            const result = document.getElementById('manual-result');
+
+            if (window.codeBlockEnhancer) {
+                try {
+                    window.codeBlockEnhancer.enhanceContainer(document.body);
+                    result.innerHTML = '<p>✅ Manual enhancement completed successfully!</p>';
+
+                    // Re-run diagnostics
+                    setTimeout(runDiagnostics, 500);
+                } catch (error) {
+                    result.innerHTML = `<p>❌ Enhancement failed: ${error.message}</p>`;
+                }
+            } else {
+                result.innerHTML = '<p>❌ Code block enhancer not available</p>';
+            }
+        }
+
+        // Auto-run diagnostics on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                runDiagnostics();
+
+                // Auto-enhance if not already enhanced
+                if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
+                    const unenhanced = document.querySelectorAll('pre code:not(.code-block-enhanced code)');
+                    if (unenhanced.length > 0) {
+                        console.log('🔧 Auto-enhancing', unenhanced.length, 'code blocks');
+                        window.codeBlockEnhancer.enhanceContainer(document.body);
+                    }
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+
+</html>

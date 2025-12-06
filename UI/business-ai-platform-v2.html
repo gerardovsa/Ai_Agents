@@ -9,6 +9,35 @@
     <meta http-equiv="Expires" content="0">
     <title>Business AI Platform - Unified Dashboard (v2.1)</title>
 
+    <!-- 🚨 NUCLEAR CACHE CLEAR - Unregister ALL old service workers on page load -->
+    <script>
+        // IMMEDIATELY clear everything BEFORE page loads
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                console.error('🧹🧹🧹 CACHE CLEAR: Unregistering ' + registrations.length + ' service workers...');
+                registrations.forEach(reg => {
+                    reg.unregister();
+                    console.error('✅ UNREGISTERED SERVICE WORKER');
+                });
+            });
+
+            caches.keys().then(cacheNames => {
+                console.error('🧹🧹🧹 CACHE CLEAR: Deleting ' + cacheNames.length + ' caches...');
+                cacheNames.forEach(cacheName => {
+                    caches.delete(cacheName);
+                    console.error('✅ DELETED CACHE: ' + cacheName);
+                });
+            });
+        }
+
+        // Clear storage
+        try { localStorage.clear(); console.error('✅ localStorage CLEARED'); } catch (e) { }
+        try { sessionStorage.clear(); console.error('✅ sessionStorage CLEARED'); } catch (e) { }
+
+        console.error('🚀🚀🚀 LOADING FRESH CODE: visualisation_v3.js (NOT visualisation_copy.js)');
+        console.error('⚠️ If you see visualisation_copy.js in errors, YOUR BROWSER CACHE IS CORRUPT');
+    </script>
+
     <!-- Favicon - Molecule Icon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="alternate icon" href="favicon.ico">
@@ -42,6 +71,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+
+    <!-- KaTeX for LaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <!-- Code Block Enhancement Styles & Scripts -->
+    <link rel="stylesheet" href="shared/styles/code-blocks.css" />
+    <script src="shared/utilities/codeBlockEnhancer.js"></script>
 
     <!-- Luxon for DateTime -->
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
@@ -79,15 +120,15 @@
     <!-- Supabase Client for Real-Time Database Updates -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- ? Status Indicator - Bottom-left loading/connection status -->
+    <!-- ✨ Status Indicator - Bottom-left loading/connection status -->
     <link rel="stylesheet" href="shared/css/status-indicator.css">
     <script src="shared/js/status-indicator.js"></script>
 
-    <!-- ? NEW: Supabase Connection Manager - MUST LOAD BEFORE REALTIME MODULES -->
+    <!-- ✨ NEW: Supabase Connection Manager - MUST LOAD BEFORE REALTIME MODULES -->
     <!-- Prevents duplicate connections, adds health monitoring and auto-reconnect -->
     <script src="shared/js/supabase-connection-manager.js?v=20251124O"></script>
 
-    <!-- ? NEW: Supabase Heartbeat Listener - Server-side heartbeat system -->
+    <!-- ✨ NEW: Supabase Heartbeat Listener - Server-side heartbeat system -->
     <!-- Listens to pg_cron broadcasts every 60s, detects stale connections -->
     <script src="shared/js/supabase-heartbeat-listener.js?v=20251124A"></script>
 
@@ -97,7 +138,7 @@
     <!-- Data Loader - Centralized data loading with caching and batching -->
     <script src="shared/js/data-loader.js"></script>
 
-    <!-- ? VOICE TRANSCRIPTION MODULES -->
+    <!-- ✨ VOICE TRANSCRIPTION MODULES -->
     <link rel="stylesheet" href="modules_internal/transcription/transcription-streaming-container.css">
     <link rel="stylesheet" href="modules_internal/transcription/transcription-sidebar.css">
     <link rel="stylesheet" href="modules_internal/transcription/stt-module.css">
@@ -117,8 +158,26 @@
     <script src="https://apis.google.com/js/api.js" defer data-post-auth></script>
 
     <!-- Visualization Engine - Heavy scripts deferred -->
-    <script src="visualisation_engine/streamingTwoRule.js" defer data-post-auth></script>
-    <script src="visualisation_engine/visualisation_copy.js" defer data-post-auth></script>
+    <script src="visualisation_engine/streamingTwoRule.js?v=20251206-NUCLEAR" defer data-post-auth></script>
+
+    <!-- Theme Detector (FIRST - all renderers depend on it) -->
+    <script src="visualisation_engine/theme_detector.js?v=20251206c" defer></script>
+
+    <!-- Modular Visualization Renderers (must load BEFORE auth for immediate rendering) -->
+    <script src="visualisation_engine/apexcharts_renderer.js?v=20251206-JSFUNC" defer></script>
+    <script src="visualisation_engine/lottie_renderer.js?v=20251206-JSFUNC" defer></script>
+    <script src="visualisation_engine/gsap_renderer.js?v=20251206-JSFUNC" defer></script>
+    <script src="visualisation_engine/cad_renderer.js?v=20251206c" defer></script>
+    <script src="visualisation_engine/schematic_renderer.js?v=20251206c" defer></script>
+
+    <!-- NEW: Additional Modular Renderers -->
+    <script src="visualisation_engine/svg_renderer.js?v=20251206-JSFUNC" defer></script>
+    <script src="visualisation_engine/latex_renderer.js?v=20251206-JSFUNC" defer></script>
+    <script src="visualisation_engine/html_renderer.js?v=20251206-JSFUNC" defer></script>
+    <script src="visualisation_engine/threejs_renderer.js?v=20251206-JSFUNC" defer></script>
+
+    <!-- Main Visualization Engine (LAST) - Polls for renderer availability with waitForRenderer() -->
+    <script src="visualisation_engine/visualisation_v3.js?v=20251206-JSFUNC" defer></script>
 
     <!-- ==================== UI STANDARDIZATION ==================== -->
     <!-- Standardized UI components: metrics, subtabs, buttons, badges -->
@@ -207,11 +266,11 @@
 
     <!-- ==================== THREAD CARD STYLES MODULE ==================== -->
     <!-- Unified thread card styling for Prime, Agents, Synergy (Phase 1: CSS Extraction) -->
-    <link rel="stylesheet" href="modules_internal/thread-cards/thread-card-styles.css?v=20251124143423">
+    <link rel="stylesheet" href="modules_internal/thread-cards/thread-card-styles.css?v=20251204_2345">
 
     <!-- ==================== THREAD MANAGER STYLES ==================== -->
     <!-- Core thread management styles (menus, modals, filters, etc.) -->
-    <link rel="stylesheet" href="modules_internal/thread-manager/thread.css">
+    <link rel="stylesheet" href="modules_internal/thread-manager/thread.css?v=20251204_2345">
 
     <!-- ==================== THREAD CARD REGISTRY MODULE ==================== -->
     <!-- Central registry for thread card integrations from all modules (NEW - Nov 28, 2025) -->
@@ -257,6 +316,8 @@
     <script src="modules_internal/synergy/synergy-popup-modal.js"></script>
     <!-- REQUIRED: Popup modal for creating/editing sessions -->
     <script src="modules_internal/synergy/thread_synergy.js"></script>
+    <!-- SYNERGY SIDEBAR CSS -->
+    <link rel="stylesheet" href="modules_internal/synergy/synergy-sidebar.css">
     <!-- FLAT SPACING CSS V2 (Nov 24, 2025) - Two-row structure, 400px width -->
     <link rel="stylesheet" href="modules_internal/synergy/synergy-flat-spacing.css?v=20251124_1500">
     <link rel="stylesheet" href="modules_internal/synergy/synergy-milestone-styles.css">
@@ -273,9 +334,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof SynergyManager !== 'undefined') {
                 window.synergyManager = new SynergyManager();
-                console.log('? [INIT] SynergyManager initialized');
+                console.log('✅ [INIT] SynergyManager initialized');
             } else {
-                console.error('? [INIT] SynergyManager class not loaded - check synergy-manager.js');
+                console.error('❌ [INIT] SynergyManager class not loaded - check synergy-manager.js');
             }
         });
     </script>
@@ -330,9 +391,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof WorkflowManager !== 'undefined') {
                 window.workflowManager = new WorkflowManager();
-                console.log('? [INIT] WorkflowManager initialized');
+                console.log('✅ [INIT] WorkflowManager initialized');
             } else {
-                console.error('? [INIT] WorkflowManager class not loaded - check workflow-manager.js');
+                console.error('❌ [INIT] WorkflowManager class not loaded - check workflow-manager.js');
             }
         });
     </script>
@@ -352,7 +413,7 @@
         }
 
         function initCommunicationHub() {
-            console.log('?? [CORE] Initializing Communication Hub...');
+            console.log('🔷 [CORE] Initializing Communication Hub...');
 
             // Make globally accessible
             window.communicationHub = CommunicationHub;
@@ -362,9 +423,9 @@
             if (container && typeof CommunicationHub.initialize === 'function') {
                 try {
                     CommunicationHub.initialize('communication-main-container');
-                    console.log('? [CORE] Communication Hub initialized');
+                    console.log('✅ [CORE] Communication Hub initialized');
                 } catch (error) {
-                    console.error('? [CORE] Communication Hub init failed:', error);
+                    console.error('❌ [CORE] Communication Hub init failed:', error);
                 }
             }
         }
@@ -401,23 +462,23 @@
 
             // Public API that works even before module loads
             window.initializeModuleSystem = async function (forceReload = false) {
-                console.log('?? [initializeModuleSystem] Called (moduleLoaderReady:', moduleLoaderReady, ', forceReload:', forceReload, ')');
+                console.log('🔷 [initializeModuleSystem] Called (moduleLoaderReady:', moduleLoaderReady, ', forceReload:', forceReload, ')');
 
-                // ? FIX: Use window.moduleLoader (instance) instead of window.ModuleLoaderV4 (class)
+                // ✅ FIX: Use window.moduleLoader (instance) instead of window.ModuleLoaderV4 (class)
                 if (moduleLoaderReady && window.moduleLoader) {
                     // Module is ready, initialize directly
                     if (window.moduleLoader.initialized && !forceReload) {
-                        console.log('? [initializeModuleSystem] Already initialized');
+                        console.log('✅ [initializeModuleSystem] Already initialized');
                         return;
                     }
 
                     const userId = window.UserAuth?.user?.id || window.UserAuth?.user?.user_id || parseInt(localStorage.getItem('user_id')) || 1;
-                    console.log(`?? [initializeModuleSystem] Initializing for user ${userId}...`);
+                    console.log(`🔷 [initializeModuleSystem] Initializing for user ${userId}...`);
                     await window.moduleLoader.initialize(userId);
-                    console.log('? [initializeModuleSystem] Complete');
+                    console.log('✅ [initializeModuleSystem] Complete');
                 } else {
                     // Module not ready yet, queue the initialization
-                    console.log('? [initializeModuleSystem] Module not ready, queuing initialization...');
+                    console.log('⏳ [initializeModuleSystem] Module not ready, queuing initialization...');
                     return new Promise((resolve) => {
                         pendingInitializations.push({ forceReload, resolve });
                     });
@@ -426,7 +487,7 @@
 
             // Internal function called by ES6 module when it loads
             window._moduleLoaderReady = function () {
-                console.log('? [ModuleLoaderV4] Module loaded, processing', pendingInitializations.length, 'queued initializations');
+                console.log('✅ [ModuleLoaderV4] Module loaded, processing', pendingInitializations.length, 'queued initializations');
                 moduleLoaderReady = true;
 
                 // Process any queued initializations
@@ -437,13 +498,13 @@
                 pendingInitializations = [];
             };
 
-            console.log('? [Pre-loader] window.initializeModuleSystem defined (synchronous)');
+            console.log('✅ [Pre-loader] window.initializeModuleSystem defined (synchronous)');
         })();
     </script>
 
     <!-- Modern ES6 module loader with composition pattern -->
     <script type="module">
-        // ? FIX: module-loader-v4.js exports an INSTANCE, not a class
+        // ✅ FIX: module-loader-v4.js exports an INSTANCE, not a class
         // Cache-busting timestamp added to force reload
         import moduleLoader from './shared/js/module-loader-v4.js?v=20251130235959';
 
@@ -451,32 +512,32 @@
         window.moduleLoader = moduleLoader;
         window.ModuleLoaderV4 = moduleLoader; // Alias for backward compatibility
 
-        console.log('?? ModuleLoaderV4 loaded, notifying pre-loader...');
+        console.log('🔷 ModuleLoaderV4 loaded, notifying pre-loader...');
 
         // Notify the pre-loader that the module is ready
         if (window._moduleLoaderReady) {
             window._moduleLoaderReady();
         }
 
-        // ? FIX: Wait for authentication BEFORE initializing module loader
+        // ✅ FIX: Wait for authentication BEFORE initializing module loader
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('? [ModuleLoaderV4] Module system will initialize after authentication via user_auth.js');
+            console.log('⏳ [ModuleLoaderV4] Module system will initialize after authentication via user_auth.js');
 
             // Keep authComplete listener as backup (defensive programming)
             if (!UserAuth || !UserAuth.token) {
-                console.log('? [ModuleLoaderV4] Setting up authComplete listener as fallback...');
+                console.log('⏳ [ModuleLoaderV4] Setting up authComplete listener as fallback...');
                 document.addEventListener('authComplete', async () => {
-                    console.log('? [ModuleLoaderV4] Auth complete event received (fallback path)');
-                    // ? FIX: Use moduleLoader from import or window.moduleLoader (global scope)
+                    console.log('✅ [ModuleLoaderV4] Auth complete event received (fallback path)');
+                    // ✅ FIX: Use moduleLoader from import or window.moduleLoader (global scope)
                     // Only initialize if not already done by user_auth.js
                     if (moduleLoader && !moduleLoader.initialized && !moduleLoader.initializing) {
-                        console.log('?? [ModuleLoaderV4] user_auth.js did not initialize modules, using fallback path');
+                        console.log('⚠️ [ModuleLoaderV4] user_auth.js did not initialize modules, using fallback path');
                         const userId = UserAuth.user.id || UserAuth.user.user_id || parseInt(localStorage.getItem('user_id')) || 1;
                         await moduleLoader.initialize(userId);
                     } else if (!moduleLoader) {
-                        console.error('? [ModuleLoaderV4] moduleLoader instance not found - module system failed to load');
+                        console.error('❌ [ModuleLoaderV4] moduleLoader instance not found - module system failed to load');
                     } else {
-                        console.log('? [ModuleLoaderV4] Modules already initialized by user_auth.js');
+                        console.log('✅ [ModuleLoaderV4] Modules already initialized by user_auth.js');
                     }
                 }, { once: true });
             }
@@ -484,8 +545,8 @@
     </script>
 
     <!-- ==================== API CONFIGURATION (CRITICAL - MUST LOAD BEFORE ALL MODULES) ==================== -->
-    <!-- ?? AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development -->
-    <!-- ? ZERO HARDCODED URLS - Pure auto-detection based on current URL -->
+    <!-- 🎯 AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development -->
+    <!-- ⚡ ZERO HARDCODED URLS - Pure auto-detection based on current URL -->
     <script>
         // Detect environment
         const isFileProtocol = window.location.protocol === 'file:';
@@ -493,24 +554,24 @@
             window.location.hostname === '127.0.0.1' ||
             window.location.hostname === '';
 
-        // ?? CONFIGURATION FLAGS (for testing only)
+        // 🔧 CONFIGURATION FLAGS (for testing only)
         const FORCE_LOCAL = false;   // Override: Force localhost backend
 
-        // ?? PURE AUTO-DETECTION: Use current URL as backend
+        // 🎯 PURE AUTO-DETECTION: Use current URL as backend
         let API_BASE_URL;
 
         if (FORCE_LOCAL || isLocalhost || isFileProtocol) {
             // Local development mode
             API_BASE_URL = 'http://localhost:5001';
-            console.log('?? [API CONFIG] Mode: LOCAL DEVELOPMENT');
+            console.log('🔧 [API CONFIG] Mode: LOCAL DEVELOPMENT');
         } else {
-            // ? PRODUCTION: Use current domain as backend
+            // ✅ PRODUCTION: Use current domain as backend
             // This automatically works for:
-            // - https://ai-agents-v10.onrender.com ? backend: https://ai-agents-v10.onrender.com
-            // - https://ai-agents-backend-singapore.onrender.com ? backend: https://ai-agents-backend-singapore.onrender.com
-            // - Any future domain ? backend: same domain
+            // - https://ai-agents-v10.onrender.com → backend: https://ai-agents-v10.onrender.com
+            // - https://ai-agents-backend-singapore.onrender.com → backend: https://ai-agents-backend-singapore.onrender.com
+            // - Any future domain → backend: same domain
             API_BASE_URL = window.location.origin;
-            console.log('?? [API CONFIG] Mode: PRODUCTION (Auto-detected from URL)');
+            console.log('🚀 [API CONFIG] Mode: PRODUCTION (Auto-detected from URL)');
         }
 
         // VSA Agent (separate service)
@@ -518,15 +579,15 @@
             'http://localhost:5300' :
             'https://vsa-agent-service.onrender.com';
 
-        // ? CRITICAL: Make API URLs globally accessible IMMEDIATELY (before any modules load)
+        // ✅ CRITICAL: Make API URLs globally accessible IMMEDIATELY (before any modules load)
         window.API_BASE_URL = API_BASE_URL;
         window.VSA_API_BASE_URL = VSA_API_BASE_URL;
 
         // Log configuration
-        console.log('?? [API CONFIG] Frontend URL:', window.location.origin);
-        console.log('?? [API CONFIG] Backend API:', API_BASE_URL);
-        console.log('?? [API CONFIG] VSA API:', VSA_API_BASE_URL);
-        console.log('?? [API CONFIG] Match:', window.location.origin === API_BASE_URL ? '? Same domain (correct)' : '?? Different domains');
+        console.log('🌐 [API CONFIG] Frontend URL:', window.location.origin);
+        console.log('🌐 [API CONFIG] Backend API:', API_BASE_URL);
+        console.log('🌐 [API CONFIG] VSA API:', VSA_API_BASE_URL);
+        console.log('🌐 [API CONFIG] Match:', window.location.origin === API_BASE_URL ? '✅ Same domain (correct)' : '⚠️ Different domains');
     </script>
 
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
@@ -549,7 +610,7 @@
 
     <!-- Initialize after authentication -->
     <script>
-        // ? REMOVED (Nov 28, 2025): Early ThreadManager.init() call from DOMContentLoaded
+        // ❌ REMOVED (Nov 28, 2025): Early ThreadManager.init() call from DOMContentLoaded
         // Problem: This runs BEFORE initMultiAgent() creates agent DOM containers
         // Solution: ThreadManager.init() is called at proper time in initializeMainApp()
         //           after initMultiAgent() completes (line ~19284)
@@ -557,13 +618,13 @@
         // REMOVED CODE:
         // document.addEventListener('DOMContentLoaded', async () => {
         //     if (typeof UserAuth !== 'undefined' && UserAuth.token) {
-        //         await ThreadManager.init(); // ? TOO EARLY!
+        //         await ThreadManager.init(); // ← TOO EARLY!
         //     }
         // });
         //
         // ThreadManager.init() now called in correct sequence:
-        // 1. user_auth.js ? showMainApp()
-        // 2. business-ai-platform-v2.html ? initializeMainApp()
+        // 1. user_auth.js → showMainApp()
+        // 2. business-ai-platform-v2.html → initializeMainApp()
         // 3. initMultiAgent() creates DOM
         // 4. ThreadManager.init() loads threads (line 19284)
     </script>
@@ -785,7 +846,7 @@
         .auth-header h1 {
             color: #ffffff;
             font-size: 28px;
-            /* font-weight: 600; */
+            font-weight: 600;
             margin-bottom: 8px;
         }
 
@@ -976,7 +1037,7 @@
 
         .form-group label {
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-secondary);
         }
 
@@ -1003,7 +1064,7 @@
             border-radius: 8px;
             color: var(--text-secondary);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -1181,7 +1242,7 @@
 
         .user-name {
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             max-width: 150px;
             overflow: hidden;
@@ -1262,7 +1323,7 @@
 
         .dropdown-user-name {
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -1285,7 +1346,7 @@
             color: white;
             border-radius: 4px;
             font-size: 11px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -1325,7 +1386,7 @@
 
         .dropdown-item-title {
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-primary);
         }
 
@@ -1562,7 +1623,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 20px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin: 0;
         }
@@ -1612,7 +1673,7 @@
             border-radius: 6px;
             color: var(--text-secondary);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -1649,7 +1710,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin: 0 0 var(--space-2) 0;
         }
@@ -1675,7 +1736,7 @@
 
         .form-group label {
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-primary);
         }
 
@@ -1713,7 +1774,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin: 0 0 var(--space-3) 0;
         }
@@ -1733,12 +1794,12 @@
         }
 
         .result-label {
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-secondary);
         }
 
         .result-value {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--accent-primary);
         }
 
@@ -1820,7 +1881,7 @@
             color: white;
             border-radius: 50%;
             font-size: 10px;
-            /* font-weight: 600; */
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1856,7 +1917,7 @@
             align-items: center;
             gap: var(--space-3);
             font-size: 20px;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .logo-icon {
@@ -1885,7 +1946,7 @@
 
         .header-datetime-day {
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -1893,13 +1954,13 @@
 
         .header-datetime-date {
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-primary);
         }
 
         .header-datetime-time {
             font-size: 18px;
-            /* font-weight: 700; */
+            font-weight: 700;
             color: var(--text-primary);
             font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
             letter-spacing: 0.5px;
@@ -2020,7 +2081,7 @@
             color: #ffffff;
             cursor: pointer;
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: var(--space-2);
@@ -2054,7 +2115,11 @@
         }
 
         .tab-content.active {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
         }
 
         @keyframes fadeIn {
@@ -2143,7 +2208,7 @@
             text-decoration: none;
             font-family: 'Monaco', 'Courier New', monospace;
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             transition: all 0.2s ease;
             cursor: pointer;
         }
@@ -2188,7 +2253,7 @@
             text-decoration: none;
             font-family: 'Monaco', 'Courier New', monospace;
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             transition: all 0.2s ease;
             cursor: pointer;
         }
@@ -2256,7 +2321,7 @@
             align-items: center;
             gap: 8px;
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -2275,7 +2340,7 @@
             color: white;
             border-radius: 12px;
             font-size: 12px;
-            /* font-weight: 700; */
+            font-weight: 700;
         }
 
         .notification-clear-all {
@@ -2374,7 +2439,7 @@
 
         .notification-item-title {
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 4px;
             overflow: hidden;
@@ -2459,7 +2524,7 @@
             border-radius: 6px;
             color: var(--text-secondary);
             font-size: 12px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -2511,7 +2576,7 @@
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 10px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
             margin-left: 6px;
         }
@@ -2602,7 +2667,7 @@
             color: #f59e0b;
             border-radius: 4px;
             font-size: 10px;
-            /* font-weight: 600; */
+            font-weight: 600;
             margin-left: 6px;
         }
 
@@ -2638,7 +2703,7 @@
             align-items: center;
             gap: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -2653,7 +2718,7 @@
             color: white;
             border-radius: 10px;
             font-size: 11px;
-            /* font-weight: 700; */
+            font-weight: 700;
         }
 
         .unread-badge {
@@ -2663,7 +2728,7 @@
             color: #22c55e;
             border-radius: 4px;
             font-size: 10px;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .group-toggle-icon {
@@ -2810,6 +2875,9 @@
         }
 
         .settings-section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             padding: 16px;
             background: var(--bg-tertiary);
             cursor: pointer;
@@ -2826,7 +2894,7 @@
             align-items: center;
             gap: 12px;
             font-size: 15px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -2838,6 +2906,65 @@
         .settings-section-toggle {
             margin-left: auto;
             transition: transform 0.3s ease;
+        }
+
+        /* Actions container on the right of section header (save + toggle) */
+        .settings-section-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .section-save-btn {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--accent-primary);
+            cursor: pointer;
+            transition: all 0.12s ease;
+            font-size: 14px;
+        }
+
+        .section-save-btn:hover {
+            background: var(--bg-secondary);
+            transform: scale(1.04);
+        }
+
+        .section-save-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .section-save-btn.save-error {
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-4px);
+            }
+
+            50% {
+                transform: translateX(4px);
+            }
+
+            75% {
+                transform: translateX(-2px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
         }
 
         .settings-section.collapsed .settings-section-toggle {
@@ -2896,7 +3023,7 @@
             border-radius: 6px;
             color: white;
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -2966,7 +3093,7 @@
             align-items: center;
             justify-content: center;
             font-size: 11px;
-            /* font-weight: 700; */
+            font-weight: 700;
             box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
             z-index: 10;
             animation: badge-pulse 2s infinite;
@@ -2999,7 +3126,7 @@
             color: white;
             border-radius: 6px;
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             animation: pulse-badge 2s infinite;
         }
 
@@ -3030,7 +3157,7 @@
             border: none;
             border-radius: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -3283,7 +3410,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -3335,7 +3462,7 @@
             border-radius: 6px;
             color: var(--text-secondary);
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -3491,7 +3618,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -3517,7 +3644,7 @@
 
         .automation-stat-value {
             font-size: 24px;
-            /* font-weight: 700; */
+            font-weight: 700;
             color: var(--text-primary);
             display: block;
         }
@@ -3618,7 +3745,7 @@
 
         .automation-item-title {
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 5px;
         }
@@ -3632,7 +3759,7 @@
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -3728,7 +3855,7 @@
             border-radius: 12px;
             font-size: 11px;
             color: var(--success, #22c55e);
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .automation-realtime-indicator .pulse-dot {
@@ -3818,7 +3945,7 @@
             align-items: center;
             justify-content: center;
             font-size: 20px;
-            /* font-weight: 700; */
+            font-weight: 700;
             color: white;
             position: relative;
         }
@@ -3860,7 +3987,7 @@
         }
 
         .synergy-compact-tooltip-title {
-            /* font-weight: 700; */
+            font-weight: 700;
             font-size: 14px;
             color: var(--text-primary);
             margin-bottom: 6px;
@@ -3877,7 +4004,7 @@
             padding: 2px 8px;
             border-radius: 10px;
             color: white;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -3926,7 +4053,7 @@
 
         .synergy-item-title {
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 2px;
             white-space: nowrap;
@@ -4036,7 +4163,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 18px;
-            /* font-weight: 700; */
+            font-weight: 700;
             color: var(--text-primary);
         }
 
@@ -4099,7 +4226,7 @@
 
         .account-user-name {
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 4px;
             white-space: nowrap;
@@ -4135,7 +4262,7 @@
             background: var(--accent-primary);
             color: white;
             border-radius: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -4215,7 +4342,7 @@
         }
 
         .oauth-platform-name {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             font-size: 13px;
             margin-bottom: 6px;
@@ -4361,7 +4488,7 @@
         .account-sidebar-content .settings-field label {
             display: block;
             margin-bottom: var(--space-2);
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 13px;
             color: var(--text-primary);
         }
@@ -4403,7 +4530,7 @@
 
         .account-sidebar-content .settings-checkbox label {
             margin: 0;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
         }
 
@@ -4411,7 +4538,7 @@
             padding: 10px 16px;
             border-radius: 6px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             border: none;
@@ -4456,7 +4583,7 @@
             gap: 6px;
             font-size: 13px;
             color: var(--text-secondary);
-            padding: 15px;
+            padding: 10px;
             position: relative;
         }
 
@@ -4479,7 +4606,7 @@
         }
 
         .thread-title-display {
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 16px;
             color: var(--text-primary);
             overflow: hidden;
@@ -4510,7 +4637,7 @@
             outline: none;
             color: var(--text-primary);
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             font-family: inherit;
         }
 
@@ -4523,7 +4650,7 @@
             color: white;
             border-radius: 16px;
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             white-space: nowrap;
         }
 
@@ -4756,7 +4883,7 @@
             border-radius: 6px;
             font-size: 12px;
             color: #ff6b35;
-            /* font-weight: 500; */
+            font-weight: 500;
         }
 
         .lock-status-badge i {
@@ -4770,7 +4897,7 @@
             border-radius: 6px;
             color: white;
             font-size: 12px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
@@ -4845,7 +4972,7 @@
             gap: 10px;
             color: #856404;
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
         }
 
         .lock-read-only-banner i {
@@ -4904,7 +5031,7 @@
 
         .device-name-modal-title {
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             display: flex;
             align-items: center;
@@ -4942,7 +5069,7 @@
 
         .device-name-modal-label {
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-primary);
             margin-bottom: 8px;
             display: block;
@@ -4983,7 +5110,7 @@
             border-radius: 8px;
             border: none;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -5044,7 +5171,7 @@
             border-radius: 6px;
             color: var(--text-muted, #9ca3af);
             font-size: 11px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             margin-top: 3px;
@@ -5091,7 +5218,7 @@
 
         .thread-token-count strong {
             color: var(--text-primary, #c9d1d9);
-            /* font-weight: 700; */
+            font-weight: 700;
         }
 
         .thread-token-count.token-normal {
@@ -5108,7 +5235,7 @@
 
         .thread-token-count.token-emergency {
             color: #b91c1c;
-            /* font-weight: 800; */
+            font-weight: 800;
         }
 
         .thread-tag-pill {
@@ -5121,7 +5248,7 @@
             border: 1px solid var(--border-default, #30363d);
             border-radius: 12px;
             font-size: 11px;
-            /* font-weight: 500; */
+            font-weight: 500;
         }
 
         .thread-synergy-row {
@@ -5317,7 +5444,7 @@
             align-items: center;
             gap: 8px;
             padding: 8px 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 13px;
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border-default, #30363d);
@@ -5367,7 +5494,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 20px;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .ai-icon {
@@ -5649,7 +5776,7 @@
 
         .quick-actions-header h3 {
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin: 0;
         }
@@ -5730,7 +5857,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             flex: 1;
             min-width: 0;
@@ -5764,7 +5891,7 @@
             color: white;
             border-radius: 12px;
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             white-space: nowrap;
             flex-shrink: 0;
         }
@@ -5872,7 +5999,7 @@
         .thread-sort-label {
             font-size: 12px;
             color: var(--text-secondary);
-            /* font-weight: 500; */
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 4px;
@@ -5893,7 +6020,7 @@
             border-radius: 4px;
             color: var(--text-secondary);
             font-size: 12px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -5934,7 +6061,7 @@
             border-radius: 6px;
             color: var(--text-secondary);
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -6042,7 +6169,7 @@
         }
 
         .thread-filter-dropdown-group optgroup {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-secondary);
         }
 
@@ -6073,7 +6200,7 @@
         .thread-custom-date-inputs label {
             font-size: 11px;
             color: var(--text-secondary);
-            /* font-weight: 500; */
+            font-weight: 500;
         }
 
         .thread-custom-date-inputs input[type="date"] {
@@ -6105,7 +6232,7 @@
             border-radius: 6px;
             color: white;
             font-size: 12px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -6161,7 +6288,7 @@
             margin: var(--space-4) 0 var(--space-3) 0;
             color: var(--text-muted);
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -6486,7 +6613,7 @@
         }
 
         .thread-assignment-option-btn .option-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             margin-bottom: 2px;
         }
 
@@ -6642,7 +6769,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             font-size: 11px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: #10b981;
             white-space: nowrap;
         }
@@ -6682,7 +6809,7 @@
         }
 
         .synergy-tooltip-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 10px;
             font-size: 14px;
@@ -6725,7 +6852,7 @@
             padding: 2px 8px;
             border-radius: 10px;
             font-size: 10px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -6785,7 +6912,7 @@
             border-radius: 6px;
             color: var(--accent-primary);
             font-size: 11px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-decoration: none;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -6888,7 +7015,7 @@
             background: #8b5cf6;
             padding: 3px 8px;
             border-radius: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 4px;
@@ -6956,7 +7083,7 @@
 
         .thread-item-session-label {
             color: var(--text-secondary);
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .thread-item-session-id {
@@ -7071,7 +7198,7 @@
             padding: var(--space-3);
             background: var(--bg-tertiary);
             border-bottom: 1px solid var(--border-default);
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 13px;
             color: var(--text-primary);
             display: flex;
@@ -7161,7 +7288,7 @@
 
         .thread-view-choice-title {
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             flex: 1;
         }
@@ -7209,7 +7336,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-primary);
         }
 
@@ -7294,7 +7421,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
@@ -7340,7 +7467,7 @@
             color: white;
             padding: 20px 32px;
             border-radius: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 18px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
             pointer-events: none;
@@ -7635,7 +7762,7 @@
         }
 
         .tool-usage-header .tool-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: #22c55e;
             font-size: 14px;
         }
@@ -7673,7 +7800,7 @@
             align-items: center;
             gap: var(--space-2);
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: #8b5cf6;
         }
 
@@ -7737,7 +7864,7 @@
 
         .tool-bubble .ai-message-header {
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: #22c55e;
         }
 
@@ -7749,13 +7876,13 @@
 
         .tool-result-bubble.tool-status-complete .ai-message-header {
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: #22c55e;
         }
 
         .tool-result-bubble.tool-status-error .ai-message-header {
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: #ef4444;
         }
 
@@ -8080,7 +8207,7 @@
             display: flex;
             align-items: center;
             gap: var(--space-2);
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 16px;
         }
 
@@ -8125,7 +8252,7 @@
         .message-popup-body h5,
         .message-popup-body h6 {
             margin: var(--space-4) 0 var(--space-2) 0;
-            /* font-weight: 600; */
+            font-weight: 600;
             line-height: 1.3;
             color: var(--text-primary);
         }
@@ -8217,7 +8344,7 @@
         }
 
         .message-popup-body strong {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -8273,7 +8400,7 @@
 
         .message-popup-body table th {
             background: var(--bg-secondary);
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             border-bottom: 2px solid #6e7681 !important;
             /* MEDIUM GRAY HEADER BORDER */
@@ -8324,7 +8451,7 @@
         .ai-message-content h5,
         .ai-message-content h6 {
             margin: var(--space-4) 0 var(--space-2) 0;
-            /* font-weight: 600; */
+            font-weight: 600;
             line-height: 1.3;
             color: var(--text-primary);
         }
@@ -8420,7 +8547,7 @@
         }
 
         .ai-message-content strong {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -8447,7 +8574,7 @@
             color: #3b9eff;
             text-decoration: none;
             transition: color 0.2s ease;
-            /* font-weight: normal; */
+            font-weight: normal;
         }
 
         .ai-message-content a:visited {
@@ -8503,7 +8630,7 @@
 
         .ai-message-content table th {
             background: var(--bg-secondary);
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             border-bottom: 0.5px solid var(--text-muted);
         }
@@ -8599,7 +8726,7 @@
         .two-rule-markdown-content .code-block h5,
         .two-rule-markdown-content .code-block h6 {
             font-size: inherit !important;
-            /* font-weight: normal !important; */
+            font-weight: normal !important;
             border: none !important;
             padding: 0 !important;
             margin: 0 !important;
@@ -8615,7 +8742,7 @@
         .two-rule-markdown-content .code-block strong,
         .two-rule-markdown-content .code-block em,
         .two-rule-markdown-content .code-block a {
-            /* font-weight: inherit !important; */
+            font-weight: inherit !important;
             font-style: inherit !important;
             color: inherit !important;
             text-decoration: none !important;
@@ -8629,7 +8756,7 @@
         .two-rule-markdown-content h5,
         .two-rule-markdown-content h6 {
             margin: var(--space-4) 0 var(--space-2) 0;
-            /* font-weight: 600; */
+            font-weight: 600;
             line-height: 1.3;
             color: var(--text-primary);
         }
@@ -8751,7 +8878,7 @@
         .ai-chat-input-container::after {
             content: '\f077\A\f077';
             font-family: 'Font Awesome 5 Free';
-            /* font-weight: 900; */
+            font-weight: 900;
             white-space: pre;
             line-height: 0.5;
             position: absolute;
@@ -8896,7 +9023,7 @@
         .processing-text {
             color: var(--text-primary);
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .ai-chat-input-controls {
@@ -9082,7 +9209,7 @@
         .feedback-header-text {
             color: var(--text-primary);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
         }
 
         .feedback-close-btn {
@@ -9176,7 +9303,7 @@
             align-items: center;
             gap: var(--space-1);
             margin-left: auto;
-            /* font-weight: 500; */
+            font-weight: 500;
         }
 
         .feedback-send-btn:hover {
@@ -9382,7 +9509,7 @@
 
         .card-title {
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: var(--space-2);
@@ -9469,7 +9596,7 @@
 
         .stat-value {
             font-size: 20px;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .stat-change {
@@ -9490,7 +9617,7 @@
             padding: var(--space-2) var(--space-4);
             border-radius: 6px;
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             border: 1px solid transparent;
@@ -9521,7 +9648,7 @@
             border: 1px solid var(--border-default);
             border-radius: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -9632,7 +9759,7 @@
         }
 
         .notification-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             margin-bottom: var(--space-1);
         }
 
@@ -9724,7 +9851,7 @@
             color: white;
             padding: 16px 24px;
             border-radius: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 15px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
             pointer-events: none;
@@ -9766,7 +9893,7 @@
 
         .agent-header h2 {
             font-size: 20px;
-            /* font-weight: 600; */
+            font-weight: 600;
             margin: 0;
             color: var(--text-primary);
             display: flex;
@@ -9916,7 +10043,7 @@
             justify-content: space-between;
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-default, #30363d);
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 15px;
             color: var(--text-primary);
         }
@@ -10089,7 +10216,7 @@
             border: none;
             border-radius: 6px;
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -10162,7 +10289,7 @@
 
         .welcome-title {
             font-size: 24px;
-            /* font-weight: 700; */
+            font-weight: 700;
             color: var(--text-primary, #c9d1d9);
             margin: 0;
             letter-spacing: -0.5px;
@@ -10221,7 +10348,7 @@
 
         .quick-tip-label {
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--accent-fg, #58a6ff);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -10273,7 +10400,7 @@
 
         .stat-content strong {
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #c9d1d9);
         }
 
@@ -10293,7 +10420,7 @@
             padding: 10px 20px;
             border-radius: 6px;
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -10429,7 +10556,7 @@
 
         .status-text {
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-secondary);
         }
 
@@ -10625,7 +10752,7 @@
 
         .user-interaction-message {
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin-bottom: var(--space-2);
         }
@@ -10671,7 +10798,7 @@
             border: none;
             border-radius: 6px;
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -10717,7 +10844,7 @@
             border: none;
             border-radius: 6px;
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -10754,7 +10881,7 @@
 
         .ai-message.thinking-bubble .bubble-header {
             color: #8b5cf6;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         /* Purple background on icon ONLY */
@@ -10782,7 +10909,7 @@
 
         .ai-message.tool-bubble .bubble-header {
             color: #22c55e;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .ai-message.tool-bubble .bubble-icon {
@@ -10796,7 +10923,7 @@
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 12px;
-            /* font-weight: 500; */
+            font-weight: 500;
             margin-left: 8px;
         }
 
@@ -10868,7 +10995,7 @@
 
         .bubble-title {
             flex: 1;
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 14px;
         }
 
@@ -10959,7 +11086,7 @@
 
         .tool-execution-indicator .tool-name,
         .tool-execution-result .tool-name {
-            /* font-weight: 600; */
+            font-weight: 600;
             flex: 1;
         }
 
@@ -11183,7 +11310,7 @@
             writing-mode: vertical-rl;
             text-orientation: mixed;
             color: white;
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 14px;
             letter-spacing: 2px;
             display: flex;
@@ -11308,7 +11435,7 @@
             text-orientation: mixed;
             transform: rotate(180deg);
             color: white;
-            /* font-weight: 700; */
+            font-weight: 700;
             font-size: 20px;
             /*    text-transform: uppercase;  */
             letter-spacing: 1px;
@@ -11338,7 +11465,7 @@
             transform: rotate(180deg);
             color: var(--text-secondary);
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             text-align: center;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -11423,7 +11550,7 @@
             padding: var(--space-3);
             background: var(--bg-tertiary);
             border-bottom: 1px solid var(--border-default);
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 13px;
             color: var(--text-primary);
             display: flex;
@@ -11485,7 +11612,7 @@
         .agent-message-bubble h5,
         .agent-message-bubble h6 {
             margin: var(--space-4) 0 var(--space-2) 0;
-            /* font-weight: 600; */
+            font-weight: 600;
             line-height: 1.3;
             color: var(--text-primary);
         }
@@ -11575,7 +11702,7 @@
         }
 
         .agent-message-bubble strong {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -11595,7 +11722,7 @@
             color: #3b9eff;
             text-decoration: none;
             transition: color 0.2s ease;
-            /* font-weight: normal; */
+            font-weight: normal;
         }
 
         .agent-message-bubble a:visited {
@@ -11624,7 +11751,7 @@
 
         .agent-message-bubble table th {
             background: var(--bg-secondary);
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             border-bottom: 0.5px solid var(--text-muted);
         }
@@ -11664,7 +11791,7 @@
             background: #0d1117 !important;
             border-bottom: 1px solid var(--border-color) !important;
             color: #ffffff !important;
-            /* font-weight: 600 !important; */
+            font-weight: 600 !important;
         }
 
         .tabulator .tabulator-header .tabulator-col {
@@ -11844,7 +11971,7 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             transition: all 0.2s;
         }
 
@@ -11878,7 +12005,7 @@
 
         .module-title {
             font-size: 28px;
-            /* font-weight: 700; */
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: var(--space-3);
@@ -11903,7 +12030,7 @@
             border-radius: 8px;
             color: var(--text-primary);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -11929,7 +12056,7 @@
             border: none;
             color: var(--text-secondary);
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             cursor: pointer;
             border-bottom: 3px solid transparent;
             transition: all 0.2s ease;
@@ -12104,7 +12231,7 @@
         .data-table th {
             padding: 12px 16px;
             text-align: left;
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 13px;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -12131,7 +12258,7 @@
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -12222,7 +12349,7 @@
         .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -12266,7 +12393,7 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-secondary);
             font-size: 14px;
         }
@@ -12303,7 +12430,7 @@
             align-items: center;
             gap: 10px;
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: #374151;
         }
 
@@ -12337,7 +12464,7 @@
         .tag-category h4 {
             margin: 0 0 12px 0;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-muted, #9ca3af);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -12402,7 +12529,7 @@
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            /* font-weight: 500; */
+            font-weight: 500;
             transition: background 0.2s;
         }
 
@@ -12419,7 +12546,7 @@
         .current-tags h4 {
             margin: 0 0 12px 0;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
         }
 
@@ -12444,13 +12571,13 @@
             border: 1px solid var(--border-default, #30363d);
             border-radius: 16px;
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
         }
 
         .remove-tag {
             cursor: pointer;
             font-size: 16px;
-            /* font-weight: 700; */
+            font-weight: 700;
             color: var(--text-muted, #9ca3af);
             opacity: 0.7;
             transition: all 0.2s;
@@ -12484,7 +12611,7 @@
         .new-chat-modal .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
         }
 
@@ -12500,13 +12627,13 @@
             display: block;
             margin-bottom: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
         }
 
         .new-chat-form-group label .optional {
             color: var(--text-muted, #9ca3af);
-            /* font-weight: 400; */
+            font-weight: 400;
             font-size: 12px;
         }
 
@@ -12599,7 +12726,7 @@
         .synergy-sync-modal .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             display: flex;
             align-items: center;
@@ -12641,7 +12768,7 @@
             border-bottom: 2px solid transparent;
             color: var(--text-secondary, #9ca3af);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -12750,7 +12877,7 @@
         }
 
         .synergy-session-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             font-size: 14px;
         }
@@ -12759,7 +12886,7 @@
             padding: 3px 10px;
             border-radius: 12px;
             font-size: 11px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -12816,7 +12943,7 @@
             display: block;
             margin-bottom: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
         }
 
@@ -12907,7 +13034,7 @@
         .workflow-link-modal .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             display: flex;
             align-items: center;
@@ -12949,7 +13076,7 @@
             border-bottom: 2px solid transparent;
             color: var(--text-secondary, #9ca3af);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -13058,7 +13185,7 @@
         }
 
         .workflow-name {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             font-size: 14px;
         }
@@ -13067,7 +13194,7 @@
             padding: 3px 10px;
             border-radius: 12px;
             font-size: 11px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -13119,7 +13246,7 @@
             display: block;
             margin-bottom: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
         }
 
@@ -13210,7 +13337,7 @@
         .automation-link-modal .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             display: flex;
             align-items: center;
@@ -13252,7 +13379,7 @@
             border-bottom: 2px solid transparent;
             color: var(--text-secondary, #9ca3af);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -13361,7 +13488,7 @@
         }
 
         .automation-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             font-size: 14px;
         }
@@ -13370,7 +13497,7 @@
             padding: 3px 10px;
             border-radius: 12px;
             font-size: 11px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -13422,7 +13549,7 @@
             display: block;
             margin-bottom: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
         }
 
@@ -13513,7 +13640,7 @@
         .internal-docs-link-modal .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             display: flex;
             align-items: center;
@@ -13555,7 +13682,7 @@
             border-bottom: 2px solid transparent;
             color: var(--text-secondary, #9ca3af);
             font-size: 14px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -13664,7 +13791,7 @@
         }
 
         .internal-doc-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             font-size: 14px;
         }
@@ -13673,7 +13800,7 @@
             padding: 3px 10px;
             border-radius: 12px;
             font-size: 11px;
-            /* font-weight: 600; */
+            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -13725,7 +13852,7 @@
             display: block;
             margin-bottom: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
         }
 
@@ -13816,7 +13943,7 @@
         .thread-picker-modal .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #f3f4f6);
             display: flex;
             align-items: center;
@@ -13858,7 +13985,7 @@
         }
 
         .thread-picker-title {
-            /* font-weight: 600; */
+            font-weight: 600;
             font-size: 14px;
             color: var(--text-primary, #f3f4f6);
             display: flex;
@@ -13876,7 +14003,7 @@
             color: var(--accent-primary, #58a6ff);
             border-radius: 12px;
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .thread-picker-meta {
@@ -13956,13 +14083,13 @@
 
         .card-project {
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: #e5e7eb;
         }
 
         .card-description {
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             margin-top: 2px;
         }
@@ -13970,7 +14097,7 @@
         .card-quantity {
             font-size: 12px;
             color: #9ca3af;
-            /* font-weight: 400; */
+            font-weight: 400;
             margin-top: 2px;
         }
 
@@ -14002,7 +14129,7 @@
             padding: 3px 8px;
             border-radius: 4px;
             font-size: 10px;
-            /* font-weight: 700; */
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -14063,7 +14190,7 @@
 
         .synergy-doc-choice-header h3 {
             font-size: 20px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #ffffff);
         }
 
@@ -14120,7 +14247,7 @@
         .synergy-doc-choice-btn strong {
             display: block;
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary, #ffffff);
             margin-bottom: 4px;
         }
@@ -14138,7 +14265,7 @@
             color: white;
             border: none;
             border-radius: 8px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: background 0.2s;
         }
@@ -14167,7 +14294,7 @@
             justify-content: flex-start;
             gap: 8px;
             font-size: 14px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             text-align: left;
             /* underline the section title with a thin separator */
@@ -14211,7 +14338,7 @@
             border: none;
             border-radius: 6px;
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -14267,7 +14394,7 @@
 
         .doc-title {
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--text-primary);
             margin-bottom: 2px;
         }
@@ -14354,7 +14481,7 @@
         .editor-title-input {
             flex: 1;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             padding: 8px 12px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-default);
@@ -14380,7 +14507,7 @@
             background: var(--bg-tertiary);
             color: var(--text-primary);
             font-size: 13px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -14470,7 +14597,7 @@
             background: var(--bg-tertiary);
             border-bottom: 1px solid var(--border-default);
             font-size: 12px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -14587,7 +14714,7 @@
 
         .preview-content table th {
             background: var(--bg-tertiary);
-            /* font-weight: 600; */
+            font-weight: 600;
         }
 
         .preview-content hr {
@@ -14611,7 +14738,7 @@
             color: #374151;
             border: 1px solid #d1d5db;
             border-radius: 8px;
-            /* font-weight: 500; */
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -14737,7 +14864,7 @@
             align-items: center;
             gap: 10px;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
             padding: 6px 12px;
             border-radius: 6px;
@@ -14766,7 +14893,7 @@
             background: rgba(79, 108, 255, 0.15);
             border-radius: 4px;
             font-size: 11px;
-            /* font-weight: 500; */
+            font-weight: 500;
             color: var(--accent-primary);
         }
 
@@ -14847,7 +14974,7 @@
         .doc-type-selector h3 {
             margin: 0;
             font-size: 18px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -14893,7 +15020,7 @@
 
         .doc-type-option-title {
             font-size: 16px;
-            /* font-weight: 600; */
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -15372,7 +15499,7 @@
                                     border: none;
                                     border-radius: 6px;
                                     font-size: 12px;
-                                    /* font-weight: 500; */
+                                    font-weight: 500;
                                     cursor: pointer;
                                     display: flex;
                                     align-items: center;
@@ -15480,7 +15607,7 @@
                                     border: none;
                                     border-radius: 6px;
                                     font-size: 12px;
-                                    /* font-weight: 500; */
+                                    font-weight: 500;
                                     cursor: pointer;
                                     display: flex;
                                     align-items: center;
@@ -15709,9 +15836,9 @@
 
                 <!-- ==================== VSA VETERINARY ALERTS TAB ==================== -->
                 <!-- VSA Veterinary Alerts module injects content here via module_loader.js -->
-                <div class="tab-content" id="tab-vsa-alerts">
+                <div class="tab-content" id="tab-vsa-veterinary-alerts">
                     <!-- Dynamic content loaded from UI/modules_external/vsa-veterinary-alerts/ -->
-                    <div id="vsa-alerts-main-container" style="height: 100%; width: 100%;"></div>
+                    <div id="vsa-veterinary-alerts-main-container" style="height: 100%; width: 100%;"></div>
                 </div>
 
                 <!-- ==================== SALES TAB ==================== -->
@@ -16347,7 +16474,7 @@
                                         style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); font-size: 18px; font-weight: bold; transition: all 0.2s;"
                                         onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--accent-red)'"
                                         onmouseout="this.style.background='var(--bg-primary)'; this.style.color='var(--text-primary)'"
-                                        title="Close panel"></button>
+                                        title="Close panel">×</button>
                                 </div>
 
                                 <!-- Search and Filters (Enhanced) -->
@@ -17577,213 +17704,33 @@
     <div class="notification-container" id="notification-container"></div>
 
     <!-- ==================== MESSAGE POPUP MODAL ==================== -->
-    </div>
-    <label class="toggle-switch">
-        <input type="checkbox" id="setting-recovery-invalid-structure" checked onchange="window.saveRecoverySettings()">
-        <span class="toggle-slider"></span>
-    </label>
-    </div>
-
-    <div class="setting-item">
-        <div class="setting-info">
-            <div class="setting-label">Context Length</div>
-            <div class="setting-description">Retry with smaller context on overflow</div>
-        </div>
-        <label class="toggle-switch">
-            <input type="checkbox" id="setting-recovery-context-length" checked
-                onchange="window.saveRecoverySettings()">
-            <span class="toggle-slider"></span>
-        </label>
-    </div>
-
-    <div class="setting-item">
-        <div class="setting-info">
-            <div class="setting-label">Rate Limit</div>
-            <div class="setting-description">Retry after rate limit errors</div>
-        </div>
-        <label class="toggle-switch">
-            <input type="checkbox" id="setting-recovery-rate-limit" checked onchange="window.saveRecoverySettings()">
-            <span class="toggle-slider"></span>
-        </label>
-    </div>
-
-    <div class="setting-item">
-        <div class="setting-info">
-            <div class="setting-label">Network Errors</div>
-            <div class="setting-description">Retry on connection failures</div>
-        </div>
-        <label class="toggle-switch">
-            <input type="checkbox" id="setting-recovery-network" checked onchange="window.saveRecoverySettings()">
-            <span class="toggle-slider"></span>
-        </label>
-    </div>
-    </div>
-
-    <!-- Max Retries -->
-    <div class="setting-item">
-        <div class="setting-info">
-            <div class="setting-label">
-                <i class="fas fa-redo"></i>
-                Max Retry Attempts
-            </div>
-            <div class="setting-description">Maximum number of recovery attempts (1-5)</div>
-        </div>
-        <input type="number" id="setting-max-retries" min="1" max="5" value="3" onchange="window.saveRecoverySettings()"
-            class="setting-number-input">
-    </div>
-
-    <!-- Notifications -->
-    <div class="setting-item">
-        <div class="setting-info">
-            <div class="setting-label">
-                <i class="fas fa-bell"></i>
-                Show Notifications
-            </div>
-            <div class="setting-description">Display recovery attempt notifications</div>
-        </div>
-        <label class="toggle-switch">
-            <input type="checkbox" id="setting-show-recovery-notifications" checked
-                onchange="window.saveRecoverySettings()">
-            <span class="toggle-slider"></span>
-        </label>
-    </div>
-
-    <!-- Detailed Logging -->
-    <div class="setting-item">
-        <div class="setting-info">
-            <div class="setting-label">
-                <i class="fas fa-bug"></i>
-                Detailed Logging
-            </div>
-            <div class="setting-description">Log detailed recovery information</div>
-        </div>
-        <label class="toggle-switch">
-            <input type="checkbox" id="setting-detailed-logging" checked onchange="window.saveRecoverySettings()">
-            <span class="toggle-slider"></span>
-        </label>
-    </div>
-
-    <!-- Statistics Panel -->
-    <div class="settings-stats-panel">
-        <div class="stats-header">
-            <i class="fas fa-chart-line"></i>
-            <span>Recovery Statistics</span>
-        </div>
-        <div class="stats-grid">
-            <div class="stat-item">
-                <div class="stat-label">Total Recoveries</div>
-                <div class="stat-value" id="stat-total-recoveries">0</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">Successful</div>
-                <div class="stat-value stat-success" id="stat-successful-recoveries">0</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">Failed</div>
-                <div class="stat-value stat-failure" id="stat-failed-recoveries">0</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">Success Rate</div>
-                <div class="stat-value" id="stat-success-rate">0%</div>
-            </div>
-        </div>
-        <button class="stats-reset-btn" onclick="window.resetRecoveryStats()">
-            <i class="fas fa-trash"></i>
-            Reset Statistics
-        </button>
-    </div>
-    </div>
-    </div>
-
-    <!-- TAB 2: DISPLAY PREFERENCES -->
-    <div id="display-settings-tab" class="sidebar-tab-content">
-        <div class="settings-section">
-            <div class="settings-section-header">
-                <i class="fas fa-eye"></i>
-                <span>Display Preferences</span>
-            </div>
-
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">Show Thinking Process</div>
-                    <div class="setting-description">Display AI's internal reasoning steps</div>
+    <div class="message-popup-overlay" id="message-popup-overlay">
+        <div class="message-popup-modal">
+            <div class="message-popup-header">
+                <div class="message-popup-title">
+                    <i class="fas fa-comment-alt"></i>
+                    <span id="message-popup-title-text">Message Details</span>
                 </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="setting-show-thinking" checked onchange="window.saveDisplaySettings()">
-                    <span class="toggle-slider"></span>
-                </label>
+                <button class="message-popup-close" onclick="closeMessagePopup()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">Show Tool Details</div>
-                    <div class="setting-description">Display detailed tool execution info</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="setting-show-tool-details" checked
-                        onchange="window.saveDisplaySettings()">
-                    <span class="toggle-slider"></span>
-                </label>
+            <div class="message-popup-body" id="message-popup-body">
+                <!-- Message content will be inserted here -->
             </div>
-
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">Auto-scroll</div>
-                    <div class="setting-description">Automatically scroll to latest message</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="setting-auto-scroll" checked onchange="window.saveDisplaySettings()">
-                    <span class="toggle-slider"></span>
-                </label>
+            <div class="message-popup-actions">
+                <button class="btn btn-secondary" onclick="copyMessageContent()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+                <button class="btn btn-primary" onclick="closeMessagePopup()">
+                    <i class="fas fa-check"></i> Close
+                </button>
             </div>
         </div>
-    </div>
-
-    <!-- TAB 3: ADVANCED SETTINGS -->
-    <div id="advanced-settings-tab" class="sidebar-tab-content">
-        <div class="settings-section">
-            <div class="settings-section-header">
-                <i class="fas fa-cogs"></i>
-                <span>Advanced Configuration</span>
-            </div>
-
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">Debug Mode</div>
-                    <div class="setting-description">Enable verbose debug logging</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="setting-debug-mode" onchange="window.saveAdvancedSettings()">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">Cache Responses</div>
-                    <div class="setting-description">Cache API responses for faster reload</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="setting-cache-responses" checked
-                        onchange="window.saveAdvancedSettings()">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-        </div>
-    </div>
-    </div>
-
-    <div class="prompt-sidebar-footer">
-        <button class="sidebar-footer-btn" onclick="window.resetAllSettings()">
-            <i class="fas fa-undo"></i>
-            Reset All Settings
-        </button>
-    </div>
-    </div>
     </div>
 
     <!-- ==================== VECTOR DATABASE SIDEBAR (Right Side) ==================== -->
-    <div id="vector-db-sidebar" class="vector-db-sidebar">
+    <div id="vector-db-sidebar" class="vector-db-sidebar" style="display: none;">
         <!-- HEADER -->
         <div class="vector-db-sidebar-header">
             <div class="vector-db-header-top">
@@ -18759,7 +18706,7 @@
                         <div
                             style="padding: 12px; background: #EFF6FF; border-left: 3px solid #3B82F6; border-radius: 6px; margin-bottom: 14px;">
                             <div style="font-size: 13px; color: #1E40AF; line-height: 1.6;">
-                                <strong>?? Security Notes:</strong> Database connections require network access and
+                                <strong>🔒 Security Notes:</strong> Database connections require network access and
                                 proper credentials:
                                 <ul style="margin: 8px 0 0 20px; padding: 0;">
                                     <li><strong>Firewall Rules:</strong> Ensure database server allows connections from
@@ -18773,7 +18720,7 @@
                                 </ul>
                                 <div
                                     style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                                    ?? <strong>Tip:</strong> Test connection from your network first using tools like
+                                    💡 <strong>Tip:</strong> Test connection from your network first using tools like
                                     SQL Server Management Studio or pgAdmin before adding here.
                                 </div>
                             </div>
@@ -18868,7 +18815,7 @@
                             <input type="password" id="apiKeyValue" placeholder="sk-..." required
                                 style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
                             <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                                Your API key will be securely encrypted and masked as  when displayed
+                                Your API key will be securely encrypted and masked as ••••• when displayed
                             </div>
                         </div>
 
@@ -18949,7 +18896,7 @@
                             <div class="settings-field">
                                 <label style="font-size: 14px; font-weight: 600;">Password <span
                                         style="color: var(--danger);">*</span></label>
-                                <input type="password" id="databasePassword" placeholder="" required
+                                <input type="password" id="databasePassword" placeholder="••••••••" required
                                     style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%;">
                             </div>
                         </div>
@@ -19244,17 +19191,17 @@
          * Show processing indicator in AI Prime chat
          */
         function showPrimeProcessingIndicator() {
-            console.log('?? [Prime] showPrimeProcessingIndicator called');
+            console.log('🔄 [Prime] showPrimeProcessingIndicator called');
 
             // Get or create indicator
             let indicator = document.getElementById('prime-processing-indicator');
 
             if (!indicator) {
-                console.log('?? [Prime] Creating processing indicator element...');
+                console.log('🔨 [Prime] Creating processing indicator element...');
                 const messagesContainer = document.getElementById('ai-chat-messages');
 
                 if (!messagesContainer) {
-                    console.error('? [Prime] Messages container not found!');
+                    console.error('❌ [Prime] Messages container not found!');
                     return;
                 }
 
@@ -19273,11 +19220,11 @@
 
                 // Append to messages container
                 messagesContainer.appendChild(indicator);
-                console.log('? [Prime] Processing indicator created and added to DOM');
+                console.log('✅ [Prime] Processing indicator created and added to DOM');
             } else {
                 indicator.classList.add('active');
                 indicator.style.display = 'flex';
-                console.log('? [Prime] Processing indicator shown - classList:', indicator.classList.toString());
+                console.log('✅ [Prime] Processing indicator shown - classList:', indicator.classList.toString());
             }
         }
 
@@ -19286,11 +19233,11 @@
          */
         function hidePrimeProcessingIndicator() {
             const indicator = document.getElementById('prime-processing-indicator');
-            console.log('?? [Prime] hidePrimeProcessingIndicator called');
+            console.log('🔄 [Prime] hidePrimeProcessingIndicator called');
             if (indicator) {
                 indicator.classList.remove('active');
                 indicator.style.display = 'none';
-                console.log('? [Prime] Processing indicator hidden - classList:', indicator.classList.toString());
+                console.log('✅ [Prime] Processing indicator hidden - classList:', indicator.classList.toString());
             }
         }
 
@@ -19313,7 +19260,7 @@
         window.updatePrimeProcessingText = updatePrimeProcessingText;
 
         function signInWithMicrosoft() {
-            console.log('?? Initiating Microsoft 365 OAuth login...');
+            console.log('🔐 Initiating Microsoft 365 OAuth login...');
 
             // Use API_BASE_URL which is already set correctly for Render or localhost
             const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
@@ -19325,15 +19272,15 @@
 
             const oauthUrl = `${baseUrl}/api/auth/microsoft/login?redirect_uri=${redirectUri}`;
 
-            console.log('?? OAuth Base URL:', baseUrl);
-            console.log('?? Redirect URI:', currentUrl);
-            console.log('?? Full OAuth URL:', oauthUrl);
+            console.log('📍 OAuth Base URL:', baseUrl);
+            console.log('🔙 Redirect URI:', currentUrl);
+            console.log('🌐 Full OAuth URL:', oauthUrl);
 
             window.location.href = oauthUrl;
         }
 
         function signInWithGoogle() {
-            console.log('?? Initiating Google OAuth login...');
+            console.log('🔐 Initiating Google OAuth login...');
 
             // Use API_BASE_URL which is already set correctly for Render or localhost
             const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
@@ -19345,9 +19292,9 @@
 
             const oauthUrl = `${baseUrl}/api/auth/google/login?redirect_uri=${redirectUri}`;
 
-            console.log('?? OAuth Base URL:', baseUrl);
-            console.log('?? Redirect URI:', currentUrl);
-            console.log('?? Full OAuth URL:', oauthUrl);
+            console.log('📍 OAuth Base URL:', baseUrl);
+            console.log('🔙 Redirect URI:', currentUrl);
+            console.log('🌐 Full OAuth URL:', oauthUrl);
 
             window.location.href = oauthUrl;
         }
@@ -19402,7 +19349,7 @@
         });
 
         // ==================== API CONFIGURATION (MOVED TO LINE ~280) ====================
-        // ? API_BASE_URL is now set EARLY in the document (before ThreadManager loads)
+        // ✅ API_BASE_URL is now set EARLY in the document (before ThreadManager loads)
         // This was moved to prevent ThreadManager from reading undefined and falling back to localhost
 
         // The configuration below is LEGACY and NO LONGER NEEDED:
@@ -19411,15 +19358,15 @@
 
         // Verbose logging for debugging (can be removed after verification)
         console.log('='.repeat(70));
-        console.log('?? [RENDER CONFIG] Environment Detection (LEGACY LOGS)');
+        console.log('🌍 [RENDER CONFIG] Environment Detection (LEGACY LOGS)');
         console.log('='.repeat(70));
         console.log(' Current URL:', window.location.href);
         console.log(' Current protocol:', window.location.protocol);
         console.log(' Current hostname:', window.location.hostname || '(none - file:// protocol)');
         console.log(' Current origin:', window.location.origin || '(no origin)');
         console.log('');
-        console.log(' ? API Base URL (set at line ~280):', window.API_BASE_URL);
-        console.log(' ? VSA Agent URL (set at line ~280):', window.VSA_API_BASE_URL);
+        console.log(' ✅ API Base URL (set at line ~280):', window.API_BASE_URL);
+        console.log(' ✅ VSA Agent URL (set at line ~280):', window.VSA_API_BASE_URL);
         console.log('='.repeat(70));
 
         // ? Supabase Global Configuration (loaded from Flask backend)
@@ -19445,7 +19392,7 @@
                     window.SUPABASE_CONFIG_LOADED = true;
                     console.log('? [SUPABASE] Config loaded:', window.SUPABASE_URL);
 
-                    // ? DO NOT CREATE CLIENT HERE - SupabaseConnectionManager handles this
+                    // ✅ DO NOT CREATE CLIENT HERE - SupabaseConnectionManager handles this
                     // Client creation moved to connection manager to prevent duplicates
                     window.SUPABASE_REALTIME_ENABLED = true;
                     console.log('? [SUPABASE] Config ready for connection manager');
@@ -20636,11 +20583,11 @@
             if (typeof window.initMultiAgent === 'function') {
                 console.log('? [INIT] initMultiAgent found, initializing...');
 
-                // ? FIX: Ensure multi-agent tab is active before creating columns
+                // ✅ FIX: Ensure multi-agent tab is active before creating columns
                 // This prevents DOM elements from being created in a hidden state
                 const multiAgentTab = document.getElementById('tab-multi-agent');
                 if (multiAgentTab && !multiAgentTab.classList.contains('active')) {
-                    console.log('?? [INIT] Multi-agent tab is hidden, activating for DOM initialization...');
+                    console.log('⚠️ [INIT] Multi-agent tab is hidden, activating for DOM initialization...');
                     multiAgentTab.classList.add('active');
 
                     // Also hide home tab temporarily
@@ -20649,12 +20596,12 @@
                         homeTab.classList.remove('active');
                     }
 
-                    console.log('? [INIT] Multi-agent tab activated (DOM elements will be visible during creation)');
+                    console.log('✅ [INIT] Multi-agent tab activated (DOM elements will be visible during creation)');
                 }
 
                 await window.initMultiAgent(); // WAIT for agent columns to be created before restoring threads
 
-                console.log('? [INIT] initMultiAgent completed successfully');
+                console.log('✅ [INIT] initMultiAgent completed successfully');
             } else {
                 console.error('? [INIT] initMultiAgent is not defined - agent-js.js may not have loaded');
                 console.error('? [INIT] Available window properties:', Object.keys(window).filter(k => k.includes('Multi') || k.includes('Agent')));
@@ -20663,14 +20610,14 @@
 
             await loadPlatformStatus();
 
-            // ? NOW SAFE: ThreadManager.init() has duplicate prevention with _initialized flag
+            // ✅ NOW SAFE: ThreadManager.init() has duplicate prevention with _initialized flag
             // It will automatically skip if already initialized by initMultiAgent()
             if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.init === 'function') {
-                console.log('?? [INIT] Calling ThreadManager.init() (duplicate-safe)...');
+                console.log('🔧 [INIT] Calling ThreadManager.init() (duplicate-safe)...');
                 await ThreadManager.init();
-                console.log('? [INIT] ThreadManager.init() completed');
+                console.log('✅ [INIT] ThreadManager.init() completed');
             } else {
-                console.error('? [INIT] ThreadManager.init() not available');
+                console.error('❌ [INIT] ThreadManager.init() not available');
             }
 
             // DISPLAY TOOL STATISTICS
@@ -20811,47 +20758,47 @@
          * - Method availability
          */
         window.debugSidebars = function (sidebarId = null) {
-            console.log('\n?? ==================== SIDEBAR DIAGNOSTICS ====================');
-            console.log('? Timestamp:', new Date().toLocaleTimeString());
+            console.log('\n🔍 ==================== SIDEBAR DIAGNOSTICS ====================');
+            console.log('⏰ Timestamp:', new Date().toLocaleTimeString());
 
             // 1. Check SidebarManager existence
-            console.log('\n?? SIDEBAR MANAGER STATUS:');
+            console.log('\n📦 SIDEBAR MANAGER STATUS:');
             if (typeof window.SidebarManager === 'undefined') {
-                console.error('? SidebarManager is NOT defined on window');
-                console.log('   ? Check if sidebar-manager.js loaded correctly');
+                console.error('❌ SidebarManager is NOT defined on window');
+                console.log('   → Check if sidebar-manager.js loaded correctly');
                 return;
             }
-            console.log('? SidebarManager exists:', typeof window.SidebarManager);
+            console.log('✅ SidebarManager exists:', typeof window.SidebarManager);
             console.log('   Class:', window.SidebarManager.constructor.name);
 
             // 2. List available methods
-            console.log('\n??? AVAILABLE METHODS:');
+            console.log('\n🛠️ AVAILABLE METHODS:');
             const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(window.SidebarManager))
                 .filter(name => typeof window.SidebarManager[name] === 'function' && name !== 'constructor');
             methods.forEach(method => {
-                console.log(`   ? ${method}()`);
+                console.log(`   ✓ ${method}()`);
             });
 
             // 3. Get all registered sidebars
-            console.log('\n?? REGISTERED SIDEBARS:');
+            console.log('\n📋 REGISTERED SIDEBARS:');
             const allSidebars = window.SidebarManager.getAll();
             console.log(`   Total registered: ${allSidebars.length}`);
 
             if (allSidebars.length === 0) {
-                console.warn('?? No sidebars registered! Check sidebar-init.js');
+                console.warn('⚠️ No sidebars registered! Check sidebar-init.js');
                 return;
             }
 
             allSidebars.forEach((sidebar, index) => {
                 const isTarget = sidebarId ? sidebar.id === sidebarId : false;
-                const prefix = isTarget ? '??' : '  ';
+                const prefix = isTarget ? '🎯' : '  ';
 
                 console.log(`\n${prefix} [${index + 1}] ${sidebar.id}`);
                 console.log(`${prefix}     Title: "${sidebar.title}"`);
                 console.log(`${prefix}     Side: ${sidebar.side}`);
                 console.log(`${prefix}     Width: ${sidebar.width}`);
-                console.log(`${prefix}     Open: ${sidebar.isOpen ? '? YES' : '? NO'}`);
-                console.log(`${prefix}     Initialized: ${sidebar.initialized ? '? YES' : '? NO'}`);
+                console.log(`${prefix}     Open: ${sidebar.isOpen ? '✅ YES' : '❌ NO'}`);
+                console.log(`${prefix}     Initialized: ${sidebar.initialized ? '✅ YES' : '❌ NO'}`);
                 console.log(`${prefix}     Toggle Button ID: ${sidebar.toggleButtonId}`);
                 console.log(`${prefix}     Z-Index: ${sidebar.zIndex}`);
 
@@ -20859,7 +20806,7 @@
                 const element = sidebar.element;
                 const button = sidebar.toggleButton;
 
-                console.log(`${prefix}     DOM Element: ${element ? '? EXISTS' : '? MISSING'}`);
+                console.log(`${prefix}     DOM Element: ${element ? '✅ EXISTS' : '❌ MISSING'}`);
                 if (element) {
                     console.log(`${prefix}       - ID: ${element.id}`);
                     console.log(`${prefix}       - Classes: ${element.className}`);
@@ -20874,37 +20821,37 @@
                     const inViewport = rect.left >= 0 && rect.top >= 0 &&
                         rect.right <= window.innerWidth &&
                         rect.bottom <= window.innerHeight;
-                    console.log(`${prefix}       - In Viewport: ${inViewport ? '? YES' : '?? NO'}`);
+                    console.log(`${prefix}       - In Viewport: ${inViewport ? '✅ YES' : '⚠️ NO'}`);
                     console.log(`${prefix}       - Position: (${Math.round(rect.left)}, ${Math.round(rect.top)}) ${Math.round(rect.width)}x${Math.round(rect.height)}`);
                 }
 
-                console.log(`${prefix}     Toggle Button: ${button ? '? EXISTS' : '? MISSING'}`);
+                console.log(`${prefix}     Toggle Button: ${button ? '✅ EXISTS' : '❌ MISSING'}`);
                 if (button) {
                     console.log(`${prefix}       - ID: ${button.id}`);
                     console.log(`${prefix}       - Classes: ${button.className}`);
-                    console.log(`${prefix}       - Visible: ${window.getComputedStyle(button).display !== 'none' ? '? YES' : '? NO'}`);
+                    console.log(`${prefix}       - Visible: ${window.getComputedStyle(button).display !== 'none' ? '✅ YES' : '❌ NO'}`);
                 }
 
                 // Check callbacks
                 console.log(`${prefix}     Callbacks:`);
-                console.log(`${prefix}       - onInit: ${sidebar.onInit ? '? SET' : '?? NOT SET'}`);
-                console.log(`${prefix}       - onOpen: ${sidebar.onOpen ? '? SET' : '?? NOT SET'}`);
-                console.log(`${prefix}       - onClose: ${sidebar.onClose ? '? SET' : '?? NOT SET'}`);
+                console.log(`${prefix}       - onInit: ${sidebar.onInit ? '✅ SET' : '⚠️ NOT SET'}`);
+                console.log(`${prefix}       - onOpen: ${sidebar.onOpen ? '✅ SET' : '⚠️ NOT SET'}`);
+                console.log(`${prefix}       - onClose: ${sidebar.onClose ? '✅ SET' : '⚠️ NOT SET'}`);
             });
 
             // 4. Check active sidebars
-            console.log('\n?? CURRENTLY OPEN SIDEBARS:');
+            console.log('\n🔓 CURRENTLY OPEN SIDEBARS:');
             const activeSidebars = Array.from(window.SidebarManager.activeSidebars || []);
             if (activeSidebars.length === 0) {
                 console.log('   None (all closed)');
             } else {
                 activeSidebars.forEach(id => {
-                    console.log(`   ? ${id}`);
+                    console.log(`   ✓ ${id}`);
                 });
             }
 
             // 5. Check specific sidebar buttons
-            console.log('\n?? SIDEBAR BUTTONS IN DOM:');
+            console.log('\n🔘 SIDEBAR BUTTONS IN DOM:');
             const buttonSelectors = [
                 '[data-action="universal-search"]',
                 '[data-action="vectordb"]',
@@ -20915,51 +20862,51 @@
                 const btn = document.querySelector(`.sidebar-icon-btn${selector}`);
                 console.log(`   ${selector}:`);
                 if (btn) {
-                    console.log(`     ? Button exists`);
+                    console.log(`     ✅ Button exists`);
                     console.log(`     - Classes: ${btn.className}`);
                     console.log(`     - Title: ${btn.title}`);
-                    console.log(`     - Has click listener: ${btn.onclick ? '? YES' : '?? Via event delegation'}`);
-                    console.log(`     - Visible: ${window.getComputedStyle(btn).display !== 'none' ? '? YES' : '? NO'}`);
+                    console.log(`     - Has click listener: ${btn.onclick ? '✅ YES' : '⚠️ Via event delegation'}`);
+                    console.log(`     - Visible: ${window.getComputedStyle(btn).display !== 'none' ? '✅ YES' : '❌ NO'}`);
                 } else {
-                    console.error(`     ? Button NOT FOUND in DOM`);
+                    console.error(`     ❌ Button NOT FOUND in DOM`);
                 }
             });
 
             // 6. Test method calls (if specific sidebar requested)
             if (sidebarId) {
-                console.log(`\n?? TESTING METHODS FOR: ${sidebarId}`);
+                console.log(`\n🧪 TESTING METHODS FOR: ${sidebarId}`);
 
                 try {
                     const isOpen = window.SidebarManager.isOpen(sidebarId);
-                    console.log(`   ? isOpen("${sidebarId}"): ${isOpen}`);
+                    console.log(`   ✓ isOpen("${sidebarId}"): ${isOpen}`);
                 } catch (error) {
-                    console.error(`   ? isOpen() failed:`, error.message);
+                    console.error(`   ❌ isOpen() failed:`, error.message);
                 }
 
                 try {
                     const sidebar = window.SidebarManager.sidebars.get(sidebarId);
                     if (sidebar) {
-                        console.log(`   ? Found in sidebars Map`);
-                        console.log(`   ? Can call open(): ${typeof window.SidebarManager.open === 'function'}`);
-                        console.log(`   ? Can call close(): ${typeof window.SidebarManager.close === 'function'}`);
-                        console.log(`   ? Can call toggle(): ${typeof window.SidebarManager.toggle === 'function'}`);
+                        console.log(`   ✓ Found in sidebars Map`);
+                        console.log(`   ✓ Can call open(): ${typeof window.SidebarManager.open === 'function'}`);
+                        console.log(`   ✓ Can call close(): ${typeof window.SidebarManager.close === 'function'}`);
+                        console.log(`   ✓ Can call toggle(): ${typeof window.SidebarManager.toggle === 'function'}`);
                     } else {
-                        console.error(`   ? Sidebar "${sidebarId}" not found in Map`);
+                        console.error(`   ❌ Sidebar "${sidebarId}" not found in Map`);
                     }
                 } catch (error) {
-                    console.error(`   ? Map access failed:`, error.message);
+                    console.error(`   ❌ Map access failed:`, error.message);
                 }
             }
 
             // 7. Recommendations
-            console.log('\n?? QUICK ACTIONS:');
+            console.log('\n💡 QUICK ACTIONS:');
             console.log('   Test open:  window.SidebarManager.open("universal-search")');
             console.log('   Test close: window.SidebarManager.close("universal-search")');
             console.log('   Test toggle: window.SidebarManager.toggle("vector-database")');
             console.log('   Deep dive:  debugSidebars("communication-hub")');
             console.log('   List all:   window.SidebarManager.getAll()');
 
-            console.log('\n?? ==================== END DIAGNOSTICS ====================\n');
+            console.log('\n🔍 ==================== END DIAGNOSTICS ====================\n');
 
             // Return data object for programmatic use
             return {
@@ -20980,10 +20927,10 @@
         window.dbg = window.debugSidebars;
 
         // Auto-run on console command
-        console.log('?? Sidebar diagnostics available:');
-        console.log('    debugSidebars() - Full diagnostic report');
-        console.log('    debugSidebars("sidebar-id") - Detailed single sidebar check');
-        console.log('    dbg() - Shorthand alias');
+        console.log('🔧 Sidebar diagnostics available:');
+        console.log('   • debugSidebars() - Full diagnostic report');
+        console.log('   • debugSidebars("sidebar-id") - Detailed single sidebar check');
+        console.log('   • dbg() - Shorthand alias');
 
         // ==================== ON PAGE LOAD - AUTH CHECK ONLY ====================
         document.addEventListener('DOMContentLoaded', async () => {
@@ -21018,7 +20965,7 @@
 
             console.log('? [AUTH] UserAuth is now available');
 
-            // ? CRITICAL FIX (Nov 27, 2025): Check for OAuth token FIRST before session check
+            // ✅ CRITICAL FIX (Nov 27, 2025): Check for OAuth token FIRST before session check
             // OAuth callback flow needs special handling because userProfile isn't stored yet
             const urlParams = new URLSearchParams(window.location.search);
             const hasOAuthToken = urlParams.has('token');
@@ -21026,32 +20973,32 @@
             if (hasOAuthToken) {
                 // OAuth callback detected - handle immediately without session check
                 const token = urlParams.get('token');
-                console.log('?? [AUTH INIT] OAuth callback detected - token in URL');
-                console.log('?? [AUTH INIT] Token length:', token.length);
-                console.log('?? [AUTH INIT] Token preview:', token.substring(0, 50) + '...');
+                console.log('🔐 [AUTH INIT] OAuth callback detected - token in URL');
+                console.log('🔐 [AUTH INIT] Token length:', token.length);
+                console.log('🔐 [AUTH INIT] Token preview:', token.substring(0, 50) + '...');
 
                 // Store token in localStorage
                 localStorage.setItem('authToken', token);
-                console.log('? [AUTH INIT] Token stored in localStorage');
+                console.log('✅ [AUTH INIT] Token stored in localStorage');
 
                 if (typeof UserAuth !== 'undefined') {
                     UserAuth.token = token;
-                    console.log('? [AUTH INIT] Token set in UserAuth.token');
+                    console.log('✅ [AUTH INIT] Token set in UserAuth.token');
                 }
 
                 // Clean URL immediately (remove token from browser history)
                 window.history.replaceState({}, document.title, window.location.pathname);
-                console.log('? [AUTH INIT] URL cleaned (token removed from browser history)');
+                console.log('✅ [AUTH INIT] URL cleaned (token removed from browser history)');
 
                 // Call initializeAccountProfile to handle OAuth flow
                 // This will load user profile, then call showMainApp()
-                console.log('?? [AUTH INIT] Calling initializeAccountProfile() for OAuth flow...');
+                console.log('🚀 [AUTH INIT] Calling initializeAccountProfile() for OAuth flow...');
                 if (typeof window.initializeAccountProfile === 'function') {
                     await window.initializeAccountProfile();
                 } else {
-                    console.error('? [AUTH INIT] initializeAccountProfile not available!');
+                    console.error('❌ [AUTH INIT] initializeAccountProfile not available!');
                 }
-                return; // ? CRITICAL: Exit early - don't run checkExistingSession()
+                return; // ✅ CRITICAL: Exit early - don't run checkExistingSession()
             }
 
             try {
@@ -21060,9 +21007,9 @@
                 const isAuthenticated = await UserAuth.checkExistingSession();
 
                 if (isAuthenticated) {
-                    console.log('? [AUTH] Session found - Loading main app...');
+                    console.log('✅ [AUTH] Session found - Loading main app...');
                     await UserAuth.showMainApp();
-                    console.log('? [AUTH] Main app loaded (modules initialized)')
+                    console.log('✅ [AUTH] Main app loaded (modules initialized)')
                 } else {
                     console.log('[AUTH] No active session - Showing login screen...');
 
@@ -21070,7 +21017,7 @@
                     if (typeof window.initializeAccountProfile === 'function') {
                         await window.initializeAccountProfile();
                     } else {
-                        console.warn('?? [AUTH] initializeAccountProfile not available - showing login screen manually');
+                        console.warn('⚠️ [AUTH] initializeAccountProfile not available - showing login screen manually');
                         const loginOverlay = document.getElementById('loginOverlay');
                         if (loginOverlay) {
                             loginOverlay.style.display = 'flex';
@@ -21282,6 +21229,39 @@
 
         // Expose globally for debugging
         window.getVisualizationCapabilities = getVisualizationCapabilities;
+
+        // ==================== THEME DETECTION FOR CODE BLOCKS ====================
+        function updateCodeBlockTheme() {
+            // Detect current theme based on background color
+            const bgColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--bg-primary').trim();
+
+            // Dark theme detection (GitHub dark colors)
+            const isDark = bgColor === '#0d1117' || bgColor === '#010409' ||
+                bgColor.includes('rgb(13, 17, 23)');
+
+            // Set theme attribute for code blocks
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+            console.log(`🎨 Code block theme set to: ${isDark ? 'dark' : 'light'}`);
+        }
+
+        // Update theme on load and when CSS variables change
+        updateCodeBlockTheme();
+
+        // Watch for theme changes (if theme toggle exists)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    updateCodeBlockTheme();
+                }
+            });
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['style']
+        });
 
         // ==================== HYPERLINK EVENT DELEGATION ====================
         // Make all hyperlinks in chat messages open in new window/tab
@@ -21766,10 +21746,10 @@
                                 },
                                 log: {
                                     info: (...args) => console.log('[CommunicationHub]', ...args),
-                                    success: (...args) => console.log('? [CommunicationHub]', ...args),
-                                    error: (...args) => console.error('? [CommunicationHub]', ...args),
-                                    warn: (...args) => console.warn('?? [CommunicationHub]', ...args),
-                                    debug: (...args) => console.log('?? [CommunicationHub]', ...args)
+                                    success: (...args) => console.log('✅ [CommunicationHub]', ...args),
+                                    error: (...args) => console.error('❌ [CommunicationHub]', ...args),
+                                    warn: (...args) => console.warn('⚠️ [CommunicationHub]', ...args),
+                                    debug: (...args) => console.log('🔍 [CommunicationHub]', ...args)
                                 }
                             };
 
@@ -21790,28 +21770,28 @@
         }
 
         function switchTab(tabId) {
-            console.log(`?? [DIAGNOSTIC] ========== SWITCH TAB CALLED ==========`);
-            console.log(`?? [DIAGNOSTIC] Target tabId: "${tabId}"`);
-            console.log(`?? [DIAGNOSTIC] Looking for element ID: "tab-${tabId}"`);
+            console.log(`🔍 [DIAGNOSTIC] ========== SWITCH TAB CALLED ==========`);
+            console.log(`🔍 [DIAGNOSTIC] Target tabId: "${tabId}"`);
+            console.log(`🔍 [DIAGNOSTIC] Looking for element ID: "tab-${tabId}"`);
 
-            // ?? DIAGNOSTIC: Check main-content container
+            // 🔍 DIAGNOSTIC: Check main-content container
             const mainContent = document.querySelector('.main-content');
-            console.log(`?? [DIAGNOSTIC] .main-content exists:`, !!mainContent);
+            console.log(`🔍 [DIAGNOSTIC] .main-content exists:`, !!mainContent);
             if (mainContent) {
-                console.log(`?? [DIAGNOSTIC] .main-content children count:`, mainContent.children.length);
-                console.log(`?? [DIAGNOSTIC] .main-content display style:`, window.getComputedStyle(mainContent).display);
+                console.log(`🔍 [DIAGNOSTIC] .main-content children count:`, mainContent.children.length);
+                console.log(`🔍 [DIAGNOSTIC] .main-content display style:`, window.getComputedStyle(mainContent).display);
             } else {
-                console.error(`? [CRITICAL] .main-content container MISSING!`);
+                console.error(`❌ [CRITICAL] .main-content container MISSING!`);
             }
 
-            // ?? DIAGNOSTIC: List all tab-content elements
+            // 🔍 DIAGNOSTIC: List all tab-content elements
             const allTabs = document.querySelectorAll('.tab-content');
-            console.log(`?? [DIAGNOSTIC] Total .tab-content elements found:`, allTabs.length);
-            console.log(`?? [DIAGNOSTIC] All tab IDs:`, Array.from(allTabs).map(t => t.id));
-            console.log(`?? [DIAGNOSTIC] Active tabs before switch:`,
+            console.log(`🔍 [DIAGNOSTIC] Total .tab-content elements found:`, allTabs.length);
+            console.log(`🔍 [DIAGNOSTIC] All tab IDs:`, Array.from(allTabs).map(t => t.id));
+            console.log(`🔍 [DIAGNOSTIC] Active tabs before switch:`,
                 Array.from(allTabs).filter(t => t.classList.contains('active')).map(t => t.id));
 
-            console.log(`?? Switching to tab: ${tabId}`);
+            console.log(`📍 Switching to tab: ${tabId}`);
 
             // Disconnect WebSocket if leaving Synergy tab
             if (AppState.currentTab === 'synergy' && tabId !== 'synergy') {
@@ -21825,37 +21805,37 @@
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            console.log(`?? [DIAGNOSTIC] All tabs hidden (active class removed)`);
+            console.log(`🔍 [DIAGNOSTIC] All tabs hidden (active class removed)`);
 
             // Show selected tab
             const targetTab = document.getElementById(`tab-${tabId}`);
-            console.log(`?? [DIAGNOSTIC] getElementById("tab-${tabId}") result:`, !!targetTab);
+            console.log(`🔍 [DIAGNOSTIC] getElementById("tab-${tabId}") result:`, !!targetTab);
 
             if (targetTab) {
-                console.log(`? [DIAGNOSTIC] Target tab FOUND! Adding active class...`);
+                console.log(`✅ [DIAGNOSTIC] Target tab FOUND! Adding active class...`);
                 targetTab.classList.add('active');
                 AppState.currentTab = tabId;
 
                 // Verify tab is actually visible
                 const computedDisplay = window.getComputedStyle(targetTab).display;
-                console.log(`?? [DIAGNOSTIC] Target tab display after activation:`, computedDisplay);
-                console.log(`?? [DIAGNOSTIC] Target tab classes:`, targetTab.className);
+                console.log(`🔍 [DIAGNOSTIC] Target tab display after activation:`, computedDisplay);
+                console.log(`🔍 [DIAGNOSTIC] Target tab classes:`, targetTab.className);
 
-                // ? FIX: Notify ModuleLoader about tab switch
+                // ✅ FIX: Notify ModuleLoader about tab switch
                 if (window.moduleLoader) {
                     console.log('[ModuleLoader] Switching to main tab:', tabId);
                     // ModuleLoader will handle showing the module's content
                 }
             } else {
-                console.error(`? [CRITICAL] Tab not found: tab-${tabId}`);
-                console.error(`? [CRITICAL] This tab does not exist in the DOM!`);
-                console.error(`? [CRITICAL] Available tabs:`, Array.from(allTabs).map(t => t.id));
+                console.error(`❌ [CRITICAL] Tab not found: tab-${tabId}`);
+                console.error(`❌ [CRITICAL] This tab does not exist in the DOM!`);
+                console.error(`❌ [CRITICAL] Available tabs:`, Array.from(allTabs).map(t => t.id));
             }
 
-            console.log(`?? [DIAGNOSTIC] Active tabs after switch:`,
+            console.log(`🔍 [DIAGNOSTIC] Active tabs after switch:`,
                 Array.from(document.querySelectorAll('.tab-content'))
                     .filter(t => t.classList.contains('active')).map(t => t.id));
-            console.log(`?? [DIAGNOSTIC] ========== SWITCH TAB COMPLETE ==========`);
+            console.log(`🔍 [DIAGNOSTIC] ========== SWITCH TAB COMPLETE ==========`);
 
             // Update sidebar button active states
             document.querySelectorAll('.sidebar-icon-btn').forEach(btn => {
@@ -21878,13 +21858,13 @@
 
                 const initSynergyBoard = async () => {
                     if (typeof window.synergyBoard !== 'undefined' && window.synergyBoard) {
-                        console.log('? [SYNERGY] synergyBoard available immediately');
+                        console.log('✅ [SYNERGY] synergyBoard available immediately');
                         try {
                             await window.synergyBoard.ensureInitialized();
-                            console.log('? [SYNERGY] Board initialized and sessions loaded');
+                            console.log('✅ [SYNERGY] Board initialized and sessions loaded');
                             window.synergyBoard.refreshBoard();
                         } catch (err) {
-                            console.error('? [SYNERGY] Error initializing board:', err);
+                            console.error('❌ [SYNERGY] Error initializing board:', err);
                             // Try refreshBoard anyway
                             if (typeof window.synergyBoard.refreshBoard === 'function') {
                                 window.synergyBoard.refreshBoard();
@@ -21893,11 +21873,11 @@
                     } else if (retryCount < maxRetries) {
                         retryCount++;
                         if (retryCount === 1 || retryCount % 10 === 0) {
-                            console.log(`? [SYNERGY] Waiting for synergyBoard to load... (${retryCount}/${maxRetries})`);
+                            console.log(`⏳ [SYNERGY] Waiting for synergyBoard to load... (${retryCount}/${maxRetries})`);
                         }
                         setTimeout(initSynergyBoard, 100);
                     } else {
-                        console.error('? [SYNERGY] Timeout: window.synergyBoard not loaded after 5 seconds');
+                        console.error('❌ [SYNERGY] Timeout: window.synergyBoard not loaded after 5 seconds');
                         console.error('   Check if <script> defining synergyBoard is present in HTML');
                     }
                 };
@@ -21943,13 +21923,13 @@
                 } else {
                     console.log('[AUTOMATION] Canvas already initialized');
 
-                    // ? FIX: Always verify and re-attach event listeners when tab becomes active
-                    console.log('[AUTOMATION] ? Verifying event listeners...');
+                    // ✅ FIX: Always verify and re-attach event listeners when tab becomes active
+                    console.log('[AUTOMATION] ⚡ Verifying event listeners...');
                     if (typeof window.automationCanvas.verifyEventListeners === 'function') {
                         const result = window.automationCanvas.verifyEventListeners();
-                        console.log(`[AUTOMATION] ? Event listeners ready (${result.attached} attached, ${result.missing} missing)`);
+                        console.log(`[AUTOMATION] ✅ Event listeners ready (${result.attached} attached, ${result.missing} missing)`);
                     } else {
-                        console.warn('[AUTOMATION] ?? verifyEventListeners() not found - using fallback');
+                        console.warn('[AUTOMATION] ⚠️ verifyEventListeners() not found - using fallback');
                         if (typeof window.automationCanvas.setupEventListeners === 'function') {
                             window.automationCanvas.setupEventListeners();
                         }
@@ -23383,7 +23363,7 @@
                 const btn = event.target.closest('button');
                 const originalHTML = btn.innerHTML;
 
-                console.log('%c?? [DEBUG] Forcing module load...', 'color: #ff6b6b; font-size: 16px; font-weight: bold');
+                console.log('%c🔧 [DEBUG] Forcing module load...', 'color: #ff6b6b; font-size: 16px; font-weight: bold');
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
                 btn.disabled = true;
 
@@ -23392,7 +23372,7 @@
                     const mods = window.ModuleManager?.getModules() || [];
                     btn.innerHTML = `<i class="fas fa-check"></i> Loaded ${mods.length}`;
                     btn.style.background = '#51cf66';
-                    console.log(`%c? Loaded ${mods.length} modules`, 'color: #51cf66; font-weight: bold', mods.map(m => m.name));
+                    console.log(`%c✅ Loaded ${mods.length} modules`, 'color: #51cf66; font-weight: bold', mods.map(m => m.name));
                     this.updateStatus();
 
                     setTimeout(() => {
@@ -23403,7 +23383,7 @@
                 } catch (e) {
                     btn.innerHTML = '<i class="fas fa-times"></i> Error';
                     btn.style.background = '#ff6b6b';
-                    console.error('%c? Failed:', 'color: red; font-weight: bold', e);
+                    console.error('%c❌ Failed:', 'color: red; font-weight: bold', e);
                     this.updateStatus();
 
                     setTimeout(() => {
@@ -23416,78 +23396,78 @@
 
             async runDiagnostics() {
                 console.clear();
-                console.log('%c---------------------------------------------------', 'color: #3B82F6; font-weight: bold');
+                console.log('%c═══════════════════════════════════════════════════', 'color: #3B82F6; font-weight: bold');
                 console.log('%c    MODULE SYSTEM DIAGNOSTIC TEST', 'color: #3B82F6; font-size: 16px; font-weight: bold');
-                console.log('%c---------------------------------------------------', 'color: #3B82F6; font-weight: bold');
+                console.log('%c═══════════════════════════════════════════════════', 'color: #3B82F6; font-weight: bold');
                 console.log('');
 
                 // TEST 1: Check Classes
-                console.log('%c? TEST 1: Core Classes', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
-                console.log('  ModuleManager class:', typeof ModuleManager !== 'undefined' ? '? FOUND' : '? MISSING');
-                console.log('  ModuleLoader class:', typeof ModuleLoader !== 'undefined' ? '? FOUND' : '? MISSING');
-                console.log('  window.initializeModuleSystem:', typeof window.initializeModuleSystem === 'function' ? '? FOUND' : '? MISSING');
+                console.log('%c▶ TEST 1: Core Classes', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('  ModuleManager class:', typeof ModuleManager !== 'undefined' ? '✅ FOUND' : '❌ MISSING');
+                console.log('  ModuleLoader class:', typeof ModuleLoader !== 'undefined' ? '✅ FOUND' : '❌ MISSING');
+                console.log('  window.initializeModuleSystem:', typeof window.initializeModuleSystem === 'function' ? '✅ FOUND' : '❌ MISSING');
                 console.log('');
 
                 // TEST 2: Check DOM
-                console.log('%c? TEST 2: DOM Elements', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c▶ TEST 2: DOM Elements', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 const sidebar = document.querySelector('.sidebar');
                 const mainContent = document.querySelector('.main-content');
                 const moduleSection = document.getElementById('sidebarModulesSection');
-                console.log('  .sidebar:', sidebar ? '? FOUND' : '? MISSING');
-                console.log('    - Visible:', sidebar ? (sidebar.offsetParent !== null ? '? YES' : '?? NO') : 'N/A');
-                console.log('  .main-content:', mainContent ? '? FOUND' : '? MISSING');
-                console.log('    - Visible:', mainContent ? (mainContent.offsetParent !== null ? '? YES' : '?? NO') : 'N/A');
-                console.log('  #sidebarModulesSection:', moduleSection ? '? FOUND' : '? MISSING');
+                console.log('  .sidebar:', sidebar ? '✅ FOUND' : '❌ MISSING');
+                console.log('    - Visible:', sidebar ? (sidebar.offsetParent !== null ? '✅ YES' : '⚠️ NO') : 'N/A');
+                console.log('  .main-content:', mainContent ? '✅ FOUND' : '❌ MISSING');
+                console.log('    - Visible:', mainContent ? (mainContent.offsetParent !== null ? '✅ YES' : '⚠️ NO') : 'N/A');
+                console.log('  #sidebarModulesSection:', moduleSection ? '✅ FOUND' : '❌ MISSING');
                 console.log('');
 
                 // TEST 3: Check ModuleManager Instance
-                console.log('%c? TEST 3: ModuleManager Instance', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c▶ TEST 3: ModuleManager Instance', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 if (window.ModuleManager) {
-                    console.log('  window.ModuleManager:', '? EXISTS');
+                    console.log('  window.ModuleManager:', '✅ EXISTS');
                     console.log('  Type:', typeof window.ModuleManager);
-                    console.log('  Has initialize():', typeof window.ModuleManager.initialize === 'function' ? '? YES' : '? NO');
-                    console.log('  Has getModules():', typeof window.ModuleManager.getModules === 'function' ? '? YES' : '? NO');
-                    console.log('  sidebar property:', window.ModuleManager.sidebar ? '? SET' : '?? NULL');
-                    console.log('  mainContent property:', window.ModuleManager.mainContent ? '? SET' : '?? NULL');
+                    console.log('  Has initialize():', typeof window.ModuleManager.initialize === 'function' ? '✅ YES' : '❌ NO');
+                    console.log('  Has getModules():', typeof window.ModuleManager.getModules === 'function' ? '✅ YES' : '❌ NO');
+                    console.log('  sidebar property:', window.ModuleManager.sidebar ? '✅ SET' : '⚠️ NULL');
+                    console.log('  mainContent property:', window.ModuleManager.mainContent ? '✅ SET' : '⚠️ NULL');
                 } else {
-                    console.log('  window.ModuleManager:', '? NOT FOUND');
+                    console.log('  window.ModuleManager:', '❌ NOT FOUND');
                 }
                 console.log('');
 
                 // TEST 4: Try to fetch manifest.json
-                console.log('%c? TEST 4: Manifest Access', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c▶ TEST 4: Manifest Access', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 try {
                     const response = await fetch('modules_external/manifest.json');
-                    console.log('  HTTP Status:', response.status === 200 ? '? 200 OK' : `? ${response.status}`);
+                    console.log('  HTTP Status:', response.status === 200 ? '✅ 200 OK' : `❌ ${response.status}`);
                     if (response.ok) {
                         const data = await response.json();
                         console.log('  Module count in manifest:', data.length);
                         console.log('  Modules:', data.map(m => m.name).join(', '));
                     }
                 } catch (e) {
-                    console.log('  Fetch error:', '?', e.message);
+                    console.log('  Fetch error:', '❌', e.message);
                 }
                 console.log('');
 
                 // TEST 5: Check current module state
-                console.log('%c? TEST 5: Current Module State', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c▶ TEST 5: Current Module State', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 if (window.ModuleManager && window.ModuleManager.getModules) {
                     const modules = window.ModuleManager.getModules();
-                    console.log('  Loaded modules count:', modules.length > 0 ? `? ${modules.length}` : '?? 0');
+                    console.log('  Loaded modules count:', modules.length > 0 ? `✅ ${modules.length}` : '⚠️ 0');
                     if (modules.length > 0) {
                         console.log('  Module names:');
                         modules.forEach(m => console.log(`    - ${m.name} (${m.id})`));
                     }
                 } else {
-                    console.log('  Cannot check:', '? ModuleManager.getModules not available');
+                    console.log('  Cannot check:', '❌ ModuleManager.getModules not available');
                 }
                 console.log('');
 
                 // TEST 6: Check sidebar icons
-                console.log('%c? TEST 6: Sidebar Icon Count', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c▶ TEST 6: Sidebar Icon Count', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 if (moduleSection) {
                     const iconCount = moduleSection.children.length;
-                    console.log('  Icons in sidebar:', iconCount > 0 ? `? ${iconCount}` : '?? 0');
+                    console.log('  Icons in sidebar:', iconCount > 0 ? `✅ ${iconCount}` : '⚠️ 0');
                     if (iconCount > 0) {
                         console.log('  Icon elements:');
                         Array.from(moduleSection.children).forEach((el, i) => {
@@ -23496,27 +23476,27 @@
                         });
                     }
                 } else {
-                    console.log('  Cannot check:', '? #sidebarModulesSection not found');
+                    console.log('  Cannot check:', '❌ #sidebarModulesSection not found');
                 }
                 console.log('');
 
                 // TEST 7: Try manual initialization
-                console.log('%c? TEST 7: Manual Initialization Test', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('%c▶ TEST 7: Manual Initialization Test', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
                 console.log('  Calling window.initializeModuleSystem(true)...');
                 try {
                     await window.initializeModuleSystem(true);
-                    console.log('  Result:', '? SUCCESS (no error thrown)');
+                    console.log('  Result:', '✅ SUCCESS (no error thrown)');
                     const mods = window.ModuleManager?.getModules() || [];
                     console.log('  Modules after init:', mods.length);
                 } catch (e) {
-                    console.log('  Result:', '? ERROR');
+                    console.log('  Result:', '❌ ERROR');
                     console.error('  Error details:', e);
                 }
                 console.log('');
 
-                console.log('%c---------------------------------------------------', 'color: #22C55E; font-weight: bold');
+                console.log('%c═══════════════════════════════════════════════════', 'color: #22C55E; font-weight: bold');
                 console.log('%c    DIAGNOSTIC COMPLETE', 'color: #22C55E; font-size: 16px; font-weight: bold');
-                console.log('%c---------------------------------------------------', 'color: #22C55E; font-weight: bold');
+                console.log('%c═══════════════════════════════════════════════════', 'color: #22C55E; font-weight: bold');
 
                 this.updateStatus();
             },
@@ -23561,7 +23541,7 @@
                         html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(34, 197, 94, 0.2);">';
                         html += '<div style="font-size: 11px; color: #6B7280; margin-bottom: 4px;">Loaded Modules:</div>';
                         modules.forEach(m => {
-                            html += `<div style="font-size: 11px; color: #9CA3AF; padding-left: 8px;"> ${m.name}</div>`;
+                            html += `<div style="font-size: 11px; color: #9CA3AF; padding-left: 8px;">• ${m.name}</div>`;
                         });
                         html += '</div>';
                     }
@@ -23689,10 +23669,10 @@
                 // Canvas instance details
                 if (canvas) {
                     html += '<div style="font-weight: bold; color: #60A5FA; margin-top: 12px; margin-bottom: 8px; padding-top: 12px; border-top: 1px solid #374151;"><i class="fas fa-info-circle"></i> Canvas Instance</div>';
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> panX: <span style="color: #A78BFA;">${canvas.panX || 0}</span></div>`;
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> panY: <span style="color: #A78BFA;">${canvas.panY || 0}</span></div>`;
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> zoom: <span style="color: #A78BFA;">${canvas.zoom || 1}</span></div>`;
-                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;"> isDragging: <span style="color: #A78BFA;">${canvas.isDragging || false}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• panX: <span style="color: #A78BFA;">${canvas.panX || 0}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• panY: <span style="color: #A78BFA;">${canvas.panY || 0}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• zoom: <span style="color: #A78BFA;">${canvas.zoom || 1}</span></div>`;
+                    html += `<div style="margin-bottom: 5px; color: #D1D5DB; font-size: 10px;">• isDragging: <span style="color: #A78BFA;">${canvas.isDragging || false}</span></div>`;
                 }
 
                 output.innerHTML = html;
@@ -23751,7 +23731,7 @@
 
                 console.log('='.repeat(60));
 
-                alert('? Debug info dumped to console (F12)');
+                alert('✅ Debug info dumped to console (F12)');
             }
         };
 
@@ -23762,12 +23742,12 @@
             AutomationDebug.init();
         }
     </script>
-</script>
+    </script>
 
     <!-- ==================== VOICE TRANSCRIPTION INTEGRATION ==================== -->
     <!-- CRITICAL: Load config.js FIRST - provides centralized API endpoint management -->
     <script src="modules_internal/transcription/config.js"></script>
-    <!-- ? STT-MODULE.JS DISABLED - CAUSES WHISPER BACKEND ERRORS -->
+    <!-- ❌ STT-MODULE.JS DISABLED - CAUSES WHISPER BACKEND ERRORS -->
     <!-- This module creates MediaRecorder that conflicts with Browser STT -->
     <!-- <script src="modules_internal/transcription/stt-module.js"></script> -->
     <script src="modules_internal/transcription/tts-module.js"></script>
@@ -23804,7 +23784,7 @@
                     console.log('[TRANSCRIPTION] Sidebar loaded and initialized');
                 }
 
-                // ? Register chat button UI updates with SharedTranscriptionState
+                // ✅ Register chat button UI updates with SharedTranscriptionState
                 if (window.SharedTranscriptionState) {
                     window.SharedTranscriptionState.on('onStart', () => {
                         const micBtn = document.getElementById('ai-chat-mic-btn');
@@ -23829,7 +23809,7 @@
                     console.log('[TRANSCRIPTION] Chat button UI callbacks registered with SharedTranscriptionState');
                 }
 
-                // ? Define toggleTranscriptionRecording function AFTER SharedTranscriptionState is available
+                // ✅ Define toggleTranscriptionRecording function AFTER SharedTranscriptionState is available
                 window.toggleTranscriptionRecording = function () {
                     // Use shared transcription state (connected to sidebar)
                     if (!window.SharedTranscriptionState) {
@@ -23843,8 +23823,8 @@
                         console.log('[TRANSCRIPTION] Stopping via chat button');
                         window.SharedTranscriptionState.stopRecording();
                     } else {
-                        console.log('[TRANSCRIPTION] Starting via chat button ? will stream to chat input');
-                        window.SharedTranscriptionState.startRecording('chat')  // ? Pass 'chat' as source
+                        console.log('[TRANSCRIPTION] Starting via chat button → will stream to chat input');
+                        window.SharedTranscriptionState.startRecording('chat')  // ✅ Pass 'chat' as source
                             .catch(error => {
                                 console.error('[TRANSCRIPTION] Failed to start:', error);
                                 alert('Could not start recording: ' + error.message);
@@ -23858,20 +23838,20 @@
                 console.error('[TRANSCRIPTION] Failed to load sidebar:', error);
             });
 
-        // ? REMOVED: Duplicate STTModule initialization
+        // ✅ REMOVED: Duplicate STTModule initialization
         // SharedTranscriptionState already handles recording via Browser Web Speech API
-        // ? COMPLETELY DISABLED - Causes microphone conflict with SharedTranscriptionState
+        // ❌ COMPLETELY DISABLED - Causes microphone conflict with SharedTranscriptionState
         let sttModule = null;
 
         function initializeSTTModule() {
-            console.log('[TRANSCRIPTION] ? STTModule DISABLED - Using SharedTranscriptionState only');
+            console.log('[TRANSCRIPTION] ❌ STTModule DISABLED - Using SharedTranscriptionState only');
             console.log('[TRANSCRIPTION] Do NOT initialize STTModule - causes audio-capture errors');
             // CRITICAL: STTModule MediaRecorder conflicts with SharedTranscriptionState browserRecognition
             // Browser only allows ONE audio consumer at a time
             // SharedTranscriptionState provides instant streaming via Web Speech API
-            return; // ? EXIT IMMEDIATELY - DO NOT CREATE STTMODULE
+            return; // ← EXIT IMMEDIATELY - DO NOT CREATE STTMODULE
 
-            /* ??? NEVER UNCOMMENT THIS - CAUSES AUDIO-CAPTURE ERRORS ???
+            /* ❌❌❌ NEVER UNCOMMENT THIS - CAUSES AUDIO-CAPTURE ERRORS ❌❌❌
             if (sttModule) return;
 
             sttModule = new STTModule({
@@ -23946,7 +23926,7 @@
             });
 
             console.log('[TRANSCRIPTION] STT Module initialized');
-            */ // ? END OF COMMENTED OUT CODE
+            */ // ← END OF COMMENTED OUT CODE
         }
 
         // Note: toggleTranscriptionRecording() is defined in the sidebar initialization callback above
@@ -24069,8 +24049,14 @@
             }
 
             // Render sessions
+            console.log('[SESSIONS] Rendering', activeSessions.length, 'sessions - sample:', activeSessions[0]);
+
             sessionsList.innerHTML = activeSessions.map(session => {
-                const device = session.device_info || {};
+                // Parse device_info - handle both object and JSON string
+                let device = session.device_info || {};
+                if (typeof device === 'string') {
+                    try { device = JSON.parse(device); } catch (e) { console.warn('[SESSIONS] Failed to parse device_info:', e); device = {}; }
+                }
 
                 // Extract browser and OS from user_agent if device_info is incomplete
                 let browser = device.browser || 'Unknown';
@@ -24292,7 +24278,7 @@
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
                 z-index: 10000;
-                /* font-weight: 600; */
+                font-weight: 600;
                 animation: slideInRight 0.3s ease;
             `;
             toast.textContent = message;
@@ -24363,7 +24349,7 @@
                     if (!sidebar.classList.contains('collapsed')) {
                         console.log('[ACCOUNT SIDEBAR] Sidebar opened - loading user info and OAuth connections');
                         this.loadUserInfo();
-                        this.loadOAuthConnections(); // ? Auto-load connections when sidebar opens
+                        this.loadOAuthConnections(); // ✅ Auto-load connections when sidebar opens
                         this.loadTabContent(this.currentTab);
                     }
                 }
@@ -24559,7 +24545,7 @@
                     return;
                 }
 
-                // ? Auto-expand OAuth section when connections are present
+                // ✅ Auto-expand OAuth section when connections are present
                 const expandSection = document.getElementById('oauthConnectionsExpand');
                 const chevron = document.getElementById('userExpandChevron');
                 if (expandSection && expandSection.classList.contains('collapsed')) {
@@ -24695,7 +24681,7 @@
                             role: roleEl?.textContent
                         });
 
-                        // ? Auto-load OAuth connections after user info loads
+                        // ✅ Auto-load OAuth connections after user info loads
                         console.log('[ACCOUNT SIDEBAR] Auto-loading OAuth connections after profile load');
                         this.loadOAuthConnections();
                     }
@@ -25013,9 +24999,275 @@
         function toggleSettingsSection(headerElement) {
             const section = headerElement.closest('.settings-section');
             if (section) {
+                const wasCollapsed = section.classList.contains('collapsed');
                 section.classList.toggle('collapsed');
+                const isNowCollapsed = section.classList.contains('collapsed');
+
+                // If the section was collapsed and is now expanded, load data
+                if (wasCollapsed && !isNowCollapsed) {
+                    // Load data for this section asynchronously
+                    loadSectionData(section).catch(err => {
+                        console.error('[SETTINGS] Error loading section data:', err);
+                    });
+                }
             }
         }
+
+        /**
+         * Initialize settings section headers: inject save button and actions container
+         */
+        function initSettingsSectionHeaders() {
+            document.querySelectorAll('.settings-section-header').forEach(header => {
+                // Ensure header has left/title and actions containers
+                let titleEl = header.querySelector('.settings-section-title');
+                if (!titleEl) return;
+
+                // If actions container already exists, skip
+                if (header.querySelector('.settings-section-actions')) return;
+
+                const actions = document.createElement('div');
+                actions.className = 'settings-section-actions';
+                actions.style.display = 'flex';
+                actions.style.alignItems = 'center';
+                actions.style.gap = '8px';
+
+                // Create save button
+                const saveBtn = document.createElement('button');
+                saveBtn.type = 'button';
+                saveBtn.className = 'section-save-btn';
+                saveBtn.title = 'Save section';
+                saveBtn.innerHTML = '<i class="fas fa-save"></i>';
+                saveBtn.addEventListener('click', function (ev) {
+                    ev.stopPropagation();
+                    saveSettingsSection(this).catch(e => console.error('[SETTINGS] Save error:', e));
+                });
+
+                // Move existing toggle into actions if present
+                const toggle = header.querySelector('.settings-section-toggle');
+                if (toggle) {
+                    // Prevent toggle click from also toggling header when clicked directly
+                    toggle.addEventListener('click', function (ev) {
+                        ev.stopPropagation();
+                        toggleSettingsSection(header);
+                    });
+                }
+
+                // Append elements to actions container: save then toggle (if exists)
+                actions.appendChild(saveBtn);
+                if (toggle) actions.appendChild(toggle);
+
+                // Append actions to header (right side)
+                header.appendChild(actions);
+
+                // Remove any inline onclick to avoid duplicate toggles
+                try { header.removeAttribute && header.removeAttribute('onclick'); } catch (e) { }
+
+                // Make header click toggle only when clicking header (not actions)
+                header.addEventListener('click', function (ev) {
+                    // If click came from actions or its children, ignore
+                    if (ev.target.closest('.settings-section-actions')) return;
+                    toggleSettingsSection(this);
+                });
+            });
+        }
+
+        /**
+         * Load section data from backend and populate inputs inside the section
+         */
+        async function loadSectionData(section) {
+            if (!section) return;
+
+            const titleEl = section.querySelector('.settings-section-title');
+            const titleText = titleEl ? titleEl.textContent.trim().toLowerCase() : '';
+
+            // Special-case connections section
+            if (titleText.includes('connection') || titleText.includes('connections')) {
+                if (typeof loadConnections === 'function') return loadConnections();
+            }
+
+            // Special-case active sessions - load from backend
+            if (titleText.includes('active sessions')) {
+                if (typeof loadActiveSessions === 'function') return loadActiveSessions();
+            }
+
+            // Special-case AI Memories - load from backend
+            if (titleText.includes('memories')) {
+                if (typeof loadMemoriesFromBackend === 'function') return loadMemoriesFromBackend();
+            }
+
+            // Generic: fetch user preferences and populate inputs in this section
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const resp = await fetch(`${API_BASE_URL}/api/user/preferences`, { headers });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const json = await resp.json();
+                const prefs = json.data || {};
+
+                console.log(`[SETTINGS] Backend data for '${titleText}':`, prefs);
+
+                // Section-specific field mappings
+                if (titleText.includes('personalization')) {
+                    // Personalization: nickname, communication_style, detail_level
+                    if (prefs.nickname) {
+                        const nicknameInput = section.querySelector('#nickname, input[name="nickname"]');
+                        if (nicknameInput) nicknameInput.value = prefs.nickname;
+                    }
+                    if (prefs.communication_style) {
+                        const styleSelect = section.querySelector('#communication_style, select[name="communication_style"]');
+                        if (styleSelect) styleSelect.value = prefs.communication_style;
+                    }
+                    if (prefs.detail_level) {
+                        const detailSelect = section.querySelector('#detail_level, select[name="detail_level"]');
+                        if (detailSelect) detailSelect.value = prefs.detail_level;
+                    }
+                }
+
+                if (titleText.includes('mandatory instructions')) {
+                    // Mandatory Instructions: preferred_tools textarea
+                    if (prefs.preferred_tools !== undefined) {
+                        const toolsTextarea = section.querySelector('#preferred_tools, textarea[name="preferred_tools"]');
+                        if (toolsTextarea) toolsTextarea.value = prefs.preferred_tools || '';
+                    }
+                }
+
+                if (titleText.includes('model options')) {
+                    // AI Model, Temperature, Top P
+                    if (prefs.ai_model) {
+                        const modelSelect = section.querySelector('#ai_model, select[name="ai_model"]');
+                        if (modelSelect) modelSelect.value = prefs.ai_model;
+                    }
+                    if (prefs.ai_temperature !== undefined) {
+                        const tempInput = section.querySelector('#ai_temperature, input[name="ai_temperature"]');
+                        if (tempInput) tempInput.value = prefs.ai_temperature;
+                    }
+                    if (prefs.ai_top_p !== undefined) {
+                        const topPInput = section.querySelector('#ai_top_p, input[name="ai_top_p"]');
+                        if (topPInput) topPInput.value = prefs.ai_top_p;
+                    }
+                }
+
+                if (titleText.includes('token parameters')) {
+                    // Max tokens, thinking budget
+                    if (prefs.ai_max_tokens) {
+                        const maxTokensInput = section.querySelector('#ai_max_tokens, input[name="ai_max_tokens"]');
+                        if (maxTokensInput) maxTokensInput.value = prefs.ai_max_tokens;
+                    }
+                    if (prefs.ai_thinking_budget !== undefined) {
+                        const thinkingInput = section.querySelector('#ai_thinking_budget, input[name="ai_thinking_budget"]');
+                        if (thinkingInput) thinkingInput.value = prefs.ai_thinking_budget;
+                    }
+                    // Checkboxes
+                    if (prefs.ai_thinking_enabled !== undefined) {
+                        const thinkingCheckbox = section.querySelector('#ai_thinking_enabled, input[name="ai_thinking_enabled"]');
+                        if (thinkingCheckbox) thinkingCheckbox.checked = Boolean(prefs.ai_thinking_enabled);
+                    }
+                    if (prefs.ai_streaming_enabled !== undefined) {
+                        const streamingCheckbox = section.querySelector('#ai_streaming_enabled, input[name="ai_streaming_enabled"]');
+                        if (streamingCheckbox) streamingCheckbox.checked = Boolean(prefs.ai_streaming_enabled);
+                    }
+                }
+
+                // Generic fallback: populate ALL inputs by name/id
+                const inputs = section.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    const key = input.name || input.id;
+                    if (!key) return;
+                    const val = prefs[key];
+                    if (val === undefined || val === null) return;
+
+                    if (input.type === 'checkbox') {
+                        input.checked = Boolean(val);
+                    } else if (input.type === 'radio') {
+                        if (input.value == val) input.checked = true;
+                    } else {
+                        input.value = val;
+                    }
+                });
+
+                // For any custom JSON fields (textarea with data-json), stringify
+                section.querySelectorAll('textarea[data-json]').forEach(t => {
+                    const key = t.name || t.id;
+                    if (!key) return;
+                    const v = prefs[key];
+                    t.value = v ? JSON.stringify(v, null, 2) : '';
+                });
+
+                console.log(`[SETTINGS] ✅ Populated section '${titleText}' from backend`);
+            } catch (err) {
+                console.error('[SETTINGS] ❌ Failed to load preferences for section:', err);
+                // If fetch fails, leave existing UI values untouched
+            }
+        }
+
+        /**
+         * Save section inputs to backend (sends partial preferences object)
+         */
+        async function saveSettingsSection(button) {
+            const section = button.closest('.settings-section');
+            if (!section) return;
+
+            // Collect inputs
+            const payload = {};
+            section.querySelectorAll('input, select, textarea').forEach(input => {
+                const key = input.name || input.id;
+                if (!key) return;
+
+                if (input.type === 'checkbox') payload[key] = input.checked;
+                else if (input.type === 'radio') {
+                    if (input.checked) payload[key] = input.value;
+                } else {
+                    // Try to parse JSON if textarea has data-json
+                    if (input.tagName.toLowerCase() === 'textarea' && input.dataset.json !== undefined) {
+                        try { payload[key] = JSON.parse(input.value || '{}'); } catch (e) { payload[key] = input.value; }
+                    } else {
+                        payload[key] = input.value;
+                    }
+                }
+            });
+
+            // Show loading state on button
+            const origHTML = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const resp = await fetch(`${API_BASE_URL}/api/user/preferences`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) {
+                    const text = await resp.text();
+                    throw new Error(`HTTP ${resp.status}: ${text}`);
+                }
+
+                // Success feedback
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => { button.innerHTML = origHTML; button.disabled = false; }, 1200);
+                console.log('[SETTINGS] Section saved successfully');
+            } catch (err) {
+                console.error('[SETTINGS] Error saving section:', err);
+                button.innerHTML = origHTML;
+                button.disabled = false;
+                // Show brief visual error (shake)
+                button.classList.add('save-error');
+                setTimeout(() => button.classList.remove('save-error'), 900);
+                throw err;
+            }
+        }
+
+        // Ensure initializer runs on page load
+        window.addEventListener('load', function () {
+            try { initSettingsSectionHeaders(); } catch (e) { console.error(e); }
+        });
 
         // ==================== CONNECTIONS MANAGEMENT FUNCTIONS ====================
         /**
@@ -25493,7 +25745,7 @@
          */
         const platformGuidance = {
             'xero': {
-                title: '?? Two-Way Connection Required',
+                title: '🔁 Two-Way Connection Required',
                 content: `
                     <strong>Important:</strong> Xero requires bidirectional OAuth setup, not just API key entry.
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25504,18 +25756,18 @@
                         <li><strong>Configure Webhooks:</strong> After connecting, set up webhook endpoint for real-time invoice/payment updates</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">
-                        ?? Connection is incomplete until webhooks are verified. You must handle webhook signatures and respond to Xero's validation requests.
+                        ⚠️ Connection is incomplete until webhooks are verified. You must handle webhook signatures and respond to Xero's validation requests.
                     </div>
                 `
             },
             'shopify': {
-                title: '??? App Installation Required',
+                title: '🛍️ App Installation Required',
                 content: `
                     <strong>Setup Steps:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
-                        <li><strong>Admin Access:</strong> Go to your Shopify Admin ? Apps ? Develop apps</li>
+                        <li><strong>Admin Access:</strong> Go to your Shopify Admin → Apps → Develop apps</li>
                         <li><strong>Create App:</strong> Click "Create an app" and name it (e.g., "AI Agent Integration")</li>
-                        <li><strong>Configure Scopes:</strong> Under API credentials ? Admin API, select required scopes:
+                        <li><strong>Configure Scopes:</strong> Under API credentials → Admin API, select required scopes:
                             <ul style="margin: 4px 0 0 20px;">
                                 <li>read_products, write_products (inventory management)</li>
                                 <li>read_orders, write_orders (order processing)</li>
@@ -25526,12 +25778,12 @@
                         <li><strong>Store URL:</strong> Your store URL is <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">yourstore.myshopify.com</code></li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        ?? <strong>Tip:</strong> Use custom app for private integrations. For public apps, use OAuth flow instead.
+                        💡 <strong>Tip:</strong> Use custom app for private integrations. For public apps, use OAuth flow instead.
                     </div>
                 `
             },
             'stripe': {
-                title: '?? Test vs Production Keys',
+                title: '💳 Test vs Production Keys',
                 content: `
                     <strong>Getting Your Keys:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25546,42 +25798,42 @@
                         <li><strong>Restricted Keys:</strong> For security, create restricted keys with only needed permissions</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">
-                        ?? <strong>Never</strong> commit live keys to code. Always use test keys for development/staging.
+                        ⚠️ <strong>Never</strong> commit live keys to code. Always use test keys for development/staging.
                     </div>
                 `
             },
             'openai': {
-                title: '?? OpenAI API Setup',
+                title: '🤖 OpenAI API Setup',
                 content: `
                     <strong>Quick Setup:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
                         <li><strong>Account:</strong> Visit <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #3B82F6;">OpenAI Platform</a></li>
                         <li><strong>Create Key:</strong> Click "Create new secret key" and name it (e.g., "AI Agent Integration")</li>
                         <li><strong>Copy Key:</strong> Key format: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">sk-...</code> (save immediately - shown only once!)</li>
-                        <li><strong>Set Limits:</strong> Configure usage limits in Settings ? Limits to prevent unexpected charges</li>
+                        <li><strong>Set Limits:</strong> Configure usage limits in Settings → Limits to prevent unexpected charges</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        ?? <strong>Usage:</strong> Monitor token usage in Usage dashboard. GPT-4 costs more than GPT-3.5 - set appropriate model defaults.
+                        💡 <strong>Usage:</strong> Monitor token usage in Usage dashboard. GPT-4 costs more than GPT-3.5 - set appropriate model defaults.
                     </div>
                 `
             },
             'anthropic': {
-                title: '?? Claude API Setup',
+                title: '🧠 Claude API Setup',
                 content: `
                     <strong>Getting Started:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
                         <li><strong>Console:</strong> Visit <a href="https://console.anthropic.com/" target="_blank" style="color: #3B82F6;">Anthropic Console</a></li>
-                        <li><strong>Create Key:</strong> Go to Settings ? API Keys ? Create Key</li>
+                        <li><strong>Create Key:</strong> Go to Settings → API Keys → Create Key</li>
                         <li><strong>Key Format:</strong> <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">sk-ant-...</code></li>
                         <li><strong>Workspaces:</strong> Claude supports multiple workspaces for team organization</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        ?? <strong>Features:</strong> Claude excels at analysis, coding, and long context windows (200K tokens). Use for complex reasoning tasks.
+                        💡 <strong>Features:</strong> Claude excels at analysis, coding, and long context windows (200K tokens). Use for complex reasoning tasks.
                     </div>
                 `
             },
             'pinecone': {
-                title: '?? Vector Database Setup',
+                title: '🔍 Vector Database Setup',
                 content: `
                     <strong>Setup Process:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25593,16 +25845,16 @@
                                 <li>3072 dimensions - OpenAI text-embedding-3-large</li>
                             </ul>
                         </li>
-                        <li><strong>Get Credentials:</strong> Go to API Keys ? Copy your API key and environment (e.g., us-west1-gcp, us-east-1-aws)</li>
+                        <li><strong>Get Credentials:</strong> Go to API Keys → Copy your API key and environment (e.g., us-west1-gcp, us-east-1-aws)</li>
                         <li><strong>Index Details:</strong> Note your index name and optionally create namespaces for multi-tenant isolation</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        ?? <strong>Use Case:</strong> Pinecone stores vector embeddings for semantic search, RAG (Retrieval-Augmented Generation), and document similarity matching. Namespace field is optional - use for organizing vectors by user, project, or category.
+                        💡 <strong>Use Case:</strong> Pinecone stores vector embeddings for semantic search, RAG (Retrieval-Augmented Generation), and document similarity matching. Namespace field is optional - use for organizing vectors by user, project, or category.
                     </div>
                 `
             },
             'voyager': {
-                title: '?? Voyager AI Embedding Provider',
+                title: '🚀 Voyager AI Embedding Provider',
                 content: `
                     <strong>Getting Started:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
@@ -25618,23 +25870,23 @@
                         <li><strong>Pricing:</strong> Pay-as-you-go based on tokens processed</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        ?? <strong>Use Case:</strong> Voyager AI generates vector embeddings for text. Use with Pinecone for semantic search. Model selection affects embedding quality and dimensions - ensure your Pinecone index matches model dimensions!
+                        💡 <strong>Use Case:</strong> Voyager AI generates vector embeddings for text. Use with Pinecone for semantic search. Model selection affects embedding quality and dimensions - ensure your Pinecone index matches model dimensions!
                     </div>
                 `
             },
             'twilio': {
-                title: '?? SMS/Voice API Setup',
+                title: '📱 SMS/Voice API Setup',
                 content: `
                     <strong>Getting Credentials:</strong>
                     <ol style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
                         <li><strong>Console:</strong> Visit <a href="https://console.twilio.com/" target="_blank" style="color: #3B82F6;">Twilio Console</a></li>
                         <li><strong>Account SID:</strong> Find on console home page (starts with AC...)</li>
                         <li><strong>Auth Token:</strong> Click "Show" to reveal auth token</li>
-                        <li><strong>Phone Numbers:</strong> Buy/configure phone numbers under Phone Numbers ? Manage ? Buy a number</li>
+                        <li><strong>Phone Numbers:</strong> Buy/configure phone numbers under Phone Numbers → Manage → Buy a number</li>
                         <li><strong>Webhooks:</strong> Configure webhook URLs for incoming messages/calls</li>
                     </ol>
                     <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                        ?? <strong>Requirements:</strong> You need both Account SID and Auth Token. Phone numbers cost $1-2/month each.
+                        💡 <strong>Requirements:</strong> You need both Account SID and Auth Token. Phone numbers cost $1-2/month each.
                     </div>
                 `
             }
@@ -25759,9 +26011,9 @@
                     <div style="padding: 10px; background: #F0F9FF; border-left: 3px solid #3B82F6; border-radius: 6px; margin-top: 10px;">
                         <div style="font-size: 12px; color: #1E40AF; line-height: 1.6;">
                             <strong>Model Selection Guide:</strong><br>
-                             <strong>voyage-2</strong>: Best for general text, documents, and semantic search (1024 dims)<br>
-                             <strong>voyage-large-2</strong>: Higher quality embeddings, better accuracy (1536 dims)<br>
-                             <strong>voyage-code-2</strong>: Optimized for code, technical documentation, and programming content (1536 dims)
+                            • <strong>voyage-2</strong>: Best for general text, documents, and semantic search (1024 dims)<br>
+                            • <strong>voyage-large-2</strong>: Higher quality embeddings, better accuracy (1536 dims)<br>
+                            • <strong>voyage-code-2</strong>: Optimized for code, technical documentation, and programming content (1536 dims)
                         </div>
                     </div>
                 `;
@@ -26169,7 +26421,7 @@
                                 ` : ''}
                                 <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
                                     <span style="font-family: monospace; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 11px;">
-                                        ${cred.credential_value_masked || ''}
+                                        ${cred.credential_value_masked || '••••••••'}
                                     </span>
                                     ${cred.credential_key ? `<span style="opacity: 0.7;">(${cred.credential_key})</span>` : ''}
                                 </div>

@@ -669,12 +669,12 @@ class TwoRuleStreamProcessor {
 
             // Store reference to this markdown container for future concatenation
             this.markdownContainer.appendChild(contentElement);
-            
+
             // 🎨 ENHANCE CODE BLOCKS: Apply syntax highlighting to new content
             if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
                 window.codeBlockEnhancer.enhanceContainer(contentElement);
             }
-            
+
             console.log(`📝 TWO-RULE: New markdown element created (${pkg.content.length} chars)`);
         }
     }
@@ -1078,10 +1078,32 @@ class TwoRuleStreamProcessor {
      */
     findVisualizationStart(content) {
         const patterns = [
+            // ✅ Original
             { type: 'mermaid', start: '<MERMAID>', end: '</MERMAID>' },
             { type: 'plotly', start: '<PLOTLY>', end: '</PLOTLY>' },
             { type: 'google', start: '<GRAPH>', end: '</GRAPH>' },
-            { type: 'chartjs', start: '<CHARTJS>', end: '</CHARTJS>' }
+
+            // ✨ Chart Libraries
+            { type: 'chartjs', start: '<CHARTJS>', end: '</CHARTJS>' },
+            { type: 'apexcharts', start: '<APEXCHARTS>', end: '</APEXCHARTS>' },
+
+            // ✨ 3D & Animation
+            { type: 'threejs', start: '<THREEJS>', end: '</THREEJS>' },
+            { type: 'gsap', start: '<GSAP>', end: '</GSAP>' },
+            { type: 'lottie', start: '<LOTTIE>', end: '</LOTTIE>' },
+
+            // ✨ Interactive HTML
+            { type: 'html', start: '<EXECUTE_HTML>', end: '</EXECUTE_HTML>' },
+
+            // ✨ SVG/Technical Diagrams
+            { type: 'svg', start: '<SVG_VISUAL>', end: '</SVG_VISUAL>' },
+            { type: 'cad', start: '<CAD>', end: '</CAD>' },
+            { type: 'schematic', start: '<SCHEMATIC>', end: '</SCHEMATIC>' },
+            { type: 'blueprint', start: '<BLUEPRINT>', end: '</BLUEPRINT>' },
+            { type: 'molecule', start: '<MOLECULE>', end: '</MOLECULE>' },
+
+            // ✨ Math
+            { type: 'latex', start: '<LATEX>', end: '</LATEX>' }
         ];
 
         let best = null;
@@ -1138,7 +1160,14 @@ class TwoRuleStreamProcessor {
     // Longest length L such that content ends with a prefix of any start delimiter of length L
     getPotentialDelimiterSuffixLength(text) {
         if (!text) return 0;
-        const starts = ['<MERMAID>', '<PLOTLY>', '<GRAPH>', '<CHARTJS>'];
+        const starts = [
+            '<MERMAID>', '<PLOTLY>', '<GRAPH>',
+            '<CHARTJS>', '<APEXCHARTS>',
+            '<THREEJS>', '<GSAP>', '<LOTTIE>',
+            '<EXECUTE_HTML>',
+            '<SVG_VISUAL>', '<CAD>', '<SCHEMATIC>', '<BLUEPRINT>', '<MOLECULE>',
+            '<LATEX>'
+        ];
         let maxLen = 0;
         for (const s of starts) {
             const maxCheck = s.length - 1; // proper prefix only
@@ -1279,20 +1308,56 @@ class TwoRuleStreamProcessor {
      */
     getStartDelimiter(type) {
         const delimiters = {
+            // ✅ Existing
             'mermaid': '<MERMAID>',
             'plotly': '<PLOTLY>',
             'google': '<GRAPH>',
-            'chartjs': '<CHARTJS>'
+            'chartjs': '<CHARTJS>',
+
+            // ✨ NEW: SVG/Technical Diagrams
+            'svg': '<SVG_VISUAL>',
+            'cad': '<CAD>',
+            'schematic': '<SCHEMATIC>',
+            'blueprint': '<BLUEPRINT>',
+            'molecule': '<MOLECULE>',
+
+            // ✨ NEW: Math & Interactive
+            'latex': '<LATEX>',
+            'html': '<EXECUTE_HTML>',
+
+            // ✨ NEW: 3D & Animation
+            'apexcharts': '<APEXCHARTS>',
+            'threejs': '<THREEJS>',
+            'gsap': '<GSAP>',
+            'lottie': '<LOTTIE>'
         };
         return delimiters[type] || '';
     }
 
     getEndDelimiter(type) {
         const delimiters = {
+            // ✅ Existing
             'mermaid': '</MERMAID>',
             'plotly': '</PLOTLY>',
             'google': '</GRAPH>',
-            'chartjs': '</CHARTJS>'
+            'chartjs': '</CHARTJS>',
+
+            // ✨ NEW: SVG/Technical Diagrams
+            'svg': '</SVG_VISUAL>',
+            'cad': '</CAD>',
+            'schematic': '</SCHEMATIC>',
+            'blueprint': '</BLUEPRINT>',
+            'molecule': '</MOLECULE>',
+
+            // ✨ NEW: Math & Interactive
+            'latex': '</LATEX>',
+            'html': '</EXECUTE_HTML>',
+
+            // ✨ NEW: 3D & Animation
+            'apexcharts': '</APEXCHARTS>',
+            'threejs': '</THREEJS>',
+            'gsap': '</GSAP>',
+            'lottie': '</LOTTIE>'
         };
         return delimiters[type] || '';
     }

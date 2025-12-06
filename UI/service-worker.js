@@ -14,8 +14,8 @@
  * - jsPDF + html2canvas (600KB)
  */
 
-const CACHE_NAME = 'ai-agents-v1.0.2';  // ✅ Fixed APP_FILES 404 errors
-const CACHE_VERSION = '2025-11-30-v17-app-files-fix';  // Removed non-existent files causing cache failures
+const CACHE_NAME = 'ai-agents-v2.1.2-UNIVERSAL-JS';  // ✅ ALL renderers support JavaScript functions now
+const CACHE_VERSION = '2025-12-06-v25-JS-FUNCTION-SUPPORT';  // Chart.js, ApexCharts, Lottie, GSAP, Three.js all handle JS notation
 
 // Libraries to cache (loaded post-auth)
 const HEAVY_LIBRARIES = [

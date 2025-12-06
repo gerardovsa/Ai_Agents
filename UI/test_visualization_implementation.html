@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization Implementation Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #FF7A00;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.warn {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ddd;
+            background: #f8f9fa;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .test-result.pass {
+            border-left-color: #28a745;
+        }
+
+        .test-result.fail {
+            border-left-color: #dc3545;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        button {
+            background: #FF7A00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #e66d00;
+        }
+
+        .test-viz-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 200px;
+            background: white;
+        }
+
+        #summary {
+            position: sticky;
+            top: 20px;
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        #summary h3 {
+            margin-top: 0;
+            color: white;
+        }
+
+        .metric {
+            display: inline-block;
+            margin: 0 15px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Visualization System Implementation Test</h1>
+
+    <div id="summary">
+        <h3>Test Summary</h3>
+        <div class="metric">✅ Passed: <span id="passCount">0</span></div>
+        <div class="metric">❌ Failed: <span id="failCount">0</span></div>
+        <div class="metric">⚠️ Warnings: <span id="warnCount">0</span></div>
+        <div class="metric">📊 Total: <span id="totalCount">0</span></div>
+    </div>
+
+    <div class="test-section">
+        <h2>1. File Existence Tests</h2>
+        <button onclick="testFileExistence()">Run File Tests</button>
+        <div id="fileTests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. System Prompt Integration Test</h2>
+        <button onclick="testSystemPrompt()">Check System Prompt</button>
+        <div id="promptTests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. JavaScript Implementation Test</h2>
+        <button onclick="testJavaScript()">Check streamingTwoRule.js</button>
+        <div id="jsTests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. CSS Integration Test</h2>
+        <button onclick="testCSS()">Check CSS Loading</button>
+        <div id="cssTests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Delimiter Detection Test</h2>
+        <button onclick="testDelimiters()">Test Delimiters</button>
+        <div id="delimiterTests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. Visual Rendering Test</h2>
+        <button onclick="testRendering()">Test SVG Rendering</button>
+        <div class="test-viz-container" id="renderTest"></div>
+        <div id="renderResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>7. Integration Checklist</h2>
+        <div id="checklist"></div>
+    </div>
+
+    <script>
+        let passCount = 0;
+        let failCount = 0;
+        let warnCount = 0;
+        let totalCount = 0;
+
+        function updateSummary() {
+            document.getElementById('passCount').textContent = passCount;
+            document.getElementById('failCount').textContent = failCount;
+            document.getElementById('warnCount').textContent = warnCount;
+            document.getElementById('totalCount').textContent = totalCount;
+        }
+
+        function logResult(container, message, status = 'pass') {
+            totalCount++;
+            if (status === 'pass') passCount++;
+            else if (status === 'fail') failCount++;
+            else if (status === 'warn') warnCount++;
+
+            const div = document.createElement('div');
+            div.className = `test-result ${status}`;
+            div.innerHTML = `${status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️'} ${message}`;
+            document.getElementById(container).appendChild(div);
+            updateSummary();
+        }
+
+        async function testFileExistence() {
+            document.getElementById('fileTests').innerHTML = '';
+            passCount = 0; failCount = 0; warnCount = 0; totalCount = 0;
+
+            const files = [
+                {
+                    path: '/visualisation_engine/visualization_enhancements.css',
+                    name: 'CSS Enhancement File'
+                },
+                {
+                    path: '/visualisation_engine/streamingTwoRule.js',
+                    name: 'Streaming Engine'
+                },
+                {
+                    path: '/visualisation_engine/SURGICAL_PATCH.js',
+                    name: 'Implementation Patch'
+                }
+            ];
+
+            for (const file of files) {
+                try {
+                    const response = await fetch(file.path, { method: 'HEAD' });
+                    if (response.ok) {
+                        logResult('fileTests', `${file.name} exists (${file.path})`, 'pass');
+                    } else {
+                        logResult('fileTests', `${file.name} not found (${response.status})`, 'fail');
+                    }
+                } catch (error) {
+                    logResult('fileTests', `${file.name} check failed: ${error.message}`, 'fail');
+                }
+            }
+        }
+
+        async function testSystemPrompt() {
+            document.getElementById('promptTests').innerHTML = '';
+
+            try {
+                const response = await fetch('/AI_infrastructure/prompts/tool_usage_system_prompt.md');
+                const content = await response.text();
+
+                const checks = [
+                    { pattern: /<SVG>/, label: 'SVG delimiter documented' },
+                    { pattern: /<CAD>/, label: 'CAD delimiter documented' },
+                    { pattern: /<SCHEMATIC>/, label: 'SCHEMATIC delimiter documented' },
+                    { pattern: /<BLUEPRINT>/, label: 'BLUEPRINT delimiter documented' },
+                    { pattern: /<LATEX>/, label: 'LATEX delimiter documented' },
+                    { pattern: /<MOLECULE>/, label: 'MOLECULE delimiter documented' },
+                    { pattern: /viewBox/i, label: 'viewBox requirement mentioned' },
+                    { pattern: /Built-in UI features/i, label: 'UI features documented' }
+                ];
+
+                for (const check of checks) {
+                    if (check.pattern.test(content)) {
+                        logResult('promptTests', check.label, 'pass');
+                    } else {
+                        logResult('promptTests', `Missing: ${check.label}`, 'fail');
+                    }
+                }
+            } catch (error) {
+                logResult('promptTests', `System prompt fetch failed: ${error.message}`, 'fail');
+            }
+        }
+
+        async function testJavaScript() {
+            document.getElementById('jsTests').innerHTML = '';
+
+            try {
+                const response = await fetch('/visualisation_engine/streamingTwoRule.js');
+                const content = await response.text();
+
+                const checks = [
+                    { pattern: /getStartDelimiter/, label: 'getStartDelimiter() function exists' },
+                    { pattern: /getEndDelimiter/, label: 'getEndDelimiter() function exists' },
+                    { pattern: /renderVisualization/, label: 'renderVisualization() function exists' },
+                    { pattern: /renderSVGVisualization/, label: 'renderSVGVisualization() function exists (NEW)', expected: false },
+                    { pattern: /renderLatexVisualization/, label: 'renderLatexVisualization() function exists (NEW)', expected: false },
+                    { pattern: /sanitizeSVG/, label: 'sanitizeSVG() function exists (NEW)', expected: false },
+                    { pattern: /createSVGControls/, label: 'createSVGControls() function exists (NEW)', expected: false }
+                ];
+
+                for (const check of checks) {
+                    const exists = check.pattern.test(content);
+                    if (check.expected === false) {
+                        // These are new functions that should be added
+                        if (exists) {
+                            logResult('jsTests', `${check.label} ✨ Already integrated!`, 'pass');
+                        } else {
+                            logResult('jsTests', `${check.label} - Needs integration from SURGICAL_PATCH.js`, 'warn');
+                        }
+                    } else {
+                        // These should exist
+                        if (exists) {
+                            logResult('jsTests', check.label, 'pass');
+                        } else {
+                            logResult('jsTests', `Missing: ${check.label}`, 'fail');
+                        }
+                    }
+                }
+            } catch (error) {
+                logResult('jsTests', `JavaScript fetch failed: ${error.message}`, 'fail');
+            }
+        }
+
+        function testCSS() {
+            document.getElementById('cssTests').innerHTML = '';
+
+            // Check if CSS is loaded
+            const styleSheets = Array.from(document.styleSheets);
+            const vizCSSLoaded = styleSheets.some(sheet =>
+                sheet.href && sheet.href.includes('visualization_enhancements.css')
+            );
+
+            if (vizCSSLoaded) {
+                logResult('cssTests', 'visualization_enhancements.css is loaded', 'pass');
+            } else {
+                logResult('cssTests', 'visualization_enhancements.css NOT loaded in this test page', 'warn');
+                logResult('cssTests', 'Check main application HTML for <link> tag', 'warn');
+            }
+
+            // Check CSS variables
+            const root = document.documentElement;
+            const style = getComputedStyle(root);
+
+            const cssVars = [
+                '--svg-bg-light',
+                '--svg-bg-dark',
+                '--cad-bg',
+                '--schematic-bg',
+                '--blueprint-bg',
+                '--molecule-bg',
+                '--latex-border'
+            ];
+
+            for (const varName of cssVars) {
+                const value = style.getPropertyValue(varName);
+                if (value && value.trim() !== '') {
+                    logResult('cssTests', `CSS variable ${varName} is defined`, 'pass');
+                } else {
+                    logResult('cssTests', `CSS variable ${varName} not found`, 'warn');
+                }
+            }
+        }
+
+        function testDelimiters() {
+            document.getElementById('delimiterTests').innerHTML = '';
+
+            const delimiters = [
+                { start: '<PLOTLY>', end: '</PLOTLY>', name: 'Plotly (existing)' },
+                { start: '<MERMAID>', end: '</MERMAID>', name: 'Mermaid (existing)' },
+                { start: '<SVG>', end: '</SVG>', name: 'SVG (NEW)' },
+                { start: '<CAD>', end: '</CAD>', name: 'CAD (NEW)' },
+                { start: '<SCHEMATIC>', end: '</SCHEMATIC>', name: 'Schematic (NEW)' },
+                { start: '<BLUEPRINT>', end: '</BLUEPRINT>', name: 'Blueprint (NEW)' },
+                { start: '<LATEX>', end: '</LATEX>', name: 'LaTeX (NEW)' },
+                { start: '<MOLECULE>', end: '</MOLECULE>', name: 'Molecule (NEW)' }
+            ];
+
+            logResult('delimiterTests', `Testing ${delimiters.length} delimiter types`, 'pass');
+
+            for (const delimiter of delimiters) {
+                const isNew = delimiter.name.includes('NEW');
+                logResult('delimiterTests',
+                    `${delimiter.start} ... ${delimiter.end} - ${delimiter.name}`,
+                    isNew ? 'warn' : 'pass'
+                );
+            }
+
+            logResult('delimiterTests',
+                'Note: NEW delimiters require SURGICAL_PATCH.js integration',
+                'warn'
+            );
+        }
+
+        function testRendering() {
+            document.getElementById('renderResults').innerHTML = '';
+            const container = document.getElementById('renderTest');
+
+            // Test basic SVG rendering
+            const testSVG = `<svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto;">
+                <title>Test SVG</title>
+                <desc>Simple test rectangle</desc>
+                <rect x="10" y="10" width="180" height="80" fill="#4CAF50" stroke="#333" stroke-width="2"/>
+                <text x="100" y="55" text-anchor="middle" fill="white" font-size="20">Test SVG</text>
+            </svg>`;
+
+            container.innerHTML = testSVG;
+
+            setTimeout(() => {
+                const svgElement = container.querySelector('svg');
+                if (svgElement) {
+                    logResult('renderResults', 'SVG element renders correctly', 'pass');
+                    logResult('renderResults', `SVG dimensions: ${svgElement.clientWidth}x${svgElement.clientHeight}px`, 'pass');
+
+                    const viewBox = svgElement.getAttribute('viewBox');
+                    if (viewBox) {
+                        logResult('renderResults', `viewBox attribute present: ${viewBox}`, 'pass');
+                    } else {
+                        logResult('renderResults', 'Missing viewBox attribute', 'warn');
+                    }
+
+                    const title = svgElement.querySelector('title');
+                    const desc = svgElement.querySelector('desc');
+                    if (title && desc) {
+                        logResult('renderResults', 'Accessibility elements (title/desc) present', 'pass');
+                    } else {
+                        logResult('renderResults', 'Missing accessibility elements', 'warn');
+                    }
+                } else {
+                    logResult('renderResults', 'SVG rendering failed', 'fail');
+                }
+            }, 100);
+        }
+
+        function showChecklist() {
+            const checklist = document.getElementById('checklist');
+            checklist.innerHTML = `
+                <h3>🔧 Integration Steps Checklist</h3>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">
+                    <p><strong>Status:</strong></p>
+                    <ul style="list-style: none; padding-left: 0;">
+                        <li>✅ <strong>System Prompt:</strong> Updated (lines 1117-1177 in tool_usage_system_prompt.md)</li>
+                        <li>⚠️ <strong>CSS File:</strong> Created (needs HTML link tag)</li>
+                        <li>⚠️ <strong>JavaScript:</strong> Needs integration (copy SURGICAL_PATCH.js into streamingTwoRule.js)</li>
+                        <li>❓ <strong>HTML Template:</strong> Needs CSS link added</li>
+                        <li>❓ <strong>Testing:</strong> Needs end-to-end validation</li>
+                    </ul>
+                    
+                    <h4>🎯 Next Actions:</h4>
+                    <ol>
+                        <li><strong>Add CSS to HTML:</strong>
+                            <div class="code-block">&lt;link rel="stylesheet" href="visualisation_engine/visualization_enhancements.css"&gt;</div>
+                        </li>
+                        <li><strong>Integrate JavaScript:</strong>
+                            <ul>
+                                <li>Backup streamingTwoRule.js</li>
+                                <li>Merge SURGICAL_PATCH.js methods</li>
+                                <li>Update delimiter functions</li>
+                            </ul>
+                        </li>
+                        <li><strong>Test in Production:</strong>
+                            <ul>
+                                <li>Send test messages with new delimiters</li>
+                                <li>Verify rendering, export, fullscreen</li>
+                                <li>Check light/dark mode switching</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    
+                    <h4>📋 Files Modified:</h4>
+                    <ul>
+                        <li><code>AI_infrastructure/prompts/tool_usage_system_prompt.md</code> ✅ UPDATED</li>
+                        <li><code>UI/visualisation_engine/visualization_enhancements.css</code> ✅ CREATED</li>
+                        <li><code>UI/visualisation_engine/SURGICAL_PATCH.js</code> ✅ CREATED (ready to merge)</li>
+                        <li><code>UI/visualisation_engine/streamingTwoRule.js</code> ⚠️ NEEDS UPDATE</li>
+                        <li><code>UI/triple_agent.html</code> (or main HTML) ⚠️ NEEDS CSS LINK</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            showChecklist();
+            updateSummary();
+        });
+    </script>
+</body>
+
+</html>

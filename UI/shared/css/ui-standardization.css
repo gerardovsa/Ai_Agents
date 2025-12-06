@@ -70,9 +70,30 @@
     --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
 }
 
-/* Global font family */
-* {
+/* Global font family - SCOPED to avoid leaking into visualization containers */
+body,
+button,
+input,
+select,
+textarea,
+.btn,
+.metric-card,
+.subtab-btn,
+.section-title,
+.card-title,
+.filter-btn,
+.expander-title,
+.form-control,
+.badge {
     font-family: var(--font-family);
+}
+
+/* Explicitly exclude visualization containers from font family override */
+.viz-content-area,
+.viz-content-area *,
+[id^="chart-"],
+[id^="chart-"] * {
+    font-family: inherit !important;
 }
 
 /* =============================================================================

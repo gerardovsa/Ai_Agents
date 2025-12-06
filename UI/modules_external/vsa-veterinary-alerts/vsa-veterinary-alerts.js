@@ -65,29 +65,21 @@ const VSAVeterinaryAlerts = {
     // ==================== LIFECYCLE: DASHBOARD ====================
 
     async onDashboardLoad(utilities) {
-        // Store utilities reference for V4 composition pattern
-        this.utilities = utilities;
-        const { dom, api, storage, events, log } = utilities;
-
-        // Store all utilities for access in all methods
-        this.dom = dom;
-        this.api = api;
-        this.storage = storage;
-        this.events = events;
-        this.log = log;
+        // Store utilities reference for V4 composition pattern - inject utilities properly
+        Object.assign(this, utilities);
 
         this.log.info('🔷 VSA Alerts Dashboard loading (V4 Modern Framework)...');
 
         try {
-            // Get main container - same pattern as InHouse Kanban
-            const container = document.getElementById('vsa-veterinary-alerts-main-container');
+            // ✅ USE FRAMEWORK UTILITY (matches InHouse Kanban pattern)
+            // Gets 'tab-vsa-veterinary-alerts' automatically
+            this.container = this.dom.getContainer();
             
-            if (!container) {
-                throw new Error('Main container not found: #vsa-veterinary-alerts-main-container');
+            if (!this.container) {
+                throw new Error('Dashboard container not found');
             }
             
-            this.container = container;
-            log.info('✅ Container found:', this.container.id);
+            this.log.info('✅ Container found:', this.container.id);
 
             // ❌ REMOVED: Do NOT override display property
             // The tab system (.tab-content / .tab-content.active) handles visibility

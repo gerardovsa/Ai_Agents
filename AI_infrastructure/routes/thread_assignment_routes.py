@@ -202,7 +202,9 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
                 'previous_location': previous_location,
                 'displaced_thread': displaced_thread
             }
-        # ✅ Cursor auto-closed by context manager
+        
+        # ✅ CRITICAL: Close cursor to prevent connection leak
+        cursor.close()
     
     # ✅ Connection auto-closed by context manager - return result
     return result_data

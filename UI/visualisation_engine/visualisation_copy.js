@@ -697,7 +697,34 @@ class VisualizationEngine {
         }
     }
 
-    // 2.1.3
+    // 2.1.3 - Wait for renderer module to load
+    async waitForRenderer(rendererName, scriptFile, timeout = 10000) {
+        const startTime = Date.now();
+
+        // Check if already loaded
+        if (typeof window[rendererName] !== 'undefined') {
+            console.log(`✅ ${rendererName} already loaded`);
+            return;
+        }
+
+        console.log(`⏳ Waiting for ${rendererName} to load...`);
+
+        // Poll for renderer to become available
+        return new Promise((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+                if (typeof window[rendererName] !== 'undefined') {
+                    clearInterval(checkInterval);
+                    console.log(`✅ ${rendererName} loaded successfully`);
+                    resolve();
+                } else if (Date.now() - startTime > timeout) {
+                    clearInterval(checkInterval);
+                    reject(new Error(`${rendererName} failed to load within ${timeout}ms. Check that ${scriptFile} is included in HTML.`));
+                }
+            }, 50); // Check every 50ms
+        });
+    }
+
+    // 2.1.4
     loadFontAwesome() {
         return new Promise((resolve, reject) => {
             // Check if FontAwesome is already loaded
@@ -2275,6 +2302,7 @@ class VisualizationEngine {
         this.attachResizeHandle(contentArea);
 
         try {
+            // Use modular renderers for new visualization types
             switch (item.type) {
                 case 'plotly':
                     await this.renderPlotlyDirectly(item, contentArea, chartId);
@@ -2287,6 +2315,70 @@ class VisualizationEngine {
                     break;
                 case 'mermaid':
                     await this.renderMermaidDirectly(item, contentArea, chartId);
+                    break;
+                case 'apexcharts':
+                    // Delegate to modular ApexCharts renderer
+                    if (!this.apexchartsRenderer) {
+                        // Wait for renderer to load if not ready
+                        await this.waitForRenderer('ApexChartsRenderer', 'apexcharts_renderer.js');
+                        this.apexchartsRenderer = new window.ApexChartsRenderer(this);
+                    }
+                    await this.apexchartsRenderer.render(item, contentArea, chartId);
+                    break;
+                case 'lottie':
+                    // Delegate to modular Lottie renderer
+                    if (!this.lottieRenderer) {
+                        // Wait for renderer to load if not ready
+                        await this.waitForRenderer('LottieRenderer', 'lottie_renderer.js');
+                        this.lottieRenderer = new window.LottieRenderer(this);
+                    }
+                    await this.lottieRenderer.render(item, contentArea, chartId);
+                    break;
+                case 'gsap':
+                    // Delegate to modular GSAP renderer
+                    if (!this.gsapRenderer) {
+                        // Wait for renderer to load if not ready
+                        await this.waitForRenderer('GSAPRenderer', 'gsap_renderer.js');
+                        this.gsapRenderer = new window.GSAPRenderer(this);
+                    }
+                    await this.gsapRenderer.render(item, contentArea, chartId);
+                    break;
+                case 'cad':
+                case 'blueprint':
+                    // Delegate to modular CAD renderer (handles CAD and BLUEPRINT)
+                    if (!this.cadRenderer) {
+                        // Wait for renderer to load if not ready
+                        await this.waitForRenderer('CADRenderer', 'cad_renderer.js');
+                        this.cadRenderer = new window.CADRenderer(this);
+                    }
+                    await this.cadRenderer.render(item, contentArea, chartId);
+                    break;
+                case 'schematic':
+                    // Delegate to modular Schematic renderer
+                    if (!this.schematicRenderer) {
+                        // Wait for renderer to load if not ready
+                        await this.waitForRenderer('SchematicRenderer', 'schematic_renderer.js');
+                        this.schematicRenderer = new window.SchematicRenderer(this);
+                    }
+                    await this.schematicRenderer.render(item, contentArea, chartId);
+                    break;
+                case 'molecule':
+                case 'svg':
+                    // Render SVG-based visualizations (molecule structures, technical drawings)
+                    await this.renderSVGVisualization(item, contentArea, chartId);
+                    break;
+                case 'latex':
+                    // Render LaTeX math equations
+                    await this.renderLatexVisualization(item, contentArea, chartId);
+                    break;
+                case 'html':
+                case 'execute_html':
+                    // Render interactive HTML widgets in sandboxed iframe
+                    await this.renderHTMLVisualization(item, contentArea, chartId);
+                    break;
+                case 'threejs':
+                    // Render 3D graphics using Three.js
+                    await this.renderThreeJSVisualization(item, contentArea, chartId);
                     break;
                 case 'error':
                     this.showErrorDirectly(contentArea, item.content);
@@ -2313,6 +2405,214 @@ class VisualizationEngine {
         }
     }
 
+
+    // Render SVG-based visualizations (molecule, svg)
+    async renderSVGVisualization(item, contentArea, chartId) {
+        try {
+            // Extract SVG content
+            const svgContent = item.content
+                .replace(/<\/?MOLECULE>/g, '')
+                .replace(/<\/?SVG_VISUAL>/g, '')
+                .trim();
+
+            // Create container
+            const svgContainer = document.createElement('div');
+            svgContainer.id = chartId;
+            svgContainer.style.cssText = `
+                width: 100%;
+                min-height: 400px;
+                height: auto;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+                overflow: visible;
+            `;
+            svgContainer.innerHTML = svgContent;
+
+            // Ensure SVG scales properly
+            const svg = svgContainer.querySelector('svg');
+            if (svg) {
+                svg.style.cssText = `
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                `;
+            }
+
+            contentArea.appendChild(svgContainer);
+            console.log(`✅ ${item.type.toUpperCase()} rendered successfully`);
+        } catch (error) {
+            console.error(`Error rendering ${item.type}:`, error);
+            throw error;
+        }
+    }
+
+    // Render LaTeX math equations
+    async renderLatexVisualization(item, contentArea, chartId) {
+        try {
+            // Ensure KaTeX is loaded
+            if (!window.katex) {
+                await this.loadKaTeX();
+            }
+
+            // Extract LaTeX content
+            const latexContent = item.content
+                .replace(/<\/?LATEX>/g, '')
+                .trim();
+
+            // Create container
+            const latexContainer = document.createElement('div');
+            latexContainer.id = chartId;
+            latexContainer.style.cssText = `
+                width: 100%;
+                padding: 20px;
+                font-size: 1.2em;
+                text-align: center;
+            `;
+
+            // Render using KaTeX
+            window.katex.render(latexContent, latexContainer, {
+                throwOnError: false,
+                displayMode: true
+            });
+
+            contentArea.appendChild(latexContainer);
+            console.log('✅ LATEX rendered successfully');
+        } catch (error) {
+            console.error('Error rendering latex:', error);
+            throw error;
+        }
+    }
+
+    // Load KaTeX library dynamically
+    async loadKaTeX() {
+        return new Promise((resolve, reject) => {
+            if (window.katex) {
+                resolve();
+                return;
+            }
+
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+            document.head.appendChild(link);
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+            script.onload = () => {
+                console.log('✅ KaTeX library loaded');
+                resolve();
+            };
+            script.onerror = () => reject(new Error('Failed to load KaTeX library'));
+            document.head.appendChild(script);
+        });
+    }
+
+    // Render interactive HTML in sandboxed iframe
+    async renderHTMLVisualization(item, contentArea, chartId) {
+        try {
+            // Extract HTML content
+            const htmlContent = item.content
+                .replace(/<\/?EXECUTE_HTML>/g, '')
+                .replace(/<\/?HTML>/g, '')
+                .trim();
+
+            // Create sandboxed iframe
+            const iframe = document.createElement('iframe');
+            iframe.id = chartId;
+            iframe.sandbox = 'allow-scripts';
+            iframe.style.cssText = `
+                width: 100%;
+                min-height: 400px;
+                border: 1px solid #444;
+                border-radius: 8px;
+                background: white;
+            `;
+
+            contentArea.appendChild(iframe);
+
+            // Write content to iframe
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(htmlContent);
+            iframeDoc.close();
+
+            console.log('✅ HTML rendered successfully in sandboxed iframe');
+        } catch (error) {
+            console.error('Error rendering HTML:', error);
+            throw error;
+        }
+    }
+
+    // Render 3D graphics using Three.js
+    async renderThreeJSVisualization(item, contentArea, chartId) {
+        try {
+            // Ensure Three.js is loaded
+            if (!window.THREE) {
+                await this.loadThreeJS();
+            }
+
+            // Extract config
+            const config = typeof item.content === 'string'
+                ? JSON.parse(item.content.replace(/<\/?THREEJS>/g, '').trim())
+                : item.content;
+
+            // Create container
+            const container = document.createElement('div');
+            container.id = chartId;
+            container.style.cssText = `
+                width: 100%;
+                height: 500px;
+            `;
+            contentArea.appendChild(container);
+
+            // Basic Three.js setup
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Add basic lighting
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(1, 1, 1);
+            scene.add(light);
+
+            camera.position.z = 5;
+
+            // Render loop
+            const animate = () => {
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            console.log('✅ THREE.JS rendered successfully');
+        } catch (error) {
+            console.error('Error rendering Three.js:', error);
+            throw error;
+        }
+    }
+
+    // Load Three.js library dynamically
+    async loadThreeJS() {
+        return new Promise((resolve, reject) => {
+            if (window.THREE) {
+                resolve();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+            script.onload = () => {
+                console.log('✅ Three.js library loaded');
+                resolve();
+            };
+            script.onerror = () => reject(new Error('Failed to load Three.js library'));
+            document.head.appendChild(script);
+        });
+    }
 
     // EW: Simple wrapper to use renderEnhancedMarkdown consistently
     async renderTextUsingEnhancedMarkdown(item, container) {
@@ -9197,7 +9497,7 @@ ${svgData}`;
         });
 
         // SVG styling already applied above - width/height 100% with proper viewBox
-        console.l(' VG configured for responsive fullscreen scaling');
+        console.log('✅ SVG configured for responsive fullscreen scaling');
 
         diagramContainer.appendChild(clonedSvg);
         vizContentArea.appendChild(diagramContainer);

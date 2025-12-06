@@ -1,0 +1,1051 @@
+/**
+ * SVG/CAD/LaTeX Visualization Enhancements
+ * 
+ * Features:
+ * - Light/Dark mode support
+ * - Fullscreen capability
+ * - AI-proof defaults (margins, spacing, alignment)
+ * - Responsive scaling
+ * - Professional theming
+ * - Accessibility
+ * 
+ * Date: December 5, 2025
+ */
+
+/* ============================================================================
+   CSS VARIABLES FOR THEMING
+   ============================================================================ */
+
+:root {
+    /* Light mode colors */
+    --svg-bg-light: #ffffff;
+    --svg-border-light: #e0e0e0;
+    --svg-text-light: #333333;
+    --svg-shadow-light: rgba(0, 0, 0, 0.1);
+    --svg-control-bg-light: rgba(255, 255, 255, 0.95);
+    --svg-control-hover-light: #4CAF50;
+
+    /* Dark mode colors */
+    --svg-bg-dark: #1e1e1e;
+    --svg-border-dark: #404040;
+    --svg-text-dark: #e0e0e0;
+    --svg-shadow-dark: rgba(0, 0, 0, 0.3);
+    --svg-control-bg-dark: rgba(60, 60, 60, 0.95);
+    --svg-control-hover-dark: #66BB6A;
+
+    /* Type-specific themes */
+    --cad-bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    --cad-border: #8e9eab;
+    --schematic-bg: #fffff0;
+    --schematic-border: #ffd700;
+    --blueprint-bg: #001f3f;
+    --blueprint-border: #0074D9;
+    --molecule-bg: #f0f8ff;
+    --molecule-border: #4682b4;
+    --latex-bg: linear-gradient(135deg, #f5f7fa 0%, #e8eef3 100%);
+    --latex-border: #4CAF50;
+
+    /* Spacing (AI-proof defaults) */
+    --viz-margin-top: 2rem;
+    --viz-margin-bottom: 2rem;
+    --viz-padding: 1.5rem;
+    --viz-gap: 1rem;
+    --viz-border-radius: 8px;
+
+    /* Fullscreen */
+    --fullscreen-z-index: 9999;
+    --fullscreen-bg: rgba(0, 0, 0, 0.95);
+}
+
+/* Dark mode overrides */
+body.dark-mode,
+html[data-theme="dark"] {
+    --svg-bg-light: var(--svg-bg-dark);
+    --svg-border-light: var(--svg-border-dark);
+    --svg-text-light: var(--svg-text-dark);
+    --svg-shadow-light: var(--svg-shadow-dark);
+    --svg-control-bg-light: var(--svg-control-bg-dark);
+    --svg-control-hover-light: var(--svg-control-hover-dark);
+
+    /* Adjust type themes for dark mode */
+    --cad-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    --schematic-bg: #3a3a2a;
+    --blueprint-bg: #003366;
+    --molecule-bg: #1a2332;
+    --latex-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+/* ============================================================================
+   AI-PROOF DEFAULT CONTAINER STRUCTURE
+   ============================================================================ */
+
+/**
+ * These styles ensure visualizations look good even if AI doesn't
+ * specify margins, padding, or dimensions perfectly
+ */
+
+.svg-visualization-wrapper,
+.latex-visualization-wrapper {
+    /* AI-PROOF: Always ensure proper spacing */
+    margin: var(--viz-margin-top) auto var(--viz-margin-bottom) auto !important;
+    padding: var(--viz-padding) !important;
+
+    /* AI-PROOF: Always center and constrain width */
+    max-width: 100% !important;
+    width: 100% !important;
+
+    /* AI-PROOF: Always ensure proper box model */
+    box-sizing: border-box !important;
+
+    /* AI-PROOF: Always ensure content fits */
+    overflow: auto !important;
+
+    /* AI-PROOF: Always ensure rounded corners */
+    border-radius: var(--viz-border-radius) !important;
+
+    /* AI-PROOF: Always ensure proper display */
+    display: block !important;
+
+    /* Professional appearance */
+    box-shadow: 0 2px 8px var(--svg-shadow-light);
+    transition: all 0.3s ease;
+
+    /* Ensure readability */
+    color: var(--svg-text-light);
+
+    /* Handle long content gracefully */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Hover effect for interactivity cue */
+.svg-visualization-wrapper:hover,
+.latex-visualization-wrapper:hover {
+    box-shadow: 0 4px 16px var(--svg-shadow-light);
+    transform: translateY(-2px);
+}
+
+/* ============================================================================
+   TYPE-SPECIFIC THEMING (CAD, Schematic, Blueprint, etc.)
+   ============================================================================ */
+
+/* CAD Drawings - Engineering gradient */
+.cad-diagram {
+    background: var(--cad-bg) !important;
+    border: 2px solid var(--cad-border) !important;
+}
+
+/* Electrical Schematics - Yellow notepad style */
+.schematic-diagram {
+    background: var(--schematic-bg) !important;
+    border: 2px solid var(--schematic-border) !important;
+}
+
+/* Architectural Blueprints - Classic blueprint style */
+.blueprint-diagram {
+    background: var(--blueprint-bg) !important;
+    border: 2px solid var(--blueprint-border) !important;
+    color: #7FDBFF !important;
+    /* Blueprint cyan text */
+}
+
+.blueprint-diagram svg {
+    filter: invert(0.9) hue-rotate(180deg) !important;
+}
+
+/* Chemical Molecules - Light blue scientific */
+.molecule-diagram {
+    background: var(--molecule-bg) !important;
+    border: 2px solid var(--molecule-border) !important;
+}
+
+/* Generic SVG - Clean white/dark */
+.svg-diagram {
+    background: var(--svg-bg-light) !important;
+    border: 1px solid var(--svg-border-light) !important;
+}
+
+/* LaTeX Equations - Math paper style */
+.latex-visualization-wrapper {
+    background: var(--latex-bg) !important;
+    border-left: 4px solid var(--latex-border) !important;
+    text-align: center !important;
+    font-size: 1.2em !important;
+    margin-bottom: 2rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
+/* HTML Inline Executable - Interactive widget style */
+.html-visualization-wrapper {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    overflow: auto !important;
+}
+
+body.dark-mode .html-visualization-wrapper,
+html[data-theme="dark"] .html-visualization-wrapper {
+    background: var(--svg-bg-dark) !important;
+    border-color: var(--svg-border-dark) !important;
+}
+
+/* ============================================================================
+   SVG RESPONSIVENESS (AI-PROOF)
+   ============================================================================ */
+
+/**
+ * Ensures SVGs scale properly even if AI doesn't set viewBox
+ */
+
+.svg-visualization-wrapper,
+.cad-diagram,
+.schematic-diagram,
+.blueprint-diagram,
+.molecule-diagram,
+.svg-diagram {
+    /* Enable horizontal scroll for wide content */
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+
+.svg-visualization-wrapper svg,
+.cad-diagram svg,
+.schematic-diagram svg,
+.blueprint-diagram svg,
+.molecule-diagram svg,
+.svg-diagram svg {
+    /* AI-PROOF: Always responsive */
+    width: 100% !important;
+    height: auto !important;
+    max-width: none !important;
+    min-width: 400px !important;
+    min-height: 300px !important;
+
+    /* AI-PROOF: Always centered */
+    display: block !important;
+    margin: 0 auto !important;
+
+    /* Smooth rendering */
+    shape-rendering: geometricPrecision;
+    text-rendering: geometricPrecision;
+
+    /* Ensure visibility in all themes */
+    background: transparent;
+}
+
+/* ============================================================================
+   SVG TEXT VISIBILITY (CRITICAL FIX)
+   ============================================================================ */
+
+/**
+ * Force all text elements inside SVGs to be visible
+ * Fixes: Plotly legends, axes, titles, CAD labels, schematic text
+ */
+
+/* Generic SVG text - visible in both light and dark modes */
+.svg-visualization-wrapper svg text,
+.svg-diagram svg text,
+.cad-diagram svg text,
+.schematic-diagram svg text,
+.molecule-diagram svg text {
+    fill: #333333 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 12px !important;
+}
+
+/* Dark mode text visibility */
+body.dark-mode .svg-visualization-wrapper svg text,
+body.dark-mode .svg-diagram svg text,
+body.dark-mode .cad-diagram svg text,
+body.dark-mode .schematic-diagram svg text,
+body.dark-mode .molecule-diagram svg text,
+html[data-theme="dark"] .svg-visualization-wrapper svg text,
+html[data-theme="dark"] .svg-diagram svg text,
+html[data-theme="dark"] .cad-diagram svg text,
+html[data-theme="dark"] .schematic-diagram svg text,
+html[data-theme="dark"] .molecule-diagram svg text {
+    fill: #e0e0e0 !important;
+}
+
+/* Plotly-specific text elements */
+.svg-visualization-wrapper svg .xtitle,
+.svg-visualization-wrapper svg .ytitle,
+.svg-visualization-wrapper svg .ztitle,
+.svg-visualization-wrapper svg .gtitle,
+.svg-visualization-wrapper svg .g-title,
+.svg-visualization-wrapper svg .legend text,
+.svg-visualization-wrapper svg .legendtext,
+.svg-visualization-wrapper svg text.legendtext,
+.svg-visualization-wrapper svg .xtick text,
+.svg-visualization-wrapper svg .ytick text,
+.svg-visualization-wrapper svg .ztick text,
+.svg-visualization-wrapper svg tspan {
+    fill: #333333 !important;
+    font-size: 14px !important;
+}
+
+/* Plotly dark mode */
+body.dark-mode .svg-visualization-wrapper svg .xtitle,
+body.dark-mode .svg-visualization-wrapper svg .ytitle,
+body.dark-mode .svg-visualization-wrapper svg .ztitle,
+body.dark-mode .svg-visualization-wrapper svg .gtitle,
+body.dark-mode .svg-visualization-wrapper svg .g-title,
+body.dark-mode .svg-visualization-wrapper svg .legend text,
+body.dark-mode .svg-visualization-wrapper svg .legendtext,
+body.dark-mode .svg-visualization-wrapper svg text.legendtext,
+body.dark-mode .svg-visualization-wrapper svg .xtick text,
+body.dark-mode .svg-visualization-wrapper svg .ytick text,
+body.dark-mode .svg-visualization-wrapper svg .ztick text,
+body.dark-mode .svg-visualization-wrapper svg tspan,
+html[data-theme="dark"] .svg-visualization-wrapper svg .xtitle,
+html[data-theme="dark"] .svg-visualization-wrapper svg .ytitle,
+html[data-theme="dark"] .svg-visualization-wrapper svg .ztitle,
+html[data-theme="dark"] .svg-visualization-wrapper svg .gtitle,
+html[data-theme="dark"] .svg-visualization-wrapper svg .g-title,
+html[data-theme="dark"] .svg-visualization-wrapper svg .legend text,
+html[data-theme="dark"] .svg-visualization-wrapper svg .legendtext,
+html[data-theme="dark"] .svg-visualization-wrapper svg text.legendtext,
+html[data-theme="dark"] .svg-visualization-wrapper svg .xtick text,
+html[data-theme="dark"] .svg-visualization-wrapper svg .ytick text,
+html[data-theme="dark"] .svg-visualization-wrapper svg .ztick text,
+html[data-theme="dark"] .svg-visualization-wrapper svg tspan {
+    fill: #e0e0e0 !important;
+}
+
+/* Plotly axes lines and grids */
+.svg-visualization-wrapper svg .xgrid,
+.svg-visualization-wrapper svg .ygrid,
+.svg-visualization-wrapper svg .zgrid,
+.svg-visualization-wrapper svg path.xline,
+.svg-visualization-wrapper svg path.yline,
+.svg-visualization-wrapper svg path.zline {
+    stroke: rgba(0, 0, 0, 0.2) !important;
+}
+
+body.dark-mode .svg-visualization-wrapper svg .xgrid,
+body.dark-mode .svg-visualization-wrapper svg .ygrid,
+body.dark-mode .svg-visualization-wrapper svg .zgrid,
+body.dark-mode .svg-visualization-wrapper svg path.xline,
+body.dark-mode .svg-visualization-wrapper svg path.yline,
+body.dark-mode .svg-visualization-wrapper svg path.zline,
+html[data-theme="dark"] .svg-visualization-wrapper svg .xgrid,
+html[data-theme="dark"] .svg-visualization-wrapper svg .ygrid,
+html[data-theme="dark"] .svg-visualization-wrapper svg .zgrid,
+html[data-theme="dark"] .svg-visualization-wrapper svg path.xline,
+html[data-theme="dark"] .svg-visualization-wrapper svg path.yline,
+html[data-theme="dark"] .svg-visualization-wrapper svg path.zline {
+    stroke: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Blueprint special case - keep cyan text */
+.blueprint-diagram svg text {
+    fill: #7FDBFF !important;
+}
+
+/* CAD labels - ensure high contrast */
+.cad-diagram svg text {
+    fill: #000000 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+}
+
+body.dark-mode .cad-diagram svg text,
+html[data-theme="dark"] .cad-diagram svg text {
+    fill: #ffffff !important;
+}
+
+/* Schematic labels - black on yellow */
+.schematic-diagram svg text {
+    fill: #000000 !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+}
+
+/* Molecule labels - chemical notation */
+.molecule-diagram svg text {
+    fill: #000080 !important;
+    font-family: 'Times New Roman', serif !important;
+    font-size: 16px !important;
+    font-style: italic !important;
+}
+
+body.dark-mode .molecule-diagram svg text,
+html[data-theme="dark"] .molecule-diagram svg text {
+    fill: #87CEEB !important;
+}
+
+/* If SVG has fixed dimensions but no viewBox (AI mistake) */
+.svg-visualization-wrapper svg[width][height]:not([viewBox]) {
+    /* Force responsive behavior */
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* ============================================================================
+   CONTROL BUTTONS
+   ============================================================================ */
+
+.svg-control-bar {
+    display: flex !important;
+    gap: 0.5rem !important;
+    margin-bottom: 1rem !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+}
+
+.svg-control-btn {
+    padding: 0.5rem 1rem !important;
+    background: var(--svg-control-bg-light) !important;
+    border: 1px solid var(--svg-border-light) !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 13px !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    color: var(--svg-text-light) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.svg-control-btn:hover {
+    background: var(--svg-control-hover-light) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.svg-control-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Icon-only buttons */
+.svg-control-btn.icon-only {
+    padding: 0.5rem !important;
+    width: 36px !important;
+    height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ============================================================================
+   POPUP MODAL (Draggable, Resizable, Floating)
+   ============================================================================ */
+
+/* Backdrop - allows interaction with UI below */
+.viz-popup-backdrop {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9998 !important;
+    pointer-events: none !important;
+    animation: fadeIn 0.2s ease !important;
+}
+
+/* Popup window - draggable and resizable */
+.svg-visualization-wrapper.popup,
+.latex-visualization-wrapper.popup {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 900px !important;
+    max-width: 95vw !important;
+    height: auto !important;
+    max-height: 85vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 9999 !important;
+    background: var(--svg-bg-light) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden !important;
+    animation: popupZoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    cursor: default !important;
+    resize: both !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+body.dark-mode .svg-visualization-wrapper.popup,
+body.dark-mode .latex-visualization-wrapper.popup,
+html[data-theme="dark"] .svg-visualization-wrapper.popup,
+html[data-theme="dark"] .latex-visualization-wrapper.popup {
+    background: var(--svg-bg-dark) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Popup header - draggable handle */
+.viz-popup-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0.75rem 1rem !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    cursor: move !important;
+    user-select: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    flex-shrink: 0 !important;
+}
+
+.viz-popup-header-title {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+.viz-popup-header-controls {
+    display: flex !important;
+    gap: 0.5rem !important;
+    align-items: center !important;
+}
+
+.viz-popup-header-btn {
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    color: white !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    font-size: 16px !important;
+}
+
+.viz-popup-header-btn:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    transform: scale(1.1) !important;
+}
+
+.viz-popup-header-btn.close-btn:hover {
+    background: #f44336 !important;
+}
+
+/* Popup content area */
+.viz-popup-content {
+    flex: 1 !important;
+    overflow: auto !important;
+    padding: 1.5rem !important;
+}
+
+/* Popup SVG container */
+.svg-visualization-wrapper.popup svg,
+.latex-visualization-wrapper.popup .latex-content {
+    max-width: 100% !important;
+    max-height: calc(85vh - 120px) !important;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Resize handle indicator */
+.svg-visualization-wrapper.popup::after,
+.latex-visualization-wrapper.popup::after {
+    content: '⋰' !important;
+    position: absolute !important;
+    bottom: 4px !important;
+    right: 4px !important;
+    font-size: 16px !important;
+    color: rgba(0, 0, 0, 0.3) !important;
+    pointer-events: none !important;
+}
+
+@keyframes popupZoomIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* ============================================================================
+   ZOOM FUNCTIONALITY
+   ============================================================================ */
+
+.svg-visualization-wrapper.zoomed {
+    overflow: auto !important;
+    cursor: zoom-out !important;
+}
+
+.svg-visualization-wrapper.zoomed svg {
+    cursor: zoom-out !important;
+    max-width: none !important;
+    width: 150% !important;
+    transition: width 0.3s ease !important;
+}
+
+.svg-visualization-wrapper.zoomed-2x svg {
+    width: 200% !important;
+}
+
+.svg-visualization-wrapper.zoomed-3x svg {
+    width: 300% !important;
+}
+
+/* ============================================================================
+   NOTIFICATIONS
+   ============================================================================ */
+
+.svg-notification {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    padding: 1rem 1.5rem !important;
+    border-radius: 4px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    z-index: 10000 !important;
+    font-family: -apple-system, system-ui, sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    pointer-events: none !important;
+    animation: slideInRight 0.3s ease, slideOutRight 0.3s ease 2.7s !important;
+}
+
+.svg-notification-success {
+    background: #4CAF50 !important;
+    color: white !important;
+}
+
+.svg-notification-error {
+    background: #f44336 !important;
+    color: white !important;
+}
+
+.svg-notification-info {
+    background: #2196F3 !important;
+    color: white !important;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Focus indicators for keyboard navigation */
+.svg-control-btn:focus {
+    outline: 2px solid var(--svg-control-hover-light) !important;
+    outline-offset: 2px !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+
+    .svg-visualization-wrapper,
+    .latex-visualization-wrapper {
+        border-width: 3px !important;
+    }
+
+    .svg-control-btn {
+        border-width: 2px !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+    .svg-visualization-wrapper,
+    .latex-visualization-wrapper,
+    .svg-control-btn,
+    .svg-notification {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVENESS
+   ============================================================================ */
+
+@media (max-width: 768px) {
+
+    .svg-visualization-wrapper,
+    .latex-visualization-wrapper {
+        margin: 1rem 0 !important;
+        padding: 1rem !important;
+    }
+
+    .svg-control-bar {
+        justify-content: center !important;
+        gap: 0.3rem !important;
+    }
+
+    .svg-control-btn {
+        padding: 0.4rem 0.8rem !important;
+        font-size: 12px !important;
+    }
+
+    /* SVG minimum size on mobile */
+    .svg-visualization-wrapper svg,
+    .cad-diagram svg,
+    .schematic-diagram svg,
+    .blueprint-diagram svg,
+    .molecule-diagram svg,
+    .svg-diagram svg {
+        min-width: 300px !important;
+        min-height: 250px !important;
+    }
+
+    /* Popup adjustments for mobile */
+    .svg-visualization-wrapper.popup,
+    .latex-visualization-wrapper.popup {
+        width: 95vw !important;
+        max-height: 90vh !important;
+    }
+
+    .viz-popup-content {
+        padding: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .svg-visualization-wrapper,
+    .latex-visualization-wrapper {
+        padding: 0.75rem !important;
+        margin: 0.75rem 0 !important;
+    }
+
+    .svg-control-btn {
+        padding: 0.3rem 0.6rem !important;
+        font-size: 11px !important;
+    }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+    .svg-control-bar {
+        display: none !important;
+    }
+
+    .svg-visualization-wrapper,
+    .latex-visualization-wrapper {
+        page-break-inside: avoid !important;
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+    }
+
+    .svg-visualization-wrapper.popup,
+    .latex-visualization-wrapper.popup {
+        position: relative !important;
+        width: 100% !important;
+        height: auto !important;
+        background: white !important;
+        box-shadow: none !important;
+    }
+
+    .viz-popup-header {
+        display: none !important;
+    }
+}
+
+/* ============================================================================
+   ERROR STATES
+   ============================================================================ */
+
+.svg-error-display {
+    padding: 1.5rem !important;
+    background: #fff0f0 !important;
+    border: 2px solid #f44336 !important;
+    border-radius: var(--viz-border-radius) !important;
+    color: #c00 !important;
+    font-family: 'Courier New', monospace !important;
+    margin: var(--viz-margin-top) 0 var(--viz-margin-bottom) 0 !important;
+}
+
+body.dark-mode .svg-error-display,
+html[data-theme="dark"] .svg-error-display {
+    background: #4a2020 !important;
+    color: #ff8080 !important;
+}
+
+/* ============================================================================
+   LOADING STATES
+   ============================================================================ */
+
+.svg-loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--svg-border-light);
+    border-radius: 50%;
+    border-top-color: var(--svg-control-hover-light);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================================
+   INTEGRATION WITH EXISTING .viz-content-area
+   ============================================================================ */
+
+/**
+ * These styles ensure SVG/LaTeX visualizations integrate seamlessly
+ * with existing Plotly/Mermaid containers
+ */
+
+.viz-content-area .svg-visualization-wrapper,
+.viz-content-area .latex-visualization-wrapper {
+    /* Reduce top margin when inside viz-content-area (already has spacing) */
+    margin-top: 0 !important;
+}
+
+.viz-content-area:has(.svg-visualization-wrapper),
+.viz-content-area:has(.latex-visualization-wrapper) {
+    /* Ensure proper padding from container */
+    padding: 0.5rem !important;
+}
+
+/* ============================================================================
+   AI-PROOF FALLBACKS
+   ============================================================================ */
+
+/**
+ * Handle common AI mistakes gracefully
+ */
+
+/* AI forgot to set viewBox */
+svg:not([viewBox]) {
+    /* Force container query to work */
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* AI set absolute dimensions */
+svg[width][height] {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* AI put text outside visible area */
+.svg-visualization-wrapper {
+    /* Ensure all content visible */
+    min-height: min-content !important;
+}
+
+/* AI forgot margins */
+.svg-visualization-wrapper:not([style*="margin"]),
+.latex-visualization-wrapper:not([style*="margin"]) {
+    margin: var(--viz-margin-top) auto var(--viz-margin-bottom) auto !important;
+}
+
+/* ============================================================================
+   TOOLTIP STYLES
+   ============================================================================ */
+
+.svg-control-btn[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* ============================================================================
+   COPY FEEDBACK ANIMATION
+   ============================================================================ */
+
+.svg-control-btn.copied {
+    background: #4CAF50 !important;
+    color: white !important;
+    animation: pulse 0.5s ease !important;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* ============================================================================
+   CHART LIBRARY WRAPPERS (Chart.js, ApexCharts, Three.js, GSAP, Lottie)
+   ============================================================================ */
+
+/* Chart.js Wrapper */
+.chartjs-visualization-wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: var(--viz-margin-top) auto var(--viz-margin-bottom);
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.chartjs-visualization-wrapper canvas {
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100%;
+}
+
+/* ApexCharts Wrapper */
+.apexcharts-visualization-wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: var(--viz-margin-top) auto var(--viz-margin-bottom);
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.apexcharts-visualization-wrapper .apexcharts-canvas {
+    margin: 0 auto;
+}
+
+/* Three.js Wrapper */
+.threejs-visualization-wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: var(--viz-margin-top) auto var(--viz-margin-bottom);
+    padding: 1.5rem;
+    background: #1a1a2e;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.threejs-visualization-wrapper canvas {
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 4px;
+}
+
+/* GSAP Animation Wrapper */
+.gsap-visualization-wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: var(--viz-margin-top) auto var(--viz-margin-bottom);
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 1px solid #764ba2;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.gsap-visualization-wrapper #gsapDemo {
+    margin: 2rem auto;
+}
+
+/* Lottie Animation Wrapper */
+.lottie-visualization-wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: var(--viz-margin-top) auto var(--viz-margin-bottom);
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Dark Mode Overrides for Chart Libraries */
+@media (prefers-color-scheme: dark) {
+
+    .chartjs-visualization-wrapper,
+    .apexcharts-visualization-wrapper,
+    .lottie-visualization-wrapper {
+        background: var(--svg-bg-dark);
+        border-color: var(--svg-border-dark);
+        box-shadow: 0 2px 8px var(--svg-shadow-dark);
+    }
+
+    .threejs-visualization-wrapper {
+        background: #0a0a0f;
+        border-color: #505050;
+    }
+}

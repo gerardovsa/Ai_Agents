@@ -659,10 +659,9 @@ async function loadUserProfile() {
                 console.error(' Profile container element not found!');
             }
 
-            // Load additional Microsoft profile data if Microsoft user with tokens
-            if (isMicrosoftUser && microsoftTokensExist) {
-                loadMicrosoft365Profile();
-            }
+            // ✅ LAZY LOAD: Microsoft profile data will load when dropdown opens
+            // Removed eager loading to reduce startup connection pool exhaustion
+            // loadMicrosoft365Profile() now called on-demand (see setupMicrosoft365LazyLoad)
 
             // Debug: Check if platform sections are visible
             console.log('[SEARCH] Google Workspace section display:', googleWorkspaceSection ? window.getComputedStyle(googleWorkspaceSection).display : 'NOT FOUND');
@@ -2534,6 +2533,36 @@ async function initializeApp() {
     //         DeviceLockManager.init();
     //     }
     // }, 1000);
+}
+
+// ✅ LAZY LOAD: Setup Microsoft 365 profile loading on dropdown open (Dec 5, 2025)
+function setupMicrosoft365LazyLoad() {
+    let loaded = false;
+    
+    // Find the account dropdown trigger
+    const profileButton = document.getElementById('profileButton');
+    if (!profileButton) return;
+    
+    // Load on first dropdown open
+    profileButton.addEventListener('click', async () => {
+        if (loaded) return; // Already loaded
+        
+        const isMicrosoftUser = UserAuth?.authMethod === 'microsoft';
+        const microsoftTokensExist = UserAuth?.microsoft?.tokens?.access_token;
+        
+        if (isMicrosoftUser && microsoftTokensExist) {
+            console.log('🔄 [LAZY LOAD] Loading Microsoft 365 profile on first dropdown open...');
+            await loadMicrosoft365Profile();
+            loaded = true;
+        }
+    }, { once: false }); // Keep listener active but use loaded flag
+}
+
+// Initialize lazy loading after DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMicrosoft365LazyLoad);
+} else {
+    setupMicrosoft365LazyLoad();
 }
 
 // ✅ Export functions for external use

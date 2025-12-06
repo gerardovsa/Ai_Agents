@@ -58,13 +58,40 @@ class UnifiedSessionManager:
         self.queues: Dict[str, Queue] = {}        # {session_id: Queue()}
         self.locks: Dict[str, threading.Lock] = {}  # {session_id: Lock()}
         
+        # ENHANCEMENT 1 & 4: Lazy initialization + graceful degradation (Dec 5, 2025)
+        self._db_initialized = False
+        self._db_available = False
+        self._db_error = None
+        self._init_attempts = 0
+        
         # Ensure data directory exists (CRITICAL for first-time setup)
         from pathlib import Path
         db_dir = Path(self.db_path).parent
         db_dir.mkdir(parents=True, exist_ok=True)
         
-        # Initialize database (tables only)
-        self._init_db()
+        print("[SessionManager] ✅ Initialized with LAZY loading (DB will connect on first use)")
+    
+    def _ensure_db_initialized(self):
+        """Lazy initialization - connect on first use, not at import time"""
+        if self._db_initialized:
+            return
+        
+        with self.lock:
+            if self._db_initialized:
+                return
+            
+            try:
+                self._init_db()
+                self._db_initialized = True
+                self._db_available = True
+                print("[SessionManager] ✅ Database initialized successfully")
+            except Exception as e:
+                self._db_initialized = True  # Mark as attempted
+                self._db_available = False
+                self._db_error = str(e)
+                self._init_attempts += 1
+                print(f"[SessionManager] ⚠️  Database unavailable (attempt {self._init_attempts}): {e}")
+                print(f"[SessionManager] 🔄 Running in MEMORY-ONLY mode (sessions won't persist across restarts)")
     
     def _init_db(self):
         """Initialize PostgreSQL database with sessions table"""
@@ -105,6 +132,9 @@ class UnifiedSessionManager:
         Returns:
             session_id: UUID string or custom session ID
         """
+        # ENHANCEMENT 1: Ensure DB initialized on first use
+        self._ensure_db_initialized()
+        
         with self.lock:
             #  Use provided session_id or generate new UUID
             if not session_id:
@@ -123,27 +153,33 @@ class UnifiedSessionManager:
             # Store in cache
             self.sessions[session_id] = session_data
             
-            #  ONLY store in DB if NOT from CLI
-            if source != 'cli':
-                # Use connection timeout for stability
-                conn = get_database_connection('sessions')
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO sessions.sessions (session_id, ui_context, agent_id, conversation, metadata)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (
-                    session_id,
-                    ui_context,
-                    agent_id,
-                    json.dumps([]),
-                    json.dumps({'source': source})
-                ))
-                cursor.close()
-                conn.commit()
-                conn.close()
-                print(f"[SessionManager] Created session: {session_id} (ui_context={ui_context}, agent_id={agent_id}, source={source})")
-            else:
+            # ENHANCEMENT 4: Graceful degradation - only save to DB if available
+            if source != 'cli' and self._db_available:
+                try:
+                    # Use connection timeout for stability
+                    conn = get_database_connection('sessions')
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO sessions.sessions (session_id, ui_context, agent_id, conversation, metadata)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (
+                        session_id,
+                        ui_context,
+                        agent_id,
+                        json.dumps([]),
+                        json.dumps({'source': source})
+                    ))
+                    cursor.close()
+                    conn.commit()
+                    conn.close()
+                    print(f"[SessionManager] Created session: {session_id} (ui_context={ui_context}, agent_id={agent_id}, source={source})")
+                except Exception as e:
+                    print(f"[SessionManager] ⚠️  Failed to save session to DB: {e}")
+                    print(f"[SessionManager] Session {session_id} running in memory-only mode")
+            elif source == 'cli':
                 print(f"[SessionManager] Created CLI session (in-memory only): {session_id}")
+            else:
+                print(f"[SessionManager] Created session (memory-only - DB unavailable): {session_id}")
             
             return session_id
     
@@ -154,24 +190,36 @@ class UnifiedSessionManager:
         Returns:
             session_data: Dict with session info, or None if not found
         """
+        # ENHANCEMENT 1: Ensure DB initialized
+        self._ensure_db_initialized()
+        
         with self.lock:
             # Check cache first (fast path)
             if session_id in self.sessions:
                 self._update_last_active(session_id)
                 return self.sessions[session_id]
             
-            # Load from DB (slow path - session not active)
-            conn = get_database_connection('sessions')
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT session_id, ui_context, agent_id, conversation, metadata, created_at, last_active
-                FROM sessions.sessions
-                WHERE session_id = %s
-            """, (session_id,))
+            # ENHANCEMENT 4: Skip DB load if unavailable
+            if not self._db_available:
+                print(f"[SessionManager] Session not in cache and DB unavailable: {session_id}")
+                return None
             
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
+            # Load from DB (slow path - session not active)
+            try:
+                conn = get_database_connection('sessions')
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT session_id, ui_context, agent_id, conversation, metadata, created_at, last_active
+                    FROM sessions.sessions
+                    WHERE session_id = %s
+                """, (session_id,))
+                
+                row = cursor.fetchone()
+                cursor.close()
+                conn.close()
+            except Exception as e:
+                print(f"[SessionManager] ⚠️  Failed to load session from DB: {e}")
+                return None
             if row:
                 session_data = {
                     'session_id': row[0],
@@ -369,17 +417,72 @@ class UnifiedSessionManager:
     
     def _update_last_active(self, session_id: str):
         """Update last active timestamp (internal helper)"""
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE sessions.sessions
-            SET last_active = CURRENT_TIMESTAMP
-            WHERE session_id = %s
-        """, (session_id,))
-        cursor.close()
-        conn.commit()
-        conn.close()
+        # ENHANCEMENT 4: Skip DB update if unavailable
+        if not self._db_available:
+            return
+        
+        try:
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE sessions.sessions
+                SET last_active = CURRENT_TIMESTAMP
+                WHERE session_id = %s
+            """, (session_id,))
+            cursor.close()
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            # Non-critical - silently fail if DB update fails
+            pass
+    
+    def get_health_status(self) -> Dict:
+        """
+        ENHANCEMENT 5: Get database health status for monitoring
+        
+        Returns:
+            Dict with health information:
+            - db_initialized: bool
+            - db_available: bool
+            - db_error: Optional[str]
+            - init_attempts: int
+            - active_sessions: int
+            - mode: 'persistent' | 'memory-only'
+        """
+        return {
+            'db_initialized': self._db_initialized,
+            'db_available': self._db_available,
+            'db_error': self._db_error,
+            'init_attempts': self._init_attempts,
+            'active_sessions': len(self.sessions),
+            'mode': 'persistent' if self._db_available else 'memory-only'
+        }
 
 
-# Global singleton instance
-session_manager = UnifiedSessionManager()
+# ENHANCEMENT 1: Lazy singleton pattern (Dec 5, 2025)
+# Don't create instance at import time - create on first use
+_session_manager_instance = None
+_session_manager_lock = threading.Lock()
+
+def get_session_manager() -> UnifiedSessionManager:
+    """
+    Get or create singleton session manager instance (lazy initialization)
+    
+    Returns:
+        UnifiedSessionManager: Singleton instance
+    
+    ENHANCEMENT (Dec 5, 2025): Lazy initialization
+    - Flask starts instantly even if Supabase down
+    - Database connects on first request
+    - Thread-safe singleton pattern
+    """
+    global _session_manager_instance
+    if _session_manager_instance is None:
+        with _session_manager_lock:
+            if _session_manager_instance is None:
+                _session_manager_instance = UnifiedSessionManager()
+    return _session_manager_instance
+
+# Backward compatibility: Keep module-level variable for existing imports
+# This works because Python evaluates get_session_manager() when accessed
+session_manager = get_session_manager()

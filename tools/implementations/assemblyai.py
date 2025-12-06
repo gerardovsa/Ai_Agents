@@ -3,31 +3,65 @@ AssemblyAI Tool Implementations
 ================================
 
 This module provides tool implementations for AssemblyAI transcription and analysis.
+
+CREDENTIALS: Uses user_platform_credentials table (Dec 5, 2025)
+- Platform: 'assemblyai'
+- Falls back to environment variable if no user credentials
 """
 
 import os
 
 try:
     import assemblyai as aai
-    from config import get_api_key_enhanced
-    api_key = get_api_key_enhanced('ASSEMBLYAI_API_KEY')
-    if api_key and hasattr(aai, 'settings'):
-        aai.settings.api_key = api_key
+    ASSEMBLYAI_AVAILABLE = True
 except ImportError:
-    try:
-        import assemblyai as aai
-        api_key = os.getenv('ASSEMBLYAI_API_KEY')
-        if api_key and hasattr(aai, 'settings'):
-            aai.settings.api_key = api_key
-    except Exception as e:
-        print(f"⚠️ AssemblyAI import warning: {e}")
-        aai = None
-except Exception as e:
-    print(f"⚠️ AssemblyAI initialization warning: {e}")
+    print("⚠️ AssemblyAI not available - install with: pip install assemblyai")
     aai = None
+    ASSEMBLYAI_AVAILABLE = False
 
 
-def assemblyai_transcribe(audio_file: str, language: str = "en", speaker_labels: bool = False, punctuate: bool = True):
+def _get_assemblyai_client(user_id: int = None):
+    """
+    Get AssemblyAI client with user-specific credentials
+    
+    Args:
+        user_id: User ID from authentication (optional)
+    
+    Returns:
+        Configured AssemblyAI client or None
+    """
+    if not ASSEMBLYAI_AVAILABLE:
+        return None
+    
+    # Try user-specific credentials first
+    if user_id:
+        try:
+            from AI_infrastructure.shared.platform_credentials_loader import get_assemblyai_key
+            api_key = get_assemblyai_key(user_id)
+            if api_key:
+                print(f"[AssemblyAI] ✅ Using user credentials (user_id={user_id})")
+                aai.settings.api_key = api_key
+                return aai
+        except Exception as e:
+            print(f"[AssemblyAI] ⚠️ Could not load user credentials: {e}")
+    
+    # Fallback to environment variable
+    try:
+        from config import get_api_key_enhanced
+        api_key = get_api_key_enhanced('ASSEMBLYAI_API_KEY')
+    except:
+        api_key = os.getenv('ASSEMBLYAI_API_KEY')
+    
+    if api_key and hasattr(aai, 'settings'):
+        print("[AssemblyAI] ✅ Using environment variable credentials")
+        aai.settings.api_key = api_key
+        return aai
+    
+    print("[AssemblyAI] ❌ No API key found")
+    return None
+
+
+def assemblyai_transcribe(audio_file: str, language: str = "en", speaker_labels: bool = False, punctuate: bool = True, user_id: int = None):
     """
     Transcribe audio or video file to text.
     
@@ -36,20 +70,22 @@ def assemblyai_transcribe(audio_file: str, language: str = "en", speaker_labels:
         language: Language code (e.g., 'en', 'es')
         speaker_labels: Enable speaker diarization
         punctuate: Add punctuation
+        user_id: User ID from authentication (for user-specific API key)
     
     Returns:
         Transcription result with text
     """
-    if not aai:
+    client = _get_assemblyai_client(user_id)
+    if not client:
         return {
             'success': False,
-            'error': 'AssemblyAI library not available'
+            'error': 'AssemblyAI not available or no API key configured'
         }
     
     print(f"🔧 Transcribing audio: {audio_file}")
     
     try:
-        config = aai.TranscriptionConfig(
+        config = client.TranscriptionConfig(
             language_code=language,
             speaker_labels=speaker_labels,
             punctuate=punctuate
@@ -84,7 +120,7 @@ def assemblyai_transcribe(audio_file: str, language: str = "en", speaker_labels:
 
 
 def assemblyai_analyze(audio_file: str, sentiment_analysis: bool = True, 
-                       auto_chapters: bool = False, entity_detection: bool = False):
+                       auto_chapters: bool = False, entity_detection: bool = False, user_id: int = None):
     """
     Analyze audio for sentiment, topics, and entities.
     
@@ -93,20 +129,28 @@ def assemblyai_analyze(audio_file: str, sentiment_analysis: bool = True,
         sentiment_analysis: Enable sentiment analysis
         auto_chapters: Generate chapter markers
         entity_detection: Detect named entities
+        user_id: User ID from authentication (for user-specific API key)
     
     Returns:
         Analysis results
     """
+    client = _get_assemblyai_client(user_id)
+    if not client:
+        return {
+            'success': False,
+            'error': 'AssemblyAI not available or no API key configured'
+        }
+    
     print(f"🔧 Analyzing audio: {audio_file}")
     
     try:
-        config = aai.TranscriptionConfig(
+        config = client.TranscriptionConfig(
             sentiment_analysis=sentiment_analysis,
             auto_chapters=auto_chapters,
             entity_detection=entity_detection
         )
         
-        transcriber = aai.Transcriber()
+        transcriber = client.Transcriber()
         transcript = transcriber.transcribe(audio_file, config=config)
         
         result = {
@@ -154,26 +198,34 @@ def assemblyai_analyze(audio_file: str, sentiment_analysis: bool = True,
         raise
 
 
-def assemblyai_speakers(audio_file: str, speakers_expected: int = None):
+def assemblyai_speakers(audio_file: str, speakers_expected: int = None, user_id: int = None):
     """
     Identify and label different speakers in audio.
     
     Args:
         audio_file: Path to audio file or URL
         speakers_expected: Expected number of speakers (optional)
+        user_id: User ID from authentication (for user-specific API key)
     
     Returns:
         Speaker diarization results
     """
+    client = _get_assemblyai_client(user_id)
+    if not client:
+        return {
+            'success': False,
+            'error': 'AssemblyAI not available or no API key configured'
+        }
+    
     print(f"🔧 Identifying speakers in: {audio_file}")
     
     try:
-        config = aai.TranscriptionConfig(
+        config = client.TranscriptionConfig(
             speaker_labels=True,
             speakers_expected=speakers_expected
         )
         
-        transcriber = aai.Transcriber()
+        transcriber = client.Transcriber()
         transcript = transcriber.transcribe(audio_file, config=config)
         
         speakers = {}
@@ -203,20 +255,28 @@ def assemblyai_speakers(audio_file: str, speakers_expected: int = None):
         raise
 
 
-def assemblyai_status(transcript_id: str):
+def assemblyai_status(transcript_id: str, user_id: int = None):
     """
     Check status of a transcription job.
     
     Args:
         transcript_id: AssemblyAI transcript ID
+        user_id: User ID from authentication (for user-specific API key)
     
     Returns:
         Transcription status
     """
+    client = _get_assemblyai_client(user_id)
+    if not client:
+        return {
+            'success': False,
+            'error': 'AssemblyAI not available or no API key configured'
+        }
+    
     print(f"🔧 Checking transcript status: {transcript_id}")
     
     try:
-        transcript = aai.Transcript.get_by_id(transcript_id)
+        transcript = client.Transcript.get_by_id(transcript_id)
         
         return {
             'id': transcript.id,

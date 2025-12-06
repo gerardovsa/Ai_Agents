@@ -104,6 +104,139 @@
     animation: spin 1s linear infinite;
 }
 
+/* ==================== COMPOSE FORM BUTTONS ==================== */
+
+/* Base button styles */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    outline: none;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Primary button - Send Email */
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+    border: 2px solid #3b82f6;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:active {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+/* Secondary button - Save Draft, Cancel, etc */
+.btn-secondary {
+    background: transparent;
+    color: #8b949e;
+    border: 2px solid #30363d;
+}
+
+.btn-secondary:hover {
+    background: #161b22;
+    color: #f3f4f6;
+    border-color: #58a6ff;
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+}
+
+.btn-secondary:active {
+    background: #0d1117;
+    border-color: #58a6ff;
+}
+
+/* Small button variant */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    background: transparent;
+    color: #8b949e;
+    border: 1px solid #30363d;
+}
+
+.btn-sm:hover {
+    background: #161b22;
+    color: #f3f4f6;
+    border-color: #58a6ff;
+}
+
+/* ==================== COMPOSE FORM CONTROLS ==================== */
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-card, #0d1117);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-primary, #f3f4f6);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-control::placeholder {
+    color: #6e7681;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 200px;
+    line-height: 1.5;
+}
+
+/* Form group spacing */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-primary, #f3f4f6);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-group label i {
+    margin-right: 6px;
+    color: #8b949e;
+}
+
 @keyframes spin {
     from {
         transform: rotate(0deg);

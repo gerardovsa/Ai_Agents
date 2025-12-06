@@ -1526,8 +1526,13 @@ def run_simple_agent_worker(
         # when replayed because result blocks require tool_use_id references that are removed
         # NOTE: Result blocks are already stored in DB and visible in UI - no data loss
         print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks...")
+        
+        # Work on a deep copy to avoid partial modifications on error
+        import copy
+        messages_cleaned = copy.deepcopy(messages)
+        
         try:
-            for idx, msg in enumerate(messages):
+            for idx, msg in enumerate(messages_cleaned):
                 if msg.get('role') == 'assistant':
                     content = msg.get('content', [])
                     if isinstance(content, list):
@@ -1546,16 +1551,22 @@ def run_simple_agent_worker(
                         if len(cleaned_content) < original_count:
                             removed = original_count - len(cleaned_content)
                             print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks")
-                            messages[idx]['content'] = cleaned_content
+                            messages_cleaned[idx]['content'] = cleaned_content
                         
-                        # SAFETY CHECK: If ALL blocks were removed, skip this message entirely
+                        # SAFETY CHECK: If ALL blocks were removed, mark for removal
                         if len(cleaned_content) == 0:
                             print(f"{log_prefix}   ⚠️ Message [{idx}]: ALL blocks removed - will skip empty message")
+            
+            # Only update messages if cleaning succeeded completely
+            messages = messages_cleaned
+            print(f"{log_prefix} ✅ Server tool cleaning completed successfully")
+            
         except Exception as cleaning_error:
-            # CRITICAL: If cleaning fails, log error but continue with original messages
-            # This prevents conversation from stalling due to cleaning logic errors
+            # Now truly using original messages (no partial modifications)
             print(f"{log_prefix} ⚠️ Error during cleaning: {cleaning_error}")
-            print(f"{log_prefix} ⚠️ Continuing with original messages (uncleaned)")
+            print(f"{log_prefix} ⚠️ Using original messages unchanged (cleaning aborted)")
+            import traceback
+            traceback.print_exc()
         
         # SAFETY: Remove any assistant messages that became empty after cleaning
         messages = [msg for msg in messages if not (
@@ -2435,9 +2446,9 @@ def execute_streaming_request(
             registry = get_registry()
             
             # CRITICAL: Detect infinite loops (same meta-tool called 3+ times consecutively)
-            # BUT allow retries after tool errors (legitimate error recovery)
+            # BUT allow progressive refinement (different queries) and error recovery
             if current_round >= 3:
-                recent_tools = []
+                recent_tool_calls = []  # Track (tool_name, query) tuples for search_tools
                 recent_errors = []
                 
                 for msg in conversation_history[-6:]:  # Check last 3 rounds (6 messages: assistant + user)
@@ -2454,7 +2465,16 @@ def execute_streaming_request(
                         
                         for block in content:
                             if isinstance(block, dict) and block.get('type') == 'tool_use':
-                                recent_tools.append(block.get('name'))
+                                tool_name = block.get('name')
+                                tool_input = block.get('input', {})
+                                
+                                # For search_tools, track query to allow progressive refinement
+                                if tool_name == 'search_tools':
+                                    query = tool_input.get('query', '').lower().strip()
+                                    recent_tool_calls.append((tool_name, query))
+                                else:
+                                    # For other meta-tools, just track name
+                                    recent_tool_calls.append((tool_name, None))
                     
                     elif msg.get('role') == 'user':
                         # Check if previous tool call resulted in error
@@ -2466,21 +2486,49 @@ def execute_streaming_request(
                                 else:
                                     recent_errors.append(False)
                 
-                # Check if same meta-tool called 3+ times in a row WITH successful results
-                # (Don't block if agent is retrying after errors)
-                if len(recent_tools) >= 3:
+                # Check if same meta-tool+query called 3+ times in a row
+                # (Allow progressive refinement: different queries for search_tools)
+                if len(recent_tool_calls) >= 3:
                     meta_tools = ['list_platform_tools', 'list_available_platforms', 'search_tools', 'recommend_tools_for_task']
-                    last_three = recent_tools[-3:]
+                    last_three = recent_tool_calls[-3:]
                     
-                    # Only block if: same tool 3 times AND at least 2 successful calls (not error recovery)
-                    if all(t in meta_tools for t in last_three) and len(set(last_three)) == 1:
+                    # Extract tool names to check if all are meta-tools
+                    last_three_tools = [call[0] for call in last_three]
+                    
+                    # Only check if all are meta-tools AND all three calls are IDENTICAL
+                    if all(t in meta_tools for t in last_three_tools) and len(set(last_three)) == 1:
                         # Check if this is error recovery (recent errors in tool results)
                         error_recovery_mode = len(recent_errors) > 0 and any(recent_errors[-3:])
                         
                         if not error_recovery_mode:
-                            repeated_tool = last_three[0]
-                            repeat_count = len([t for t in recent_tools if t == repeated_tool])
-                            error_msg = f"""⚠️  INFINITE LOOP DETECTED: You called '{repeated_tool}' {repeat_count} times.
+                            repeated_tool = last_three[0][0]  # Tool name
+                            repeated_query = last_three[0][1]  # Query (or None)
+                            repeat_count = len([c for c in recent_tool_calls if c == last_three[0]])
+                            
+                            if repeated_tool == 'search_tools':
+                                error_msg = f"""⚠️  INFINITE LOOP DETECTED: You called '{repeated_tool}(\"{repeated_query}\")' {repeat_count} times.
+
+🛑 STOP calling search_tools with the SAME query repeatedly!
+
+✅ NEXT STEPS:
+1. Try a DIFFERENT search term (progressive refinement is OK!)
+2. If you found tools → Call get_tool_schema("tool_name") to learn parameters
+3. If you have schema → Call execute_tool("tool_name", param1=..., param2=...)
+
+Example of GOOD progressive search:
+- search_tools("database sql") → 0 results
+- search_tools("postgres") → Found postgres_execute_query ✓
+- get_tool_schema("postgres_execute_query") → Got parameters
+- execute_tool("postgres_execute_query", ...)
+
+Example of BAD loop (what you did):
+- search_tools("{repeated_query}") → Found tools
+- search_tools("{repeated_query}") → Same results
+- search_tools("{repeated_query}") → 🛑 BLOCKED (pointless repetition)
+
+Try a different search term or move to execution now."""
+                            else:
+                                error_msg = f"""⚠️  INFINITE LOOP DETECTED: You called '{repeated_tool}' {repeat_count} times.
 
 🛑 STOP calling discovery tools repeatedly!
 
@@ -2489,18 +2537,14 @@ def execute_streaming_request(
 2. If you have schema → Call execute_tool("tool_name", param1=..., param2=...)
 3. Move forward to execution, don't repeat discovery!
 
-Example workflow:
-- search_tools("email") → Found gmail_send_email
-- get_tool_schema("gmail_send_email") → Got parameters
-- execute_tool("gmail_send_email", to="...", subject="...", body="...")
-
 Proceed to the NEXT step now."""
-                            print(f"{log_prefix} {error_msg}")
+                            
+                            print(f"{log_prefix} 🛑 {error_msg}")
                             yield {'type': 'error', 'error': error_msg, 'session_id': session_id, 'round': current_round}
                             return
                         else:
                             # Allow retry after error - legitimate error recovery
-                            print(f"{log_prefix} ♻️  Allowing retry of '{last_three[0]}' (error recovery mode)")
+                            print(f"{log_prefix} ♻️  Allowing retry of '{last_three_tools[0]}' (error recovery mode)")
             
             tool_results = []
             for tool_use in tool_uses:
@@ -2508,90 +2552,31 @@ Proceed to the NEXT step now."""
                 tool_input = tool_use['input'].copy()
                 tool_id = tool_use['id']
                 
-                # CRITICAL FIX (Dec 4, 2025): Add timeout and detailed error logging
-                print(f"{log_prefix} 🔧 Executing tool: {tool_name} (ID: {tool_id[:8]}...)")
-                print(f"{log_prefix}    Input parameters: {list(tool_input.keys())}")
-                
                 try:
-                    import signal
-                    from contextlib import contextmanager
-                    
-                    @contextmanager
-                    def timeout_context(seconds):
-                        """Timeout context manager for tool execution"""
-                        def timeout_handler(signum, frame):
-                            raise TimeoutError(f"Tool execution exceeded {seconds}s timeout")
+                    # Handle meta-tools specially
+                    if tool_name in ['get_tool_schema', 'execute_tool']:
+                        from tools.implementations.meta_tools import execute_tool as execute_tool_fn, get_tool_schema as get_tool_schema_fn
                         
-                        # Skip timeout on Windows (signal.SIGALRM not supported)
-                        if hasattr(signal, 'SIGALRM'):
-                            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-                            signal.alarm(seconds)
-                            try:
-                                yield
-                            finally:
-                                signal.alarm(0)
-                                signal.signal(signal.SIGALRM, old_handler)
+                        if tool_name == 'execute_tool':
+                            result = execute_tool_fn(**tool_input, _user_id=user_id, _injected_credentials=True)
                         else:
-                            # No timeout on Windows - just yield
-                            yield
-                    
-                    # Execute tool with 60-second timeout
-                    with timeout_context(60):
-                        # Handle meta-tools specially
-                        if tool_name in ['get_tool_schema', 'execute_tool']:
-                            from tools.implementations.meta_tools import execute_tool as execute_tool_fn, get_tool_schema as get_tool_schema_fn
-                            
-                            if tool_name == 'execute_tool':
-                                result = execute_tool_fn(**tool_input, _user_id=user_id, _injected_credentials=True)
-                            else:
-                                result = get_tool_schema_fn(**tool_input)
-                        else:
-                            # Regular tools with credential injection
-                            if tool_name.startswith(('google_', 'microsoft_')):
-                                result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
-                            else:
-                                result = registry.execute_tool(tool_name=tool_name, **tool_input)
-                    
-                    # Check if tool returned an error in its result
-                    is_error = False
-                    if isinstance(result, dict) and result.get('success') is False:
-                        is_error = True
-                        error_msg = result.get('error', 'Tool execution failed')
-                        error_type = result.get('error_type', 'unknown')
-                        details = result.get('details', '')
-                        result_str = f"❌ {error_msg}\n\nError Type: {error_type}\n{details}" if details else f"❌ {error_msg}\n\nError Type: {error_type}"
-                        tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': result_str, 'is_error': True})
-                        print(f"{log_prefix} ⚠️ Tool returned error: {tool_name} - {error_msg}")
-                        yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': result_str, 'success': False, 'error': error_msg}
+                            result = get_tool_schema_fn(**tool_input)
                     else:
-                        # Smart truncation for large tool results to avoid 413 errors
-                        result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)
-                        tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': result_str})
-                        print(f"{log_prefix} ✅ Tool executed successfully: {tool_name}")
-                        yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': result_str, 'success': True}
-                
-                except TimeoutError as timeout_err:
-                    import traceback
-                    full_trace = traceback.format_exc()
-                    error_msg = f"⏱️ Tool execution timeout: {tool_name} exceeded 60 seconds\n\nThis usually means:\n- Database connection hanging\n- Network request not responding\n- Infinite loop in tool code\n\nTool: {tool_name}\nError: {str(timeout_err)}"
+                        # Regular tools with credential injection
+                        if tool_name.startswith(('google_', 'microsoft_')):
+                            result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
+                        else:
+                            result = registry.execute_tool(tool_name=tool_name, **tool_input)
                     
-                    print(f"{log_prefix} ❌ TIMEOUT ERROR: {tool_name}")
-                    print(f"{log_prefix} {full_trace}")
-                    
-                    tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': error_msg, 'is_error': True})
-                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': error_msg[:500], 'success': False, 'error': str(timeout_err)}
+                    # Smart truncation for large tool results to avoid 413 errors
+                    result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)
+                    tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': result_str})
+                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': result_str, 'success': True}
                 
                 except Exception as e:
-                    import traceback
-                    full_trace = traceback.format_exc()
-                    error_msg = f"Tool execution failed: {str(e)}\n\nTool: {tool_name}\nInput: {tool_input}\n\nStack trace:\n{full_trace}"
-                    
-                    print(f"{log_prefix} ❌ TOOL EXECUTION ERROR: {tool_name}")
-                    print(f"{log_prefix} Input parameters: {tool_input}")
-                    print(f"{log_prefix} {full_trace}")
-                    
+                    error_msg = f"Tool execution failed: {str(e)}"
                     tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': error_msg, 'is_error': True})
-                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': error_msg[:500], 'success': False, 'error': str(e)}
+                    yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': error_msg, 'success': False, 'error': error_msg}
             
             # Add tool results to history
             conversation_history.append({'role': 'user', 'content': tool_results})

@@ -271,7 +271,7 @@ class CodeBlockEnhancer {
             const copyBtn = document.createElement('button');
             copyBtn.className = 'code-copy-btn';
             copyBtn.setAttribute('aria-label', 'Copy code to clipboard');
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i><span class="copy-text">Copy</span>';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
             copyBtn.type = 'button';
             
             // Get code content
@@ -287,20 +287,24 @@ class CodeBlockEnhancer {
                     
                     // Visual feedback
                     const originalHTML = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i><span class="copy-text">Copied!</span>';
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
                     copyBtn.classList.add('copied');
+                    copyBtn.title = 'Copied!';
                     
                     // Reset after 2 seconds
                     setTimeout(() => {
                         copyBtn.innerHTML = originalHTML;
                         copyBtn.classList.remove('copied');
+                        copyBtn.title = 'Copy code to clipboard';
                     }, 2000);
                 }).catch((error) => {
                     console.error('❌ Failed to copy code:', error);
                     const originalHTML = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<i class="fas fa-exclamation"></i><span class="copy-text">Failed</span>';
+                    copyBtn.innerHTML = '<i class="fas fa-exclamation"></i>';
+                    copyBtn.title = 'Copy failed';
                     setTimeout(() => {
                         copyBtn.innerHTML = originalHTML;
+                        copyBtn.title = 'Copy code to clipboard';
                     }, 2000);
                 });
             });
@@ -326,6 +330,7 @@ class CodeBlockEnhancer {
             label.className = 'code-language-label';
             label.textContent = language.toUpperCase();
             
+            // Insert label before copy button (top-right positioning via CSS)
             pre.insertBefore(label, pre.firstChild);
         } catch (error) {
             console.error('❌ CodeBlockEnhancer.addLanguageLabel failed:', error);

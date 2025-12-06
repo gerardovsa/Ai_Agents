@@ -12,9 +12,21 @@
  * DEPENDENCIES:
  * - UserAuth (global) - User authentication
  * - window.API_BASE_URL - Backend API base URL
- * 
- * LAST MODIFIED: 2025-11-20 - Extracted from thread_manager.js
  */
+
+// Prevent simultaneous message requests from exhausting the 5-connection pool
+const MESSAGE_LOAD_DELAY = 200; // ms between requests
+let lastMessageLoadTime = 0;
+
+async function delayIfNeeded() {
+    const now = Date.now();
+    const timeSince = now - lastMessageLoadTime;
+    if (timeSince < MESSAGE_LOAD_DELAY) {
+        const waitTime = MESSAGE_LOAD_DELAY - timeSince;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    lastMessageLoadTime = Date.now();
+}
 
 const ThreadLoader = {
     /**
@@ -44,11 +56,11 @@ const ThreadLoader = {
      * @param {string} threadId - Thread ID to load messages for
      * @param {number} limit - Max messages to load (default: null = ALL messages, no pagination)
      * @param {number} offset - Messages to skip (default: 0, rarely used)
-     * 
-     * ✅ DEFAULT BEHAVIOR: Loads ALL messages immediately (limit=null)
-     * This prevents user confusion and ensures complete conversation history
      */
     async loadMessagesForThread(threadId, limit = null, offset = 0) {
+        // Prevent simultaneous requests from exhausting 5-connection pool
+        await delayIfNeeded();
+        
         try {
             console.log(`[ThreadLoader] Fetching messages for thread ${threadId} (limit: ${limit}, offset: ${offset})...`);
 

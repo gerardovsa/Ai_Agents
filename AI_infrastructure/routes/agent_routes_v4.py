@@ -194,7 +194,7 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
                 
                 cursor.execute("""
                     INSERT INTO sessions.threads 
-                    (thread_slug, user_id, title, created_at, updated_at)
+                    (thread_slug, user_id, name, created_at, updated_at)
                     VALUES (%s, %s, %s, NOW(), NOW())
                     RETURNING id
                 """, (thread_slug, user_id or 1, 'New Chat'))
@@ -204,64 +204,64 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
             
             thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
             print(f"[DB SAVE] Thread ID: {thread_id}")
-        
-        # Step 2: Format content for JSONB storage
-        try:
-            if isinstance(content, (list, dict)):
-                content_value = Json(content)
-            elif isinstance(content, str):
-                if not content.strip().startswith(('[', '{')):
-                    content_value = Json([{'type': 'text', 'text': content}])
-                else:
-                    try:
-                        parsed = json.loads(content)
-                        content_value = Json(parsed)
-                    except:
+            
+            # Step 2: Format content for JSONB storage
+            try:
+                if isinstance(content, (list, dict)):
+                    content_value = Json(content)
+                elif isinstance(content, str):
+                    if not content.strip().startswith(('[', '{')):
                         content_value = Json([{'type': 'text', 'text': content}])
-            else:
+                    else:
+                        try:
+                            parsed = json.loads(content)
+                            content_value = Json(parsed)
+                        except:
+                            content_value = Json([{'type': 'text', 'text': content}])
+                else:
+                    content_value = Json([{'type': 'text', 'text': str(content)}])
+                
+                print(f"[DB SAVE] Content formatted as JSONB")
+            except Exception as json_error:
+                print(f"[DB SAVE] ⚠️ JSON formatting failed, using string fallback: {json_error}")
                 content_value = Json([{'type': 'text', 'text': str(content)}])
             
-            print(f"[DB SAVE] Content formatted as JSONB")
-        except Exception as json_error:
-            print(f"[DB SAVE] ⚠️ JSON formatting failed, using string fallback: {json_error}")
-            content_value = Json([{'type': 'text', 'text': str(content)}])
-        
-        # Step 3: Prepare metadata
-        try:
-            metadata_val = json.dumps(metadata) if metadata else None
-        except Exception as meta_error:
-            print(f"[DB SAVE] ⚠️ Metadata serialization failed: {meta_error}")
-            metadata_val = None
-        
-        # Step 4: Insert message
-        cursor.execute("""
-            INSERT INTO sessions.messages 
-            (thread_id, session_id, role, content, user_id, model, tokens_used, metadata, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-            RETURNING id
-        """, (thread_id, thread_slug, role, content_value, user_id, model, tokens_used, metadata_val))
-        
-        message_row = cursor.fetchone()
-        message_id = message_row[0] if isinstance(message_row, tuple) else message_row['id']
-        
-        # Commit transaction
-        cursor.execute("COMMIT")
-        print(f"[DB SAVE] ✅ Transaction committed")
-        
-        # Verify message was saved
-        cursor.execute("""
-            SELECT id FROM sessions.messages 
-            WHERE id = %s
-        """, (message_id,))
-        
-        if cursor.fetchone():
-            print(f"[DB SAVE] ✅ Verified: Message exists in database (ID: {message_id})")
-        else:
-            print(f"[DB SAVE] ⚠️ WARNING: Message not found after save!")
-            return False
-        
-        print(f"[DB SAVE] ✅ Saved {role} message to database (message ID: {message_id})")
-        return True
+            # Step 3: Prepare metadata
+            try:
+                metadata_val = json.dumps(metadata) if metadata else None
+            except Exception as meta_error:
+                print(f"[DB SAVE] ⚠️ Metadata serialization failed: {meta_error}")
+                metadata_val = None
+            
+            # Step 4: Insert message
+            cursor.execute("""
+                INSERT INTO sessions.messages 
+                (thread_id, session_id, role, content, user_id, model, tokens_used, metadata, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                RETURNING id
+            """, (thread_id, thread_slug, role, content_value, user_id, model, tokens_used, metadata_val))
+            
+            message_row = cursor.fetchone()
+            message_id = message_row[0] if isinstance(message_row, tuple) else message_row['id']
+            
+            # Commit transaction
+            cursor.execute("COMMIT")
+            print(f"[DB SAVE] ✅ Transaction committed")
+            
+            # Verify message was saved
+            cursor.execute("""
+                SELECT id FROM sessions.messages 
+                WHERE id = %s
+            """, (message_id,))
+            
+            if cursor.fetchone():
+                print(f"[DB SAVE] ✅ Verified: Message exists in database (ID: {message_id})")
+            else:
+                print(f"[DB SAVE] ⚠️ WARNING: Message not found after save!")
+                return False
+            
+            print(f"[DB SAVE] ✅ Saved {role} message to database (message ID: {message_id})")
+            return True
         
     except Exception as e:
         # Rollback on error
@@ -592,33 +592,10 @@ def start_agent(agent_id):
         print(f"[START] ✅ User message appended (conversation now has {len(conversation)} messages)")
         
         # ============================================
-        # STEP 4: ENSURE THREAD EXISTS (PREVENT FK VIOLATION)
+        # STEP 4: SAVE USER MESSAGE (thread creation handled inside save_message)
         # ============================================
-        print(f"\n[START] 🔧 STEP 4A: Ensuring thread exists in database...")
+        print(f"\n[START] 💾 STEP 4: Saving user message to database...")
         user_id = g.get('user_id', 1)
-        
-        try:
-            with get_database_connection('sessions') as conn:
-                cursor = conn.cursor()
-                
-                # Check if thread exists, create if not
-                cursor.execute("""
-                    INSERT INTO sessions.threads 
-                    (thread_slug, user_id, title, created_at, updated_at)
-                    VALUES (%s, %s, %s, NOW(), NOW())
-                    ON CONFLICT (thread_slug) DO NOTHING
-                """, (thread_slug, user_id, 'New Chat'))
-                
-                conn.commit()
-                print(f"[START] ✅ Thread ensured: {thread_slug}")
-        except Exception as e:
-            print(f"[START] ⚠️ Thread creation check failed: {e}")
-            # Continue anyway - save_message will handle it
-        
-        # ============================================
-        # STEP 4B: SAVE USER MESSAGE TO DATABASE (WITH RETRY)
-        # ============================================
-        print(f"\n[START] 💾 STEP 4B: Saving user message to database...")
         
         print(f"[START] 🔍 DEBUG: About to save user message...")
         print(f"[START] 🔍 DEBUG: thread_slug = {thread_slug}")
@@ -1281,21 +1258,23 @@ SERVER TOOLS (Always Available):
 - execute_tool("gmail_send_email", to="user@example.com", subject="Hello", body="Message")
 
 ANTI-LOOP RULES (MANDATORY):
-1. 🛑 Call each discovery tool (search_tools, list_platform_tools, etc.) ONLY ONCE per task
-2. ✅ After discovery → Immediately call get_tool_schema() or execute_tool()
-3. ❌ NEVER repeat search_tools() with the same or different keywords
-4. ❌ If you called search_tools("email"), don't call it again with search_tools("gmail")
-5. 🔄 Tool discovery results are cached - repeating the call wastes time and will be blocked
+1. 🛑 Don't call search_tools() with the SAME query 3+ times (pointless repetition)
+2. ✅ Progressive refinement IS allowed - try different search terms:
+   Example: search_tools("database sql") → search_tools("postgres") → Success!
+3. ✅ After finding tools → Immediately call get_tool_schema() or execute_tool()
+4. ❌ Repeating IDENTICAL searches wastes time and will be blocked
+5. 🔄 If no results, try different keywords - don't repeat the same query
 
-Example of CORRECT workflow:
-Round 1: search_tools("email") → Found gmail_send_email, outlook_send_email
-Round 2: get_tool_schema("gmail_send_email") → Got parameters
-Round 3: execute_tool("gmail_send_email", to="...", subject="...", body="...")
+Example of CORRECT workflow (progressive refinement):
+Round 1: search_tools("database sql") → 0 results (too specific)
+Round 2: search_tools("postgres") → Found postgres_execute_query
+Round 3: get_tool_schema("postgres_execute_query") → Got parameters
+Round 4: execute_tool("postgres_execute_query", ...)
 
-Example of WRONG workflow (will be blocked):
-Round 1: search_tools("email") → Found tools
-Round 2: search_tools("email") ← ❌ INFINITE LOOP - Already searched!
-Round 3: search_tools("gmail") ← ❌ INFINITE LOOP - Already searched!
+Example of WRONG workflow (infinite loop - will be blocked):
+Round 1: search_tools("email") → Found 24 tools
+Round 2: search_tools("email") ← ❌ SAME QUERY (pointless repetition)
+Round 3: search_tools("email") ← 🛑 BLOCKED (infinite loop detected)
 
 Use tools in multiple rounds with interleaved thinking."""
     
