@@ -1021,22 +1021,55 @@ Use this for:
                 product_type = tool_input["product_type"]
                 params = tool_input["parameters"]
                 
+                # FIX: Handle both JSON string and dict parameters (Issue #1 - Dec 8, 2025)
+                # The registry may pass parameters as JSON string instead of dict object
+                # This caused 100% failure rate with 'str' object has no attribute 'items' error
+                if isinstance(params, str):
+                    try:
+                        params = json.loads(params)
+                        self._print_and_log(f"✅ Deserialized parameters from JSON string")
+                    except json.JSONDecodeError as e:
+                        error_msg = f"Invalid JSON in parameters: {str(e)}"
+                        self._print_and_log(f"❌ {error_msg}")
+                        return {
+                            "success": False,
+                            "error": error_msg,
+                            "hint": "Parameters must be valid JSON object/dict"
+                        }
+                
+                # Validate it's now a dict
+                if not isinstance(params, dict):
+                    error_msg = f"Parameters must be dict or JSON string, got {type(params).__name__}"
+                    self._print_and_log(f"❌ {error_msg}")
+                    return {
+                        "success": False,
+                        "error": error_msg,
+                        "hint": "Expected: {...} or '{...}'"
+                    }
+                
                 self._print_and_log(f"PRODUCT: {product_type}")
                 self._print_and_log(f"PARAMETERS:")
                 self._print_and_log(json.dumps(params, indent=2))
                 self._print_and_log("")
                 
                 # Define supported parameters for each product type
+                # Updated Dec 8, 2025: Added Shopify calculator parameters for perfect_bound_books
                 supported_params = {
                     "flyers": ["quantity", "width", "height", "gsm", "print_side1", "print_side2", 
                               "folding_required", "folding_passes", "folding_extra_mins",
                               "cello_required", "cello_side1", "cello_side2"],
                     "folded_flyers": ["quantity", "print_sides", "print_type", "finish_size", 
                                      "paper_stock", "artworks", "fold_type", "celloglaze"],
-                    "perfect_bound_books": ["quantity", "pages", "width", "height", "cover_stock_gsm", 
+                    "perfect_bound_books": [
+                                          # Shopify Calculator Parameters (PerfectBoundShopifyCalculator.calculate)
+                                          "quantity", "printed_pages", "proof_requirements", "cover_stock",
+                                          "cover_print_type", "celloglaze", "finish_size", "content_print_type",
+                                          "content_stock_type",
+                                          # Legacy/Documentation Parameters (for backwards compatibility)
+                                          "pages", "width", "height", "cover_stock_gsm", 
                                           "inner_gsm", "colour_pages", "binding_type", "book_width", 
                                           "book_height", "stock_type_id", "internal_stock_gsm", 
-                                          "internal_print_mode", "cover_stock_type_id", "cover_stock_gsm", 
+                                          "internal_print_mode", "cover_stock_type_id", 
                                           "cover_print_mode", "cello_type", "is_scored", "colour_insert_type",
                                           "clear_pvc_front", "clear_pvc_back", "front_cello_type", "back_cello_type"],
                     "booklets": ["quantity", "width", "height", "pages", "stock_type_id", "internal_gsm", 
@@ -1051,16 +1084,62 @@ Use this for:
                 
                 # ========================================================================
                 # PARAMETER ALIASING - Handle common parameter name variations
+                # Documentation vs Implementation Mapping (Dec 8, 2025 - Issue #2)
                 # ========================================================================
                 parameter_aliases = {
                     "cover_gsm": "cover_stock_gsm",  # Booklets use cover_gsm, Books use cover_stock_gsm
+                    
+                    # Perfect Bound Books - Documentation uses GOD calculator params but routes to Shopify
+                    "book_width": None,               # Shopify uses finish_size instead
+                    "book_height": None,              # Shopify uses finish_size instead
+                    "pages": "printed_pages",         # Documentation says "pages", calculator needs "printed_pages"
+                    "cello_type": "celloglaze",       # Documentation uses cello_type (0/1/2), calculator uses celloglaze string
+                    "internal_gsm": "content_stock_type",  # GSM value maps to stock type string
+                    "cover_gsm": "cover_stock",       # GSM value maps to stock type string
+                    "internal_print_mode": "content_print_type",  # mode → type
+                    "cover_print_mode": "cover_print_type",       # mode → type
                 }
                 
                 # Apply aliases - if AI uses alias, map to correct parameter name
                 for alias, correct_name in parameter_aliases.items():
-                    if alias in params and correct_name not in params:
-                        self._print_and_log(f"🔄 PARAMETER ALIAS: Mapping '{alias}' → '{correct_name}'")
-                        params[correct_name] = params.pop(alias)
+                    if alias in params:
+                        if correct_name is None:
+                            # Parameter not used by target calculator - will be filtered out
+                            self._print_and_log(f"🔄 PARAMETER ALIAS: '{alias}' not used by Shopify calculator (will filter)")
+                        elif correct_name not in params:
+                            self._print_and_log(f"🔄 PARAMETER ALIAS: Mapping '{alias}' → '{correct_name}'")
+                            params[correct_name] = params.pop(alias)
+                
+                # ========================================================================
+                # INTELLIGENT PARAMETER MAPPING (Dec 8, 2025 - Issue #2)
+                # Convert book_width/book_height to finish_size for Shopify calculators
+                # ========================================================================
+                if product_type == "perfect_bound_books" and ("book_width" in params or "book_height" in params):
+                    book_width = params.get("book_width", params.get("width", 148))
+                    book_height = params.get("book_height", params.get("height", 210))
+                    
+                    # Map dimensions to Shopify finish_size options
+                    if book_width == 148 and book_height == 210:
+                        finish_size = "A5 Portrait"
+                    elif book_width == 210 and book_height == 297:
+                        finish_size = "A4 Portrait"
+                    elif book_width == 297 and book_height == 210:
+                        finish_size = "A4 Landscape"
+                    elif book_width == 152 and book_height == 229:
+                        finish_size = "US Trade (6x9 inches)"
+                    else:
+                        # Default to A5 for unknown dimensions
+                        finish_size = "A5 Portrait"
+                        self._print_and_log(f"⚠️ Unknown book dimensions {book_width}x{book_height}mm, defaulting to A5")
+                    
+                    params["finish_size"] = finish_size
+                    self._print_and_log(f"🔄 MAPPED: book dimensions {book_width}x{book_height}mm → finish_size='{finish_size}'")
+                    
+                    # Remove dimension parameters (not used by Shopify calculator)
+                    params.pop("book_width", None)
+                    params.pop("book_height", None)
+                    params.pop("width", None)
+                    params.pop("height", None)
                 
                 # Filter out unsupported parameters
                 if product_type in supported_params:

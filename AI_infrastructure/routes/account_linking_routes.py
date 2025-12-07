@@ -1,4 +1,5 @@
 """
+AI_agents/AI_infrastructure/routes/account_linking_routes.py
 Account Linking Routes - Strategy #2 (Email Aliases)
 ====================================================
 
@@ -8,6 +9,12 @@ Uses the Email Aliases strategy where:
 - Primary email stored in users.email
 - Additional emails stored in user_email_aliases table
 - All aliases point to same user_id → same data
+
+CURSOR MANAGEMENT: Fixed December 7, 2025
+- All cursors properly initialized before try blocks
+- All cursors closed in finally blocks
+- Connection closed AFTER cursor
+- Exception-safe cleanup guaranteed
 """
 
 from flask import Blueprint, request, jsonify, session, redirect
@@ -62,10 +69,10 @@ def verify_jwt_token(token):
         payload = jwt.decode(token, secret_key, algorithms=['HS256'])
         return payload
     except jwt.ExpiredSignatureError:
-        logger.error(" Token expired")
+        logger.error("❌ Token expired")
         return None
     except jwt.InvalidTokenError as e:
-        logger.error(f" Invalid token: {e}")
+        logger.error(f"❌ Invalid token: {e}")
         return None
 
 def init_account_linking_tables():
@@ -75,59 +82,82 @@ def init_account_linking_tables():
         logger.info("[INIT] Using Supabase - skipping table creation (already migrated)")
         return
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Table for linked accounts (with database-specific SQL)
-    sql_user_account_links = adapt_sql_for_database('''
-        CREATE TABLE IF NOT EXISTS user_account_links (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            primary_user_id INTEGER NOT NULL,
-            linked_user_id INTEGER NOT NULL,
-            linked_email TEXT NOT NULL,
-            link_type TEXT NOT NULL,
-            link_status TEXT DEFAULT 'pending',
-            link_token TEXT UNIQUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            confirmed_at TIMESTAMP,
-            FOREIGN KEY (primary_user_id) REFERENCES users(id),
-            FOREIGN KEY (linked_user_id) REFERENCES users(id),
-            UNIQUE(primary_user_id, linked_user_id)
-        )
-    ''')
-    cursor.execute(sql_user_account_links)
-    
-    # Table for pending link requests (with database-specific SQL)
-    sql_account_link_requests = adapt_sql_for_database('''
-        CREATE TABLE IF NOT EXISTS account_link_requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            target_email TEXT NOT NULL,
-            link_token TEXT UNIQUE NOT NULL,
-            request_type TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            expires_at TIMESTAMP NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    ''')
-    cursor.execute(sql_account_link_requests)
-    
-    # Add is_primary field to users table if not exists
+    cursor = None
+    conn = None
     try:
-        if is_using_supabase():
-            # PostgreSQL syntax
-            cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT true')
-        else:
-            # SQLite syntax
-            cursor.execute('ALTER TABLE users ADD COLUMN is_primary BOOLEAN DEFAULT 1')
-    except (sqlite3.OperationalError, Exception) as e:
-        # Column already exists or other error - safe to ignore
-        pass
-    
-    conn.commit()
-    conn.close()
-    logger.info("[INIT] Account linking tables initialized")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Table for linked accounts (with database-specific SQL)
+        sql_user_account_links = adapt_sql_for_database('''
+            CREATE TABLE IF NOT EXISTS user_account_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                primary_user_id INTEGER NOT NULL,
+                linked_user_id INTEGER NOT NULL,
+                linked_email TEXT NOT NULL,
+                link_type TEXT NOT NULL,
+                link_status TEXT DEFAULT 'pending',
+                link_token TEXT UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                confirmed_at TIMESTAMP,
+                FOREIGN KEY (primary_user_id) REFERENCES users(id),
+                FOREIGN KEY (linked_user_id) REFERENCES users(id),
+                UNIQUE(primary_user_id, linked_user_id)
+            )
+        ''')
+        cursor.execute(sql_user_account_links)
+        
+        # Table for pending link requests (with database-specific SQL)
+        sql_account_link_requests = adapt_sql_for_database('''
+            CREATE TABLE IF NOT EXISTS account_link_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                target_email TEXT NOT NULL,
+                link_token TEXT UNIQUE NOT NULL,
+                request_type TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+        cursor.execute(sql_account_link_requests)
+        
+        # Add is_primary field to users table if not exists
+        try:
+            if is_using_supabase():
+                # PostgreSQL syntax
+                cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT true')
+            else:
+                # SQLite syntax
+                cursor.execute('ALTER TABLE users ADD COLUMN is_primary BOOLEAN DEFAULT 1')
+        except (sqlite3.OperationalError, Exception) as e:
+            # Column already exists or other error - safe to ignore
+            pass
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        logger.info("[INIT] ✅ Account linking tables initialized")
+        
+    except Exception as e:
+        logger.error(f"[INIT] ❌ Error initializing tables: {e}")
+        # Don't raise - allow app to start even if tables fail
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 # Initialize tables on module load
 init_account_linking_tables()
@@ -153,6 +183,8 @@ def get_link_status():
         ]
     }
     """
+    cursor = None
+    conn = None
     try:
         # Get current user from token
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -167,6 +199,10 @@ def get_link_status():
         user = cursor.fetchone()
         
         if not user:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
         # Get linked accounts
@@ -199,7 +235,10 @@ def get_link_status():
         cursor.execute(sql, params)
         pending_links = [dict(row) for row in cursor.fetchall()]
         
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -210,8 +249,19 @@ def get_link_status():
         })
         
     except Exception as e:
-        logger.error(f" Error getting link status: {e}")
+        logger.error(f"❌ Error getting link status: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @account_linking_bp.route('/initiate-link', methods=['POST'])
@@ -265,7 +315,7 @@ def initiate_link():
         })
         
     except Exception as e:
-        logger.error(f" Error initiating link: {e}")
+        logger.error(f"❌ Error initiating link: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -282,6 +332,8 @@ def confirm_link():
     
     This is called by OAuth routes after successful authentication
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         link_token = data.get('link_token')
@@ -298,6 +350,10 @@ def confirm_link():
         # Verify link token matches
         stored_token = session.get('account_link_token')
         if link_token != stored_token:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Invalid link token'}), 400
         
         # Check if already linked
@@ -309,6 +365,10 @@ def confirm_link():
         cursor.execute(sql, params)
         
         if cursor.fetchone():
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Accounts already linked'}), 400
         
         # Create link
@@ -328,13 +388,17 @@ def confirm_link():
         migrate_user_data(cursor, secondary_user_id, primary_user_id)
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         # Clear session
         session.pop('account_link_token', None)
         session.pop('linking_user_id', None)
         
-        logger.info(f" Linked account {secondary_email} to primary user {primary_user_id}")
+        logger.info(f"✅ Linked account {secondary_email} to primary user {primary_user_id}")
         
         return jsonify({
             'success': True,
@@ -344,8 +408,19 @@ def confirm_link():
         })
         
     except Exception as e:
-        logger.error(f" Error confirming link: {e}")
+        logger.error(f"❌ Error confirming link: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @account_linking_bp.route('/unlink', methods=['POST'])
@@ -359,6 +434,8 @@ def unlink_account():
         "linked_email": "user@company.com"
     }
     """
+    cursor = None
+    conn = None
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
         if not user_id:
@@ -378,6 +455,10 @@ def unlink_account():
         linked_user = cursor.fetchone()
         
         if not linked_user:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Linked user not found'}), 404
         
         linked_user_id = linked_user['id']
@@ -391,15 +472,23 @@ def unlink_account():
         cursor.execute(sql, params)
         
         if cursor.rowcount == 0:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Link not found'}), 404
         
         # Mark as primary again (optional)
         cursor.execute('UPDATE ai_infrastructure.users SET is_primary = 1 WHERE id = %s', (linked_user_id,))
         
         conn.commit()
-        conn.close()
         
-        logger.info(f" Unlinked account {linked_email} from user {user_id}")
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        logger.info(f"✅ Unlinked account {linked_email} from user {user_id}")
         
         return jsonify({
             'success': True,
@@ -407,8 +496,19 @@ def unlink_account():
         })
         
     except Exception as e:
-        logger.error(f" Error unlinking account: {e}")
+        logger.error(f"❌ Error unlinking account: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @account_linking_bp.route('/set-primary', methods=['POST'])
@@ -424,6 +524,8 @@ def set_primary_email():
     
     This swaps the primary/secondary relationship
     """
+    cursor = None
+    conn = None
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
         if not user_id:
@@ -448,6 +550,10 @@ def set_primary_email():
         new_primary_user = cursor.fetchone()
         
         if not new_primary_user:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'New primary user not found'}), 404
         
         new_primary_id = new_primary_user['id']
@@ -462,6 +568,10 @@ def set_primary_email():
         cursor.execute(sql, params)
         
         if not cursor.fetchone():
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Accounts not linked'}), 400
         
         # Swap primary status
@@ -481,9 +591,13 @@ def set_primary_email():
         migrate_user_data(cursor, user_id, new_primary_id)
         
         conn.commit()
-        conn.close()
         
-        logger.info(f" Changed primary email from {old_primary_email} to {new_primary_email}")
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        logger.info(f"✅ Changed primary email from {old_primary_email} to {new_primary_email}")
         
         return jsonify({
             'success': True,
@@ -493,8 +607,19 @@ def set_primary_email():
         })
         
     except Exception as e:
-        logger.error(f" Error setting primary email: {e}")
+        logger.error(f"❌ Error setting primary email: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 def migrate_user_data(cursor, from_user_id, to_user_id):
@@ -506,6 +631,9 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
     - Platform credentials
     - Settings
     - Any other user-specific data
+    
+    NOTE: This function receives a cursor from the calling function
+    The calling function is responsible for cursor lifecycle management
     """
     try:
         # Migrate chat threads (if table exists)
@@ -530,10 +658,10 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
         cursor.execute(sql, params)
         logger.info(f"🔑 Migrated {cursor.rowcount} sessions")
         
-        logger.info(f" Data migration from user {from_user_id} to {to_user_id} complete")
+        logger.info(f"✅ Data migration from user {from_user_id} to {to_user_id} complete")
         
     except Exception as e:
-        logger.error(f" Error migrating user data: {e}")
+        logger.error(f"❌ Error migrating user data: {e}")
         raise
 
 
@@ -556,7 +684,7 @@ def get_user_from_token(auth_header):
         
         return payload.get('user_id')
     except Exception as e:
-        logger.error(f" Error decoding token: {e}")
+        logger.error(f"❌ Error decoding token: {e}")
         return None
 
 
@@ -566,6 +694,8 @@ def get_primary_user_id(user_id):
     If user is secondary, returns the primary user ID
     If user is primary, returns their own ID
     """
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -575,9 +705,17 @@ def get_primary_user_id(user_id):
         user = cursor.fetchone()
         
         if not user:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return user_id
         
         if user['is_primary']:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return user_id
         
         # User is secondary, find primary
@@ -591,7 +729,11 @@ def get_primary_user_id(user_id):
         cursor.execute(sql, params)
         
         link = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         if link:
             return link['primary_user_id']
@@ -599,8 +741,19 @@ def get_primary_user_id(user_id):
         return user_id
         
     except Exception as e:
-        logger.error(f" Error getting primary user: {e}")
+        logger.error(f"❌ Error getting primary user: {e}")
         return user_id
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================================================
@@ -623,7 +776,7 @@ def get_current_user_from_token():
         
         return payload, None
     except Exception as e:
-        logger.error(f" Token verification error: {e}")
+        logger.error(f"❌ Token verification error: {e}")
         return None, {'error': 'Token verification failed'}
 
 
@@ -664,7 +817,7 @@ def get_linked_emails():
         }), 200
         
     except Exception as e:
-        logger.error(f" Error getting linked emails: {e}")
+        logger.error(f"❌ Error getting linked emails: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -716,7 +869,7 @@ def link_oauth_email():
                 'error': message
             }), 400
         
-        logger.info(f" Linked {email} to user {user_id}")
+        logger.info(f"✅ Linked {email} to user {user_id}")
         
         return jsonify({
             'success': True,
@@ -728,7 +881,7 @@ def link_oauth_email():
         }), 200
         
     except Exception as e:
-        logger.error(f" Error linking OAuth email: {e}")
+        logger.error(f"❌ Error linking OAuth email: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -772,7 +925,7 @@ def unlink_email_alias(email):
                 'error': message
             }), 400
         
-        logger.info(f" Unlinked {email} from user {user_id}")
+        logger.info(f"✅ Unlinked {email} from user {user_id}")
         
         return jsonify({
             'success': True,
@@ -780,7 +933,7 @@ def unlink_email_alias(email):
         }), 200
         
     except Exception as e:
-        logger.error(f" Error unlinking email: {e}")
+        logger.error(f"❌ Error unlinking email: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

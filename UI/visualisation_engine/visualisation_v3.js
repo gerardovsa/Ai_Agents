@@ -47,31 +47,31 @@ class MermaidFontController {
             .viz-container[data-font-size="22"] { --mermaid-active-font-size: 22px; --mermaid-container-scale: 1.4; }
             .viz-container[data-font-size="26"] { --mermaid-active-font-size: 26px; --mermaid-container-scale: 1.6; }
             
-            /* PDATED: Isolated Mermaid text targeting */
-            .mermaid text,
-            .mermaid tspan,
-            .mermaid .nodeLabel,
-            .mermaid .edgeLabel {
+            /* PDATED: Isolated Mermaid text targeting - SCOPED TO VIZ CONTAINERS ONLY */
+            .viz-container .mermaid text,
+            .viz-container .mermaid tspan,
+            .viz-container .mermaid .nodeLabel,
+            .viz-container .mermaid .edgeLabel {
                 font-size: var(--mermaid-active-font-size) !important;
                 font-weight: 500 !important;
                 font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
                 line-height: 1 !important;
-                heght: auto !important;
+                height: auto !important;
             }
             
-            /* PDATED: Isolated HTML formatting classes */
-            .mermaid svg text .mermaid-bold,
-            .mermaid text .mermaid-bold,
-            .mermaid tspan .mermaid-bold {
+            /* PDATED: Isolated HTML formatting classes - SCOPED TO VIZ CONTAINERS ONLY */
+            .viz-container .mermaid svg text .mermaid-bold,
+            .viz-container .mermaid text .mermaid-bold,
+            .viz-container .mermaid tspan .mermaid-bold {
                 font-weight: 700 !important;
                 font-size: inherit !important;
                 line-height: inherit !important;
                 font-family: inherit !important;
             }
             
-            .mermaid svg text .mermaid-italic,
-            .mermaid text .mermaid-italic,
-            .mermaid tspan .mermaid-italic {
+            .viz-container .mermaid svg text .mermaid-italic,
+            .viz-container .mermaid text .mermaid-italic,
+            .viz-container .mermaid tspan .mermaid-italic {
                 font-style: italic !important;
                 font-weight: inherit !important;
                 font-size: inherit !important;
@@ -79,9 +79,9 @@ class MermaidFontController {
                 font-family: inherit !important;
             }
             
-            .mermaid svg text .mermaid-code,
-            .mermaid text .mermaid-code,
-            .mermaid tspan .mermaid-code {
+            .viz-container .mermaid svg text .mermaid-code,
+            .viz-container .mermaid text .mermaid-code,
+            .viz-container .mermaid tspan .mermaid-code {
                 font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
                 font-size: 0.9em !important;
                 font-weight: 500 !important;
@@ -91,9 +91,9 @@ class MermaidFontController {
                 line-height: inherit !important;
             }
             
-            .mermaid svg text .mermaid-small,
-            .mermaid text .mermaid-small,
-            .mermaid tspan .mermaid-small {
+            .viz-container .mermaid svg text .mermaid-small,
+            .viz-container .mermaid text .mermaid-small,
+            .viz-container .mermaid tspan .mermaid-small {
                 font-size: 0.8em !important;
                 font-weight: inherit !important;
                 line-height: inherit !important;
@@ -101,17 +101,17 @@ class MermaidFontController {
                 opacity: 0.8 !important;
             }
             
-            .mermaid svg text .mermaid-label,
-            .mermaid text .mermaid-label,
-            .mermaid tspan .mermaid-label {
+            .viz-container .mermaid svg text .mermaid-label,
+            .viz-container .mermaid text .mermaid-label,
+            .viz-container .mermaid tspan .mermaid-label {
                 font-weight: 600 !important;
                 font-size: inherit !important;
                 line-height: inherit !important;
                 font-family: inherit !important;
             }
             
-            /* ompact bullets inside Mermaid HTML labels */
-            .mermaid .mermaid-bullet {
+            /* ompact bullets inside Mermaid HTML labels - SCOPED TO VIZ CONTAINERS ONLY */
+            .viz-container .mermaid .mermaid-bullet {
                 display: block !important;
                 line-height: 1.2 !important;
                 margin: 0.5px 0 !important;
@@ -2598,8 +2598,19 @@ class VisualizationEngine {
         let plotlyData;
         try {
             if (typeof item.content === 'string') {
-                // SE NEW SAFE JSON PARSING
-                plotlyData = this.safeJSONParse(item.content);
+                try {
+                    // Try safe JSON parsing first
+                    plotlyData = this.safeJSONParse(item.content);
+                } catch (jsonError) {
+                    // Fallback to JavaScript eval for object literal syntax (this is expected for JS configs)
+                    console.log('ℹ️ Plotly: Using JavaScript eval for object literal syntax');
+                    try {
+                        plotlyData = (new Function('return ' + item.content))();
+                        console.log('✅ Plotly: Config parsed successfully');
+                    } catch (evalError) {
+                        throw new Error(`Both JSON and JavaScript parsing failed. JSON: ${jsonError.message}, Eval: ${evalError.message}`);
+                    }
+                }
             } else if (item.data && item.layout) {
                 plotlyData = item;
             } else {
@@ -4488,8 +4499,7 @@ class VisualizationEngine {
 
     // EW: Comprehensive JSON normalization and repair
     normalizeAndRepairJSON(jsonString) {
-        console.log('🔧 Normalizing JSON content...');
-
+        // Silently normalize - only log on errors
         if (!jsonString || typeof jsonString !== 'string') {
             throw new Error('Invalid JSON input: not a string');
         }
@@ -4545,7 +4555,6 @@ class VisualizationEngine {
                 .replace(/\s+/g, ' ')        // Normalize whitespace
                 .trim();
 
-            console.log('🔧 JSON normalization completed');
             return normalizedJson;
 
         } catch (error) {
@@ -4560,10 +4569,13 @@ class VisualizationEngine {
             throw new Error('Empty JSON string provided');
         }
 
+        let firstError;
+
         // Strategy 1: Try direct parsing
         try {
             return JSON.parse(jsonString);
         } catch (directError) {
+            firstError = directError;
             // Try normalization without warning for expected +/- notation
         }
 
@@ -4572,13 +4584,13 @@ class VisualizationEngine {
             const normalizedJson = this.normalizeAndRepairJSON(jsonString);
             return JSON.parse(normalizedJson);
         } catch (normalizedError) {
-            console.error(' Normalized JSON parsing also failed:', normalizedError.message);
+            // Only log detailed error in development
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.error('❌ JSON parsing failed after normalization');
+                console.error('📄 Content preview:', jsonString.substring(0, 200) + '...');
+            }
 
-            // Strategy 3: Log detailed info for debugging
-            console.error(' Original JSON snippet:', jsonString.substring(0, 200) + '...');
-            console.error(' JSON length:', jsonString.length);
-
-            throw new Error(`All JSON parsing strategies failed. Original error: ${directError.message}, Normalized error: ${normalizedError.message}`);
+            throw new Error(`All JSON parsing strategies failed. Original error: ${firstError.message}, Normalized error: ${normalizedError.message}`);
         }
     }
 
@@ -7818,12 +7830,23 @@ ${svgData}`;
 
         const canvas = document.createElement('canvas');
         canvas.id = chartId;
+
+        // Chart.js requires explicit height (doesn't work with 'auto')
+        const explicitHeight = (typeof this.options.defaultHeight === 'number')
+            ? this.options.defaultHeight
+            : 400; // Default to 400px if 'auto' or other string
+
+        // Set canvas internal resolution
+        canvas.width = 800;
+        canvas.height = explicitHeight;
+
         canvas.style.cssText = `
             width: 100%;
-            height: ${this.options.defaultHeight}px;
+            height: ${explicitHeight}px;
             position: relative;
             display: block;
             margin: 0 auto;
+            box-sizing: border-box;
         `;
 
         // RITICAL: Triple-check DOM validity right before manipulation
@@ -7831,7 +7854,17 @@ ${svgData}`;
             throw new Error('Content area became invalid before appendChild - DOM timing issue');
         }
 
-        contentArea.appendChild(canvas);
+        // Wrap canvas in container to ensure proper sizing
+        const canvasWrapper = document.createElement('div');
+        canvasWrapper.className = 'chartjs-canvas-wrapper';
+        canvasWrapper.style.cssText = `
+            width: 100%;
+            min-height: ${explicitHeight}px;
+            position: relative;
+            display: block;
+        `;
+        canvasWrapper.appendChild(canvas);
+        contentArea.appendChild(canvasWrapper);
 
         // Parse config - handle both JSON and JavaScript notation with functions
         let config;
@@ -7840,7 +7873,7 @@ ${svgData}`;
                 config = JSON.parse(item.content);
             } catch (e) {
                 // Fallback to JavaScript eval for function support (tooltips, formatters, etc.)
-                console.warn('ChartJS: JSON parse failed, using JavaScript eval', e.message);
+                console.log('ChartJS: Using JavaScript eval for object notation');
                 try {
                     config = (new Function('return ' + item.content))();
                 } catch (evalError) {
@@ -7880,12 +7913,24 @@ ${svgData}`;
 
         const canvas = document.createElement('canvas');
         canvas.id = chartId;
+
+        // Chart.js requires explicit height (doesn't work with 'auto')
+        const explicitHeight = (typeof this.options.defaultHeight === 'number')
+            ? this.options.defaultHeight
+            : 400; // Default to 400px if 'auto' or other string
+
+        // CRITICAL: Set canvas width/height attributes (not just CSS)
+        // Chart.js reads these for rendering dimensions
+        canvas.width = 800;  // Internal resolution
+        canvas.height = explicitHeight;
+
         canvas.style.cssText = `
             width: 100%;
-            height: ${this.options.defaultHeight}px;
+            height: ${explicitHeight}px;
             position: relative;
             display: block;
             margin: 0 auto;
+            box-sizing: border-box;
         `;
 
         container.appendChild(canvas);

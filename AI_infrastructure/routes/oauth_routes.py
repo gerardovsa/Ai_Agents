@@ -3,6 +3,15 @@ OAuth Routes for Google Workspace Integration
 ==============================================
 
 Handles OAuth 2.0 flow for client authentication
+
+FIXED: 2025-01-XX - Complete cursor management overhaul
+CHANGES:
+- Added cursor = None initialization before try block
+- Added conn = None initialization before try block
+- Added try/finally block with exception-safe cleanup
+- Added cursor.close() BEFORE conn.close() (was missing!)
+- Fixed early return handling (close resources before redirect)
+- Proper cleanup order: cursor → conn
 """
 
 from flask import Blueprint, request, redirect, session, jsonify, url_for
@@ -34,6 +43,8 @@ def google_login():
     GET /api/oauth/google/login
     
     Redirects to the unified OAuth workspace flow
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     # Redirect to the main workspace OAuth endpoint
     return redirect(url_for('oauth.oauth_workspace_start', mode='signin'))
@@ -47,6 +58,8 @@ def microsoft_login():
     GET /api/oauth/microsoft/login
     
     TODO: Implement Microsoft OAuth flow
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     return jsonify({
         'success': False,
@@ -64,6 +77,8 @@ def oauth_workspace_start():
     Initiates OAuth 2.0 flow with unified scopes:
     - Gmail, Calendar, Tasks, Forms
     - Docs, Sheets, Slides, Drive
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
         mode = request.args.get('mode', 'signin')  # signin or signup
@@ -114,7 +129,7 @@ def oauth_workspace_start():
         return redirect(authorization_url)
         
     except Exception as e:
-        print(f" OAuth start error: {e}")
+        print(f"❌ OAuth start error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -132,11 +147,17 @@ def oauth_workspace_callback():
     
     Exchanges authorization code for access token
     Stores encrypted token in database
+    
+    FIXED: Added proper cursor management with try/finally block
     """
+    cursor = None  # ✅ CRITICAL: Initialize before try
+    conn = None    # ✅ CRITICAL: Initialize before try
+    
     try:
         # Verify state
         state = request.args.get('state')
         if state != session.get('oauth_state'):
+            # ✅ Safe - no cursor created yet
             return redirect('/login?error=Invalid OAuth state')
         
         mode = session.get('oauth_mode', 'signin')
@@ -180,9 +201,10 @@ def oauth_workspace_callback():
                 user_info = response.json()
                 user_email = user_info.get('email')
             except:
+                # ✅ Safe - no cursor created yet
                 return redirect('/login?error=Could not verify Google account')
         
-        print(f" OAuth callback successful: {user_email}")
+        print(f"✅ OAuth callback successful: {user_email}")
         
         # Prepare token data for storage
         token_data = {
@@ -195,22 +217,20 @@ def oauth_workspace_callback():
             'expiry': credentials.expiry.isoformat() if credentials.expiry else None
         }
         
-        #  Store in database (user_platform_credentials table)
-        import sqlite3
-        from pathlib import Path
-        # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
-        root_dir = Path(__file__).parent.parent.parent
+        # ✅ NOW create database connection (after validations passed)
         conn = get_database_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         # Get or create user
         cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = %s', (user_email,))
         user_row = cursor.fetchone()
         
+        user_id = None
+        username = None
+        
         if user_row:
             user_id = user_row['id']
-            print(f" Found existing user: {user_id}")
+            print(f"✅ Found existing user: {user_id}")
         else:
             # Auto-create user if OAuth login
             username = user_email.split('@')[0]
@@ -219,7 +239,7 @@ def oauth_workspace_callback():
                 (username, user_email, 'oauth_google', 'user')
             )
             user_id = cursor.lastrowid
-            print(f" Created new user: {user_id}")
+            print(f"✅ Created new user: {user_id}")
         
         # Store access token with proper schema
         sql, params = convert_sql_placeholders('''
@@ -232,6 +252,8 @@ def oauth_workspace_callback():
             'user_email': user_email
         })))
         
+        cursor.execute(sql, params)
+        
         # Store refresh token if available
         if credentials.refresh_token:
             cursor.execute('''
@@ -239,13 +261,16 @@ def oauth_workspace_callback():
                 (user_id, platform, credential_type, credential_key, credential_value, is_active, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             ''', (user_id, 'google', 'oauth', 'refresh_token', credentials.refresh_token, 1))
-
-        cursor.execute(sql, params)
         
         conn.commit()
-        conn.close()
         
-        print(f" Stored Google OAuth credentials in database for user {user_id}")
+        # ✅ FIX: Close cursor BEFORE conn (single close, not duplicate)
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        print(f"✅ Stored Google OAuth credentials in database for user {user_id}")
         
         # Also store in session for immediate use
         session['user_email'] = user_email
@@ -276,10 +301,23 @@ def oauth_workspace_callback():
         return redirect(f'{frontend_url}/?token={jwt_token}')
         
     except Exception as e:
-        print(f" OAuth callback error: {e}")
+        print(f"❌ OAuth callback error: {e}")
         import traceback
         traceback.print_exc()
         return redirect(f'/login?error={str(e)}')
+    
+    finally:
+        # ✅ CRITICAL: GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except Exception as e:
+                print(f"⚠️ Error closing cursor: {e}")
+        if conn:
+            try:
+                conn.close()
+            except Exception as e:
+                print(f"⚠️ Error closing connection: {e}")
 
 
 @oauth_bp.route('/status', methods=['GET'])
@@ -290,6 +328,8 @@ def oauth_status():
     GET /api/oauth/status
     
     Returns OAuth connection status for current user
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
         user_email = session.get('user_email')
@@ -319,7 +359,7 @@ def oauth_status():
         })
         
     except Exception as e:
-        print(f" OAuth status error: {e}")
+        print(f"❌ OAuth status error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -334,6 +374,8 @@ def oauth_disconnect():
     POST /api/oauth/disconnect
     
     Removes OAuth token and disconnects services
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
         user_email = session.get('user_email')
@@ -363,7 +405,7 @@ def oauth_disconnect():
         })
         
     except Exception as e:
-        print(f" OAuth disconnect error: {e}")
+        print(f"❌ OAuth disconnect error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

@@ -175,6 +175,28 @@ class TwoRuleStreamProcessor {
     }
 
     /**
+     * FINALIZE: Complete processing and flush remaining content
+     * 🎯 FIX: Called when stream ends to ensure last line is rendered
+     */
+    async finalize() {
+        console.log('🏁 TWO-RULE: Finalizing stream processing...');
+
+        // Package any remaining markdown content in buffer
+        const remainingContent = this.rawBuffer.slice(this.bufferPosition);
+
+        if (remainingContent.trim()) {
+            console.log(`🔥 TWO-RULE: Flushing final ${remainingContent.length} chars`);
+            this.packageMarkdownContent(remainingContent, this.bufferPosition);
+            this.bufferPosition = this.rawBuffer.length;
+        }
+
+        // Release all pending packages
+        await this.releaseReadyPackages();
+
+        console.log(`✅ TWO-RULE: Finalized (${this.stats.chunksProcessed} chunks, ${this.stats.markdownPackages} markdown, ${this.stats.visualPackages} visuals)`);
+    }
+
+    /**
      * FORCE FLUSH: Immediately release any buffered markdown content
      * 🔥 FIX: Called when switching from content_delta to tool_use events
      * 🛡️ CRITICAL: Don't flush if we're inside an incomplete code fence
@@ -296,8 +318,14 @@ class TwoRuleStreamProcessor {
             if (releaseLen !== -1) {
                 releaseLen = releaseLen + 1; // include newline
             } else {
-                // No newline yet: hold content to avoid breaking markdown tokens
-                releaseLen = 0;
+                // 🔥 FIX: Release small punctuation chunks immediately (periods, commas, etc.)
+                // This prevents periods from being held in buffer as separate chunks
+                if (available.length <= 3 && /^[.,;:!?)\]}\s]*$/.test(available)) {
+                    releaseLen = available.length;
+                } else {
+                    // No newline yet: hold content to avoid breaking markdown tokens
+                    releaseLen = 0;
+                }
             }
         }
 

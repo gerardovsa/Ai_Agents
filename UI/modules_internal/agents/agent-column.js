@@ -120,6 +120,12 @@ const AgentColumn = (function () {
                     </div>
                     
                     <div class="agent-header-controls">
+                        <button class="agent-popout-btn" 
+                                onclick="event.stopPropagation(); AgentColumn.popOut(${agentId})" 
+                                title="Pop out agent window" 
+                                aria-label="Pop out agent">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
                         <button class="view-mode-btn" 
                                 id="view-mode-btn-${agentId}"
                                 onclick="event.stopPropagation(); AgentColumn.toggleViewModeMenu(${agentId})" 
@@ -378,8 +384,402 @@ const AgentColumn = (function () {
         }
     }
 
+    // Track popout windows
+    let nextZIndex = 11000;
+    let popoutCount = 0;
+    const popoutWindows = new Map(); // agentId -> window element
+
     /**
-     * Toggle column width (normal/wide)
+     * Pop out agent column into floating window
+     * @param {number} agentId - Agent ID
+     */
+    function popOut(agentId) {
+        // Check if already popped out
+        if (popoutWindows.has(agentId)) {
+            console.warn(`[AgentColumn] Agent ${agentId} already popped out`);
+            const existingWindow = popoutWindows.get(agentId);
+            existingWindow.style.zIndex = nextZIndex++;
+            existingWindow.classList.add('pulse');
+            setTimeout(() => existingWindow.classList.remove('pulse'), 300);
+            return;
+        }
+
+        const column = document.getElementById(`agent-column-${agentId}`);
+        if (!column) {
+            console.error(`[AgentColumn] Column not found: ${agentId}`);
+            return;
+        }
+
+        popoutCount++;
+        const name = AGENT_NAMES[agentId] || `Agent ${agentId}`;
+        const icon = AGENT_ICONS[agentId] || 'fa-robot';
+
+        // Create floating window
+        const floatingWindow = document.createElement('div');
+        floatingWindow.className = 'agent-popout-window';
+        floatingWindow.id = `agent-popout-${agentId}`;
+        floatingWindow.style.zIndex = nextZIndex++;
+        floatingWindow.dataset.agentId = agentId;
+
+        // Position with cascade
+        const offset = (popoutCount - 1) * 40;
+        floatingWindow.style.left = `${100 + offset}px`;
+        floatingWindow.style.top = `${80 + offset}px`;
+
+        floatingWindow.innerHTML = `
+            <div class="agent-popout-content"></div>
+        `;
+
+        // Move the actual column into popout (not clone - preserves event handlers)
+        const contentDiv = floatingWindow.querySelector('.agent-popout-content');
+        const originalParent = column.parentElement;
+        const originalNextSibling = column.nextSibling;
+
+        // Store original position for restoration
+        floatingWindow.dataset.originalParent = originalParent ? originalParent.id : '';
+
+        // Store reference to original sibling for precise restoration
+        if (originalNextSibling && originalNextSibling.id) {
+            floatingWindow.dataset.originalSibling = originalNextSibling.id;
+        }
+
+        // Create a collapsed placeholder that stays in the Command Centre
+        const placeholder = document.createElement('div');
+        placeholder.className = 'agent-column collapsed popped-out-placeholder';
+        placeholder.id = `agent-placeholder-${agentId}`;
+        placeholder.dataset.agentId = agentId;
+
+        // Clone the collapsed bar from original column
+        const originalCollapsedBar = column.querySelector('.collapsed-column-bar');
+        if (originalCollapsedBar) {
+            const placeholderBar = originalCollapsedBar.cloneNode(true);
+            placeholderBar.onclick = null; // Remove expand handler
+            placeholderBar.style.cursor = 'default';
+            placeholder.appendChild(placeholderBar);
+        }
+
+        // Add return button to placeholder
+        const returnIndicator = document.createElement('button');
+        returnIndicator.className = 'collapsed-return-btn';
+        returnIndicator.innerHTML = '<i class="fas fa-arrow-left"></i><span>Return to Command Centre</span>';
+        returnIndicator.title = 'Return to Command Centre';
+        returnIndicator.onclick = (e) => {
+            e.stopPropagation();
+            returnToMain();
+        };
+        placeholder.appendChild(returnIndicator);
+
+        // Replace original column with placeholder in dashboard
+        originalParent.replaceChild(placeholder, column);
+
+        // Update the popout button in the REAL column's header to return button
+        const popoutBtn = column.querySelector('.agent-popout-btn');
+        if (popoutBtn) {
+            popoutBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+            popoutBtn.title = 'Return to Command Centre';
+            popoutBtn.setAttribute('aria-label', 'Return to Command Centre');
+            // Update onclick to return function
+            popoutBtn.onclick = (e) => {
+                e.stopPropagation();
+                returnToMain();
+            };
+        }
+
+        // Ensure column is expanded (remove collapsed class if present)
+        column.classList.remove('collapsed');
+        column.classList.remove('popped-out-placeholder');
+
+        // Style column for popout
+        column.style.border = 'none';
+        column.style.margin = '0';
+        column.style.height = '100%';
+        column.dataset.poppedOut = 'true';
+        contentDiv.appendChild(column);
+
+        // Add to body
+        document.body.appendChild(floatingWindow);
+        popoutWindows.set(agentId, floatingWindow);
+
+        // Re-enable all interactive elements by triggering a reflow
+        // This ensures onclick handlers work properly in the new context
+        requestAnimationFrame(() => {
+            // Force reflow
+            void column.offsetHeight;
+
+            // Debug: Check if buttons exist and are clickable
+            const buttons = column.querySelectorAll('button[onclick]');
+            console.log(`[AgentColumn] Found ${buttons.length} onclick buttons in popped out agent`);
+
+            // Ensure all onclick attributes are properly bound
+            buttons.forEach((btn, idx) => {
+                const onclickAttr = btn.getAttribute('onclick');
+                if (onclickAttr && !btn.onclick) {
+                    // Re-compile onclick if needed
+                    try {
+                        btn.onclick = new Function('event', onclickAttr);
+                        console.log(`[AgentColumn] Re-bound onclick for button ${idx}`);
+                    } catch (e) {
+                        console.error(`[AgentColumn] Failed to bind onclick:`, e);
+                    }
+                }
+            });
+
+            // Dispatch custom event to notify other systems
+            const popoutEvent = new CustomEvent('agent-popped-out', {
+                detail: { agentId, windowElement: floatingWindow }
+            });
+            document.dispatchEvent(popoutEvent);
+        });
+
+        // Get elements
+        const columnHeader = column.querySelector('.agent-header-top');
+
+        // Return to main view
+        const returnToMain = () => {
+            console.log(`[AgentColumn] Returning agent ${agentId} to main view...`);
+
+            // Find the placeholder in the dashboard
+            const placeholder = document.getElementById(`agent-placeholder-${agentId}`);
+            console.log(`[AgentColumn] Placeholder found:`, placeholder ? 'YES' : 'NO');
+
+            // Restore column styles
+            column.style.border = '';
+            column.style.margin = '';
+            column.style.height = '';
+            delete column.dataset.poppedOut;
+
+            // Ensure column is not collapsed
+            column.classList.remove('collapsed');
+            column.classList.remove('popped-out-placeholder');
+
+            // Restore popout button
+            const popoutBtn = column.querySelector('.agent-popout-btn');
+            if (popoutBtn) {
+                popoutBtn.innerHTML = '<i class="fas fa-external-link-alt"></i>';
+                popoutBtn.title = 'Pop out agent window';
+                popoutBtn.setAttribute('aria-label', 'Pop out agent');
+                // Restore original onclick
+                popoutBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    popOut(agentId);
+                };
+            }
+
+            // Replace placeholder with original column in dashboard
+            if (placeholder && placeholder.parentElement) {
+                console.log(`[AgentColumn] Replacing placeholder with column`);
+                placeholder.parentElement.replaceChild(column, placeholder);
+            } else {
+                // Fallback: try to find parent and restore position
+                console.log(`[AgentColumn] Placeholder not found, using fallback`);
+                const parentId = floatingWindow.dataset.originalParent;
+                const parent = document.getElementById(parentId);
+
+                if (parent) {
+                    // Try to restore original position using sibling reference
+                    const siblingId = floatingWindow.dataset.originalSibling;
+                    const sibling = siblingId ? document.getElementById(siblingId) : null;
+
+                    if (sibling && sibling.parentElement === parent) {
+                        parent.insertBefore(column, sibling);
+                        console.log(`[AgentColumn] Restored to original position before sibling`);
+                    } else {
+                        parent.appendChild(column);
+                        console.log(`[AgentColumn] Appended to parent (no sibling reference)`);
+                    }
+                } else {
+                    console.error(`[AgentColumn] Could not find parent container: ${parentId}`);
+                }
+            }
+
+            // Remove window
+            floatingWindow.classList.add('closing');
+            setTimeout(() => {
+                floatingWindow.remove();
+                popoutWindows.delete(agentId);
+            }, 200);
+
+            console.log(`[AgentColumn] Agent ${agentId} returned to main view`);
+        };
+
+        // Close window (also returns to main)
+        const closeWindow = () => {
+            returnToMain();
+        };
+
+        // Bring to front on click
+        floatingWindow.addEventListener('mousedown', () => {
+            floatingWindow.style.zIndex = nextZIndex++;
+        });
+
+        // Make draggable via column header
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        if (columnHeader) {
+            columnHeader.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button')) return;
+                isDragging = true;
+                const rect = floatingWindow.getBoundingClientRect();
+                dragOffsetX = e.clientX - rect.left;
+                dragOffsetY = e.clientY - rect.top;
+                columnHeader.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const x = e.clientX - dragOffsetX;
+            const y = e.clientY - dragOffsetY;
+            const maxX = window.innerWidth - 200;
+            const maxY = window.innerHeight - 50;
+            floatingWindow.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
+            floatingWindow.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                if (columnHeader) columnHeader.style.cursor = '';
+            }
+        });
+
+        // Make resizable from all edges and corners (Windows-style)
+        let isResizing = false;
+        let resizeEdge = null;
+        let startX = 0;
+        let startY = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        const RESIZE_MARGIN = 8; // Pixels from edge to detect resize
+
+        // Detect which edge/corner is being hovered
+        const getResizeEdge = (e) => {
+            const rect = floatingWindow.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const isLeft = x < RESIZE_MARGIN;
+            const isRight = x > rect.width - RESIZE_MARGIN;
+            const isTop = y < RESIZE_MARGIN;
+            const isBottom = y > rect.height - RESIZE_MARGIN;
+
+            // Corners
+            if (isTop && isLeft) return 'nw';
+            if (isTop && isRight) return 'ne';
+            if (isBottom && isLeft) return 'sw';
+            if (isBottom && isRight) return 'se';
+
+            // Edges
+            if (isTop) return 'n';
+            if (isBottom) return 's';
+            if (isLeft) return 'w';
+            if (isRight) return 'e';
+
+            return null;
+        };
+
+        // Update cursor based on edge
+        const updateCursor = (edge) => {
+            const cursorMap = {
+                'n': 'ns-resize',
+                's': 'ns-resize',
+                'e': 'ew-resize',
+                'w': 'ew-resize',
+                'ne': 'nesw-resize',
+                'sw': 'nesw-resize',
+                'nw': 'nwse-resize',
+                'se': 'nwse-resize'
+            };
+            floatingWindow.style.cursor = edge ? cursorMap[edge] : '';
+        };
+
+        // Mouse move to detect resize zones
+        floatingWindow.addEventListener('mousemove', (e) => {
+            if (isResizing || isDragging) return;
+            const edge = getResizeEdge(e);
+            updateCursor(edge);
+        });
+
+        // Start resize
+        floatingWindow.addEventListener('mousedown', (e) => {
+            const edge = getResizeEdge(e);
+            if (edge && !e.target.closest('button')) {
+                isResizing = true;
+                resizeEdge = edge;
+                startX = e.clientX;
+                startY = e.clientY;
+                const rect = floatingWindow.getBoundingClientRect();
+                startWidth = rect.width;
+                startHeight = rect.height;
+                startLeft = rect.left;
+                startTop = rect.top;
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        // Perform resize
+        const resizeMouseMove = (e) => {
+            if (!isResizing) return;
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+            let newLeft = startLeft;
+            let newTop = startTop;
+
+            // Handle horizontal resize
+            if (resizeEdge.includes('e')) {
+                newWidth = Math.max(400, startWidth + deltaX);
+            } else if (resizeEdge.includes('w')) {
+                newWidth = Math.max(400, startWidth - deltaX);
+                if (newWidth > 400) {
+                    newLeft = startLeft + deltaX;
+                }
+            }
+
+            // Handle vertical resize
+            if (resizeEdge.includes('s')) {
+                newHeight = Math.max(300, startHeight + deltaY);
+            } else if (resizeEdge.includes('n')) {
+                newHeight = Math.max(300, startHeight - deltaY);
+                if (newHeight > 300) {
+                    newTop = startTop + deltaY;
+                }
+            }
+
+            floatingWindow.style.width = `${newWidth}px`;
+            floatingWindow.style.height = `${newHeight}px`;
+            floatingWindow.style.left = `${newLeft}px`;
+            floatingWindow.style.top = `${newTop}px`;
+        };
+
+        document.addEventListener('mousemove', resizeMouseMove);
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                resizeEdge = null;
+                floatingWindow.style.cursor = '';
+            }
+        });
+
+        // Animate in
+        requestAnimationFrame(() => floatingWindow.classList.add('visible'));
+
+        console.log(`[AgentColumn] Agent ${agentId} popped out`);
+    }
+
+    /**
+     * Toggle column width (3-stage cycle: normal > wide > extra-wide > normal)
      * @param {number} agentId - Agent ID
      */
     function toggleWidth(agentId) {
@@ -387,9 +787,29 @@ const AgentColumn = (function () {
         const icon = document.getElementById(`width-icon-${agentId}`);
 
         if (column && icon) {
-            const isWide = column.classList.toggle('wide');
-            icon.className = isWide ? 'fas fa-chevron-left' : 'fas fa-chevron-right';
-            console.log(`[AgentColumn] Toggled width for agent ${agentId}: ${isWide ? 'wide' : 'normal'}`);
+            const hasWide = column.classList.contains('wide');
+            const hasExtraWide = column.classList.contains('extra-wide');
+
+            if (!hasWide && !hasExtraWide) {
+                // Stage 1 -> 2: Normal to Wide (>)
+                column.classList.add('wide');
+                icon.className = 'fas fa-angle-double-right'; // >>
+                icon.style.transform = 'none';
+                console.log(`[AgentColumn] Width for agent ${agentId}: normal -> wide`);
+            } else if (hasWide && !hasExtraWide) {
+                // Stage 2 -> 3: Wide to Extra-Wide (>>)
+                column.classList.remove('wide');
+                column.classList.add('extra-wide');
+                icon.className = 'fas fa-chevron-left'; // <
+                icon.style.transform = 'scaleX(-1)';
+                console.log(`[AgentColumn] Width for agent ${agentId}: wide -> extra-wide`);
+            } else {
+                // Stage 3 -> 1: Extra-Wide back to Normal (<)
+                column.classList.remove('extra-wide');
+                icon.className = 'fas fa-chevron-right'; // >
+                icon.style.transform = 'none';
+                console.log(`[AgentColumn] Width for agent ${agentId}: extra-wide -> normal`);
+            }
         }
     }
 
@@ -417,16 +837,81 @@ const AgentColumn = (function () {
      */
     function remove(agentId) {
         const column = document.getElementById(`agent-column-${agentId}`);
-        if (column) {
-            // Add fade-out animation
-            column.style.opacity = '0';
-            column.style.transform = 'scale(0.95)';
-
-            setTimeout(() => {
-                column.remove();
-                console.log(`[AgentColumn] Removed agent ${agentId}`);
-            }, 300);
+        if (!column) {
+            console.warn(`[AgentColumn] Column ${agentId} not found for removal`);
+            return;
         }
+
+        console.log(`[AgentColumn] Removing agent ${agentId}...`);
+
+        // STEP 1: Clear the messages container
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+            console.log(`[AgentColumn] Cleared messages for agent ${agentId}`);
+        }
+
+        // STEP 2: Clear thread info container
+        const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+        if (threadInfoContainer) {
+            threadInfoContainer.innerHTML = `
+                <div class="thread-info-wrapper">
+                </div>
+            `;
+            console.log(`[AgentColumn] Cleared thread info for agent ${agentId}`);
+        }
+
+        // STEP 3: Reset input area
+        const inputTextarea = document.getElementById(`agent-input-${agentId}`);
+        if (inputTextarea) {
+            inputTextarea.value = '';
+        }
+
+        const attachedFilesContainer = document.getElementById(`agent-attached-files-${agentId}`);
+        if (attachedFilesContainer) {
+            attachedFilesContainer.innerHTML = '';
+        }
+
+        // STEP 4: Notify MultiAgent system if available
+        if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.unloadAgent === 'function') {
+            MultiAgent.unloadAgent(agentId);
+            console.log(`[AgentColumn] Notified MultiAgent to unload agent ${agentId}`);
+        }
+
+        // STEP 5: Clear any active streaming connections
+        if (typeof window.abortController !== 'undefined' && window.abortController[agentId]) {
+            try {
+                window.abortController[agentId].abort();
+                delete window.abortController[agentId];
+                console.log(`[AgentColumn] Aborted active stream for agent ${agentId}`);
+            } catch (e) {
+                console.warn(`[AgentColumn] Failed to abort stream:`, e);
+            }
+        }
+
+        // STEP 6: Close any popout windows
+        if (popoutWindows.has(agentId)) {
+            const popoutWindow = popoutWindows.get(agentId);
+            popoutWindow.remove();
+            popoutWindows.delete(agentId);
+            popoutCount--;
+            console.log(`[AgentColumn] Closed popout window for agent ${agentId}`);
+        }
+
+        // STEP 7: Remove from DOM with animation
+        column.style.opacity = '0';
+        column.style.transform = 'scale(0.95)';
+
+        setTimeout(() => {
+            column.remove();
+            console.log(`[AgentColumn] ✅ Agent ${agentId} fully removed and cleaned up`);
+
+            // STEP 8: Dispatch cleanup event
+            const cleanupEvent = new CustomEvent('agent-removed', {
+                detail: { agentId }
+            });
+            document.dispatchEvent(cleanupEvent);
+        }, 300);
     }
 
     /**
@@ -1135,14 +1620,89 @@ const AgentColumn = (function () {
         cycleExpandMode(agentId);
     }
 
+    /**
+     * Unload thread from agent without removing the agent column
+     * @param {number} agentId - Agent ID
+     */
+    function unloadThread(agentId) {
+        console.log(`[AgentColumn] Unloading thread from agent ${agentId}...`);
+
+        // STEP 1: Clear messages
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (messagesContainer) {
+            const agentName = getName(agentId);
+            messagesContainer.innerHTML = renderEmptyState(agentId, agentName);
+            console.log(`[AgentColumn] Cleared messages and showed empty state for agent ${agentId}`);
+        }
+
+        // STEP 2: Clear thread info and show "No thread loaded"
+        const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+        if (threadInfoContainer) {
+            threadInfoContainer.innerHTML = `
+                <div class="thread-info-wrapper">
+                </div>
+            `;
+            console.log(`[AgentColumn] Reset thread info for agent ${agentId}`);
+        }
+
+        // STEP 3: Clear collapsed thread info
+        const collapsedStatus = document.getElementById(`collapsed-status-${agentId}`);
+        if (collapsedStatus) {
+            collapsedStatus.textContent = 'No Thread';
+        }
+
+        const collapsedTimestamp = document.getElementById(`collapsed-timestamp-${agentId}`);
+        if (collapsedTimestamp) {
+            collapsedTimestamp.textContent = '';
+        }
+
+        // STEP 4: Reset input area
+        const inputTextarea = document.getElementById(`agent-input-${agentId}`);
+        if (inputTextarea) {
+            inputTextarea.value = '';
+        }
+
+        const attachedFilesContainer = document.getElementById(`agent-attached-files-${agentId}`);
+        if (attachedFilesContainer) {
+            attachedFilesContainer.innerHTML = '';
+        }
+
+        // STEP 5: Notify MultiAgent system if available
+        if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.unloadThreadFromAgent === 'function') {
+            MultiAgent.unloadThreadFromAgent(agentId);
+            console.log(`[AgentColumn] Notified MultiAgent to unload thread from agent ${agentId}`);
+        }
+
+        // STEP 6: Clear any active streaming connections
+        if (typeof window.abortController !== 'undefined' && window.abortController[agentId]) {
+            try {
+                window.abortController[agentId].abort();
+                delete window.abortController[agentId];
+                console.log(`[AgentColumn] Aborted active stream for agent ${agentId}`);
+            } catch (e) {
+                console.warn(`[AgentColumn] Failed to abort stream:`, e);
+            }
+        }
+
+        // STEP 7: Dispatch unload event
+        const unloadEvent = new CustomEvent('thread-unloaded', {
+            detail: { agentId, location: `agent-${agentId}` }
+        });
+        document.dispatchEvent(unloadEvent);
+
+        console.log(`[AgentColumn] ✅ Thread unloaded from agent ${agentId}`);
+    }
+
     // Public API
     return {
         create,
         collapse,
         expand,
+        popOut,
         toggleWidth,
         toggleMenu,
         remove,
+        unloadThread,
         updateThreadInfo,
         newThread,
         showHistory,

@@ -896,8 +896,20 @@ async function sendChatMessage() {
                                                 });
                                             });
 
+                                            const expandBtn = document.createElement('button');
+                                            expandBtn.className = 'ai-message-copy-btn';
+                                            expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                                            expandBtn.title = 'Expand message fullscreen';
+                                            expandBtn.addEventListener('click', (e) => {
+                                                e.stopPropagation();
+                                                if (typeof window.openMessageFullscreen === 'function') {
+                                                    window.openMessageFullscreen(thinkingBubble);
+                                                }
+                                            });
+
                                             actionsDiv.appendChild(copyBtn);
                                             actionsDiv.appendChild(copyRawBtn);
+                                            actionsDiv.appendChild(expandBtn);
                                             headerDiv.appendChild(actionsDiv);
 
                                             const contentDiv = document.createElement('div');
@@ -1015,7 +1027,19 @@ async function sendChatMessage() {
                                             });
                                         });
 
+                                        const expandBtn = document.createElement('button');
+                                        expandBtn.className = 'ai-message-copy-btn';
+                                        expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                                        expandBtn.title = 'Expand message fullscreen';
+                                        expandBtn.addEventListener('click', (e) => {
+                                            e.stopPropagation();
+                                            if (typeof window.openMessageFullscreen === 'function') {
+                                                window.openMessageFullscreen(toolBubble);
+                                            }
+                                        });
+
                                         actionsDiv.appendChild(copyBtn);
+                                        actionsDiv.appendChild(expandBtn);
                                         headerDiv.appendChild(actionsDiv);
 
                                         const contentDiv = document.createElement('div');
@@ -1153,8 +1177,20 @@ async function sendChatMessage() {
                                                 });
                                             });
 
+                                            const expandBtn = document.createElement('button');
+                                            expandBtn.className = 'ai-message-copy-btn';
+                                            expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                                            expandBtn.title = 'Expand message fullscreen';
+                                            expandBtn.addEventListener('click', (e) => {
+                                                e.stopPropagation();
+                                                if (typeof window.openMessageFullscreen === 'function') {
+                                                    window.openMessageFullscreen(textBubble);
+                                                }
+                                            });
+
                                             actionsDiv.appendChild(copyBtn);
                                             actionsDiv.appendChild(copyRawBtn);
+                                            actionsDiv.appendChild(expandBtn);
                                             headerDiv.appendChild(actionsDiv);
 
                                             textBubble.appendChild(headerDiv);
@@ -1459,8 +1495,20 @@ async function sendChatMessage() {
                                             });
                                         });
 
+                                        const expandBtn = document.createElement('button');
+                                        expandBtn.className = 'ai-message-copy-btn';
+                                        expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                                        expandBtn.title = 'Expand message fullscreen';
+                                        expandBtn.addEventListener('click', (e) => {
+                                            e.stopPropagation();
+                                            if (typeof window.openMessageFullscreen === 'function') {
+                                                window.openMessageFullscreen(toolResultBubble);
+                                            }
+                                        });
+
                                         actionsDiv.appendChild(copyBtn);
                                         actionsDiv.appendChild(copyRawBtn);
+                                        actionsDiv.appendChild(expandBtn);
                                         headerDiv.appendChild(actionsDiv);
 
                                         toolResultBubble.appendChild(headerDiv);
@@ -1557,7 +1605,19 @@ async function sendChatMessage() {
                                             });
                                         });
 
+                                        const expandBtn = document.createElement('button');
+                                        expandBtn.className = 'ai-message-copy-btn';
+                                        expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                                        expandBtn.title = 'Expand message fullscreen';
+                                        expandBtn.addEventListener('click', (e) => {
+                                            e.stopPropagation();
+                                            if (typeof window.openMessageFullscreen === 'function') {
+                                                window.openMessageFullscreen(serverToolBubble);
+                                            }
+                                        });
+
                                         actionsDiv.appendChild(copyBtn);
+                                        actionsDiv.appendChild(expandBtn);
                                         headerDiv.appendChild(actionsDiv);
 
                                         const contentDiv = document.createElement('div');
@@ -2579,12 +2639,91 @@ function initChatPanelResize() {
     console.log('[CHAT PANEL] Resize functionality already initialized in initChatPanel()');
 }
 
+/**
+ * Unload thread from Prime AI without closing Prime
+ */
+function unloadThreadFromPrime() {
+    console.log('[PrimeAI] Unloading thread from Prime...');
+
+    // STEP 1: Clear messages
+    const messagesContainer = document.querySelector('.ai-chat-messages');
+    if (messagesContainer) {
+        messagesContainer.innerHTML = `
+            <div class="empty-state" style="padding-top: 40%; text-align: center;">
+                <div style="line-height: 1.8; padding: 0 20px; max-width: 500px; margin: 0 auto;">
+                    <div style="font-size: 3em; margin-bottom: 20px;">
+                        💬
+                    </div>
+                    <div style="font-size: 1.3em; margin-bottom: 15px; font-weight: 600; color: var(--text-primary, #e5e7eb);">
+                        Prime AI Ready
+                    </div>
+                    <div style="margin-bottom: 20px; opacity: 0.8; font-size: 0.95em; color: var(--text-secondary, #9ca3af);">
+                        No active thread. Start a new conversation or load from history.
+                    </div>
+                </div>
+            </div>
+        `;
+        console.log('[PrimeAI] Cleared messages and showed empty state');
+    }
+
+    // STEP 2: Clear thread info
+    const threadInfoContainer = document.getElementById('thread-info-prime');
+    if (threadInfoContainer && typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+        threadInfoContainer.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
+        console.log('[PrimeAI] Reset thread info');
+    }
+
+    // STEP 3: Clear input
+    const inputTextarea = document.getElementById('ai-chat-input');
+    if (inputTextarea) {
+        inputTextarea.value = '';
+    }
+
+    const attachedFilesContainer = document.getElementById('ai-chat-attached-files');
+    if (attachedFilesContainer) {
+        attachedFilesContainer.innerHTML = '';
+    }
+
+    // STEP 4: Clear session/thread ID in AppState
+    if (typeof AppState !== 'undefined') {
+        AppState.sessionId = null;
+        AppState.currentThreadId = null;
+        console.log('[PrimeAI] Cleared AppState session/thread ID');
+    }
+
+    // STEP 5: Clear ThreadManager current thread
+    if (typeof ThreadManager !== 'undefined') {
+        ThreadManager.currentThreadId = null;
+        console.log('[PrimeAI] Cleared ThreadManager current thread');
+    }
+
+    // STEP 6: Abort any active streaming
+    if (typeof window.abortController !== 'undefined' && window.abortController.prime) {
+        try {
+            window.abortController.prime.abort();
+            delete window.abortController.prime;
+            console.log('[PrimeAI] Aborted active stream');
+        } catch (e) {
+            console.warn('[PrimeAI] Failed to abort stream:', e);
+        }
+    }
+
+    // STEP 7: Dispatch unload event
+    const unloadEvent = new CustomEvent('thread-unloaded', {
+        detail: { location: 'prime' }
+    });
+    document.dispatchEvent(unloadEvent);
+
+    console.log('[PrimeAI] ✅ Thread unloaded from Prime');
+}
+
 // Create PrimeAI namespace object for cleaner API
 const PrimeAI = {
     cycleExpandMode: cycleExpandModePrime,
     toggleThinkingToolBubbles: toggleThinkingToolBubblesPrime,
     toggleViewModeMenu: toggleViewModeMenuPrime,
-    setViewMode: setViewModePrime
+    setViewMode: setViewModePrime,
+    unloadThread: unloadThreadFromPrime
 };
 
 window.initChatPanel = initChatPanel;

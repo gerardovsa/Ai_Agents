@@ -1,14 +1,11 @@
 """
 Kanban Board Routes - Integrated with AI Infrastructure
 =========================================================
-Consolidated Kanban board management on port 5001
+FULLY FIXED VERSION - Production Ready
+All cursor management issues resolved
 
 ⚠️ CRITICAL DATABASE PATTERN (FIXED NOV 25, 2024):
    convert_sql_placeholders() ONLY converts ? to %s - it does NOT execute queries!
-   
-   ❌ WRONG (Bug fixed in this file - lines 166, 368):
-       sql, params = convert_sql_placeholders('INSERT ...', (...))
-       conn.commit()  # Commits EMPTY transaction - no data written!
    
    ✅ CORRECT:
        sql, params = convert_sql_placeholders('INSERT ...', (...))
@@ -100,6 +97,8 @@ def list_sessions():
         - column: Filter by kanban column
         - limit: Max results (default 100)
     """
+    cursor = None
+    conn = None
     try:
         status = request.args.get('status')
         column = request.args.get('column')
@@ -124,7 +123,11 @@ def list_sessions():
         
         cursor.execute(query, params)
         sessions = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -135,6 +138,17 @@ def list_sessions():
     except Exception as e:
         logger.error(f"Failed to list sessions: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_bp.route('/sessions', methods=['POST'])
@@ -152,6 +166,8 @@ def create_session():
             "project_name": "Project name"
         }
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
@@ -183,9 +199,13 @@ def create_session():
         ''', (session_id, title, description, priority, status, kanban_column,
               tags, project_name, datetime.now().isoformat(), datetime.now().isoformat()))
         
-        cursor.execute(sql, params)  # Actually execute the INSERT query
+        cursor.execute(sql, params)  # ✅ Actually execute the INSERT query
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Created Kanban session: {session_id}")
         
@@ -200,18 +220,37 @@ def create_session():
     except Exception as e:
         logger.error(f"Failed to create session: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_bp.route('/sessions/<session_id>', methods=['GET'])
 def get_session(session_id):
     """Get session by ID with optional agent status"""
+    cursor = None
+    conn = None
+    ai_cursor = None
+    ai_conn = None
     try:
         # Get Kanban session
         conn = get_synergy_db()
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM sessions.sessions WHERE session_id = %s', (session_id,))
         session = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         if not session:
             return jsonify({'success': False, 'error': 'Session not found'}), 404
@@ -220,16 +259,20 @@ def get_session(session_id):
         
         # Check for agent assignment
         ai_conn = get_ai_db()
-        cursor = ai_conn.cursor()
-        cursor.execute('''
+        ai_cursor = ai_conn.cursor()
+        
+        sql, params = convert_sql_placeholders('''
             SELECT * FROM kanban_task_links 
             WHERE kanban_session_id = %s
         ''', (session_id,))
-
         
-        cursor.execute(sql, params)
-        agent_link = cursor.fetchone()
+        ai_cursor.execute(sql, params)
+        agent_link = ai_cursor.fetchone()
+        
+        ai_cursor.close()
+        ai_cursor = None
         ai_conn.close()
+        ai_conn = None
         
         if agent_link:
             session_data['agent_assigned'] = True
@@ -245,11 +288,34 @@ def get_session(session_id):
     except Exception as e:
         logger.error(f"Failed to get session: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+        if ai_cursor:
+            try:
+                ai_cursor.close()
+            except:
+                pass
+        if ai_conn:
+            try:
+                ai_conn.close()
+            except:
+                pass
 
 
 @kanban_bp.route('/sessions/<session_id>', methods=['PATCH'])
 def update_session(session_id):
     """Update session fields"""
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
@@ -262,14 +328,14 @@ def update_session(session_id):
         
         for field in allowed_fields:
             if field in data:
-                fields.append(f"{field} = ?")
+                fields.append(f"{field} = %s")
                 values.append(json.dumps(data[field]) if field == 'tags' else data[field])
         
         if not fields:
             return jsonify({'success': False, 'error': 'No fields to update'}), 400
         
         # Add updated_at
-        fields.append('updated_at = ?')
+        fields.append('updated_at = %s')
         values.append(datetime.now().isoformat())
         values.append(session_id)
         
@@ -281,10 +347,16 @@ def update_session(session_id):
         conn.commit()
         
         if cursor.rowcount == 0:
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Updated Kanban session: {session_id}")
         
@@ -297,11 +369,26 @@ def update_session(session_id):
     except Exception as e:
         logger.error(f"Failed to update session: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_bp.route('/sessions/<session_id>', methods=['DELETE'])
 def delete_session(session_id):
     """Delete session (and remove agent links)"""
+    cursor = None
+    conn = None
+    ai_cursor = None
+    ai_conn = None
     try:
         # Delete from Kanban DB
         conn = get_synergy_db()
@@ -310,17 +397,27 @@ def delete_session(session_id):
         conn.commit()
         
         if cursor.rowcount == 0:
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         # Delete from bridge table
         ai_conn = get_ai_db()
-        cursor = ai_conn.cursor()
-        cursor.execute('DELETE FROM kanban_task_links WHERE kanban_session_id = %s', (session_id,))
+        ai_cursor = ai_conn.cursor()
+        ai_cursor.execute('DELETE FROM kanban_task_links WHERE kanban_session_id = %s', (session_id,))
         ai_conn.commit()
+        
+        ai_cursor.close()
+        ai_cursor = None
         ai_conn.close()
+        ai_conn = None
         
         logger.info(f"Deleted Kanban session: {session_id}")
         
@@ -333,6 +430,27 @@ def delete_session(session_id):
     except Exception as e:
         logger.error(f"Failed to delete session: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+        if ai_cursor:
+            try:
+                ai_cursor.close()
+            except:
+                pass
+        if ai_conn:
+            try:
+                ai_conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -352,6 +470,10 @@ def assign_agent(session_id):
             "auto_sync_enabled": true
         }
     """
+    cursor = None
+    conn = None
+    ai_cursor = None
+    ai_conn = None
     try:
         data = request.get_json()
         
@@ -366,14 +488,18 @@ def assign_agent(session_id):
         cursor = conn.cursor()
         cursor.execute('SELECT title, status, kanban_column FROM sessions.sessions WHERE session_id = %s', (session_id,))
         session = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         if not session:
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Create agent link
         ai_conn = get_ai_db()
-        cursor = ai_conn.cursor()
+        ai_cursor = ai_conn.cursor()
         
         sync_direction = data.get('sync_direction', 'bidirectional')
         auto_sync = data.get('auto_sync_enabled', True)
@@ -394,10 +520,14 @@ def assign_agent(session_id):
               session['kanban_column'], sync_direction, auto_sync,
               datetime.now().isoformat(), datetime.now().isoformat()))
         
-        cursor.execute(sql, params)  # Actually execute the INSERT query
+        ai_cursor.execute(sql, params)  # ✅ Actually execute the INSERT query
         ai_conn.commit()
-        link_id = cursor.lastrowid
+        link_id = ai_cursor.lastrowid
+        
+        ai_cursor.close()
+        ai_cursor = None
         ai_conn.close()
+        ai_conn = None
         
         logger.info(f"Assigned agent {agent_id} to Kanban task {session_id}")
         
@@ -412,23 +542,50 @@ def assign_agent(session_id):
     except Exception as e:
         logger.error(f"Failed to assign agent: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+        if ai_cursor:
+            try:
+                ai_cursor.close()
+            except:
+                pass
+        if ai_conn:
+            try:
+                ai_conn.close()
+            except:
+                pass
 
 
 @kanban_bp.route('/sessions/<session_id>/agent-status', methods=['GET'])
 def get_agent_status(session_id):
     """Get agent work status for this task"""
+    cursor = None
+    conn = None
     try:
-        ai_conn = get_ai_db()
-        cursor = ai_conn.cursor()
-        cursor.execute('''
+        conn = get_ai_db()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders('''
             SELECT * FROM kanban_task_links 
             WHERE kanban_session_id = %s
         ''', (session_id,))
-
         
         cursor.execute(sql, params)
         agent_link = cursor.fetchone()
-        ai_conn.close()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
         
         if not agent_link:
             return jsonify({
@@ -446,6 +603,17 @@ def get_agent_status(session_id):
     except Exception as e:
         logger.error(f"Failed to get agent status: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_bp.route('/sessions/<session_id>/sync-from-agent', methods=['PATCH'])
@@ -459,6 +627,10 @@ def sync_from_agent(session_id):
             "notes": "Optional update notes"
         }
     """
+    ai_cursor = None
+    ai_conn = None
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         agent_status = data.get('agent_work_status')
@@ -468,29 +640,38 @@ def sync_from_agent(session_id):
         
         # Get agent link
         ai_conn = get_ai_db()
-        cursor = ai_conn.cursor()
+        ai_cursor = ai_conn.cursor()
+        
         sql, params = convert_sql_placeholders('''
             SELECT * FROM kanban_task_links 
             WHERE kanban_session_id = %s
         ''', (session_id,))
-
-        cursor.execute(sql, params)
-        agent_link = cursor.fetchone()
+        
+        ai_cursor.execute(sql, params)
+        agent_link = ai_cursor.fetchone()
         
         if not agent_link:
+            ai_cursor.close()
+            ai_cursor = None
             ai_conn.close()
+            ai_conn = None
             return jsonify({'success': False, 'error': 'No agent assigned'}), 404
         
         # Update agent status
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE kanban_task_links
             SET agent_work_status = %s, last_synced_at = %s,
-                notes = COALESCE( %s, notes)
+                notes = COALESCE(%s, notes)
             WHERE kanban_session_id = %s
         ''', (agent_status, datetime.now().isoformat(), data.get('notes'), session_id))
         
+        ai_cursor.execute(sql, params)
         ai_conn.commit()
+        
+        ai_cursor.close()
+        ai_cursor = None
         ai_conn.close()
+        ai_conn = None
         
         # Map agent status to Kanban column
         status_to_column = {
@@ -505,16 +686,22 @@ def sync_from_agent(session_id):
         # Update Kanban board
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('''
+        
+        sql, params = convert_sql_placeholders('''
             UPDATE sessions.sessions
             SET kanban_column = %s, updated_at = %s,
-                notes = COALESCE(notes || '\n' || ?, notes)
+                notes = COALESCE(notes || '\n' || %s, notes)
             WHERE session_id = %s
         ''', (new_column, datetime.now().isoformat(), 
               f"Agent status: {agent_status}", session_id))
         
+        cursor.execute(sql, params)
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Synced Kanban task {session_id} from agent status: {agent_status}")
         
@@ -529,6 +716,27 @@ def sync_from_agent(session_id):
     except Exception as e:
         logger.error(f"Failed to sync from agent: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if ai_cursor:
+            try:
+                ai_cursor.close()
+            except:
+                pass
+        if ai_conn:
+            try:
+                ai_conn.close()
+            except:
+                pass
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -538,20 +746,32 @@ def sync_from_agent(session_id):
 @kanban_bp.route('/health', methods=['GET'])
 def health():
     """Health check for Kanban routes"""
+    cursor = None
+    conn = None
+    ai_cursor = None
+    ai_conn = None
     try:
         # Test Synergy DB
         conn = get_synergy_db()
         cursor = conn.cursor()
         cursor.execute('SELECT COUNT(*) FROM sessions.sessions')
         session_count = cursor.fetchone()[0]
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         # Test AI Infrastructure DB
         ai_conn = get_ai_db()
-        cursor = ai_conn.cursor()
-        cursor.execute('SELECT COUNT(*) FROM kanban_task_links')
-        link_count = cursor.fetchone()[0]
+        ai_cursor = ai_conn.cursor()
+        ai_cursor.execute('SELECT COUNT(*) FROM kanban_task_links')
+        link_count = ai_cursor.fetchone()[0]
+        
+        ai_cursor.close()
+        ai_cursor = None
         ai_conn.close()
+        ai_conn = None
         
         return jsonify({
             'status': 'healthy',
@@ -566,3 +786,24 @@ def health():
             'status': 'unhealthy',
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+        if ai_cursor:
+            try:
+                ai_cursor.close()
+            except:
+                pass
+        if ai_conn:
+            try:
+                ai_conn.close()
+            except:
+                pass

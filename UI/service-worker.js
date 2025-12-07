@@ -14,8 +14,8 @@
  * - jsPDF + html2canvas (600KB)
  */
 
-const CACHE_NAME = 'ai-agents-v2.1.2-UNIVERSAL-JS';  // ✅ ALL renderers support JavaScript functions now
-const CACHE_VERSION = '2025-12-06-v25-JS-FUNCTION-SUPPORT';  // Chart.js, ApexCharts, Lottie, GSAP, Three.js all handle JS notation
+const CACHE_NAME = 'ai-agents-v2.1.3-CAD-SVG-SUPPORT';  // ✅ CAD renderer now supports both SVG (2D drawings) and JSON (3D models)
+const CACHE_VERSION = '2025-12-06-v26-CAD-DUAL-FORMAT';  // CAD can render 2D technical drawings (SVG) OR 3D models (Three.js)
 
 // Libraries to cache (loaded post-auth)
 const HEAVY_LIBRARIES = [

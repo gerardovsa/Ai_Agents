@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Block Improvements Test</title>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- Prism for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
+    <!-- Our new code block styles -->
+    <link rel="stylesheet" href="shared/css/code-blocks.css">
+
+    <!-- Code block enhancer -->
+    <script src="shared/utilities/codeBlockEnhancer.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #58a6ff;
+        }
+
+        .subtitle {
+            color: #8b949e;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: #30363d;
+            border-color: #58a6ff;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #58a6ff;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+
+        .description {
+            margin-bottom: 15px;
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #21262d;
+            border-left: 3px solid #238636;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .test-result.error {
+            border-left-color: #f85149;
+        }
+
+        /* Light theme styles */
+        [data-theme="light"] {
+            background: #ffffff;
+            color: #24292f;
+        }
+
+        [data-theme="light"] .theme-toggle {
+            background: #f6f8fa;
+            border-color: #d0d7de;
+            color: #24292f;
+        }
+
+        [data-theme="light"] .theme-toggle:hover {
+            background: #ffffff;
+            border-color: #0969da;
+        }
+
+        [data-theme="light"] h1,
+        [data-theme="light"] .section-title {
+            color: #0969da;
+        }
+
+        [data-theme="light"] .subtitle,
+        [data-theme="light"] .description {
+            color: #57606a;
+        }
+
+        [data-theme="light"] .test-result {
+            background: #f6f8fa;
+            border-left-color: #1a7f37;
+        }
+
+        [data-theme="light"] .test-result.error {
+            border-left-color: #cf222e;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-adjust"></i> Toggle Theme
+    </button>
+
+    <div class="container">
+        <h1>🎨 Code Block UI Improvements Test</h1>
+        <p class="subtitle">Testing the new code block design with language labels and copy buttons</p>
+
+        <!-- Python Example -->
+        <div class="section">
+            <h2 class="section-title">1. Python Code Block</h2>
+            <p class="description">Testing with Python syntax highlighting</p>
+
+            <pre><code class="language-python">def calculate_factorial(n):
+    """Calculate factorial recursively."""
+    if n <= 1:
+        return 1
+    return n * calculate_factorial(n - 1)
+
+# Test the function
+result = calculate_factorial(5)
+print(f"Factorial of 5 is: {result}")  # Output: 120</code></pre>
+
+            <div class="test-result">
+                ✅ <strong>Check:</strong> Language label "PYTHON" on left, copy button on right
+            </div>
+        </div>
+
+        <!-- JavaScript Example -->
+        <div class="section">
+            <h2 class="section-title">2. JavaScript Code Block</h2>
+            <p class="description">Testing with JavaScript/ES6 syntax</p>
+
+            <pre><code class="language-javascript">const fetchUserData = async (userId) => {
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        throw error;
+    }
+};
+
+// Usage
+fetchUserData(123).then(user => console.log(user));</code></pre>
+
+            <div class="test-result">
+                ✅ <strong>Check:</strong> Hover over copy button - should turn blue
+            </div>
+        </div>
+
+        <!-- SQL Example -->
+        <div class="section">
+            <h2 class="section-title">3. SQL Code Block</h2>
+            <p class="description">Testing with SQL syntax highlighting</p>
+
+            <pre><code class="language-sql">SELECT 
+    u.user_id,
+    u.username,
+    COUNT(o.order_id) as total_orders,
+    SUM(o.amount) as total_spent
+FROM users u
+LEFT JOIN orders o ON u.user_id = o.user_id
+WHERE u.active = true
+GROUP BY u.user_id, u.username
+HAVING COUNT(o.order_id) > 5
+ORDER BY total_spent DESC
+LIMIT 10;</code></pre>
+
+            <div class="test-result">
+                ✅ <strong>Check:</strong> Click copy button - icon should change to checkmark
+            </div>
+        </div>
+
+        <!-- JSON Example -->
+        <div class="section">
+            <h2 class="section-title">4. JSON Code Block</h2>
+            <p class="description">Testing with JSON syntax highlighting</p>
+
+            <pre><code class="language-json">{
+  "user": {
+    "id": 12345,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "preferences": {
+      "theme": "dark",
+      "notifications": true,
+      "language": "en-US"
+    },
+    "roles": ["user", "admin"],
+    "created_at": "2025-12-08T10:30:00Z"
+  }
+}</code></pre>
+
+            <div class="test-result">
+                ✅ <strong>Check:</strong> After copying, checkmark should revert to copy icon after 2 seconds
+            </div>
+        </div>
+
+        <!-- Code with Markdown Heading Issue -->
+        <div class="section">
+            <h2 class="section-title">5. Code with Markdown-like Content</h2>
+            <p class="description">Testing that ## inside code blocks doesn't break rendering</p>
+
+            <pre><code class="language-python">## Issue Report
+
+def analyze_data():
+    """
+    ### Methodology:
+    - Step 1: Load data
+    - Step 2: Process
+    """
+    pass
+
+# Output:
+print("## This should not become a heading ##")</code></pre>
+
+            <div class="test-result">
+                ✅ <strong>Check:</strong> The ## symbols should stay in code block, not become headings
+            </div>
+        </div>
+
+        <!-- No Language Specified -->
+        <div class="section">
+            <h2 class="section-title">6. Plain Code Block (No Language)</h2>
+            <p class="description">Testing code block without language specified</p>
+
+            <pre><code>This is plain text code
+No language specified
+Should still have copy button
+But no language label</code></pre>
+
+            <div class="test-result">
+                ✅ <strong>Check:</strong> Copy button present, no language label
+            </div>
+        </div>
+
+        <!-- Status Report -->
+        <div class="section">
+            <h2 class="section-title">📊 Component Status</h2>
+            <div id="status-report"></div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+
+            console.log(`🎨 Theme switched to: ${newTheme}`);
+        }
+
+        // Initialize code block enhancer when page loads
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Page loaded, initializing code block enhancer...');
+
+            // Wait for enhancer to be ready
+            if (window.codeBlockEnhancer) {
+                await window.codeBlockEnhancer.initialize();
+                window.codeBlockEnhancer.enhanceExistingContent();
+                console.log('✅ Code blocks enhanced');
+
+                // Check status
+                checkStatus();
+            } else {
+                console.error('❌ codeBlockEnhancer not found');
+                checkStatus();
+            }
+        });
+
+        function checkStatus() {
+            const report = document.getElementById('status-report');
+            let html = '<div style="display: grid; gap: 10px;">';
+
+            // Check if enhancer loaded
+            if (window.codeBlockEnhancer) {
+                html += '<div class="test-result">✅ CodeBlockEnhancer loaded</div>';
+                html += `<div class="test-result">✅ Initialized: ${window.codeBlockEnhancer.initialized}</div>`;
+            } else {
+                html += '<div class="test-result error">❌ CodeBlockEnhancer NOT loaded</div>';
+            }
+
+            // Check if Prism loaded
+            if (typeof Prism !== 'undefined') {
+                html += '<div class="test-result">✅ Prism.js loaded (syntax highlighting)</div>';
+            } else {
+                html += '<div class="test-result error">❌ Prism.js NOT loaded</div>';
+            }
+
+            // Check code blocks enhanced
+            const enhancedBlocks = document.querySelectorAll('.code-block-enhanced');
+            html += `<div class="test-result">✅ Enhanced blocks found: ${enhancedBlocks.length}</div>`;
+
+            // Check headers
+            const headers = document.querySelectorAll('.code-block-header');
+            html += `<div class="test-result">✅ Code block headers found: ${headers.length}</div>`;
+
+            // Check copy buttons
+            const copyButtons = document.querySelectorAll('.code-copy-btn');
+            html += `<div class="test-result">✅ Copy buttons found: ${copyButtons.length}</div>`;
+
+            // Check language labels
+            const labels = document.querySelectorAll('.code-language-label');
+            html += `<div class="test-result">✅ Language labels found: ${labels.length}</div>`;
+
+            html += '</div>';
+            report.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

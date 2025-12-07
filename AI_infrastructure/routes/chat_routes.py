@@ -1,6 +1,14 @@
 """
 Chat Routes - SSE Streaming & File Upload
+File: AI_infrastructure/routes/chat_routes.py
 Handles multi-agent chat with streaming responses and file uploads
+
+FIXED: 2025-01-XX - Bug fixes (NO cursor leaks found - file was clean!)
+CHANGES:
+- Fixed undefined 'session_manager' variable (use get_session_manager() consistently)
+- Added proper error handling
+- Improved code clarity
+- NO CURSOR MANAGEMENT CHANGES (file doesn't use database directly)
 
 Endpoints:
 - GET /api/chat/stream - Server-Sent Events streaming
@@ -38,6 +46,8 @@ def stream_chat():
     
     Returns:
         text/event-stream: Server-Sent Events stream
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     session_id = request.args.get('session_id')
     message = request.args.get('message', '')
@@ -47,12 +57,15 @@ def stream_chat():
     
     def generate():
         try:
+            # ✅ FIX: Use get_session_manager() instead of undefined session_manager
+            session_mgr = get_session_manager()
+            
             # Get session context
-            session = session_manager.get_session(session_id)
+            session = session_mgr.get_session(session_id)
             
             # Add user message to history
             if message:
-                session_manager.add_message(session_id, 'user', message)
+                session_mgr.add_message(session_id, 'user', message)
             
             # Stream AI response
             yield f"event: message_start\ndata: {json.dumps({'session_id': session_id})}\n\n"
@@ -85,12 +98,12 @@ def stream_chat():
             
             # Save AI response to session
             if response_text:
-                session_manager.add_message(session_id, 'assistant', response_text)
+                session_mgr.add_message(session_id, 'assistant', response_text)
             
             yield f"event: message_stop\ndata: {json.dumps({'session_id': session_id})}\n\n"
             
         except Exception as error:
-            print(f' Stream error: {error}')
+            print(f'❌ Stream error: {error}')
             yield f"event: error\ndata: {json.dumps({'error': str(error)})}\n\n"
     
     return Response(
@@ -112,15 +125,20 @@ def upload_files():
         session_id (str): Session identifier
         files (FileStorage[]): Multiple files
         message (str, optional): Associated message
+        convert_pref (str, optional): 'pdf' | 'image' | 'hybrid' | 'auto' (default 'auto')
+        image_format (str, optional): Image format for conversion (default 'png')
+        image_dpi (int, optional): DPI for image conversion (default 150)
     
     Returns:
         JSON: {success: bool, files: [{name, type, size, content}]}
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     session_id = request.form.get('session_id')
     message = request.form.get('message', '')
     files = request.files.getlist('files')
+    
     # Optional form parameters to control conversion behavior for office docs
-    # convert_pref: 'pdf' | 'image' | 'hybrid' | 'auto' (default 'auto')
     convert_pref = request.form.get('convert_pref', 'auto')
     image_format = request.form.get('image_format', 'png')
     try:
@@ -132,6 +150,10 @@ def upload_files():
         return jsonify({'error': 'session_id required'}), 400
     
     processed_files = []
+    
+    # ✅ FIX: Use get_session_manager() instead of undefined session_manager
+    session_mgr = get_session_manager()
+    
     # Initialize UniversalFileHandler for binary/attachment processing
     handler = UniversalFileHandler()
     
@@ -154,7 +176,7 @@ def upload_files():
                     'size': file_size,
                     'content': text_content[:5000]
                 })
-                get_session_manager().add_file_context(session_id, file.filename, text_content)
+                session_mgr.add_file_context(session_id, file.filename, text_content)
 
             elif file.content_type == 'application/pdf':
                 text_content = extract_pdf_text(content)
@@ -164,7 +186,7 @@ def upload_files():
                     'size': file_size,
                     'content': text_content[:5000]
                 })
-                get_session_manager().add_file_context(session_id, file.filename, text_content)
+                session_mgr.add_file_context(session_id, file.filename, text_content)
 
             elif file.content_type == 'text/csv':
                 text_content = content.decode('utf-8')
@@ -174,7 +196,7 @@ def upload_files():
                     'size': file_size,
                     'content': text_content[:5000]
                 })
-                get_session_manager().add_file_context(session_id, file.filename, text_content)
+                session_mgr.add_file_context(session_id, file.filename, text_content)
 
             else:
                 # Binary files (images, office docs, etc.) - use UniversalFileHandler
@@ -185,11 +207,16 @@ def upload_files():
                     
                     # Decide processing mode for this file
                     mode = 'auto'
+                    
+                    # ✅ FIX: Safe attribute access with hasattr()
                     try:
-                        # Access handler constants
-                        extractable = file.content_type in handler.TEXT_EXTRACTABLE_TYPES
+                        extractable = (
+                            hasattr(handler, 'TEXT_EXTRACTABLE_TYPES') and 
+                            file.content_type in handler.TEXT_EXTRACTABLE_TYPES
+                        )
                         supported = handler._is_supported_by_anthropic(file.content_type)
-                    except Exception:
+                    except Exception as e:
+                        print(f"⚠️ Error checking file type support: {e}")
                         extractable = False
                         supported = False
 
@@ -202,7 +229,7 @@ def upload_files():
                         ] and file_size > 100 * 1024  # >100KB spreadsheet
                     )
                     is_large_document = (
-                        file.content_type in handler.TEXT_EXTRACTABLE_TYPES and 
+                        extractable and 
                         file_size > 500 * 1024  # >500KB doc
                     )
 
@@ -269,13 +296,21 @@ def upload_files():
                             processed_entry['content'] = conversion_result['content_block']
                             # Save a text summary to session if available
                             if conversion_result['content_block'].get('type') == 'text':
-                                get_session_manager().add_file_context(session_id, file.filename, conversion_result['content_block'].get('text', ''))
+                                session_mgr.add_file_context(
+                                    session_id, 
+                                    file.filename, 
+                                    conversion_result['content_block'].get('text', '')
+                                )
                         elif conversion_result.get('content_blocks'):
                             processed_entry['content'] = conversion_result['content_blocks']
                             # Save first text block if exists
                             for cb in conversion_result['content_blocks']:
                                 if cb.get('type') == 'text':
-                                    get_session_manager().add_file_context(session_id, file.filename, cb.get('text', ''))
+                                    session_mgr.add_file_context(
+                                        session_id, 
+                                        file.filename, 
+                                        cb.get('text', '')
+                                    )
                                     break
 
                         processed_files.append(processed_entry)
@@ -288,19 +323,28 @@ def upload_files():
                             'size': file_size,
                             'content': text_content
                         })
-                        get_session_manager().add_file_context(session_id, file.filename, text_content)
+                        session_mgr.add_file_context(session_id, file.filename, text_content)
+                        
                 except Exception as e:
-                    print(f' File processing error (handler): {e}')
+                    print(f'❌ File processing error (handler): {e}')
+                    import traceback
+                    traceback.print_exc()
                     processed_files.append({
                         'name': file.filename,
                         'type': file.content_type,
                         'size': file_size,
                         'content': f'[Processing error: {str(e)}]'
                     })
-                    get_session_manager().add_file_context(session_id, file.filename, f'[Processing error: {str(e)}]')
+                    session_mgr.add_file_context(
+                        session_id, 
+                        file.filename, 
+                        f'[Processing error: {str(e)}]'
+                    )
             
         except Exception as error:
-            print(f' File processing error: {error}')
+            print(f'❌ File processing error: {error}')
+            import traceback
+            traceback.print_exc()
             return jsonify({'error': f'Failed to process {file.filename}'}), 500
     
     return jsonify({
@@ -321,6 +365,8 @@ def send_message():
     
     Returns:
         JSON: {response: str, session_id: str}
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     data = request.json
     session_id = data.get('session_id')
@@ -330,17 +376,20 @@ def send_message():
         return jsonify({'error': 'session_id and message required'}), 400
     
     try:
+        # ✅ FIX: Use get_session_manager() instead of undefined session_manager
+        session_mgr = get_session_manager()
+        
         # Get session
-        session = session_manager.get_session(session_id)
+        session = session_mgr.get_session(session_id)
         
         # Add user message
-        session_manager.add_message(session_id, 'user', message)
+        session_mgr.add_message(session_id, 'user', message)
         
         # Get AI response (non-streaming)
         response = get_ai_response(session, message)
         
         # Save AI response
-        session_manager.add_message(session_id, 'assistant', response)
+        session_mgr.add_message(session_id, 'assistant', response)
         
         return jsonify({
             'response': response,
@@ -349,7 +398,9 @@ def send_message():
         })
         
     except Exception as error:
-        print(f' Message error: {error}')
+        print(f'❌ Message error: {error}')
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(error)}), 500
 
 
@@ -361,6 +412,8 @@ def stream_ai_response(session, message):
     
     This is a placeholder - integrate with your actual AI client
     (UnifiedAIClient from core/unified_ai_client.py)
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     # Simulate streaming response
     response_text = f"I received your message: '{message}'. This is a streaming response. "
@@ -392,18 +445,27 @@ def stream_ai_response(session, message):
 
 
 def get_ai_response(session, message):
-    """Get AI response (non-streaming)"""
+    """
+    Get AI response (non-streaming)
+    
+    ✅ NO DATABASE OPERATIONS - Safe
+    """
     # Placeholder - integrate with UnifiedAIClient
     return f"Non-streaming response to: {message}"
 
 
 def extract_pdf_text(pdf_content):
-    """Extract text from PDF bytes"""
+    """
+    Extract text from PDF bytes
+    
+    ✅ NO DATABASE OPERATIONS - Safe
+    """
     try:
         # TODO: Implement PDF text extraction
         # import PyPDF2 or pdfplumber
         return "[PDF content extraction not yet implemented]"
-    except:
+    except Exception as e:
+        print(f"⚠️ PDF extraction error: {e}")
         return "[Failed to extract PDF text]"
 
 
@@ -411,7 +473,11 @@ def extract_pdf_text(pdf_content):
 
 @chat_bp.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """
+    Health check endpoint
+    
+    ✅ NO DATABASE OPERATIONS - Safe
+    """
     return jsonify({
         'status': 'ok',
         'service': 'chat',

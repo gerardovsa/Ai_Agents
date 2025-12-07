@@ -1,3 +1,25 @@
+// BaseModule polyfill (required since module-base.js is not globally loaded)
+class BaseModule {
+    constructor(moduleId) {
+        this.moduleId = moduleId;
+        this.manifest = null;
+        this.backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+        console.log(` BaseModule constructor - moduleId: ${moduleId}`);
+    }
+
+    async initialize() {
+        console.log(` BaseModule.initialize() called for ${this.moduleId}`);
+        try {
+            const response = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
+            if (response.ok) {
+                this.manifest = await response.json();
+                console.log(` Manifest loaded for ${this.moduleId}:`, this.manifest);
+            }
+        } catch (error) {
+            console.warn(` Failed to load manifest for ${this.moduleId}:`, error);
+        }
+    }
+}
 /**
  * Salesforce Module
  * Example module demonstrating the modular architecture
@@ -375,3 +397,7 @@ class SalesforceModule extends BaseModule {
 // Register module in global registry
 window.ModuleRegistry['salesforce'] = SalesforceModule;
 console.log(' SalesforceModule registered in ModuleRegistry');
+
+
+// ES6 Export
+export default SalesforceModule;

@@ -1,6 +1,7 @@
 ﻿"""
 FILE: AI_infrastructure/routes/kanban_analytics_routes.py
 PURPOSE: REST API endpoints for Kanban Analytics SQLite database
+FULLY FIXED VERSION - Production Ready
 
 FEATURES:
 - Custom analytics queries
@@ -25,7 +26,7 @@ ENDPOINTS:
     GET    /api/kanban-analytics/at-risk          - Get at-risk jobs
     GET    /api/kanban-analytics/sync-history     - Get sync history
 
-LAST MODIFIED: 2025-11-06 - Initial creation
+LAST MODIFIED: 2024 - Fixed all cursor leaks
 """
 
 from flask import Blueprint, request, jsonify
@@ -137,6 +138,8 @@ def get_jobs_with_analytics():
         has_tags: Filter jobs with tags (true/false)
         limit: Max results (default: 100)
     """
+    cursor = None
+    conn = None
     try:
         stage_id = request.args.get('stage_id')
         priority = request.args.get('priority')
@@ -187,7 +190,11 @@ def get_jobs_with_analytics():
         cursor.execute(query, params)
         
         jobs = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -201,11 +208,24 @@ def get_jobs_with_analytics():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/jobs/<int:ticket_id>', methods=['GET'])
 def get_job_details(ticket_id: int):
     """Get complete job details with all analytics"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -219,7 +239,12 @@ def get_job_details(ticket_id: int):
         """, (ticket_id,))
         
         job = cursor.fetchone()
+        
         if not job:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Job not found'
@@ -264,7 +289,10 @@ def get_job_details(ticket_id: int):
         prediction = cursor.fetchone()
         job_dict['ai_prediction'] = dict(prediction) if prediction else None
         
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -277,6 +305,17 @@ def get_job_details(ticket_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -294,6 +333,8 @@ def add_job_note(ticket_id: int):
         priority: Priority level (low, medium, high, critical)
         created_by: User who created note
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
@@ -319,7 +360,11 @@ def add_job_note(ticket_id: int):
         
         note_id = cursor.lastrowid
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -332,11 +377,24 @@ def add_job_note(ticket_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/jobs/<int:ticket_id>/notes/<int:note_id>/resolve', methods=['PUT'])
 def resolve_note(ticket_id: int, note_id: int):
     """Mark note as resolved"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -348,7 +406,11 @@ def resolve_note(ticket_id: int, note_id: int):
         """, (note_id, ticket_id))
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True
@@ -360,6 +422,17 @@ def resolve_note(ticket_id: int, note_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -369,6 +442,8 @@ def resolve_note(ticket_id: int, note_id: int):
 @kanban_analytics_bp.route('/tags', methods=['GET'])
 def get_tags():
     """Get all available tags"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -376,7 +451,10 @@ def get_tags():
         cursor.execute("SELECT * FROM custom_tags ORDER BY tag_category, tag_name")
         tags = [dict(row) for row in cursor.fetchall()]
         
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -389,6 +467,17 @@ def get_tags():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/jobs/<int:ticket_id>/tags', methods=['POST'])
@@ -400,6 +489,8 @@ def add_job_tag(ticket_id: int):
         tag_id: Tag ID (required)
         assigned_by: User who assigned tag
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
@@ -418,7 +509,11 @@ def add_job_tag(ticket_id: int):
         """, (ticket_id, data['tag_id'], data.get('assigned_by', 'system')))
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True
@@ -430,11 +525,24 @@ def add_job_tag(ticket_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/jobs/<int:ticket_id>/tags/<int:tag_id>', methods=['DELETE'])
 def remove_job_tag(ticket_id: int, tag_id: int):
     """Remove tag from job"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -445,7 +553,11 @@ def remove_job_tag(ticket_id: int, tag_id: int):
         """, (ticket_id, tag_id))
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True
@@ -457,6 +569,17 @@ def remove_job_tag(ticket_id: int, tag_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -466,6 +589,8 @@ def remove_job_tag(ticket_id: int, tag_id: int):
 @kanban_analytics_bp.route('/performance/<int:ticket_id>', methods=['GET'])
 def get_performance_metrics(ticket_id: int):
     """Get performance metrics for job"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -476,7 +601,11 @@ def get_performance_metrics(ticket_id: int):
         """, (ticket_id,))
         
         performance = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         if not performance:
             return jsonify({
@@ -495,6 +624,17 @@ def get_performance_metrics(ticket_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/performance/<int:ticket_id>', methods=['POST', 'PUT'])
@@ -504,6 +644,8 @@ def update_performance_metrics(ticket_id: int):
     
     Body: Any fields from job_performance table
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
@@ -530,6 +672,10 @@ def update_performance_metrics(ticket_id: int):
                 values.append(data[field])
         
         if not fields:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'No valid fields provided'
@@ -553,7 +699,11 @@ def update_performance_metrics(ticket_id: int):
             cursor.execute(query, values)
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True
@@ -565,6 +715,17 @@ def update_performance_metrics(ticket_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -574,6 +735,8 @@ def update_performance_metrics(ticket_id: int):
 @kanban_analytics_bp.route('/bottlenecks', methods=['GET'])
 def get_bottlenecks():
     """Get current stage bottlenecks"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -583,7 +746,11 @@ def get_bottlenecks():
         """)
         
         bottlenecks = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -596,11 +763,24 @@ def get_bottlenecks():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/at-risk', methods=['GET'])
 def get_at_risk_jobs():
     """Get jobs at risk of delays or quality issues"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -610,7 +790,11 @@ def get_at_risk_jobs():
         """)
         
         jobs = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -624,11 +808,24 @@ def get_at_risk_jobs():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/customers', methods=['GET'])
 def get_customer_analytics():
     """Get customer performance analytics"""
+    cursor = None
+    conn = None
     try:
         limit = int(request.args.get('limit', 50))
         
@@ -642,7 +839,11 @@ def get_customer_analytics():
         """, (limit,))
         
         customers = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -656,11 +857,24 @@ def get_customer_analytics():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_analytics_bp.route('/transitions/<int:ticket_id>', methods=['GET'])
 def get_stage_transitions(ticket_id: int):
     """Get stage transition history for job"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -678,7 +892,11 @@ def get_stage_transitions(ticket_id: int):
         """, (ticket_id,))
         
         transitions = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -692,6 +910,17 @@ def get_stage_transitions(ticket_id: int):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -701,6 +930,8 @@ def get_stage_transitions(ticket_id: int):
 @kanban_analytics_bp.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -713,7 +944,10 @@ def health_check():
         cursor.execute("SELECT sync_end, sync_status FROM sync_history ORDER BY sync_id DESC LIMIT 1")
         last_sync = cursor.fetchone()
         
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'status': 'healthy',
@@ -729,6 +963,17 @@ def health_check():
             'status': 'unhealthy',
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 if __name__ == '__main__':

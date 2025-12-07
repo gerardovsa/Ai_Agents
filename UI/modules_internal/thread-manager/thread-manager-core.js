@@ -589,7 +589,9 @@ const ThreadManager = {
             // If we have a sessionId, prefer authoritative data from the backend
             if (sessionId) {
                 try {
-                    const resp = await fetch(`${ThreadManager.apiBaseUrl}/api/synergy/${encodeURIComponent(sessionId)}`);
+                    // Include user_id for permission check
+                    const userId = window.currentUserId || window.UserAuth?.user?.id || 14;
+                    const resp = await fetch(`${ThreadManager.apiBaseUrl}/api/synergy/${encodeURIComponent(sessionId)}?user_id=${userId}`);
                     if (resp && resp.ok) {
                         const json = await resp.json();
                         if (json && json.success && json.session) {
@@ -843,7 +845,7 @@ const ThreadManager = {
                 const synergyId = synergyBadge.getAttribute('data-synergy-id');
                 if (synergyId) {
                     console.log('[Agent Badge] Opening Synergy session:', synergyId);
-                    
+
                     // Use modern popup modal if available, otherwise fallback to popOutCard
                     if (window.synergyPopupModal && typeof window.synergyPopupModal.open === 'function') {
                         window.synergyPopupModal.open(synergyId);
@@ -857,7 +859,7 @@ const ThreadManager = {
                         console.error('[Agent Badge] Synergy popup methods not available');
                         alert('Synergy popup not loaded. Please refresh the page.');
                     }
-                    
+
                     // Close agent tooltip
                     const agentTooltip = document.querySelector('.agent-badge-tooltip');
                     if (agentTooltip) {

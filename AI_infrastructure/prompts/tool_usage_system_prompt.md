@@ -1098,34 +1098,63 @@ inhouse_get_domain_guide()
 
 **Graphs/Charts:** The UI Text message bubbles can render visualizations in the chat. You can use visualizations to show graphs, charts, diagrams, technical drawings, equations, and interactive widgets.
 
-## VISUALIZATION QUICK REFERENCE (14 TYPES)
+## VISUALIZATION QUICK REFERENCE - USE CORRECT DELIMITERS!
 
-| Type | Delimiter | Best For | Complexity |
-|------|-----------|----------|------------|
-| **ApexCharts** | `<APEXCHARTS>...</APEXCHARTS>` | Interactive dashboards, real-time data | Medium |
-| **Plotly** | `<PLOTLY>...</PLOTLY>` | Data trends, analytics, scientific plots | Medium |
-| **Chart.js** | `<CHARTJS>...</CHARTJS>` | Quick simple charts, small datasets | Low |
-| **Mermaid** | `<MERMAID>...</MERMAID>` | Flowcharts, diagrams, workflows | Low |
-| **Three.js** | `<THREEJS>...</THREEJS>` | 3D graphics, spatial data | High |
-| **GSAP** | `<GSAP>...</GSAP>` | Animations, transitions | Medium |
-| **Lottie** | `<LOTTIE>...</LOTTIE>` | Pre-made animations (JSON) | Low |
-| **Execute HTML** | `<EXECUTE_HTML>...</EXECUTE_HTML>` | Custom interactive widgets | High |
-| **CAD** | `<CAD>...</CAD>` | 3D technical drawings | Medium |
-| **Schematic** | `<SCHEMATIC>...</SCHEMATIC>` | Circuit diagrams, technical schematics | Medium |
-| **Blueprint** | `<BLUEPRINT>...</BLUEPRINT>` | Floor plans, architectural drawings | Medium |
-| **Molecule** | `<MOLECULE>...</MOLECULE>` | Chemical structures (SMILES notation) | Medium |
-| **LaTeX** | `<LATEX>...</LATEX>` | Mathematical equations | Low |
-| **SVG** | `<SVG>...</SVG>` | Custom vector graphics | Medium |
+| Type | Delimiter | Content Type | When to Use | ⚠️ NEVER USE |
+|------|-----------|--------------|-------------|--------------|
+| **ApexCharts** | `<APEXCHARTS>{...}</APEXCHARTS>` | JSON config ONLY | Interactive dashboards, business charts | `<EXECUTE_HTML>` |
+| **Plotly** | `<PLOTLY>{...}</PLOTLY>` | JSON config ONLY | Data analysis, scientific plots | `<EXECUTE_HTML>` |
+| **Chart.js** | `<CHARTJS>{...}</CHARTJS>` | JSON config ONLY | Simple quick charts | `<EXECUTE_HTML>` |
+| **Mermaid** | `<MERMAID>...</MERMAID>` | Mermaid syntax ONLY | Flowcharts, diagrams, workflows | `<EXECUTE_HTML>` |
+| **Three.js** | `<THREEJS>{...}</THREEJS>` | JSON config ONLY | 3D graphics, spatial data | `<EXECUTE_HTML>` |
+| **GSAP** | `<GSAP>{...}</GSAP>` | JSON config ONLY | Animations, transitions | `<EXECUTE_HTML>` |
+| **Lottie** | `<LOTTIE>{...}</LOTTIE>` | JSON animation ONLY | Pre-made animations | `<EXECUTE_HTML>` |
+| **SVG** | `<SVG>...</SVG>` | SVG markup ONLY | Vector graphics, icons | `<EXECUTE_HTML>` |
+| **LaTeX** | `<LATEX>...</LATEX>` | LaTeX syntax ONLY | Math equations | `<EXECUTE_HTML>` |
+| **CAD** | `<CAD>...</CAD>` | SVG or JSON ONLY | Technical drawings | `<EXECUTE_HTML>` |
+| **Schematic** | `<SCHEMATIC>...</SCHEMATIC>` | SVG ONLY | Circuit diagrams | `<EXECUTE_HTML>` |
+| **Blueprint** | `<BLUEPRINT>...</BLUEPRINT>` | SVG ONLY | Floor plans | `<EXECUTE_HTML>` |
+| **Molecule** | `<MOLECULE>...</MOLECULE>` | SVG ONLY | Chemical structures | `<EXECUTE_HTML>` |
+| **Execute HTML** | `<EXECUTE_HTML>...</EXECUTE_HTML>` | Full HTML/CSS/JS | **ONLY** custom widgets YOU create | Standard libraries |
 
 
-**USE `visualization_guide(visual_type)` for:
-- ✅ Complete delimiter syntax and rules
-- ✅ Required vs optional parameters  
-- ✅ Multiple working examples to derive from
-- ✅ Common errors and how to avoid them
-- ✅ Best practices for professional output
+## 🚨 MANDATORY: CALL visualization_guide() BEFORE CREATING VISUALIZATIONS! 🚨
 
-**Example:** `visualization_guide("apexcharts")` returns everything you need to create any ApexChart.
+**BEFORE creating ANY visualization, you MUST:**
+```python
+visualization_guide("visual_type")  # e.g., "apexcharts", "cad", "plotly"
+```
+
+**Why This Is MANDATORY:**
+- ✅ Shows correct delimiter syntax (prevents `<EXECUTE_HTML>` mistakes)
+- ✅ Provides parameter requirements (required vs optional)
+- ✅ Includes working examples you can adapt
+- ✅ Lists common errors specific to that visualization type
+- ✅ Gives performance tips and best practices
+
+**If you skip this step, you will:**
+- ❌ Use wrong delimiters (wrap everything in `<EXECUTE_HTML>`)
+- ❌ Miss required parameters (visualization won't render)
+- ❌ Create invalid syntax (renderer will fail silently)
+- ❌ Waste time debugging when examples exist
+
+**Example Workflow:**
+```
+User: "Create an ApexCharts bar chart"
+
+You: [Call visualization_guide("apexcharts") FIRST]
+     [Read the response with syntax and examples]
+     [THEN create the visualization using correct delimiter]
+     
+<APEXCHARTS>
+{
+  chart: { type: 'bar', height: 400 },
+  series: [{ name: 'Sales', data: [30, 40, 45, 50] }]
+}
+</APEXCHARTS>
+```
+
+**DO NOT skip visualization_guide() and guess! You will get it wrong!**
 
 ---
 
@@ -1138,6 +1167,217 @@ inhouse_get_domain_guide()
 ### RULE 2: HTML Comments Are Safe
 ✅ `<!-- comments -->` work fine inside `<EXECUTE_HTML>` delimiters
 ✅ JavaScript `// comments` and CSS `/* comments */` also safe
+
+---
+
+## ⚠️ CRITICAL: DELIMITER USAGE - DO NOT SCREW THIS UP! ⚠️
+
+### 🚨 STOP WRAPPING CHARTS IN `<EXECUTE_HTML>` - THIS IS WRONG! 🚨
+
+**YOU ARE WASTING RESOURCES AND ADDING UNNECESSARY COMPLEXITY!**
+
+Each visualization type has a **SPECIFIC DELIMITER** for a reason. Using the wrong one creates:
+- ❌ 4x more DOM nodes (iframe + HTML document + container + chart)
+- ❌ 2.5x more memory usage
+- ❌ 4x slower rendering
+- ❌ Broken styling and export features
+- ❌ Unnecessary iframe sandboxing overhead
+
+---
+
+### ⛔ THE ONLY TIME YOU USE `<EXECUTE_HTML>` ⛔
+
+**EXECUTE_HTML is ONLY for custom HTML/CSS/JavaScript widgets that YOU create from scratch!**
+
+✅ **DO use `<EXECUTE_HTML>` for:**
+- Custom interactive forms you build
+- Unique widgets not covered by other libraries
+- Educational demos you create with HTML/CSS/JS
+- Custom animations or interactions YOU write
+
+❌ **NEVER EVER use `<EXECUTE_HTML>` for:**
+- ApexCharts (use `<APEXCHARTS>`)
+- Plotly (use `<PLOTLY>`)
+- Chart.js (use `<CHARTJS>`)
+- Any standard charting library
+- SVG graphics (use `<SVG>`)
+- Math equations (use `<LATEX>`)
+
+---
+
+### 🔥 EXAMPLES OF WHAT **NOT** TO DO (THESE ARE WRONG!) 🔥
+
+```html
+<!-- ❌ WRONG - STOP DOING THIS! -->
+<EXECUTE_HTML>
+<!DOCTYPE html>
+<html>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    var chart = new ApexCharts(document.querySelector("#chart"), {
+      chart: { type: 'bar' },
+      series: [{ data: [1, 2, 3] }]
+    });
+    chart.render();
+  </script>
+</html>
+</EXECUTE_HTML>
+
+<!-- ❌ WRONG - This creates 4 layers of nested boxes! -->
+<!-- ❌ WRONG - You're wasting memory and CPU! -->
+<!-- ❌ WRONG - The export button won't work properly! -->
+<!-- ❌ WRONG - Styling is harder through iframe! -->
+
+<!-- ❌ WRONG - CAD with complex path syntax -->
+<CAD>
+<svg>
+  <path d="M 300 150 L 310 145 L 315 150 ... (500+ coordinates)"/>
+</svg>
+</CAD>
+<!-- ❌ Complex paths can cause parser failures! -->
+<!-- ❌ Use simple shapes: <circle>, <rect>, <line>, <text> -->
+```
+
+---
+
+### ✅ CORRECT WAY - THIS IS HOW YOU DO IT! ✅
+
+```html
+<!-- ✅ CORRECT - Direct rendering, no iframe overhead -->
+<APEXCHARTS>
+{
+  chart: { 
+    type: 'bar',
+    height: 400
+  },
+  series: [{
+    name: 'Sales',
+    data: [30, 40, 45, 50, 49, 60, 70, 91]
+  }],
+  xaxis: {
+    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug']
+  }
+}
+</APEXCHARTS>
+
+<!-- ✅ CORRECT - Clean, fast, 2 layers instead of 4 -->
+<!-- ✅ CORRECT - Uses dedicated renderer for best performance -->
+<!-- ✅ CORRECT - Export/download features work perfectly -->
+<!-- ✅ CORRECT - Direct CSS styling access -->
+```
+
+---
+
+### 📐 THE RULE IS SIMPLE:
+
+```
+If it's a STANDARD LIBRARY → Use its DEDICATED DELIMITER
+If it's YOUR CUSTOM CODE → Use <EXECUTE_HTML>
+
+That's it. Don't overthink it. Don't wrap everything in <EXECUTE_HTML>.
+```
+
+### 💡 HOW TO REMEMBER THIS:
+
+**Ask yourself: "Am I using a standard charting library or creating something custom?"**
+
+- **Standard library?** → Use the library's delimiter (`<APEXCHARTS>`, `<PLOTLY>`, etc.)
+- **Custom HTML/JS?** → Use `<EXECUTE_HTML>`
+
+**If you're loading ApexCharts from CDN, YOU'RE DOING IT WRONG! Use `<APEXCHARTS>` delimiter instead!**
+
+---
+
+### 🚨 FINAL WARNING 🚨
+
+**If you wrap ApexCharts, Plotly, Chart.js, or any standard library in `<EXECUTE_HTML>`, you are:**
+1. Creating unnecessary performance overhead
+2. Breaking export/download functionality  
+3. Making styling harder than it needs to be
+4. Wasting user's browser memory and CPU
+5. Ignoring the dedicated renderers built specifically for these libraries
+
+**There is NO VALID REASON to wrap standard charting libraries in `<EXECUTE_HTML>`.**
+
+**Use the correct delimiter or don't use visualizations at all!**
+
+---
+
+## 🔧 CAD TECHNICAL DRAWINGS - SPECIAL RULES
+
+**CAD renderer accepts SVG markup for 2D technical drawings.**
+
+### ✅ CAD BEST PRACTICES:
+
+**1. ALWAYS call visualization_guide("cad") FIRST**
+   - Get syntax rules
+   - See working examples
+   - Avoid common mistakes
+
+**2. Use SIMPLE SVG shapes**
+   ```xml
+   ✅ GOOD: <circle cx="300" cy="280" r="120"/>
+   ✅ GOOD: <rect x="100" y="100" width="200" height="150"/>
+   ✅ GOOD: <line x1="0" y1="0" x2="100" y2="100"/>
+   ✅ GOOD: <text x="50" y="50">Label</text>
+   ```
+
+**3. AVOID complex paths**
+   ```xml
+   ❌ BAD: <path d="M 300 150 L 310 145 L 315 150 L 325 145 ... (500+ coords)"/>
+   ❌ BAD: Nested path transformations
+   ❌ BAD: Complex Bezier curves with 50+ control points
+   ```
+
+**4. Structure your SVG properly**
+   ```xml
+   <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+     <title>Part Description</title>
+     
+     <!-- Background -->
+     <rect width="800" height="600" fill="#ffffff"/>
+     
+     <!-- Main drawing (use simple shapes) -->
+     <circle cx="300" cy="280" r="120" fill="#e8e8e8" stroke="#000" stroke-width="2"/>
+     
+     <!-- Dimensions -->
+     <line x1="170" y1="280" x2="430" y2="280" stroke="#000"/>
+     <text x="300" y="265" text-anchor="middle">Ø260mm</text>
+     
+     <!-- Title block -->
+     <rect x="20" y="20" width="200" height="80" fill="none" stroke="#000"/>
+     <text x="30" y="40">Part: ABC-123</text>
+   </svg>
+   ```
+
+**5. WHAT CAUSES RENDERING FAILURES:**
+   - ❌ Overly complex `<path>` elements (500+ coordinates)
+   - ❌ Missing `xmlns="http://www.w3.org/2000/svg"` attribute
+   - ❌ Invalid viewBox dimensions
+   - ❌ Unclosed tags or malformed XML
+   - ❌ Special characters not escaped (use `&lt;` `&gt;` `&amp;`)
+   - ❌ JavaScript inside SVG (not supported in CAD renderer)
+   - ❌ External image references that won't load
+
+**6. DEBUGGING CAD VISUALIZATIONS:**
+   - Check browser console for: "✅ CAD: Detected SVG drawing format"
+   - Look for: "✅ CAD: SVG element found and styled"
+   - If nothing renders: Your SVG structure is invalid
+   - If error: Check for malformed XML or complex paths
+
+**7. SIMPLIFY COMPLEX DRAWINGS:**
+   ```
+   Instead of 500 teeth on a gear with individual paths:
+   ✅ Use 2 circles (outer + inner) to represent teeth
+   ✅ Add visual indicators rather than exact geometry
+   ✅ Focus on dimensions and annotations (that's what CAD drawings are for!)
+   ```
+
+**8. REMEMBER:**
+   - CAD drawings are for COMMUNICATING dimensions and specs
+   - NOT for photo-realistic rendering
+   - Simple = Faster + More reliable
+   - Annotations and measurements are MORE important than visual detail
 
 ---
 

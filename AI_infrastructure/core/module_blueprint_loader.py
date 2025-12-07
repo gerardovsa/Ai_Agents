@@ -3,7 +3,8 @@ Module Blueprint Loader - Auto-discovers and registers Flask blueprints from UI 
 
 This enables plug-and-play Flask routes:
 - Drop a module with routes/ folder → Flask routes automatically available
-- Remove module → Flask routes automatically disappear
+- Module with manifest.json → Frontend UI also auto-registered
+- Remove module → Flask routes AND frontend automatically disappear
 - No manual blueprint registration required
 
 Architecture:
@@ -14,23 +15,27 @@ Architecture:
     Discovers: UI/modules_external/*/routes/
         ↓
     Imports and registers blueprints automatically
+        ↓
+    Checks for manifest.json → Registers with ModuleRegistry (frontend)
 
 FILE: AI_infrastructure/core/module_blueprint_loader.py
-PURPOSE: Auto-discover and register Flask blueprints from UI modules
+PURPOSE: Auto-discover and register Flask blueprints AND frontend modules
 DEPENDENCIES:
 - Flask app instance
 - UI/modules_external/*/routes/*.py files
+- UI/modules_external/*/manifest.json (optional, for frontend integration)
 
 EXPORTS:
 - load_module_blueprints(app) - Main function to load all module blueprints
 
-LAST MODIFIED: 2025-11-04 - Initial creation
+LAST MODIFIED: 2025-12-07 - Added frontend integration via ModuleRegistry
 """
 
 import sys
 import importlib.util
+import json
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Optional
 from flask import Flask, Blueprint
 
 import logging
@@ -38,16 +43,40 @@ logger = logging.getLogger(__name__)
 
 
 class ModuleBlueprintLoader:
-    """Loads Flask blueprints from self-contained UI module folders"""
+    """Loads Flask blueprints from self-contained UI module folders AND registers frontend modules"""
     
     def __init__(self, app: Flask):
         self.app = app
         self.root_dir = Path(__file__).parent.parent.parent
         self.modules_dir = self.root_dir / "UI" / "modules_external"
         self.loaded_blueprints = []
+        self.registered_modules = []  # Track modules registered with ModuleRegistry
         
         logger.info(f"🔌 [Module Blueprints] Initialized")
         logger.info(f"   Modules directory: {self.modules_dir}")
+    
+    def load_manifest(self, module_id: str) -> Optional[Dict]:
+        """
+        Load manifest.json for a module (if exists)
+        
+        Args:
+            module_id: Module folder name
+            
+        Returns:
+            Manifest dict or None if not found
+        """
+        manifest_path = self.modules_dir / module_id / "manifest.json"
+        
+        if not manifest_path.exists():
+            return None
+            
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+                return manifest
+        except Exception as e:
+            logger.warning(f"  ⚠️  [{module_id}] Failed to load manifest.json: {e}")
+            return None
     
     def discover_modules_with_routes(self) -> List[str]:
         """
@@ -140,6 +169,108 @@ class ModuleBlueprintLoader:
         
         return blueprints
     
+    def register_with_module_registry(self, module_id: str, manifest: Dict) -> None:
+        """
+        Register module with ModuleRegistry for frontend integration
+        
+        This ensures modules with routes/ folders also get proper frontend UI
+        integration (tab containers, sidebar buttons, etc.)
+        
+        Args:
+            module_id: Module folder name
+            manifest: Module manifest dict
+        """
+        try:
+            from AI_infrastructure.core.module_registry import get_module_registry, ModuleManifest
+            
+            registry = get_module_registry()
+            
+            # Check if module already registered (avoid duplicates)
+            if module_id in registry.modules:
+                logger.debug(f"  ℹ️  [{module_id}] Already registered with ModuleRegistry")
+                return
+            
+            # Extract file paths (support both root-level and files.* object)
+            files_obj = manifest.get('files', {})
+            paths_obj = manifest.get('paths', {})
+            
+            js_file = manifest.get('js_file') or files_obj.get('js')
+            css_file = manifest.get('css_file') or files_obj.get('css')
+            html_file = manifest.get('html_file') or files_obj.get('html')
+            
+            scriptPath = manifest.get('scriptPath') or paths_obj.get('script') or paths_obj.get('js')
+            stylePath = manifest.get('stylePath') or paths_obj.get('style') or paths_obj.get('css')
+            htmlPath = manifest.get('htmlPath') or paths_obj.get('html')
+            
+            # Extract capabilities for dashboard/sidebar integration
+            capabilities = manifest.get('capabilities', {})
+            dashboard_cap = capabilities.get('dashboard', {})
+            sidebar_cap = capabilities.get('sidebar', {})
+            
+            # Determine main_tab settings
+            main_tab = dashboard_cap.get('enabled', False)
+            main_tab_id = dashboard_cap.get('tab_id') or manifest.get('id')
+            
+            # Extract dependencies
+            dependencies_raw = manifest.get('dependencies', [])
+            raw_dependencies_obj = dependencies_raw if isinstance(dependencies_raw, dict) else None
+            
+            if isinstance(dependencies_raw, dict):
+                module_deps = dependencies_raw.get('modules', [])
+            elif isinstance(dependencies_raw, list):
+                module_deps = dependencies_raw
+            else:
+                module_deps = []
+            
+            # Create ModuleManifest object
+            module_path = self.modules_dir / module_id
+            module_manifest = ModuleManifest(
+                id=manifest['id'],
+                name=manifest['name'],
+                version=manifest.get('version', '1.0.0'),
+                description=manifest.get('description', ''),
+                icon=manifest.get('icon', 'fa-puzzle-piece'),
+                color=manifest.get('color', manifest.get('colors', {}).get('primary', '#6B7280')),
+                html_file=html_file,
+                js_file=js_file,
+                css_file=css_file,
+                htmlPath=htmlPath,
+                scriptPath=scriptPath,
+                stylePath=stylePath,
+                required_platforms=manifest.get('required_platforms', []),
+                optional_platforms=manifest.get('optional_platforms', []),
+                sidebar_position=sidebar_cap.get('side', 'right'),
+                sidebar_width=int(sidebar_cap.get('width', '450px').replace('px', '')),
+                auto_load=manifest.get('auto_load', False),
+                requires_auth=manifest.get('requires_auth', True),
+                show_in_sidebar=sidebar_cap.get('enabled', True),
+                floating_toggle=sidebar_cap.get('toggle_button', {}).get('enabled', False),
+                floating_toggle_position=sidebar_cap.get('toggle_button', {}).get('position', 'right'),
+                floating_toggle_default_top=sidebar_cap.get('toggle_button', {}).get('default_top', 280),
+                main_tab=main_tab,
+                main_tab_id=main_tab_id,
+                dependencies=module_deps,
+                raw_dependencies=raw_dependencies_obj,
+                api_routes=manifest.get('api_routes', []),
+                features=manifest.get('features', {}),
+                thread_card_integration=manifest.get('thread_card_integration'),
+                loading=manifest.get('loading'),
+                module_path=str(module_path)
+            )
+            
+            # Register module directly with registry
+            registry.modules[module_id] = module_manifest
+            registry.module_paths[module_id] = str(module_path)
+            registry.dependency_graph[module_id] = set(module_manifest.dependencies)
+            
+            self.registered_modules.append(module_id)
+            logger.info(f"  ✅ [{module_id}] Registered with ModuleRegistry (frontend integration enabled)")
+            
+        except Exception as e:
+            logger.warning(f"  ⚠️  [{module_id}] Failed to register with ModuleRegistry: {e}")
+            logger.debug(f"       Error details: {e}", exc_info=True)
+            # Non-fatal - backend routes still work
+    
     def register_blueprint(self, blueprint: Blueprint, module_id: str) -> None:
         """
         Register a blueprint with the Flask app
@@ -162,7 +293,7 @@ class ModuleBlueprintLoader:
     
     def load_all(self) -> int:
         """
-        Load and register all module blueprints
+        Load and register all module blueprints + frontend integration
         
         Returns:
             Number of blueprints loaded
@@ -178,15 +309,24 @@ class ModuleBlueprintLoader:
         total_blueprints = 0
         
         for module_id in modules:
+            # Load manifest (if exists)
+            manifest = self.load_manifest(module_id)
+            
+            # Load and register Flask blueprints (backend)
             blueprints = self.load_module_blueprints(module_id)
             
             for blueprint in blueprints:
                 self.register_blueprint(blueprint, module_id)
                 total_blueprints += 1
+            
+            # If module has manifest, register with ModuleRegistry (frontend)
+            if manifest:
+                self.register_with_module_registry(module_id, manifest)
         
         logger.info(f"\n✅ [Module Blueprints] Summary:")
         logger.info(f"   Modules loaded: {len(modules)}")
-        logger.info(f"   Blueprints registered: {total_blueprints}")
+        logger.info(f"   Blueprints registered (backend): {total_blueprints}")
+        logger.info(f"   Modules registered (frontend): {len(self.registered_modules)}")
         
         return total_blueprints
     

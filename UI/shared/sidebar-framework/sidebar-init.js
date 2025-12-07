@@ -133,11 +133,25 @@
             onInit: async () => {
                 console.log('[VECTOR DATABASE] First open - loading HTML...');
                 const container = document.getElementById('vector-database');
+                console.log('[VECTOR DATABASE] Container element:', container);
+                console.log('[VECTOR DATABASE] Container innerHTML length:', container ? container.innerHTML.length : 'N/A');
+                
                 if (container && !container.querySelector('#vector-db-sidebar')) {
                     try {
+                        console.log('[VECTOR DATABASE] Fetching HTML from /modules_internal/vector_database/vector_database.html');
                         const response = await fetch('/modules_internal/vector_database/vector_database.html');
+                        console.log('[VECTOR DATABASE] Fetch response status:', response.status, response.statusText);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
                         const html = await response.text();
+                        console.log('[VECTOR DATABASE] Fetched HTML length:', html.length);
+                        console.log('[VECTOR DATABASE] HTML preview:', html.substring(0, 200));
+                        
                         container.innerHTML = html;
+                        console.log('[VECTOR DATABASE] HTML inserted into container');
 
                         // Load CSS
                         if (!document.getElementById('vector-db-styles')) {

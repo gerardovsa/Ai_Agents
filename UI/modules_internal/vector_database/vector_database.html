@@ -78,6 +78,26 @@
             </button>
         </div>
 
+        <!-- PROVIDER SELECTOR -->
+        <div
+            style="margin: 12px 16px; padding: 12px; background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <label
+                style="display: block; font-weight: 700; font-size: 12px; color: #FFFFFF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                <i class="fas fa-database"></i> Vector Database Provider
+            </label>
+            <select id="provider-selector"
+                style="width: 100%; padding: 10px 12px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600; color: #1F2937; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <option value="pinecone">🌲 Pinecone (Cloud - $70/mo)</option>
+                <option value="voyager">🚀 Voyager (Cloud - Pay-per-use)</option>
+                <option value="pgvector">🐘 pgvector (Supabase - FREE)</option>
+                <option value="qdrant">⚡ Qdrant (Server-based - FREE)</option>
+            </select>
+            <div id="provider-info"
+                style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; font-size: 11px; color: #FFFFFF; line-height: 1.5;">
+                <strong>Pinecone:</strong> Cloud-managed, 150ms latency, enterprise-grade
+            </div>
+        </div>
+
         <!-- TAB NAVIGATION -->
         <div class="vector-db-tabs">
             <button class="vector-db-tab active" data-tab="upload" onclick="window.vectorDbSidebar.switchTab('upload')">
@@ -86,12 +106,179 @@
             <button class="vector-db-tab" data-tab="documents" onclick="window.vectorDbSidebar.switchTab('documents')">
                 <i class="fas fa-file-alt"></i> Documents
             </button>
+            <button class="vector-db-tab" data-tab="qdrant" onclick="window.vectorDbSidebar.switchTab('qdrant')"
+                style="display: none;">
+                <i class="fas fa-server"></i> Qdrant
+            </button>
         </div>
     </div>
 
     <!-- CONTENT AREA -->
     <div class="vector-db-sidebar-content">
         <!-- CREDENTIALS TAB REMOVED - NOW MANAGED VIA PLATFORM CONNECTIONS -->
+
+        <!-- TAB 0: QDRANT CONFIGURATION (shown when Qdrant is selected) -->
+        <div id="qdrant-tab" class="tab-content" style="display: none;">
+            <div class="qdrant-config-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-server"></i> Qdrant Setup
+                    </div>
+                </div>
+
+                <!-- DEPLOYMENT TYPE SELECTOR -->
+                <div style="margin-bottom: 20px;">
+                    <label
+                        style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 8px;">
+                        Deployment Type
+                    </label>
+                    <select id="qdrant-deployment-type"
+                        style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                        <option value="customer-server">🖥️ Customer Server (Docker - FREE, 1-5ms)</option>
+                        <option value="valor-cloud">☁️ Valor Cloud (Render - FREE, 100-150ms)</option>
+                        <option value="qdrant-cloud">🌐 Qdrant Cloud (Managed - $25-99/mo, 50-100ms)</option>
+                    </select>
+                    <div id="deployment-info"
+                        style="margin-top: 8px; padding: 10px; background: #F3F4F6; border-radius: 4px; font-size: 12px; color: #6B7280; line-height: 1.5;">
+                        <strong>Customer Server:</strong> Deploy Qdrant on your hardware via Docker. Full control,
+                        unlimited storage, lowest latency.
+                    </div>
+                </div>
+
+                <!-- DOCKER DEPLOYMENT WIZARD -->
+                <div id="docker-wizard" style="display: block;">
+                    <div
+                        style="padding: 16px; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <i class="fas fa-rocket" style="font-size: 24px; color: #FFFFFF;"></i>
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px; color: #FFFFFF;">Docker Deployment Wizard
+                                </div>
+                                <div style="font-size: 11px; color: rgba(255,255,255,0.9);">AI agent will deploy Qdrant
+                                    on your server</div>
+                            </div>
+                        </div>
+                        <button id="deploy-docker-btn"
+                            style="width: 100%; padding: 12px; background: #FFFFFF; color: #2563EB; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-terminal"></i> Deploy Qdrant Docker Container
+                        </button>
+                    </div>
+
+                    <div id="docker-commands"
+                        style="display: none; padding: 12px; background: #1F2937; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #10B981; margin-bottom: 16px; max-height: 300px; overflow-y: auto;">
+                        <!-- Docker commands will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- CONNECTION SETTINGS -->
+                <div id="qdrant-connection-settings" style="display: block;">
+                    <div style="margin-bottom: 12px;">
+                        <label
+                            style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
+                            Host <span style="color: #EF4444;">*</span>
+                        </label>
+                        <input type="text" id="qdrant-host" placeholder="localhost or 192.168.1.100" value="localhost"
+                            style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label
+                            style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
+                            Port <span style="color: #EF4444;">*</span>
+                        </label>
+                        <input type="number" id="qdrant-port" placeholder="6333" value="6333"
+                            style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label
+                            style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
+                            API Key <span style="font-weight: 400; color: #6B7280;">(optional)</span>
+                        </label>
+                        <input type="password" id="qdrant-api-key"
+                            placeholder="Enter API key if authentication is enabled"
+                            style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                    </div>
+
+                    <button id="test-qdrant-connection-btn"
+                        style="width: 100%; padding: 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px;">
+                        <i class="fas fa-plug"></i> Test Connection
+                    </button>
+
+                    <div id="qdrant-connection-status"
+                        style="display: none; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px;">
+                        <!-- Connection status will be shown here -->
+                    </div>
+                </div>
+
+                <!-- ADVANCED FEATURES -->
+                <div
+                    style="margin-top: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;">
+                    <div style="font-weight: 700; font-size: 14px; color: #1F2937; margin-bottom: 12px;">
+                        <i class="fas fa-brain"></i> Advanced Features
+                    </div>
+
+                    <div <div
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Multi-Modal Embeddings</div>
+                            <div style="font-size: 11px; color: #6B7280;">Image + Text + Audio + Video</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="multi-modal-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Vector Quantization</div>
+                            <div style="font-size: 11px; color: #6B7280;">4-32x compression, 10x faster</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="quantization-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Hybrid Search</div>
+                            <div style="font-size: 11px; color: #6B7280;">Dense + Sparse BM25</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hybrid-search-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Vector Quantization</div>
+                            <div style="font-size: 11px; color: #6B7280;">Binary/Scalar/Product (4-32x compression)
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="quantization-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Hybrid Search</div>
+                            <div style="font-size: 11px; color: #6B7280;">Dense + Sparse (BM25 + Semantic)</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hybrid-search-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- TAB 1: UPLOAD -->
         <div id="upload-tab" class="tab-content active">

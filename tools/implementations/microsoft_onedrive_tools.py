@@ -176,11 +176,97 @@ class MicrosoftOneDriveTools:
                 return {'success': False, 'error': str(e)}
         
         else:
-            # Large file upload (>4MB) - requires upload session
-            return {
-                'success': False,
-                'error': 'Large file upload (>4MB) requires upload session - not yet implemented'
+            # Large file upload (>4MB) - implement upload session + chunked upload
+            file_name = new_name or os.path.basename(local_file_path)
+            
+            # Build upload session endpoint
+            if onedrive_folder:
+                endpoint = f"/me/drive/root:/{onedrive_folder}/{file_name}:/createUploadSession"
+            else:
+                endpoint = f"/me/drive/root:/{file_name}:/createUploadSession"
+            
+            payload = {
+                "item": {
+                    "@microsoft.graph.conflictBehavior": "replace",
+                    "name": file_name
+                }
             }
+            
+            session_result = self._make_request('POST', endpoint, data=payload, **kwargs)
+            if not session_result.get('success'):
+                return {'success': False, 'error': 'Failed to create upload session', 'details': session_result}
+            
+            session_data = session_result.get('data') or {}
+            upload_url = session_data.get('uploadUrl')
+            if not upload_url:
+                return {'success': False, 'error': 'Upload session did not return uploadUrl', 'details': session_data}
+            
+            # Stream upload in chunks
+            total_size = file_size
+            chunk_size = 10 * 1024 * 1024  # 10 MB
+            bytes_sent = 0
+            
+            try:
+                with open(local_file_path, 'rb') as f:
+                    while bytes_sent < total_size:
+                        chunk_data = f.read(chunk_size)
+                        if not chunk_data:
+                            break
+                        start = bytes_sent
+                        end = bytes_sent + len(chunk_data) - 1
+                        
+                        headers = {
+                            'Content-Length': str(len(chunk_data)),
+                            'Content-Range': f'bytes {start}-{end}/{total_size}'
+                        }
+                        
+                        resp = requests.put(upload_url, headers=headers, data=chunk_data)
+                        if resp.status_code in (200, 201):
+                            # Upload complete
+                            try:
+                                file_data = resp.json()
+                            except Exception:
+                                file_data = {'status_code': resp.status_code}
+                            # Create share link
+                            try:
+                                file_id = file_data.get('id')
+                                share_result = self.onedrive_create_share_link(
+                                    user_id=kwargs.get('user_id') or kwargs.get('_user_id'),
+                                    item_id=file_id,
+                                    link_type='edit',
+                                    scope='anonymous',
+                                    **kwargs
+                                )
+                            except Exception:
+                                share_result = {'success': False}
+                            
+                            return {
+                                'success': True,
+                                'message': f'File "{file_name}" uploaded via session',
+                                'file': file_data,
+                                'shareable': share_result.get('success', False),
+                                'share_link': share_result.get('share_link', '')
+                            }
+                        
+                        elif resp.status_code in (202, 308):
+                            # Accepted or resume incomplete - update bytes_sent
+                            range_hdr = resp.headers.get('Range') or resp.headers.get('range')
+                            if range_hdr and '-' in range_hdr:
+                                try:
+                                    received_end = int(range_hdr.split('-')[-1])
+                                    bytes_sent = received_end + 1
+                                except Exception:
+                                    bytes_sent = end + 1
+                            else:
+                                bytes_sent = end + 1
+                            continue
+                        else:
+                            # Unexpected status
+                            return {'success': False, 'error': f'Chunk upload failed: {resp.status_code}', 'response_text': resp.text}
+            
+            except Exception as e:
+                return {'success': False, 'error': f'Upload session error: {str(e)}'}
+
     
     def onedrive_download_file(self, item_id: str, save_path: str, **kwargs) -> Dict:
         """Download file from OneDrive"""

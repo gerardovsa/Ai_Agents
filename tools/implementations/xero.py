@@ -581,8 +581,8 @@ def xero_get_invoice_by_id(business_id: int = 1, invoice_id: str = None, **kwarg
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
-def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, **kwargs) -> Dict[str, Any]:
-    """Get contacts (customers/suppliers) from Xero."""
+def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, limit: int = 50, **kwargs) -> Dict[str, Any]:
+    """Get contacts (customers/suppliers) from Xero. Limited to 50 records by default to prevent overwhelming responses."""
     try:
         client = _get_client(business_id)
         
@@ -593,6 +593,12 @@ def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, **kwar
         # Use make_request to get contacts
         data = client.make_request('GET', 'Contacts', params=params)
         contacts = data.get('Contacts', [])
+        
+        # Apply safety limit
+        truncated = False
+        if len(contacts) > limit:
+            contacts = contacts[:limit]
+            truncated = True
         
         # Format contacts for AI consumption
         formatted_contacts = []
@@ -609,11 +615,13 @@ def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, **kwar
         # Render as Markdown table
         markdown_output = _render_contacts_markdown(formatted_contacts, client.config['name'])
         
-        return {
+        result = {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "contact_count": len(formatted_contacts),
+            "truncated": truncated,
+            "limit_applied": limit,
             "contacts": formatted_contacts,
             "markdown_table": markdown_output,
             "export_options": {
@@ -621,18 +629,29 @@ def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, **kwar
                 "excel": PANDAS_AVAILABLE
             }
         }
+        
+        if truncated:
+            result["ai_message"] = f"⚠️ Results limited to {limit} records. Please refine your search using the 'search' parameter to filter by name, or use xero_get_contacts_by_date_range for date-based filtering."
+        
+        return result
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 def xero_get_accounts(business_id: int = 1, **kwargs) -> Dict[str, Any]:
-    """Get chart of accounts from Xero."""
+    """Get chart of accounts from Xero. Limited to 50 records by default to prevent overwhelming responses."""
     try:
         client = _get_client(business_id)
         
         # Use make_request to get accounts
         data = client.make_request('GET', 'Accounts')
         accounts = data.get('Accounts', [])
+        
+        # Apply safety limit
+        truncated = False
+        if len(accounts) > limit:
+            accounts = accounts[:limit]
+            truncated = True
         
         # Format accounts for AI consumption
         formatted_accounts = []
@@ -649,11 +668,13 @@ def xero_get_accounts(business_id: int = 1, **kwargs) -> Dict[str, Any]:
         # Render as Markdown table
         markdown_output = _render_accounts_markdown(formatted_accounts, client.config['name'])
         
-        return {
+        result = {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "account_count": len(formatted_accounts),
+            "truncated": truncated,
+            "limit_applied": limit,
             "accounts": formatted_accounts,
             "markdown_table": markdown_output,
             "export_options": {
@@ -661,6 +682,11 @@ def xero_get_accounts(business_id: int = 1, **kwargs) -> Dict[str, Any]:
                 "excel": PANDAS_AVAILABLE
             }
         }
+        
+        if truncated:
+            result["ai_message"] = f"⚠️ Results limited to {limit} records. Please use xero_get_accounts_by_type to filter by specific account type (BANK, REVENUE, EXPENSE, etc.) or xero_get_accounts_metadata to understand the full structure."
+        
+        return result
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
@@ -716,8 +742,8 @@ def xero_get_bank_transactions(business_id: int = 1, from_date: Optional[str] = 
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
-def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
-    """Get payment records from Xero."""
+def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, limit: int = 50, **kwargs) -> Dict[str, Any]:
+    """Get payment records from Xero. Limited to 50 records by default to prevent overwhelming responses."""
     try:
         client = _get_client(business_id)
         
@@ -728,6 +754,12 @@ def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, **
         # Use make_request to get payments
         data = client.make_request('GET', 'Payments', params=params)
         payments = data.get('Payments', [])
+        
+        # Apply safety limit
+        truncated = False
+        if len(payments) > limit:
+            payments = payments[:limit]
+            truncated = True
         
         # Format payments for AI consumption
         formatted_payments = []
@@ -743,11 +775,13 @@ def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, **
         # Render as Markdown table
         markdown_output = _render_payments_markdown(formatted_payments, client.config['name'])
         
-        return {
+        result = {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "payment_count": len(formatted_payments),
+            "truncated": truncated,
+            "limit_applied": limit,
             "payments": formatted_payments,
             "markdown_table": markdown_output,
             "export_options": {
@@ -755,6 +789,11 @@ def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, **
                 "excel": PANDAS_AVAILABLE
             }
         }
+        
+        if truncated:
+            result["ai_message"] = f"⚠️ Results limited to {limit} records. Please use xero_get_payments_by_date_range with specific date ranges to retrieve payments in smaller batches."
+        
+        return result
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
@@ -1109,9 +1148,10 @@ def xero_get_payments_by_date_range(business_id: int = 1, from_date: str = None,
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
-def xero_get_accounts_metadata(business_id: int = 1, **kwargs) -> Dict[str, Any]:
+def xero_get_accounts_metadata(business_id: int = 1, limit: int = 50, **kwargs) -> Dict[str, Any]:
     """
     Get metadata about chart of accounts.
+    Limited to 50 records by default for safety.
     
     Returns:
     - Total account count
@@ -1127,6 +1167,13 @@ def xero_get_accounts_metadata(business_id: int = 1, **kwargs) -> Dict[str, Any]
         # Get all accounts
         data = client.make_request('GET', 'Accounts')
         accounts = data.get('Accounts', [])
+        
+        # Apply safety limit for analysis
+        original_count = len(accounts)
+        truncated = False
+        if len(accounts) > limit:
+            accounts = accounts[:limit]
+            truncated = True
         
         # Analyze account types
         type_breakdown = {}
@@ -1148,19 +1195,22 @@ def xero_get_accounts_metadata(business_id: int = 1, **kwargs) -> Dict[str, Any]
         # Calculate size estimate (0.5 KB per account)
         estimated_size = round(len(accounts) * 0.5, 2)
         
-        return {
+        result = {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
             "summary": {
-                "total_accounts": len(accounts),
+                "total_accounts_analyzed": len(accounts),
+                "original_count": original_count,
+                "truncated": truncated,
+                "limit_applied": limit,
                 "active": status_breakdown['ACTIVE'],
                 "archived": status_breakdown['ARCHIVED'],
                 "by_type": type_breakdown,
                 "estimated_size_kb": estimated_size
             },
             "recommendations": {
-                "accounts": f"Use xero_get_accounts_by_type to filter by specific account types" if len(accounts) > 50 else "Safe to use xero_get_accounts for all accounts"
+                "accounts": f"Use xero_get_accounts_by_type to filter by specific account types" if original_count > 50 else "Safe to use xero_get_accounts for all accounts"
             },
             "common_types": {
                 "BANK": "Bank accounts",
@@ -1172,14 +1222,19 @@ def xero_get_accounts_metadata(business_id: int = 1, **kwargs) -> Dict[str, Any]
                 "EQUITY": "Equity accounts"
             }
         }
+        
+        if truncated:
+            result["ai_message"] = f"⚠️ Metadata analysis limited to {limit} of {original_count} accounts. Use xero_get_accounts_by_type to retrieve accounts filtered by specific types."
+        
+        return result
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 def xero_get_accounts_by_type(business_id: int = 1, account_type: str = None,
-                               status: str = 'ACTIVE', **kwargs) -> Dict[str, Any]:
+                               status: str = 'ACTIVE', limit: int = 50, **kwargs) -> Dict[str, Any]:
     """
-    Get accounts filtered by account type.
+    Get accounts filtered by account type. Limited to 50 records by default.
     More efficient than retrieving all accounts when you only need specific types.
     
     Common account types:
@@ -1207,6 +1262,12 @@ def xero_get_accounts_by_type(business_id: int = 1, account_type: str = None,
         data = client.make_request('GET', 'Accounts', params=params)
         accounts = data.get('Accounts', [])
         
+        # Apply safety limit
+        truncated = False
+        if len(accounts) > limit:
+            accounts = accounts[:limit]
+            truncated = True
+        
         # Format accounts
         formatted_accounts = []
         for account in accounts:
@@ -1221,7 +1282,7 @@ def xero_get_accounts_by_type(business_id: int = 1, account_type: str = None,
                 'description': account.get('Description')
             })
         
-        return {
+        result = {
             "success": True,
             "business_id": business_id,
             "business_name": client.config['name'],
@@ -1230,9 +1291,16 @@ def xero_get_accounts_by_type(business_id: int = 1, account_type: str = None,
                 "status": status
             },
             "account_count": len(formatted_accounts),
+            "truncated": truncated,
+            "limit_applied": limit,
             "estimated_size_kb": round(len(formatted_accounts) * 0.5, 2),
             "accounts": formatted_accounts
         }
+        
+        if truncated:
+            result["ai_message"] = f"⚠️ Results limited to {limit} records for account type '{account_type}'. Consider filtering by additional criteria or processing in batches."
+        
+        return result
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 

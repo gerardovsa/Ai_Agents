@@ -45,7 +45,7 @@ class GSAPRenderer {
             try {
                 config = JSON.parse(cleanContent);
             } catch (e) {
-                console.warn('GSAP: JSON parse failed, using JavaScript eval', e.message);
+                console.log('GSAP: Using JavaScript eval for object notation');
                 config = (new Function('return ' + cleanContent))();
             }
         } else {
@@ -56,16 +56,38 @@ class GSAPRenderer {
         const gsapContainer = document.createElement('div');
         gsapContainer.id = chartId;
         gsapContainer.className = 'gsap-animation-container';
-        gsapContainer.style.cssText = `
-            width: ${config.width || '100%'};
-            height: ${config.height || '400px'};
-            position: relative;
-            overflow: hidden;
-        `;
+
+        // Apply container style if provided
+        if (config.containerStyle) {
+            Object.assign(gsapContainer.style, config.containerStyle);
+        } else {
+            gsapContainer.style.cssText = `
+                width: ${config.width || '100%'};
+                height: ${config.height || '400px'};
+                position: relative;
+                overflow: hidden;
+            `;
+        }
 
         // Add HTML content if provided
         if (config.html) {
             gsapContainer.innerHTML = config.html;
+        }
+
+        // Handle elements array (modern format)
+        if (config.elements && Array.isArray(config.elements)) {
+            config.elements.forEach(elem => {
+                const div = document.createElement('div');
+                div.id = elem.id;
+                div.className = elem.className || 'gsap-element';
+                if (elem.html) {
+                    div.innerHTML = elem.html;
+                }
+                if (elem.style) {
+                    Object.assign(div.style, elem.style);
+                }
+                gsapContainer.appendChild(div);
+            });
         }
 
         contentArea.appendChild(gsapContainer);
@@ -113,6 +135,22 @@ class GSAPRenderer {
                     timeline.fromTo(targets, anim.fromVars, vars, position);
                 } else {
                     timeline.to(targets, vars, position);
+                }
+            });
+        }
+
+        // Handle elements array format (modern config)
+        if (config.elements && Array.isArray(config.elements)) {
+            config.elements.forEach(elem => {
+                if (elem.animation) {
+                    const target = container.querySelector(`#${elem.id}`);
+                    if (target) {
+                        // Extract position and remove it from animation vars
+                        const { position, ...animVars } = elem.animation;
+                        timeline.to(target, animVars, position || '+=0');
+                    } else {
+                        console.warn(`GSAP: Element #${elem.id} not found`);
+                    }
                 }
             });
         }

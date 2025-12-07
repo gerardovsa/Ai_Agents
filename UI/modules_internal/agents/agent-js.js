@@ -604,7 +604,7 @@ const MultiAgent = {
             const synergyName = threadInfo.synergySessionName || threadInfo.synergyCardId;
             const synergyDesc = threadInfo.synergyDescription || '';
             const synergyPriority = threadInfo.synergyPriority || '';
-            
+
             // Build tooltip text with description and priority
             let tooltipText = `Click to open Synergy session: ${synergyName}`;
             if (synergyDesc) {
@@ -613,7 +613,7 @@ const MultiAgent = {
             if (synergyPriority) {
                 tooltipText += `\n\nPriority: ${synergyPriority}`;
             }
-            
+
             links.push(`<div class="agent-tooltip-synergy-badge" data-synergy-id="${threadInfo.synergyCardId}" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; background: #10b981; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'" title="${tooltipText.replace(/"/g, '&quot;')}">
                         <i class="fas fa-link"></i>
                         <span>${synergyName}</span>
@@ -711,7 +711,7 @@ const MultiAgent = {
 
         this.updateDashboardStats();
     },            // Scroll to agent and expand if collapsed
-    scrollToAgent(agentId) {
+    scrollToAgent(agentId, options = {}) {
         const column = document.getElementById(`agent-${agentId}`);
         if (!column) {
             console.warn(`[MultiAgent] Column agent-${agentId} not found`);
@@ -723,12 +723,14 @@ const MultiAgent = {
             this.expandColumn(agentId);
         }
 
-        // Scroll into view
-        column.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'center'
-        });
+        // Only scroll column into view if explicitly requested (user click, not auto-streaming)
+        if (options.scrollColumn !== false) {
+            column.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
 
         // Highlight briefly
         column.style.transition = 'all 0.3s ease';
@@ -1798,21 +1800,30 @@ const MultiAgent = {
         const icon = document.getElementById(`width-icon-${agentId}`);
         if (!column || !icon) return;
 
-        // Toggle wide class
+        // Three states: normal(400px) → wide(600px) → extra-wide(800px) → normal
         const isWide = column.classList.contains('wide');
+        const isExtraWide = column.classList.contains('extra-wide');
 
-        if (isWide) {
-            // Shrink to normal width
+        if (isExtraWide) {
+            // State 3 → State 1: Shrink to normal width
+            column.classList.remove('extra-wide');
             column.classList.remove('wide');
-            // Show chevron-right (→) to indicate "click to widen"
+            // Show chevron-right (>) to indicate "click to widen"
             icon.className = 'fas fa-chevron-right';
-            console.log(`[SIZE] ${this.getAgentName(agentId)} width: 400px(normal)`);
+            console.log(`[SIZE] ${this.getAgentName(agentId)} width: 400px (normal)`);
+        } else if (isWide) {
+            // State 2 → State 3: Expand to extra-wide
+            column.classList.remove('wide');
+            column.classList.add('extra-wide');
+            // Show double chevron-right (>>) to indicate "click to widen more"
+            icon.className = 'fas fa-angle-double-right';
+            console.log(`[SIZE] ${this.getAgentName(agentId)} width: 800px (extra-wide)`);
         } else {
-            // Expand to wide width
+            // State 1 → State 2: Expand to wide width
             column.classList.add('wide');
-            // Show chevron-left (←) to indicate "click to narrow"
-            icon.className = 'fas fa-chevron-left';
-            console.log(`[SIZE] ${this.getAgentName(agentId)} width: 600px(wide)`);
+            // Show double chevron-right (>>) to indicate "click to widen more"
+            icon.className = 'fas fa-angle-double-right';
+            console.log(`[SIZE] ${this.getAgentName(agentId)} width: 600px (wide)`);
         }
     },
 
@@ -3465,8 +3476,20 @@ async function sendAgentMessage(agentId) {
                                         });
                                     });
 
+                                    const expandBtn = document.createElement('button');
+                                    expandBtn.className = 'ai-message-copy-btn';
+                                    expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                                    expandBtn.title = 'Expand message fullscreen';
+                                    expandBtn.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        if (typeof window.openMessageFullscreen === 'function') {
+                                            window.openMessageFullscreen(thinkingBubble);
+                                        }
+                                    });
+
                                     actionsDiv.appendChild(copyBtn);
                                     actionsDiv.appendChild(copyRawBtn);
+                                    actionsDiv.appendChild(expandBtn);
                                     headerDiv.appendChild(actionsDiv);
 
                                     // Content div
@@ -3577,7 +3600,19 @@ async function sendAgentMessage(agentId) {
                                 });
                             });
 
+                            const expandBtn = document.createElement('button');
+                            expandBtn.className = 'ai-message-copy-btn';
+                            expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                            expandBtn.title = 'Expand message fullscreen';
+                            expandBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                if (typeof window.openMessageFullscreen === 'function') {
+                                    window.openMessageFullscreen(toolBubble);
+                                }
+                            });
+
                             actionsDiv.appendChild(copyBtn);
+                            actionsDiv.appendChild(expandBtn);
                             headerDiv.appendChild(actionsDiv);
 
                             // Content
@@ -3691,8 +3726,20 @@ async function sendAgentMessage(agentId) {
                                 });
                             });
 
+                            const expandBtn = document.createElement('button');
+                            expandBtn.className = 'ai-message-copy-btn';
+                            expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                            expandBtn.title = 'Expand message fullscreen';
+                            expandBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                if (typeof window.openMessageFullscreen === 'function') {
+                                    window.openMessageFullscreen(toolResultBubble);
+                                }
+                            });
+
                             actionsDiv.appendChild(copyBtn);
                             actionsDiv.appendChild(copyRawBtn);
+                            actionsDiv.appendChild(expandBtn);
                             headerDiv.appendChild(actionsDiv);
 
                             // Content
@@ -3832,8 +3879,20 @@ async function sendAgentMessage(agentId) {
                                     });
                                 });
 
+                                const expandBtn = document.createElement('button');
+                                expandBtn.className = 'ai-message-copy-btn';
+                                expandBtn.innerHTML = '<i class="fas fa-expand-alt"></i>';
+                                expandBtn.title = 'Expand message fullscreen';
+                                expandBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    if (typeof window.openMessageFullscreen === 'function') {
+                                        window.openMessageFullscreen(textBubble);
+                                    }
+                                });
+
                                 actionsDiv.appendChild(copyBtn);
                                 actionsDiv.appendChild(copyRawBtn);
+                                actionsDiv.appendChild(expandBtn);
                                 headerDiv.appendChild(actionsDiv);
 
                                 textBubble.appendChild(headerDiv);
@@ -3882,7 +3941,11 @@ async function sendAgentMessage(agentId) {
                                         textContent.textContent = fullResponse;
                                     }
                                 }
-                                textBubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                // Only scroll within message container, don't force page/column jump
+                                const messagesContainer = document.getElementById(`agent-${agentId}-messages`);
+                                if (messagesContainer && !messagesContainer.classList.contains('user-scrolled')) {
+                                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                                }
                             }
                         }
 

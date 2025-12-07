@@ -2,6 +2,14 @@
 FILE: AI_infrastructure/routes/communication_routes.py
 PURPOSE: Communication Hub backend routes - Unified API for Gmail and Outlook
 
+FIXED: 2025-01-XX - Critical cursor leak repair
+CHANGES:
+- Fixed get_thread_emails() - added proper cursor management
+- Added cursor = None and conn = None initialization
+- Added try/finally block for guaranteed cleanup
+- Added cursor.close() BEFORE conn.close()
+- All other functions already safe (use external wrappers)
+
 FEATURES:
 - List connected accounts (Gmail + Outlook)
 - Unified inbox from multiple providers
@@ -86,6 +94,8 @@ def get_accounts():
     
     Returns:
         JSON with list of connected accounts (Gmail, Outlook) with OAuth status
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses auth_manager)
     """
     # Prefer the authenticated user from @require_auth decorator
     user_data = getattr(request, 'user', None)
@@ -162,6 +172,8 @@ def list_emails():
     
     Returns:
         JSON with unified list of emails
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
     """
     # Prefer authenticated user
     user_data = getattr(request, 'user', None)
@@ -326,6 +338,8 @@ def get_email(email_id):
     
     Returns:
         JSON with full email content including body_text and body_html
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
     """
     user_data = getattr(request, 'user', None)
     if user_data:
@@ -550,6 +564,8 @@ def get_email_as_markdown(email_id):
             'markdown': 'formatted email content',
             'metadata': {...}
         }
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
     """
     user_data = getattr(request, 'user', None)
     if user_data:
@@ -608,6 +624,8 @@ def format_email_as_markdown(email_data):
     
     Returns:
         Markdown-formatted string
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     import re
     
@@ -666,7 +684,11 @@ def format_email_as_markdown(email_data):
 @communication_bp.route('/emails/<email_id>/read', methods=['POST'])
 @require_auth
 def mark_email_as_read(email_id):
-    """Mark email as read"""
+    """
+    Mark email as read
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
+    """
     user_data = getattr(request, 'user', None)
     if user_data:
         user_id = user_data.get('user_id')
@@ -707,7 +729,11 @@ def mark_email_as_read(email_id):
 @communication_bp.route('/emails/<email_id>/unread', methods=['POST'])
 @require_auth
 def mark_email_as_unread(email_id):
-    """Mark email as unread"""
+    """
+    Mark email as unread
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
+    """
     user_data = getattr(request, 'user', None)
     if user_data:
         user_id = user_data.get('user_id')
@@ -757,6 +783,8 @@ def search_emails():
     
     Returns:
         JSON with matching emails
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
     """
     user_data = getattr(request, 'user', None)
     if user_data:
@@ -808,7 +836,11 @@ def search_emails():
 @communication_bp.route('/emails/<email_id>', methods=['DELETE'])
 @require_auth
 def delete_email(email_id):
-    """Delete email"""
+    """
+    Delete email
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
+    """
     user_data = getattr(request, 'user', None)
     if user_data:
         user_id = user_data.get('user_id')
@@ -857,7 +889,12 @@ def get_thread_emails(thread_slug):
     
     Returns:
     - List of email objects in the thread
+    
+    FIXED: Added proper cursor management with try/finally block
     """
+    cursor = None  # ✅ CRITICAL: Initialize before try
+    conn = None
+    
     try:
         user_id = request.args.get('user_id')
         if not user_id:
@@ -880,7 +917,14 @@ def get_thread_emails(thread_slug):
         """, (thread_slug, user_id))
         
         assignments = cursor.fetchall()
-        conn.close()
+        
+        # ✅ CLOSE CURSOR IMMEDIATELY after fetching results
+        if cursor:
+            cursor.close()
+            cursor = None
+        if conn:
+            conn.close()
+            conn = None
         
         if not assignments:
             return jsonify({
@@ -890,7 +934,7 @@ def get_thread_emails(thread_slug):
                 'message': 'No emails found in thread'
             })
         
-        # Fetch full email content for each email_id
+        # Fetch full email content for each email_id (AFTER database closed)
         emails = []
         for assignment in assignments:
             email_id, subject, participants, created_at = assignment
@@ -964,11 +1008,28 @@ def get_thread_emails(thread_slug):
             'success': False,
             'error': str(e)
         }), 500
+    
+    finally:
+        # ✅ CRITICAL: GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except Exception as e:
+                print(f"⚠️ Error closing cursor: {e}")
+        if conn:
+            try:
+                conn.close()
+            except Exception as e:
+                print(f"⚠️ Error closing connection: {e}")
 
 
 @communication_bp.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """
+    Health check endpoint
+    
+    ✅ NO DATABASE OPERATIONS - Safe
+    """
     return jsonify({
         'success': True,
         'service': 'Communication Hub',
@@ -981,7 +1042,11 @@ def health_check():
 @communication_bp.route('/debug/credentials', methods=['GET'])
 @require_auth
 def debug_credentials():
-    """Return whether Google and Microsoft credentials are present for the logged-in user"""
+    """
+    Return whether Google and Microsoft credentials are present for the logged-in user
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses auth_manager)
+    """
     user_data = getattr(request, 'user', None)
     if not user_data:
         return jsonify({'success': False, 'error': 'Not authenticated'}), 401

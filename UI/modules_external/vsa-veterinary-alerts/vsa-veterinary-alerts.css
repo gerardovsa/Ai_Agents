@@ -660,3 +660,171 @@
     font-size: 2rem;
     margin-bottom: 0.5rem;
 }
+
+/* ==================== MODAL STYLES ==================== */
+.vsa-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.vsa-modal-content {
+    background: #1E2530;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.vsa-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 2px solid #2A3142;
+}
+
+.vsa-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #E8EAED;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.vsa-modal-header h2 i {
+    color: #d32f2f;
+}
+
+.vsa-modal-close {
+    background: transparent;
+    border: none;
+    color: #9AA0A6;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: all 0.2s;
+    border-radius: 6px;
+}
+
+.vsa-modal-close:hover {
+    background: #2A3142;
+    color: #E8EAED;
+}
+
+.vsa-modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.vsa-detail-section {
+    margin-bottom: 2rem;
+}
+
+.vsa-detail-section h3 {
+    font-size: 1.125rem;
+    color: #E8EAED;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #2A3142;
+}
+
+.vsa-detail-section h3 i {
+    color: #1E88E5;
+}
+
+.vsa-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.vsa-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.vsa-detail-item label {
+    font-size: 0.75rem;
+    color: #9AA0A6;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.vsa-detail-item span {
+    font-size: 0.875rem;
+    color: #E8EAED;
+}
+
+.vsa-detail-item code {
+    background: #0B0E13;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #1E88E5;
+}
+
+.vsa-detail-description {
+    background: #0B0E13;
+    border-left: 4px solid #1E88E5;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.vsa-detail-description p {
+    margin: 0;
+    line-height: 1.6;
+    color: #E8EAED;
+}
+
+.vsa-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 2px solid #2A3142;
+}
+
+.vsa-btn-secondary {
+    background: #2A3142;
+    color: #E8EAED;
+}
+
+.vsa-btn-secondary:hover {
+    background: #3A4152;
+}

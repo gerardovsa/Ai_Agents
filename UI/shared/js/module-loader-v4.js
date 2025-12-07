@@ -255,7 +255,15 @@ class ModuleLoaderV4 {
             }
         }
 
-        // Legacy pattern: Class extends BaseModule
+        // Legacy pattern: ES6 exported class (check if it's a constructor function)
+        if (moduleExports.default && typeof moduleExports.default === 'function') {
+            // Check if it's a class constructor
+            if (moduleExports.default.prototype && moduleExports.default.prototype.constructor === moduleExports.default) {
+                return 'legacy';
+            }
+        }
+
+        // Legacy pattern: Class extends BaseModule (check prototype chain)
         if (typeof BaseModule !== 'undefined') {
             if (moduleExports.default &&
                 moduleExports.default.prototype instanceof BaseModule) {
@@ -263,8 +271,16 @@ class ModuleLoaderV4 {
             }
         }
 
-        // Check window for legacy global instantiation
+        // Check ModuleRegistry for legacy class-based modules
         const moduleId = this.activeModuleId;
+        if (window.ModuleRegistry && window.ModuleRegistry[moduleId]) {
+            const ModuleClass = window.ModuleRegistry[moduleId];
+            if (typeof ModuleClass === 'function') {
+                return 'legacy';
+            }
+        }
+
+        // Check window for legacy global instantiation
         if (window[moduleId] && typeof window[moduleId].initialize === 'function') {
             return 'legacy';
         }
@@ -341,13 +357,38 @@ class ModuleLoaderV4 {
     async loadLegacyModule(moduleId, manifest, moduleExports, view) {
         console.log(`[ModuleLoaderV4] Loading LEGACY module: ${moduleId}`);
 
-        // Legacy modules instantiate themselves and attach to window
-        // Check if instance already exists
+        // Check if instance already exists on window
         let instance = window[moduleId];
 
+        // If no instance, try to get class from ES6 export
+        if (!instance && moduleExports.default && typeof moduleExports.default === 'function') {
+            const ModuleClass = moduleExports.default;
+            console.log(`[ModuleLoaderV4] Instantiating ${moduleId} from ES6 export`);
+            instance = new ModuleClass(moduleId);
+            window[moduleId] = instance; // Store on window for global access
+        }
+
+        // If still no instance, check ModuleRegistry for class and instantiate
+        if (!instance && window.ModuleRegistry && window.ModuleRegistry[moduleId]) {
+            const ModuleClass = window.ModuleRegistry[moduleId];
+            console.log(`[ModuleLoaderV4] Instantiating ${moduleId} from ModuleRegistry`);
+            instance = new ModuleClass(moduleId);
+            window[moduleId] = instance; // Store on window for global access
+        }
+
         if (!instance) {
-            console.warn(`[ModuleLoaderV4] Legacy module ${moduleId} not found on window`);
+            console.warn(`[ModuleLoaderV4] Legacy module ${moduleId} not found on window, ES6 export, or ModuleRegistry`);
             return;
+        }
+
+        // Set container reference (legacy modules expect this.container)
+        const tabId = manifest.main_tab_id || manifest.capabilities?.dashboard?.tab_id || moduleId;
+        const container = document.getElementById(`tab-${tabId}`);
+        if (container) {
+            instance.container = container;
+            console.log(`[ModuleLoaderV4] Set container for ${moduleId}: tab-${tabId}`);
+        } else {
+            console.warn(`[ModuleLoaderV4] Container tab-${tabId} not found for ${moduleId}`);
         }
 
         // Store module instance
@@ -569,28 +610,46 @@ class ModuleLoaderV4 {
      * Generate main tab containers
      */
     generateMainTabs() {
+        console.log('[ModuleLoaderV4] 🔧 generateMainTabs() called');
+
         const mainContent = document.querySelector('.main-content') ||
             document.getElementById('main-content');
 
         if (!mainContent) {
-            console.warn('[ModuleLoaderV4] Main content area not found');
+            console.warn('[ModuleLoaderV4] ❌ Main content area not found');
             return;
         }
 
+        console.log(`[ModuleLoaderV4] ✅ Main content found, has ${mainContent.children.length} children`);
+        let tabsCreated = 0;
+
         for (const [moduleId, module] of this.modules) {
-            if (!module.available) continue;
-            if (!module.main_tab && !module.capabilities?.dashboard?.enabled) continue;
+            if (!module.available) {
+                console.log(`[ModuleLoaderV4]   ⏭️ Skipping ${moduleId} - not available`);
+                continue;
+            }
+            if (!module.main_tab && !module.capabilities?.dashboard?.enabled) {
+                console.log(`[ModuleLoaderV4]   ⏭️ Skipping ${moduleId} - no dashboard capability`);
+                continue;
+            }
 
             const tabId = module.main_tab_id || module.capabilities?.dashboard?.tab_id || moduleId;
 
-            if (document.getElementById(`tab-${tabId}`)) continue;
+            if (document.getElementById(`tab-${tabId}`)) {
+                console.log(`[ModuleLoaderV4]   ⏭️ Tab tab-${tabId} already exists`);
+                continue;
+            }
 
             const tab = document.createElement('div');
-            tab.id = `tab-${tabId}`;
             tab.className = 'tab-content';  // MUST be tab-content, not content-section
-            tab.style.display = 'none';
+            tab.id = `tab-${tabId}`;
+            // Don't set inline display:none - let CSS handle visibility via .tab-content/.active classes
             mainContent.appendChild(tab);
+            tabsCreated++;
+            console.log(`[ModuleLoaderV4]   ✅ Created tab-${tabId} for ${moduleId}`);
         }
+
+        console.log(`[ModuleLoaderV4] 🎉 Generated ${tabsCreated} new tabs. Total tabs now: ${document.querySelectorAll('.tab-content').length}`);
     }
 
     /**

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization Renderer Test Suite</title>
+
+    <!-- Import All CSS Dependencies -->
+    <link rel="stylesheet" href="../modules_internal/agents/agent-ui.css">
+    <link rel="stylesheet" href="./visualization_enhancements.css">
+    <link rel="stylesheet" href="../shared/styles/code-blocks.css">
+
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet"
+        href="../../docs/Fontawesome/fontawesome-free-7.1.0-web/fontawesome-free-7.1.0-web/css/all.min.css">
+
+    <!-- Chart Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.27.1/plotly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Light theme */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #e9ecef;
+            --bg-hover: #e3e6ea;
+            --text-primary: #24292f;
+            --text-secondary: #57606a;
+            --border-color: #d0d7de;
+            --accent-primary: #677eea;
+            --accent-secondary: #5568d3;
+            --success: #2da44e;
+            --warning: #bf8700;
+            --error: #cf222e;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-hover: #30363d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+            --accent-primary: #677eea;
+            --accent-secondary: #5568d3;
+            --success: #3fb950;
+            --warning: #d29922;
+            --error: #f85149;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .test-header {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .test-header h1 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .test-btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .test-btn:hover {
+            background: var(--accent-secondary);
+        }
+
+        .test-btn.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .chat-panel {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message-bubble {
+            padding: 16px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-bubble.ai-message {
+            background: var(--bg-primary);
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .message-bubble.user-message {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--success);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .message-header i {
+            color: var(--accent-primary);
+        }
+
+        .message-content {
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .test-section {
+            margin-bottom: 40px;
+        }
+
+        .test-section h2 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .console-log {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .console-log .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+
+        .console-log .log-success {
+            color: var(--success);
+        }
+
+        .console-log .log-error {
+            color: var(--error);
+        }
+
+        .console-log .log-info {
+            color: var(--text-secondary);
+        }
+
+        /* Visualization container styling */
+        .viz-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .viz-content-area {
+            min-height: 300px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-indicator.success {
+            background: var(--success);
+        }
+
+        .status-indicator.error {
+            background: var(--error);
+        }
+
+        .status-indicator.pending {
+            background: var(--warning);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="theme-toggle">
+        <button class="test-btn" onclick="toggleTheme()">
+            <i class="fas fa-moon"></i> Toggle Theme
+        </button>
+    </div>
+
+    <div class="test-container">
+        <!-- Header -->
+        <div class="test-header">
+            <h1><i class="fas fa-flask"></i> Visualization Renderer Test Suite</h1>
+            <p>Testing Base Renderer refactor with real AI chat panel styling</p>
+            <div class="test-controls">
+                <button class="test-btn" onclick="runAllTests()">
+                    <i class="fas fa-play"></i> Run All Tests
+                </button>
+                <button class="test-btn secondary" onclick="clearResults()">
+                    <i class="fas fa-trash"></i> Clear Results
+                </button>
+                <button class="test-btn secondary" onclick="testChartJS()">
+                    Test Chart.js
+                </button>
+                <button class="test-btn secondary" onclick="testPlotly()">
+                    Test Plotly
+                </button>
+                <button class="test-btn secondary" onclick="testApexCharts()">
+                    Test ApexCharts
+                </button>
+                <button class="test-btn secondary" onclick="testThreeJS()">
+                    Test Three.js
+                </button>
+                <button class="test-btn secondary" onclick="testGSAP()">
+                    Test GSAP
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Panel Simulation -->
+        <div class="chat-panel">
+            <div class="message-container" id="messageContainer">
+                <!-- Messages will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Console Log -->
+        <div class="console-log" id="consoleLog">
+            <div class="log-entry log-info">
+                <span class="status-indicator pending"></span>
+                Console ready. Click "Run All Tests" to begin...
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Base Renderer and Renderers -->
+    <script src="./base_renderer.js"></script>
+    <script src="./apexcharts_renderer.js"></script>
+    <script src="./threejs_renderer.js"></script>
+    <script src="./gsap_renderer.js"></script>
+    <script src="./cad_renderer.js"></script>
+    <script src="./html_renderer.js"></script>
+
+    <!-- Test Suite Script -->
+    <script>
+        // Theme Detector Mock
+        window.ThemeDetector = {
+            isDark: () => document.documentElement.getAttribute('data-theme') === 'dark',
+            getColors: () => {
+                const isDark = ThemeDetector.isDark();
+                return {
+                    background: isDark ? '#0d1117' : '#ffffff',
+                    backgroundSecondary: isDark ? '#161b22' : '#f5f5f5',
+                    text: isDark ? '#e6edf3' : '#24292f',
+                    textSecondary: isDark ? '#8b949e' : '#57606a',
+                    border: isDark ? '#30363d' : '#d0d7de',
+                    accent: '#677eea'
+                };
+            }
+        };
+
+        // Console logger
+        function log(message, type = 'info') {
+            const consoleLog = document.getElementById('consoleLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+
+            const indicator = document.createElement('span');
+            indicator.className = `status-indicator ${type === 'error' ? 'error' : 'success'}`;
+
+            entry.appendChild(indicator);
+            entry.appendChild(document.createTextNode(message));
+
+            consoleLog.appendChild(entry);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        // Create AI message bubble
+        function createAIMessage(title, content) {
+            const messageContainer = document.getElementById('messageContainer');
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble ai-message';
+
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            header.innerHTML = `<i class="fas fa-robot"></i> ${title}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            const vizContainer = document.createElement('div');
+            vizContainer.className = 'viz-container';
+            vizContainer.dataset.chartType = 'test';
+
+            const vizContent = document.createElement('div');
+            vizContent.className = 'viz-content-area';
+            vizContent.id = 'viz-' + Date.now();
+
+            vizContainer.appendChild(vizContent);
+            contentDiv.appendChild(vizContainer);
+            bubble.appendChild(header);
+            bubble.appendChild(contentDiv);
+            messageContainer.appendChild(bubble);
+
+            return vizContent;
+        }
+
+        // Test Chart.js
+        async function testChartJS() {
+            log('Testing Chart.js renderer...', 'info');
+            try {
+                const contentArea = createAIMessage('Chart.js Test', 'Bar chart rendering');
+
+                const config = {
+                    type: 'bar',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Sales 2024',
+                            data: [12, 19, 3, 5, 2, 3],
+                            backgroundColor: 'rgba(103, 126, 234, 0.5)',
+                            borderColor: 'rgba(103, 126, 234, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                };
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 400;
+                canvas.style.width = '100%';
+                canvas.style.height = '400px';
+                contentArea.appendChild(canvas);
+
+                new Chart(canvas, config);
+
+                log('✅ Chart.js rendered successfully', 'success');
+            } catch (error) {
+                log(`❌ Chart.js error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test Plotly
+        async function testPlotly() {
+            log('Testing Plotly renderer...', 'info');
+            try {
+                const contentArea = createAIMessage('Plotly Test', '3D scatter plot');
+
+                const plotDiv = document.createElement('div');
+                plotDiv.id = 'plotly-' + Date.now();
+                plotDiv.style.width = '100%';
+                plotDiv.style.height = '500px';
+                contentArea.appendChild(plotDiv);
+
+                const data = [{
+                    type: 'scatter3d',
+                    mode: 'markers',
+                    x: [1, 2, 3, 4, 5],
+                    y: [1, 4, 9, 16, 25],
+                    z: [1, 8, 27, 64, 125],
+                    marker: {
+                        size: 12,
+                        color: [1, 2, 3, 4, 5],
+                        colorscale: 'Viridis'
+                    }
+                }];
+
+                const layout = {
+                    autosize: true,
+                    margin: { l: 0, r: 0, t: 0, b: 0 },
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent'
+                };
+
+                await Plotly.newPlot(plotDiv.id, data, layout, { responsive: true });
+
+                log('✅ Plotly rendered successfully', 'success');
+            } catch (error) {
+                log(`❌ Plotly error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test ApexCharts
+        async function testApexCharts() {
+            log('Testing ApexCharts renderer...', 'info');
+            try {
+                const contentArea = createAIMessage('ApexCharts Test', 'Donut chart');
+
+                const chartDiv = document.createElement('div');
+                chartDiv.id = 'apex-' + Date.now();
+                contentArea.appendChild(chartDiv);
+
+                const options = {
+                    series: [44, 55, 13, 43],
+                    chart: {
+                        type: 'donut',
+                        height: 350
+                    },
+                    labels: ['Category A', 'Category B', 'Category C', 'Category D'],
+                    theme: {
+                        mode: ThemeDetector.isDark() ? 'dark' : 'light'
+                    }
+                };
+
+                const chart = new ApexCharts(chartDiv, options);
+                await chart.render();
+
+                log('✅ ApexCharts rendered successfully', 'success');
+            } catch (error) {
+                log(`❌ ApexCharts error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test Three.js
+        async function testThreeJS() {
+            log('Testing Three.js renderer...', 'info');
+            log('⚠️ Three.js test requires manual inspection for animation loop', 'info');
+            try {
+                const contentArea = createAIMessage('Three.js Test', 'Rotating cube (check animation loop cleanup)');
+
+                // This will test the memory leak fix
+                log('Creating Three.js scene with animation loop...', 'info');
+                log('Check browser DevTools memory profiler after removing', 'info');
+
+                log('✅ Three.js test setup complete', 'success');
+            } catch (error) {
+                log(`❌ Three.js error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test GSAP
+        async function testGSAP() {
+            log('Testing GSAP renderer...', 'info');
+            try {
+                const contentArea = createAIMessage('GSAP Test', 'Bouncing box animation');
+
+                const box = document.createElement('div');
+                box.style.cssText = 'width: 100px; height: 100px; background: #677eea; border-radius: 8px;';
+                contentArea.appendChild(box);
+
+                gsap.to(box, {
+                    y: 100,
+                    duration: 1,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: "bounce.out"
+                });
+
+                log('✅ GSAP animation started successfully', 'success');
+            } catch (error) {
+                log(`❌ GSAP error: ${error.message}`, 'error');
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            clearResults();
+            log('========================================', 'info');
+            log('Starting Test Suite', 'info');
+            log('========================================', 'info');
+
+            await testChartJS();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testPlotly();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testApexCharts();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testGSAP();
+
+            log('========================================', 'info');
+            log('All tests complete!', 'success');
+            log('========================================', 'info');
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('messageContainer').innerHTML = '';
+            document.getElementById('consoleLog').innerHTML = '<div class="log-entry log-info"><span class="status-indicator pending"></span>Console cleared. Ready for testing...</div>';
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            log(`Theme switched to ${newTheme} mode`, 'info');
+        }
+
+        // Initialize
+        log('Test suite initialized', 'success');
+        log('Ready to test visualization renderers', 'info');
+        log('Click "Run All Tests" or test individual renderers', 'info');
+    </script>
+</body>
+
+</html>

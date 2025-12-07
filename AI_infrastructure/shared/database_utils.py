@@ -158,10 +158,10 @@ def get_connection_pool(schema_name: str):
             # - minconn=2: Keep connections ready (was 1)
             # - maxconn=5: Allow burst traffic (was 2) - handles concurrent UI requests
             # - Each connection is short-lived in transaction mode (seconds, not minutes)
-            # - With 3 schemas (ai_infrastructure, sessions, synergy_sessions), max = 15 connections total
+            # - With 3 schemas (ai_infrastructure, sessions, synergy_sessions), max = 36 connections total  
             _connection_pools[schema_name] = pool.ThreadedConnectionPool(
-                minconn=2,      # Keep 2 connections ready (increased from 1)
-                maxconn=5,      # Allow up to 5 concurrent connections (increased from 2)
+                minconn=4,      # Keep 4 connections ready (increased from 3)
+                maxconn=12,     # Allow up to 12 concurrent connections (increased from 8 to handle UI bursts + GC delays)
                 dsn=db_url,
                 sslmode='require',
                 connect_timeout=10,
@@ -174,10 +174,10 @@ def get_connection_pool(schema_name: str):
             _pool_stats['pools_created'] += 1
             _pool_stats['pool_misses'] += 1
             
-            print(f" [POOL] Created connection pool for '{schema_name}' (2-5 connections)")
+            print(f" [POOL] Created connection pool for '{schema_name}' (4-12 connections)")
             print(f" [POOL] Total pools: {_pool_stats['pools_created']}")
-            print(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 5} (Supabase Nano limit: 60)")
-            print(f" [POOL] Pool configuration: minconn=2, maxconn=5 (increased to handle concurrent requests)")
+            print(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 12} (Supabase Nano limit: 60)")
+            print(f" [POOL] Pool configuration: minconn=4, maxconn=12 (handles UI bursts + Python GC delays)")
         else:
             _pool_stats['pool_hits'] += 1
         

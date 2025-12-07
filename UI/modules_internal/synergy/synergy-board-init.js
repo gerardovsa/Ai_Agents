@@ -1461,7 +1461,8 @@ window.synergyBoard = {
         }
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`, {
+            const userId = window.currentUserId || window.UserAuth?.user?.id || 14;
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}?user_id=${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'archived' })
@@ -1505,7 +1506,8 @@ window.synergyBoard = {
         }
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`, {
+            const userId = window.currentUserId || window.UserAuth?.user?.id || 14;
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}?user_id=${userId}`, {
                 method: 'DELETE'
             });
 
@@ -1541,7 +1543,8 @@ window.synergyBoard = {
 
         try {
             // Fetch session data and milestones
-            const sessionResponse = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`);
+            const userId = window.currentUserId || window.UserAuth?.user?.id || 14;
+            const sessionResponse = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}?user_id=${userId}`);
             if (!sessionResponse.ok) {
                 throw new Error(`Failed to load session: ${sessionResponse.status}`);
             }

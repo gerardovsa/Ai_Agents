@@ -392,14 +392,17 @@ window.SynergyRealtime = {
 };
 
 // Add CSS for highlight animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes highlight {
-        0%, 100% { box-shadow: none; }
-        50% { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); }
-    }
-`;
-document.head.appendChild(style);
+if (!document.getElementById('synergy-realtime-styles')) {
+    const synergyRealtimeStyle = document.createElement('style');
+    synergyRealtimeStyle.id = 'synergy-realtime-styles';
+    synergyRealtimeStyle.textContent = `
+        @keyframes highlight {
+            0%, 100% { box-shadow: none; }
+            50% { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); }
+        }
+    `;
+    document.head.appendChild(synergyRealtimeStyle);
+}
 
 // Initialize on DOM ready
 if (document.readyState === 'loading') {

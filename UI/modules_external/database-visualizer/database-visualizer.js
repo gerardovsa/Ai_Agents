@@ -1,15 +1,44 @@
 /**
  * Database Visualizer Module
- * Explore SQLite databases, schemas, tables, and data
+ * Explore Supabase PostgreSQL schemas, tables, and data
+ * 
+ * MIGRATION STATUS: ✅ Updated for Supabase (2025-12-07)
+ * - Changed from SQLite .db files to PostgreSQL schemas
+ * - Updated API calls to use 'schema' parameter instead of 'db_path'
+ * - Supports: ai_infrastructure, sessions, synergy_sessions, stock_data, kanban_analytics
  */
+
+// BaseModule polyfill (required since module-base.js is not globally loaded)
+class BaseModule {
+    constructor(moduleId) {
+        this.moduleId = moduleId;
+        this.manifest = null;
+        this.backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+        console.log(`✅ BaseModule constructor - moduleId: ${moduleId}`);
+    }
+
+    async initialize() {
+        console.log(`✅ BaseModule.initialize() called for ${this.moduleId}`);
+        try {
+            const response = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
+            if (response.ok) {
+                this.manifest = await response.json();
+                console.log(`✅ Manifest loaded for ${this.moduleId}:`, this.manifest);
+            }
+        } catch (error) {
+            console.warn(`⚠️ Failed to load manifest for ${this.moduleId}:`, error);
+        }
+    }
+}
+
 class DatabaseVisualizerModule extends BaseModule {
     constructor(moduleId) {
         super(moduleId);
 
-        this.databases = [];
-        this.selectedDb = null;
+        this.schemas = [];  // PostgreSQL schemas (was databases)
+        this.selectedSchema = null;  // Currently selected schema (was selectedDb)
         this.selectedTable = null;
-        this.schema = {};
+        this.schema = {};  // Schema structure (tables and columns)
         this.tabulatorTable = null;
         this.schemaTabulatorTable = null;
     }
@@ -61,9 +90,9 @@ class DatabaseVisualizerModule extends BaseModule {
                 <div class="module-header-left">
                     <h2 class="module-title">
                         <i class="fas fa-database" style="color: ${primaryColor};"></i>
-                        Available Databases
+                        Supabase Schemas
                     </h2>
-                    <p class="module-description">Discover .db files in your project</p>
+                    <p class="module-description">Explore PostgreSQL database schemas</p>
                 </div>
                 <div class="module-header-right">
                     <button class="btn-secondary" id="refresh-databases-btn">
@@ -79,7 +108,7 @@ class DatabaseVisualizerModule extends BaseModule {
                         <i class="fas fa-database"></i>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-label">Total Databases</div>
+                        <div class="stat-label">Total Schemas</div>
                         <div class="stat-value" id="stat-total-dbs">0</div>
                     </div>
                 </div>
@@ -323,18 +352,19 @@ class DatabaseVisualizerModule extends BaseModule {
 
     async loadDatabases() {
         try {
-            console.log('🔍 Discovering databases...');
+            console.log('🔍 Loading Supabase schemas...');
 
             const response = await fetch('/api/database-visualizer/list-databases');
 
             if (!response.ok) {
-                throw new Error(`Failed to load databases: ${response.statusText}`);
+                throw new Error(`Failed to load schemas: ${response.statusText}`);
             }
 
             const result = await response.json();
-            this.databases = result.databases || [];
+            this.schemas = result.schemas || result.databases || [];  // Support both
+            this.databases = this.schemas;  // Legacy compatibility
 
-            console.log(`Found ${this.databases.length} databases`);
+            console.log(`Found ${this.schemas.length} schemas`);
 
             // Update stats
             this.updateDatabaseStats();
@@ -361,7 +391,9 @@ class DatabaseVisualizerModule extends BaseModule {
         try {
             console.log(`🔍 Loading schema for: ${dbPath}`);
 
-            const response = await fetch(`/api/database-visualizer/schema?db_path=${encodeURIComponent(dbPath)}`);
+            // Extract schema name (handle both 'schema' and legacy 'db_path')
+            const schemaName = dbPath.includes('.db') ? dbPath.replace('data/', '').replace('.db', '') : dbPath;
+            const response = await fetch(`/api/database-visualizer/schema?schema=${encodeURIComponent(schemaName)}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to load schema: ${response.statusText}`);
@@ -388,7 +420,9 @@ class DatabaseVisualizerModule extends BaseModule {
         try {
             console.log(`🔍 Loading data from table: ${tableName}`);
 
-            const response = await fetch(`/api/database-visualizer/table-data?db_path=${encodeURIComponent(this.selectedDb)}&table=${encodeURIComponent(tableName)}`);
+            const schemaName = this.selectedSchema || this.selectedDb;
+            const cleanSchema = schemaName.includes('.db') ? schemaName.replace('data/', '').replace('.db', '') : schemaName;
+            const response = await fetch(`/api/database-visualizer/table-data?schema=${encodeURIComponent(cleanSchema)}&table=${encodeURIComponent(tableName)}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to load table data: ${response.statusText}`);
@@ -431,15 +465,15 @@ class DatabaseVisualizerModule extends BaseModule {
             ? this.manifest.colors.primary
             : 'var(--accent-primary)';
 
-        if (this.databases.length === 0) {
-            container.innerHTML = '<p class="text-secondary" style="text-align: center; padding: 40px;">No database files found</p>';
+        if (this.schemas.length === 0) {
+            container.innerHTML = '<p class="text-secondary" style="text-align: center; padding: 40px;">No PostgreSQL schemas found</p>';
             return;
         }
 
         // Create HTML without onclick handlers
-        const gridHTML = this.databases.map(db => `
+        const gridHTML = this.schemas.map(schema => `
             <div class="database-card" style="background: rgba(139, 92, 246, 0.05); border: 1px solid ${primaryColor}; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;" 
-                data-db-path="${db.path}"
+                data-db-path="${schema.name}"
                 onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" 
                 onmouseout="this.style.background='rgba(139, 92, 246, 0.05)'">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -447,22 +481,22 @@ class DatabaseVisualizerModule extends BaseModule {
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                             <i class="fas fa-database" style="color: ${primaryColor}; font-size: 24px;"></i>
                             <div>
-                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">${db.name}</h3>
-                                <p style="margin: 4px 0 0 0; font-size: 11px; color: var(--text-secondary); font-family: monospace;">${db.relative_path}</p>
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">${schema.name}</h3>
+                                <p style="margin: 4px 0 0 0; font-size: 11px; color: var(--text-secondary);">${schema.description || 'PostgreSQL Schema'}</p>
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
                             <div>
                                 <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Tables</div>
-                                <div style="font-size: 14px; font-weight: 600; color: ${primaryColor};">${db.table_count || 0}</div>
+                                <div style="font-size: 14px; font-weight: 600; color: ${primaryColor};">${schema.table_count || 0}</div>
                             </div>
                             <div>
                                 <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Size</div>
-                                <div style="font-size: 14px; font-weight: 600;">${this.formatFileSize(db.size_bytes || 0)}</div>
+                                <div style="font-size: 14px; font-weight: 600;">${this.formatFileSize(schema.size_bytes || 0)}</div>
                             </div>
                             <div>
-                                <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Modified</div>
-                                <div style="font-size: 14px; font-weight: 600;">${this.formatDate(db.modified_at)}</div>
+                                <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Type</div>
+                                <div style="font-size: 14px; font-weight: 600;">${schema.type || 'PostgreSQL'}</div>
                             </div>
                         </div>
                     </div>
@@ -694,7 +728,9 @@ class DatabaseVisualizerModule extends BaseModule {
         container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i><p>Loading data...</p></div>';
 
         try {
-            const response = await fetch(`/api/database-visualizer/table-data?db_path=${encodeURIComponent(this.selectedDb)}&table=${encodeURIComponent(tableName)}&limit=100`);
+            const schemaName = this.selectedSchema || this.selectedDb;
+            const cleanSchema = schemaName.includes('.db') ? schemaName.replace('data/', '').replace('.db', '') : schemaName;
+            const response = await fetch(`/api/database-visualizer/table-data?schema=${encodeURIComponent(cleanSchema)}&table=${encodeURIComponent(tableName)}&limit=100`);
             const result = await response.json();
 
             if (result.success && result.data) {
@@ -850,23 +886,25 @@ class DatabaseVisualizerModule extends BaseModule {
 
     // ==================== ACTIONS ====================
 
-    selectDatabase(dbPath) {
-        this.selectedDb = dbPath;
-        console.log(`📂 Selected database: ${dbPath}`);
+    selectDatabase(schemaName) {
+        this.selectedSchema = schemaName;
+        this.selectedDb = schemaName;  // Legacy compatibility
+        console.log(`📂 Selected schema: ${schemaName}`);
 
         this.switchSubTab('schema');  // CORRECT METHOD NAME
 
-        document.getElementById('schema-db-selector').value = dbPath;
-        this.loadSchema(dbPath);
+        document.getElementById('schema-db-selector').value = schemaName;
+        this.loadSchema(schemaName);
     }
 
-    exploreDatabase(dbPath) {
-        this.selectedDb = dbPath;
+    exploreDatabase(schemaName) {
+        this.selectedSchema = schemaName;
+        this.selectedDb = schemaName;  // Legacy compatibility
 
         this.switchSubTab('schema');  // CORRECT METHOD NAME
 
-        document.getElementById('schema-db-selector').value = dbPath;
-        this.loadSchema(dbPath);
+        document.getElementById('schema-db-selector').value = schemaName;
+        this.loadSchema(schemaName);
     }
 
     onQueryDbChange(dbPath) {
@@ -889,8 +927,8 @@ class DatabaseVisualizerModule extends BaseModule {
         selectors.forEach(selectorId => {
             const selector = document.getElementById(selectorId);
             if (selector) {
-                selector.innerHTML = '<option value="">Select Database...</option>' +
-                    this.databases.map(db => `<option value="${db.path}">${db.name}</option>`).join('');
+                selector.innerHTML = '<option value="">Select Schema...</option>' +
+                    this.schemas.map(schema => `<option value="${schema.name}">${schema.name} (${schema.table_count} tables)</option>`).join('');
             }
         });
     }
@@ -947,5 +985,8 @@ class DatabaseVisualizerModule extends BaseModule {
     }
 }
 
-// Register module
+// Register module (backward compatibility)
 window.ModuleRegistry['database-visualizer'] = DatabaseVisualizerModule;
+
+// ES6 Export
+export default DatabaseVisualizerModule;

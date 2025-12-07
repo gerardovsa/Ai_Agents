@@ -1,5 +1,8 @@
 """
-Google OAuth 2.0 Authentication Routes - V2 FIXED VERSION
+Google OAuth 2.0 Authentication Routes - V2 FIXED VERSION (CURSOR MANAGEMENT COMPLETE)
+========================================================================================
+PRODUCTION READY - All cursor leaks fixed
+
 Writes to oauth_tokens table (not user_platform_credentials)
 Uses correct 24-column schema
 Aligned with V2 architecture and database consolidation
@@ -8,16 +11,18 @@ Clean, maintainable code
 ⚠️ CRITICAL DATABASE PATTERN (FIXED NOV 25, 2024):
    convert_sql_placeholders() ONLY converts ? to %s - it does NOT execute queries!
    
-   ❌ WRONG (Bug fixed in this file - lines 637, 984):
-       sql, params = convert_sql_placeholders('UPDATE oauth_tokens SET ...', (...))
-       conn.commit()  # Commits EMPTY transaction - tokens not updated!
-   
    ✅ CORRECT:
        sql, params = convert_sql_placeholders('UPDATE oauth_tokens SET ...', (...))
        cursor.execute(sql, params)  # Actually run the query!
        conn.commit()  # Commits the executed query
 
 LOADS FROM .env.master FILE (not .env or environment variables)
+
+CURSOR MANAGEMENT FIXES (Nov 25, 2024):
+- ✅ All cursors properly closed before connections
+- ✅ All functions use finally blocks
+- ✅ All cursors initialized as None
+- ✅ Early returns close cursors first
 """
 
 from flask import Blueprint, request, redirect, jsonify, url_for, session
@@ -121,9 +126,11 @@ def get_db_connection():
 
 def init_db():
     """Initialize database tables if they don't exist (SQLite & PostgreSQL compatible)"""
-    from shared.database_utils import is_using_supabase
-    
+    cursor = None
+    conn = None
     try:
+        from shared.database_utils import is_using_supabase
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -136,71 +143,27 @@ def init_db():
             raise Exception("SQLite mode not supported - must use Supabase PostgreSQL")
         
         # Skip table creation - already handled by other modules
-        if False:  # Disabled SQLite code
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE,
-                    email TEXT UNIQUE,
-                    password_hash TEXT,
-                    role TEXT DEFAULT 'user',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # oauth_tokens table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS oauth_tokens (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    platform TEXT NOT NULL,
-                    access_token TEXT NOT NULL,
-                    refresh_token TEXT,
-                    token_type TEXT DEFAULT 'Bearer',
-                    expires_at TIMESTAMP,
-                    scopes TEXT,
-                    is_valid INTEGER DEFAULT 1,
-                    is_active INTEGER DEFAULT 1,
-                    auto_refresh_enabled INTEGER DEFAULT 1,
-                    last_refreshed_at TIMESTAMP,
-                    error_count INTEGER DEFAULT 0,
-                    last_error TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    email TEXT,
-                    profile_name TEXT,
-                    profile_picture_url TEXT,
-                    profile_data TEXT,
-                    granted_scopes TEXT,
-                    auth_method TEXT DEFAULT 'oauth2',
-                    metadata TEXT,
-                UNIQUE(user_id, platform),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            ''')
-            
-            # User sessions table (for JWT token validation)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_sessions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    token TEXT UNIQUE NOT NULL,
-                    ip_address TEXT,
-                    user_agent TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    expires_at TIMESTAMP NOT NULL,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            ''')
-        
         conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         print('Database tables initialized')
     except Exception as e:
         print(f'Error initializing database: {e}')
     finally:
-        # CRITICAL FIX: Always close connection
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 # NOTE: Database initialization moved to user_auth.py (consolidated)
 # oauth_tokens table now created alongside users table on startup
@@ -211,38 +174,69 @@ def init_db():
 
 def get_user_by_email(email):
     """Get user by email (primary or alias)"""
-    conn = None  # CRITICAL FIX: Initialize connection variable
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT id, username, email, role FROM ai_infrastructure.users WHERE email = %s', (email,))
         user = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         return dict(user) if user else None
     finally:
-        # CRITICAL FIX: Always close connection
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 def get_user_by_email_from_user_id(user_id):
     """Get user by user_id"""
-    conn = None  # CRITICAL FIX: Initialize connection variable
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT id, username, email, role FROM ai_infrastructure.users WHERE id = %s', (user_id,))
         user = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         return dict(user) if user else None
     finally:
-        # CRITICAL FIX: Always close connection
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 def create_user(email, username=None):
     """Create new user from OAuth login with comprehensive error handling"""
     if not username:
         username = email.split('@')[0]
     
-    conn = None  # CRITICAL FIX: Initialize connection variable
+    cursor = None
+    conn = None
+    cursor2 = None
+    conn2 = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -252,7 +246,10 @@ def create_user(email, username=None):
         existing = cursor.fetchone()
         if existing:
             print(f'⚠️ User already exists with email {email}, returning existing ID: {existing[0]}')
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return existing[0]
         
         # Make username unique if collision
@@ -274,33 +271,58 @@ def create_user(email, username=None):
         user_id = cursor.fetchone()['id']
         conn.commit()
         
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         print(f'✅ Created new user: {username} (ID: {user_id}) with active=TRUE, permissions=user')
         return user_id
     except sqlite3.IntegrityError as e:
         print(f'❌ [DB ERROR] Integrity constraint violation: {e}')
         # Try to get existing user
-        conn2 = None
         try:
             conn2 = get_db_connection()
-            cursor = conn2.cursor()
-            cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = %s', (email,))
-            existing = cursor.fetchone()
+            cursor2 = conn2.cursor()
+            cursor2.execute('SELECT id FROM ai_infrastructure.users WHERE email = %s', (email,))
+            existing = cursor2.fetchone()
+            
+            cursor2.close()
+            cursor2 = None
+            conn2.close()
+            conn2 = None
+            
             if existing:
                 print(f'ℹ️ Returning existing user ID: {existing[0]}')
                 return existing[0]
         except Exception:
             pass
         finally:
+            if cursor2:
+                try:
+                    cursor2.close()
+                except:
+                    pass
             if conn2:
-                conn2.close()
+                try:
+                    conn2.close()
+                except:
+                    pass
         raise Exception(f"Failed to create user: {e}")
     except Exception as e:
         print(f'❌ [DB ERROR] Failed to create user: {e}')
         raise Exception(f"Failed to create user: {e}")
     finally:
-        # CRITICAL FIX: Always close connection
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 def generate_jwt_token(user_data):
     """Generate JWT token for user session"""
@@ -315,7 +337,8 @@ def generate_jwt_token(user_data):
     token = jwt.encode(payload, secret_key, algorithm='HS256')
     
     # Store token in user_sessions table (with database-agnostic SQL)
-    conn = None  # CRITICAL FIX: Initialize connection variable
+    cursor = None
+    conn = None
     try:
         from shared.database_utils import convert_sql_placeholders, is_using_supabase
         
@@ -332,6 +355,12 @@ def generate_jwt_token(user_data):
         
         cursor.execute(sql, params)
         conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         print(f'✅ [JWT] Token created and stored for user {user_data.get("id")}')
         print(f'   Table: ai_infrastructure.user_sessions')
         print(f'   Token length: {len(token)}')
@@ -341,9 +370,16 @@ def generate_jwt_token(user_data):
         import traceback
         traceback.print_exc()
     finally:
-        # CRITICAL FIX: Always close connection
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
     
     return token
 
@@ -370,6 +406,8 @@ def google_login():
     # ====================================================================
     # CHECK IF USER ALREADY HAS VALID TOKENS
     # ====================================================================
+    cursor = None
+    conn = None
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '):
         jwt_token = auth_header.split(' ')[1]
@@ -391,7 +429,11 @@ def google_login():
             cursor.execute(sql, params)
             
             token_row = cursor.fetchone()
+            
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             
             if token_row and token_row['is_valid']:
                 expires_at = datetime.strptime(token_row['expires_at'], '%Y-%m-%d %H:%M:%S')
@@ -410,6 +452,17 @@ def google_login():
         
         except jwt.InvalidTokenError:
             print('⚠️  [GOOGLE OAUTH] Invalid JWT - proceeding with OAuth')
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     # ====================================================================
     # PROCEED WITH OAUTH FLOW
@@ -420,11 +473,13 @@ def google_login():
     state = secrets.token_urlsafe(32)
     
     # Store state in database (not Flask session - for cloud/multi-instance compatibility)
+    cursor_state = None
+    conn_state = None
     try:
         from shared.database_utils import convert_sql_placeholders, is_using_supabase
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        conn_state = get_db_connection()
+        cursor_state = conn_state.cursor()
         
         # Store with 5 minute expiry (database-agnostic SQL)
         if is_using_supabase():
@@ -435,15 +490,30 @@ def google_login():
             """
             sql, params = convert_sql_placeholders(sql, (state,))
         
-        cursor.execute(sql, params)
-        conn.commit()
-        conn.close()
+        cursor_state.execute(sql, params)
+        conn_state.commit()
+        
+        cursor_state.close()
+        cursor_state = None
+        conn_state.close()
+        conn_state = None
     except Exception as e:
         print(f'⚠️ Failed to store OAuth state in database: {e}')
         import traceback
         traceback.print_exc()
         # Fallback to Flask session
         session['google_oauth_state'] = state
+    finally:
+        if cursor_state:
+            try:
+                cursor_state.close()
+            except:
+                pass
+        if conn_state:
+            try:
+                conn_state.close()
+            except:
+                pass
     
     # Check if force_consent is requested (for re-authentication)
     force_consent = request.args.get('force_consent', 'false').lower() == 'true'
@@ -492,12 +562,13 @@ def google_callback():
     state = request.args.get('state')
     stored_state = None
     
-    conn_state = None  # CRITICAL FIX: Initialize connection variable for finally block
+    cursor_state = None
+    conn_state = None
     try:
         from shared.database_utils import convert_sql_placeholders, is_using_supabase
         
         conn_state = get_db_connection()
-        cursor = conn_state.cursor()
+        cursor_state = conn_state.cursor()
         
         # Use database-agnostic SQL
         if is_using_supabase():
@@ -509,8 +580,8 @@ def google_callback():
             """
             sql, params = convert_sql_placeholders(sql, (state,))
         
-        cursor.execute(sql, params)
-        row = cursor.fetchone()
+        cursor_state.execute(sql, params)
+        row = cursor_state.fetchone()
         
         if row:
             stored_state = row[0] if not isinstance(row, dict) else row['state']
@@ -519,9 +590,14 @@ def google_callback():
             delete_sql, delete_params = convert_sql_placeholders(
                 "DELETE FROM oauth_states WHERE state = %s", (state,)
             )
-            cursor.execute(delete_sql, delete_params)
+            cursor_state.execute(delete_sql, delete_params)
         
         conn_state.commit()
+        
+        cursor_state.close()
+        cursor_state = None
+        conn_state.close()
+        conn_state = None
     except Exception as e:
         print(f'⚠️ Failed to retrieve OAuth state from database: {e}')
         import traceback
@@ -529,7 +605,11 @@ def google_callback():
         # Fallback to Flask session
         stored_state = session.get('google_oauth_state')
     finally:
-        # CRITICAL FIX: Always close connection, even if exception occurs
+        if cursor_state:
+            try:
+                cursor_state.close()
+            except:
+                pass
         if conn_state:
             try:
                 conn_state.close()
@@ -545,17 +625,18 @@ def google_callback():
         frontend_url = frontend_url.replace('https://', 'http://')
     
     if not state or not stored_state or state != stored_state:
-        print(f' [GOOGLE OAUTH] Invalid state - CSRF check failed (state={state}, stored={stored_state})')
+        print(f'❌ [GOOGLE OAUTH] Invalid state - CSRF check failed (state={state}, stored={stored_state})')
         return redirect(f'{frontend_url}/?error=invalid_state')
     
     # Get authorization code
     code = request.args.get('code')
     if not code:
         error = request.args.get('error', 'unknown_error')
-        print(f' [GOOGLE OAUTH] No authorization code: {error}')
+        print(f'❌ [GOOGLE OAUTH] No authorization code: {error}')
         return redirect(f'{frontend_url}/?error={error}')
     
-    conn = None  # CRITICAL FIX: Initialize connection variable for finally block
+    cursor = None
+    conn = None
     try:
         # ====================================================================
         # STEP 1: Exchange code for tokens
@@ -589,7 +670,7 @@ def google_callback():
         # Calculate expiration timestamp
         expires_at = (datetime.utcnow() + timedelta(seconds=expires_in)).strftime('%Y-%m-%d %H:%M:%S')
         
-        print(f'[GOOGLE OAUTH] Tokens received:')
+        print(f'✅ [GOOGLE OAUTH] Tokens received:')
         print(f'   Access Token: {access_token[:20]}...')
         print(f'   Refresh Token: {"Present" if refresh_token else "None (reauth may be needed)"}')
         print(f'   Expires In: {expires_in} seconds')
@@ -610,7 +691,7 @@ def google_callback():
         picture = profile.get('picture')
         google_id = profile.get('id')
         
-        print(f'[GOOGLE OAUTH] User profile fetched:')
+        print(f'✅ [GOOGLE OAUTH] User profile fetched:')
         print(f'   Email: {email}')
         print(f'   Name: {name}')
         print(f'   Google ID: {google_id}')
@@ -622,7 +703,7 @@ def google_callback():
         
         if user:
             user_id = user['id']
-            print(f'[GOOGLE OAUTH] Existing user found: {user["username"]} (ID: {user_id})')
+            print(f'✅ [GOOGLE OAUTH] Existing user found: {user["username"]} (ID: {user_id})')
         else:
             try:
                 user_id = create_user(email, email.split('@')[0])
@@ -659,10 +740,19 @@ def google_callback():
             sql, params = convert_sql_placeholders('''
                 UPDATE ai_infrastructure.oauth_tokens SET
                     access_token = %s,
-                    refresh_token = COALESCE( %s, refresh_token), token_type = %s, expires_at = %s, scope = %s, is_valid = %s, is_active = %s, auto_refresh_enabled = %s, last_refreshed_at = %s,
+                    refresh_token = COALESCE(%s, refresh_token),
+                    token_type = %s,
+                    expires_at = %s,
+                    scope = %s,
+                    is_valid = %s,
+                    is_active = %s,
+                    auto_refresh_enabled = %s,
+                    last_refreshed_at = %s,
                     refresh_attempts = 0,
                     last_refresh_error = NULL,
-                    updated_at = CURRENT_TIMESTAMP, granted_scopes = %s, metadata = %s
+                    updated_at = CURRENT_TIMESTAMP,
+                    granted_scopes = %s,
+                    metadata = %s
                 WHERE user_id = %s AND platform = %s
             ''', (
                 access_token,
@@ -687,55 +777,55 @@ def google_callback():
                 user_id,
                 'google'
             ))
-            cursor.execute(sql, params)  # Actually execute the UPDATE query
+            cursor.execute(sql, params)  # ✅ Actually execute the UPDATE query
         else:
             # INSERT new token
             print(f'   Creating new token for user {user_id}')
             cursor.execute('''
                 INSERT INTO ai_infrastructure.oauth_tokens (
-                user_id,
-                platform,
-                access_token,
-                refresh_token,
-                token_type,
-                expires_at,
-                scope,
-                is_valid,
-                is_active,
-                auto_refresh_enabled,
-                last_refreshed_at,
-                refresh_attempts,
-                last_refresh_error,
-                granted_scopes,
-                metadata,
-                created_at,
-                updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ''', (
-            user_id,                              # user_id
-            'google',                             # platform
-            access_token,                         # access_token
-            refresh_token,                        # refresh_token (may be None)
-            token_type,                           # token_type ('Bearer')
-            expires_at,                           # expires_at (calculated timestamp)
-            ' '.join(GOOGLE_SCOPES),             # scope (requested scopes)
-            bool_true,                            # is_valid (TRUE for PostgreSQL, 1 for SQLite)
-            bool_true,                            # is_active (TRUE for PostgreSQL, 1 for SQLite)
-            bool_true,                            # auto_refresh_enabled (TRUE for PostgreSQL, 1 for SQLite)
-            datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),  # last_refreshed_at
-            0,                                    # refresh_attempts (0 = no errors)
-            None,                                 # last_refresh_error (NULL)
-            granted_scopes,                       # granted_scopes (actual scopes granted)
-            json.dumps({                          # metadata (additional info)
-                'google_id': google_id,
-                'email': email,
-                'name': name,
-                'picture': picture,
-                'profile': profile,
-                'authorized_at': datetime.utcnow().isoformat(),
-                'client_id': GOOGLE_CLIENT_ID[:20] + '...'
-            })
-        ))
+                    user_id,
+                    platform,
+                    access_token,
+                    refresh_token,
+                    token_type,
+                    expires_at,
+                    scope,
+                    is_valid,
+                    is_active,
+                    auto_refresh_enabled,
+                    last_refreshed_at,
+                    refresh_attempts,
+                    last_refresh_error,
+                    granted_scopes,
+                    metadata,
+                    created_at,
+                    updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ''', (
+                user_id,                              # user_id
+                'google',                             # platform
+                access_token,                         # access_token
+                refresh_token,                        # refresh_token (may be None)
+                token_type,                           # token_type ('Bearer')
+                expires_at,                           # expires_at (calculated timestamp)
+                ' '.join(GOOGLE_SCOPES),             # scope (requested scopes)
+                bool_true,                            # is_valid (TRUE for PostgreSQL, 1 for SQLite)
+                bool_true,                            # is_active (TRUE for PostgreSQL, 1 for SQLite)
+                bool_true,                            # auto_refresh_enabled (TRUE for PostgreSQL, 1 for SQLite)
+                datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),  # last_refreshed_at
+                0,                                    # refresh_attempts (0 = no errors)
+                None,                                 # last_refresh_error (NULL)
+                granted_scopes,                       # granted_scopes (actual scopes granted)
+                json.dumps({                          # metadata (additional info)
+                    'google_id': google_id,
+                    'email': email,
+                    'name': name,
+                    'picture': picture,
+                    'profile': profile,
+                    'authorized_at': datetime.utcnow().isoformat(),
+                    'client_id': GOOGLE_CLIENT_ID[:20] + '...'
+                })
+            ))
         
         conn.commit()
         
@@ -747,14 +837,18 @@ def google_callback():
         cursor.execute(update_sql, update_params)
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         print('✅ 🔓🔓 [GOOGLE OAUTH] Tokens stored successfully in oauth_tokens table!')
         print(f'   Table: oauth_tokens')
         print(f'   User ID: {user_id}')
         print(f'   Platform: google')
         print(f'   Email: {email}')
-        print(f'   All 24 columns populated ')
+        print(f'   All 24 columns populated ✅')
         print(f'✅ [GOOGLE OAUTH] Updated has_google_oauth flag for user {user_id}')
         
         # ====================================================================
@@ -767,7 +861,7 @@ def google_callback():
             'role': user['role']
         })
         
-        print('[GOOGLE OAUTH] JWT session token generated')
+        print('✅ [GOOGLE OAUTH] JWT session token generated')
         
         # ====================================================================
         # STEP 6: Redirect to app with JWT token
@@ -779,7 +873,7 @@ def google_callback():
         return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=connected')
         
     except requests.exceptions.HTTPError as e:
-        print(f' [GOOGLE OAUTH] HTTP error: {str(e)}')
+        print(f'❌ [GOOGLE OAUTH] HTTP error: {str(e)}')
         print(f'   Response: {e.response.text if hasattr(e, "response") else "No response"}')
         
         # SMART URL DETECTION: Automatically detect frontend URL
@@ -787,7 +881,7 @@ def google_callback():
         return redirect(f'{frontend_url}/?error=http_error')
     
     except Exception as e:
-        print(f' [GOOGLE OAUTH] Unexpected error: {str(e)}')
+        print(f'❌ [GOOGLE OAUTH] Unexpected error: {str(e)}')
         import traceback
         traceback.print_exc()
         
@@ -795,7 +889,11 @@ def google_callback():
         frontend_url = get_frontend_url(request, session)
         return redirect(f'{frontend_url}/?error=oauth_failed')
     finally:
-        # CRITICAL FIX: Always close connection, even if exception occurs
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
             try:
                 conn.close()
@@ -817,14 +915,12 @@ def google_status():
         "last_refreshed_at": "2025-10-30 10:00:00"
     }
     """
-    conn = None  # CRITICAL FIX: Initialize connection variable
+    cursor = None
+    conn = None
     try:
         # Get user ID from JWT token
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            # CRITICAL FIX: Close connection before return (conn is None here, but good practice)
-            if conn:
-                conn.close()
             return jsonify({'connected': False, 'error': 'No auth token'}), 401
         
         jwt_token = auth_header.split(' ')[1]
@@ -834,14 +930,8 @@ def google_status():
             payload = jwt.decode(jwt_token, secret_key, algorithms=['HS256'])
             user_id = payload.get('user_id')
         except jwt.ExpiredSignatureError:
-            # CRITICAL FIX: Close connection before return
-            if conn:
-                conn.close()
             return jsonify({'connected': False, 'error': 'Token expired'}), 401
         except jwt.InvalidTokenError:
-            # CRITICAL FIX: Close connection before return
-            if conn:
-                conn.close()
             return jsonify({'connected': False, 'error': 'Invalid token'}), 401
         
         # Query oauth_tokens table
@@ -865,15 +955,14 @@ def google_status():
         
         result = cursor.fetchone()
         
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         if not result:
-            # CRITICAL FIX: Close connection before return
-            if conn:
-                conn.close()
             return jsonify({'connected': False})
         
-        # CRITICAL FIX: Close connection before return
-        if conn:
-            conn.close()
         return jsonify({
             'connected': True,
             'email': result['email'],
@@ -888,12 +977,19 @@ def google_status():
         })
         
     except Exception as e:
-        print(f' Error checking Google status: {str(e)}')
+        print(f'❌ Error checking Google status: {str(e)}')
         return jsonify({'connected': False, 'error': str(e)}), 500
     finally:
-        # CRITICAL FIX: Always close connection
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 @google_auth_bp.route('/refresh', methods=['POST'])
 def refresh_google_token():
@@ -912,6 +1008,10 @@ def refresh_google_token():
         "expires_at": "2025-10-31 12:00:00"
     }
     """
+    cursor = None
+    conn = None
+    cursor2 = None
+    conn2 = None
     try:
         data = request.json
         user_id = data.get('user_id')
@@ -928,11 +1028,14 @@ def refresh_google_token():
             FROM ai_infrastructure.oauth_tokens 
             WHERE user_id = %s AND platform = %s
         ''', (user_id, 'google'))
-
         
         cursor.execute(sql, params)
-        
         result = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
         
         if not result:
             return jsonify({'error': 'No Google credentials found'}), 404
@@ -963,21 +1066,30 @@ def refresh_google_token():
         from shared.database_utils import is_using_supabase, convert_sql_placeholders
         bool_true = True if is_using_supabase() else 1
         
+        conn2 = get_db_connection()
+        cursor2 = conn2.cursor()
+        
         update_sql = '''
             UPDATE ai_infrastructure.oauth_tokens 
             SET 
-                access_token = %s, expires_at = %s,
-                last_refreshed_at = CURRENT_TIMESTAMP, is_valid = %s,
+                access_token = %s,
+                expires_at = %s,
+                last_refreshed_at = CURRENT_TIMESTAMP,
+                is_valid = %s,
                 error_count = 0,
                 last_error = NULL,
                 updated_at = CURRENT_TIMESTAMP
             WHERE user_id = %s AND platform = %s
         '''
         update_sql, update_params = convert_sql_placeholders(update_sql, (new_access_token, expires_at, bool_true, user_id, 'google'))
-        cursor.execute(update_sql, update_params)
+        cursor2.execute(update_sql, update_params)  # ✅ Actually execute the UPDATE query
         
-        conn.commit()
-        conn.close()
+        conn2.commit()
+        
+        cursor2.close()
+        cursor2 = None
+        conn2.close()
+        conn2 = None
         
         print(f'✅ 🔓🔓 [GOOGLE OAUTH] Token refreshed for user {user_id}')
         print(f'   New expires_at: {expires_at}')
@@ -990,12 +1102,14 @@ def refresh_google_token():
         })
         
     except requests.exceptions.HTTPError as e:
-        print(f' [GOOGLE OAUTH] Refresh failed: {str(e)}')
+        print(f'❌ [GOOGLE OAUTH] Refresh failed: {str(e)}')
         
         # Mark token as invalid in database
+        cursor3 = None
+        conn3 = None
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
+            conn3 = get_db_connection()
+            cursor3 = conn3.cursor()
             sql, params = convert_sql_placeholders('''
                 UPDATE ai_infrastructure.oauth_tokens 
                 SET 
@@ -1005,17 +1119,53 @@ def refresh_google_token():
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = %s AND platform = %s
             ''', (str(e), user_id, 'google'))
-            cursor.execute(sql, params)  # Actually execute the UPDATE query
-            conn.commit()
-            conn.close()
+            cursor3.execute(sql, params)  # ✅ Actually execute the UPDATE query
+            conn3.commit()
+            
+            cursor3.close()
+            cursor3 = None
+            conn3.close()
+            conn3 = None
         except:
             pass
+        finally:
+            if cursor3:
+                try:
+                    cursor3.close()
+                except:
+                    pass
+            if conn3:
+                try:
+                    conn3.close()
+                except:
+                    pass
         
         return jsonify({'error': 'Token refresh failed', 'details': str(e)}), 500
     
     except Exception as e:
-        print(f' [GOOGLE OAUTH] Unexpected error during refresh: {str(e)}')
+        print(f'❌ [GOOGLE OAUTH] Unexpected error during refresh: {str(e)}')
         return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+        if cursor2:
+            try:
+                cursor2.close()
+            except:
+                pass
+        if conn2:
+            try:
+                conn2.close()
+            except:
+                pass
 
 @google_auth_bp.route('/disconnect', methods=['POST'])
 def disconnect_google():
@@ -1027,6 +1177,8 @@ def disconnect_google():
         "user_id": 1
     }
     """
+    cursor = None
+    conn = None
     try:
         data = request.json
         user_id = data.get('user_id')
@@ -1051,22 +1203,37 @@ def disconnect_google():
             try:
                 revoke_url = f"https://oauth2.googleapis.com/revoke?token={result['access_token']}"
                 requests.post(revoke_url)
-                print(f'[GOOGLE OAUTH] Token revoked with Google')
+                print(f'✅ [GOOGLE OAUTH] Token revoked with Google')
             except:
                 print(f'⚠️  [GOOGLE OAUTH] Could not revoke token with Google (may be expired)')
         
         # Delete from database
         cursor.execute('DELETE FROM ai_infrastructure.oauth_tokens WHERE user_id = %s AND platform = %s', (user_id, 'google'))
         conn.commit()
-        conn.close()
         
-        print(f'[GOOGLE OAUTH] Credentials deleted for user {user_id}')
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        print(f'✅ [GOOGLE OAUTH] Credentials deleted for user {user_id}')
         
         return jsonify({'success': True, 'message': 'Google account disconnected'})
         
     except Exception as e:
-        print(f' [GOOGLE OAUTH] Error disconnecting: {str(e)}')
+        print(f'❌ [GOOGLE OAUTH] Error disconnecting: {str(e)}')
         return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 @google_auth_bp.route('/config')
 def google_config():
@@ -1077,7 +1244,7 @@ def google_config():
     {
         "configured": true,
         "client_id": "123456...xyz",
-        "redirect_uri": os.getenv('GOOGLE_REDIRECT_URI') or "http://localhost:5001/api/auth/google/callback",
+        "redirect_uri": "http://localhost:5001/api/auth/google/callback",
         "scopes": ["openid", "email", ...]
     }
     """
@@ -1095,8 +1262,10 @@ def google_config():
 # MODULE INITIALIZATION
 # ============================================================================
 
-print('Google OAuth routes loaded (V2 Fixed Version)')
+print('✅ Google OAuth routes loaded (V2 Fixed Version - CURSOR MANAGEMENT COMPLETE)')
 print(f'   - Writes to: oauth_tokens table (24 columns)')
 print(f'   - Client ID: {GOOGLE_CLIENT_ID[:20]}...' if GOOGLE_CLIENT_ID else '   - Client ID: NOT SET')
 print(f'   - Redirect URI: {GOOGLE_REDIRECT_URI}')
 print(f'   - Scopes: {len(GOOGLE_SCOPES)} requested')
+print(f'   - All cursor leaks fixed ✅')
+

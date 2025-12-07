@@ -437,46 +437,53 @@ export default {
         this.log.debug('Rendering Unified Inbox...');
 
         const html = `
-            <div class="module-dashboard">
-                <!-- Toolbar -->
+            <div class="module-dashboard" id="email-dashboard-main">
+                <!-- Toolbar (full width, stays above workspace) -->
                 ${this.renderToolbar()}
                 
-                <!-- Email Table Card -->
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-list"></i> Email Messages
-                        </h3>
-                    </div>
-                    <div class="card-content">
-                        <!-- Ready State -->
-                        <div id="inbox-ready" class="ready-state" style="text-align: center; padding: 40px; color: var(--text-secondary, #9ca3af);">
-                            <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
-                            <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load your emails</p>
-                            <p style="margin: 5px 0 0 0; font-size: 12px; color: var(--text-secondary, #6b7280);">Select account filter and click Refresh</p>
+                <!-- Side-by-side workspace container for table and preview -->
+                <div class="email-workspace-container">
+                    <!-- Email Table Card -->
+                    <div class="dashboard-card email-table-wrapper">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-list"></i> Email Messages
+                            </h3>
                         </div>
-                        
-                        <!-- Loading State -->
-                        <div id="inbox-loading" class="loading-state" style="display: none; text-align: center; padding: 40px;">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary-color, #0078d4); margin-bottom: 10px; display: block;"></i>
-                            <p style="margin: 0; font-size: 16px; color: var(--text-primary, #e5e7eb);">Loading emails...</p>
+                        <div class="card-content">
+                            <!-- Ready State -->
+                            <div id="inbox-ready" class="ready-state" style="text-align: center; padding: 40px; color: var(--text-secondary, #9ca3af);">
+                                <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
+                                <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load your emails</p>
+                                <p style="margin: 5px 0 0 0; font-size: 12px; color: var(--text-secondary, #6b7280);">Select account filter and click Refresh</p>
+                            </div>
+                            
+                            <!-- Loading State -->
+                            <div id="inbox-loading" class="loading-state" style="display: none; text-align: center; padding: 40px;">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary-color, #0078d4); margin-bottom: 10px; display: block;"></i>
+                                <p style="margin: 0; font-size: 16px; color: var(--text-primary, #e5e7eb);">Loading emails...</p>
+                            </div>
+                            
+                            <!-- Table Container -->
+                            <div id="email-table-container" style="display: none; min-height: 500px;"></div>
                         </div>
-                        
-                        <!-- Table Container -->
-                        <div id="email-table-container" style="display: none; min-height: 500px;"></div>
                     </div>
-                </div>
-                
-                <!-- Email Preview Panel (Slide-out) -->
-                <div id="emailPreview" class="email-preview-panel" style="display: none;">
+                    
+                    <!-- Email Preview Panel (sibling to dashboard-card) -->
+                    <div id="emailPreview" class="email-preview-panel" data-mode="sibling" style="display: none;">
                     <div class="email-preview-header">
                         <div class="email-preview-title">
                             <i class="fas fa-envelope"></i>
                             <span id="preview-title-text">Email Preview</span>
                         </div>
-                        <button class="synergy-icon-btn" data-action="close-preview" title="Close preview">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <div class="email-preview-controls">
+                            <button class="synergy-icon-btn" data-action="toggle-popup-mode" title="Toggle popup mode">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                            <button class="synergy-icon-btn" data-action="close-preview" title="Close preview">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                     <!-- Email Action Toolbar (Reply, Forward, Delete, etc) -->
                     <div id="email-action-toolbar" class="email-action-toolbar" style="display: none; padding: 12px 20px; background: rgba(99, 102, 241, 0.05); border-bottom: 1px solid var(--border-default, #30363d); display: flex; gap: 8px; flex-wrap: wrap;">
@@ -1064,6 +1071,11 @@ export default {
             this.closePreview();
         });
 
+        // Preview popup mode toggle
+        this.dom.on(this.dashboardContainer, 'click', '[data-action="toggle-popup-mode"]', () => {
+            this.togglePopupMode();
+        });
+
         // Email action toolbar buttons (Reply, Forward, Delete, etc)
         this.dom.on(this.dashboardContainer, 'click', '.email-action-toolbar [data-action="reply"]', () => {
             this.handleEmailAction('reply');
@@ -1307,6 +1319,27 @@ export default {
                     }
                 },
                 {
+                    title: "📎",
+                    field: "has_attachments",
+                    width: 60,
+                    hozAlign: "center",
+                    headerSort: false,
+                    tooltip: "Attachments",
+                    formatter: (cell) => {
+                        const data = cell.getRow().getData();
+                        const hasAttachments = data.has_attachments;
+                        const count = data.attachment_count || 0;
+
+                        if (hasAttachments && count > 0) {
+                            return `<div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                <i class="fas fa-paperclip" style="color: #6366f1;" title="${count} attachment(s)"></i>
+                                <span style="font-size: 11px; color: #6366f1; font-weight: 600;">${count}</span>
+                            </div>`;
+                        }
+                        return '<span style="color: #d1d5db;">—</span>';
+                    }
+                },
+                {
                     title: "Account",
                     field: "provider",
                     width: 70,
@@ -1331,6 +1364,7 @@ export default {
                 {
                     title: "Subject",
                     field: "subject",
+                    width: 450,
                     sorter: "string",
                     formatter: (cell) => {
                         const value = cell.getValue();
@@ -1353,7 +1387,7 @@ export default {
                 {
                     title: "AI Agent",
                     field: "assigned_agent",
-                    width: 150,
+                    width: 120,
                     hozAlign: "center",
                     headerSort: false,
                     formatter: (cell) => {
@@ -1363,7 +1397,7 @@ export default {
                         if (agent) {
                             return `
                                 <div class="agent-assignment-cell" data-email-id="${emailId}" style="cursor: pointer; position: relative;">
-                                    <span style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span style="background: #6366f1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
                                         <i class="fas fa-robot"></i>
                                         ${this.escapeHtml(agent)}
                                         <i class="fas fa-chevron-down" style="font-size: 9px;"></i>
@@ -1382,8 +1416,13 @@ export default {
                         `;
                     },
                     cellClick: (e, cell) => {
-                        e.stopPropagation(); // Prevent row click
+                        // CRITICAL: Stop ALL event propagation to prevent row click
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        // Show agent dropdown (not email preview)
                         this.showAgentAssignmentDropdown(e, cell);
+                        return false;
                     }
                 }
             ]
@@ -1396,6 +1435,10 @@ export default {
         });
 
         this.state.tabulatorTable.on("rowClick", (e, row) => {
+            // Don't open preview if clicking on agent assignment cell
+            if (e.target.closest('.agent-assignment-cell')) {
+                return;
+            }
             this.showEmailPreview(row.getData());
         });
 
@@ -1501,29 +1544,85 @@ export default {
             color: #f0f6fc;
         `;
 
-        // Fetch available agents
+        // Fetch available agents from synergy sessions AND thread counts
         let agents = [];
+        let nextAgentToActivate = null;
         try {
             const userId = window.UserAuth?.user?.id || 1;
-            const response = await fetch(`/api/agents/list?user_id=${userId}`);
-            if (response.ok) {
-                const data = await response.json();
-                agents = data.agents || [];
-            }
-        } catch (error) {
-            this.log.warn('Could not fetch agents list:', error);
-            // Fallback: Get from agent columns
-            const agentColumns = document.querySelectorAll('.agent-column-container');
-            agentColumns.forEach((col, index) => {
-                const titleEl = col.querySelector('.agent-column-title');
-                if (titleEl && !col.classList.contains('disabled')) {
-                    agents.push({
-                        id: `agent-column-${index + 1}`,
-                        name: titleEl.textContent.trim() || `Agent ${index + 1}`,
-                        description: 'From agent column'
-                    });
+
+            // Fetch synergy sessions to get open agents
+            const response = await fetch('/api/synergy/sessions');
+            const synergyData = response.ok ? await response.json() : { sessions: [] };
+            const sessions = synergyData.sessions || [];
+
+            // Fetch ACTUAL thread counts from database (includes threads without synergy sessions)
+            const threadsResponse = await fetch(`/api/threads/agents/list?user_id=${userId}`);
+            const threadsData = threadsResponse.ok ? await threadsResponse.json() : { agents: [] };
+            const threadAgents = threadsData.agents || [];
+
+            // Define ALL agent names in order (all 10 agents)
+            const agentOrder = ['Prime', 'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India'];
+
+            // Build sessions map
+            const sessionsMap = {};
+            sessions.forEach(session => {
+                if (session.agent_name) {
+                    sessionsMap[session.agent_name] = session;
                 }
             });
+
+            // Build thread counts map (this is the SOURCE OF TRUTH for thread counts)
+            const threadCountsMap = {};
+            threadAgents.forEach(agent => {
+                if (agent.id && agent.id !== 'new') {
+                    threadCountsMap[agent.id] = agent.thread_count || 0;
+                }
+            });
+
+            // Agent name to location ID mapping
+            const agentLocationMap = {
+                'Prime': 'prime',
+                'Alpha': 'agent-1',
+                'Bravo': 'agent-2',
+                'Charlie': 'agent-3',
+                'Delta': 'agent-4',
+                'Echo': 'agent-5',
+                'Foxtrot': 'agent-6',
+                'Golf': 'agent-7',
+                'Hotel': 'agent-8',
+                'India': 'agent-9'
+            };
+
+            // Add ALL agents (whether they have sessions or not)
+            agentOrder.forEach(agentName => {
+                const session = sessionsMap[agentName];
+                const locationId = agentLocationMap[agentName] || agentName.toLowerCase();
+                const threadCount = threadCountsMap[locationId] || 0; // Get REAL thread count from database
+
+                agents.push({
+                    name: agentName,
+                    id: locationId, // Use proper location ID (agent-1, agent-2, etc.)
+                    has_threads: threadCount > 0, // Use REAL thread count (includes email assignments)
+                    threads_count: threadCount,
+                    is_assigned: emailData.assigned_agent === agentName,
+                    is_open: !!session // True if has synergy session
+                });
+            });
+
+            // Find next agent to activate
+            if (agents.length > 0) {
+                const lastOpenAgent = agents[agents.length - 1].name;
+                const lastIndex = agentOrder.indexOf(lastOpenAgent);
+                if (lastIndex >= 0 && lastIndex < agentOrder.length - 1) {
+                    nextAgentToActivate = agentOrder[lastIndex + 1];
+                }
+            }
+        } catch (error) {
+            this.log.warn('Could not fetch synergy sessions:', error);
+            // Fallback to basic agents
+            agents = [
+                { name: 'Prime', has_threads: false, is_assigned: false, is_open: true, id: 'prime' }
+            ];
         }
 
         if (agents.length === 0) {
@@ -1562,25 +1661,69 @@ export default {
                 `;
             }
 
-            // Agent options
+            // Agent options with status indicators
             agents.forEach((agent, index) => {
-                const isAssigned = emailData.assigned_agent === agent.name;
+                const isAssigned = agent.is_assigned || emailData.assigned_agent === agent.name;
+                const hasThreads = agent.has_threads || agent.threads_count > 0;
+
+                // Color coding based on your requirements:
+                // - Accent blue BORDER if agent has threads already assigned
+                // - Green if agent is empty
+                // - Current assignment shows checkmark
+                let bgColor = 'transparent';
+                let hoverColor = 'rgba(99, 102, 241, 0.1)';
+                let borderStyle = 'none';
+                let iconColor = '#8b949e';
+                let statusText = '';
+
+                if (isAssigned) {
+                    // Currently assigned to this email
+                    iconColor = '#6366f1';
+                    statusText = '<i class="fas fa-check-circle" style="color: #6366f1; font-size: 11px; margin-left: 6px;"></i>';
+                } else if (hasThreads) {
+                    // Agent has threads - show ACCENT BLUE BORDER
+                    borderStyle = '2px solid #6366f1';
+                    iconColor = '#8b949e';
+                    statusText = `<span style="color: #8b949e; font-size: 10px; margin-left: 6px;">(${agent.threads_count} ${agent.threads_count === 1 ? 'thread' : 'threads'})</span>`;
+                } else {
+                    // Empty agent - show GREEN
+                    iconColor = '#22c55e';
+                    statusText = '<span style="color: #22c55e; font-size: 10px; margin-left: 6px; font-weight: 600;">(Empty)</span>';
+                }
+
                 html += `
                     <div class="agent-option" data-agent-id="${agent.id || agent.name}" data-agent-name="${this.escapeHtml(agent.name)}"
-                         style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; ${isAssigned ? 'background: rgba(99, 102, 241, 0.15);' : ''}"
-                         onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'" 
-                         onmouseout="this.style.background='${isAssigned ? 'rgba(99, 102, 241, 0.15)' : 'transparent'}'">
-                        <i class="fas fa-robot" style="color: ${isAssigned ? '#6366f1' : '#8b949e'}; width: 20px; text-align: center; font-size: 16px;"></i>
+                         style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: ${bgColor}; border: ${borderStyle}; border-radius: 4px; margin: 2px 8px;"
+                         onmouseover="this.style.background='${hoverColor}'" 
+                         onmouseout="this.style.background='${bgColor}'">
+                        <i class="fas fa-robot" style="color: ${iconColor}; width: 20px; text-align: center; font-size: 16px;"></i>
                         <div style="flex: 1;">
-                            <div style="font-size: 13px; color: #f0f6fc; font-weight: ${isAssigned ? '600' : '400'};">
+                            <div style="font-size: 13px; color: #f0f6fc; font-weight: ${isAssigned ? '600' : '500'};">
                                 ${this.escapeHtml(agent.name)}
-                                ${isAssigned ? '<i class="fas fa-check" style="color: #6366f1; font-size: 11px; margin-left: 4px;"></i>' : ''}
+                                ${statusText}
                             </div>
-                            ${agent.description ? `<div style="font-size: 11px; color: #8b949e; margin-top: 2px;">${this.escapeHtml(agent.description)}</div>` : ''}
                         </div>
                     </div>
                 `;
             });
+
+            // Add "Activate Next Agent" option if available
+            if (nextAgentToActivate) {
+                html += `
+                    <div class="agent-option" data-agent-id="activate-next" data-agent-name="${nextAgentToActivate}"
+                         style="padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-top: 2px solid #30363d; margin-top: 8px; background: rgba(34, 197, 94, 0.08);"
+                         onmouseover="this.style.background='rgba(34, 197, 94, 0.15)'" 
+                         onmouseout="this.style.background='rgba(34, 197, 94, 0.08)'">
+                        <i class="fas fa-plus-circle" style="color: #22c55e; width: 20px; text-align: center; font-size: 18px;"></i>
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; color: #22c55e; font-weight: 700;">
+                                Activate ${this.escapeHtml(nextAgentToActivate)}
+                            </div>
+                            <div style="font-size: 11px; color: #8b949e; margin-top: 2px;">Open next agent panel</div>
+                        </div>
+                    </div>
+                `;
+            }
 
             html += '</div>';
             dropdown.innerHTML = html;
@@ -1595,8 +1738,18 @@ export default {
 
                 if (agentId === 'clear') {
                     await this.clearEmailAgentAssignment(emailId, cell);
+                } else if (agentId === 'activate-next') {
+                    // Activate next agent panel
+                    this.log.info(`🚀 Activating next agent: ${agentName}`);
+                    // Trigger agent panel activation (you may need to implement this)
+                    if (window.synergyBoard && typeof window.synergyBoard.activateAgent === 'function') {
+                        window.synergyBoard.activateAgent(agentName);
+                    }
+                    // Then assign email to the new agent
+                    await this.assignEmailToAgent(emailId, agentName, cell, 'new');
                 } else {
-                    await this.assignEmailToAgent(emailId, agentName, cell);
+                    // Regular agent assignment
+                    await this.assignEmailToAgent(emailId, agentName, cell, agentId);
                 }
             });
         });
@@ -1619,9 +1772,10 @@ export default {
     /**
      * Assign email to an AI agent
      * Creates a thread in sessions.threads with email data
+     * If agentId is 'new', finds next available empty agent slot
      */
-    async assignEmailToAgent(emailId, agentName, cell) {
-        this.log.info(`🤖 Assigning email ${emailId} to agent: ${agentName}`);
+    async assignEmailToAgent(emailId, agentName, cell, agentId = null) {
+        this.log.info(`🤖 Assigning email ${emailId} to agent: ${agentName} (ID: ${agentId})`);
 
         try {
             const userId = window.UserAuth?.user?.id || 1;
@@ -1630,11 +1784,52 @@ export default {
             const emailData = cell.getRow().getData();
             const fullEmail = await this.fetchEmailContent(emailId);
 
-            // Create thread in sessions.threads
+            // If "Create New Thread" selected, find next available agent slot
+            let location = agentId;
+            if (agentId === 'new' || agentId === null) {
+                // Fetch agent list to find next available slot
+                const agentsResponse = await fetch(`/api/threads/agents/list?user_id=${userId}`);
+                if (agentsResponse.ok) {
+                    const agentsData = await agentsResponse.json();
+                    if (agentsData.success && agentsData.agents) {
+                        // Find first agent with 0 threads or create new slot
+                        const emptyAgent = agentsData.agents.find(a => !a.is_create_new && a.thread_count === 0);
+                        if (emptyAgent) {
+                            location = emptyAgent.id;
+                            agentName = emptyAgent.name;
+                            this.log.info(`📍 Using empty agent slot: ${location} (${agentName})`);
+                        } else {
+                            // Find highest agent number and increment
+                            const agentNumbers = agentsData.agents
+                                .filter(a => !a.is_create_new && a.id.startsWith('agent-'))
+                                .map(a => parseInt(a.id.split('-')[1]))
+                                .filter(n => !isNaN(n));
+                            const nextNum = agentNumbers.length > 0 ? Math.max(...agentNumbers) + 1 : 1;
+                            location = `agent-${nextNum}`;
+
+                            // Map to NATO alphabet
+                            const natoAlphabet = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
+                                'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
+                                'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
+                            agentName = `Agent ${natoAlphabet[nextNum - 1] || nextNum}`;
+                            this.log.info(`🆕 Creating new agent slot: ${location} (${agentName})`);
+                        }
+                    }
+                }
+
+                // Fallback if API fails
+                if (!location || location === 'new') {
+                    location = 'agent-1';
+                    agentName = 'Agent Alpha';
+                }
+            }
+
+            // Create thread in sessions.threads with location
             const threadResponse = await this.api.post('/api/threads/create', {
                 user_id: userId,
                 title: `Email: ${fullEmail.subject || 'No Subject'}`,
                 context_type: 'email',
+                location: location,
                 tags: ['email', fullEmail.provider, 'assigned'],
                 metadata: {
                     email_id: emailId,
@@ -1653,17 +1848,23 @@ export default {
             }
 
             const threadSlug = threadResponse.thread_slug;
-            this.log.success(`Thread created: ${threadSlug}`);
+            this.log.success(`📧 Thread created: ${threadSlug}`);
 
-            // Link email to thread with agent assignment
-            await this.api.post('/api/thread-assignments/email', {
+            // CRITICAL: Link email to thread - updates email_thread_id, email_subject, email_participants columns
+            // This makes the email badge appear in thread info area (like synergy sessions)
+            const linkResponse = await this.api.post('/api/thread-assignments/email', {
                 user_id: userId,
                 thread_slug: threadSlug,
                 email_thread_id: emailId,
                 email_subject: fullEmail.subject,
-                email_participants: fullEmail.from,
-                assigned_agent: agentName
+                email_participants: fullEmail.from
             });
+
+            if (!linkResponse || !linkResponse.success) {
+                this.log.warn('⚠️ Email link may not have been created properly');
+            } else {
+                this.log.success(`📎 Email linked to thread - will show in thread info area`);
+            }
 
             // Update local state
             if (!this.state.emailThreads) {
@@ -1898,11 +2099,22 @@ export default {
     },
 
     /**
-     * Show email preview panel
+     * Show email preview panel (supports multiple popups)
      */
     async showEmailPreview(emailData) {
         this.log.debug(`Showing preview for email: ${emailData.id}`);
 
+        // Check if preview is in popup mode - create new popup instance
+        const existingPreview = document.getElementById('emailPreview');
+        const isPopupMode = existingPreview && existingPreview.getAttribute('data-mode') === 'popup';
+
+        if (isPopupMode) {
+            // Create new popup for this email
+            this.createEmailPopup(emailData);
+            return;
+        }
+
+        // Default sibling mode - use existing panel
         const previewPanel = document.getElementById('emailPreview');
         const previewContent = document.getElementById('previewContent');
         const actionToolbar = document.getElementById('email-action-toolbar');
@@ -2008,6 +2220,7 @@ export default {
                             <span class="meta-value">${fullEmail.provider}</span>
                         </div>
                     </div>
+                    ${this.renderAttachmentsSection(fullEmail)}
                     <div class="email-preview-content">
                         ${this.renderEmailBody(fullEmail)}
                     </div>
@@ -2049,6 +2262,96 @@ export default {
 
             this.dom.injectHTML(previewContent, errorHtml);
         }
+    },
+
+    /**
+     * Render attachments section
+     */
+    renderAttachmentsSection(email) {
+        const attachments = email.attachments || [];
+
+        if (!attachments || attachments.length === 0) {
+            return '';
+        }
+
+        const getFileIcon = (filename, contentType) => {
+            const ext = filename.split('.').pop().toLowerCase();
+            const type = contentType || '';
+
+            // Document icons
+            if (ext === 'pdf' || type.includes('pdf')) return { icon: 'fa-file-pdf', color: '#ef4444' };
+            if (['doc', 'docx'].includes(ext) || type.includes('word')) return { icon: 'fa-file-word', color: '#2563eb' };
+            if (['xls', 'xlsx'].includes(ext) || type.includes('excel') || type.includes('spreadsheet')) return { icon: 'fa-file-excel', color: '#10b981' };
+            if (['ppt', 'pptx'].includes(ext) || type.includes('presentation')) return { icon: 'fa-file-powerpoint', color: '#f97316' };
+
+            // Code/text files
+            if (['txt', 'log'].includes(ext)) return { icon: 'fa-file-alt', color: '#6b7280' };
+            if (['json', 'xml', 'html', 'css', 'js', 'py', 'java'].includes(ext)) return { icon: 'fa-file-code', color: '#8b5cf6' };
+            if (['csv'].includes(ext)) return { icon: 'fa-file-csv', color: '#059669' };
+
+            // Images
+            if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext) || type.includes('image')) return { icon: 'fa-file-image', color: '#ec4899' };
+
+            // Archives
+            if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: 'fa-file-archive', color: '#f59e0b' };
+
+            // Default
+            return { icon: 'fa-file', color: '#9ca3af' };
+        };
+
+        const formatFileSize = (bytes) => {
+            if (!bytes || bytes === 0) return 'Unknown size';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        };
+
+        let html = `
+            <div class="email-attachments-section" style="margin: 16px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid #6366f1;">
+                <h4 style="margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px; color: var(--text-primary);">
+                    <i class="fas fa-paperclip" style="color: #6366f1;"></i>
+                    Attachments (${attachments.length})
+                </h4>
+                <div class="attachment-list" style="display: flex; flex-direction: column; gap: 8px;">
+        `;
+
+        attachments.forEach((att, index) => {
+            const filename = att.filename || att.name || `attachment_${index + 1}`;
+            const contentType = att.content_type || att.contentType || att.mimeType || '';
+            const size = att.size_bytes || att.size || 0;
+            const attachmentId = att.attachment_id || att.id || '';
+
+            const { icon, color } = getFileIcon(filename, contentType);
+            const sizeStr = formatFileSize(size);
+
+            html += `
+                <div class="attachment-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 6px; transition: all 0.2s;" 
+                     onmouseover="this.style.borderColor='#6366f1'; this.style.background='var(--bg-hover, #1a1a2e)';" 
+                     onmouseout="this.style.borderColor='var(--border-default)'; this.style.background='var(--bg-card)';">
+                    <i class="fas ${icon}" style="font-size: 24px; color: ${color};"></i>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 500; color: var(--text-primary); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.escapeHtml(filename)}">
+                            ${this.escapeHtml(filename)}
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                            ${sizeStr} • ${contentType.split('/')[0] || 'file'}
+                        </div>
+                    </div>
+                    <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;" 
+                            onclick="window.comHub.downloadAttachment('${email.id}', '${attachmentId}', '${this.escapeHtml(filename)}')" 
+                            title="Download attachment">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+
+        return html;
     },
 
     /**
@@ -2390,6 +2693,274 @@ export default {
         }
         // Clear current email reference
         this.state.currentPreviewEmail = null;
+    },
+
+    /**
+     * Toggle between sibling (side-by-side) and popup (draggable) modes
+     */
+    togglePopupMode() {
+        const previewPanel = document.getElementById('emailPreview');
+        if (!previewPanel) return;
+
+        const currentMode = previewPanel.getAttribute('data-mode') || 'sibling';
+        const toggleBtn = previewPanel.querySelector('[data-action="toggle-popup-mode"] i');
+
+        if (currentMode === 'sibling') {
+            // Switch to popup mode
+            previewPanel.setAttribute('data-mode', 'popup');
+            previewPanel.classList.add('popup-mode');
+            if (toggleBtn) toggleBtn.className = 'fas fa-compress';
+
+            // Make draggable
+            this.makePreviewDraggable();
+
+            this.log.info('📧 Email preview: Popup mode activated (draggable)');
+        } else {
+            // Switch to sibling mode
+            previewPanel.setAttribute('data-mode', 'sibling');
+            previewPanel.classList.remove('popup-mode');
+            if (toggleBtn) toggleBtn.className = 'fas fa-external-link-alt';
+
+            // Remove draggable behavior
+            this.removePreviewDraggable();
+
+            // Reset position
+            previewPanel.style.left = '';
+            previewPanel.style.top = '';
+            previewPanel.style.transform = '';
+
+            this.log.info('📧 Email preview: Sibling mode activated (side-by-side)');
+        }
+    },
+
+    /**
+     * Make email preview panel draggable (popup mode)
+     */
+    makePreviewDraggable() {
+        const previewPanel = document.getElementById('emailPreview');
+        const header = previewPanel?.querySelector('.email-preview-header');
+
+        if (!previewPanel || !header) return;
+
+        // Store drag state
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        const onMouseDown = (e) => {
+            // Don't drag if clicking buttons
+            if (e.target.closest('button')) return;
+
+            isDragging = true;
+            const rect = previewPanel.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+
+            header.style.cursor = 'grabbing';
+            e.preventDefault();
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const newLeft = e.clientX - offsetX;
+            const newTop = e.clientY - offsetY;
+
+            previewPanel.style.left = newLeft + 'px';
+            previewPanel.style.top = newTop + 'px';
+            previewPanel.style.transform = 'none';
+        };
+
+        const onMouseUp = () => {
+            if (isDragging) {
+                isDragging = false;
+                header.style.cursor = 'move';
+            }
+        };
+
+        // Store handlers for cleanup
+        previewPanel._dragHandlers = { onMouseDown, onMouseMove, onMouseUp };
+
+        header.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        header.style.cursor = 'move';
+    },
+
+    /**
+     * Remove draggable behavior from email preview panel
+     */
+    removePreviewDraggable() {
+        const previewPanel = document.getElementById('emailPreview');
+        const header = previewPanel?.querySelector('.email-preview-header');
+
+        if (!previewPanel || !header || !previewPanel._dragHandlers) return;
+
+        const { onMouseDown, onMouseMove, onMouseUp } = previewPanel._dragHandlers;
+
+        header.removeEventListener('mousedown', onMouseDown);
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        header.style.cursor = '';
+
+        delete previewPanel._dragHandlers;
+    },
+
+    /**
+     * Create new email popup (allows multiple concurrent popups)
+     */
+    async createEmailPopup(emailData) {
+        const popupId = `email-popup-${emailData.id}`;
+
+        // Check if popup already exists
+        if (document.getElementById(popupId)) {
+            document.getElementById(popupId).style.zIndex = 99999 + Date.now();
+            return;
+        }
+
+        // Fetch full email content
+        let fullEmail = emailData;
+        try {
+            const response = await this.api.get(`${this.state.apiBase}/emails/${emailData.id}`);
+            if (response.success && response.email) {
+                fullEmail = response.email;
+            }
+        } catch (error) {
+            this.log.error('Failed to fetch full email', error);
+        }
+
+        // Create popup HTML
+        const popup = document.createElement('div');
+        popup.id = popupId;
+        popup.className = 'email-popup-instance';
+        popup.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 70vh;
+            max-width: 90vw;
+            max-height: 90vh;
+            background: var(--bg-tertiary, #16181D);
+            border: 2px solid var(--accent-primary, #4f6cff);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            z-index: ${99999 + Date.now()};
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            resize: both;
+            min-width: 400px;
+            min-height: 300px;
+        `;
+
+        popup.innerHTML = `
+            <div class="email-popup-header" style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 16px;
+                background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+                border-bottom: 1px solid var(--border-default, #2A3142);
+                cursor: move;
+                user-select: none;
+            ">
+                <div style="display: flex; align-items: center; gap: 10px; color: white;">
+                    <i class="fas fa-envelope"></i>
+                    <span style="font-weight: 600;">${this.escapeHtml(fullEmail.subject || 'Email')}</span>
+                </div>
+                <button class="email-popup-close" style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="email-popup-body" style="
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+                background: var(--bg-tertiary, #16181D);
+            ">
+                <div class="email-preview-subject" style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-default, #2A3142);">
+                    <h4 style="margin: 0; font-size: 18px; color: var(--text-primary, #E5E7EB);">${this.escapeHtml(fullEmail.subject)}</h4>
+                </div>
+                <div class="email-preview-meta" style="margin-bottom: 20px; padding: 16px; background: var(--bg-secondary, #0B0E13); border-radius: 8px; border: 1px solid var(--border-default, #2A3142);">
+                    <div style="display: flex; margin-bottom: 10px;">
+                        <span style="color: var(--text-secondary, #7D8590); min-width: 80px; font-size: 13px;">From:</span>
+                        <span style="color: var(--text-primary, #E5E7EB); font-size: 13px;">${this.escapeHtml(fullEmail.from)}</span>
+                    </div>
+                    ${fullEmail.to ? `
+                        <div style="display: flex; margin-bottom: 10px;">
+                            <span style="color: var(--text-secondary, #7D8590); min-width: 80px; font-size: 13px;">To:</span>
+                            <span style="color: var(--text-primary, #E5E7EB); font-size: 13px;">${this.escapeHtml(fullEmail.to)}</span>
+                        </div>
+                    ` : ''}
+                    <div style="display: flex; margin-bottom: 10px;">
+                        <span style="color: var(--text-secondary, #7D8590); min-width: 80px; font-size: 13px;">Date:</span>
+                        <span style="color: var(--text-primary, #E5E7EB); font-size: 13px;">${new Date(fullEmail.date).toLocaleString()}</span>
+                    </div>
+                    <div style="display: flex;">
+                        <span style="color: var(--text-secondary, #7D8590); min-width: 80px; font-size: 13px;">Account:</span>
+                        <span style="color: var(--text-primary, #E5E7EB); font-size: 13px;">${this.escapeHtml(fullEmail.provider || 'N/A')}</span>
+                    </div>
+                </div>
+                <div class="email-preview-content" style="background: var(--bg-secondary, #0B0E13); border: 1px solid var(--border-default, #2A3142); border-radius: 8px; padding: 20px;">
+                    ${this.renderEmailBody(fullEmail)}
+                </div>
+            </div>
+        `;
+
+        // Add to body
+        document.body.appendChild(popup);
+
+        // Make draggable
+        const header = popup.querySelector('.email-popup-header');
+        let isDragging = false;
+        let offsetX = 0, offsetY = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button')) return;
+            isDragging = true;
+            const rect = popup.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            header.style.cursor = 'grabbing';
+            popup.style.zIndex = 99999 + Date.now(); // Bring to front
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            popup.style.left = (e.clientX - offsetX) + 'px';
+            popup.style.top = (e.clientY - offsetY) + 'px';
+            popup.style.transform = 'none';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                header.style.cursor = 'move';
+            }
+        });
+
+        // Close button
+        popup.querySelector('.email-popup-close').addEventListener('click', () => {
+            popup.remove();
+        });
+
+        this.log.info(`📧 Created email popup: ${emailData.id}`);
     },
 
     /**
@@ -3575,6 +4146,7 @@ export default {
                     <div class="thread-email-body" 
                          id="body-${email.id}" 
                          style="display: ${isExpanded ? 'block' : 'none'}; padding: 16px; background: var(--bg-card); border-top: 1px solid var(--border-default);">
+                        ${this.renderAttachmentsSection(email)}
                         ${this.renderEmailBody(email)}
                     </div>
                 </div>
@@ -3600,6 +4172,50 @@ export default {
             const isVisible = body.style.display === 'block';
             body.style.display = isVisible ? 'none' : 'block';
             toggle.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+    },
+
+    /**
+     * Download email attachment
+     */
+    async downloadAttachment(emailId, attachmentId, filename) {
+        this.log.info(`Downloading attachment: ${filename}`);
+
+        try {
+            // Get email data to determine provider
+            const email = await this.fetchEmailContent(emailId);
+            const provider = email.provider;
+            const userId = window.UserAuth?.user?.id || 1;
+
+            let downloadUrl;
+            if (provider === 'gmail') {
+                downloadUrl = `${this.state.apiBase}/gmail/attachment?message_id=${emailId}&attachment_id=${attachmentId}&user_id=${userId}`;
+            } else if (provider === 'outlook') {
+                downloadUrl = `${this.state.apiBase}/outlook/attachment?message_id=${emailId}&attachment_id=${attachmentId}&user_id=${userId}`;
+            } else {
+                throw new Error(`Unknown provider: ${provider}`);
+            }
+
+            // Download the file
+            const response = await fetch(downloadUrl);
+            if (!response.ok) {
+                throw new Error(`Download failed: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            this.log.success(`Downloaded: ${filename}`);
+        } catch (error) {
+            this.log.error(`Failed to download attachment: ${error.message}`);
+            alert(`Failed to download attachment: ${error.message}`);
         }
     }
 };

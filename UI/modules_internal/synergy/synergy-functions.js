@@ -233,8 +233,8 @@
                         method: 'POST'
                     });
                     if (response.ok) {
-                        // Refresh the card
-                        const item = document.querySelector(`[data-session-id="${sessionId}"]`);
+                        // Refresh the card (context-aware for sidebar)
+                        const item = document.querySelector(`[data-context="sidebar"] [data-session-id="${sessionId}"]`);
                         if (item && this.renderer) {
                             await this.renderer.loadAndRenderFullCard(sessionId, item);
                             this.attachEventListeners(item, sessionId);
@@ -251,7 +251,7 @@
                         method: 'POST'
                     });
                     if (response.ok) {
-                        const item = document.querySelector(`[data-session-id="${sessionId}"]`);
+                        const item = document.querySelector(`[data-context="sidebar"] [data-session-id="${sessionId}"]`);
                         if (item && this.renderer) {
                             await this.renderer.loadAndRenderFullCard(sessionId, item);
                             this.attachEventListeners(item, sessionId);
@@ -268,7 +268,7 @@
                         method: 'POST'
                     });
                     if (response.ok) {
-                        const item = document.querySelector(`[data-session-id="${sessionId}"]`);
+                        const item = document.querySelector(`[data-context="sidebar"] [data-session-id="${sessionId}"]`);
                         if (item && this.renderer) {
                             await this.renderer.loadAndRenderFullCard(sessionId, item);
                             this.attachEventListeners(item, sessionId);
@@ -412,7 +412,8 @@
                     console.log('[SYNERGY] Saving updates:', updates);
 
                     // Send PATCH request to update session
-                    const response = await fetch(`${window.API_BASE_URL}/api/synergy/${sessionId}`, {
+                    const userId = window.currentUserId || window.UserAuth?.user?.id || 14;
+                    const response = await fetch(`${window.API_BASE_URL}/api/synergy/${sessionId}?user_id=${userId}`, {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json'
@@ -687,7 +688,7 @@
                     return;
                 }
 
-                const item = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
+                const item = document.querySelector(`[data-context="sidebar"] .synergy-session-item[data-session-id="${sessionId}"]`);
                 if (!item) {
                     console.warn(`[SYNERGY SIDEBAR] Item not found: ${sessionId}`);
                     return;
@@ -1075,7 +1076,7 @@
                 return;
             }
 
-            const item = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
+            const item = document.querySelector(`[data-context="sidebar"] .synergy-session-item[data-session-id="${sessionId}"]`);
             if (!item) {
                 console.warn(`[SYNERGY SIDEBAR] Item not found: ${sessionId}`);
                 return;

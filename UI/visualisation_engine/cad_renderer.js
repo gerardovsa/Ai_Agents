@@ -38,10 +38,37 @@ class CADRenderer {
             throw new Error('CAD: Invalid content area');
         }
 
-        // Parse configuration
-        let config = typeof item.content === 'string' 
-            ? JSON.parse(item.content.replace(/<\/?CAD>/g, '').trim())
-            : item.content;
+        // Parse configuration - support both SVG (2D drawings) and JSON (3D models)
+        let config;
+        let isSVG = false;
+
+        if (typeof item.content === 'string') {
+            const cleanContent = item.content.replace(/<\/?CAD>/g, '').trim();
+
+            // Check if content is SVG markup (2D technical drawing)
+            // Handle various SVG formats: <svg, <?xml, or wrapped in whitespace
+            const svgPattern = /^\s*(<\?xml|<svg)/i;
+            if (svgPattern.test(cleanContent)) {
+                isSVG = true;
+                config = { svg: cleanContent };
+                console.log('✅ CAD: Detected SVG drawing format');
+            } else {
+                // Try JSON first (3D model config)
+                try {
+                    config = JSON.parse(cleanContent);
+                } catch (e) {
+                    console.warn('CAD: JSON parse failed, trying JavaScript eval');
+                    config = (new Function('return ' + cleanContent))();
+                }
+            }
+        } else {
+            config = item.content;
+        }
+
+        // If SVG, render as 2D drawing instead of 3D model
+        if (isSVG) {
+            return this.renderSVGDrawing(config.svg, contentArea, chartId);
+        }
 
         // Get dynamic theme colors
         const colors = window.ThemeDetector ? window.ThemeDetector.getColors() : null;
@@ -158,7 +185,7 @@ class CADRenderer {
     async loadGeometry(scene, geometryConfig, config) {
         // For now, create a simple geometric shape as placeholder
         // TODO: Add loaders for STEP, IGES, STL, OBJ formats
-        
+
         const geometry = new THREE.BoxGeometry(
             geometryConfig.width || 1,
             geometryConfig.height || 1,
@@ -247,20 +274,32 @@ class CADRenderer {
                 return;
             }
 
+            // Load Three.js as ES6 module with OrbitControls
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
-            script.onload = async () => {
-                // Load OrbitControls
-                const controlsScript = document.createElement('script');
-                controlsScript.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js';
-                controlsScript.onload = () => {
-                    console.log('✅ Three.js and OrbitControls loaded');
-                    resolve();
-                };
-                document.head.appendChild(controlsScript);
-            };
-            script.onerror = () => reject(new Error('Failed to load Three.js library'));
+            script.type = 'module';
+            script.textContent = `
+                import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+                import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+                
+                window.THREE = THREE;
+                window.THREE.OrbitControls = OrbitControls;
+                window.dispatchEvent(new Event('three-loaded'));
+                console.log('✅ Three.js core + OrbitControls loaded');
+            `;
+
             document.head.appendChild(script);
+
+            // Wait for Three.js to load
+            window.addEventListener('three-loaded', () => {
+                resolve();
+            }, { once: true });
+
+            // Timeout fallback
+            setTimeout(() => {
+                if (!window.THREE) {
+                    reject(new Error('Three.js failed to load within timeout'));
+                }
+            }, 10000);
         });
     }
 
@@ -303,6 +342,61 @@ class CADRenderer {
             this.destroy(chartId);
         });
         this.scenes.clear();
+    }
+
+    /**
+     * Render 2D SVG Technical Drawing
+     * For engineering drawings, blueprints, schematics
+     */
+    renderSVGDrawing(svgContent, contentArea, chartId) {
+        // Create responsive container
+        const svgContainer = document.createElement('div');
+        svgContainer.id = chartId;
+        svgContainer.className = 'cad-svg-container';
+        svgContainer.style.cssText = `
+            width: 100%;
+            max-width: 100%;
+            min-height: 400px;
+            overflow: auto;
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0;
+            box-sizing: border-box;
+        `;
+
+        console.log('✅ CAD: Rendering SVG drawing:', chartId);
+
+        // Insert SVG content
+        try {
+            svgContainer.innerHTML = svgContent;
+            console.log('✅ CAD: SVG content inserted into DOM');
+        } catch (error) {
+            console.error('❌ CAD: Failed to insert SVG:', error);
+            svgContainer.innerHTML = '<div style="padding: 20px; color: red;">Error: Failed to render SVG drawing</div>';
+        }
+
+        // Make SVG responsive
+        const svgElement = svgContainer.querySelector('svg');
+        if (svgElement) {
+            if (!svgElement.hasAttribute('width')) {
+                svgElement.style.width = '100%';
+                svgElement.style.height = 'auto';
+            }
+            console.log('✅ CAD: SVG element found and styled');
+        } else {
+            console.warn('⚠️ CAD: No SVG element found in content');
+        }
+
+        contentArea.appendChild(svgContainer);
+
+        // Add action bar
+        const vizContainer = contentArea.closest('.viz-container');
+        if (vizContainer && this.vizEngine?.addUnifiedActionBar) {
+            this.vizEngine.addUnifiedActionBar(vizContainer, { content: svgContent }, chartId, 'cad');
+        }
+
+        return { container: svgContainer, svg: svgElement };
     }
 }
 

@@ -29,8 +29,11 @@ class SynergyMilestoneInteractions {
     /**
      * Toggle milestone expansion (show/hide tasks)
      */
-    toggleMilestone(milestoneId) {
-        const milestoneEl = document.querySelector(`[data-milestone-id="${milestoneId}"]`);
+    toggleMilestone(milestoneId, event) {
+        // Determine context from event target
+        const target = event ? event.target : null;
+        const contextRoot = target ? (target.closest('[data-context]') || document) : document;
+        const milestoneEl = contextRoot.querySelector(`[data-milestone-id="${milestoneId}"]`);
         if (!milestoneEl) return;
 
         const body = milestoneEl.querySelector('.milestone-body');
@@ -55,8 +58,11 @@ class SynergyMilestoneInteractions {
     /**
      * Toggle task expansion (show/hide subtasks)
      */
-    toggleTask(taskId) {
-        const taskEl = document.querySelector(`[data-task-id="${taskId}"]`);
+    toggleTask(taskId, event) {
+        // Determine context from event target
+        const target = event ? event.target : null;
+        const contextRoot = target ? (target.closest('[data-context]') || document) : document;
+        const taskEl = contextRoot.querySelector(`[data-task-id="${taskId}"]`);
         if (!taskEl) return;
 
         const subtasksEl = taskEl.querySelector('.task-subtasks');
@@ -88,12 +94,16 @@ class SynergyMilestoneInteractions {
             const checkbox = event.target;
             const completed = checkbox.checked;
 
-            // Optimistic UI update
-            const milestoneEl = document.querySelector(`[data-milestone-id="${milestoneId}"]`);
-            if (completed) {
-                milestoneEl.classList.add('completed');
-            } else {
-                milestoneEl.classList.remove('completed');
+            // Optimistic UI update (context-aware)
+            const target = event ? event.target : null;
+            const contextRoot = target ? (target.closest('[data-context]') || document) : document;
+            const milestoneEl = contextRoot.querySelector(`[data-milestone-id="${milestoneId}"]`);
+            if (milestoneEl) {
+                if (completed) {
+                    milestoneEl.classList.add('completed');
+                } else {
+                    milestoneEl.classList.remove('completed');
+                }
             }
 
             const response = await fetch(`${this.apiBaseUrl}/api/synergy/milestone/${milestoneId}/complete`, {
@@ -135,12 +145,15 @@ class SynergyMilestoneInteractions {
             const checkbox = event.target;
             const completed = checkbox.checked;
 
-            // Optimistic UI update
-            const taskEl = document.querySelector(`[data-task-id="${taskId}"]`);
-            if (completed) {
-                taskEl.classList.add('completed');
-            } else {
-                taskEl.classList.remove('completed');
+            // Optimistic UI update (context-aware)
+            const contextRoot = checkbox.closest('[data-context]') || document;
+            const taskEl = contextRoot.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskEl) {
+                if (completed) {
+                    taskEl.classList.add('completed');
+                } else {
+                    taskEl.classList.remove('completed');
+                }
             }
 
             const response = await fetch(`${this.apiBaseUrl}/api/synergy/task/${taskId}/complete`, {
@@ -187,12 +200,15 @@ class SynergyMilestoneInteractions {
             const checkbox = event.target;
             const completed = checkbox.checked;
 
-            // Optimistic UI update
-            const subtaskEl = document.querySelector(`[data-subtask-id="${subtaskId}"]`);
-            if (completed) {
-                subtaskEl.classList.add('completed');
-            } else {
-                subtaskEl.classList.remove('completed');
+            // Optimistic UI update (context-aware)
+            const contextRoot = checkbox.closest('[data-context]') || document;
+            const subtaskEl = contextRoot.querySelector(`[data-subtask-id="${subtaskId}"]`);
+            if (subtaskEl) {
+                if (completed) {
+                    subtaskEl.classList.add('completed');
+                } else {
+                    subtaskEl.classList.remove('completed');
+                }
             }
 
             const response = await fetch(`${this.apiBaseUrl}/api/synergy/subtask/${subtaskId}/complete`, {
@@ -313,7 +329,8 @@ class SynergyMilestoneInteractions {
             }
 
             // Fallback: fetch session data directly
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`);
+            const userId = window.currentUserId || window.UserAuth?.user?.id || 14;
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}?user_id=${userId}`);
             const result = await response.json();
 
             if (result.success) {

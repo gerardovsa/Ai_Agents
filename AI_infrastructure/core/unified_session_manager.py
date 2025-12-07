@@ -69,7 +69,7 @@ class UnifiedSessionManager:
         db_dir = Path(self.db_path).parent
         db_dir.mkdir(parents=True, exist_ok=True)
         
-        print("[SessionManager] ✅ Initialized with LAZY loading (DB will connect on first use)")
+        print("[SessionManager] [OK] Initialized with LAZY loading (DB will connect on first use)")
     
     def _ensure_db_initialized(self):
         """Lazy initialization - connect on first use, not at import time"""

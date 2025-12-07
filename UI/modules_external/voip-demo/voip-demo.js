@@ -22,9 +22,32 @@
  * LAST MODIFIED: 2025-11-29 - Initial VoIP demo implementation
  */
 
-class VoIPDemoModule {
-    constructor() {
-        this.moduleId = 'voip-demo';
+// BaseModule polyfill (required since module-base.js is not globally loaded)
+class BaseModule {
+    constructor(moduleId) {
+        this.moduleId = moduleId;
+        this.manifest = null;
+        this.backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+        console.log(`✅ BaseModule constructor - moduleId: ${moduleId}`);
+    }
+
+    async initialize() {
+        console.log(`✅ BaseModule.initialize() called for ${this.moduleId}`);
+        try {
+            const response = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
+            if (response.ok) {
+                this.manifest = await response.json();
+                console.log(`✅ Manifest loaded for ${this.moduleId}:`, this.manifest);
+            }
+        } catch (error) {
+            console.warn(`⚠️ Failed to load manifest for ${this.moduleId}:`, error);
+        }
+    }
+}
+
+class VoIPDemoModule extends BaseModule {
+    constructor(moduleId) {
+        super(moduleId);
         this.connected = false;
         this.inCall = false;
         this.callStartTime = null;
@@ -32,12 +55,12 @@ class VoIPDemoModule {
         this.transcriptionEnabled = false;
         this.audioMuted = false;
 
-        // Get capability providers
-        this.webrtc = window.capabilityProvider.getCapability('webrtc');
-        this.websocket = window.capabilityProvider.getCapability('websocket');
-        this.ai = window.capabilityProvider.getCapability('ai');
-        this.media = window.capabilityProvider.getCapability('media');
-        this.storage = window.capabilityProvider.getCapability('storage');
+        // Get capability providers (if available)
+        this.webrtc = window.capabilityProvider?.getCapability?.('webrtc') || null;
+        this.websocket = window.capabilityProvider?.getCapability?.('websocket') || null;
+        this.ai = window.capabilityProvider?.getCapability?.('ai') || null;
+        this.media = window.capabilityProvider?.getCapability?.('media') || null;
+        this.storage = window.capabilityProvider?.getCapability?.('storage') || null;
 
         this.callHistory = [];
     }
@@ -99,14 +122,14 @@ class VoIPDemoModule {
 
             // Initialize WebRTC peer connection
             const pc = await this.webrtc.initializePeerConnection(this.moduleId);
-            
+
             if (!pc) {
                 throw new Error('Failed to initialize peer connection');
             }
 
             // Get user media (audio only)
             const stream = await this.webrtc.getUserMedia(this.moduleId, { audio: true, video: false });
-            
+
             // Add media tracks to peer connection
             this.webrtc.addMediaTracks(this.moduleId, stream);
 
@@ -252,7 +275,7 @@ class VoIPDemoModule {
         if (this.transcriptionEnabled) {
             outputDiv.style.display = 'block';
             btn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide';
-            
+
             // Start transcription
             this.startTranscription();
             console.log('[VoIPDemo] Transcription enabled');
@@ -278,7 +301,7 @@ class VoIPDemoModule {
 
                 // Get recorded audio
                 const audioBlob = this.media.stopAudioRecording(this.moduleId);
-                
+
                 if (!audioBlob) return;
 
                 // Send to AI for transcription
@@ -304,7 +327,7 @@ class VoIPDemoModule {
      */
     appendTranscription(text) {
         const outputDiv = document.querySelector('#voip-transcription-output .transcription-content');
-        
+
         // Remove placeholder
         const placeholder = outputDiv.querySelector('.placeholder-text');
         if (placeholder) {
@@ -327,7 +350,7 @@ class VoIPDemoModule {
     startCallTimer() {
         const timerDiv = document.getElementById('voip-call-timer');
         const displaySpan = document.getElementById('voip-timer-display');
-        
+
         timerDiv.style.display = 'block';
 
         this.timerInterval = setInterval(() => {
@@ -541,7 +564,7 @@ class VoIPDemoModule {
      */
     showNotification(message, type = 'info') {
         console.log(`[VoIPDemo] ${type.toUpperCase()}: ${message}`);
-        
+
         // In production, use actual notification system
         // For now, use console
     }
@@ -567,20 +590,15 @@ class VoIPDemoModule {
     }
 }
 
-// Initialize module when loaded
-let voipDemoModule = null;
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', async () => {
-        voipDemoModule = new VoIPDemoModule();
-        await voipDemoModule.initialize();
-    });
-} else {
-    voipDemoModule = new VoIPDemoModule();
-    voipDemoModule.initialize();
+// Register module (backward compatibility)
+if (typeof window !== 'undefined') {
+    if (!window.ModuleRegistry) {
+        window.ModuleRegistry = {};
+    }
+    window.ModuleRegistry['voip-demo'] = VoIPDemoModule;
 }
 
-// Expose globally for module loader
-window.voipDemoModule = voipDemoModule;
-
 console.log('[VoIPDemo] ✅ Module script loaded');
+
+// ES6 Export
+export default VoIPDemoModule;

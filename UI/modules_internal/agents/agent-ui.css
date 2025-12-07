@@ -51,18 +51,24 @@
     max-width: 800px;
 }
 
+.agent-column.extra-wide {
+    flex: 3;
+    max-width: 1200px;
+}
+
 /* ==================== COLLAPSED STATE ==================== */
 
 .collapsed-column-bar {
     display: none;
     flex-direction: column;
     align-items: center;
-    padding: var(--space-3) var(--space-2);
-    gap: var(--space-3);
+    padding: var(--space-3) var(--space-2) var(--space-2) var(--space-2);
+    gap: var(--space-2);
     height: 100%;
     cursor: pointer;
     background: var(--bg-secondary);
     transition: background 0.2s ease;
+    justify-content: flex-end;
 }
 
 .agent-column.collapsed .collapsed-column-bar {
@@ -86,11 +92,21 @@
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-size: 11px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
+    /* Changed from text-secondary for better visibility */
     display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    flex-direction: row;
+    /* Changed from column to row - puts status and timestamp side by side */
+    gap: var(--space-1);
+    /* Reduced gap for tighter horizontal spacing */
     align-items: center;
+}
+
+.thread-status-vertical,
+.thread-timestamp-vertical {
+    color: var(--text-primary);
+    /* Ensure child elements also use primary text color */
+    white-space: nowrap;
 }
 
 /* ==================== AGENT HEADER ==================== */
@@ -511,6 +527,15 @@
     font-size: 2em;
     margin-bottom: 15px;
     display: block;
+}
+
+/* Prime AI empty state */
+.ai-chat-messages .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 400px;
 }
 
 /* ==================== RESPONSIVE DESIGN ==================== */

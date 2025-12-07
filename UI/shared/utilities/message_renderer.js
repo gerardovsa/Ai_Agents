@@ -193,8 +193,19 @@ const UnifiedMessageRenderer = (function () {
             copyRawContent(messageDiv, copyRawBtn);
         });
 
+        // Pop-out button (opens message in clean modal)
+        const popOutBtn = document.createElement('button');
+        popOutBtn.className = 'ai-message-popout-btn';
+        popOutBtn.innerHTML = '<i class="fas fa-external-link-alt"></i>';
+        popOutBtn.title = 'Open in pop-out view';
+        popOutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openMessagePopout(messageDiv);
+        });
+
         actionsDiv.appendChild(copyRenderedBtn);
         actionsDiv.appendChild(copyRawBtn);
+        actionsDiv.appendChild(popOutBtn);
 
         // Assemble header
         headerDiv.appendChild(avatar);
@@ -295,6 +306,31 @@ const UnifiedMessageRenderer = (function () {
     function renderMarkdown(contentDiv, markdown) {
         if (typeof marked !== 'undefined') {
             try {
+                // Configure marked.js for better code block handling
+                if (!marked._configuredForCodeBlocks) {
+                    marked.setOptions({
+                        breaks: true,  // Support GitHub-style line breaks
+                        gfm: true,     // GitHub Flavored Markdown
+                        headerIds: true,
+                        mangle: false,
+                        pedantic: false,
+                        sanitize: false,
+                        smartLists: true,
+                        smartypants: false
+                    });
+
+                    // Configure renderer to open all links in new tabs
+                    const renderer = new marked.Renderer();
+                    const originalLinkRenderer = renderer.link.bind(renderer);
+                    renderer.link = function (href, title, text) {
+                        const html = originalLinkRenderer(href, title, text);
+                        return html.replace('<a', '<a target="_blank" rel="noopener noreferrer"');
+                    };
+                    marked.use({ renderer });
+
+                    marked._configuredForCodeBlocks = true;
+                }
+
                 contentDiv.innerHTML = marked.parse(markdown);
 
                 // 🎨 ENHANCED CODE BLOCK SUPPORT
@@ -441,12 +477,183 @@ const UnifiedMessageRenderer = (function () {
         messageDiv.setAttribute('data-raw-content', typeof content === 'string' ? content : JSON.stringify(content));
     }
 
+    // Track z-index for stacking windows
+    let nextZIndex = 10000;
+    let windowCount = 0;
+
+    /**
+     * Open message in floating, movable, resizable window
+     * @param {HTMLElement} messageDiv - Message element to display
+     */
+    function openMessagePopout(messageDiv) {
+        // Get message content
+        const contentDiv = messageDiv.querySelector('.ai-message-content');
+        if (!contentDiv) {
+            console.error('[MessagePopout] No content found in message');
+            return;
+        }
+
+        windowCount++;
+        const windowId = `popout-${Date.now()}-${windowCount}`;
+
+        // Create floating window (NO overlay - non-blocking)
+        const floatingWindow = document.createElement('div');
+        floatingWindow.className = 'message-popout-window';
+        floatingWindow.id = windowId;
+        floatingWindow.style.zIndex = nextZIndex++;
+
+        // Position with cascade offset
+        const offset = (windowCount - 1) * 30;
+        floatingWindow.style.left = `${50 + offset}px`;
+        floatingWindow.style.top = `${50 + offset}px`;
+
+        floatingWindow.innerHTML = `
+            <div class="popout-header">
+                <div class="popout-title">
+                    <i class="fas fa-message"></i>
+                    <span>Message View #${windowCount}</span>
+                </div>
+                <div class="popout-controls">
+                    <button class="popout-copy-btn" title="Copy content">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="popout-close-btn" title="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="popout-content"></div>
+            <div class="popout-resize-handle"></div>
+        `;
+
+        // Clone and insert content
+        const popoutContent = floatingWindow.querySelector('.popout-content');
+        const contentClone = contentDiv.cloneNode(true);
+        popoutContent.appendChild(contentClone);
+
+        // Add to body
+        document.body.appendChild(floatingWindow);
+
+        // Get elements
+        const header = floatingWindow.querySelector('.popout-header');
+        const closeBtn = floatingWindow.querySelector('.popout-close-btn');
+        const copyBtn = floatingWindow.querySelector('.popout-copy-btn');
+        const resizeHandle = floatingWindow.querySelector('.popout-resize-handle');
+
+        // Close window
+        const closeWindow = () => {
+            floatingWindow.classList.add('closing');
+            setTimeout(() => floatingWindow.remove(), 200);
+        };
+
+        closeBtn.addEventListener('click', closeWindow);
+
+        // Copy functionality
+        copyBtn.addEventListener('click', () => {
+            const text = popoutContent.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 1500);
+            }).catch(err => {
+                console.error('[MessagePopout] Copy failed:', err);
+            });
+        });
+
+        // Bring to front on click
+        floatingWindow.addEventListener('mousedown', () => {
+            floatingWindow.style.zIndex = nextZIndex++;
+        });
+
+        // Make draggable
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            // Don't drag if clicking buttons
+            if (e.target.closest('button')) return;
+
+            isDragging = true;
+            const rect = floatingWindow.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            header.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const x = e.clientX - dragOffsetX;
+            const y = e.clientY - dragOffsetY;
+
+            // Keep within viewport bounds
+            const maxX = window.innerWidth - 100;
+            const maxY = window.innerHeight - 50;
+
+            floatingWindow.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
+            floatingWindow.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                header.style.cursor = 'grab';
+            }
+        });
+
+        // Make resizable
+        let isResizing = false;
+        let startX = 0;
+        let startY = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = floatingWindow.getBoundingClientRect();
+            startWidth = rect.width;
+            startHeight = rect.height;
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            const newWidth = Math.max(300, startWidth + deltaX);
+            const newHeight = Math.max(200, startHeight + deltaY);
+
+            floatingWindow.style.width = `${newWidth}px`;
+            floatingWindow.style.height = `${newHeight}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+            }
+        });
+
+        // Animate in
+        requestAnimationFrame(() => floatingWindow.classList.add('visible'));
+
+        console.log(`[MessagePopout] Window opened: ${windowId}`);
+    }
+
     // Public API
     return {
         render,
         copyRenderedText,
         copyRawContent,
-        updateThinkingMessage
+        updateThinkingMessage,
+        openMessagePopout
     };
 })();
 

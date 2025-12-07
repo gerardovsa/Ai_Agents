@@ -32,10 +32,27 @@ class SchematicRenderer {
             throw new Error('Schematic: Invalid content area');
         }
 
-        // Parse configuration
-        let config = typeof item.content === 'string' 
-            ? JSON.parse(item.content.replace(/<\/?SCHEMATIC>/g, '').trim())
-            : item.content;
+        // Parse configuration - handle both SVG markup and JSON
+        let config;
+        if (typeof item.content === 'string') {
+            const cleanContent = item.content.replace(/<\/?SCHEMATIC>/g, '').trim();
+
+            // Check if content is SVG markup
+            if (cleanContent.startsWith('<svg') || cleanContent.startsWith('<?xml')) {
+                // It's SVG markup - render directly like CAD
+                return this.renderSVGSchematic(cleanContent, contentArea, chartId);
+            } else {
+                // It's JSON config
+                try {
+                    config = JSON.parse(cleanContent);
+                } catch (e) {
+                    console.error('Schematic: JSON parse failed', e);
+                    throw new Error(`Invalid schematic config: ${e.message}`);
+                }
+            }
+        } else {
+            config = item.content;
+        }
 
         // Create container
         const schematicContainer = document.createElement('div');
@@ -54,7 +71,7 @@ class SchematicRenderer {
 
         // Create SVG
         const svg = this.createSVG(schematicContainer, config);
-        
+
         // Render schematic elements
         await this.renderElements(svg, config);
 
@@ -329,11 +346,11 @@ class SchematicRenderer {
         line.setAttribute('y2', connection.y2);
         line.setAttribute('stroke', strokeColor);
         line.setAttribute('stroke-width', connection.strokeWidth || 2);
-        
+
         if (connection.arrow) {
             line.setAttribute('marker-end', 'url(#arrow)');
         }
-        
+
         if (connection.dashed) {
             line.setAttribute('stroke-dasharray', '5,5');
         }
@@ -375,6 +392,58 @@ class SchematicRenderer {
             schematic.container.remove();
             this.schematics.delete(chartId);
         }
+    }
+
+    /**
+     * Render SVG schematic directly (for SVG markup input)
+     */
+    renderSVGSchematic(svgContent, contentArea, chartId) {
+        // Create container
+        const svgContainer = document.createElement('div');
+        svgContainer.id = chartId;
+        svgContainer.className = 'schematic-svg-container';
+        svgContainer.style.cssText = `
+            width: 100%;
+            max-width: 100%;
+            min-height: 400px;
+            overflow: auto;
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0;
+            box-sizing: border-box;
+        `;
+
+        console.log('✅ Schematic: Rendering SVG drawing:', chartId);
+
+        // Insert SVG content
+        try {
+            svgContainer.innerHTML = svgContent;
+            console.log('✅ Schematic: SVG content inserted');
+        } catch (error) {
+            console.error('❌ Schematic: Failed to insert SVG:', error);
+            svgContainer.innerHTML = '<div style="padding: 20px; color: red;">Error: Failed to render schematic</div>';
+        }
+
+        // Make SVG responsive
+        const svgElement = svgContainer.querySelector('svg');
+        if (svgElement) {
+            if (!svgElement.hasAttribute('width')) {
+                svgElement.style.width = '100%';
+                svgElement.style.height = 'auto';
+            }
+            console.log('✅ Schematic: SVG element styled');
+        }
+
+        contentArea.appendChild(svgContainer);
+
+        // Add action bar
+        const vizContainer = contentArea.closest('.viz-container');
+        if (vizContainer && this.vizEngine?.addUnifiedActionBar) {
+            this.vizEngine.addUnifiedActionBar(vizContainer, { content: svgContent }, chartId, 'schematic');
+        }
+
+        return { container: svgContainer, svg: svgElement };
     }
 
     /**

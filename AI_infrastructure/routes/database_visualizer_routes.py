@@ -1,102 +1,103 @@
 """
+
 Database Visualizer Routes
-Provides API endpoints for exploring SQLite databases
+Provides API endpoints for exploring Supabase PostgreSQL databases
+
+MIGRATION STATUS: ✅ COMPLETE - Migrated from SQLite to Supabase PostgreSQL
+LAST UPDATED: 2025-12-07
+
+ENDPOINTS:
+- GET /list-databases - List all PostgreSQL schemas
+- GET /schema - Get schema structure (tables, columns)
+- GET /table-data - Query table data with pagination
+- GET /table-info - Get detailed table metadata
+- POST /execute-query - Execute read-only SELECT queries
+
+SCHEMA ARCHITECTURE:
+- ai_infrastructure - User management, tokens, preferences
+- sessions - Threads, messages, OAuth tokens
+- synergy_sessions - Synergy workflow data
+- stock_data - Stock market data
+- kanban_analytics - Kanban board analytics
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from psycopg2 import sql
 import os
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict
-
-# Import database helpers
 import sys
+
+# Import Supabase database utilities
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from utils.database_helpers import get_sqlite_connection, get_sqlite_schema
+from shared.database_utils import get_database_connection
 
 database_visualizer_bp = Blueprint('database_visualizer', __name__, url_prefix='/api/database-visualizer')
 
 
-def find_database_files(root_path: str = None) -> List[Dict]:
+def list_supabase_schemas():
     """
-    Find all .db files in the project
+    List all available Supabase PostgreSQL schemas
     
-    Args:
-        root_path: Root directory to search (defaults to project root)
-        
     Returns:
-        List of database file info dictionaries
+        List of schema information dictionaries
     """
-    if root_path is None:
-        # Start from project root (3 levels up from this file)
-        root_path = Path(__file__).parent.parent.parent
-    else:
-        root_path = Path(root_path)
-    
-    databases = []
-    
-    # Search for .db files
-    for db_file in root_path.rglob('*.db'):
-        try:
-            # Skip if in venv or node_modules
-            if 'venv' in str(db_file) or 'node_modules' in str(db_file):
-                continue
-            
-            # Get file info
-            stat = db_file.stat()
-            
-            # Get table count
-            table_count = 0
-            try:
-                conn = sqlite3.connect(str(db_file))
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
-                table_count = cursor.fetchone()[0]
-                conn.close()
-            except Exception as e:
-                print(f"Warning: Could not read {db_file}: {e}")
-            
-            # Relative path from project root
-            try:
-                relative_path = db_file.relative_to(root_path)
-            except ValueError:
-                relative_path = db_file
-            
-            databases.append({
-                'name': db_file.name,
-                'path': str(db_file),
-                'relative_path': str(relative_path),
-                'size_bytes': stat.st_size,
-                'modified_at': datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                'table_count': table_count
-            })
-            
-        except Exception as e:
-            print(f"Error processing {db_file}: {e}")
-            continue
-    
-    # Sort by name
-    databases.sort(key=lambda x: x['name'])
-    
-    return databases
+    conn = None
+    try:
+        # Connect to default schema to query information_schema
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Query all schemas with table counts
+        query = """
+        SELECT 
+            s.schema_name,
+            COUNT(t.table_name) as table_count
+        FROM information_schema.schemata s
+        LEFT JOIN information_schema.tables t 
+            ON s.schema_name = t.table_schema 
+            AND t.table_type = 'BASE TABLE'
+        WHERE s.schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+        GROUP BY s.schema_name
+        ORDER BY s.schema_name
+        """
+        
+        cursor.execute(query)
+        schemas = cursor.fetchall()
+        
+        return [
+            {
+                'name': f"{schema['schema_name']} schema",
+                'schema': schema['schema_name'],
+                'table_count': schema['table_count'],
+                'type': 'postgresql'
+            }
+            for schema in schemas
+        ]
+        
+    except Exception as e:
+        print(f"Error listing Supabase schemas: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
 
 
 @database_visualizer_bp.route('/list-databases', methods=['GET'])
 def list_databases():
     """
-    List all .db files in the project
+    List all Supabase PostgreSQL schemas
     
     Returns:
-        JSON with list of databases
+        JSON with list of schemas
     """
     try:
-        databases = find_database_files()
+        schemas = list_supabase_schemas()
         
         return jsonify({
             'success': True,
-            'databases': databases,
-            'count': len(databases)
+            'databases': schemas,
+            'count': len(schemas)
         })
         
     except Exception as e:
@@ -109,37 +110,67 @@ def list_databases():
 @database_visualizer_bp.route('/schema', methods=['GET'])
 def get_schema():
     """
-    Get schema for a specific database
+    Get schema for a Supabase PostgreSQL schema
     
     Query params:
-        db_path: Path to database file
+        schema: Schema name (e.g., 'stock_data', 'sessions')
+        db_path: (deprecated, use schema instead)
         
     Returns:
         JSON with schema information
     """
+    conn = None
     try:
-        db_path = request.args.get('db_path')
+        # Support both 'schema' and legacy 'db_path' parameters
+        schema_name = request.args.get('schema') or request.args.get('db_path')
         
-        if not db_path:
+        if not schema_name:
             return jsonify({
                 'success': False,
-                'error': 'db_path parameter required'
+                'error': 'schema parameter required'
             }), 400
         
-        # Validate file exists
-        if not os.path.exists(db_path):
-            return jsonify({
-                'success': False,
-                'error': f'Database file not found: {db_path}'
-            }), 404
+        # Extract schema name from db_path if needed (backward compatibility)
+        if '/' in schema_name or '\\' in schema_name:
+            # Legacy db_path format: extract schema from path
+            schema_name = schema_name.split('/')[-1].split('\\')[-1].replace('.db', '')
         
-        # Get schema using helper function
-        schema = get_sqlite_schema(db_path)
+        # Connect to schema
+        conn = get_database_connection(schema_name)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get all tables in schema
+        cursor.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+            ORDER BY table_name
+        """)
+        tables = cursor.fetchall()
+        
+        schema = {}
+        for table_row in tables:
+            table_name = table_row['table_name']
+            
+            # Get columns for this table
+            cursor.execute("""
+                SELECT 
+                    column_name,
+                    data_type,
+                    is_nullable,
+                    column_default
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = %s
+                ORDER BY ordinal_position
+            """, (table_name,))
+            
+            columns = cursor.fetchall()
+            schema[table_name] = columns
         
         return jsonify({
             'success': True,
             'schema': schema,
-            'db_path': db_path,
+            'schema_name': schema_name,
             'table_count': len(schema)
         })
         
@@ -148,59 +179,57 @@ def get_schema():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @database_visualizer_bp.route('/table-data', methods=['GET'])
 def get_table_data():
     """
-    Get data from a specific table
+    Get data from a specific table in Supabase PostgreSQL
     
     Query params:
-        db_path: Path to database file
+        schema: Schema name (e.g., 'stock_data')
         table: Table name
         limit: Max rows to return (default 1000)
+        db_path: (deprecated, use schema instead)
         
     Returns:
         JSON with table data
     """
+    conn = None
     try:
-        db_path = request.args.get('db_path')
+        schema_name = request.args.get('schema') or request.args.get('db_path')
         table = request.args.get('table')
         limit = request.args.get('limit', 1000, type=int)
         
-        if not db_path or not table:
+        if not schema_name or not table:
             return jsonify({
                 'success': False,
-                'error': 'db_path and table parameters required'
+                'error': 'schema and table parameters required'
             }), 400
         
-        # Validate file exists
-        if not os.path.exists(db_path):
-            return jsonify({
-                'success': False,
-                'error': f'Database file not found: {db_path}'
-            }), 404
+        # Extract schema from legacy db_path format
+        if '/' in schema_name or '\\' in schema_name:
+            schema_name = schema_name.split('/')[-1].split('\\')[-1].replace('.db', '')
         
-        # Connect to database
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Connect to schema
+        conn = get_database_connection(schema_name)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Get data (with limit)
-        cursor.execute(f"SELECT * FROM {table} LIMIT %s", (limit,))
-        rows = cursor.fetchall()
-        
-        # Convert to list of dicts
-        data = [dict(row) for row in rows]
+        # Get data with limit (using sql.Identifier for safety)
+        query = sql.SQL("SELECT * FROM {} LIMIT %s").format(sql.Identifier(table))
+        cursor.execute(query, (limit,))
+        data = cursor.fetchall()
         
         # Get column names
-        columns = [description[0] for description in cursor.description]
+        columns = [desc[0] for desc in cursor.description]
         
         # Get total count
-        cursor.execute(f"SELECT COUNT(*) FROM {table}")
-        total_count = cursor.fetchone()[0]
-        
-        conn.close()
+        count_query = sql.SQL("SELECT COUNT(*) as count FROM {}").format(sql.Identifier(table))
+        cursor.execute(count_query)
+        total_count = cursor.fetchone()['count']
         
         return jsonify({
             'success': True,
@@ -216,52 +245,88 @@ def get_table_data():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @database_visualizer_bp.route('/table-info', methods=['GET'])
 def get_table_info():
     """
-    Get detailed information about a table
+    Get detailed information about a Supabase PostgreSQL table
     
     Query params:
-        db_path: Path to database file
+        schema: Schema name
         table: Table name
+        db_path: (deprecated, use schema instead)
         
     Returns:
         JSON with table information
     """
+    conn = None
     try:
-        db_path = request.args.get('db_path')
+        schema_name = request.args.get('schema') or request.args.get('db_path')
         table = request.args.get('table')
         
-        if not db_path or not table:
+        if not schema_name or not table:
             return jsonify({
                 'success': False,
-                'error': 'db_path and table parameters required'
+                'error': 'schema and table parameters required'
             }), 400
         
-        # Connect to database
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Extract schema from legacy format
+        if '/' in schema_name or '\\' in schema_name:
+            schema_name = schema_name.split('/')[-1].split('\\')[-1].replace('.db', '')
         
-        # Get table info
-        cursor.execute(f"PRAGMA table_info({table})")
-        columns = [dict(row) for row in cursor.fetchall()]
+        # Connect to schema
+        conn = get_database_connection(schema_name)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get column information
+        cursor.execute("""
+            SELECT 
+                column_name,
+                data_type,
+                is_nullable,
+                column_default,
+                character_maximum_length
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = %s
+            ORDER BY ordinal_position
+        """, (table,))
+        columns = cursor.fetchall()
         
         # Get row count
-        cursor.execute(f"SELECT COUNT(*) FROM {table}")
-        row_count = cursor.fetchone()[0]
+        count_query = sql.SQL("SELECT COUNT(*) as count FROM {}").format(sql.Identifier(table))
+        cursor.execute(count_query)
+        row_count = cursor.fetchone()['count']
         
         # Get indexes
-        cursor.execute(f"PRAGMA index_list({table})")
-        indexes = [dict(row) for row in cursor.fetchall()]
+        cursor.execute("""
+            SELECT
+                indexname as name,
+                indexdef as definition
+            FROM pg_indexes
+            WHERE schemaname = 'public' AND tablename = %s
+        """, (table,))
+        indexes = cursor.fetchall()
         
         # Get foreign keys
-        cursor.execute(f"PRAGMA foreign_key_list({table})")
-        foreign_keys = [dict(row) for row in cursor.fetchall()]
-        
-        conn.close()
+        cursor.execute("""
+            SELECT
+                kcu.column_name,
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name
+            FROM information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+                ON tc.constraint_name = kcu.constraint_name
+            JOIN information_schema.constraint_column_usage AS ccu
+                ON ccu.constraint_name = tc.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+                AND tc.table_schema = 'public'
+                AND tc.table_name = %s
+        """, (table,))
+        foreign_keys = cursor.fetchall()
         
         return jsonify({
             'success': True,
@@ -277,54 +342,59 @@ def get_table_info():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @database_visualizer_bp.route('/execute-query', methods=['POST'])
 def execute_query():
     """
-    Execute a SELECT query (read-only)
+    Execute a SELECT query (read-only) on Supabase PostgreSQL
     
     JSON body:
-        db_path: Path to database file
+        schema: Schema name (e.g., 'stock_data')
         query: SQL query (SELECT only)
+        db_path: (deprecated, use schema instead)
         
     Returns:
         JSON with query results
     """
+    conn = None
     try:
         data = request.get_json()
-        db_path = data.get('db_path')
+        schema_name = data.get('schema') or data.get('db_path')
         query = data.get('query', '').strip()
         
-        if not db_path or not query:
+        if not schema_name or not query:
             return jsonify({
                 'success': False,
-                'error': 'db_path and query required'
+                'error': 'schema and query required'
             }), 400
         
-        # Validate it's a SELECT query (security)
-        if not query.upper().startswith('SELECT'):
+        # Extract schema from legacy format
+        if '/' in schema_name or '\\' in schema_name:
+            schema_name = schema_name.split('/')[-1].split('\\')[-1].replace('.db', '')
+        
+        # Validate it's a read-only query (security)
+        query_upper = query.upper()
+        dangerous_keywords = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'TRUNCATE', 'ALTER', 'CREATE']
+        if any(keyword in query_upper for keyword in dangerous_keywords):
             return jsonify({
                 'success': False,
                 'error': 'Only SELECT queries are allowed'
             }), 400
         
-        # Connect to database
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Connect to schema
+        conn = get_database_connection(schema_name)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         # Execute query
         cursor.execute(query)
-        rows = cursor.fetchall()
-        
-        # Convert to list of dicts
-        results = [dict(row) for row in rows]
+        results = cursor.fetchall()
         
         # Get column names
-        columns = [description[0] for description in cursor.description] if cursor.description else []
-        
-        conn.close()
+        columns = [desc[0] for desc in cursor.description] if cursor.description else []
         
         return jsonify({
             'success': True,
@@ -338,6 +408,9 @@ def execute_query():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # Export blueprint

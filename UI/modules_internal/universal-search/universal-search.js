@@ -22,7 +22,7 @@ window.UniversalSearchModule = {
         results: [],
         loading: false,
         error: null,
-        selectedSources: new Set(['documents', 'threads']),
+        selectedSources: new Set(['documents', 'threads', 'vector-database']),
         availableSources: {},
         searchTimeout: null,
         stats: {
@@ -344,12 +344,19 @@ window.UniversalSearchModule = {
     renderSourceCheckboxes() {
         const sources = [
             { id: 'documents', label: 'Documents', icon: 'fa-file-alt' },
+            { id: 'vector-database', label: 'Vector Database (AI Search)', icon: 'fa-database' },
             { id: 'threads', label: 'Threads', icon: 'fa-comments' },
             { id: 'messages', label: 'Messages', icon: 'fa-envelope' },
             { id: 'synergy', label: 'Synergy Sessions', icon: 'fa-users' },
             { id: 'automations', label: 'Automations', icon: 'fa-robot' },
             { id: 'gmail', label: 'Gmail', icon: 'fa-google' },
-            { id: 'slack', label: 'Slack', icon: 'fa-slack' }
+            { id: 'outlook', label: 'Outlook', icon: 'fa-envelope-open' },
+            { id: 'slack', label: 'Slack', icon: 'fa-slack' },
+            { id: 'google-drive', label: 'Google Drive', icon: 'fa-google-drive' },
+            { id: 'onedrive', label: 'OneDrive', icon: 'fa-cloud' },
+            { id: 'sharepoint', label: 'SharePoint', icon: 'fa-share-alt' },
+            { id: 'xero', label: 'Xero Accounting', icon: 'fa-file-invoice' },
+            { id: 'inhouseprint', label: 'InHousePrint Projects', icon: 'fa-print' }
         ];
 
         return sources.map(source => {
@@ -603,10 +610,17 @@ window.UniversalSearchModule = {
     getSourceIcon(source) {
         const icons = {
             documents: 'fas fa-file-alt',
+            'vector-database': 'fas fa-database',
             threads: 'fas fa-comments',
             gmail: 'fas fa-envelope',
+            outlook: 'fas fa-envelope-open',
             slack: 'fab fa-slack',
-            synergy: 'fas fa-brain'
+            synergy: 'fas fa-brain',
+            'google-drive': 'fab fa-google-drive',
+            onedrive: 'fas fa-cloud',
+            sharepoint: 'fas fa-share-alt',
+            xero: 'fas fa-file-invoice',
+            inhouseprint: 'fas fa-print'
         };
         return icons[source] || 'fas fa-question-circle';
     },
@@ -614,10 +628,17 @@ window.UniversalSearchModule = {
     getSourceLabel(source) {
         const labels = {
             documents: 'Documents',
+            'vector-database': 'Vector Database (AI Search)',
             threads: 'Chat Threads',
             gmail: 'Gmail',
+            outlook: 'Outlook',
             slack: 'Slack',
-            synergy: 'Synergy Sessions'
+            synergy: 'Synergy Sessions',
+            'google-drive': 'Google Drive',
+            onedrive: 'OneDrive',
+            sharepoint: 'SharePoint',
+            xero: 'Xero Accounting',
+            inhouseprint: 'InHousePrint Projects'
         };
         return labels[source] || source;
     },

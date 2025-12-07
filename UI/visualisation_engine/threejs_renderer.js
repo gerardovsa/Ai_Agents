@@ -42,7 +42,7 @@ class ThreeJSRenderer {
                 try {
                     config = JSON.parse(cleanContent);
                 } catch (e) {
-                    console.warn('ThreeJS: JSON parse failed, using JavaScript eval', e.message);
+                    console.log('ThreeJS: Using JavaScript eval for object notation');
                     config = (new Function('return ' + cleanContent))();
                 }
             } else {

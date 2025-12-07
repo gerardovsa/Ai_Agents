@@ -116,33 +116,51 @@ window.ThreadCardExpansion = {
 
     /**
      * Find thread card element by thread ID
-     * Searches across all locations (prime, agent-1, agent-2, agent-3)
+     * Searches across all locations (prime, agent-1, agent-2, agent-3, thread-history, prime-loaded, etc.)
      * 
      * @param {string} threadId - Thread ID to find
      * @returns {HTMLElement|null} Thread card element or null
      */
     findCardElement(threadId) {
-        // Try all possible locations by ID
+        // PRIORITY 1: Search by data-thread-id attribute (works for ALL card types)
+        // This includes thread-history, prime-loaded, and agent cards
+        const cardByData = document.querySelector(`.ai-chat-header-info[data-thread-id="${threadId}"]`);
+        if (cardByData) {
+            console.log(`[ThreadCardExpansion] Found card by data-thread-id: ${threadId}`);
+            return cardByData;
+        }
+
+        // PRIORITY 2: Search by agent-thread-card class (for agent panel cards)
+        const agentCard = document.querySelector(`.agent-thread-card[data-thread-id="${threadId}"]`);
+        if (agentCard) {
+            console.log(`[ThreadCardExpansion] Found card by agent-thread-card class: ${threadId}`);
+            return agentCard;
+        }
+
+        // PRIORITY 3: Try all possible static location IDs (legacy fallback)
         const locations = [
-            'prime-thread-info',      // Prime panel
-            'thread-info-1',          // Agent 1
-            'thread-info-2',          // Agent 2
-            'thread-info-3',          // Agent 3
+            'prime-thread-info',       // Prime panel
+            'prime-loaded-thread-info', // Prime-Loaded panel
+            'thread-history-thread-info', // Thread History panel
+            'thread-info-1',           // Agent 1
+            'thread-info-2',           // Agent 2
+            'thread-info-3',           // Agent 3
+            'thread-info-4',           // Agent 4
+            'thread-info-5',           // Agent 5
+            'thread-info-6',           // Agent 6
+            'thread-info-7',           // Agent 7
         ];
 
         for (const locationId of locations) {
             const card = document.getElementById(locationId);
             if (card && card.dataset.threadId === threadId) {
+                console.log(`[ThreadCardExpansion] Found card by static ID: ${locationId}`);
                 return card;
             }
         }
 
-        // Fallback: search by data attribute (works for ALL cards including agent-thread-card)
-        const card = document.querySelector(`.ai-chat-header-info[data-thread-id="${threadId}"]`);
-        if (card) return card;
-
-        // Additional fallback: search by agent-thread-card class
-        return document.querySelector(`.agent-thread-card[data-thread-id="${threadId}"]`);
+        console.warn(`[ThreadCardExpansion] Card not found for thread ID: ${threadId}`);
+        return null;
     },
 
     /**

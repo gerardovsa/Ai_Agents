@@ -257,7 +257,7 @@
    ============================================================ */
 
 /* Agent Thread Cards (thread-info-1, thread-info-2, thread-info-3) */
-/* HOVER OR CLICK-BASED EXPANSION */
+/* BUTTON-ONLY EXPANSION (Hover disabled Dec 6, 2025) */
 /* Hide expanded content by default */
 #thread-info-1 .thread-expand-on-hover,
 #thread-info-2 .thread-expand-on-hover,
@@ -270,10 +270,10 @@
     transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
-/* Show expanded content on HOVER or when clicked (.expanded class) */
-#thread-info-1:hover .thread-expand-on-hover,
-#thread-info-2:hover .thread-expand-on-hover,
-#thread-info-3:hover .thread-expand-on-hover,
+/* Show expanded content ONLY when clicked (.expanded class) */
+/* #thread-info-1:hover .thread-expand-on-hover, */
+/* #thread-info-2:hover .thread-expand-on-hover, */
+/* #thread-info-3:hover .thread-expand-on-hover, */
 #thread-info-1.expanded .thread-expand-on-hover,
 #thread-info-2.expanded .thread-expand-on-hover,
 #thread-info-3.expanded .thread-expand-on-hover {
@@ -283,10 +283,10 @@
     transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
-/* Chevron rotation on HOVER or when clicked (.expanded class) */
-#thread-info-1:hover .chevron-icon,
-#thread-info-2:hover .chevron-icon,
-#thread-info-3:hover .chevron-icon,
+/* Chevron rotation ONLY when clicked (.expanded class) */
+/* #thread-info-1:hover .chevron-icon, */
+/* #thread-info-2:hover .chevron-icon, */
+/* #thread-info-3:hover .chevron-icon, */
 #thread-info-1.expanded .chevron-icon,
 #thread-info-2.expanded .chevron-icon,
 #thread-info-3.expanded .chevron-icon {
@@ -294,7 +294,7 @@
     transition: transform 0.5s ease;
 }
 
-/* Prime Panel Thread Card - HOVER OR CLICK-BASED EXPANSION */
+/* Prime Panel Thread Card - BUTTON-ONLY EXPANSION (Hover disabled Dec 6, 2025) */
 /* Hide expanded content by default */
 #prime-thread-info .thread-expand-on-hover {
     opacity: 0;
@@ -305,8 +305,8 @@
     transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
-/* Show expanded content on HOVER or when clicked (.expanded class) */
-#prime-thread-info:hover .thread-expand-on-hover,
+/* Show expanded content ONLY when clicked (.expanded class) */
+/* #prime-thread-info:hover .thread-expand-on-hover, */
 #prime-thread-info.expanded .thread-expand-on-hover {
     opacity: 1;
     max-height: 500px;
@@ -314,8 +314,8 @@
     transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
-/* Chevron rotation on HOVER or when clicked (.expanded class) */
-#prime-thread-info:hover .chevron-icon,
+/* Chevron rotation ONLY when clicked (.expanded class) */
+/* #prime-thread-info:hover .chevron-icon, */
 #prime-thread-info.expanded .chevron-icon {
     transform: rotate(180deg);
     transition: transform 0.5s ease;
@@ -323,7 +323,8 @@
 
 /* Thread History Panel - CLICK-BASED EXPANSION ONLY (no hover) */
 /* Hide expanded content by default in thread-history */
-.ai-chat-header-info[data-location="thread-history"] .thread-expand-on-hover {
+.ai-chat-header-info[data-location="thread-history"] .thread-expand-on-hover,
+.agent-thread-card[data-location="thread-history"] .thread-expand-on-hover {
     opacity: 0;
     max-height: 0;
     overflow: hidden;
@@ -333,7 +334,8 @@
 }
 
 /* Show expanded content when clicked (has .expanded class) */
-.ai-chat-header-info[data-location="thread-history"].expanded .thread-expand-on-hover {
+.ai-chat-header-info[data-location="thread-history"].expanded .thread-expand-on-hover,
+.agent-thread-card[data-location="thread-history"].expanded .thread-expand-on-hover {
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
@@ -341,7 +343,8 @@
 }
 
 /* Chevron rotation when expanded */
-.ai-chat-header-info[data-location="thread-history"].expanded .chevron-icon {
+.ai-chat-header-info[data-location="thread-history"].expanded .chevron-icon,
+.agent-thread-card[data-location="thread-history"].expanded .chevron-icon {
     transform: rotate(180deg);
     transition: transform 0.5s ease;
 }

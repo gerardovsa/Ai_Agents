@@ -1,7 +1,13 @@
 """
-Thread Sharing Routes
+FILE PATH: C:/Users/gpoli/GIT/AI_agents/AI_infrastructure/routes/thread_sharing_routes.py
+
+Thread Sharing Routes (ENHANCED VERSION)
+==========================================
 
 REST API endpoints for thread sharing functionality.
+
+✅ NO CURSOR MANAGEMENT ISSUES - All database operations handled by ThreadSharingManager
+✅ ENHANCEMENTS: Logging, validation helpers, better error handling
 
 Endpoints:
 - POST /api/threads/<thread_slug>/share - Share thread with user
@@ -10,12 +16,16 @@ Endpoints:
 - DELETE /api/threads/<thread_slug>/share/<user_id> - Revoke access
 - GET /api/threads/<thread_slug>/collaborators - List collaborators
 - GET /api/my-shared-threads - List threads shared with me
+
+NOTE: All database cursor management is handled internally by ThreadSharingManager.
+      This file has ZERO direct database operations.
 """
 
 from flask import Blueprint, request, jsonify, g
 from functools import wraps
 import sys
 from pathlib import Path
+import logging
 
 # Add parent directory to path for imports
 root_dir = Path(__file__).parent.parent.parent
@@ -29,18 +39,36 @@ from AI_infrastructure.threads.thread_sharing_manager import (
     ShareNotFoundError
 )
 
+# ======================================================================
+# SETUP
+# ======================================================================
+
 # Create blueprint
 thread_sharing_bp = Blueprint('thread_sharing', __name__)
 
+# Setup logging
+logger = logging.getLogger(__name__)
+
+# Valid roles constant
+VALID_ROLES = ['viewer', 'editor', 'admin']
+
+# ======================================================================
+# HELPERS
+# ======================================================================
 
 def require_auth(f):
-    """Decorator to require authentication"""
+    """
+    Decorator to require authentication
+    
+    Extracts user_id from g.user_id or request JSON and validates.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Get user_id from request (JWT or session)
-        user_id = g.get('user_id') or request.json.get('_user_id')
+        user_id = g.get('user_id') or request.json.get('_user_id') if request.json else None
         
         if not user_id:
+            logger.warning(f"Unauthorized access attempt to {request.endpoint}")
             return jsonify({
                 'success': False,
                 'error': 'Authentication required'
@@ -51,6 +79,62 @@ def require_auth(f):
     
     return decorated_function
 
+
+def validate_role(role):
+    """
+    Validate role parameter
+    
+    Args:
+        role: Role string to validate
+    
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    if not role:
+        return False, 'Role is required'
+    
+    if role not in VALID_ROLES:
+        return False, f'Invalid role. Must be one of: {", ".join(VALID_ROLES)}'
+    
+    return True, None
+
+
+def success_response(data, status_code=200):
+    """
+    Create standardized success response
+    
+    Args:
+        data: Response data dict
+        status_code: HTTP status code
+    
+    Returns:
+        tuple: (response, status_code)
+    """
+    data['success'] = True
+    return jsonify(data), status_code
+
+
+def error_response(error_message, status_code=500):
+    """
+    Create standardized error response
+    
+    Args:
+        error_message: Error message string
+        status_code: HTTP status code
+    
+    Returns:
+        tuple: (response, status_code)
+    """
+    logger.error(f"Error response: {error_message} (status: {status_code})")
+    return jsonify({
+        'success': False,
+        'error': error_message
+    }), status_code
+
+
+# ======================================================================
+# ENDPOINTS
+# ======================================================================
 
 @thread_sharing_bp.route('/api/threads/<thread_slug>/share', methods=['POST'])
 @require_auth
@@ -79,21 +163,28 @@ def share_thread(thread_slug):
     try:
         data = request.get_json()
         
+        # Validate request data
         if not data or 'shared_with_user_id' not in data:
-            return jsonify({
-                'success': False,
-                'error': 'shared_with_user_id required'
-            }), 400
+            return error_response('shared_with_user_id required', 400)
         
         shared_with_user_id = data['shared_with_user_id']
         role = data.get('role', 'viewer')
         
-        if role not in ['viewer', 'editor', 'admin']:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid role. Must be: viewer, editor, or admin'
-            }), 400
+        # Validate role
+        is_valid, error_msg = validate_role(role)
+        if not is_valid:
+            return error_response(error_msg, 400)
         
+        # Validate user IDs
+        if not isinstance(shared_with_user_id, int) or shared_with_user_id < 1:
+            return error_response('Invalid shared_with_user_id', 400)
+        
+        if shared_with_user_id == g.user_id:
+            return error_response('Cannot share thread with yourself', 400)
+        
+        logger.info(f"User {g.user_id} sharing thread '{thread_slug}' with user {shared_with_user_id} (role: {role})")
+        
+        # Call ThreadSharingManager (handles all database operations internally)
         manager = ThreadSharingManager()
         result = manager.share_thread(
             thread_slug=thread_slug,
@@ -102,31 +193,21 @@ def share_thread(thread_slug):
             role=role
         )
         
-        return jsonify(result), 200
+        logger.info(f"Thread '{thread_slug}' shared successfully with user {shared_with_user_id}")
+        return success_response(result, 200)
     
     except ThreadNotFoundError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 404
+        return error_response(str(e), 404)
     
     except PermissionDeniedError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 403
+        return error_response(str(e), 403)
     
     except ThreadSharingError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return error_response(str(e), 500)
     
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }), 500
+        logger.exception(f"Unexpected error in share_thread: {e}")
+        return error_response(f'Internal server error: {str(e)}', 500)
 
 
 @thread_sharing_bp.route('/api/threads/<thread_slug>/share-email', methods=['POST'])
@@ -158,21 +239,25 @@ def share_thread_by_email(thread_slug):
     try:
         data = request.get_json()
         
+        # Validate request data
         if not data or 'email' not in data:
-            return jsonify({
-                'success': False,
-                'error': 'email required'
-            }), 400
+            return error_response('email required', 400)
         
         email = data['email']
         role = data.get('role', 'viewer')
         
-        if role not in ['viewer', 'editor', 'admin']:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid role. Must be: viewer, editor, or admin'
-            }), 400
+        # Validate email format (basic validation)
+        if not email or '@' not in email or '.' not in email:
+            return error_response('Invalid email format', 400)
         
+        # Validate role
+        is_valid, error_msg = validate_role(role)
+        if not is_valid:
+            return error_response(error_msg, 400)
+        
+        logger.info(f"User {g.user_id} sharing thread '{thread_slug}' with email {email} (role: {role})")
+        
+        # Call ThreadSharingManager (handles all database operations internally)
         manager = ThreadSharingManager()
         result = manager.share_thread_by_email(
             thread_slug=thread_slug,
@@ -181,31 +266,21 @@ def share_thread_by_email(thread_slug):
             role=role
         )
         
-        return jsonify(result), 200
+        logger.info(f"Thread '{thread_slug}' invitation sent to {email}")
+        return success_response(result, 200)
     
     except ThreadNotFoundError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 404
+        return error_response(str(e), 404)
     
     except PermissionDeniedError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 403
+        return error_response(str(e), 403)
     
     except ThreadSharingError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return error_response(str(e), 500)
     
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }), 500
+        logger.exception(f"Unexpected error in share_thread_by_email: {e}")
+        return error_response(f'Internal server error: {str(e)}', 500)
 
 
 @thread_sharing_bp.route('/api/thread-shares/accept/<token>', methods=['POST'])
@@ -228,31 +303,31 @@ def accept_thread_share(token):
     }
     """
     try:
+        # Validate token
+        if not token or len(token) < 10:
+            return error_response('Invalid share token', 400)
+        
+        logger.info(f"User {g.user_id} accepting thread share (token: {token[:10]}...)")
+        
+        # Call ThreadSharingManager (handles all database operations internally)
         manager = ThreadSharingManager()
         result = manager.accept_thread_share(
             share_token=token,
             user_id=g.user_id
         )
         
-        return jsonify(result), 200
+        logger.info(f"User {g.user_id} accepted thread share for thread '{result.get('thread_slug')}'")
+        return success_response(result, 200)
     
     except ShareNotFoundError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 404
+        return error_response(str(e), 404)
     
     except ThreadSharingError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return error_response(str(e), 500)
     
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }), 500
+        logger.exception(f"Unexpected error in accept_thread_share: {e}")
+        return error_response(f'Internal server error: {str(e)}', 500)
 
 
 @thread_sharing_bp.route('/api/threads/<thread_slug>/share/<int:user_id>', methods=['DELETE'])
@@ -281,6 +356,16 @@ def revoke_thread_share(thread_slug, user_id):
         data = request.get_json() or {}
         reason = data.get('reason')
         
+        # Validate user_id
+        if user_id < 1:
+            return error_response('Invalid user_id', 400)
+        
+        if user_id == g.user_id:
+            return error_response('Cannot revoke your own access. Use leave endpoint instead.', 400)
+        
+        logger.info(f"User {g.user_id} revoking access to thread '{thread_slug}' for user {user_id}")
+        
+        # Call ThreadSharingManager (handles all database operations internally)
         manager = ThreadSharingManager()
         result = manager.revoke_thread_share(
             thread_slug=thread_slug,
@@ -289,37 +374,24 @@ def revoke_thread_share(thread_slug, user_id):
             reason=reason
         )
         
-        return jsonify(result), 200
+        logger.info(f"Access revoked for user {user_id} on thread '{thread_slug}'")
+        return success_response(result, 200)
     
     except ThreadNotFoundError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 404
+        return error_response(str(e), 404)
     
     except PermissionDeniedError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 403
+        return error_response(str(e), 403)
     
     except ShareNotFoundError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 404
+        return error_response(str(e), 404)
     
     except ThreadSharingError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return error_response(str(e), 500)
     
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }), 500
+        logger.exception(f"Unexpected error in revoke_thread_share: {e}")
+        return error_response(f'Internal server error: {str(e)}', 500)
 
 
 @thread_sharing_bp.route('/api/threads/<thread_slug>/collaborators', methods=['GET'])
@@ -348,42 +420,35 @@ def list_thread_collaborators(thread_slug):
     }
     """
     try:
+        logger.info(f"User {g.user_id} listing collaborators for thread '{thread_slug}'")
+        
+        # Call ThreadSharingManager (handles all database operations internally)
         manager = ThreadSharingManager()
         
         # Check if user has access to view collaborators
         access = manager.get_thread_access_level(thread_slug, g.user_id)
         
-        if not access or not access['has_access']:
-            return jsonify({
-                'success': False,
-                'error': 'You do not have access to this thread'
-            }), 403
+        if not access or not access.get('has_access'):
+            logger.warning(f"User {g.user_id} attempted to view collaborators without access to thread '{thread_slug}'")
+            return error_response('You do not have access to this thread', 403)
         
         collaborators = manager.list_thread_collaborators(thread_slug)
         
-        return jsonify({
-            'success': True,
+        logger.info(f"Retrieved {len(collaborators)} collaborators for thread '{thread_slug}'")
+        return success_response({
             'thread_slug': thread_slug,
             'collaborators': collaborators
-        }), 200
+        }, 200)
     
     except ThreadNotFoundError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 404
+        return error_response(str(e), 404)
     
     except ThreadSharingError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return error_response(str(e), 500)
     
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }), 500
+        logger.exception(f"Unexpected error in list_thread_collaborators: {e}")
+        return error_response(f'Internal server error: {str(e)}', 500)
 
 
 @thread_sharing_bp.route('/api/my-shared-threads', methods=['GET'])
@@ -413,22 +478,32 @@ def list_my_shared_threads():
     }
     """
     try:
+        logger.info(f"User {g.user_id} retrieving list of shared threads")
+        
+        # Call ThreadSharingManager (handles all database operations internally)
         manager = ThreadSharingManager()
         shared_threads = manager.list_my_shared_threads(g.user_id)
         
-        return jsonify({
-            'success': True,
+        logger.info(f"Retrieved {len(shared_threads)} shared threads for user {g.user_id}")
+        return success_response({
             'shared_threads': shared_threads
-        }), 200
+        }, 200)
     
     except ThreadSharingError as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return error_response(str(e), 500)
     
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }), 500
+        logger.exception(f"Unexpected error in list_my_shared_threads: {e}")
+        return error_response(f'Internal server error: {str(e)}', 500)
+
+
+# ======================================================================
+# STARTUP LOGGING
+# ======================================================================
+logger.info("="*80)
+logger.info("Thread Sharing Routes loaded (Enhanced Version)")
+logger.info("   - ✅ NO CURSOR MANAGEMENT ISSUES (no direct DB operations)")
+logger.info("   - ✅ All database operations handled by ThreadSharingManager")
+logger.info("   - ✅ Enhanced logging, validation, and error handling")
+logger.info(f"   - Endpoints: 6 routes registered")
+logger.info("="*80)

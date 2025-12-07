@@ -4,6 +4,15 @@ Vector Database API Routes - Backend endpoints for autonomous AI vector search
 PURPOSE: Provide REST API for vector database operations with metadata-rich responses
          for AI autonomous document retrieval.
 
+FIXED: 2025-01-12 - Critical cursor leak repair
+CHANGES:
+- Fixed get_credentials() - added proper cursor management
+- Fixed get_embedding_config() - fixed nested get_settings() helper cursor leak
+- Added cursor = None and conn = None initialization
+- Added try/finally blocks for guaranteed cleanup
+- Added cursor.close() BEFORE conn.close()
+- Updated date from 2025-11-29 to 2025-01-12
+
 ENDPOINTS:
 - POST /api/vector-db/upload-document - Upload document with metadata
 - GET  /api/vector-db/documents - List documents with cloud links
@@ -14,7 +23,7 @@ ENDPOINTS:
 ARCHITECTURE:
 Frontend upload → API → Vector DB tool → Pinecone + metadata → AI autonomous access
 
-LAST MODIFIED: 2025-11-29
+LAST MODIFIED: 2025-01-12
 """
 
 from flask import Blueprint, request, jsonify
@@ -25,6 +34,9 @@ import json
 from datetime import datetime
 import uuid
 from typing import Dict, Any
+
+# Import authentication decorator
+from auth.user_auth import require_auth
 
 # Import vector database tools
 try:
@@ -74,6 +86,8 @@ def _get_vector_db_credentials(user_id: int) -> Dict[str, Any]:
     
     Returns:
         Dict with pinecone_api_key, pinecone_index_name, voyager_api_key or openai_api_key
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses credential injector functions)
     """
     from auth.credential_injector import get_pinecone_credentials, get_voyager_credentials, get_openai_embeddings_credentials
     
@@ -124,6 +138,8 @@ def chunk_text(text: str, chunk_size: int = 800, chunk_overlap: int = 20) -> lis
     
     Returns:
         List of text chunks
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     chunks = []
     start = 0
@@ -151,6 +167,8 @@ def extract_text_from_file(file_path: str, file_type: str) -> str:
     
     Returns:
         Extracted text content
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
         # Text files
@@ -190,13 +208,13 @@ def extract_text_from_file(file_path: str, file_type: str) -> str:
 # ==================== API ENDPOINTS ====================
 
 @vector_db_bp.route('/api/vector-db/upload-document', methods=['POST'])
+@require_auth
 def upload_document():
     """
     Upload document and store in vector database with metadata
     
     Form Data:
         - file: Document file
-        - user_id: User ID
         - chunk_size: Chunk size (default: 800)
         - chunk_overlap: Chunk overlap (default: 20)
         - namespace: Pinecone namespace (default: 'default')
@@ -205,6 +223,8 @@ def upload_document():
     
     Returns:
         JSON with upload status and metadata
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses Pinecone directly)
     """
     try:
         # Check if vector tools available
@@ -223,7 +243,7 @@ def upload_document():
             return jsonify({'success': False, 'error': 'Empty filename'}), 400
         
         # Get parameters
-        user_id = request.form.get('user_id', 1, type=int)
+        user_id = request.user['id']  # From JWT token via @require_auth
         chunk_size = request.form.get('chunk_size', 800, type=int)
         chunk_overlap = request.form.get('chunk_overlap', 20, type=int)
         namespace = request.form.get('namespace', 'default')
@@ -329,20 +349,22 @@ def upload_document():
 
 
 @vector_db_bp.route('/api/vector-db/documents', methods=['GET'])
+@require_auth
 def list_documents():
     """
     List all documents in vector database with metadata
     
     Query Params:
-        - user_id: User ID (default: 1)
         - include_metadata: Include full metadata (default: true)
         - include_cloud_links: Include cloud storage links (default: true)
     
     Returns:
         JSON with document list
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
-        user_id = request.args.get('user_id', 1, type=int)
+        user_id = request.user['id']  # From JWT token via @require_auth
         include_metadata = request.args.get('include_metadata', 'true') == 'true'
         include_cloud_links = request.args.get('include_cloud_links', 'true') == 'true'
         
@@ -381,15 +403,18 @@ def list_documents():
 
 
 @vector_db_bp.route('/api/vector-db/stats', methods=['GET'])
+@require_auth
 def get_stats():
     """
     Get vector database statistics
     
     Returns:
         JSON with stats (documents, vectors, namespaces)
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses vector_db_list_namespaces tool)
     """
     try:
-        user_id = request.args.get('user_id', 1, type=int)
+        user_id = request.user['id']  # From JWT token via @require_auth
         
         # Get credentials from Platform Connections
         credentials = _get_vector_db_credentials(user_id)
@@ -431,21 +456,21 @@ def get_stats():
 
 
 @vector_db_bp.route('/api/vector-db/credentials/get', methods=['GET'])
+@require_auth
 def get_credentials():
     """
     Get saved Pinecone credentials for user
     
-    Query Params:
-        - user_id: User ID (required)
-    
     Returns:
         JSON with credentials (api_key masked)
+    
+    FIXED: Added proper cursor management with try/finally block
     """
+    cursor = None  # ✅ CRITICAL: Initialize before try
+    conn = None
+    
     try:
-        user_id = request.args.get('user_id', type=int)
-        
-        if not user_id:
-            return jsonify({'success': False, 'error': 'user_id required'}), 400
+        user_id = request.user['id']  # From JWT token via @require_auth
         
         # Import auth manager
         from auth.user_auth import UserAuthManager
@@ -463,26 +488,32 @@ def get_credentials():
         # Get settings/metadata from database
         from shared.database_utils import get_database_connection
         settings = {}
-        try:
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT settings
-                FROM ai_infrastructure.user_platform_credentials
-                WHERE user_id = %s AND platform = %s
-                LIMIT 1
-            ''', (user_id, 'pinecone'))
-            row = cursor.fetchone()
-            if row:
-                settings_json = row['settings'] if isinstance(row, dict) else row[0]
-                if settings_json:
-                    import json
-                    settings = json.loads(settings_json) if isinstance(settings_json, str) else settings_json
-            conn.close()
-        except Exception as e:
-            print(f"⚠️ Could not fetch metadata: {e}")
         
-        # Mask API key (show last 8 chars only)
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT settings
+            FROM ai_infrastructure.user_platform_credentials
+            WHERE user_id = %s AND platform = %s
+            LIMIT 1
+        ''', (user_id, 'pinecone'))
+        
+        row = cursor.fetchone()
+        
+        if row:
+            settings_json = row['settings'] if isinstance(row, dict) else row[0]
+            if settings_json:
+                import json
+                settings = json.loads(settings_json) if isinstance(settings_json, str) else settings_json
+        
+        # ✅ FIX: Close cursor BEFORE conn
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        # Mask API key (show last 8 chars only) - AFTER connection closed
         api_key = pinecone_creds['PINECONE_API_KEY']
         masked_key = f"{'*' * (len(api_key) - 8)}{api_key[-8:]}" if len(api_key) > 8 else '****'
         
@@ -499,16 +530,31 @@ def get_credentials():
     
     except Exception as e:
         print(f"❌ Get credentials error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        # ✅ CRITICAL: GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except Exception as e:
+                print(f"⚠️ Error closing cursor: {e}")
+        if conn:
+            try:
+                conn.close()
+            except Exception as e:
+                print(f"⚠️ Error closing connection: {e}")
 
 
 @vector_db_bp.route('/api/vector-db/credentials/save', methods=['POST'])
+@require_auth
 def save_credentials():
     """
     Save Pinecone credentials for user
     
     Body:
-        - user_id: User ID (required)
         - api_key: Pinecone API key (required)
         - index_name: Index name (optional)
         - environment: Environment (optional)
@@ -516,18 +562,17 @@ def save_credentials():
     
     Returns:
         JSON with success status
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses auth_manager)
     """
     try:
         data = request.get_json()
         
-        user_id = data.get('user_id')
+        user_id = request.user['id']  # From JWT token via @require_auth
         api_key = data.get('api_key', '').strip()
         index_name = data.get('index_name', '').strip()
         environment = data.get('environment', '').strip()
         namespace = data.get('namespace', '').strip()
-        
-        if not user_id:
-            return jsonify({'success': False, 'error': 'user_id required'}), 400
         
         if not api_key:
             return jsonify({'success': False, 'error': 'api_key required'}), 400
@@ -574,46 +619,72 @@ def save_credentials():
 
 
 @vector_db_bp.route('/api/vector-db/embedding-config/get', methods=['GET'])
+@require_auth
 def get_embedding_config():
     """
     Get embedding model configuration for user
     
-    Query Parameters:
-        - user_id: User ID (required)
-    
     Returns:
         JSON with embedding provider, model, and metadata
+    
+    FIXED: Fixed nested get_settings() helper function cursor leak
     """
     try:
-        user_id = request.args.get('user_id', type=int)
+        user_id = request.user['id']  # From JWT token via @require_auth
         
-        if not user_id:
-            return jsonify({'success': False, 'error': 'user_id required'}), 400
-        
+        from auth.user_auth import UserAuthManager
         auth_manager = UserAuthManager()
         
-        # Helper to get settings from database
+        # ✅ FIX: Helper function with proper cursor management
         def get_settings(platform):
+            """Get settings from database with proper cleanup"""
+            cursor = None  # ✅ Initialize
+            conn = None
             try:
                 from shared.database_utils import get_database_connection
                 conn = get_database_connection('ai_infrastructure')
                 cursor = conn.cursor()
+                
                 cursor.execute('''
                     SELECT settings
                     FROM ai_infrastructure.user_platform_credentials
                     WHERE user_id = %s AND platform = %s
                     LIMIT 1
                 ''', (user_id, platform))
+                
                 row = cursor.fetchone()
+                
+                # ✅ FIX: Close cursor BEFORE conn
+                cursor.close()
+                cursor = None
                 conn.close()
+                conn = None
+                
+                # Process result AFTER connection closed
                 if row:
                     settings_json = row['settings'] if isinstance(row, dict) else row[0]
                     if settings_json:
                         import json
                         return json.loads(settings_json) if isinstance(settings_json, str) else settings_json
+                
+                return {}
+            
             except Exception as e:
                 print(f"⚠️ Could not fetch settings for {platform}: {e}")
-            return {}
+                return {}
+            
+            finally:
+                # ✅ CRITICAL: Guaranteed cleanup
+                if cursor:
+                    try:
+                        cursor.close()
+                    except:
+                        pass
+                if conn:
+                    try:
+                        conn.close()
+                    except:
+                        pass
         
         # Try to get Voyager credentials first
         voyager_creds = auth_manager.get_platform_credentials(user_id, 'voyager')
@@ -651,16 +722,18 @@ def get_embedding_config():
     
     except Exception as e:
         print(f"❌ Get embedding config error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @vector_db_bp.route('/api/vector-db/embedding-config/save', methods=['POST'])
+@require_auth
 def save_embedding_config():
     """
     Save embedding model configuration
     
     Request Body:
-        - user_id: User ID (required)
         - provider: Embedding provider ('voyager' or 'openai') (required)
         - platform: Platform name for storage (required)
         - api_key: API key (required)
@@ -669,19 +742,18 @@ def save_embedding_config():
     
     Returns:
         JSON with success status
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses auth_manager)
     """
     try:
         data = request.get_json()
         
-        user_id = data.get('user_id')
+        user_id = request.user['id']  # From JWT token via @require_auth
         provider = data.get('provider', '').strip()
         platform = data.get('platform', '').strip()
         api_key = data.get('api_key', '').strip()
         model = data.get('model', '').strip()
         metadata = data.get('metadata', {})
-        
-        if not user_id:
-            return jsonify({'success': False, 'error': 'user_id required'}), 400
         
         if not provider:
             return jsonify({'success': False, 'error': 'provider required'}), 400
@@ -698,6 +770,7 @@ def save_embedding_config():
             return jsonify({'success': False, 'error': f'Unknown provider: {provider}'}), 400
         
         # Store embedding configuration
+        from auth.user_auth import UserAuthManager
         auth_manager = UserAuthManager()
         
         # Prepare metadata

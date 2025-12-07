@@ -416,9 +416,34 @@ const UserAuth = {
             console.log('🔔 [AUTH] Dispatching authComplete event...');
             document.dispatchEvent(new CustomEvent('authComplete'));
 
-            // PHASE 2: Initialize main app with existing libraries (30-50% progress)
-            this.setLoadingProgress(35, 'Initializing application...');
+            // PHASE 2A: Load post-auth essential modules (30-45% progress)
+            this.setLoadingProgress(35, 'Loading essential modules...');
+            console.log('⚡ [AUTH] Loading post-auth essentials with LazyLoader...');
 
+            try {
+                // First, enable any disabled data-post-auth resources (like agent-ui.css)
+                if (window.LazyLoader && window.LazyLoader.enablePostAuthResources) {
+                    const enabledCount = window.LazyLoader.enablePostAuthResources();
+                    console.log(`✅ [AUTH] Enabled ${enabledCount} post-auth resources`);
+                }
+
+                // Then load essential modules using LazyLoader
+                if (window.LazyLoader && window.MANIFESTS) {
+                    await window.LazyLoader.loadManifest(window.MANIFESTS.postAuth);
+                    console.log('✅ [AUTH] Post-auth essentials loaded');
+                } else {
+                    console.warn('⚠️ [AUTH] LazyLoader not available, falling back to legacy loading');
+                    // Fallback: Load essentials the old way
+                    await this.loadLegacyEssentials();
+                }
+            } catch (error) {
+                console.error('❌ [AUTH] Failed to load post-auth essentials:', error);
+                // Continue with initialization even if some modules fail
+            }
+            this.setLoadingProgress(45, 'Essential modules loaded');
+
+            // PHASE 2B: Initialize main app (45-50% progress)
+            this.setLoadingProgress(47, 'Initializing application...');
             console.log('🔵 [AUTH] Starting initializeMainApp()...');
             await window.initializeMainApp();
             console.log('✅ [AUTH] initializeMainApp() complete');
@@ -454,16 +479,18 @@ const UserAuth = {
             }
             this.setLoadingProgress(60, 'Modules loaded');
 
-            // PHASE 3: Load heavy libraries AFTER app is visible (60-90% progress)
-            this.setLoadingProgress(65, 'Loading additional resources...');
-            console.log(' [POST-AUTH] Loading heavy libraries...');
-            try {
-                await this.loadPostAuthLibraries();
-                console.log('✅ [AUTH] Post-auth libraries loaded');
-            } catch (error) {
-                console.error('❌ [AUTH] Post-auth libraries ERROR:', error);
-                // Don't fail the entire flow if libraries don't load
+            // PHASE 3: Pre-fetch background modules (non-blocking)
+            this.setLoadingProgress(65, 'Pre-fetching features...');
+            console.log('🔮 [AUTH] Pre-fetching commonly-used features in background...');
+
+            // Start background pre-fetch (non-blocking)
+            if (window.LazyLoader && window.MANIFESTS) {
+                // Don't await - let this load in background
+                window.LazyLoader.loadManifest(window.MANIFESTS.background)
+                    .then(() => console.log('✅ [AUTH] Background pre-fetch complete'))
+                    .catch(err => console.warn('⚠️ [AUTH] Background pre-fetch error (non-critical):', err));
             }
+
             this.setLoadingProgress(90, 'Resources loaded');
 
             // PHASE 4: Final setup (90-100% progress)
@@ -551,6 +578,22 @@ const UserAuth = {
         } catch (error) {
             console.error(' [POST-AUTH] Failed to load libraries:', error);
         }
+    },
+
+    /**
+     * Load essential modules the old way (fallback)
+     * Used if LazyLoader is not available
+     */
+    async loadLegacyEssentials() {
+        console.log('⚠️ [AUTH] Loading essentials using legacy method...');
+
+        // Load Marked.js and Prism.js (essential for chat)
+        await Promise.all([
+            this.loadScript('marked', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'),
+            this.loadScript('prism', 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js')
+        ]);
+
+        console.log('✅ [AUTH] Legacy essentials loaded');
     },
 
     /**

@@ -384,18 +384,29 @@ window.SupabaseConnectionManager = {
         console.log(`🔍 [Supabase] Health check (idle for ${Math.round(idleTime / 1000)}s)...`);
 
         try {
-            // Check realtime connection status directly
-            const realtimeStatus = this.client.realtime?.connection?.connectionState;
-
-            // Valid states: 'open', 'connecting', 'closed'
-            if (realtimeStatus === 'open') {
-                console.log('✅ [Supabase] Health check passed (realtime: open)');
+            // Check if we have an established connection using connectionState
+            // In newer Supabase JS, check if connection is 'connected' or if we have active channels
+            if (this.connectionState === 'connected') {
+                console.log('✅ [Supabase] Health check passed (state: connected)');
                 return;
             }
 
-            // If realtime is connecting, wait a bit before failing
-            if (realtimeStatus === 'connecting') {
-                console.log('⏳ [Supabase] Health check: realtime connecting, waiting...');
+            // Alternative: Check if we have any subscribed channels
+            const channels = this.client?.getChannels();
+            const hasActiveChannels = channels && channels.length > 0;
+
+            if (hasActiveChannels) {
+                const subscribedChannels = channels.filter(ch => ch.state === 'joined');
+                if (subscribedChannels.length > 0) {
+                    console.log(`✅ [Supabase] Health check passed (${subscribedChannels.length} active channels)`);
+                    this.connectionState = 'connected'; // Update state
+                    return;
+                }
+            }
+
+            // If we're connecting, give it time
+            if (this.connectionState === 'connecting') {
+                console.log('⏳ [Supabase] Health check: connecting, waiting...');
 
                 // Wait up to 5s for connection to establish
                 await new Promise((resolve) => {
@@ -403,11 +414,9 @@ window.SupabaseConnectionManager = {
                     const startTime = Date.now();
 
                     const checkInterval = setInterval(() => {
-                        const currentStatus = this.client.realtime?.connection?.connectionState;
-
-                        if (currentStatus === 'open') {
+                        if (this.connectionState === 'connected') {
                             clearInterval(checkInterval);
-                            console.log('✅ [Supabase] Health check passed (realtime: open after wait)');
+                            console.log('✅ [Supabase] Health check passed (connected after wait)');
                             resolve(true);
                         } else if (Date.now() - startTime >= maxWait) {
                             clearInterval(checkInterval);
@@ -421,8 +430,8 @@ window.SupabaseConnectionManager = {
                 return;
             }
 
-            // Connection is closed or undefined - reconnect needed
-            console.warn(`⚠️ [Supabase] Health check failed (realtime: ${realtimeStatus || 'undefined'})`);
+            // No active connection - reconnect needed
+            console.warn(`⚠️ [Supabase] Health check failed (state: ${this.connectionState}, channels: ${hasActiveChannels ? 'present but not subscribed' : 'none'})`);
             this._handleHealthCheckFailure();
 
         } catch (error) {

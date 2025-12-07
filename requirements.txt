@@ -45,6 +45,7 @@ pymssql>=2.2.0
 
 # Vector Database
 pinecone>=3.0.0
+qdrant-client>=1.7.0
 
 # Scheduler
 apscheduler>=3.10.0

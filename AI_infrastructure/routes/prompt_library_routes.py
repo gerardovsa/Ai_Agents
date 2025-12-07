@@ -1,6 +1,9 @@
 """
 Prompt Library Routes - API endpoints for managing prompt injections
 
+Last Updated: December 7, 2025
+Cursor Management: FIXED - All database operations use proper resource cleanup
+
 Endpoints:
 - GET  /api/prompts/quick-actions - List quick action prompts
 - GET  /api/prompts/library - List library prompts  
@@ -8,6 +11,11 @@ Endpoints:
 - POST /api/prompts/user-custom - Create user custom prompt
 - POST /api/prompts/preferences - Save prompt preference
 - GET  /api/prompts/preferences/:name - Get saved preference
+- GET  /api/prompts/categories - List all categories
+- GET  /api/prompts/library/db - List prompts from database
+- POST /api/prompts/library/db - Create prompt in database
+- PUT  /api/prompts/library/db/<id> - Update prompt in database
+- DELETE /api/prompts/library/db/<id> - Delete prompt from database
 """
 
 from flask import Blueprint, request, jsonify
@@ -373,7 +381,7 @@ def list_categories():
     })
 
 
-# ==================== NEW DATABASE-BACKED ROUTES ====================
+# ==================== DATABASE-BACKED ROUTES (FIXED) ====================
 
 import sqlite3
 from pathlib import Path
@@ -409,7 +417,11 @@ def list_prompts_from_db():
     - type: Filter by type (quick_action, full_prompt)
     - visibility: Filter by visibility
     - search: Search in name, description, tags
+    
+    ✅ FIXED: Proper cursor/connection management with finally block
     """
+    cursor = None  # ✅ Initialize before try
+    conn = None
     try:
         user_id = request.user_id
         
@@ -481,7 +493,11 @@ def list_prompts_from_db():
                 'updated_at': row['updated_at']
             })
         
+        # ✅ Close cursor BEFORE processing results (already done above)
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Listed {len(prompts)} prompts for user {user_id}")
         
@@ -497,12 +513,30 @@ def list_prompts_from_db():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @prompt_routes.route('/library/db', methods=['POST'])
 @require_auth
 def create_prompt_in_db():
-    """Create a new prompt in database"""
+    """
+    Create a new prompt in database
+    
+    ✅ FIXED: Proper cursor/connection management with finally block
+    """
+    cursor = None  # ✅ Initialize before try
+    conn = None
     try:
         user_id = request.user_id
         data = request.get_json()
@@ -563,7 +597,12 @@ def create_prompt_in_db():
         """, (prompt_id,))
         
         row = cursor.fetchone()
+        
+        # ✅ Close cursor BEFORE processing result
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         prompt = {
             'id': row['id'],
@@ -594,12 +633,30 @@ def create_prompt_in_db():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @prompt_routes.route('/library/db/<int:prompt_id>', methods=['PUT'])
 @require_auth
 def update_prompt_in_db(prompt_id):
-    """Update an existing prompt in database"""
+    """
+    Update an existing prompt in database
+    
+    ✅ FIXED: Proper cursor/connection management with finally block
+    """
+    cursor = None  # ✅ Initialize before try
+    conn = None
     try:
         user_id = request.user_id
         data = request.get_json()
@@ -614,14 +671,22 @@ def update_prompt_in_db(prompt_id):
         
         row = cursor.fetchone()
         if not row:
+            # ✅ Close before early return
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Prompt not found'
             }), 404
         
         if row['user_id'] != user_id:
+            # ✅ Close before early return
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Unauthorized'
@@ -631,13 +696,14 @@ def update_prompt_in_db(prompt_id):
         cursor.execute("""
             UPDATE ai_infrastructure.prompt_library
             SET 
-                name = COALESCE( %s, name),
-                category = COALESCE( %s, category),
-                type = COALESCE( %s, type),
-                description = COALESCE( %s, description),
-                prompt_text = COALESCE( %s, prompt_text),
-                tags = COALESCE( %s, tags),
-                visibility = COALESCE( %s, visibility), updated_at = %s
+                name = COALESCE(%s, name),
+                category = COALESCE(%s, category),
+                type = COALESCE(%s, type),
+                description = COALESCE(%s, description),
+                prompt_text = COALESCE(%s, prompt_text),
+                tags = COALESCE(%s, tags),
+                visibility = COALESCE(%s, visibility),
+                updated_at = %s
             WHERE id = %s
         """, (
             data.get('name'),
@@ -664,7 +730,12 @@ def update_prompt_in_db(prompt_id):
         """, (prompt_id,))
         
         row = cursor.fetchone()
+        
+        # ✅ Close cursor BEFORE processing result
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         prompt = {
             'id': row['id'],
@@ -695,12 +766,30 @@ def update_prompt_in_db(prompt_id):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @prompt_routes.route('/library/db/<int:prompt_id>', methods=['DELETE'])
 @require_auth
 def delete_prompt_from_db(prompt_id):
-    """Delete a prompt from database"""
+    """
+    Delete a prompt from database
+    
+    ✅ FIXED: Proper cursor/connection management with finally block
+    """
+    cursor = None  # ✅ Initialize before try
+    conn = None
     try:
         user_id = request.user_id
         
@@ -714,14 +803,22 @@ def delete_prompt_from_db(prompt_id):
         
         row = cursor.fetchone()
         if not row:
+            # ✅ Close before early return
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Prompt not found'
             }), 404
         
         if row['user_id'] != user_id:
+            # ✅ Close before early return
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Unauthorized'
@@ -733,7 +830,12 @@ def delete_prompt_from_db(prompt_id):
         """, (prompt_id,))
         
         conn.commit()
+        
+        # ✅ Close cursor BEFORE return
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Deleted prompt {prompt_id} for user {user_id}")
         
@@ -748,3 +850,15 @@ def delete_prompt_from_db(prompt_id):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass

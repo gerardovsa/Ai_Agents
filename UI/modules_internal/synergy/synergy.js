@@ -20,7 +20,7 @@
  * - Various synergy utility modules
  */
 
-export default {
+window.SynergyModule = window.SynergyModule || {
     // ==================== STATE ====================
     state: {
         initialized: false,

@@ -45,12 +45,14 @@ class ApexChartsRenderer {
                 config = JSON.parse(cleanContent);
             } catch (e) {
                 // If JSON fails, try eval for JS object notation (with functions)
-                console.warn('ApexCharts: JSON parse failed, trying JavaScript eval', e.message);
+                console.log('ℹ️ ApexCharts: Using JavaScript eval for object literal syntax');
                 try {
                     // Use Function constructor for safer eval
                     config = (new Function('return ' + cleanContent))();
+                    console.log('✅ ApexCharts: Config parsed successfully');
                 } catch (evalError) {
-                    console.error('ApexCharts: Both JSON and eval failed', evalError);
+                    console.error('❌ ApexCharts: Config parsing failed:', evalError.message);
+                    console.error('📄 Config preview:', cleanContent.substring(0, 200));
                     throw new Error(`Invalid ApexCharts config: ${evalError.message}`);
                 }
             }

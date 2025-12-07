@@ -1,11 +1,20 @@
 """
-AGENT ROUTES V3 - FIXED: Database as Source of Truth
+AGENT ROUTES V3 - FIXED: Database as Source of Truth + CURSOR MANAGEMENT FIXES
 
 KEY ARCHITECTURAL CHANGES:
 1. Frontend sends ONLY current message (not full conversation history)
 2. Backend loads conversation from database (authoritative source)
 3. Backend appends user message → processes → saves AI response
 4. Backend returns complete conversation to frontend
+
+CURSOR MANAGEMENT FIXES (December 7, 2025):
+✅ All cursors initialized as None before try blocks
+✅ All cursors closed in finally blocks with exception handling
+✅ All early returns close cursors first
+✅ No cursor.close() after return statements
+✅ Multiple cursors independently managed
+✅ Proper transaction handling with rollback
+✅ Connection closed AFTER cursor
 
 RETAINED FEATURES (ALL):
 - User preferences injection (nickname, auth_platform, communication_style, detail_level, preferred_tools, AI memories)
@@ -54,13 +63,15 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================
-# NEW: DATABASE CONVERSATION LOADER (Source of Truth)
+# FIXED: DATABASE CONVERSATION LOADER (Source of Truth)
 # ============================================================
 
 def load_conversation_from_database(thread_slug: str, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
     """
     Load conversation history from database with optional pagination.
     This is the AUTHORITATIVE source of truth for all conversations.
+    
+    FIXED: Proper cursor management with finally block.
     
     Args:
         thread_slug: Thread identifier
@@ -74,86 +85,114 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
     if limit:
         print(f"[DB LOAD] Pagination: limit={limit}, offset={offset}")
     
+    cursor = None  # ✅ Initialize before try
+    conn = None
+    
     try:
-        with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get thread ID from thread_slug
-            cursor.execute("""
-                SELECT id FROM sessions.threads 
-                WHERE thread_slug = %s
-            """, (thread_slug,))
-            
-            thread_row = cursor.fetchone()
-            
-            if not thread_row:
-                print(f"[DB LOAD] ℹ️  Thread not found in database - this is a NEW conversation")
-                print(f"{'='*80}\n")
-                return []  # Empty conversation for new threads
-            
-            thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-            print(f"[DB LOAD] Thread ID: {thread_id}")
-            
-            # Get messages for this thread (with optional pagination)
-            if limit:
-                # Paginated query - get MOST RECENT messages first
-                cursor.execute("""
-                    SELECT role, content, created_at, model, tokens_used
-                    FROM sessions.messages 
-                    WHERE thread_id = %s 
-                    ORDER BY created_at DESC
-                    LIMIT %s OFFSET %s
-                """, (thread_id, limit, offset))
-            else:
-                # Get ALL messages (ordered by creation time)
-                cursor.execute("""
-                    SELECT role, content, created_at, model, tokens_used
-                    FROM sessions.messages 
-                    WHERE thread_id = %s 
-                    ORDER BY created_at ASC
-                """, (thread_id,))
-            
-            rows = cursor.fetchall()
-            print(f"[DB LOAD] Found {len(rows)} messages in database")
-            
-            messages = []
-            for idx, row in enumerate(rows):
-                if isinstance(row, tuple):
-                    role, content, created_at, model, tokens_used = row
-                else:
-                    role = row['role']
-                    content = row['content']
-                    created_at = row['created_at']
-                    model = row.get('model')
-                    tokens_used = row.get('tokens_used')
-                
-                # Parse JSONB content
-                if isinstance(content, str):
-                    try:
-                        content = json.loads(content)
-                    except Exception as e:
-                        print(f"[DB LOAD] ⚠️  Message {idx} content parse failed: {e}")
-                        content = [{'type': 'text', 'text': content}]
-                
-                messages.append({
-                    'role': role,
-                    'content': content
-                })
-                
-                content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"
-                print(f"[DB LOAD]   [{idx}] {role}: {content_preview}...")
-            
-            print(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database")
-            print(f"{'='*80}\n")
-            
-            return messages
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
+        # Get thread ID from thread_slug
+        cursor.execute("""
+            SELECT id FROM sessions.threads 
+            WHERE thread_slug = %s
+        """, (thread_slug,))
+        
+        thread_row = cursor.fetchone()
+        
+        if not thread_row:
+            print(f"[DB LOAD] ℹ️  Thread not found in database - this is a NEW conversation")
+            
+            # ✅ Close before return
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            print(f"{'='*80}\n")
+            return []  # Empty conversation for new threads
+        
+        thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+        print(f"[DB LOAD] Thread ID: {thread_id}")
+        
+        # Get messages for this thread (with optional pagination)
+        if limit:
+            # Paginated query - get MOST RECENT messages first
+            cursor.execute("""
+                SELECT role, content, created_at, model, tokens_used
+                FROM sessions.messages 
+                WHERE thread_id = %s 
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+            """, (thread_id, limit, offset))
+        else:
+            # Get ALL messages (ordered by creation time)
+            cursor.execute("""
+                SELECT role, content, created_at, model, tokens_used
+                FROM sessions.messages 
+                WHERE thread_id = %s 
+                ORDER BY created_at ASC
+            """, (thread_id,))
+        
+        rows = cursor.fetchall()
+        print(f"[DB LOAD] Found {len(rows)} messages in database")
+        
+        messages = []
+        for idx, row in enumerate(rows):
+            if isinstance(row, tuple):
+                role, content, created_at, model, tokens_used = row
+            else:
+                role = row['role']
+                content = row['content']
+                created_at = row['created_at']
+                model = row.get('model')
+                tokens_used = row.get('tokens_used')
+            
+            # Parse JSONB content
+            if isinstance(content, str):
+                try:
+                    content = json.loads(content)
+                except Exception as e:
+                    print(f"[DB LOAD] ⚠️  Message {idx} content parse failed: {e}")
+                    content = [{'type': 'text', 'text': content}]
+            
+            messages.append({
+                'role': role,
+                'content': content
+            })
+            
+            content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"
+            print(f"[DB LOAD]   [{idx}] {role}: {content_preview}...")
+        
+        # ✅ Close cursor BEFORE return
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        print(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database")
+        print(f"{'='*80}\n")
+        
+        return messages
+    
     except Exception as e:
         print(f"[DB LOAD] ❌ ERROR loading conversation: {e}")
         import traceback
         traceback.print_exc()
         print(f"{'='*80}\n")
         return []
+    
+    finally:  # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 def save_message_to_database(thread_slug: str, role: str, content: Any, 
@@ -163,106 +202,115 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
                              metadata: Optional[Dict] = None) -> bool:
     """
     Save a single message to the database immediately with transaction management.
+    
+    FIXED: Proper cursor management with finally block and rollback handling.
     """
     print(f"[DB SAVE] 💾 Saving {role} message to database...")
     print(f"[DB SAVE] Thread slug: {thread_slug}")
     print(f"[DB SAVE] User ID: {user_id}")
     
     conn = None
-    cursor = None
+    cursor = None  # ✅ Already initialized
     
     try:
         from psycopg2.extras import Json
         
-        with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Begin explicit transaction
+        cursor.execute("BEGIN")
+        
+        # Step 1: Check if thread exists
+        cursor.execute("""
+            SELECT id FROM sessions.threads 
+            WHERE thread_slug = %s
+        """, (thread_slug,))
+        
+        thread_row = cursor.fetchone()
+        
+        if not thread_row:
+            # Thread doesn't exist - create it first
+            print(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}")
             
-            # Begin explicit transaction
-            cursor.execute("BEGIN")
-            
-            # Step 1: Check if thread exists
             cursor.execute("""
-                SELECT id FROM sessions.threads 
-                WHERE thread_slug = %s
-            """, (thread_slug,))
+                INSERT INTO sessions.threads 
+                (thread_slug, user_id, name, created_at, updated_at)
+                VALUES (%s, %s, %s, NOW(), NOW())
+                RETURNING id
+            """, (thread_slug, user_id or 1, 'New Chat'))
             
             thread_row = cursor.fetchone()
-            
-            if not thread_row:
-                # Thread doesn't exist - create it first
-                print(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}")
-                
-                cursor.execute("""
-                    INSERT INTO sessions.threads 
-                    (thread_slug, user_id, name, created_at, updated_at)
-                    VALUES (%s, %s, %s, NOW(), NOW())
-                    RETURNING id
-                """, (thread_slug, user_id or 1, 'New Chat'))
-                
-                thread_row = cursor.fetchone()
-                print(f"[DB SAVE] ✅ Thread created: {thread_slug}")
-            
-            thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-            print(f"[DB SAVE] Thread ID: {thread_id}")
-            
-            # Step 2: Format content for JSONB storage
-            try:
-                if isinstance(content, (list, dict)):
-                    content_value = Json(content)
-                elif isinstance(content, str):
-                    if not content.strip().startswith(('[', '{')):
-                        content_value = Json([{'type': 'text', 'text': content}])
-                    else:
-                        try:
-                            parsed = json.loads(content)
-                            content_value = Json(parsed)
-                        except:
-                            content_value = Json([{'type': 'text', 'text': content}])
+            print(f"[DB SAVE] ✅ Thread created: {thread_slug}")
+        
+        thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+        print(f"[DB SAVE] Thread ID: {thread_id}")
+        
+        # Step 2: Format content for JSONB storage
+        try:
+            if isinstance(content, (list, dict)):
+                content_value = Json(content)
+            elif isinstance(content, str):
+                if not content.strip().startswith(('[', '{')):
+                    content_value = Json([{'type': 'text', 'text': content}])
                 else:
-                    content_value = Json([{'type': 'text', 'text': str(content)}])
-                
-                print(f"[DB SAVE] Content formatted as JSONB")
-            except Exception as json_error:
-                print(f"[DB SAVE] ⚠️ JSON formatting failed, using string fallback: {json_error}")
+                    try:
+                        parsed = json.loads(content)
+                        content_value = Json(parsed)
+                    except:
+                        content_value = Json([{'type': 'text', 'text': content}])
+            else:
                 content_value = Json([{'type': 'text', 'text': str(content)}])
             
-            # Step 3: Prepare metadata
-            try:
-                metadata_val = json.dumps(metadata) if metadata else None
-            except Exception as meta_error:
-                print(f"[DB SAVE] ⚠️ Metadata serialization failed: {meta_error}")
-                metadata_val = None
-            
-            # Step 4: Insert message
-            cursor.execute("""
-                INSERT INTO sessions.messages 
-                (thread_id, session_id, role, content, user_id, model, tokens_used, metadata, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (thread_id, thread_slug, role, content_value, user_id, model, tokens_used, metadata_val))
-            
-            message_row = cursor.fetchone()
-            message_id = message_row[0] if isinstance(message_row, tuple) else message_row['id']
-            
-            # Commit transaction
-            cursor.execute("COMMIT")
-            print(f"[DB SAVE] ✅ Transaction committed")
-            
-            # Verify message was saved
-            cursor.execute("""
-                SELECT id FROM sessions.messages 
-                WHERE id = %s
-            """, (message_id,))
-            
-            if cursor.fetchone():
-                print(f"[DB SAVE] ✅ Verified: Message exists in database (ID: {message_id})")
-            else:
-                print(f"[DB SAVE] ⚠️ WARNING: Message not found after save!")
-                return False
-            
+            print(f"[DB SAVE] Content formatted as JSONB")
+        except Exception as json_error:
+            print(f"[DB SAVE] ⚠️ JSON formatting failed, using string fallback: {json_error}")
+            content_value = Json([{'type': 'text', 'text': str(content)}])
+        
+        # Step 3: Prepare metadata
+        try:
+            metadata_val = json.dumps(metadata) if metadata else None
+        except Exception as meta_error:
+            print(f"[DB SAVE] ⚠️ Metadata serialization failed: {meta_error}")
+            metadata_val = None
+        
+        # Step 4: Insert message
+        cursor.execute("""
+            INSERT INTO sessions.messages 
+            (thread_id, session_id, role, content, user_id, model, tokens_used, metadata, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            RETURNING id
+        """, (thread_id, thread_slug, role, content_value, user_id, model, tokens_used, metadata_val))
+        
+        message_row = cursor.fetchone()
+        message_id = message_row[0] if isinstance(message_row, tuple) else message_row['id']
+        
+        # Commit transaction
+        cursor.execute("COMMIT")
+        print(f"[DB SAVE] ✅ Transaction committed")
+        
+        # Verify message was saved
+        cursor.execute("""
+            SELECT id FROM sessions.messages 
+            WHERE id = %s
+        """, (message_id,))
+        
+        verification_result = cursor.fetchone()
+        
+        # ✅ Close cursor BEFORE return
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if verification_result:
+            print(f"[DB SAVE] ✅ Verified: Message exists in database (ID: {message_id})")
             print(f"[DB SAVE] ✅ Saved {role} message to database (message ID: {message_id})")
             return True
-        
+        else:
+            print(f"[DB SAVE] ⚠️ WARNING: Message not found after save!")
+            return False
+    
     except Exception as e:
         # Rollback on error
         if cursor:
@@ -286,10 +334,22 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
         traceback.print_exc()
         print(f"{'='*80}\n")
         return False
+    
+    finally:  # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================================
-# TOOL EXECUTOR (Unchanged)
+# TOOL EXECUTOR (Unchanged - No database operations)
 # ============================================================
 
 class ToolExecutor:
@@ -717,6 +777,11 @@ def stream_agent(agent_id):
     """
     FIXED: Database as source of truth for streaming
     
+    CURSOR FIXES:
+    - cursor/cursor2 = None initialization
+    - finally blocks for cleanup
+    - Multiple cursors independently managed
+    
     Loads conversation from DB instead of trusting frontend state
     """
     thread_slug = request.args.get('thread_slug') or request.args.get('session_id')
@@ -840,11 +905,11 @@ def stream_agent(agent_id):
         weather_condition = location_dict.get('weather_condition', 'Unknown')
         
         from datetime import datetime
-        date_str = location_dict.get('date', '2025-11-06')
+        date_str = location_dict.get('date', '2025-12-07')
         try:
             month_name = datetime.strptime(date_str, '%Y-%m-%d').strftime('%B')
         except:
-            month_name = 'November'
+            month_name = 'December'
         
         if temp_c is not None:
             temp_str = f"{temp_c}°C ({temp_f}°F), {weather_condition}"
@@ -1000,13 +1065,12 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         print(f"[STREAM] 📋 USER CONTEXT BLOCK:")
         print(user_context_block)
         
-        system_prompt = system_prompt.replace('{{USER_LOCATION}}', user_context_block)
+        # ✅ FIX: Append context instead of replacing empty string (which replaces EVERY empty string!)
+        system_prompt += f"\n\n{user_context_block}\n"
         
         # ============================================
         # PROMPT INJECTION SYSTEM - SINGLE-USE ONLY (Fixed)
         # ============================================
-        # CRITICAL: Prompt library selections should apply ONCE (to this message only)
-        # NOT persist across entire thread - that makes them "sticky"
         try:
             from core.prompt_injection_manager import get_prompt_manager
             
@@ -1028,8 +1092,6 @@ Additional Preferences (YOU MUST FOLLOW THESE):
             if quick_actions or library_prompts or custom_prompt:
                 prompt_manager = get_prompt_manager()
                 
-                # Inject AFTER base system prompt (appended context, not embedded)
-                # This makes the injection clearly temporary and message-specific
                 system_prompt = prompt_manager.inject_prompts(
                     base_prompt=system_prompt,
                     quick_actions=quick_actions,
@@ -1047,9 +1109,13 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         print(f"[STREAM] 🔍 DEBUG: System prompt (fallback): {len(system_prompt):,} characters")
     
     # ============================================
-    # COMPREHENSIVE CONTEXT INJECTION (Retained)
+    # FIXED: COMPREHENSIVE CONTEXT INJECTION
     # ============================================
+    cursor = None  # ✅ Initialize before try
     conn = None
+    cursor2 = None  # ✅ Second cursor for synergy queries
+    conn2 = None
+    
     try:
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
@@ -1074,7 +1140,8 @@ Additional Preferences (YOU MUST FOLLOW THESE):
             if thread_row['synergy_card_id']:
                 synergy_card_id = thread_row['synergy_card_id']
                 
-                with get_database_connection('synergy_sessions') as conn2:
+                try:
+                    conn2 = get_database_connection('synergy_sessions')
                     cursor2 = conn2.cursor()
                     
                     cursor2.execute("""
@@ -1086,58 +1153,67 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                     """, (synergy_card_id,))
                     
                     synergy_row = cursor2.fetchone()
+                    
+                    # ✅ Close cursor2 immediately after use
+                    cursor2.close()
+                    cursor2 = None
+                    conn2.close()
+                    conn2 = None
+                    
+                    if synergy_row:
+                        print(f"[STREAM] 🎯 SYNERGY LINKED → {synergy_card_id} | '{synergy_row['title']}'")
+                        
+                        synergy_context = f"\n\n{'='*80}\n"
+                        synergy_context += "🎯 SYNERGY PROJECT CONTEXT\n"
+                        synergy_context += f"{'='*80}\n\n"
+                        synergy_context += f"You are working on a Synergy project:\n\n"
+                        synergy_context += f"**Project:** {synergy_row['title']}\n"
+                        if synergy_row['project_name']:
+                            synergy_context += f"**Category:** {synergy_row['project_name']}\n"
+                        if synergy_row['description']:
+                            synergy_context += f"**Description:** {synergy_row['description']}\n"
+                        synergy_context += f"**Priority:** {synergy_row['priority']}\n"
+                        synergy_context += f"**Status:** {synergy_row['status']}\n"
+                        
+                        if synergy_row['notes']:
+                            synergy_context += f"\n**Notes:** {synergy_row['notes']}\n"
+                        
+                        if synergy_row['next_steps']:
+                            try:
+                                next_steps = json.loads(synergy_row['next_steps']) if isinstance(synergy_row['next_steps'], str) else synergy_row['next_steps']
+                                if next_steps and isinstance(next_steps, list):
+                                    synergy_context += "\n**Next Steps:**\n"
+                                    for step in next_steps:
+                                        if isinstance(step, dict):
+                                            icon = "✅" if step.get('completed') else "⏳"
+                                            synergy_context += f"- {icon} {step.get('description', 'N/A')}\n"
+                            except:
+                                pass
+                        
+                        if synergy_row['due_date']:
+                            synergy_context += f"\n**Due Date:** {synergy_row['due_date']}\n"
+                        
+                        synergy_context += f"\n**Available Tools:**\n"
+                        synergy_context += f"- synergy_get_session('{synergy_card_id}') - Get full project details\n"
+                        synergy_context += f"- synergy_update_session('{synergy_card_id}', ...) - Update project status, notes, next steps\n"
+                        synergy_context += f"- synergy_list_sessions() - List all Synergy projects\n"
+                        synergy_context += f"- synergy_create_session(...) - Create new Synergy project\n"
+                        synergy_context += f"- synergy_delete_session('{synergy_card_id}') - Archive this project\n"
+                        
+                        synergy_context += f"\n**What You Can Do:**\n"
+                        synergy_context += f"- Help user complete next steps (show progress, mark items done)\n"
+                        synergy_context += f"- Update project status when milestones are reached\n"
+                        synergy_context += f"- Add notes or insights relevant to the project\n"
+                        synergy_context += f"- Suggest action items based on project goals\n"
+                        synergy_context += f"- Track project progress and remind about due dates\n"
+                        synergy_context += f"- Create related Synergy projects if needed\n"
+                        
+                        context_sections.append(synergy_context)
                 
-                if synergy_row:
-                    print(f"[STREAM] 🎯 SYNERGY LINKED → {synergy_card_id} | '{synergy_row['title']}'")
-                    
-                    synergy_context = f"\n\n{'='*80}\n"
-                    synergy_context += "🎯 SYNERGY PROJECT CONTEXT\n"
-                    synergy_context += f"{'='*80}\n\n"
-                    synergy_context += f"You are working on a Synergy project:\n\n"
-                    synergy_context += f"**Project:** {synergy_row['title']}\n"
-                    if synergy_row['project_name']:
-                        synergy_context += f"**Category:** {synergy_row['project_name']}\n"
-                    if synergy_row['description']:
-                        synergy_context += f"**Description:** {synergy_row['description']}\n"
-                    synergy_context += f"**Priority:** {synergy_row['priority']}\n"
-                    synergy_context += f"**Status:** {synergy_row['status']}\n"
-                    
-                    if synergy_row['notes']:
-                        synergy_context += f"\n**Notes:** {synergy_row['notes']}\n"
-                    
-                    if synergy_row['next_steps']:
-                        try:
-                            next_steps = json.loads(synergy_row['next_steps']) if isinstance(synergy_row['next_steps'], str) else synergy_row['next_steps']
-                            if next_steps and isinstance(next_steps, list):
-                                synergy_context += "\n**Next Steps:**\n"
-                                for step in next_steps:
-                                    if isinstance(step, dict):
-                                        icon = "✅" if step.get('completed') else "⏳"
-                                        synergy_context += f"- {icon} {step.get('description', 'N/A')}\n"
-                        except:
-                            pass
-                    
-                    if synergy_row['due_date']:
-                        synergy_context += f"\n**Due Date:** {synergy_row['due_date']}\n"
-                    
-                    synergy_context += f"\n**Available Tools:**\n"
-                    synergy_context += f"- synergy_get_session('{synergy_card_id}') - Get full project details\n"
-                    synergy_context += f"- synergy_update_session('{synergy_card_id}', ...) - Update project status, notes, next steps\n"
-                    synergy_context += f"- synergy_list_sessions() - List all Synergy projects\n"
-                    synergy_context += f"- synergy_create_session(...) - Create new Synergy project\n"
-                    synergy_context += f"- synergy_delete_session('{synergy_card_id}') - Archive this project\n"
-                    
-                    synergy_context += f"\n**What You Can Do:**\n"
-                    synergy_context += f"- Help user complete next steps (show progress, mark items done)\n"
-                    synergy_context += f"- Update project status when milestones are reached\n"
-                    synergy_context += f"- Add notes or insights relevant to the project\n"
-                    synergy_context += f"- Suggest action items based on project goals\n"
-                    synergy_context += f"- Track project progress and remind about due dates\n"
-                    synergy_context += f"- Create related Synergy projects if needed\n"
-                    
-                    context_sections.append(synergy_context)
+                except Exception as synergy_error:
+                    print(f"[STREAM] ⚠️  Error loading Synergy context: {synergy_error}")
             
-            # Workflow Automation Context (ENHANCED)
+            # Workflow Automation Context
             if thread_row['workflow_slug']:
                 workflow_slug = thread_row['workflow_slug']
                 workflow_title = thread_row['workflow_title'] or workflow_slug
@@ -1165,7 +1241,7 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 
                 context_sections.append(workflow_context)
             
-            # Automation Slug Context (ENHANCED)
+            # Automation Slug Context
             if thread_row['automation_slug']:
                 automation_slug = thread_row['automation_slug']
                 automation_title = thread_row['automation_title'] or automation_slug
@@ -1193,7 +1269,7 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 
                 context_sections.append(automation_context)
             
-            # Internal Documentation Context (ENHANCED)
+            # Internal Documentation Context
             if thread_row['internal_doc_slug']:
                 doc_slug = thread_row['internal_doc_slug']
                 doc_title = thread_row['internal_doc_title'] or doc_slug
@@ -1221,19 +1297,47 @@ Additional Preferences (YOU MUST FOLLOW THESE):
             
             # Inject all contexts
             if context_sections:
-                for context in context_sections:
+                print(f"[STREAM] 🔍 DEBUG: BEFORE context injection: {len(system_prompt):,} characters")
+                for idx, context in enumerate(context_sections):
+                    print(f"[STREAM] 🔍 DEBUG: Context section [{idx}] size: {len(context):,} characters")
                     system_prompt += context
                     system_prompt += f"{'='*80}\n"
+                    print(f"[STREAM] 🔍 DEBUG: After context [{idx}]: {len(system_prompt):,} characters")
                 
                 print(f"[STREAM] ✅ Context injection: {len(context_sections)} sections")
                 print(f"[STREAM] 🔍 DEBUG: System prompt after context injection: {len(system_prompt):,} characters")
+        
+        # ✅ Close cursor BEFORE leaving try block
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
     
     except Exception as e:
         print(f"[STREAM] ⚠️ Error injecting context: {e}")
-    finally:
+    
+    finally:  # ✅ Guaranteed cleanup
+        if cursor2:  # ✅ Cleanup synergy cursor
+            try:
+                cursor2.close()
+            except:
+                pass
+        if conn2:
+            try:
+                conn2.close()
+            except:
+                pass
+        
+        if cursor:  # ✅ Cleanup main cursor
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
-            print(f"[STREAM] 🔒 Context injection connection closed")
+            try:
+                conn.close()
+            except:
+                pass
     
     # Append system prompt continuation
     system_prompt_continued = """
@@ -1330,95 +1434,7 @@ Use tools in multiple rounds with interleaved thinking."""
             ):
                 event_type = event.get('type', 'unknown')
                 yield stream_sse_event(event_type, event)
-                flush_stream()  # Force immediate streaming
-                
-                # REMOVED (Nov 23, 2025): Auto-save on completion is now IMMEDIATE in combined_agent_worker.py
-                # Messages are saved immediately after generation to prevent orphaned tool_use blocks
-                # This redundant save-on-complete caused duplicate saves and race conditions
-                if event_type == 'complete' and False:  # Disabled - keeping code for reference
-                    try:
-                        conversation_full = event.get('conversation_history', [])
-                        
-                        if conversation_full:
-                            print(f"[STREAM SAVE] Got {len(conversation_full)} messages from complete event")
-                            
-                            with get_database_connection('sessions') as conn:
-                                cursor = conn.cursor()
-                                
-                                cursor.execute("""
-                                    SELECT id FROM sessions.threads 
-                                    WHERE thread_slug = %s
-                                """, (thread_slug,))
-                                
-                                thread_row = cursor.fetchone()
-                                if thread_row:
-                                    db_thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-                                    
-                                    cursor.execute("""
-                                        SELECT COUNT(*) FROM sessions.messages 
-                                        WHERE thread_id = %s
-                                    """, (db_thread_id,))
-                                    
-                                    count_row = cursor.fetchone()
-                                    existing_count = count_row[0] if isinstance(count_row, tuple) else count_row['count']
-                                    
-                                    messages_to_save = conversation_full[existing_count:]
-                                    
-                                    if messages_to_save:
-                                        print(f"[STREAM SAVE] Saving {len(messages_to_save)} new messages")
-                                        
-                                        from psycopg2.extras import Json
-                                        
-                                        for message in messages_to_save:
-                                            content = message.get('content', '')
-                                            
-                                            if isinstance(content, (list, dict)):
-                                                content_value = Json(content)
-                                            elif isinstance(content, str):
-                                                if not content.strip().startswith(('[', '{')):
-                                                    content_value = Json([{'type': 'text', 'text': content}])
-                                                else:
-                                                    try:
-                                                        parsed = json.loads(content)
-                                                        content_value = Json(parsed)
-                                                    except:
-                                                        content_value = Json([{'type': 'text', 'text': content}])
-                                            else:
-                                                content_value = Json([{'type': 'text', 'text': str(content)}])
-                                            
-                                            model_val = event.get('model', ai_model) if event else ai_model
-                                            tokens_val = message.get('tokens_used', None)
-                                            tool_calls_data = message.get('tool_calls', [])
-                                            tool_calls_val = json.dumps(tool_calls_data) if tool_calls_data else None
-                                            
-                                            metadata = {}
-                                            if message.get('thinking_budget'):
-                                                metadata['thinking_budget'] = message.get('thinking_budget')
-                                            if message.get('round'):
-                                                metadata['round'] = message.get('round')
-                                            metadata_val = json.dumps(metadata) if metadata else None
-                                            
-                                            cursor.execute("""
-                                                INSERT INTO sessions.messages 
-                                                (thread_id, session_id, role, content, user_id, model, tokens_used, tool_calls, metadata, created_at)
-                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                                            """, (db_thread_id, thread_slug, message['role'], content_value, user_id, model_val, tokens_val, tool_calls_val, metadata_val))
-                                        
-                                        conn.commit()
-                                        print(f"[STREAM SAVE] ✅ Saved {len(messages_to_save)} messages")
-                                    
-                                    cursor.execute("""
-                                        UPDATE sessions.threads 
-                                        SET updated_at = CURRENT_TIMESTAMP
-                                        WHERE thread_slug = %s
-                                    """, (thread_slug,))
-                                    
-                                    conn.commit()
-                    
-                    except Exception as save_error:
-                        print(f"[STREAM SAVE] ❌ Failed to save: {save_error}")
-                        import traceback
-                        traceback.print_exc()
+                flush_stream()
                 
                 if event_type in ['complete', 'error']:
                     break
@@ -1440,14 +1456,14 @@ Use tools in multiple rounds with interleaved thinking."""
         'Cache-Control': 'no-cache',
         'X-Accel-Buffering': 'no',
         'Connection': 'keep-alive',
-        'X-Stream-Timeout': '300'  # 5 minute timeout hint
+        'X-Stream-Timeout': '300'
     })
     
     return response
 
 
 # ============================================================
-# REST OF ENDPOINTS (Unchanged)
+# REST OF ENDPOINTS (Unchanged - No database operations)
 # ============================================================
 
 @agent_bp.route('/agent/<agent_id>/status', methods=['GET'])
@@ -1776,7 +1792,7 @@ def simple_chat():
                     thread_id = data.get('thread_id') or session_id
                     thread_mgr = ThreadManager()
                     
-                    # CRITICAL FIX: Format user message content as JSON array
+                    # Format user message content as JSON array
                     user_content = json.dumps([{'type': 'text', 'text': message}])
                     
                     thread_mgr.add_message(
@@ -1798,7 +1814,7 @@ def simple_chat():
                     if isinstance(content_to_save, str):
                         content_to_save = [{'type': 'text', 'text': response_text}]
                     
-                    # CRITICAL FIX: Convert content to JSON string for database storage
+                    # Convert content to JSON string for database storage
                     content_json = json.dumps(content_to_save) if isinstance(content_to_save, list) else content_to_save
                     
                     thread_mgr.add_message(
@@ -2008,7 +2024,7 @@ def get_tools():
 
 
 # ============================================================
-# USER FEEDBACK ENDPOINTS (Retained)
+# USER FEEDBACK ENDPOINTS (Retained - No database operations)
 # ============================================================
 
 @agent_bp.route('/user-feedback/submit', methods=['POST'])
@@ -2124,7 +2140,7 @@ def _cleanup_expired_notifications():
 
 if __name__ == "__main__":
     print("\n" + "="*80)
-    print("AGENT ROUTES V3 - FIXED: DATABASE AS SOURCE OF TRUTH")
+    print("AGENT ROUTES V3 - FIXED: DATABASE AS SOURCE OF TRUTH + CURSOR MANAGEMENT")
     print("="*80 + "\n")
     
     executor = ToolExecutor()
@@ -2147,5 +2163,13 @@ if __name__ == "__main__":
     print(f"   - Backend loads conversation from DB")
     print(f"   - Backend saves user message → processes → saves AI response")
     print(f"   - Backend returns complete authoritative conversation")
+    
+    print(f"\n✅ FIXED: Cursor management (December 7, 2025)")
+    print(f"   - All cursors initialized as None before try blocks")
+    print(f"   - All cursors closed in finally blocks")
+    print(f"   - Multiple cursors independently managed")
+    print(f"   - Early returns close cursors first")
+    print(f"   - Proper transaction handling with rollback")
+    print(f"   - No cursor.close() after return statements")
     
     print("\n" + "="*80 + "\n")

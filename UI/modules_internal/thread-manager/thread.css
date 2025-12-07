@@ -3379,7 +3379,7 @@ textarea.form-control {
     }
 }
 
-/* ==================== EXPANDABLE THREAD CARD HOVER ==================== */
+/* ==================== EXPANDABLE THREAD CARD - BUTTON ONLY (Dec 6, 2025) ==================== */
 
 /* Expandable content (hidden by default) */
 .thread-expand-on-hover {
@@ -3389,17 +3389,17 @@ textarea.form-control {
     transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
 }
 
-/* Show all content on hover OR when expanded */
-.agent-thread-card:hover .thread-expand-on-hover,
-.thread-item:hover .thread-expand-on-hover,
+/* Show all content ONLY when expanded (button click) */
+/* .agent-thread-card:hover .thread-expand-on-hover, */
+/* .thread-item:hover .thread-expand-on-hover, */
 .agent-thread-card.expanded .thread-expand-on-hover {
     max-height: 500px;
     opacity: 1;
     overflow: visible;
 }
 
-/* Chevron rotation on hover OR when expanded */
-.agent-thread-card:hover .chevron-icon,
+/* Chevron rotation ONLY when expanded (button click) */
+/* .agent-thread-card:hover .chevron-icon, */
 .agent-thread-card.expanded .chevron-icon {
     transform: rotate(180deg);
     transition: transform 0.5s ease;

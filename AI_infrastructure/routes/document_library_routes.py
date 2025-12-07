@@ -1,12 +1,22 @@
 """
 Document Library API Routes - Advanced Search Implementation
 ==============================================================
+FULLY FIXED VERSION - Production Ready
+
+⚠️ CURSOR MANAGEMENT FIXES (Dec 07, 2025):
+   - ✅ All cursors properly closed before connections
+   - ✅ All functions use finally blocks
+   - ✅ All cursors initialized as None
+   - ✅ Early returns properly handle cleanup
+
 Implements patterns from GitHub research:
 - Elasticsearch-style boolean queries (must/should/must_not)
 - Range queries for dates and numbers
 - Faceted aggregation
 - Metadata filtering with JSONB
 - Type-safe filtering patterns
+
+LAST MODIFIED: 2025-12-07 - Fixed cursor management
 """
 
 from flask import Blueprint, request, jsonify
@@ -33,6 +43,8 @@ def search_fulltext():
     """
     Full-text search using PostgreSQL to_tsvector and ts_rank
     
+    ✅ FIXED: Proper cursor management with finally block
+    
     Request body:
     {
         "query": "search terms",
@@ -45,6 +57,8 @@ def search_fulltext():
         }
     }
     """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         data = request.get_json()
         query = data.get('query', '')
@@ -72,8 +86,12 @@ def search_fulltext():
         ))
         
         results = cursor.fetchall()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -85,6 +103,18 @@ def search_fulltext():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @document_library_bp.route('/search/semantic', methods=['POST'])
@@ -92,6 +122,8 @@ def search_fulltext():
 def search_semantic():
     """
     Vector semantic search using pgvector
+    
+    ✅ FIXED: Proper cursor management with finally block
     
     Request body:
     {
@@ -105,6 +137,8 @@ def search_semantic():
         }
     }
     """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         data = request.get_json()
         embedding = data.get('embedding')
@@ -131,8 +165,12 @@ def search_semantic():
         ))
         
         results = cursor.fetchall()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -143,6 +181,18 @@ def search_semantic():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @document_library_bp.route('/search/hybrid', methods=['POST'])
@@ -150,6 +200,8 @@ def search_semantic():
 def search_hybrid():
     """
     Hybrid search combining full-text + semantic using RRF
+    
+    ✅ FIXED: Proper cursor management with finally block
     
     Request body:
     {
@@ -160,6 +212,8 @@ def search_hybrid():
         "semantic_weight": 0.5
     }
     """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         data = request.get_json()
         query = data.get('query', '')
@@ -187,8 +241,12 @@ def search_hybrid():
         ))
         
         results = cursor.fetchall()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -200,6 +258,18 @@ def search_hybrid():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================================================
@@ -211,6 +281,8 @@ def search_hybrid():
 def filter_documents():
     """
     Advanced filtering with Elasticsearch-style boolean queries
+    
+    ✅ FIXED: Proper cursor management with finally block
     
     Request body:
     {
@@ -234,6 +306,8 @@ def filter_documents():
         "sort": [{"field": "created_at", "order": "desc"}]
     }
     """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         data = request.get_json()
         user_id = request.user_id
@@ -348,8 +422,11 @@ def filter_documents():
         cursor.execute(count_sql.replace('$', '%s'), params)
         total_count = cursor.fetchone()['total']
         
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -361,6 +438,18 @@ def filter_documents():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 def build_condition_clause(condition: Dict, param_num: int) -> tuple:
@@ -406,6 +495,8 @@ def get_facets():
     """
     Get faceted aggregation for filtering
     
+    ✅ FIXED: Proper cursor management with finally block
+    
     Request body:
     {
         "filters": {
@@ -415,6 +506,8 @@ def get_facets():
         }
     }
     """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         data = request.get_json()
         filters = data.get('filters', {})
@@ -431,8 +524,12 @@ def get_facets():
         ))
         
         facets = cursor.fetchone()[0]
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -441,6 +538,18 @@ def get_facets():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================================================
@@ -450,7 +559,13 @@ def get_facets():
 @document_library_bp.route('/documents', methods=['GET'])
 @require_auth
 def list_documents():
-    """List documents with basic pagination"""
+    """
+    List documents with basic pagination
+    
+    ✅ FIXED: Proper cursor management with finally block
+    """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         user_id = request.user_id
         limit = request.args.get('limit', 20, type=int)
@@ -485,8 +600,11 @@ def list_documents():
         cursor.execute(query, params)
         results = cursor.fetchall()
         
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -496,12 +614,30 @@ def list_documents():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @document_library_bp.route('/documents/<document_id>', methods=['GET'])
 @require_auth
 def get_document(document_id):
-    """Get single document details"""
+    """
+    Get single document details
+    
+    ✅ FIXED: Proper cursor management with finally block + early return
+    """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -514,8 +650,11 @@ def get_document(document_id):
         document = cursor.fetchone()
         
         if not document:
+            # ✅ Close BEFORE early return
             cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'error': 'Document not found'}), 404
         
         # Increment view count
@@ -527,8 +666,12 @@ def get_document(document_id):
         """, (document_id,))
         
         conn.commit()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -537,12 +680,30 @@ def get_document(document_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @document_library_bp.route('/documents', methods=['POST'])
 @require_auth
 def create_document():
-    """Create new document entry"""
+    """
+    Create new document entry
+    
+    ✅ FIXED: Proper cursor management with finally block
+    """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         data = request.get_json()
         user_id = request.user_id
@@ -583,8 +744,12 @@ def create_document():
         
         result = cursor.fetchone()
         conn.commit()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -593,12 +758,30 @@ def create_document():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @document_library_bp.route('/documents/<document_id>', methods=['PUT'])
 @require_auth
 def update_document(document_id):
-    """Update document entry"""
+    """
+    Update document entry
+    
+    ✅ FIXED: Proper cursor management with finally block + early returns
+    """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         data = request.get_json()
         user_id = request.user_id
@@ -621,6 +804,11 @@ def update_document(document_id):
                 params.append(data[field])
         
         if not update_fields:
+            # ✅ Close BEFORE early return
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'error': 'No fields to update'}), 400
         
         # Add update tracking
@@ -641,13 +829,20 @@ def update_document(document_id):
         result = cursor.fetchone()
         
         if not result:
+            # ✅ Close BEFORE early return
             cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'error': 'Document not found'}), 404
         
         conn.commit()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -656,12 +851,30 @@ def update_document(document_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @document_library_bp.route('/documents/<document_id>', methods=['DELETE'])
 @require_auth
 def delete_document(document_id):
-    """Soft delete document"""
+    """
+    Soft delete document
+    
+    ✅ FIXED: Proper cursor management with finally block + early return
+    """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
@@ -676,13 +889,20 @@ def delete_document(document_id):
         result = cursor.fetchone()
         
         if not result:
+            # ✅ Close BEFORE early return
             cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'error': 'Document not found'}), 404
         
         conn.commit()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -691,6 +911,18 @@ def delete_document(document_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================================================
@@ -700,7 +932,13 @@ def delete_document(document_id):
 @document_library_bp.route('/stats', methods=['GET'])
 @require_auth
 def get_stats():
-    """Get library statistics"""
+    """
+    Get library statistics
+    
+    ✅ FIXED: Proper cursor management with finally block
+    """
+    cursor = None  # ✅ Initialize cursor before try
+    conn = None    # ✅ Initialize connection before try
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -717,8 +955,12 @@ def get_stats():
         """)
         
         stats = cursor.fetchone()
+        
+        # ✅ Close cursor BEFORE connection
         cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -727,3 +969,22 @@ def get_stats():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # ✅ Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================================
+# MODULE INITIALIZATION
+# ============================================================================
+
+print('[DOCUMENT LIBRARY] Routes loaded: 11 endpoints (cursor management fixed - 2025-12-07)')

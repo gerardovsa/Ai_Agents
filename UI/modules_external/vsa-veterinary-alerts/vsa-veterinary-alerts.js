@@ -74,11 +74,11 @@ const VSAVeterinaryAlerts = {
             // ✅ USE FRAMEWORK UTILITY (matches InHouse Kanban pattern)
             // Gets 'tab-vsa-veterinary-alerts' automatically
             this.container = this.dom.getContainer();
-            
+
             if (!this.container) {
                 throw new Error('Dashboard container not found');
             }
-            
+
             this.log.info('✅ Container found:', this.container.id);
 
             // ❌ REMOVED: Do NOT override display property
@@ -717,10 +717,14 @@ const VSAVeterinaryAlerts = {
             this.refreshData();
         });
 
-        // Alert details
-        this.dom.on(this.container, 'click', '[data-alert-id]', (e) => {
+        // Alert details - prevent event bubbling to stop multiple triggers
+        this.dom.on(this.container, 'click', '.vsa-alert-card', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
             const alertId = e.currentTarget.dataset.alertId;
-            this.viewAlertDetails(alertId);
+            if (alertId) {
+                this.viewAlertDetails(alertId);
+            }
         });
 
         // Follow-up details
@@ -1131,9 +1135,117 @@ const VSAVeterinaryAlerts = {
         // Emit event for cross-component communication
         this.events.emit('alert-selected', { alert });
 
-        // Could open a modal here
-        // For now, log to console
-        console.log('Alert Details:', alert);
+        // Show alert details modal
+        this.showAlertDetailsModal(alert);
+    },
+    
+    showAlertDetailsModal(alert) {
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.className = 'vsa-modal-overlay';
+        modal.innerHTML = `
+            <div class="vsa-modal-content">
+                <div class="vsa-modal-header">
+                    <h2>
+                        <i class="fas fa-bell"></i>
+                        Alert Details
+                    </h2>
+                    <button class="vsa-modal-close" onclick="this.closest('.vsa-modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="vsa-modal-body">
+                    <!-- Alert Summary -->
+                    <div class="vsa-detail-section">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Alert Summary</h3>
+                        <div class="vsa-detail-grid">
+                            <div class="vsa-detail-item">
+                                <label>Type:</label>
+                                <span class="vsa-badge vsa-badge-${alert.severity}">${this.escapeHtml(alert.type)}</span>
+                            </div>
+                            <div class="vsa-detail-item">
+                                <label>Severity:</label>
+                                <span class="vsa-badge vsa-badge-${alert.severity === 'high' ? 'danger' : alert.severity === 'medium' ? 'warning' : 'success'}">${alert.severity.toUpperCase()}</span>
+                            </div>
+                            <div class="vsa-detail-item">
+                                <label>Status:</label>
+                                <span>${alert.status}</span>
+                            </div>
+                            <div class="vsa-detail-item">
+                                <label>Date:</label>
+                                <span>${new Date(alert.callDate).toLocaleDateString()} ${new Date(alert.callDate).toLocaleTimeString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Call Information -->
+                    <div class="vsa-detail-section">
+                        <h3><i class="fas fa-phone"></i> Call Information</h3>
+                        <div class="vsa-detail-grid">
+                            <div class="vsa-detail-item">
+                                <label>Call ID:</label>
+                                <span><code>${this.escapeHtml(alert.callId)}</code></span>
+                            </div>
+                            <div class="vsa-detail-item">
+                                <label>Client Name:</label>
+                                <span>${this.escapeHtml(alert.clientName)}</span>
+                            </div>
+                            <div class="vsa-detail-item">
+                                <label>Staff Member:</label>
+                                <span>${this.escapeHtml(alert.staffName)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Alert Description -->
+                    <div class="vsa-detail-section">
+                        <h3><i class="fas fa-file-alt"></i> Description</h3>
+                        <div class="vsa-detail-description">
+                            <p>${this.escapeHtml(alert.description)}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Items (if available) -->
+                    ${alert.managerActionSteps ? `
+                    <div class="vsa-detail-section">
+                        <h3><i class="fas fa-tasks"></i> Recommended Actions</h3>
+                        <div class="vsa-detail-description">
+                            <p>${this.escapeHtml(alert.managerActionSteps)}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="vsa-modal-footer">
+                    <button class="vsa-btn vsa-btn-secondary" onclick="this.closest('.vsa-modal-overlay').remove()">
+                        Close
+                    </button>
+                    <button class="vsa-btn" onclick="alert('Email notification feature coming soon!')">
+                        <i class="fas fa-envelope"></i> Send Email Alert
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        // Close on Escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+        
+        // Add to DOM
+        document.body.appendChild(modal);
     },
 
     viewFollowUpDetails(followUpId) {

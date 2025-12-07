@@ -23,11 +23,47 @@ class SynergyInlineEditClass {
         console.log('[SYNERGY INLINE EDIT] Instance created');
     }
 
+    // ==================== CONTEXT HELPER ====================
+
+    /**
+     * Get context-aware root element for querySelector scoping
+     * Prevents cross-contamination when same session open in multiple places
+     */
+    getContextRoot() {
+        // Check if we're in an active editing context
+        const editingInSidebar = document.querySelector('#synergy-sidebar [data-editing="true"]');
+        const editingInDashboard = document.querySelector('#synergy-dashboard-container [data-editing="true"]');
+        const editingInPopup = document.querySelector('.synergy-popup-container [data-editing="true"]');
+
+        // Return the specific context if something is being edited
+        if (editingInSidebar) return document.querySelector('#synergy-sidebar');
+        if (editingInDashboard) return document.querySelector('#synergy-dashboard-container');
+        if (editingInPopup) return document.querySelector('.synergy-popup-container');
+
+        // Fallback: try to detect from most recent event
+        // This helps with initial edit button clicks before data-editing is set
+        const sidebar = document.querySelector('#synergy-sidebar');
+        const dashboard = document.querySelector('#synergy-dashboard-container');
+        const popup = document.querySelector('.synergy-popup-container');
+
+        // Check which context has focus or recent interaction
+        if (sidebar && sidebar.querySelector(':focus')) return sidebar;
+        if (dashboard && dashboard.querySelector(':focus')) return dashboard;
+        if (popup && popup.querySelector(':focus')) return popup;
+
+        // Final fallback: search all contexts, prefer sidebar > dashboard > popup
+        return sidebar || dashboard || popup || document;
+    }
+
     // ==================== MILESTONE EDITING ====================
 
     editMilestone(sessionId, milestoneId) {
-        const container = document.querySelector(`[data-milestone-id="${milestoneId}"]`);
-        if (!container) return;
+        const contextRoot = this.getContextRoot();
+        const container = contextRoot.querySelector(`[data-milestone-id="${milestoneId}"]`);
+        if (!container) {
+            console.warn(`[SYNERGY INLINE EDIT] Milestone ${milestoneId} not found in current context`);
+            return;
+        }
 
         // Store original content
         const titleEl = container.querySelector('.synergy-flat-milestone-title');
@@ -51,8 +87,12 @@ class SynergyInlineEditClass {
     }
 
     async saveMilestone(sessionId, milestoneId) {
-        const container = document.querySelector(`[data-milestone-id="${milestoneId}"]`);
-        if (!container) return;
+        const contextRoot = this.getContextRoot();
+        const container = contextRoot.querySelector(`[data-milestone-id="${milestoneId}"]`);
+        if (!container) {
+            console.warn(`[SYNERGY INLINE EDIT] Milestone ${milestoneId} not found for save`);
+            return;
+        }
 
         const titleEl = container.querySelector('.synergy-flat-milestone-title');
         const descEl = container.querySelector('.synergy-flat-milestone-desc');
@@ -87,7 +127,8 @@ class SynergyInlineEditClass {
     }
 
     cancelEdit(sessionId, itemId) {
-        const container = document.querySelector(`[data-milestone-id="${itemId}"], [data-task-id="${itemId}"], [data-subtask-id="${itemId}"]`);
+        const contextRoot = this.getContextRoot();
+        const container = contextRoot.querySelector(`[data-milestone-id="${itemId}"], [data-task-id="${itemId}"], [data-subtask-id="${itemId}"]`);
         if (!container) return;
 
         // Restore original content
@@ -118,7 +159,8 @@ class SynergyInlineEditClass {
             if (!response.ok) throw new Error('Delete failed');
 
             // Remove from DOM
-            const container = document.querySelector(`[data-milestone-id="${milestoneId}"]`);
+            const contextRoot = this.getContextRoot();
+            const container = contextRoot.querySelector(`[data-milestone-id="${milestoneId}"]`);
             if (container) container.remove();
 
         } catch (error) {
@@ -521,7 +563,8 @@ class SynergyInlineEditClass {
 
     // Reload card helper
     async reloadCard(sessionId) {
-        const cardElement = document.querySelector(`[data-session-id="${sessionId}"]`);
+        const contextRoot = this.getContextRoot();
+        const cardElement = contextRoot.querySelector(`[data-session-id="${sessionId}"]`);
         if (!cardElement) return;
 
         // Use renderer to reload
@@ -533,8 +576,12 @@ class SynergyInlineEditClass {
     // ==================== TASK EDITING ====================
 
     editTask(sessionId, taskId) {
-        const container = document.querySelector(`[data-task-id="${taskId}"]`);
-        if (!container) return;
+        const contextRoot = this.getContextRoot();
+        const container = contextRoot.querySelector(`[data-task-id="${taskId}"]`);
+        if (!container) {
+            console.warn(`[SYNERGY INLINE EDIT] Task ${taskId} not found in current context`);
+            return;
+        }
 
         const titleEl = container.querySelector('.synergy-flat-task-title');
         this.originalContent[taskId] = {
@@ -550,8 +597,12 @@ class SynergyInlineEditClass {
     }
 
     async saveTask(sessionId, taskId) {
-        const container = document.querySelector(`[data-task-id="${taskId}"]`);
-        if (!container) return;
+        const contextRoot = this.getContextRoot();
+        const container = contextRoot.querySelector(`[data-task-id="${taskId}"]`);
+        if (!container) {
+            console.warn(`[SYNERGY INLINE EDIT] Task ${taskId} not found for save`);
+            return;
+        }
 
         const titleEl = container.querySelector('.synergy-flat-task-title');
         const priorityEl = container.querySelector('.synergy-priority-select');
@@ -591,7 +642,8 @@ class SynergyInlineEditClass {
 
             if (!response.ok) throw new Error('Delete failed');
 
-            const container = document.querySelector(`[data-task-id="${taskId}"]`);
+            const contextRoot = this.getContextRoot();
+            const container = contextRoot.querySelector(`[data-task-id="${taskId}"]`);
             if (container) container.remove();
 
         } catch (error) {
@@ -619,8 +671,12 @@ class SynergyInlineEditClass {
     // ==================== SUBTASK EDITING ====================
 
     editSubtask(sessionId, subtaskId) {
-        const container = document.querySelector(`[data-subtask-id="${subtaskId}"]`);
-        if (!container) return;
+        const contextRoot = this.getContextRoot();
+        const container = contextRoot.querySelector(`[data-subtask-id="${subtaskId}"]`);
+        if (!container) {
+            console.warn(`[SYNERGY INLINE EDIT] Subtask ${subtaskId} not found in current context`);
+            return;
+        }
 
         const titleEl = container.querySelector('.synergy-flat-subtask-title');
         this.originalContent[subtaskId] = {
@@ -636,8 +692,12 @@ class SynergyInlineEditClass {
     }
 
     async saveSubtask(sessionId, subtaskId) {
-        const container = document.querySelector(`[data-subtask-id="${subtaskId}"]`);
-        if (!container) return;
+        const contextRoot = this.getContextRoot();
+        const container = contextRoot.querySelector(`[data-subtask-id="${subtaskId}"]`);
+        if (!container) {
+            console.warn(`[SYNERGY INLINE EDIT] Subtask ${subtaskId} not found for save`);
+            return;
+        }
 
         const titleEl = container.querySelector('.synergy-flat-subtask-title');
         const priorityEl = container.querySelector('.synergy-priority-select');
@@ -677,7 +737,8 @@ class SynergyInlineEditClass {
 
             if (!response.ok) throw new Error('Delete failed');
 
-            const container = document.querySelector(`[data-subtask-id="${subtaskId}"]`);
+            const contextRoot = this.getContextRoot();
+            const container = contextRoot.querySelector(`[data-subtask-id="${subtaskId}"]`);
             if (container) container.remove();
 
         } catch (error) {

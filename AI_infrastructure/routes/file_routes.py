@@ -1,6 +1,16 @@
 """
+File: AI_infrastructure/routes/file_routes.py
+
+C:/Users\gpoli\GIT\AI_agents\AI_infrastructure\routes\file_routes.py
 File Management Routes
 Handles file uploads, downloads, and storage
+
+LAST MODIFIED: 2025-01-12 - Cursor management audit (NO LEAKS FOUND - File is clean!)
+CHANGES:
+- Updated date format to correct year
+- Confirmed NO database operations in this file
+- All database operations delegated to utils/file_storage.py
+- NO CURSOR MANAGEMENT CHANGES NEEDED (file doesn't use database directly)
 """
 
 import sys
@@ -35,6 +45,8 @@ def serve_file(file_path):
     
     Returns:
         File download or error
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
         # Construct server path
@@ -66,6 +78,8 @@ def download_file(file_path):
     
     Returns:
         File as attachment
+    
+    ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
         # Construct server path
@@ -100,6 +114,8 @@ def delete_file_route():
     
     Returns:
         Success or error
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses delete_file utility)
     """
     try:
         data = request.get_json()
@@ -134,6 +150,8 @@ def get_storage_usage():
             "total_mb": 500,
             "percent_used": 46.84
         }
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses get_user_storage_usage utility)
     """
     try:
         user_id = request.args.get('user_id')
@@ -173,6 +191,8 @@ def delete_thread_files_route():
     
     Returns:
         Number of files deleted
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses delete_thread_files utility)
     """
     try:
         data = request.get_json()

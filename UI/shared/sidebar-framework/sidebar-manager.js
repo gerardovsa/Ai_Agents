@@ -446,7 +446,8 @@ class UniversalSidebarManager {
                 const config = this.sidebars.get(id);
                 if (config) {
                     config.isOpen = state[id].isOpen || false;
-                    config.initialized = state[id].initialized || false;
+                    // DON'T restore initialized state - onInit should run on every page load
+                    // config.initialized = state[id].initialized || false;
                 }
             });
 

@@ -2,8 +2,8 @@
  * Vector Database Sidebar - Modern Framework Edition
  * 
  * PURPOSE: Vector database management with Pinecone cloud integration
- * FRAMEWORK: ModuleLoaderV4 (composition-based pattern)
- * PATTERN: ES6 export default (modern)
+ * FRAMEWORK: Pre-loaded script pattern (like Synergy module)
+ * PATTERN: Window assignment (not ES6 export - must work with <script> tags)
  * 
  * FEATURES:
  * - Credential management (Pinecone + OpenAI + Voyager)
@@ -17,20 +17,28 @@
  * - Backend: /api/vector-db/* endpoints
  * - AI Tools: 8 Pinecone tools via registry
  * 
- * LAST MODIFIED: 2025-11-30 - Migrated to ES6 export for ModuleLoaderV4
+ * LAST MODIFIED: 2025-12-08 - Removed ES6 export, using window assignment
  */
 
-export default {
+window.VectorDatabaseModule = {
     // ==================== STATE ====================
     state: {
         API_BASE_URL: window.API_BASE_URL || 'http://localhost:5001',
         currentTab: 'credentials',
         uploadedFiles: [],
         isConnected: false,
+        selectedProvider: 'pinecone', // pinecone, voyager, pgvector, qdrant
+        qdrantDeploymentType: 'customer-server', // customer-server, valor-cloud, qdrant-cloud
+        qdrantConnection: { host: 'localhost', port: 6333, api_key: '' },
+        multiModalEnabled: false, // Image+Text+Audio+Video embeddings
+        quantizationEnabled: false, // Binary/Scalar/Product quantization (4-32x compression)
+        hybridSearchEnabled: false, // Dense+Sparse BM25 hybrid search
         stats: {
             documents: 0,
             vectors: 0,
-            namespaces: 0
+            namespaces: 0,
+            collections: 0,
+            indexed_vectors: 0
         },
         loading: false,
         error: null,
@@ -169,6 +177,39 @@ export default {
             this.onEmbeddingProviderChange();
         });
 
+        // Provider selector change (Pinecone/Qdrant/etc)
+        this.dom.on(this.container, 'change', '#provider-selector', (e) => {
+            this.onProviderChange(e);
+        });
+
+        // Qdrant deployment type change
+        this.dom.on(this.container, 'change', '#qdrant-deployment-type', (e) => {
+            this.onQdrantDeploymentTypeChange(e);
+        });
+
+        // Deploy Qdrant Docker button
+        this.dom.on(this.container, 'click', '#deploy-docker-btn', () => {
+            this.deployQdrantDocker();
+        });
+
+        // Test Qdrant connection button
+        this.dom.on(this.container, 'click', '#test-qdrant-connection-btn', () => {
+            this.testQdrantConnection();
+        });
+
+        // Advanced feature toggles
+        this.dom.on(this.container, 'change', '#multi-modal-toggle', (e) => {
+            this.onMultiModalToggle(e);
+        });
+
+        this.dom.on(this.container, 'change', '#quantization-toggle', (e) => {
+            this.onQuantizationToggle(e);
+        });
+
+        this.dom.on(this.container, 'change', '#hybrid-search-toggle', (e) => {
+            this.onHybridSearchToggle(e);
+        });
+
         // Save embedding config button
         this.dom.on(this.container, 'click', '[data-action="save-embedding-config"]', () => {
             this.saveEmbeddingConfig();
@@ -194,7 +235,6 @@ export default {
             this.showMessage('Saving credentials...', 'loading');
 
             const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/credentials/save`, {
-                user_id: window.currentUserId || 1,
                 api_key: apiKey,
                 index_name: indexName,
                 environment: environment,
@@ -218,7 +258,7 @@ export default {
     async loadCredentials() {
         try {
             const response = await this.api.get(
-                `${this.state.API_BASE_URL}/api/vector-db/credentials/get?user_id=${window.currentUserId || 1}`
+                `${this.state.API_BASE_URL}/api/vector-db/credentials/get`
             );
 
             if (response.success && response.credentials) {
@@ -247,7 +287,7 @@ export default {
     async loadEmbeddingConfig() {
         try {
             const response = await this.api.get(
-                `${this.state.API_BASE_URL}/api/vector-db/embedding-config/get?user_id=${window.currentUserId || 1}`
+                `${this.state.API_BASE_URL}/api/vector-db/embedding-config/get`
             );
 
             if (response.success && response.config) {
@@ -279,9 +319,7 @@ export default {
         try {
             this.showMessage('Testing connection...', 'loading');
 
-            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/test-connection`, {
-                user_id: window.currentUserId || 1
-            });
+            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/test-connection`, {});
 
             if (response.success) {
                 this.showMessage(`Connected! ${response.message}`, 'success');
@@ -368,7 +406,6 @@ export default {
             this.showEmbeddingMessage('Saving embedding configuration...', 'loading');
 
             const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/embedding-config/save`, {
-                user_id: window.currentUserId || 1,
                 provider: provider,
                 platform: platform,
                 api_key: apiKey,
@@ -528,7 +565,6 @@ export default {
 
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('user_id', window.currentUserId || 1);
                 formData.append('chunk_size', chunkSize);
                 formData.append('chunk_overlap', chunkOverlap);
                 formData.append('namespace', namespace || '');
@@ -578,7 +614,7 @@ export default {
     async loadStats() {
         try {
             const response = await this.api.get(
-                `${this.state.API_BASE_URL}/api/vector-db/stats?user_id=${window.currentUserId || 1}`
+                `${this.state.API_BASE_URL}/api/vector-db/stats`
             );
 
             if (response.success && response.stats) {
@@ -608,7 +644,7 @@ export default {
             container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
 
             const response = await this.api.get(
-                `${this.state.API_BASE_URL}/api/vector-db/documents?user_id=${window.currentUserId || 1}&include_metadata=true&include_cloud_links=true`
+                `${this.state.API_BASE_URL}/api/vector-db/documents?include_metadata=true&include_cloud_links=true`
             );
 
             if (response.success && response.documents && response.documents.length > 0) {
@@ -669,8 +705,7 @@ export default {
 
         try {
             const response = await this.api.delete(
-                `${this.state.API_BASE_URL}/api/vector-db/document/${docId}`,
-                { user_id: window.currentUserId || 1 }
+                `${this.state.API_BASE_URL}/api/vector-db/document/${docId}`
             );
 
             if (response.success) {
@@ -717,6 +752,211 @@ export default {
         }
 
         this.log.info(`[VECTOR DB] Switched to ${tabName} tab`);
+    },
+
+    // ==================== QDRANT PROVIDER ====================
+
+    onProviderChange(event) {
+        const provider = event.target.value;
+        this.state.selectedProvider = provider;
+        this.storage.set('selectedProvider', provider);
+
+        // Update provider info
+        const infoEl = this.container.querySelector('#provider-info');
+        const providerInfoMap = {
+            'pinecone': '🌲 <strong>Pinecone</strong> - Cloud hosted, $70/mo, 150ms latency',
+            'qdrant': '⚡ <strong>Qdrant</strong> - FREE self-hosted, 1-5ms latency, unlimited storage',
+            'voyager': '🚀 <strong>Voyager</strong> - Pay-per-use, 120ms latency',
+            'pgvector': '🐘 <strong>pgvector</strong> - FREE Supabase, 20ms latency'
+        };
+        if (infoEl) infoEl.innerHTML = providerInfoMap[provider] || '';
+
+        // Show/hide Qdrant configuration tab
+        const qdrantTab = this.container.querySelector('.tab-btn[data-tab="qdrant-config"]');
+        const qdrantContent = this.container.querySelector('#qdrant-config-content');
+        if (provider === 'qdrant') {
+            if (qdrantTab) qdrantTab.style.display = 'inline-block';
+            if (qdrantContent) qdrantContent.style.display = 'block';
+        } else {
+            if (qdrantTab) qdrantTab.style.display = 'none';
+            if (qdrantContent) qdrantContent.style.display = 'none';
+        }
+
+        this.log.info(`[VECTOR DB] Provider changed to: ${provider}`);
+    },
+
+    onQdrantDeploymentTypeChange(event) {
+        const deploymentType = event.target.value;
+        this.state.qdrantDeploymentType = deploymentType;
+        this.storage.set('qdrantDeploymentType', deploymentType);
+
+        // Show/hide Docker wizard for customer-server deployment
+        const dockerWizard = this.container.querySelector('#docker-wizard');
+        if (dockerWizard) {
+            dockerWizard.style.display = deploymentType === 'customer-server' ? 'block' : 'none';
+        }
+
+        this.log.info(`[VECTOR DB] Qdrant deployment type: ${deploymentType}`);
+    },
+
+    async deployQdrantDocker() {
+        const isWindows = navigator.userAgent.includes('Windows');
+        const commands = isWindows ? this.getWindowsDockerCommands() : this.getLinuxDockerCommands();
+
+        const output = this.container.querySelector('#docker-commands-output');
+        if (output) {
+            output.textContent = commands;
+            output.style.display = 'block';
+        }
+
+        this.showMessage('Docker commands generated! Copy and run in terminal', 'success');
+        this.log.info('[VECTOR DB] Generated Docker deployment commands');
+    },
+
+    getWindowsDockerCommands() {
+        return `# Windows PowerShell Commands
+# Step 1: Pull Qdrant Docker image
+docker pull qdrant/qdrant:latest
+
+# Step 2: Create data directory
+New-Item -ItemType Directory -Force -Path "$HOME\\qdrant_data"
+
+# Step 3: Start Qdrant container
+docker run -d \\
+  --name qdrant \\
+  -p 6333:6333 \\
+  -p 6334:6334 \\
+  -v "$HOME/qdrant_data:/qdrant/storage" \\
+  qdrant/qdrant:latest
+
+# Step 4: Verify container is running
+docker ps | Select-String "qdrant"
+
+# Step 5: Test API endpoint
+Invoke-WebRequest -Uri "http://localhost:6333/" -Method GET
+
+# Step 6 (Optional): Enable authentication
+$apiKey = "your-secure-api-key-here"
+docker stop qdrant
+docker rm qdrant
+docker run -d \\
+  --name qdrant \\
+  -p 6333:6333 \\
+  -p 6334:6334 \\
+  -v "$HOME/qdrant_data:/qdrant/storage" \\
+  -e QDRANT__SERVICE__API_KEY="$apiKey" \\
+  qdrant/qdrant:latest`;
+    },
+
+    getLinuxDockerCommands() {
+        return `# Linux Bash Commands
+# Step 1: Pull Qdrant Docker image
+docker pull qdrant/qdrant:latest
+
+# Step 2: Create data directory
+mkdir -p ~/qdrant_data
+
+# Step 3: Start Qdrant container
+docker run -d \\
+  --name qdrant \\
+  -p 6333:6333 \\
+  -p 6334:6334 \\
+  -v ~/qdrant_data:/qdrant/storage \\
+  qdrant/qdrant:latest
+
+# Step 4: Verify container is running
+docker ps | grep qdrant
+
+# Step 5: Test API endpoint
+curl http://localhost:6333/
+
+# Step 6 (Optional): Enable authentication
+API_KEY="your-secure-api-key-here"
+docker stop qdrant
+docker rm qdrant
+docker run -d \\
+  --name qdrant \\
+  -p 6333:6333 \\
+  -p 6334:6334 \\
+  -v ~/qdrant_data:/qdrant/storage \\
+  -e QDRANT__SERVICE__API_KEY="$API_KEY" \\
+  qdrant/qdrant:latest`;
+    },
+
+    async testQdrantConnection() {
+        const host = this.container.querySelector('#qdrant-host')?.value || 'localhost';
+        const port = this.container.querySelector('#qdrant-port')?.value || '6333';
+        const apiKey = this.container.querySelector('#qdrant-api-key')?.value || '';
+
+        this.state.qdrantConnection = { host, port, api_key: apiKey };
+        this.storage.set('qdrantConnection', this.state.qdrantConnection);
+
+        const statusEl = this.container.querySelector('#qdrant-connection-status');
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing connection...';
+            statusEl.style.background = 'rgba(88, 166, 255, 0.15)';
+            statusEl.style.color = '#58a6ff';
+        }
+
+        try {
+            const response = await this.api.post('/api/qdrant/connect', {
+                host,
+                port: parseInt(port),
+                api_key: apiKey
+            });
+
+            if (response.success) {
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Connected successfully! Version: ${response.version || 'Unknown'}`;
+                    statusEl.style.background = 'rgba(63, 185, 80, 0.15)';
+                    statusEl.style.color = '#3fb950';
+                }
+                this.showMessage('Qdrant connection successful', 'success');
+                await this.loadQdrantStats();
+            } else {
+                throw new Error(response.error || 'Connection failed');
+            }
+        } catch (error) {
+            if (statusEl) {
+                statusEl.innerHTML = `<i class="fas fa-times-circle"></i> Connection failed: ${error.message}`;
+                statusEl.style.background = 'rgba(248, 81, 73, 0.15)';
+                statusEl.style.color = '#f85149';
+            }
+            this.showMessage(`Connection failed: ${error.message}`, 'error');
+            this.log.error('[VECTOR DB] Qdrant connection failed:', error);
+        }
+    },
+
+    async loadQdrantStats() {
+        try {
+            const response = await this.api.get('/api/qdrant/stats');
+            if (response.success) {
+                this.state.stats.collections = response.stats.collections_count || 0;
+                this.state.stats.indexed_vectors = response.stats.total_vectors || 0;
+                this.updateStatsDisplay();
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Failed to load Qdrant stats:', error);
+        }
+    },
+
+    onMultiModalToggle(event) {
+        this.state.multiModalEnabled = event.target.checked;
+        this.storage.set('multiModalEnabled', this.state.multiModalEnabled);
+        this.log.info(`[VECTOR DB] Multi-modal embeddings: ${this.state.multiModalEnabled}`);
+    },
+
+    onQuantizationToggle(event) {
+        this.state.quantizationEnabled = event.target.checked;
+        this.storage.set('quantizationEnabled', this.state.quantizationEnabled);
+        this.log.info(`[VECTOR DB] Quantization: ${this.state.quantizationEnabled}`);
+    },
+
+    onHybridSearchToggle(event) {
+        this.state.hybridSearchEnabled = event.target.checked;
+        this.storage.set('hybridSearchEnabled', this.state.hybridSearchEnabled);
+        this.log.info(`[VECTOR DB] Hybrid search: ${this.state.hybridSearchEnabled}`);
     },
 
     // ==================== UTILITIES ====================
@@ -798,4 +1038,5 @@ export default {
     }
 };
 
-// ES6 export for ModuleLoaderV4 - Module will be dynamically imported
+// Window assignment complete - Module available as window.VectorDatabaseModule
+console.log('✅ [VECTOR DB] Module script loaded (window.VectorDatabaseModule available)');

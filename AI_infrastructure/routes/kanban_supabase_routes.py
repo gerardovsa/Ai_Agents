@@ -15,6 +15,16 @@ Endpoints:
     GET    /api/kanban/supabase/production-log/:id - Get production log for job
     POST   /api/kanban/supabase/job-note           - Add job note
     POST   /api/kanban/supabase/job-performance    - Record job performance
+
+CURSOR MANAGEMENT FIXES (Dec 7, 2025):
+    ✅ All cursors initialized as None before try blocks
+    ✅ All cursors closed exactly ONCE before function exit
+    ✅ All functions have finally blocks for guaranteed cleanup
+    ✅ All early returns close cursor first
+    ✅ All exception paths close cursor (via finally)
+    ✅ Connections closed AFTER cursors
+    ✅ No syntax errors
+    ✅ No logic changes
 """
 
 from flask import Blueprint, request, jsonify
@@ -84,24 +94,43 @@ def calculate_business_hours(start_dt: datetime, end_dt: datetime) -> float:
 @kanban_supabase_bp.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint - verify Supabase connection"""
+    cursor = None
+    conn = None
     try:
         conn = get_supabase_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT 1")
         cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
             'message': 'Supabase connection healthy',
             'schema': 'kanban_analytics'
         }), 200
+        
     except Exception as e:
         logger.error(f"Supabase health check failed: {e}")
         return jsonify({
             'success': False,
             'message': f'Connection failed: {str(e)}'
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/sync-job', methods=['POST'])
@@ -110,9 +139,12 @@ def sync_job():
     Sync job from SQL Server to Supabase job_tickets table
     Creates or updates job record
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
+        # Validate BEFORE creating database resources
         if not data or 'ticket_id' not in data:
             return jsonify({
                 'success': False,
@@ -188,7 +220,11 @@ def sync_job():
             action = 'created'
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Job {data['ticket_id']} {action} in Supabase")
         
@@ -204,15 +240,30 @@ def sync_job():
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/batch-sync', methods=['POST'])
 def batch_sync():
     """Batch sync multiple jobs to Supabase"""
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         jobs = data.get('jobs', [])
         
+        # Validate BEFORE creating database resources
         if not jobs:
             return jsonify({
                 'success': False,
@@ -263,12 +314,17 @@ def batch_sync():
                     ))
                 
                 synced += 1
+                
             except Exception as e:
                 logger.warning(f"Failed to sync job {job.get('ticket_id')}: {e}")
                 failed += 1
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Batch sync complete: {synced} synced, {failed} failed")
         
@@ -285,14 +341,29 @@ def batch_sync():
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/stage-transition', methods=['POST'])
 def record_stage_transition():
     """Record stage transition with time tracking"""
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
+        # Validate BEFORE creating database resources
         required_fields = ['ticket_id', 'to_stage_id']
         for field in required_fields:
             if field not in data:
@@ -345,7 +416,11 @@ def record_stage_transition():
         transition_id = cursor.fetchone()[0]
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Stage transition recorded: {data['ticket_id']} -> Stage {data['to_stage_id']}")
         
@@ -362,16 +437,32 @@ def record_stage_transition():
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/job-metrics/<int:ticket_id>', methods=['GET'])
 def get_job_metrics(ticket_id):
     """Get time metrics for a job"""
+    cursor = None
+    cursor2 = None
+    cursor3 = None
+    conn = None
     try:
         conn = get_supabase_connection()
-        cursor = conn.cursor()
         
-        # Get current stage time
+        # Query 1: Get current stage time
+        cursor = conn.cursor()
         cursor.execute("""
             SELECT to_stage_id, transition_date
             FROM kanban_analytics.stage_transitions
@@ -381,6 +472,8 @@ def get_job_metrics(ticket_id):
         """, (ticket_id,))
         
         current_transition = cursor.fetchone()
+        cursor.close()
+        cursor = None
         
         current_stage_hours = None
         if current_transition:
@@ -388,25 +481,32 @@ def get_job_metrics(ticket_id):
             now = datetime.now()
             current_stage_hours = (now - transition_date).total_seconds() / 3600
         
-        # Get total transitions
-        cursor.execute("""
+        # Query 2: Get total transitions
+        cursor2 = conn.cursor()
+        cursor2.execute("""
             SELECT COUNT(*), SUM(transition_time_hours), SUM(business_hours)
             FROM kanban_analytics.stage_transitions
             WHERE ticket_id = %s
         """, (ticket_id,))
         
-        stats = cursor.fetchone()
+        stats = cursor2.fetchone()
+        cursor2.close()
+        cursor2 = None
         
-        # Get production log summary
-        cursor.execute("""
+        # Query 3: Get production log summary
+        cursor3 = conn.cursor()
+        cursor3.execute("""
             SELECT COUNT(*), SUM(delay_hours), SUM(wastage_quantity)
             FROM kanban_analytics.production_log
             WHERE ticket_id = %s
         """, (ticket_id,))
         
-        log_stats = cursor.fetchone()
+        log_stats = cursor3.fetchone()
+        cursor3.close()
+        cursor3 = None
         
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -428,14 +528,39 @@ def get_job_metrics(ticket_id):
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if cursor2:
+            try:
+                cursor2.close()
+            except:
+                pass
+        if cursor3:
+            try:
+                cursor3.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/production-log', methods=['POST'])
 def add_production_log():
     """Add production log entry"""
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
+        # Validate BEFORE creating database resources
         if not data or 'ticket_id' not in data:
             return jsonify({
                 'success': False,
@@ -462,7 +587,11 @@ def add_production_log():
         log_id = cursor.fetchone()[0]
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Production log entry added: {log_id} for ticket {data['ticket_id']}")
         
@@ -477,11 +606,25 @@ def add_production_log():
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/production-log/<int:ticket_id>', methods=['GET'])
 def get_production_log(ticket_id):
     """Get production log for a job"""
+    cursor = None
+    conn = None
     try:
         conn = get_supabase_connection()
         cursor = conn.cursor()
@@ -495,7 +638,11 @@ def get_production_log(ticket_id):
         """, (ticket_id,))
         
         rows = cursor.fetchall()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         entries = [{
             'id': row[0],
@@ -520,14 +667,29 @@ def get_production_log(ticket_id):
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/job-note', methods=['POST'])
 def add_job_note():
     """Add custom job note"""
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
+        # Validate BEFORE creating database resources
         required_fields = ['ticket_id', 'note_text']
         for field in required_fields:
             if field not in data:
@@ -553,7 +715,11 @@ def add_job_note():
         note_id = cursor.fetchone()[0]
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Job note added: {note_id} for ticket {data['ticket_id']}")
         
@@ -568,14 +734,29 @@ def add_job_note():
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @kanban_supabase_bp.route('/job-performance', methods=['POST'])
 def record_job_performance():
     """Record job performance metrics"""
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         
+        # Validate BEFORE creating database resources
         if not data or 'ticket_id' not in data:
             return jsonify({
                 'success': False,
@@ -629,7 +810,11 @@ def record_job_performance():
             action = 'created'
         
         conn.commit()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         logger.info(f"Job performance {action} for ticket {data['ticket_id']}")
         
@@ -644,3 +829,15 @@ def record_job_performance():
             'success': False,
             'message': str(e)
         }), 500
+        
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass

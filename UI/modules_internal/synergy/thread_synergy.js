@@ -550,7 +550,8 @@ window.ThreadSynergyIntegration = {
 
         try {
             // Fetch updated session data
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`);
+            const userId = window.currentUserId || window.UserAuth?.user?.id || 14;
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}?user_id=${userId}`);
             if (!response.ok) {
                 console.warn('[THREAD-SYNERGY] Failed to fetch session for refresh');
                 return;

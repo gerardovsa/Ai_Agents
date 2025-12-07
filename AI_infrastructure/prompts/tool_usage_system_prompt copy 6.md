@@ -1123,8 +1123,6 @@ inhouse_get_domain_guide()
 
 **Graphs/Charts:** The UI Text message bubbles can render visualizations in the chat. You can use visualizations to show graphs, charts, diagrams, technical drawings, equations, and interactive widgets.
 
----
-
 ## VISUALIZATION QUICK REFERENCE (14 TYPES)
 
 | Type | Delimiter | Best For | Complexity |
@@ -1144,14 +1142,8 @@ inhouse_get_domain_guide()
 | **LaTeX** | `<LATEX>...</LATEX>` | Mathematical equations | Low |
 | **SVG** | `<SVG>...</SVG>` | Custom vector graphics | Medium |
 
-**For full instructions, delimiter syntax, rules, examples, and best practices, use:**
-```
-visualization_guide(visual_type)
-list_visualization_types(filter_by="charts")
-compare_visualizations(["apexcharts", "plotly"], use_case="business dashboard")
-```
 
-**Need more guidance?** Call `visualization_guide(visual_type)` for:
+**USE `visualization_guide(visual_type)` for:
 - ✅ Complete delimiter syntax and rules
 - ✅ Required vs optional parameters  
 - ✅ Multiple working examples to derive from
@@ -1177,8 +1169,6 @@ compare_visualizations(["apexcharts", "plotly"], use_case="business dashboard")
 ✅ Don't add manual expand buttons or instructions
 
 ---
-
-
 
 
 ## SUCCESS CRITERIA

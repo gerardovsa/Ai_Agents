@@ -235,42 +235,44 @@ def get_thread_assignments():
         user_id = request.args.get('user_id', 1, type=int)
         logger.info(f"📥 [Assignment] GET request for user_id: {user_id}")
         
-        # ✅ FIX: Use context manager
+        # ✅ FIX: Use context manager WITHOUT nested with
         with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                # Read from sessions.threads.location (single source of truth in Supabase)
-                # CRITICAL: Include prime-loaded (frontend needs this for page load)
-                logger.info(f"🔍 [Assignment] Executing query for user {user_id}")
-                
-                sql, params = convert_sql_placeholders("""
-                    SELECT thread_slug, location 
-                    FROM sessions.threads 
-                    WHERE user_id = %s 
-                      AND location IS NOT NULL 
-                      AND location != 'prime'
-                    ORDER BY updated_at DESC
-                """, (user_id,))
-                
-                cursor.execute(sql, params)
-                rows = cursor.fetchall()
-                logger.info(f"📊 [Assignment] Query returned {len(rows) if rows else 0} rows")
-                
-                if not rows:
-                    logger.info(f"No thread assignments found for user {user_id}")
-                    assignments = {}
-                else:
-                    # Build assignments dict: {"agent-1": "thread_slug", "prime-loaded": "thread_slug", ...}
-                    assignments = {}
-                    for row in rows:
-                        thread_slug = str(row['thread_slug'])
-                        location = row['location']
-                        
-                        # Include agent locations AND prime-loaded (needed for page load)
-                        if location and (location.startswith('agent-') or location == 'prime-loaded'):
-                            assignments[location] = thread_slug
+            cursor = conn.cursor()
+            
+            # Read from sessions.threads.location (single source of truth in Supabase)
+            # CRITICAL: Include prime-loaded (frontend needs this for page load)
+            logger.info(f"🔍 [Assignment] Executing query for user {user_id}")
+            
+            sql, params = convert_sql_placeholders("""
+                SELECT thread_slug, location 
+                FROM sessions.threads 
+                WHERE user_id = %s 
+                  AND location IS NOT NULL 
+                  AND location != 'prime'
+                ORDER BY updated_at DESC
+            """, (user_id,))
+            
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            cursor.close()  # ✅ CLOSE CURSOR BEFORE RETURNING CONNECTION
+            
+            logger.info(f"📊 [Assignment] Query returned {len(rows) if rows else 0} rows")
+            
+            if not rows:
+                logger.info(f"No thread assignments found for user {user_id}")
+                assignments = {}
+            else:
+                # Build assignments dict: {"agent-1": "thread_slug", "prime-loaded": "thread_slug", ...}
+                assignments = {}
+                for row in rows:
+                    thread_slug = str(row['thread_slug'])
+                    location = row['location']
                     
-                    logger.info(f"Loaded {len(assignments)} thread assignments from sessions.threads for user {user_id}")
-            # ✅ Cursor auto-closed
+                    # Include agent locations AND prime-loaded (needed for page load)
+                    if location and (location.startswith('agent-') or location == 'prime-loaded'):
+                        assignments[location] = thread_slug
+                
+                logger.info(f"Loaded {len(assignments)} thread assignments from sessions.threads for user {user_id}")
         # ✅ Connection auto-closed by context manager
         
         return jsonify({

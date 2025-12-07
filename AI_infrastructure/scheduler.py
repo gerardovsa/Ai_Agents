@@ -62,7 +62,7 @@ class AutomationScheduler:
         
         # Skip table creation on Supabase - tables already exist (or not needed)
         if is_using_supabase():
-            print("✅ [SCHEDULER] Using Supabase - skipping table creation")
+            print("[OK] [SCHEDULER] Using Supabase - skipping table creation")
             return
         
         conn = None

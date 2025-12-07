@@ -1,4 +1,7 @@
 """
+File: AI_infrastructure/routes/connection_routes.py
+
+C:/Users\gpoli\GIT\AI_agents\AI_infrastructure\routes\connection_routes.py
 Platform Connections Routes
 ===========================
 
@@ -194,6 +197,9 @@ def list_user_connections():
             }
             connections.append(connection)
         
+            # ✅ Close cursor before return
+            cursor.close()
+            
             return jsonify({
                 'success': True,
                 'connections': connections,
@@ -265,6 +271,9 @@ def add_platform_credential():
               json.dumps(metadata), json.dumps(credentials)))
         
         credential_id = cursor.fetchone()[0]
+        
+        # ✅ Close cursor before commit
+        cursor.close()
         conn.commit()
         
         return jsonify({
@@ -367,6 +376,9 @@ def update_platform_credential(credential_id):
         """, update_values)
         
         affected_rows = cursor.rowcount
+        
+        # ✅ Close cursor before commit
+        cursor.close()
         conn.commit()
         
         if affected_rows == 0:
@@ -453,6 +465,9 @@ def test_platform_credential(credential_id):
         # For now, just check if credential exists and is active
         platform = row[0]
         
+        # ✅ Close cursor before return
+        cursor.close()
+        
         return jsonify({
             'success': True,
             'valid': True,
@@ -538,6 +553,8 @@ def disconnect_platform(credential_id):
                 """, (user_id, credential_id))
                 affected_rows = cursor.rowcount
         
+        # ✅ Close cursor before commit
+        cursor.close()
         conn.commit()
         
         if affected_rows == 0:

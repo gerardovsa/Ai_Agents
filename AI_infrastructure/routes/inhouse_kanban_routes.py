@@ -1,9 +1,15 @@
 """
+AI_infrastructure/routes/inhouse_kanban_routes.py
 InHousePrint Kanban Board Routes
 =================================
 REST API endpoints for InHousePrint production workflow Kanban.
 
 Connects to SQL Server database for real-time job tracking.
+
+Fixed: December 7, 2025
+- All cursor management issues resolved
+- Proper resource cleanup in all functions
+- Exception-safe database operations
 
 Endpoints:
     GET    /api/inhouse-kanban/jobs           - List active jobs
@@ -50,6 +56,8 @@ def get_db_connection():
     Uses pymssql instead of pyodbc (no ODBC driver required)
     
     Implements retry logic for network issues
+    
+    FIXED: Proper exception handling, no cursor management needed here
     """
     import time
     
@@ -87,6 +95,8 @@ def calculate_ai_priority_score(job: Dict) -> int:
     - Job value: 0 to 400 points
     - Customer tier: 0 to 200 points
     - Stage urgency: 0 to 99 points
+    
+    NO DATABASE OPERATIONS - Pure calculation function
     """
     score = 500  # Base score
     
@@ -144,7 +154,7 @@ def calculate_ai_priority_score(job: Dict) -> int:
 
 
 def get_priority_label_color(score: int) -> Dict[str, str]:
-    """Convert priority score to label and color"""
+    """Convert priority score to label and color - NO DATABASE"""
     if score >= 800:
         return {'label': 'CRITICAL', 'color': 'red', 'hex': '#ef4444'}
     elif score >= 600:
@@ -158,7 +168,7 @@ def get_priority_label_color(score: int) -> Dict[str, str]:
 
 
 def get_customer_tier(order_count: int, total_value: float) -> Dict[str, str]:
-    """Determine customer tier badge"""
+    """Determine customer tier badge - NO DATABASE"""
     order_count = order_count or 0
     total_value = total_value or 0
     
@@ -173,7 +183,7 @@ def get_customer_tier(order_count: int, total_value: float) -> Dict[str, str]:
 
 
 def get_wip_status(days_in_system: int) -> Dict[str, str]:
-    """Determine WIP status"""
+    """Determine WIP status - NO DATABASE"""
     days_in_system = days_in_system or 0
     
     if days_in_system >= 14:
@@ -198,8 +208,14 @@ def get_active_jobs():
         - priority_filter: Filter by priority (all/critical/high/urgent/normal/low)
         - stage_id: Filter by specific stage
         - limit: Max results (default: 100)
+    
+    FIXED: Proper cursor/connection management with finally block
     """
+    cursor = None  # ✅ Initialize BEFORE try
+    conn = None    # ✅ Initialize BEFORE try
+    
     try:
+        # Validate BEFORE creating resources
         timeframe_months = int(request.args.get('timeframe_months', -6))
         priority_filter = request.args.get('priority_filter', 'all').lower()
         stage_id = request.args.get('stage_id')
@@ -381,6 +397,13 @@ def get_active_jobs():
         columns = [desc[0] for desc in cursor.description]
         rows = cursor.fetchall()
         
+        # ✅ Close cursor BEFORE processing results (return connection to pool)
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        # Process results AFTER closing connection
         jobs = []
         for row in rows:
             job_dict = {}
@@ -394,7 +417,7 @@ def get_active_jobs():
                     value = float(value)
                 job_dict[col] = value
             
-            # Calculate AI Priority Score
+            # Calculate AI Priority Score (pure Python, no DB)
             job_dict['AIPriorityScore'] = calculate_ai_priority_score(job_dict)
             
             # Add priority label and color
@@ -420,8 +443,6 @@ def get_active_jobs():
             
             jobs.append(job_dict)
         
-        conn.close()
-        
         # Apply priority filter if specified
         if priority_filter != 'all':
             jobs = [j for j in jobs if j['PriorityLabel'].lower() == priority_filter]
@@ -436,6 +457,18 @@ def get_active_jobs():
     except Exception as e:
         logger.error(f"Failed to get active jobs: {e}")
         return jsonify({'error': str(e)}), 500
+    
+    finally:  # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -449,7 +482,12 @@ def get_stage_summary():
     
     Query params:
         - timeframe_months: Lookback period (default: -6)
+    
+    FIXED: Proper cursor/connection management with finally block
     """
+    cursor = None  # ✅ Initialize BEFORE try
+    conn = None    # ✅ Initialize BEFORE try
+    
     try:
         timeframe_months = int(request.args.get('timeframe_months', -6))
         
@@ -477,6 +515,13 @@ def get_stage_summary():
         columns = [desc[0] for desc in cursor.description]
         rows = cursor.fetchall()
         
+        # ✅ Close cursor BEFORE processing results
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        # Process results AFTER closing connection
         stages = []
         for row in rows:
             stage_dict = {}
@@ -490,8 +535,6 @@ def get_stage_summary():
                 stage_dict[col] = value
             stages.append(stage_dict)
         
-        conn.close()
-        
         return jsonify({
             'success': True,
             'stages': stages,
@@ -501,6 +544,18 @@ def get_stage_summary():
     except Exception as e:
         logger.error(f"Failed to get stage summary: {e}")
         return jsonify({'error': str(e)}), 500
+    
+    finally:  # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -517,7 +572,12 @@ def get_dashboard_metrics():
         - Pipeline value
         - Overdue jobs count
         - Average days in system
+    
+    FIXED: Proper cursor/connection management with finally block
     """
+    cursor = None  # ✅ Initialize BEFORE try
+    conn = None    # ✅ Initialize BEFORE try
+    
     try:
         timeframe_months = int(request.args.get('timeframe_months', -6))
         
@@ -539,8 +599,14 @@ def get_dashboard_metrics():
         cursor.execute(query, [timeframe_months])
         
         row = cursor.fetchone()
-        conn.close()
         
+        # ✅ Close cursor BEFORE processing results
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        # Process result AFTER closing connection
         metrics = {
             'total_jobs': row[0] or 0,
             'pipeline_value': float(row[1] or 0),
@@ -556,6 +622,18 @@ def get_dashboard_metrics():
     except Exception as e:
         logger.error(f"Failed to get dashboard metrics: {e}")
         return jsonify({'error': str(e)}), 500
+    
+    finally:  # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -564,7 +642,14 @@ def get_dashboard_metrics():
 
 @inhouse_kanban_bp.route('/jobs/<int:ticket_id>', methods=['GET'])
 def get_job_details(ticket_id):
-    """Get detailed information for a specific job"""
+    """
+    Get detailed information for a specific job
+    
+    FIXED: Proper cursor/connection management with finally block
+    """
+    cursor = None  # ✅ Initialize BEFORE try
+    conn = None    # ✅ Initialize BEFORE try
+    
     try:
         query = """
         SELECT 
@@ -658,9 +743,17 @@ def get_job_details(ticket_id):
         columns = [desc[0] for desc in cursor.description]
         row = cursor.fetchone()
         
+        # ✅ Close cursor BEFORE checking result
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        # Check result AFTER closing connection
         if not row:
             return jsonify({'error': 'Job not found'}), 404
         
+        # Process result
         job = {}
         for idx, col in enumerate(columns):
             value = row[idx]
@@ -671,7 +764,7 @@ def get_job_details(ticket_id):
                 value = float(value)
             job[col] = value
         
-        # Add calculated fields
+        # Add calculated fields (no database operations)
         job['AIPriorityScore'] = calculate_ai_priority_score(job)
         priority_info = get_priority_label_color(job['AIPriorityScore'])
         job.update(priority_info)
@@ -710,8 +803,6 @@ def get_job_details(ticket_id):
         # Stitching boolean to text
         job['Stitching'] = 'Yes' if job.get('StitchYes') else None
         
-        conn.close()
-        
         return jsonify({
             'success': True,
             'job': job
@@ -720,6 +811,18 @@ def get_job_details(ticket_id):
     except Exception as e:
         logger.error(f"Failed to get job details: {e}")
         return jsonify({'error': str(e)}), 500
+    
+    finally:  # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================
@@ -728,13 +831,25 @@ def get_job_details(ticket_id):
 
 @inhouse_kanban_bp.route('/health', methods=['GET'])
 def health():
-    """Health check for InHousePrint Kanban routes"""
+    """
+    Health check for InHousePrint Kanban routes
+    
+    FIXED: Proper cursor/connection management with finally block
+    """
+    cursor = None  # ✅ Initialize BEFORE try
+    conn = None    # ✅ Initialize BEFORE try
+    
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT COUNT(*) FROM JobTickets WHERE InternalInvoiceComplete = 0')
         active_jobs = cursor.fetchone()[0]
+        
+        # ✅ Close cursor BEFORE return
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'status': 'healthy',
@@ -749,3 +864,15 @@ def health():
             'status': 'unhealthy',
             'error': str(e)
         }), 500
+    
+    finally:  # ✅ GUARANTEED cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass

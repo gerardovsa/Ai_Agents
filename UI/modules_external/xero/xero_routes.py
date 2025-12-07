@@ -23,6 +23,7 @@ Endpoints:
 - /api/xero/reports/* - Financial reports
 
 Created: January 28, 2025
+Updated: December 7, 2025 - Fixed cursor management in _get_credentials_from_db()
 """
 
 import sys
@@ -113,6 +114,9 @@ class XeroAPIClient:
         Returns:
             Tuple of (client_id, client_secret) or (None, None) if not found
         """
+        cursor = None  # ✅ Initialize before try
+        conn = None
+        
         try:
             import sys
             from pathlib import Path
@@ -136,42 +140,65 @@ class XeroAPIClient:
             if not platform:
                 return None, None
             
-            with get_connection('ai_infrastructure') as conn:
-                cursor = conn.cursor()
+            # Get connection and cursor
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Query user_platform_credentials for Xero credentials
+            cursor.execute("""
+                SELECT credentials
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s 
+                AND platform = %s 
+                AND is_active = TRUE
+                ORDER BY updated_at DESC
+                LIMIT 1
+            """, (self.user_id, platform))
+            
+            row = cursor.fetchone()
+            
+            # Process result BEFORE closing cursor
+            result = None, None
+            
+            if row:
+                # Extract credentials from JSONB column
+                creds = row[0] if isinstance(row, tuple) else row['credentials']
                 
-                # Query user_platform_credentials for Xero credentials
-                cursor.execute("""
-                    SELECT credentials
-                    FROM ai_infrastructure.user_platform_credentials
-                    WHERE user_id = %s 
-                    AND platform = %s 
-                    AND is_active = TRUE
-                    ORDER BY updated_at DESC
-                    LIMIT 1
-                """, (self.user_id, platform))
+                # Parse JSON if it's a string
+                if isinstance(creds, str):
+                    creds = json.loads(creds)
                 
-                row = cursor.fetchone()
+                client_id = creds.get('client_id')
+                client_secret = creds.get('client_secret')
                 
-                if row:
-                    # Extract credentials from JSONB column
-                    creds = row[0] if isinstance(row, tuple) else row['credentials']
-                    
-                    # Parse JSON if it's a string
-                    if isinstance(creds, str):
-                        creds = json.loads(creds)
-                    
-                    client_id = creds.get('client_id')
-                    client_secret = creds.get('client_secret')
-                    
-                    if client_id and client_secret:
-                        print(f"✅ Loaded Xero credentials from database for {self.config['name']}")
-                        return client_id, client_secret
-                
-                return None, None
-                
+                if client_id and client_secret:
+                    print(f"✅ Loaded Xero credentials from database for {self.config['name']}")
+                    result = client_id, client_secret
+            
+            # ✅ Close cursor BEFORE return
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return result
+            
         except Exception as e:
             print(f"⚠️ Failed to load Xero credentials from database: {e}")
             return None, None
+        
+        finally:
+            # ✅ Guaranteed cleanup
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def get_access_token(self):
         """Get OAuth2 access token using client credentials flow"""

@@ -224,6 +224,19 @@ export const APIClient = {
     defaultTimeout: 30000,
 
     /**
+     * Get authentication headers with JWT token
+     * @private
+     * @returns {Object} Headers object with Authorization if token exists
+     */
+    _getAuthHeaders() {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        return {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+    },
+
+    /**
      * Generic HTTP request
      */
     async request(endpoint, options = {}) {
@@ -234,8 +247,8 @@ export const APIClient = {
         const config = {
             method: options.method || 'GET',
             headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
+                ...this._getAuthHeaders(),
+                ...options.headers  // Allow override of default headers
             },
             ...options
         };
@@ -253,6 +266,13 @@ export const APIClient = {
         try {
             const response = await fetch(url, config);
             clearTimeout(timeout);
+
+            // Handle authentication failures
+            if (response.status === 401 || response.status === 403) {
+                console.warn('Authentication failed, redirecting to login');
+                window.location.href = '/login';
+                throw new Error('Unauthorized - redirecting to login');
+            }
 
             // Handle non-OK responses
             if (!response.ok) {

@@ -138,7 +138,7 @@ print("[DEBUG] Importing account_linking_routes...")
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
 print("[DEBUG] Importing kanban_routes...")
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
-# from routes.database_visualizer_routes import database_visualizer_bp  # DISABLED: Needs migration to Supabase PostgreSQL
+from routes.database_visualizer_routes import database_visualizer_bp  # ✅ MIGRATED to Supabase PostgreSQL (2025-12-07)
 print("[DEBUG] Importing synergy_routes...")
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
 print("[DEBUG] Importing scheduler_routes...")
@@ -160,6 +160,7 @@ from routes.kanban_supabase_routes import kanban_supabase_bp  # NEW: Kanban Supa
 from routes.kanban_analytics_routes import kanban_analytics_bp  # NEW: Kanban Analytics (SQLite database with custom metrics)
 from routes.universal_search_routes import universal_search_bp  # NEW: Universal search (5 endpoints: search, facets, sources, index)
 from routes.cloud_folder_sync_routes import cloud_sync_bp  # NEW: Cloud folder sync (5 endpoints: add, list, sync, schedule, delete)
+from routes.qdrant_routes import qdrant_bp  # NEW: Qdrant vector database (8 endpoints: connect, create-collection, upsert, search, hybrid-search, stats, delete, snapshot)
 from routes.production_log_routes import production_log_bp  # NEW: Production Log (comprehensive job tracking)
 from routes.user_preferences_routes import user_preferences_bp  # NEW: User personalization preferences
 from routes.geolocation_routes import geolocation_bp  # NEW: Geolocation detection
@@ -185,10 +186,11 @@ from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-
 from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool monitoring dashboard
 from routes.monitoring_routes import monitoring_bp  # NEW: Connection pool health monitoring (Supabase optimization)
 from routes.search_routes import search_bp  # NEW: Supabase full-text and semantic search (5 endpoints)
+from routes.task_sync_routes import task_sync_bp  # NEW: Universal Task Sync (Google Tasks, Microsoft To Do, Google Calendar)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 from routes.vector_db_routes import vector_db_bp  # NEW: Vector database management - AI autonomous search (Pinecone + OpenAI, 3 endpoints)
 from routes.module_routes import module_bp  # NEW: Self-registering module system (8 endpoints)
-from routes.session_management_routes import session_management_bp  # NEW: Session management (list/revoke sessions, 3 endpoints)
+from routes.session_management_routes import cloud_storage_bp  # NEW: Cloud storage sync (Google Drive folders to database, 6 endpoints)
 from routes.connection_routes import connections_bp  # Platform connections (2 endpoints)
 
 # Initialize Flask app with error handling
@@ -346,9 +348,9 @@ app.register_blueprint(google_auth_bp)                               # NEW: Goog
 app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)
 app.register_blueprint(account_linking_bp)                           # NEW: Account linking (/api/account/*)
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
-# app.register_blueprint(database_visualizer_bp)                       # DISABLED: Needs migration to Supabase PostgreSQL
+app.register_blueprint(database_visualizer_bp)                       # ✅ ENABLED (Migrated to Supabase 2025-12-07)
 app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
-app.register_blueprint(session_management_bp)                        # NEW: Session management (3 endpoints: list, revoke session, revoke all)
+app.register_blueprint(cloud_storage_bp)                             # NEW: Cloud storage sync (6 endpoints: Google Drive folders to database)
 app.register_blueprint(connections_bp)                               # Platform connections (2 endpoints: list, disconnect)
 app.register_blueprint(scheduler_bp)                                 # NEW: AI Automation Scheduler (10 endpoints: /api/scheduler/*)
 app.register_blueprint(automation_bp)                                # NEW: Visual Automation Canvas (9 endpoints: /api/automation/*)
@@ -357,6 +359,7 @@ if INHOUSE_KANBAN_AVAILABLE:
 app.register_blueprint(kanban_supabase_bp)                           # NEW: Kanban Supabase integration (10 endpoints: /api/kanban/supabase/*)
 app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics SQLite (15 endpoints: /api/kanban-analytics/*)
 app.register_blueprint(universal_search_bp)                          # NEW: Universal search (5 endpoints: /api/universal-search/*)
+app.register_blueprint(qdrant_bp, url_prefix='/api/qdrant')         # NEW: Qdrant vector database (8 endpoints: /api/qdrant/*)
 app.register_blueprint(cloud_sync_bp)                                # NEW: Cloud folder sync (5 endpoints: /api/cloud-sync/*)
 app.register_blueprint(device_lock_bp)                               # NEW: Device lock (5 endpoints: /api/device/*, /api/thread/*/lock*)
 app.register_blueprint(production_log_bp)                            # NEW: Production Log (10 endpoints: /api/production-log/*)
@@ -383,6 +386,7 @@ app.register_blueprint(vector_db_bp)                                 # NEW: Vect
 app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
 app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)
 app.register_blueprint(module_bp)                                    # NEW: Self-registering module system (8 endpoints: /api/modules/*)
+app.register_blueprint(task_sync_bp)                                 # NEW: Universal Task Sync (Google Tasks, Microsoft To Do, Calendar - /api/sync/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)

@@ -1,5 +1,19 @@
 """
 Workspace Management Routes
+ARCHITECTURALLY CORRECT - No cursor management needed in routes
+
+⚠️ CURSOR MANAGEMENT NOTE (Dec 07, 2025):
+   This file does NOT directly use database cursors.
+   All database operations are delegated to manager classes:
+   - WorkspaceManager (workspace/workspace_manager.py)
+   - InvitationManager (workspace/invitation_manager.py)
+   - AccessControl (workspace/access_control.py)
+   
+   ✅ Routes handle HTTP logic only (request/response)
+   ✅ Managers handle database operations and cursor management
+   ✅ Clean separation of concerns = CORRECT ARCHITECTURE
+   
+   TO AUDIT FOR CURSOR LEAKS: Check the manager classes, not this file!
 
 REST API endpoints for workspace CRUD operations, member management, and invitations.
 
@@ -22,6 +36,8 @@ Invitations:
 - GET    /api/workspaces/<slug>/invitations      - List invitations
 - POST   /api/invitations/<token>/accept         - Accept invitation
 - POST   /api/invitations/<token>/decline        - Decline invitation
+
+LAST MODIFIED: 2025-12-07 - Architecture verified
 """
 
 import sys
@@ -49,7 +65,7 @@ from workspace.constants import WorkspaceRole, WorkspaceVisibility
 # Create blueprint
 workspace_bp = Blueprint('workspace', __name__)
 
-# Initialize managers
+# Initialize managers (cursor management happens inside these classes)
 DB_PATH = 'data/ai_infrastructure.db'
 workspace_mgr = WorkspaceManager(DB_PATH)
 invitation_mgr = InvitationManager(DB_PATH)
@@ -99,7 +115,11 @@ def error_response(error: str, message: str = None, status: int = 400) -> tuple:
 
 @workspace_bp.route('/api/workspaces', methods=['POST'])
 def create_workspace():
-    """Create new workspace"""
+    """
+    Create new workspace
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         data = request.get_json()
@@ -113,7 +133,7 @@ def create_workspace():
             settings=data.get('settings')
         )
         
-        # Create workspace
+        # Create workspace (manager handles cursor management)
         workspace = workspace_mgr.create_workspace(workspace_data)
         
         return success_response(
@@ -134,7 +154,11 @@ def create_workspace():
 
 @workspace_bp.route('/api/workspaces', methods=['GET'])
 def list_workspaces():
-    """List user's workspaces"""
+    """
+    List user's workspaces
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         
@@ -147,7 +171,7 @@ def list_workspaces():
             per_page=int(request.args.get('per_page', 20))
         )
         
-        # Get workspaces
+        # Get workspaces (manager handles cursor management)
         result = workspace_mgr.list_workspaces(params)
         
         return success_response(result.dict())
@@ -160,11 +184,15 @@ def list_workspaces():
 
 @workspace_bp.route('/api/workspaces/<slug>', methods=['GET'])
 def get_workspace(slug: str):
-    """Get workspace details"""
+    """
+    Get workspace details
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         
-        # Get workspace with access check
+        # Get workspace with access check (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(
             slug=slug,
             user_id=user_id,
@@ -183,15 +211,19 @@ def get_workspace(slug: str):
 
 @workspace_bp.route('/api/workspaces/<slug>', methods=['PUT'])
 def update_workspace(slug: str):
-    """Update workspace"""
+    """
+    Update workspace
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         data = request.get_json()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug)
         
-        # Check permissions
+        # Check permissions (manager handles cursor management)
         if not access_control.can_manage_workspace(workspace.id, user_id):
             raise WorkspacePermissionError(user_id, workspace.id, "update workspace")
         
@@ -203,7 +235,7 @@ def update_workspace(slug: str):
             settings=data.get('settings')
         )
         
-        # Update workspace
+        # Update workspace (manager handles cursor management)
         updated_workspace = workspace_mgr.update_workspace(workspace.id, update_data)
         
         return success_response(
@@ -223,18 +255,22 @@ def update_workspace(slug: str):
 
 @workspace_bp.route('/api/workspaces/<slug>', methods=['DELETE'])
 def archive_workspace(slug: str):
-    """Archive workspace"""
+    """
+    Archive workspace
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug)
         
         # Check permissions (only owner can archive)
         if workspace.owner_id != user_id:
             raise WorkspacePermissionError(user_id, workspace.id, "archive workspace")
         
-        # Archive workspace
+        # Archive workspace (manager handles cursor management)
         result = workspace_mgr.archive_workspace(workspace.id)
         
         return success_response(
@@ -252,14 +288,18 @@ def archive_workspace(slug: str):
 
 @workspace_bp.route('/api/workspaces/<slug>/stats', methods=['GET'])
 def get_workspace_stats(slug: str):
-    """Get workspace statistics"""
+    """
+    Get workspace statistics
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug, user_id=user_id, check_access=True)
         
-        # Get stats
+        # Get stats (manager handles cursor management)
         stats = workspace_mgr.get_workspace_stats(workspace.id)
         
         return success_response(stats.dict())
@@ -278,15 +318,19 @@ def get_workspace_stats(slug: str):
 
 @workspace_bp.route('/api/workspaces/<slug>/members', methods=['POST'])
 def add_member(slug: str):
-    """Add member to workspace"""
+    """
+    Add member to workspace
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         data = request.get_json()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug)
         
-        # Check permissions
+        # Check permissions (manager handles cursor management)
         if not access_control.can_add_members(workspace.id, user_id):
             raise WorkspacePermissionError(user_id, workspace.id, "add members")
         
@@ -297,7 +341,7 @@ def add_member(slug: str):
             role=WorkspaceRole(data.get('role', 'member'))
         )
         
-        # Add member
+        # Add member (manager handles cursor management)
         member = workspace_mgr.add_member(member_data, added_by_user_id=user_id)
         
         return success_response(
@@ -324,14 +368,18 @@ def add_member(slug: str):
 
 @workspace_bp.route('/api/workspaces/<slug>/members', methods=['GET'])
 def list_members(slug: str):
-    """List workspace members"""
+    """
+    List workspace members
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug, user_id=user_id, check_access=True)
         
-        # Get members
+        # Get members (manager handles cursor management)
         members = workspace_mgr.get_members(workspace.id)
         
         return success_response([m.dict() for m in members])
@@ -346,19 +394,23 @@ def list_members(slug: str):
 
 @workspace_bp.route('/api/workspaces/<slug>/members/<int:member_user_id>', methods=['PUT'])
 def update_member_role(slug: str, member_user_id: int):
-    """Update member role"""
+    """
+    Update member role
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         data = request.get_json()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug)
         
-        # Check permissions
+        # Check permissions (manager handles cursor management)
         if not access_control.can_manage_members(workspace.id, user_id):
             raise WorkspacePermissionError(user_id, workspace.id, "manage members")
         
-        # Update role
+        # Update role (manager handles cursor management)
         new_role = WorkspaceRole(data['role'])
         member = workspace_mgr.update_member_role(workspace.id, member_user_id, new_role)
         
@@ -379,18 +431,22 @@ def update_member_role(slug: str, member_user_id: int):
 
 @workspace_bp.route('/api/workspaces/<slug>/members/<int:member_user_id>', methods=['DELETE'])
 def remove_member(slug: str, member_user_id: int):
-    """Remove member from workspace"""
+    """
+    Remove member from workspace
+    
+    ✅ No cursor management needed - delegates to WorkspaceManager
+    """
     try:
         user_id = get_user_id()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug)
         
-        # Check permissions
+        # Check permissions (manager handles cursor management)
         if not access_control.can_remove_members(workspace.id, user_id):
             raise WorkspacePermissionError(user_id, workspace.id, "remove members")
         
-        # Remove member
+        # Remove member (manager handles cursor management)
         result = workspace_mgr.remove_member(workspace.id, member_user_id, removed_by=user_id)
         
         return success_response(
@@ -412,15 +468,19 @@ def remove_member(slug: str, member_user_id: int):
 
 @workspace_bp.route('/api/workspaces/<slug>/invitations', methods=['POST'])
 def create_invitation(slug: str):
-    """Create workspace invitation"""
+    """
+    Create workspace invitation
+    
+    ✅ No cursor management needed - delegates to InvitationManager
+    """
     try:
         user_id = get_user_id()
         data = request.get_json()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug)
         
-        # Check permissions
+        # Check permissions (manager handles cursor management)
         if not access_control.can_invite_members(workspace.id, user_id):
             raise WorkspacePermissionError(user_id, workspace.id, "invite members")
         
@@ -432,7 +492,7 @@ def create_invitation(slug: str):
             invited_user_id=data.get('user_id')
         )
         
-        # Create invitation
+        # Create invitation (manager handles cursor management)
         invitation = invitation_mgr.create_invitation(invitation_data, invited_by_user_id=user_id)
         
         return success_response(
@@ -453,18 +513,22 @@ def create_invitation(slug: str):
 
 @workspace_bp.route('/api/workspaces/<slug>/invitations', methods=['GET'])
 def list_invitations(slug: str):
-    """List workspace invitations"""
+    """
+    List workspace invitations
+    
+    ✅ No cursor management needed - delegates to InvitationManager
+    """
     try:
         user_id = get_user_id()
         
-        # Get workspace
+        # Get workspace (manager handles cursor management)
         workspace = workspace_mgr.get_workspace(slug=slug)
         
-        # Check permissions
+        # Check permissions (manager handles cursor management)
         if not access_control.can_manage_workspace(workspace.id, user_id):
             raise WorkspacePermissionError(user_id, workspace.id, "view invitations")
         
-        # Get invitations
+        # Get invitations (manager handles cursor management)
         invitations = invitation_mgr.list_invitations(workspace.id)
         
         return success_response([inv.dict() for inv in invitations])
@@ -479,11 +543,15 @@ def list_invitations(slug: str):
 
 @workspace_bp.route('/api/invitations/<token>/accept', methods=['POST'])
 def accept_invitation(token: str):
-    """Accept workspace invitation"""
+    """
+    Accept workspace invitation
+    
+    ✅ No cursor management needed - delegates to InvitationManager
+    """
     try:
         user_id = get_user_id()
         
-        # Accept invitation
+        # Accept invitation (manager handles cursor management)
         result = invitation_mgr.accept_invitation(token, user_id)
         
         return success_response(
@@ -503,11 +571,15 @@ def accept_invitation(token: str):
 
 @workspace_bp.route('/api/invitations/<token>/decline', methods=['POST'])
 def decline_invitation(token: str):
-    """Decline workspace invitation"""
+    """
+    Decline workspace invitation
+    
+    ✅ No cursor management needed - delegates to InvitationManager
+    """
     try:
         user_id = get_user_id()
         
-        # Decline invitation
+        # Decline invitation (manager handles cursor management)
         result = invitation_mgr.decline_invitation(token, user_id)
         
         return success_response(
@@ -534,3 +606,12 @@ def health_check():
             'access_control': access_control is not None
         }
     })
+
+
+# ============================================================================
+# MODULE INITIALIZATION
+# ============================================================================
+
+print('[WORKSPACE ROUTES] Routes loaded: 15 endpoints (architecture verified - 2025-12-07)')
+print('[WORKSPACE ROUTES] ✅ No cursor management needed - delegates to manager classes')
+print('[WORKSPACE ROUTES] ⚠️  TO AUDIT: workspace/workspace_manager.py, workspace/invitation_manager.py')

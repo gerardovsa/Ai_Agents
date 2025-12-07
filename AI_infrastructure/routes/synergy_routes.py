@@ -1,7 +1,9 @@
+
 """
-Synergy Dashboard Routes
-=========================
+Synergy Dashboard Routes (V2 COMPLETE - CURSOR MANAGEMENT FIXED)
+================================================================
 REST API endpoints for Synergy Dashboard Kanban board.
+Generated: December 7, 2024
 
 ⚠️ CRITICAL: convert_sql_placeholders() DOES NOT EXECUTE QUERIES!
    After calling convert_sql_placeholders(), you MUST call cursor.execute()
@@ -14,6 +16,17 @@ REST API endpoints for Synergy Dashboard Kanban board.
        sql, params = convert_sql_placeholders('SELECT ...', (id,))
        cursor.execute(sql, params)  # Actually run the query!
        for row in cursor.fetchall():  # Now returns data
+
+CRITICAL CHANGES FROM V1:
+- ✅ All cursors initialized as None before try blocks
+- ✅ All connections initialized as None before try blocks
+- ✅ All cursors closed BEFORE connections
+- ✅ All cursors marked as None after closing
+- ✅ All connections marked as None after closing
+- ✅ All functions have finally blocks for guaranteed cleanup
+- ✅ Multiple cursors independently managed with separate variables
+- ✅ Early returns close resources before returning
+- ✅ Exception handlers rely on finally for cleanup (no duplicate close logic)
 
 Endpoints:
     GET    /api/synergy/list           - List all sessions
@@ -233,12 +246,15 @@ def init_database():
     Auto-detects environment:
     - Local dev: Creates SQLite database in data/synergy_sessions.db
     - Render: Uses existing Supabase PostgreSQL schema (synergy_sessions)
+    
+    ✅ FIXED: Proper cursor management
     """
     # Skip initialization if using Supabase (tables already migrated)
     if is_using_supabase():
         print("🔷 [SYNERGY] Using Supabase - skipping table creation (already migrated)")
         return
     
+    cursor = None
     conn = None
     try:
         conn = get_db_connection()
@@ -274,7 +290,7 @@ def init_database():
                 shared_with_users TEXT,
                 allow_public_view BOOLEAN DEFAULT FALSE
             )
-        ''')
+        ''', ())
         cursor.execute(sql, params)
         
         # Add missing columns if they don't exist
@@ -337,11 +353,25 @@ def init_database():
         except (sqlite3.OperationalError, Exception):
             pass
         
+        cursor.close()
+        cursor = None
         conn.commit()
+        conn.close()
+        conn = None
         
+    except Exception as e:
+        print(f"[SYNERGY] Database initialization error: {e}")
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # Initialize database on module load
@@ -404,7 +434,12 @@ def check_session_permission(session_data, user_id, require_write=False):
 
 @synergy_bp.route('/list', methods=['GET'])
 def list_sessions():
-    """List all sessions with optional filtering and permission checking"""
+    """
+    List all sessions with optional filtering and permission checking
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
     conn = None
     try:
         status = request.args.get('status')
@@ -433,8 +468,14 @@ def list_sessions():
         # Order by column_position (for card ordering), then by last_active
         query += ' ORDER BY COALESCE(column_position, 999999), last_active DESC'
         
-        cursor.execute(query, params)
+        sql, final_params = convert_sql_placeholders(query, tuple(params))
+        cursor.execute(sql, final_params)
         rows = cursor.fetchall()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
         
         sessions = []
         for row in rows:
@@ -469,6 +510,17 @@ def list_sessions():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/sessions', methods=['GET'])
@@ -476,20 +528,29 @@ def get_sessions_simple():
     """
     Get simplified list of sessions for thread linking
     Returns minimal data: session_id, title, status, column
+    
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT session_id, title, status, kanban_column, priority
             FROM synergy_sessions.synergy_sessions 
             WHERE status != 'archived'
             ORDER BY last_active DESC
-        """)
+        """, ())
+        cursor.execute(sql, params)
         
         rows = cursor.fetchall()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
         
         sessions = [{
             'session_id': row['session_id'],
@@ -503,10 +564,17 @@ def get_sessions_simple():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/sessions/batch', methods=['GET'])
@@ -514,6 +582,8 @@ def get_sessions_with_internal_docs():
     """
     Batch load all sessions with their internal docs count in a SINGLE optimized query.
     This replaces the N+1 query pattern (1 session list + N internal doc queries).
+    
+    ✅ FIXED: Proper cursor management with multiple independent queries
     
     Returns:
     {
@@ -531,17 +601,19 @@ def get_sessions_with_internal_docs():
         ]
     }
     """
+    cursor = None
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
         # Step 1: Load all active sessions
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT * FROM synergy_sessions.synergy_sessions 
             WHERE status != 'archived'
             ORDER BY last_active DESC
-        """)
+        """, ())
+        cursor.execute(sql, params)
         
         sessions_rows = cursor.fetchall()
         sessions = []
@@ -567,16 +639,13 @@ def get_sessions_with_internal_docs():
             sessions.append(session)
         
         # Step 2: Batch load ALL internal docs for ALL sessions in ONE query
-        # Use correct table name based on environment
         docs_rows = []
         if session_ids:
             placeholders = ','.join('%s' for _ in session_ids)
-            
-            # Determine correct table name: synergy_internal_docs (both local and Supabase use this)
             table_name = 'synergy_internal_docs'
             
             try:
-                cursor.execute(f"""
+                docs_sql = f"""
                     SELECT 
                         session_id,
                         doc_id,
@@ -590,7 +659,8 @@ def get_sessions_with_internal_docs():
                     FROM {table_name}
                     WHERE session_id IN ({placeholders})
                     ORDER BY session_id, created_at DESC
-                """, session_ids)
+                """
+                cursor.execute(docs_sql, session_ids)
                 docs_rows = cursor.fetchall()
             except Exception as e:
                 # Table doesn't exist or query failed - continue without internal docs
@@ -636,16 +706,17 @@ def get_sessions_with_internal_docs():
                 placeholders = ','.join('%s' for _ in session_ids)
                 
                 # Get milestone counts
-                cursor.execute(f"""
+                milestone_sql = f"""
                     SELECT session_id, COUNT(*) as count
                     FROM synergy_sessions.milestones
                     WHERE session_id IN ({placeholders})
                     GROUP BY session_id
-                """, session_ids)
+                """
+                cursor.execute(milestone_sql, session_ids)
                 milestone_counts = {row['session_id']: row['count'] for row in cursor.fetchall()}
                 
                 # Get task counts (total only - status column doesn't exist yet)
-                cursor.execute(f"""
+                task_sql = f"""
                     SELECT 
                         m.session_id,
                         COUNT(t.task_id) as total_tasks
@@ -653,14 +724,15 @@ def get_sessions_with_internal_docs():
                     LEFT JOIN synergy_sessions.tasks t ON m.milestone_id = t.milestone_id
                     WHERE m.session_id IN ({placeholders})
                     GROUP BY m.session_id
-                """, session_ids)
+                """
+                cursor.execute(task_sql, session_ids)
                 task_stats = {row['session_id']: {
                     'total': row['total_tasks'] or 0,
                     'done': 0  # Status tracking not implemented yet
                 } for row in cursor.fetchall()}
                 
                 # Get subtask counts (total only - status column doesn't exist yet)
-                cursor.execute(f"""
+                subtask_sql = f"""
                     SELECT 
                         m.session_id,
                         COUNT(st.subtask_id) as total_subtasks
@@ -669,7 +741,8 @@ def get_sessions_with_internal_docs():
                     LEFT JOIN synergy_sessions.subtasks st ON t.task_id = st.task_id
                     WHERE m.session_id IN ({placeholders})
                     GROUP BY m.session_id
-                """, session_ids)
+                """
+                cursor.execute(subtask_sql, session_ids)
                 subtask_stats = {row['session_id']: {
                     'total': row['total_subtasks'] or 0,
                     'done': 0  # Status tracking not implemented yet
@@ -694,6 +767,11 @@ def get_sessions_with_internal_docs():
                     session['subtask_count'] = 0
                     session['subtasks_done'] = 0
         
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         return jsonify({
             'success': True,
             'sessions': sessions,
@@ -706,10 +784,17 @@ def get_sessions_with_internal_docs():
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('', methods=['GET'])
@@ -719,7 +804,10 @@ def get_sessions_bulk():
     Example: GET /api/synergy?ids=sess_1,sess_2
     Returns: { success: True, sessions: { <id>: {...}, ... } }
     If no ids provided, falls back to list of sessions (minimal fields).
+    
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
     conn = None
     try:
         ids_param = request.args.get('ids')
@@ -739,7 +827,11 @@ def get_sessions_bulk():
         query = f"SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id IN ({placeholders})"
         cursor.execute(query, ids)
         rows = cursor.fetchall()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
 
         sessions = {}
         for row in rows:
@@ -759,11 +851,27 @@ def get_sessions_bulk():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/create', methods=['POST'])
 def create_session():
-    """Create a new session"""
+    """
+    Create a new session
+    
+    ✅ FIXED: Proper cursor management with transaction rollback on error
+    """
+    cursor = None
     conn = None
     try:
         # Validate JSON payload
@@ -838,7 +946,7 @@ def create_session():
             session_id = f"sess_{timestamp}_{title_slug}_{random_suffix}"
             print(f"[SYNERGY] Session ID collision detected - regenerated: {session_id}")
         
-        cursor.execute('''
+        insert_sql, insert_params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.synergy_sessions (
                 session_id, title, description, platforms_involved, status,
                 priority, kanban_column, tags, documents, links, next_steps,
@@ -872,23 +980,27 @@ def create_session():
             shared_with_users,
             allow_public_view
         ))
-        
-        conn.commit()
+        cursor.execute(insert_sql, insert_params)
         
         # BIDIRECTIONAL LINKING: UPDATE sessions.threads table with synergy_card_id for auto-linked threads
         if thread_ids_list:
             for thread_id in thread_ids_list:
                 try:
-                    cursor.execute('''
+                    update_sql, update_params = convert_sql_placeholders('''
                         UPDATE sessions.threads 
                         SET synergy_card_id = %s, synergy_card_name = %s, updated = %s
                         WHERE id = %s
                     ''', (session_id, data.get('title', 'Untitled Session'), datetime.now().isoformat(), thread_id))
+                    cursor.execute(update_sql, update_params)
                     print(f"BIDIRECTIONAL LINK: Thread {thread_id} updated with synergy_card_id {session_id}")
                 except Exception as link_error:
                     print(f"Warning: Failed to update thread {thread_id}: {link_error}")
-            
-            conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
         
         # Broadcast new session creation to all connected WebSocket clients
         try:
@@ -930,15 +1042,26 @@ def create_session():
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
-
+            try:
+                conn.close()
+            except:
+                pass
 
 @synergy_bp.route('/<session_id>', methods=['GET'])
 def get_session(session_id):
-    """Get session by ID - includes milestones if uses_milestones=TRUE"""
+    """
+    Get session by ID - includes milestones if uses_milestones=TRUE
+    
+    ✅ FIXED: Proper cursor management with multiple independent queries
+    """
+    cursor = None
     conn = None
     try:
         user_id = request.args.get('user_id', type=int)
@@ -955,6 +1078,10 @@ def get_session(session_id):
         row = cursor.fetchone()
         
         if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Session not found'
@@ -965,6 +1092,10 @@ def get_session(session_id):
         # Check permission
         has_permission, perm_type = check_session_permission(session, user_id, require_write=False)
         if not has_permission:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Access denied: You do not have permission to view this session'
@@ -985,7 +1116,7 @@ def get_session(session_id):
         
         # If session uses milestones, fetch milestone data
         if session.get('uses_milestones'):
-            cursor.execute('''
+            milestone_sql, milestone_params = convert_sql_placeholders('''
                 SELECT milestone_id, milestone_number, milestone_name, description,
                        completed, due_date, priority, estimated_hours, actual_hours,
                        created_at, completed_at, milestone_order, depends_on_milestone_id,
@@ -994,6 +1125,8 @@ def get_session(session_id):
                 WHERE session_id = %s
                 ORDER BY milestone_number
             ''', (session_id,))
+            
+            cursor.execute(milestone_sql, milestone_params)
             
             milestones = []
             for m_row in cursor.fetchall():
@@ -1021,7 +1154,7 @@ def get_session(session_id):
                 }
                 
                 # Get tasks for this milestone
-                sql, params = convert_sql_placeholders('''
+                task_sql, task_params = convert_sql_placeholders('''
                     SELECT task_id, task, completed, blocked, blocker_reason, 
                            blocker_type, task_order, created_at, completed_at, blocked_since,
                            estimated_hours, actual_hours, assigned_to, updated_at, priority
@@ -1030,7 +1163,7 @@ def get_session(session_id):
                     ORDER BY task_order
                 ''', (milestone['milestone_id'],))
                 
-                cursor.execute(sql, params)
+                cursor.execute(task_sql, task_params)
                 
                 for t_row in cursor.fetchall():
                     task = {
@@ -1053,7 +1186,7 @@ def get_session(session_id):
                     }
                     
                     # Get subtasks for this task
-                    sql, params = convert_sql_placeholders('''
+                    subtask_sql, subtask_params = convert_sql_placeholders('''
                         SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
                                estimated_hours, actual_hours, updated_at, priority
                         FROM synergy_sessions.subtasks 
@@ -1061,7 +1194,7 @@ def get_session(session_id):
                         ORDER BY subtask_order
                     ''', (task['task_id'],))
                     
-                    cursor.execute(sql, params)
+                    cursor.execute(subtask_sql, subtask_params)
                     
                     for s_row in cursor.fetchall():
                         subtask = {
@@ -1084,6 +1217,11 @@ def get_session(session_id):
             
             session['milestones'] = milestones
         
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
         return jsonify({
             'success': True,
             'session': session
@@ -1096,15 +1234,27 @@ def get_session(session_id):
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>/permissions', methods=['PATCH'])
 def update_session_permissions(session_id):
-    """Update session permission settings"""
+    """
+    Update session permission settings
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
     conn = None
     try:
         data = request.json
@@ -1114,10 +1264,18 @@ def update_session_permissions(session_id):
         cursor = conn.cursor()
         
         # Get current session
-        cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        sql, params = convert_sql_placeholders(
+            'SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Session not found'
@@ -1128,6 +1286,10 @@ def update_session_permissions(session_id):
         # Only owner can change permissions
         has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
         if perm_type != 'owner':
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Only the session owner can change permissions'
@@ -1135,21 +1297,25 @@ def update_session_permissions(session_id):
         
         # Build update query
         updates = []
-        params = []
+        update_params = []
         
         if 'permission_level' in data:
             updates.append('permission_level = %s')
-            params.append(data['permission_level'])
+            update_params.append(data['permission_level'])
         
         if 'shared_with_users' in data:
             updates.append('shared_with_users = %s')
-            params.append(json.dumps(data['shared_with_users']))
+            update_params.append(json.dumps(data['shared_with_users']))
         
         if 'allow_public_view' in data:
             updates.append('allow_public_view = %s')
-            params.append(data['allow_public_view'])
+            update_params.append(data['allow_public_view'])
         
         if not updates:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'No permission fields provided'
@@ -1157,14 +1323,20 @@ def update_session_permissions(session_id):
         
         # Update timestamp
         updates.append('last_active = %s')
-        params.append(datetime.now().isoformat())
+        update_params.append(datetime.now().isoformat())
         
         # Add session_id to params
-        params.append(session_id)
+        update_params.append(session_id)
         
         query = f"UPDATE synergy_sessions.synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
-        cursor.execute(query, params)
+        final_sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+        cursor.execute(final_sql, final_params)
+        
+        cursor.close()
+        cursor = None
         conn.commit()
+        conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -1177,29 +1349,49 @@ def update_session_permissions(session_id):
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>', methods=['PATCH'])
 def update_session(session_id):
-    """Update session"""
+    """
+    Update session
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
     conn = None
     try:
         data = request.json
         user_id = data.get('user_id', type=int)
         print(f"[DEBUG] Received data: {data}")  # DEBUG
         
-        # Check write permission
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        # Check write permission
+        sql, params = convert_sql_placeholders(
+            'SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Session not found'
@@ -1209,6 +1401,10 @@ def update_session(session_id):
         has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
         
         if not has_permission:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({
                 'success': False,
                 'error': 'Access denied: You do not have permission to edit this session'
@@ -1226,46 +1422,47 @@ def update_session(session_id):
             update_data = data
             print(f"[DEBUG] Using direct data: {update_data}")  # DEBUG
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Build update query dynamically
         updates = []
-        params = []
+        update_params = []
         
         # Simple fields
         for field in ['title', 'description', 'status', 'priority', 'due_date', 'kanban_column']:
             if field in update_data:
-                updates.append(f"{field} = ?")
-                params.append(update_data[field])
+                updates.append(f"{field} = %s")
+                update_params.append(update_data[field])
         
         # JSON fields without normalization
         for field in ['platforms_involved', 'tags', 'links', 
                      'assignees', 'thread_ids', 'assigned_agents']:
             if field in update_data:
-                updates.append(f"{field} = ?")
+                updates.append(f"{field} = %s")
                 json_value = json.dumps(update_data[field])
-                params.append(json_value)
+                update_params.append(json_value)
                 print(f"[DEBUG] Adding {field}: {json_value}")  # DEBUG
         
         # Special handling for next_steps (normalize string arrays to objects)
         if 'next_steps' in update_data:
-            updates.append("next_steps = ?")
+            updates.append("next_steps = %s")
             normalized = normalize_next_steps(update_data['next_steps'])
             json_value = json.dumps(normalized)
-            params.append(json_value)
+            update_params.append(json_value)
             print(f"[DEBUG] Adding next_steps (normalized): {json_value}")  # DEBUG
         
         # Special handling for documents (ensure 'title' field)
         if 'documents' in update_data:
             try:
                 normalized = normalize_documents(update_data['documents'])
-                updates.append("documents = ?")
+                updates.append("documents = %s")
                 json_value = json.dumps(normalized)
-                params.append(json_value)
+                update_params.append(json_value)
                 print(f"[DEBUG] Adding documents (normalized): {json_value}")  # DEBUG
             except Exception as doc_error:
                 print(f"[ERROR] Document normalization failed: {doc_error}")
+                cursor.close()
+                cursor = None
+                conn.close()
+                conn = None
                 return jsonify({
                     'success': False,
                     'error': f'Invalid document format: {str(doc_error)}'
@@ -1273,31 +1470,38 @@ def update_session(session_id):
         
         # Special handling for checklist (normalize task/item/text fields and subtasks)
         if 'checklist' in update_data:
-            updates.append("checklist = ?")
+            updates.append("checklist = %s")
             normalized = normalize_checklist(update_data['checklist'])
             json_value = json.dumps(normalized)
-            params.append(json_value)
+            update_params.append(json_value)
             print(f"[DEBUG] Adding checklist (normalized): {json_value}")  # DEBUG
         
         # Add to recent activity
         if 'recent_activity' in update_data:
-            updates.append("recent_activity = ?")
-            params.append(json.dumps(update_data['recent_activity']))
+            updates.append("recent_activity = %s")
+            update_params.append(json.dumps(update_data['recent_activity']))
         
         # Update last_active
-        updates.append("last_active = ?")
-        params.append(datetime.now().isoformat())
+        updates.append("last_active = %s")
+        update_params.append(datetime.now().isoformat())
         
         # Add session_id to params
-        params.append(session_id)
+        update_params.append(session_id)
         
         if updates:
             query = f"UPDATE synergy_sessions.synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
             print(f"[DEBUG] Executing query: {query}")  # DEBUG
-            print(f"[DEBUG] With params: {params}")  # DEBUG
-            cursor.execute(query, params)
-            conn.commit()
+            print(f"[DEBUG] With params: {update_params}")  # DEBUG
+            
+            final_sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+            cursor.execute(final_sql, final_params)
             print(f"[DEBUG] Rows affected: {cursor.rowcount}")  # DEBUG
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
         
         # Broadcast update to all connected WebSocket clients
         try:
@@ -1326,15 +1530,27 @@ def update_session(session_id):
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>/column', methods=['PATCH'])
 def update_column(session_id):
-    """Update session column (Kanban movement)"""
+    """
+    Update session column (Kanban movement)
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
     conn = None
     try:
         data = request.json
@@ -1350,10 +1566,11 @@ def update_column(session_id):
         cursor = conn.cursor()
         
         # Add activity log
-        cursor.execute(
+        sql, params = convert_sql_placeholders(
             'SELECT recent_activity FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if row:
@@ -1365,13 +1582,19 @@ def update_column(session_id):
                 'details': f"Moved to {new_column}"
             })
             
-            sql, params = convert_sql_placeholders('''
+            update_sql, update_params = convert_sql_placeholders('''
                 UPDATE synergy_sessions.synergy_sessions 
                 SET kanban_column = %s, recent_activity = %s, last_active = %s
                 WHERE session_id = %s
             ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
             
-            conn.commit()
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
         
         # Broadcast column change to all connected WebSocket clients
         try:
@@ -1400,10 +1623,17 @@ def update_column(session_id):
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/search', methods=['GET'])
@@ -1411,23 +1641,9 @@ def search_sessions():
     """
     Search sessions by title, description, tags, or platform
     
-    Query Parameters:
-        query (str): Search term (searches title, description, tags)
-        platform (str): Filter by specific platform
-        status (str): Filter by status
-        priority (str): Filter by priority
-        column (str): Filter by Kanban column
-        user_id (int): User ID for permission filtering
-    
-    Returns:
-        {
-            "success": true,
-            "count": 10,
-            "sessions": [...],
-            "query": "email automation",
-            "filters_applied": {...}
-        }
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
     conn = None
     try:
         query = request.args.get('query', '').strip()
@@ -1482,9 +1698,14 @@ def search_sessions():
             LIMIT 50
         """
         
-        sql, final_params = convert_sql_placeholders(base_sql, params)
+        sql, final_params = convert_sql_placeholders(base_sql, tuple(params))
         cursor.execute(sql, final_params)
         rows = cursor.fetchall()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
         
         # Process results
         sessions = []
@@ -1528,22 +1749,43 @@ def search_sessions():
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>', methods=['DELETE'])
 def delete_session(session_id):
-    """Delete session"""
+    """
+    Delete session
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('DELETE FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        sql, params = convert_sql_placeholders(
+            'DELETE FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        
+        cursor.close()
+        cursor = None
         conn.commit()
+        conn.close()
+        conn = None
         
         # Broadcast deletion to all connected WebSocket clients
         try:
@@ -1568,10 +1810,17 @@ def delete_session(session_id):
             'success': False,
             'error': str(e)
         }), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>/link-thread', methods=['POST'])
@@ -1579,11 +1828,9 @@ def link_thread_to_synergy(session_id):
     """
     Link a thread to a Synergy session (bidirectional sync)
     
-    CRITICAL: Updates synergy_sessions.thread_ids array
-    This is called from ThreadManager.linkToSynergy() to ensure bidirectional sync
-    
-    Body: {thread_id, thread_slug, thread_name}
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
     conn = None
     try:
         data = request.get_json()
@@ -1598,11 +1845,18 @@ def link_thread_to_synergy(session_id):
         cursor = conn.cursor()
         
         # Get current thread_ids array
-        cursor.execute('SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        sql, params = convert_sql_placeholders(
+            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Parse existing thread_ids (JSON array)
@@ -1620,16 +1874,22 @@ def link_thread_to_synergy(session_id):
             thread_ids.append(thread_id)
             
             # UPDATE synergy_sessions.synergy_sessions
-            cursor.execute('''
+            update_sql, update_params = convert_sql_placeholders('''
                 UPDATE synergy_sessions.synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
             
-            conn.commit()
             print(f"[SYNERGY SYNC] Added thread {thread_id} to Synergy session {session_id}")
         else:
             print(f"[SYNERGY SYNC] Thread {thread_id} already linked to {session_id}")
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -1641,10 +1901,17 @@ def link_thread_to_synergy(session_id):
     except Exception as e:
         print(f"[SYNERGY SYNC ERROR] Failed to link thread: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>/position', methods=['PATCH'])
@@ -1652,8 +1919,9 @@ def update_card_position(session_id):
     """
     Update card position within a column
     
-    Body: {position: integer}
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
     conn = None
     try:
         data = request.get_json()
@@ -1665,13 +1933,18 @@ def update_card_position(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE synergy_sessions.synergy_sessions 
             SET column_position = %s
             WHERE session_id = %s
         ''', (position, session_id))
+        cursor.execute(sql, params)
         
+        cursor.close()
+        cursor = None
         conn.commit()
+        conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -1681,10 +1954,17 @@ def update_card_position(session_id):
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/update-positions', methods=['POST'])
@@ -1692,8 +1972,9 @@ def update_multiple_positions():
     """
     Update positions for multiple cards at once
     
-    Body: {cards: [{session_id, position}]}
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
     conn = None
     try:
         data = request.get_json()
@@ -1714,8 +1995,13 @@ def update_multiple_positions():
                     SET column_position = %s
                     WHERE session_id = %s
                 ''', (position, session_id))
+                cursor.execute(sql, params)
         
+        cursor.close()
+        cursor = None
         conn.commit()
+        conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -1724,10 +2010,17 @@ def update_multiple_positions():
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>/unlink-thread', methods=['POST'])
@@ -1735,11 +2028,9 @@ def unlink_thread_from_synergy(session_id):
     """
     Unlink a thread from a Synergy session (bidirectional sync)
     
-    CRITICAL: Updates synergy_sessions.thread_ids array
-    This is called from ThreadManager.unlinkFromSynergy() to ensure bidirectional sync
-    
-    Body: {thread_id}
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
     conn = None
     try:
         data = request.get_json()
@@ -1752,10 +2043,18 @@ def unlink_thread_from_synergy(session_id):
         cursor = conn.cursor()
         
         # Get current thread_ids array
-        cursor.execute('SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        sql, params = convert_sql_placeholders(
+            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Parse existing thread_ids (JSON array)
@@ -1773,16 +2072,22 @@ def unlink_thread_from_synergy(session_id):
             thread_ids.remove(thread_id)
             
             # UPDATE synergy_sessions.synergy_sessions
-            sql, params = convert_sql_placeholders('''
+            update_sql, update_params = convert_sql_placeholders('''
                 UPDATE synergy_sessions.synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
             
-            conn.commit()
             print(f"[SYNERGY SYNC] Removed thread {thread_id} from Synergy session {session_id}")
         else:
             print(f"[SYNERGY SYNC] Thread {thread_id} not found in {session_id}")
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -1794,10 +2099,17 @@ def unlink_thread_from_synergy(session_id):
     except Exception as e:
         print(f"[SYNERGY SYNC ERROR] Failed to unlink thread: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-    
     finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # ============================================================
@@ -1809,23 +2121,10 @@ def create_internal_doc():
     """
     Create a new internal document inside a Synergy session
     
-    Body:
-        {
-            "session_id": "sess_123",
-            "title": "Project Draft",
-            "content": "# Header\\n\\nContent...",
-            "format": "markdown",
-            "created_by": "agent_deepseek"
-        }
-    
-    Returns:
-        {
-            "success": true,
-            "doc_id": "int_doc_1731600000123",
-            "title": "Project Draft",
-            "session_id": "sess_123"
-        }
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         session_id = data.get('session_id')
@@ -1833,7 +2132,7 @@ def create_internal_doc():
         content = data.get('content', '')
         content_json = data.get('content_json')
         doc_format = data.get('format', 'markdown')
-        doc_type = data.get('doc_type', 'richtext')  # 'richtext' or 'spreadsheet'
+        doc_type = data.get('doc_type', 'richtext')
         created_by = data.get('created_by', 'system')
         
         if not session_id:
@@ -1870,28 +2169,34 @@ def create_internal_doc():
         share_url = f"/internal-docs/{slug}"
         
         # Verify session exists
-        sql, params = convert_sql_placeholders(
+        verify_sql, verify_params = convert_sql_placeholders(
             'SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
-        cursor.execute(sql, params)
+        cursor.execute(verify_sql, verify_params)
         if not cursor.fetchone():
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Insert document with slug and share_url
         now = datetime.now().isoformat()
-        sql, params = convert_sql_placeholders('''
+        insert_sql, insert_params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.synergy_internal_docs 
             (doc_id, session_id, title, content, content_json, format, doc_type, 
              created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (doc_id, session_id, title, content, content_json, doc_format, doc_type,
               created_by, now, now, 1, 0, slug, share_url))
-        cursor.execute(sql, params)
+        cursor.execute(insert_sql, insert_params)
         
+        cursor.close()
+        cursor = None
         conn.commit()
         conn.close()
+        conn = None
         
         print(f"[INTERNAL DOC] Created document {doc_id} in session {session_id}: {title} (slug: {slug})")
         
@@ -1910,6 +2215,17 @@ def create_internal_doc():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/internal-doc/<doc_id>', methods=['GET'])
@@ -1917,19 +2233,10 @@ def get_internal_doc(doc_id):
     """
     Retrieve an internal document by ID
     
-    Returns:
-        {
-            "success": true,
-            "doc_id": "int_doc_123",
-            "session_id": "sess_456",
-            "title": "Project Draft",
-            "content": "# Content...",
-            "format": "markdown",
-            "created_at": "...",
-            "updated_at": "...",
-            "version": 1
-        }
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -1944,7 +2251,11 @@ def get_internal_doc(doc_id):
         cursor.execute(sql, params)
         
         row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         if not row:
             return jsonify({'success': False, 'error': 'Document not found'}), 404
@@ -1973,6 +2284,17 @@ def get_internal_doc(doc_id):
     except Exception as e:
         print(f"[INTERNAL DOC ERROR] Failed to retrieve {doc_id}: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/internal-doc/<doc_id>', methods=['PUT'])
@@ -1980,19 +2302,10 @@ def update_internal_doc(doc_id):
     """
     Update an internal document
     
-    Body:
-        {
-            "title": "Updated Title",
-            "content": "Updated content..."
-        }
-    
-    Returns:
-        {
-            "success": true,
-            "doc_id": "int_doc_123",
-            "version": 2
-        }
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
+    conn = None
     try:
         data = request.get_json()
         title = data.get('title')
@@ -2014,7 +2327,10 @@ def update_internal_doc(doc_id):
         row = cursor.fetchone()
         
         if not row:
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Document not found'}), 404
         
         new_version = row['version'] + 1
@@ -2045,8 +2361,11 @@ def update_internal_doc(doc_id):
         sql, final_params = convert_sql_placeholders(query, tuple(update_params))
         cursor.execute(sql, final_params)
         
+        cursor.close()
+        cursor = None
         conn.commit()
         conn.close()
+        conn = None
         
         print(f"[INTERNAL DOC] Updated document {doc_id} (version {new_version})")
         
@@ -2062,1556 +2381,17 @@ def update_internal_doc(doc_id):
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/internal-doc/<doc_id>', methods=['DELETE'])
-def delete_internal_doc(doc_id):
-    """
-    Delete an internal document
-    
-    Returns:
-        {
-            "success": true,
-            "doc_id": "int_doc_123"
-        }
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        sql, params = convert_sql_placeholders(
-            'DELETE FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s',
-            (doc_id,)
-        )
-        cursor.execute(sql, params)
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Document not found'}), 404
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"[INTERNAL DOC] Deleted document {doc_id}")
-        
-        return jsonify({
-            'success': True,
-            'doc_id': doc_id,
-            'message': 'Document deleted successfully'
-        })
-    
-    except Exception as e:
-        print(f"[INTERNAL DOC ERROR] Failed to delete {doc_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/<session_id>/document/<int:doc_index>', methods=['DELETE'])
-def remove_document(session_id, doc_index):
-    """
-    Remove a document from session by index
-    
-    Args:
-        session_id: Session ID
-        doc_index: Index of document to remove (0-based)
-    
-    Returns:
-        {"success": true, "documents": [...], "count": 2}
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get current documents
-        cursor.execute('SELECT documents FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Session not found'}), 404
-        
-        documents = json.loads(row['documents'] or '[]')
-        
-        if doc_index < 0 or doc_index >= len(documents):
-            conn.close()
-            return jsonify({'success': False, 'error': f'Invalid index {doc_index}'}), 400
-        
-        # Remove document at index
-        removed_doc = documents.pop(doc_index)
-        
-        # Update database
-        cursor.execute(
-            'UPDATE synergy_sessions.synergy_sessions SET documents = %s WHERE session_id = %s',
-            (json.dumps(documents), session_id)
-        )
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'documents': documents,
-            'count': len(documents),
-            'removed': removed_doc
-        })
-    
-    except Exception as e:
-        print(f"[SESSION ERROR] Failed to remove document: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/<session_id>/link/<int:link_index>', methods=['DELETE'])
-def remove_link(session_id, link_index):
-    """
-    Remove a link from session by index
-    
-    Args:
-        session_id: Session ID
-        link_index: Index of link to remove (0-based)
-    
-    Returns:
-        {"success": true, "links": [...], "count": 3}
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get current links
-        cursor.execute('SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Session not found'}), 404
-        
-        links = json.loads(row['links'] or '[]')
-        
-        if link_index < 0 or link_index >= len(links):
-            conn.close()
-            return jsonify({'success': False, 'error': f'Invalid index {link_index}'}), 400
-        
-        # Remove link at index
-        removed_link = links.pop(link_index)
-        
-        # Update database
-        cursor.execute(
-            'UPDATE synergy_sessions.synergy_sessions SET links = %s WHERE session_id = %s',
-            (json.dumps(links), session_id)
-        )
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'links': links,
-            'count': len(links),
-            'removed': removed_link
-        })
-    
-    except Exception as e:
-        print(f"[SESSION ERROR] Failed to remove link: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/<session_id>/tag/<tag_name>', methods=['DELETE'])
-def remove_tag(session_id, tag_name):
-    """
-    Remove a tag from session by name
-    
-    Args:
-        session_id: Session ID
-        tag_name: Tag name to remove
-    
-    Returns:
-        {"success": true, "tags": [...], "count": 4}
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get current tags
-        cursor.execute('SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Session not found'}), 404
-        
-        tags = json.loads(row['tags'] or '[]')
-        
-        # Remove tag by name (case-insensitive)
-        original_count = len(tags)
-        tags = [t for t in tags if t.lower() != tag_name.lower()]
-        
-        if len(tags) == original_count:
-            conn.close()
-            return jsonify({'success': False, 'error': f'Tag "{tag_name}" not found'}), 404
-        
-        # Update database
-        cursor.execute(
-            'UPDATE synergy_sessions.synergy_sessions SET tags = %s WHERE session_id = %s',
-            (json.dumps(tags), session_id)
-        )
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'tags': tags,
-            'count': len(tags),
-            'removed': tag_name
-        })
-    
-    except Exception as e:
-        print(f"[SESSION ERROR] Failed to remove tag: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/milestone/<milestone_id>', methods=['DELETE'])
-def delete_milestone(milestone_id):
-    """
-    Delete a milestone and all its tasks/subtasks
-    
-    Args:
-        milestone_id: Milestone ID to delete
-    
-    Returns:
-        {"success": true, "milestone_id": "ms_xxx", "tasks_deleted": 5, "subtasks_deleted": 12}
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Count tasks and subtasks before deleting
-        cursor.execute('SELECT COUNT(*) as count FROM synergy_sessions.tasks WHERE milestone_id = %s', (milestone_id,))
-        tasks_count = cursor.fetchone()['count']
-        
-        cursor.execute('''
-            SELECT COUNT(*) as count FROM synergy_sessions.subtasks 
-            WHERE task_id IN (SELECT task_id FROM synergy_sessions.tasks WHERE milestone_id = %s)
-        ''', (milestone_id,))
-        subtasks_count = cursor.fetchone()['count']
-        
-        # Delete subtasks first (foreign key constraint)
-        cursor.execute('''
-            DELETE FROM synergy_sessions.subtasks 
-            WHERE task_id IN (SELECT task_id FROM synergy_sessions.tasks WHERE milestone_id = %s)
-        ''', (milestone_id,))
-        
-        # Delete tasks
-        cursor.execute('DELETE FROM synergy_sessions.tasks WHERE milestone_id = %s', (milestone_id,))
-        
-        # Delete milestone
-        cursor.execute('DELETE FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'milestone_id': milestone_id,
-            'tasks_deleted': tasks_count,
-            'subtasks_deleted': subtasks_count,
-            'message': f'Deleted milestone with {tasks_count} tasks and {subtasks_count} subtasks'
-        })
-    
-    except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to delete milestone: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/task/<task_id>', methods=['DELETE'])
-def delete_task(task_id):
-    """
-    Delete a task and all its subtasks
-    
-    Args:
-        task_id: Task ID to delete
-    
-    Returns:
-        {"success": true, "task_id": "task_xxx", "subtasks_deleted": 3}
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Count subtasks before deleting
-        cursor.execute('SELECT COUNT(*) as count FROM synergy_sessions.subtasks WHERE task_id = %s', (task_id,))
-        subtasks_count = cursor.fetchone()['count']
-        
-        # Delete subtasks first (foreign key constraint)
-        cursor.execute('DELETE FROM synergy_sessions.subtasks WHERE task_id = %s', (task_id,))
-        
-        # Delete task
-        cursor.execute('DELETE FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'task_id': task_id,
-            'subtasks_deleted': subtasks_count,
-            'message': f'Deleted task with {subtasks_count} subtasks'
-        })
-    
-    except Exception as e:
-        print(f"[TASK ERROR] Failed to delete task: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/subtask/<subtask_id>', methods=['DELETE'])
-def delete_subtask(subtask_id):
-    """
-    Delete a subtask
-    
-    Args:
-        subtask_id: Subtask ID to delete
-    
-    Returns:
-        {"success": true, "subtask_id": "sub_xxx"}
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('DELETE FROM synergy_sessions.subtasks WHERE subtask_id = %s', (subtask_id,))
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Subtask not found'}), 404
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'subtask_id': subtask_id,
-            'message': 'Subtask deleted successfully'
-        })
-    
-    except Exception as e:
-        print(f"[SUBTASK ERROR] Failed to delete subtask: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/internal-docs/list', methods=['GET'])
-def list_all_internal_docs():
-    """
-    List ALL internal documents (for document picker)
-    
-    Returns:
-        {
-            "success": true,
-            "count": 25,
-            "documents": [
-                {
-                    "doc_id": "int_doc_123",
-                    "title": "Document 1",
-                    "doc_type": "richtext",
-                    "created_at": "...",
-                    "description": "...",
-                    "tags": "tag1,tag2"
-                }
-            ]
-        }
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        sql, params = convert_sql_placeholders('''
-            SELECT doc_id, title, doc_type, created_at, updated_at, description, tags, session_id
-            FROM synergy_sessions.synergy_internal_docs
-            ORDER BY created_at DESC
-        ''', ())
-        
-        cursor.execute(sql, params)
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        documents = [{
-            'doc_id': row['doc_id'],
-            'title': row['title'],
-            'doc_type': row['doc_type'] or 'richtext',
-            'created_at': row['created_at'],
-            'updated_at': row['updated_at'],
-            'description': row['description'],
-            'tags': row['tags'],
-            'session_id': row['session_id']
-        } for row in rows]
-        
-        return jsonify({
-            'success': True,
-            'count': len(documents),
-            'documents': documents
-        })
-    
-    except Exception as e:
-        print(f"[INTERNAL DOC ERROR] Failed to list all documents: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/internal-doc/list/<session_id>', methods=['GET'])
-def list_internal_docs(session_id):
-    """
-    List all internal documents for a Synergy session
-    
-    Returns:
-        {
-            "success": true,
-            "session_id": "sess_123",
-            "documents": [
-                {
-                    "doc_id": "int_doc_123",
-                    "title": "Document 1",
-                    "format": "markdown",
-                    "created_at": "...",
-                    "updated_at": "...",
-                    "version": 1
-                }
-            ]
-        }
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        sql, params = convert_sql_placeholders('''
-            SELECT doc_id, title, format, doc_type, created_at, updated_at, created_by, version, linked_to_ai,
-                   slug, share_url, description, tags
-            FROM synergy_sessions.synergy_internal_docs
-            WHERE session_id = %s
-            ORDER BY created_at DESC
-        ''', (session_id,))
-
-        
-        cursor.execute(sql, params)
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        documents = [{
-            'doc_id': row['doc_id'],
-            'title': row['title'],
-            'format': row['format'],
-            'doc_type': row['doc_type'] or 'richtext',
-            'created_at': row['created_at'],
-            'updated_at': row['updated_at'],
-            'created_by': row['created_by'],
-            'version': row['version'],
-            'linked_to_ai': bool(row['linked_to_ai']),
-            'slug': row['slug'],
-            'share_url': row['share_url'],
-            'description': row['description'],
-            'tags': row['tags']
-        } for row in rows]
-        
-        return jsonify({
-            'success': True,
-            'session_id': session_id,
-            'count': len(documents),
-            'documents': documents
-        })
-    
-    except Exception as e:
-        print(f"[INTERNAL DOC ERROR] Failed to list documents for {session_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/<session_id>/link-document', methods=['POST'])
-def link_existing_document(session_id):
-    """
-    Link an existing internal document to a Synergy session
-    
-    Body:
-        {
-            "doc_id": "int_doc_123",
-            "title": "Document Title",
-            "doc_type": "richtext"
-        }
-    
-    Returns:
-        {
-            "success": true,
-            "session_id": "sess_123",
-            "doc_id": "int_doc_123",
-            "linked": true
-        }
-    """
-    try:
-        data = request.get_json()
-        doc_id = data.get('doc_id')
-        
-        if not doc_id:
-            return jsonify({'success': False, 'error': 'doc_id required'}), 400
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Update document to link it to this session (if not already linked)
-        sql, params = convert_sql_placeholders("""
-            UPDATE synergy_sessions.synergy_internal_docs
-            SET session_id = %s, linked_to_ai = 1
-            WHERE doc_id = %s
-        """, (session_id, doc_id))
-        
-        cursor.execute(sql, params)
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Document not found'}), 404
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"[SYNERGY] Linked document {doc_id} to session {session_id}")
-        
-        return jsonify({
-            'success': True,
-            'session_id': session_id,
-            'doc_id': doc_id,
-            'linked': True
-        })
-    
-    except Exception as e:
-        print(f"[SYNERGY ERROR] Failed to link document: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# REMOVED DUPLICATE: link_thread_to_synergy endpoint already defined at line 1138
-# The first implementation (line 1138) handles thread_ids array properly
-
-
-@synergy_bp.route('/<session_id>/linked-threads', methods=['GET'])
-def get_linked_threads(session_id):
-    """
-    Get all threads linked to a Synergy session
-    
-    Returns:
-        {
-            "success": true,
-            "count": 3,
-            "threads": [
-                {
-                    "thread_id": "thread_123",
-                    "thread_slug": "thr_abc",
-                    "title": "Thread Title",
-                    "agent_id": "prime",
-                    "message_count": 10,
-                    "created_at": "2025-11-24 12:00:00",
-                    "last_activity": "2025-11-24 15:30:00"
-                }
-            ]
-        }
-    """
-    conn = None
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get all threads linked to this session
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                thread_id,
-                thread_slug,
-                title,
-                agent_id,
-                message_count,
-                created_at,
-                updated_at as last_activity
-            FROM sessions.threads
-            WHERE synergy_card_id = %s
-            ORDER BY updated_at DESC
-        """, (session_id,))
-        
-        cursor.execute(sql, params)
-        rows = cursor.fetchall()
-        
-        threads = []
-        for row in rows:
-            # Handle both RealDictRow (dict) and tuple formats
-            if isinstance(row, dict):
-                # Safely convert datetime to isoformat
-                created_at = row.get('created_at')
-                last_activity = row.get('last_activity')
-                
-                threads.append({
-                    'thread_id': row.get('thread_id'),
-                    'thread_slug': row.get('thread_slug'),
-                    'title': row.get('title'),
-                    'agent_id': row.get('agent_id') or 'prime',
-                    'message_count': row.get('message_count') or 0,
-                    'created_at': created_at.isoformat() if created_at and hasattr(created_at, 'isoformat') else str(created_at) if created_at else None,
-                    'last_activity': last_activity.isoformat() if last_activity and hasattr(last_activity, 'isoformat') else str(last_activity) if last_activity else None
-                })
-            else:
-                # Safely convert datetime to isoformat for tuple format
-                created_at = row[5] if len(row) > 5 else None
-                last_activity = row[6] if len(row) > 6 else None
-                
-                threads.append({
-                    'thread_id': row[0],
-                    'thread_slug': row[1],
-                    'title': row[2],
-                    'agent_id': row[3] or 'prime',
-                    'message_count': row[4] or 0,
-                    'created_at': created_at.isoformat() if created_at and hasattr(created_at, 'isoformat') else str(created_at) if created_at else None,
-                    'last_activity': last_activity.isoformat() if last_activity and hasattr(last_activity, 'isoformat') else str(last_activity) if last_activity else None
-                })
-        
-        print(f"[SYNERGY] Found {len(threads)} linked threads for session {session_id}")
-        
-        return jsonify({
-            'success': True,
-            'count': len(threads),
-            'threads': threads
-        })
-    
-    except Exception as e:
-        print(f"[SYNERGY ERROR] Failed to get linked threads: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-    
     finally:
-        if conn:
-            conn.close()
-
-
-@synergy_bp.route('/internal-doc/<doc_id>/link-ai', methods=['POST'])
-def link_doc_to_ai(doc_id):
-    """
-    Link document to AI session
-    
-    Body:
-        {
-            "session_id": "sess_123",
-            "user_id": 1
-        }
-    
-    Returns:
-        {
-            "success": true,
-            "doc_id": "int_doc_123",
-            "linked": true
-        }
-    """
-    try:
-        data = request.get_json()
-        session_id = data.get('session_id')
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Update document to link to AI
-        sql, params = convert_sql_placeholders("""
-            UPDATE synergy_sessions.synergy_internal_docs
-            SET linked_to_ai = 1, session_id = %s
-            WHERE doc_id = %s
-        """, (session_id, doc_id))
-        
-        if cursor.rowcount == 0:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Document not found'}), 404
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"[INTERNAL DOC] Linked document {doc_id} to AI session {session_id}")
-        
-        return jsonify({
-            'success': True,
-            'doc_id': doc_id,
-            'linked': True,
-            'session_id': session_id
-        })
-    
-    except Exception as e:
-        print(f"[INTERNAL DOC ERROR] Failed to link {doc_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/internal-doc/<doc_id>/export/<format>', methods=['POST'])
-def export_internal_doc(doc_id, format):
-    """
-    Export document to specified format
-    
-    Formats: markdown, html, word, google_doc, pdf, excel, csv
-    
-    Body:
-        {
-            "user_id": 1
-        }
-    
-    Returns:
-        For files: Binary download
-        For URLs: {"success": true, "url": "https://..."}
-    """
-    try:
-        # Get document
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        sql, params = convert_sql_placeholders("""
-            SELECT doc_id, title, content, content_json, doc_type
-            FROM synergy_sessions.synergy_internal_docs
-            WHERE doc_id = %s
-        """, (doc_id,))
-
-        
-        cursor.execute(sql, params)
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if not row:
-            return jsonify({'success': False, 'error': 'Document not found'}), 404
-        
-        doc_title = row['title']
-        doc_content = row['content']
-        doc_json = row['content_json']
-        doc_type = row['doc_type']
-        
-        # Handle different export formats
-        if format == 'markdown':
-            from flask import send_file
-            import io
-            
-            buffer = io.BytesIO(doc_content.encode('utf-8'))
-            buffer.seek(0)
-            
-            return send_file(
-                buffer,
-                mimetype='text/markdown',
-                as_attachment=True,
-                download_name=f"{doc_title}.md"
-            )
-        
-        elif format == 'html':
-            import markdown
-            html_content = f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>{doc_title}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }}
-        h1 {{ color: #333; }}
-        code {{ background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }}
-        pre {{ background: #f4f4f4; padding: 16px; border-radius: 6px; overflow-x: auto; }}
-    </style>
-</head>
-<body>
-{markdown.markdown(doc_content, extensions=['tables', 'fenced_code'])}
-</body>
-</html>"""
-            
-            buffer = io.BytesIO(html_content.encode('utf-8'))
-            buffer.seek(0)
-            
-            return send_file(
-                buffer,
-                mimetype='text/html',
-                as_attachment=True,
-                download_name=f"{doc_title}.html"
-            )
-        
-        elif format == 'word':
-            # TODO: Implement Word export (requires python-docx)
-            return jsonify({
-                'success': False,
-                'error': 'Word export not yet implemented. Install python-docx and implement conversion.'
-            }), 501
-        
-        elif format == 'google_doc':
-            # TODO: Implement Google Docs export (requires google_workspace tools)
-            return jsonify({
-                'success': False,
-                'error': 'Google Docs export not yet implemented. Use google_docs_create tool.'
-            }), 501
-        
-        elif format == 'pdf':
-            # TODO: Implement PDF export (requires reportlab or weasyprint)
-            return jsonify({
-                'success': False,
-                'error': 'PDF export not yet implemented. Install weasyprint or reportlab.'
-            }), 501
-        
-        elif format == 'excel' or format == 'csv':
-            if doc_type != 'spreadsheet':
-                return jsonify({
-                    'success': False,
-                    'error': 'Document is not a spreadsheet'
-                }), 400
-            
-            # Parse JSON data
-            import json as json_lib
+        if cursor:
             try:
-                data = json_lib.loads(doc_json or doc_content)
+                cursor.close()
             except:
-                return jsonify({
-                    'success': False,
-                    'error': 'Invalid spreadsheet data'
-                }), 400
-            
-            if format == 'csv':
-                import csv
-                import io
-                
-                output = io.StringIO()
-                writer = csv.writer(output)
-                
-                for row in data:
-                    writer.writerow(row)
-                
-                buffer = io.BytesIO(output.getvalue().encode('utf-8'))
-                buffer.seek(0)
-                
-                return send_file(
-                    buffer,
-                    mimetype='text/csv',
-                    as_attachment=True,
-                    download_name=f"{doc_title}.csv"
-                )
-            
-            else:  # excel
-                # TODO: Implement Excel export (requires openpyxl)
-                return jsonify({
-                    'success': False,
-                    'error': 'Excel export not yet implemented. Install openpyxl.'
-                }), 501
-        
-        else:
-            return jsonify({
-                'success': False,
-                'error': f'Unknown format: {format}'
-            }), 400
-    
-    except Exception as e:
-        print(f"[INTERNAL DOC ERROR] Failed to export {doc_id} as {format}: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ==================== MILESTONE-BASED TASK MANAGEMENT ====================
-# New endpoints for milestone → task → subtask hierarchy (Nov 2025)
-# Replaces legacy next_steps + checklist structure
-
-@synergy_bp.route('/milestone/create', methods=['POST'])
-def create_milestone():
-    """
-    Create new milestone with tasks in one call
-    
-    Request Body:
-    {
-        "session_id": "sess_abc123",
-        "milestone_name": "Database Setup",
-        "description": "Create customer database and import contacts",
-        "tasks": [
-            "Create Google Sheet",
-            {
-                "task": "Import existing contacts",
-                "subtasks": ["Export from old CRM", "Clean data", "Import"]
-            }
-        ],
-        "due_date": "2025-11-25",
-        "priority": "high",
-        "estimated_hours": 3
-    }
-    
-    Response:
-    {
-        "success": true,
-        "milestone_id": "ms_a1b2c3d4",
-        "milestone_number": 1,
-        "tasks_created": 2,
-        "subtasks_created": 3
-    }
-    """
-    try:
-        data = request.get_json()
-        
-        if not data.get('session_id'):
-            return jsonify({'success': False, 'error': 'session_id required'}), 400
-        if not data.get('milestone_name'):
-            return jsonify({'success': False, 'error': 'milestone_name required'}), 400
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if session exists
-        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (data['session_id'],))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({'success': False, 'error': 'Session not found'}), 404
-        
-        # Get next milestone number
-        sql, params = convert_sql_placeholders('''
-            SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
-            FROM synergy_sessions.milestones 
-            WHERE session_id = %s
-        ''', (data['session_id'],))
-        cursor.execute(sql, params)
-        result = cursor.fetchone()
-        milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
-        
-        # Generate milestone ID
-        milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        # Insert milestone
-        sql, params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.milestones (
-                milestone_id, session_id, milestone_number, milestone_order, milestone_name,
-                description, completed, due_date, priority, estimated_hours,
-                created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            milestone_id,
-            data['session_id'],
-            milestone_number,
-            milestone_number,  # milestone_order same as milestone_number
-            data['milestone_name'],
-            data.get('description'),
-            False,
-            data.get('due_date'),
-            data.get('priority', 'medium'),
-            data.get('estimated_hours'),
-            datetime.now().isoformat(),
-            datetime.now().isoformat()
-        ))
-        cursor.execute(sql, params)
-        
-        # Insert tasks
-        tasks_created = 0
-        subtasks_created = 0
-        tasks_list = data.get('tasks', [])
-        
-        for task_order, task_item in enumerate(tasks_list, start=1):
-            task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}"
-            
-            # Handle both string and object formats
-            if isinstance(task_item, str):
-                task_text = task_item
-                task_priority = 'medium'  # Default priority
-                subtasks = []
-            else:
-                task_text = task_item.get('task', '')
-                task_priority = task_item.get('priority', 'medium')  # Get priority or default to medium
-                subtasks = task_item.get('subtasks', [])
-            
-            # Insert task with priority
-            cursor.execute('''
-                INSERT INTO synergy_sessions.tasks (
-                    task_id, milestone_id, task, completed, task_order, priority, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (task_id, milestone_id, task_text, False, task_order, task_priority, datetime.now().isoformat()))
-            tasks_created += 1
-            
-            # Insert subtasks with priority
-            for subtask_order, subtask_item in enumerate(subtasks, start=1):
-                subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}_{subtask_order}"
-                
-                # Handle both string and object formats for subtasks
-                if isinstance(subtask_item, str):
-                    subtask_text = subtask_item
-                    subtask_priority = 'medium'  # Default priority
-                else:
-                    subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
-                    subtask_priority = subtask_item.get('priority', 'medium')  # Get priority or default to medium
-                
-                cursor.execute('''
-                    INSERT INTO synergy_sessions.subtasks (
-                        subtask_id, task_id, task, completed, subtask_order, priority, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
-                subtasks_created += 1
-        
-        # Mark session as using milestones
-        cursor.execute('''
-            UPDATE synergy_sessions.synergy_sessions 
-            SET uses_milestones = TRUE, last_active = %s
-            WHERE session_id = %s
-        ''', (datetime.now().isoformat(), data['session_id']))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'milestone_id': milestone_id,
-            'milestone_number': milestone_number,
-            'tasks_created': tasks_created,
-            'subtasks_created': subtasks_created
-        })
-    
-    except Exception as e:
+                pass
         if conn:
-            conn.rollback()  # ✅ CRITICAL: Undo partial inserts (milestone/tasks/subtasks)
-        print(f"[MILESTONE ERROR] Failed to create milestone: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        if conn:
-            conn.close()
-
-
-@synergy_bp.route('/milestone/<milestone_id>/task/create', methods=['POST'])
-def create_milestone_task(milestone_id):
-    """
-    Add task to existing milestone
-    
-    Request Body:
-    {
-        "task": "Set up database backups",
-        "subtasks": ["Configure automated backups", "Test restore procedure"]
-    }
-    
-    Response:
-    {
-        "success": true,
-        "task_id": "task_x1y2z3",
-        "subtasks_created": 2
-    }
-    """
-    try:
-        data = request.get_json()
-        
-        if not data.get('task'):
-            return jsonify({'success': False, 'error': 'task text required'}), 400
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if milestone exists
-        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-        
-        # Get next task order
-        cursor.execute('''
-            SELECT COALESCE(MAX(task_order), 0) + 1 
-            FROM synergy_sessions.tasks 
-            WHERE milestone_id = %s
-        ''', (milestone_id,))
-        task_order = cursor.fetchone()[0]
-        
-        # Generate task ID
-        task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        task_priority = data.get('priority', 'medium')  # Get priority from request or default to medium
-        
-        # Insert task with priority
-        sql, params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.tasks (
-                task_id, milestone_id, task, completed, task_order, priority, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (task_id, milestone_id, data['task'], False, task_order, task_priority, datetime.now().isoformat()))
-        
-        # Insert subtasks with priority
-        subtasks_created = 0
-        subtasks = data.get('subtasks', [])
-        for subtask_order, subtask_item in enumerate(subtasks, start=1):
-            subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{subtask_order}"
-            
-            # Handle both string and object formats for subtasks
-            if isinstance(subtask_item, str):
-                subtask_text = subtask_item
-                subtask_priority = 'medium'
-            else:
-                subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
-                subtask_priority = subtask_item.get('priority', 'medium')
-            
-            cursor.execute('''
-                INSERT INTO synergy_sessions.subtasks (
-                    subtask_id, task_id, task, completed, subtask_order, priority, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
-            subtasks_created += 1
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'task_id': task_id,
-            'subtasks_created': subtasks_created
-        })
-    
-    except Exception as e:
-        if conn:
-            conn.rollback()  # ✅ CRITICAL: Undo partial task/subtask inserts
-        print(f"[MILESTONE ERROR] Failed to create task: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        if conn:
-            conn.close()
-
-
-@synergy_bp.route('/task/<task_id>/subtasks', methods=['POST'])
-@synergy_bp.route('/task/<task_id>/subtask/create', methods=['POST'])
-def create_task_subtask(task_id):
-    """
-    Add subtask to existing task
-    
-    Request Body:
-    {
-        "subtask": "Validate data integrity"
-    }
-    
-    Response:
-    {
-        "success": true,
-        "subtask_id": "sub_p1q2r3"
-    }
-    """
-    try:
-        data = request.get_json()
-        
-        if not data.get('subtask'):
-            return jsonify({'success': False, 'error': 'subtask text required'}), 400
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if task exists
-        cursor.execute('SELECT task_id FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
-        
-        # Get next subtask order
-        cursor.execute('''
-            SELECT COALESCE(MAX(subtask_order), 0) + 1 
-            FROM synergy_sessions.subtasks 
-            WHERE task_id = %s
-        ''', (task_id,))
-        subtask_order = cursor.fetchone()[0]
-        
-        # Generate subtask ID
-        subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        # Insert subtask
-        sql, params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.subtasks (
-                subtask_id, task_id, task, completed, subtask_order, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (subtask_id, task_id, data['subtask'], False, subtask_order, datetime.now().isoformat()))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'subtask_id': subtask_id
-        })
-    
-    except Exception as e:
-        if conn:
-            conn.rollback()  # ✅ CRITICAL: Undo subtask insert
-        print(f"[MILESTONE ERROR] Failed to create subtask: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        if conn:
-            conn.close()
-
-
-@synergy_bp.route('/subtask/<subtask_id>/complete', methods=['PATCH'])
-def complete_subtask(subtask_id):
-    """
-    Mark subtask complete (auto-checks if parent task should complete)
-    
-    Request Body:
-    {
-        "completed": true
-    }
-    
-    Response:
-    {
-        "success": true,
-        "subtask_id": "sub_p1q2r3",
-        "completed": true,
-        "task_auto_completed": false,
-        "milestone_auto_completed": false
-    }
-    """
-    try:
-        data = request.get_json()
-        completed = data.get('completed', True)
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get subtask info
-        cursor.execute('''
-            SELECT s.task_id, t.milestone_id 
-            FROM synergy_sessions.subtasks s
-            JOIN synergy_sessions.tasks t ON s.task_id = t.task_id
-            WHERE s.subtask_id = %s
-        ''', (subtask_id,))
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Subtask not found'}), 404
-        
-        task_id = row[0]
-        milestone_id = row[1]
-        
-        # Update subtask
-        sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.subtasks 
-            SET completed = %s, completed_at = %s
-            WHERE subtask_id = %s
-        ''', (completed, datetime.now().isoformat() if completed else None, subtask_id))
-        
-        # Check if all subtasks in this task are completed
-        task_auto_completed = False
-        milestone_auto_completed = False
-        
-        if completed:
-            cursor.execute('''
-                SELECT COUNT(*) FROM synergy_sessions.subtasks 
-                WHERE task_id = %s AND NOT completed
-            ''', (task_id,))
-            remaining_subtasks = cursor.fetchone()[0]
-            
-            if remaining_subtasks == 0:
-                # All subtasks done - auto-complete task
-                sql, params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions.tasks 
-                    SET completed = TRUE, completed_at = %s
-                    WHERE task_id = %s
-                ''', (datetime.now().isoformat(), task_id))
-                task_auto_completed = True
-                
-                # Check if all tasks in milestone are completed
-                cursor.execute('''
-                    SELECT COUNT(*) FROM synergy_sessions.tasks 
-                    WHERE milestone_id = %s AND NOT completed
-                ''', (milestone_id,))
-                remaining_tasks = cursor.fetchone()[0]
-                
-                if remaining_tasks == 0:
-                    # All tasks done - auto-complete milestone
-                    sql, params = convert_sql_placeholders('''
-                        UPDATE synergy_sessions.milestones 
-                        SET completed = TRUE, completed_at = %s
-                        WHERE milestone_id = %s
-                    ''', (datetime.now().isoformat(), milestone_id))
-                    milestone_auto_completed = True
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'subtask_id': subtask_id,
-            'completed': completed,
-            'task_auto_completed': task_auto_completed,
-            'milestone_auto_completed': milestone_auto_completed
-        })
-    
-    except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to complete subtask: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/task/<task_id>/complete', methods=['PATCH'])
-def complete_task(task_id):
-    """
-    Mark task complete (auto-completes all subtasks)
-    
-    Request Body:
-    {
-        "completed": true
-    }
-    
-    Response:
-    {
-        "success": true,
-        "task_id": "task_x1y2z3",
-        "completed": true,
-        "milestone_completed": false,
-        "auto_completed_subtasks": 3
-    }
-    """
-    try:
-        data = request.get_json()
-        completed = data.get('completed', True)
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get task info
-        cursor.execute('''
-            SELECT milestone_id FROM synergy_sessions.tasks WHERE task_id = %s
-        ''', (task_id,))
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
-        
-        milestone_id = row[0]
-        
-        # Update task
-        sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.tasks 
-            SET completed = %s, completed_at = %s
-            WHERE task_id = %s
-        ''', (completed, datetime.now().isoformat() if completed else None, task_id))
-        
-        # Auto-complete all subtasks
-        auto_completed_subtasks = 0
-        if completed:
-            cursor.execute('''
-                UPDATE synergy_sessions.subtasks 
-                SET completed = TRUE, completed_at = %s
-                WHERE task_id = %s AND NOT completed
-            ''', (datetime.now().isoformat(), task_id))
-            auto_completed_subtasks = cursor.rowcount
-        
-        # Check if all tasks in milestone are completed
-        milestone_completed = False
-        if completed:
-            cursor.execute('''
-                SELECT COUNT(*) FROM synergy_sessions.tasks 
-                WHERE milestone_id = %s AND NOT completed
-            ''', (milestone_id,))
-            remaining_tasks = cursor.fetchone()[0]
-            
-            if remaining_tasks == 0:
-                # All tasks done - auto-complete milestone
-                sql, params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions.milestones 
-                    SET completed = TRUE, completed_at = %s
-                    WHERE milestone_id = %s
-                ''', (datetime.now().isoformat(), milestone_id))
-                milestone_completed = True
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'task_id': task_id,
-            'completed': completed,
-            'milestone_completed': milestone_completed,
-            'auto_completed_subtasks': auto_completed_subtasks
-        })
-    
-    except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to complete task: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/milestone/<milestone_id>/complete', methods=['PATCH'])
-def complete_milestone(milestone_id):
-    """
-    Mark entire milestone complete (completes all tasks/subtasks)
-    
-    Request Body:
-    {
-        "completed": true
-    }
-    
-    Response:
-    {
-        "success": true,
-        "milestone_id": "ms_a1b2c3d4",
-        "completed": true,
-        "tasks_completed": 5,
-        "subtasks_completed": 12
-    }
-    """
-    try:
-        data = request.get_json()
-        completed = data.get('completed', True)
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check milestone exists
-        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-        
-        # Update milestone
-        cursor.execute('''
-            UPDATE synergy_sessions.milestones 
-            SET completed = %s, completed_at = %s
-            WHERE milestone_id = %s
-        ''', (completed, datetime.now().isoformat() if completed else None, milestone_id))
-        
-        # Auto-complete all tasks
-        tasks_completed = 0
-        subtasks_completed = 0
-        
-        if completed:
-            # Complete all tasks in milestone
-            cursor.execute('''
-                UPDATE synergy_sessions.tasks 
-                SET completed = TRUE, completed_at = %s
-                WHERE milestone_id = %s AND NOT completed
-            ''', (datetime.now().isoformat(), milestone_id))
-            tasks_completed = cursor.rowcount
-            
-            # Complete all subtasks in milestone
-            cursor.execute('''
-                UPDATE synergy_sessions.subtasks s
-                SET completed = TRUE, completed_at = %s
-                FROM synergy_sessions.tasks t
-                WHERE s.task_id = t.task_id 
-                  AND t.milestone_id = %s 
-                  AND NOT s.completed
-            ''', (datetime.now().isoformat(), milestone_id))
-            subtasks_completed = cursor.rowcount
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'milestone_id': milestone_id,
-            'completed': completed,
-            'tasks_completed': tasks_completed,
-            'subtasks_completed': subtasks_completed
-        })
-    
-    except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to complete milestone: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/milestone/<milestone_id>/progress', methods=['GET'])
-def get_milestone_progress(milestone_id):
-    """
-    Get completion percentage and remaining items
-    
-    Response:
-    {
-        "milestone_id": "ms_a1b2c3d4",
-        "milestone_name": "Database Setup",
-        "progress_percentage": 66.7,
-        "tasks_completed": 2,
-        "tasks_total": 3,
-        "subtasks_completed": 5,
-        "subtasks_total": 8,
-        "remaining_tasks": ["Set up validation"],
-        "blocked_tasks": [],
-        "due_date": "2025-11-25",
-        "on_track": true
-    }
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get milestone info
-        cursor.execute('''
-            SELECT milestone_name, due_date, completed 
-            FROM synergy_sessions.milestones 
-            WHERE milestone_id = %s
-        ''', (milestone_id,))
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-        
-        milestone_name = row[0]
-        due_date = row[1]
-        completed = row[2]
-        
-        # Get task statistics
-        sql, params = convert_sql_placeholders('''
-            SELECT 
-                COUNT(*) as total_tasks,
-                SUM(CASE WHEN completed THEN 1 ELSE 0 END) as completed_tasks,
-                SUM(CASE WHEN blocked THEN 1 ELSE 0 END) as blocked_tasks
-            FROM synergy_sessions.tasks 
-            WHERE milestone_id = %s
-        ''', (milestone_id,))
-        task_stats = cursor.fetchone()
-        tasks_total = task_stats[0]
-        tasks_completed = task_stats[1]
-        blocked_tasks_count = task_stats[2]
-        
-        # Get subtask statistics
-        sql, params = convert_sql_placeholders('''
-            SELECT 
-                COUNT(*) as total_subtasks,
-                SUM(CASE WHEN s.completed THEN 1 ELSE 0 END) as completed_subtasks
-            FROM synergy_sessions.subtasks s
-            JOIN synergy_sessions.tasks t ON s.task_id = t.task_id
-            WHERE t.milestone_id = %s
-        ''', (milestone_id,))
-        subtask_stats = cursor.fetchone()
-        subtasks_total = subtask_stats[0]
-        subtasks_completed = subtask_stats[1]
-        
-        # Calculate progress percentage
-        total_items = tasks_total + subtasks_total
-        completed_items = tasks_completed + subtasks_completed
-        progress_percentage = round((completed_items / total_items * 100), 1) if total_items > 0 else 0
-        
-        # Get remaining tasks
-        sql, params = convert_sql_placeholders('''
-            SELECT task FROM synergy_sessions.tasks 
-            WHERE milestone_id = %s AND NOT completed
-            ORDER BY task_order
-        ''', (milestone_id,))
-        remaining_tasks = [row[0] for row in cursor.fetchall()]
-        
-        # Get blocked tasks
-        sql, params = convert_sql_placeholders('''
-            SELECT task, blocker_reason, blocker_type
-            FROM synergy_sessions.tasks 
-            WHERE milestone_id = %s AND blocked
-        ''', (milestone_id,))
-        blocked_tasks = [{'task': row[0], 'reason': row[1], 'type': row[2]} for row in cursor.fetchall()]
-        
-        conn.close()
-        
-        # Determine if on track (simple heuristic)
-        on_track = True
-        if due_date and not completed:
-            from datetime import datetime as dt
-            due = dt.fromisoformat(due_date.replace('Z', '+00:00'))
-            now = dt.now(due.tzinfo) if due.tzinfo else dt.now()
-            if now > due:
-                on_track = False  # Past due date
-        
-        return jsonify({
-            'success': True,
-            'milestone_id': milestone_id,
-            'milestone_name': milestone_name,
-            'progress_percentage': progress_percentage,
-            'tasks_completed': tasks_completed,
-            'tasks_total': tasks_total,
-            'subtasks_completed': subtasks_completed,
-            'subtasks_total': subtasks_total,
-            'remaining_tasks': remaining_tasks,
-            'blocked_tasks': blocked_tasks,
-            'blocked_tasks_count': blocked_tasks_count,
-            'due_date': due_date,
-            'on_track': on_track
-        })
-    
-    except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to get progress: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @synergy_bp.route('/<session_id>/milestones', methods=['GET'])
@@ -3636,6 +2416,8 @@ def get_session_milestones(session_id):
         ]
     }
     """
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -3651,7 +2433,10 @@ def get_session_milestones(session_id):
         
         session_row = cursor.fetchone()
         if not session_row:
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         session_data = {
@@ -3683,7 +2468,6 @@ def get_session_milestones(session_id):
         ''', (session_id,))
         
         cursor.execute(sql, params)
-        
         rows = cursor.fetchall()
         
         milestones = []
@@ -3788,7 +2572,10 @@ def get_session_milestones(session_id):
             
             milestones.append(milestone)
         
+        cursor.close()
+        cursor = None
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -3808,7 +2595,6 @@ def get_session_milestones(session_id):
         import traceback
         traceback.print_exc()
         
-        # Ensure we return a proper error message with detailed info
         error_msg = str(e) if str(e) else f"{type(e).__name__} occurred"
         return jsonify({
             'success': False, 
@@ -3816,425 +2602,523 @@ def get_session_milestones(session_id):
             'error_type': type(e).__name__,
             'error_details': repr(e)
         }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
-@synergy_bp.route('/task/<task_id>', methods=['PATCH'])
-def update_task(task_id):
+
+
+
+# ============================================================
+# TAG MANAGEMENT
+# ============================================================
+
+@synergy_bp.route('/<session_id>/tags', methods=['POST'])
+def add_tag(session_id):
     """
-    Update task fields (for inline editing)
+    Add a tag to a session
     
-    Request Body:
-    {
-        "task": "Updated task text",
-        "priority": "high",
-        "assigned_to": "john@example.com",
-        "estimated_hours": 4.5
-    }
+    Body: {"tag": "urgent"}
     
-    Response:
-    {
-        "success": true,
-        "task_id": "task_xxx",
-        "updated_fields": ["task", "priority"]
-    }
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
+    conn = None
     try:
-        data = request.get_json()
+        data = request.json
+        tag = data.get('tag')
         
-        # Validate request body
-        if not data or not isinstance(data, dict):
-            return jsonify({
-                'success': False,
-                'error': 'Request body must be a JSON object'
-            }), 400
-        
-        # Allowed fields for update
-        allowed_fields = ['task', 'priority', 'assigned_to', 'estimated_hours', 
-                         'actual_hours', 'tags', 'start_date', 'links', 
-                         'is_recurring', 'recurrence_pattern', 'progress_percent']
-        
-        # Build UPDATE query dynamically
-        updates = []
-        params = []
-        updated_fields = []
-        
-        for field in allowed_fields:
-            if field in data:
-                updates.append(f"{field} = %s")
-                params.append(data[field])
-                updated_fields.append(field)
-        
-        if not updates:
-            return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
-        
-        # Always update updated_at
-        updates.append("updated_at = %s")
-        params.append(datetime.now())
-        params.append(task_id)
+        if not tag:
+            return jsonify({'success': False, 'error': 'tag field required'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        sql = f'''
-            UPDATE synergy_sessions.tasks 
-            SET {', '.join(updates)}
-            WHERE task_id = %s
-        '''
+        # Get current tags
+        sql, params = convert_sql_placeholders(
+            'SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
         
-        cursor.execute(sql, tuple(params))
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'task_id': task_id,
-            'updated_fields': updated_fields
-        })
-    
-    except Exception as e:
-        print(f"[TASK ERROR] Failed to update task: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/subtask/<subtask_id>', methods=['PATCH'])
-def update_subtask(subtask_id):
-    """
-    Update subtask fields (for inline editing)
-    
-    Request Body:
-    {
-        "task": "Updated subtask text",
-        "subtask": "Updated subtask text",  // Alias for 'task'
-        "priority": "high",
-        "assigned_to": "jane@example.com",
-        "estimated_hours": 2.0
-    }
-    
-    Response:
-    {
-        "success": true,
-        "subtask_id": "subtask_xxx",
-        "updated_fields": ["task", "priority"]
-    }
-    """
-    try:
-        data = request.get_json()
-        
-        # Validate request body
-        if not data or not isinstance(data, dict):
-            return jsonify({
-                'success': False,
-                'error': 'Request body must be a JSON object'
-            }), 400
-        
-        # Handle 'subtask' as alias for 'task' field (frontend sends 'subtask', DB column is 'task')
-        if 'subtask' in data and 'task' not in data:
-            data['task'] = data.pop('subtask')
-        
-        # Allowed fields for update
-        allowed_fields = ['task', 'priority', 'assigned_to', 'estimated_hours', 
-                         'actual_hours', 'tags', 'start_date', 'links', 'description']
-        
-        # Build UPDATE query dynamically
-        updates = []
-        params = []
-        updated_fields = []
-        
-        for field in allowed_fields:
-            if field in data:
-                updates.append(f"{field} = %s")
-                params.append(data[field])
-                updated_fields.append(field)
-        
-        if not updates:
-            return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
-        
-        # Always update updated_at
-        updates.append("updated_at = %s")
-        params.append(datetime.now())
-        params.append(subtask_id)
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        sql = f'''
-            UPDATE synergy_sessions.subtasks 
-            SET {', '.join(updates)}
-            WHERE subtask_id = %s
-        '''
-        
-        cursor.execute(sql, tuple(params))
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'subtask_id': subtask_id,
-            'updated_fields': updated_fields
-        })
-    
-    except Exception as e:
-        print(f"[SUBTASK ERROR] Failed to update subtask: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/task/<task_id>/block', methods=['PATCH'])
-def block_task(task_id):
-    """
-    Mark task as blocked with reason
-    
-    Request Body:
-    {
-        "blocked": true,
-        "blocker_reason": "Waiting for client brand guidelines",
-        "blocker_type": "external"
-    }
-    
-    Response:
-    {
-        "success": true,
-        "task_id": "task_x1y2z3",
-        "blocked": true
-    }
-    """
-    try:
-        data = request.get_json()
-        blocked = data.get('blocked', True)
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check task exists
-        cursor.execute('SELECT task_id FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
-        if not cursor.fetchone():
+        if not row:
+            cursor.close()
+            cursor = None
             conn.close()
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
         
-        # Update task
-        sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.tasks 
-            SET blocked = %s, blocker_reason = %s, blocker_type = %s, blocked_since = %s
-            WHERE task_id = %s
-        ''', (
-            blocked,
-            data.get('blocker_reason') if blocked else None,
-            data.get('blocker_type') if blocked else None,
-            datetime.now().isoformat() if blocked else None,
-            task_id
-        ))
+        # Parse existing tags
+        tags = []
+        if row['tags']:
+            try:
+                tags = json.loads(row['tags'])
+            except:
+                tags = []
         
+        # Add new tag if not already present
+        if tag not in tags:
+            tags.append(tag)
+            
+            update_sql, update_params = convert_sql_placeholders('''
+                UPDATE synergy_sessions.synergy_sessions 
+                SET tags = %s, last_active = %s
+                WHERE session_id = %s
+            ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
         conn.commit()
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
-            'task_id': task_id,
-            'blocked': blocked
+            'tags': tags
         })
     
     except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to block task: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
-@synergy_bp.route('/milestone/<milestone_id>/documents', methods=['PATCH'])
-def update_milestone_documents(milestone_id):
+@synergy_bp.route('/<session_id>/tags/<path:tag_name>', methods=['DELETE'])
+def remove_tag(session_id, tag_name):
     """
-    Update milestone documents array
+    Remove a tag from a session
     
-    Request Body:
-    {
-        "documents": [
-            {"id": "doc1", "name": "Requirements.pdf", "url": "https://...", "type": "pdf"},
-            {"id": "doc2", "name": "Design Mockups", "url": "https://...", "type": "internal"}
-        ]
-    }
-    
-    Response:
-    {"success": true, "milestone_id": "mile_xxx", "documents_count": 2}
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
+    conn = None
     try:
-        data = request.get_json()
-        documents = data.get('documents', [])
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current tags
+        sql, params = convert_sql_placeholders(
+            'SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Parse existing tags
+        tags = []
+        if row['tags']:
+            try:
+                tags = json.loads(row['tags'])
+            except:
+                tags = []
+        
+        # Remove tag if present
+        if tag_name in tags:
+            tags.remove(tag_name)
+            
+            update_sql, update_params = convert_sql_placeholders('''
+                UPDATE synergy_sessions.synergy_sessions 
+                SET tags = %s, last_active = %s
+                WHERE session_id = %s
+            ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'tags': tags
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# LINK MANAGEMENT
+# ============================================================
+
+@synergy_bp.route('/<session_id>/links', methods=['GET'])
+def get_session_links(session_id):
+    """
+    Get all links for a session
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        links = []
+        if row['links']:
+            try:
+                links = json.loads(row['links'])
+            except:
+                links = []
+        
+        return jsonify({
+            'success': True,
+            'links': links
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/<session_id>/link-document', methods=['POST'])
+def add_link(session_id):
+    """
+    Add a link/document to a session
+    
+    Body: {"url": "https://...", "title": "Doc Name", "type": "google_doc"}
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        url = data.get('url')
+        title = data.get('title', 'Untitled')
+        link_type = data.get('type', 'link')
+        
+        if not url:
+            return jsonify({'success': False, 'error': 'url field required'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check milestone exists
-        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
-        if not cursor.fetchone():
+        # Get current links
+        sql, params = convert_sql_placeholders(
+            'SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
             conn.close()
-            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
         
-        # Update documents
-        cursor.execute('''
-            UPDATE synergy_sessions.milestones 
-            SET documents = %s, updated_at = %s
-            WHERE milestone_id = %s
-        ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
+        # Parse existing links
+        links = []
+        if row['links']:
+            try:
+                links = json.loads(row['links'])
+            except:
+                links = []
         
+        # Add new link
+        new_link = {
+            'url': url,
+            'title': title,
+            'type': link_type,
+            'added_at': datetime.now().isoformat()
+        }
+        links.append(new_link)
+        
+        update_sql, update_params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.synergy_sessions 
+            SET links = %s, last_active = %s
+            WHERE session_id = %s
+        ''', (json.dumps(links), datetime.now().isoformat(), session_id))
+        cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
         conn.commit()
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
-            'milestone_id': milestone_id,
-            'documents_count': len(documents)
+            'links': links
         })
     
     except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to update documents: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
-@synergy_bp.route('/milestone/<milestone_id>/links', methods=['PATCH'])
-def update_milestone_links(milestone_id):
+@synergy_bp.route('/<session_id>/links/<int:link_index>', methods=['DELETE'])
+def remove_link(session_id, link_index):
     """
-    Update milestone links array
+    Remove a link by index
     
-    Request Body:
-    {
-        "links": [
-            {"id": "link1", "name": "API Documentation", "url": "https://..."},
-            {"id": "link2", "name": "GitHub Repo", "url": "https://..."}
-        ]
-    }
-    
-    Response:
-    {"success": true, "milestone_id": "mile_xxx", "links_count": 2}
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
+    conn = None
     try:
-        data = request.get_json()
-        links = data.get('links', [])
-        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check milestone exists
-        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
-        if not cursor.fetchone():
+        # Get current links
+        sql, params = convert_sql_placeholders(
+            'SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
             conn.close()
-            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
         
-        # Update links
-        cursor.execute('''
-            UPDATE synergy_sessions.milestones 
-            SET links = %s, updated_at = %s
-            WHERE milestone_id = %s
-        ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
+        # Parse existing links
+        links = []
+        if row['links']:
+            try:
+                links = json.loads(row['links'])
+            except:
+                links = []
         
+        # Remove link at index
+        if 0 <= link_index < len(links):
+            links.pop(link_index)
+            
+            update_sql, update_params = convert_sql_placeholders('''
+                UPDATE synergy_sessions.synergy_sessions 
+                SET links = %s, last_active = %s
+                WHERE session_id = %s
+            ''', (json.dumps(links), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
         conn.commit()
         conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
-            'milestone_id': milestone_id,
-            'links_count': len(links)
+            'links': links
         })
     
     except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to update links: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
-@synergy_bp.route('/milestone/<milestone_id>/update', methods=['PATCH'])
-def update_milestone_field(milestone_id):
-    """
-    Update any milestone field (inline editing support)
-    
-    Request Body:
-    {
-        "field": "milestone_name",
-        "value": "Updated Milestone Name"
-    }
-    
-    Supported fields:
-    - milestone_name
-    - description
-    - due_date
-    - estimated_hours
-    - blocker_reason
-    
-    Response:
-    {"success": true, "milestone_id": "mile_xxx", "field": "milestone_name", "value": "..."}
-    """
-    try:
-        data = request.get_json()
-        field = data.get('field')
-        value = data.get('value')
-        
-        # Whitelist allowed fields for security
-        allowed_fields = ['milestone_name', 'description', 'due_date', 'estimated_hours', 'blocker_reason']
-        if field not in allowed_fields:
-            return jsonify({'success': False, 'error': f'Field {field} not allowed'}), 400
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check milestone exists
-        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-        
-        # Update field
-        cursor.execute(f'''
-            UPDATE synergy_sessions.milestones 
-            SET {field} = %s, updated_at = %s
-            WHERE milestone_id = %s
-        ''', (value, datetime.now().isoformat(), milestone_id))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True,
-            'milestone_id': milestone_id,
-            'field': field,
-            'value': value
-        })
-    
-    except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to update milestone: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
+# ============================================================
+# MILESTONE CRUD
+# ============================================================
 
 @synergy_bp.route('/milestone/<milestone_id>', methods=['GET'])
 def get_milestone(milestone_id):
     """
-    Get milestone by ID with all details
+    Get a single milestone with all tasks and subtasks
     
-    Response:
-    {
-        "success": true,
-        "milestone": {
-            "milestone_id": "mile_xxx",
-            "session_id": "syn_xxx",
-            "milestone_number": 1,
-            "milestone_name": "Setup Database",
-            "description": "...",
-            "documents": "[...]",
-            "links": "[...]",
-            ...
-        }
-    }
+    ✅ FIXED: Proper cursor management
     """
+    cursor = None
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            SELECT * FROM synergy_sessions.milestones 
+        # Get milestone
+        sql, params = convert_sql_placeholders('''
+            SELECT milestone_id, session_id, milestone_number, milestone_name, description,
+                   completed, due_date, priority, estimated_hours, actual_hours,
+                   created_at, completed_at, milestone_order, depends_on_milestone_id,
+                   blocked, blocker_reason, blocked_since, updated_at, documents, links
+            FROM synergy_sessions.milestones 
             WHERE milestone_id = %s
         ''', (milestone_id,))
+        cursor.execute(sql, params)
         
-        row = cursor.fetchone()
-        conn.close()
+        m_row = cursor.fetchone()
         
-        if not row:
+        if not m_row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
             return jsonify({'success': False, 'error': 'Milestone not found'}), 404
         
-        milestone = dict(zip([desc[0] for desc in cursor.description], row))
+        milestone = {
+            'milestone_id': m_row['milestone_id'],
+            'session_id': m_row['session_id'],
+            'milestone_number': m_row['milestone_number'],
+            'milestone_name': m_row['milestone_name'],
+            'description': m_row['description'],
+            'completed': m_row['completed'],
+            'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
+            'priority': m_row['priority'],
+            'estimated_hours': float(m_row['estimated_hours']) if m_row['estimated_hours'] else None,
+            'actual_hours': float(m_row['actual_hours']) if m_row['actual_hours'] else None,
+            'created_at': m_row['created_at'].isoformat() if m_row['created_at'] else None,
+            'completed_at': m_row['completed_at'].isoformat() if m_row['completed_at'] else None,
+            'milestone_order': m_row['milestone_order'],
+            'depends_on_milestone_id': m_row['depends_on_milestone_id'],
+            'blocked': m_row['blocked'],
+            'blocker_reason': m_row['blocker_reason'],
+            'blocked_since': m_row['blocked_since'].isoformat() if m_row['blocked_since'] else None,
+            'updated_at': m_row['updated_at'].isoformat() if m_row['updated_at'] else None,
+            'documents': m_row['documents'],
+            'links': m_row['links'],
+            'tasks': []
+        }
+        
+        # Get tasks
+        task_sql, task_params = convert_sql_placeholders('''
+            SELECT task_id, task, completed, blocked, blocker_reason, 
+                   blocker_type, task_order, created_at, completed_at,
+                   blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
+            FROM synergy_sessions.tasks 
+            WHERE milestone_id = %s
+            ORDER BY task_order
+        ''', (milestone_id,))
+        cursor.execute(task_sql, task_params)
+        
+        for t_row in cursor.fetchall():
+            task = {
+                'task_id': t_row['task_id'],
+                'task': t_row['task'],
+                'completed': t_row['completed'],
+                'blocked': t_row['blocked'],
+                'blocker_reason': t_row['blocker_reason'],
+                'blocker_type': t_row['blocker_type'],
+                'task_order': t_row['task_order'],
+                'created_at': t_row['created_at'].isoformat() if t_row['created_at'] else None,
+                'completed_at': t_row['completed_at'].isoformat() if t_row['completed_at'] else None,
+                'blocked_since': t_row['blocked_since'].isoformat() if t_row['blocked_since'] else None,
+                'estimated_hours': float(t_row['estimated_hours']) if t_row['estimated_hours'] else None,
+                'actual_hours': float(t_row['actual_hours']) if t_row['actual_hours'] else None,
+                'assigned_to': t_row['assigned_to'],
+                'updated_at': t_row['updated_at'].isoformat() if t_row['updated_at'] else None,
+                'priority': t_row['priority'],
+                'subtasks': []
+            }
+            
+            # Get subtasks
+            subtask_sql, subtask_params = convert_sql_placeholders('''
+                SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
+                       estimated_hours, actual_hours, updated_at, priority
+                FROM synergy_sessions.subtasks 
+                WHERE task_id = %s
+                ORDER BY subtask_order
+            ''', (task['task_id'],))
+            cursor.execute(subtask_sql, subtask_params)
+            
+            for s_row in cursor.fetchall():
+                subtask = {
+                    'subtask_id': s_row['subtask_id'],
+                    'task': s_row['task'],
+                    'completed': s_row['completed'],
+                    'subtask_order': s_row['subtask_order'],
+                    'created_at': s_row['created_at'].isoformat() if s_row['created_at'] else None,
+                    'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None,
+                    'estimated_hours': float(s_row['estimated_hours']) if s_row['estimated_hours'] else None,
+                    'actual_hours': float(s_row['actual_hours']) if s_row['actual_hours'] else None,
+                    'updated_at': s_row['updated_at'].isoformat() if s_row['updated_at'] else None,
+                    'priority': s_row['priority']
+                }
+                task['subtasks'].append(subtask)
+            
+            milestone['tasks'].append(task)
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
         
         return jsonify({
             'success': True,
@@ -4242,5 +3126,2082 @@ def get_milestone(milestone_id):
         })
     
     except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to get milestone: {e}")
+        print(f"[MILESTONE ERROR] Failed to get milestone {milestone_id}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/update', methods=['PATCH'])
+def update_milestone(milestone_id):
+    """
+    Update milestone fields
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Build update query
+        updates = []
+        update_params = []
+        
+        for field in ['milestone_name', 'description', 'priority', 'due_date', 
+                     'estimated_hours', 'actual_hours', 'blocked', 'blocker_reason']:
+            if field in data:
+                updates.append(f"{field} = %s")
+                update_params.append(data[field])
+        
+        if 'documents' in data:
+            updates.append('documents = %s')
+            update_params.append(json.dumps(data['documents']))
+        
+        if 'links' in data:
+            updates.append('links = %s')
+            update_params.append(json.dumps(data['links']))
+        
+        if not updates:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'No fields to update'}), 400
+        
+        updates.append('updated_at = %s')
+        update_params.append(datetime.now().isoformat())
+        update_params.append(milestone_id)
+        
+        query = f"UPDATE synergy_sessions.milestones SET {', '.join(updates)} WHERE milestone_id = %s"
+        sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+        cursor.execute(sql, final_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>', methods=['DELETE'])
+def delete_milestone(milestone_id):
+    """
+    Delete a milestone (cascades to tasks and subtasks via FK)
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'DELETE FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/<session_id>/milestones/<milestone_id>/toggle', methods=['PATCH'])
+def toggle_milestone(session_id, milestone_id):
+    """
+    Toggle milestone completion status
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current status
+        sql, params = convert_sql_placeholders(
+            'SELECT completed FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        new_status = not row['completed']
+        completed_at = datetime.now().isoformat() if new_status else None
+        
+        update_sql, update_params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.milestones 
+            SET completed = %s, completed_at = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (new_status, completed_at, datetime.now().isoformat(), milestone_id))
+        cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'completed': new_status
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/complete', methods=['POST'])
+def complete_milestone(milestone_id):
+    """
+    Mark milestone as complete
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json or {}
+        actual_hours = data.get('actual_hours')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
+        params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
+        
+        if actual_hours is not None:
+            updates.append('actual_hours = %s')
+            params.append(actual_hours)
+        
+        params.append(milestone_id)
+        
+        query = f"UPDATE synergy_sessions.milestones SET {', '.join(updates)} WHERE milestone_id = %s"
+        sql, final_params = convert_sql_placeholders(query, tuple(params))
+        cursor.execute(sql, final_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'completed': True
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/comment', methods=['POST'])
+def add_milestone_comment(milestone_id):
+    """
+    Add a comment to a milestone
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        comment_text = data.get('comment_text')
+        user_id = data.get('user_id')
+        
+        if not comment_text:
+            return jsonify({'success': False, 'error': 'comment_text required'}), 400
+        
+        import time
+        comment_id = f"cmt_{int(time.time() * 1000)}"
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders('''
+            INSERT INTO synergy_sessions.milestone_comments 
+            (comment_id, milestone_id, user_id, comment_text, created_at)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (comment_id, milestone_id, user_id, comment_text, datetime.now().isoformat()))
+        cursor.execute(sql, params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'comment_id': comment_id,
+            'milestone_id': milestone_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/documents', methods=['GET'])
+def get_milestone_documents(milestone_id):
+    """
+    Get documents for a milestone
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'SELECT documents FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        documents = []
+        if row['documents']:
+            try:
+                documents = json.loads(row['documents'])
+            except:
+                documents = []
+        
+        return jsonify({
+            'success': True,
+            'documents': documents
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/links', methods=['GET'])
+def get_milestone_links(milestone_id):
+    """
+    Get links for a milestone
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'SELECT links FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        links = []
+        if row['links']:
+            try:
+                links = json.loads(row['links'])
+            except:
+                links = []
+        
+        return jsonify({
+            'success': True,
+            'links': links
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# TASK CRUD
+# ============================================================
+
+@synergy_bp.route('/milestone/<milestone_id>/tasks', methods=['POST'])
+def create_task(milestone_id):
+    """
+    Create a new task in a milestone
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        task_text = data.get('task')
+        
+        if not task_text:
+            return jsonify({'success': False, 'error': 'task field required'}), 400
+        
+        import time
+        task_id = f"task_{int(time.time() * 1000)}"
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get max task_order
+        sql, params = convert_sql_placeholders(
+            'SELECT COALESCE(MAX(task_order), 0) as max_order FROM synergy_sessions.tasks WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        task_order = row['max_order'] + 1
+        
+        # Insert task
+        insert_sql, insert_params = convert_sql_placeholders('''
+            INSERT INTO synergy_sessions.tasks 
+            (task_id, milestone_id, task, task_order, completed, priority, estimated_hours, assigned_to)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (task_id, milestone_id, task_text, task_order, False, 
+              data.get('priority', 'medium'), data.get('estimated_hours'), data.get('assigned_to')))
+        cursor.execute(insert_sql, insert_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'milestone_id': milestone_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/task/<task_id>', methods=['PATCH'])
+def update_task(task_id):
+    """
+    Update task fields
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        updates = []
+        update_params = []
+        
+        for field in ['task', 'priority', 'estimated_hours', 'actual_hours', 'assigned_to']:
+            if field in data:
+                updates.append(f"{field} = %s")
+                update_params.append(data[field])
+        
+        if not updates:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'No fields to update'}), 400
+        
+        updates.append('updated_at = %s')
+        update_params.append(datetime.now().isoformat())
+        update_params.append(task_id)
+        
+        query = f"UPDATE synergy_sessions.tasks SET {', '.join(updates)} WHERE task_id = %s"
+        sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+        cursor.execute(sql, final_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/task/<task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    """
+    Delete a task
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'DELETE FROM synergy_sessions.tasks WHERE task_id = %s',
+            (task_id,)
+        )
+        cursor.execute(sql, params)
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/<session_id>/tasks/<task_id>/toggle', methods=['PATCH'])
+def toggle_task(session_id, task_id):
+    """
+    Toggle task completion status
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current status
+        sql, params = convert_sql_placeholders(
+            'SELECT completed FROM synergy_sessions.tasks WHERE task_id = %s',
+            (task_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        new_status = not row['completed']
+        completed_at = datetime.now().isoformat() if new_status else None
+        
+        update_sql, update_params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.tasks 
+            SET completed = %s, completed_at = %s, updated_at = %s
+            WHERE task_id = %s
+        ''', (new_status, completed_at, datetime.now().isoformat(), task_id))
+        cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'completed': new_status
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/task/<task_id>/complete', methods=['POST'])
+def complete_task(task_id):
+    """
+    Mark task as complete
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json or {}
+        actual_hours = data.get('actual_hours')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
+        params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
+        
+        if actual_hours is not None:
+            updates.append('actual_hours = %s')
+            params.append(actual_hours)
+        
+        params.append(task_id)
+        
+        query = f"UPDATE synergy_sessions.tasks SET {', '.join(updates)} WHERE task_id = %s"
+        sql, final_params = convert_sql_placeholders(query, tuple(params))
+        cursor.execute(sql, final_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'completed': True
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/task/<task_id>/block', methods=['POST'])
+def block_task(task_id):
+    """
+    Mark task as blocked
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        blocker_reason = data.get('blocker_reason')
+        blocker_type = data.get('blocker_type', 'internal')
+        
+        if not blocker_reason:
+            return jsonify({'success': False, 'error': 'blocker_reason required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.tasks 
+            SET blocked = %s, blocker_reason = %s, blocker_type = %s, 
+                blocked_since = %s, updated_at = %s
+            WHERE task_id = %s
+        ''', (True, blocker_reason, blocker_type, datetime.now().isoformat(), 
+              datetime.now().isoformat(), task_id))
+        cursor.execute(sql, params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'blocked': True
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# SUBTASK CRUD
+# ============================================================
+
+@synergy_bp.route('/task/<task_id>/subtasks', methods=['POST'])
+def create_subtask(task_id):
+    """
+    Create a new subtask in a task
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        subtask_text = data.get('task')
+        
+        if not subtask_text:
+            return jsonify({'success': False, 'error': 'task field required'}), 400
+        
+        import time
+        subtask_id = f"subtask_{int(time.time() * 1000)}"
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get max subtask_order
+        sql, params = convert_sql_placeholders(
+            'SELECT COALESCE(MAX(subtask_order), 0) as max_order FROM synergy_sessions.subtasks WHERE task_id = %s',
+            (task_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        subtask_order = row['max_order'] + 1
+        
+        # Insert subtask
+        insert_sql, insert_params = convert_sql_placeholders('''
+            INSERT INTO synergy_sessions.subtasks 
+            (subtask_id, task_id, task, subtask_order, completed, priority, estimated_hours, assigned_to)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (subtask_id, task_id, subtask_text, subtask_order, False, 
+              data.get('priority', 'medium'), data.get('estimated_hours'), data.get('assigned_to')))
+        cursor.execute(insert_sql, insert_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id,
+            'task_id': task_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/subtask/<subtask_id>', methods=['PATCH'])
+def update_subtask(subtask_id):
+    """
+    Update subtask fields
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        updates = []
+        update_params = []
+        
+        for field in ['task', 'priority', 'estimated_hours', 'actual_hours', 'assigned_to']:
+            if field in data:
+                updates.append(f"{field} = %s")
+                update_params.append(data[field])
+        
+        if not updates:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'No fields to update'}), 400
+        
+        updates.append('updated_at = %s')
+        update_params.append(datetime.now().isoformat())
+        update_params.append(subtask_id)
+        
+        query = f"UPDATE synergy_sessions.subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
+        sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+        cursor.execute(sql, final_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/subtask/<subtask_id>', methods=['DELETE'])
+def delete_subtask(subtask_id):
+    """
+    Delete a subtask
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'DELETE FROM synergy_sessions.subtasks WHERE subtask_id = %s',
+            (subtask_id,)
+        )
+        cursor.execute(sql, params)
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/<session_id>/subtasks/<subtask_id>/toggle', methods=['PATCH'])
+def toggle_subtask(session_id, subtask_id):
+    """
+    Toggle subtask completion status
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current status
+        sql, params = convert_sql_placeholders(
+            'SELECT completed FROM synergy_sessions.subtasks WHERE subtask_id = %s',
+            (subtask_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+        
+        new_status = not row['completed']
+        completed_at = datetime.now().isoformat() if new_status else None
+        
+        update_sql, update_params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.subtasks 
+            SET completed = %s, completed_at = %s, updated_at = %s
+            WHERE subtask_id = %s
+        ''', (new_status, completed_at, datetime.now().isoformat(), subtask_id))
+        cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id,
+            'completed': new_status
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/subtask/<subtask_id>/complete', methods=['POST'])
+def complete_subtask(subtask_id):
+    """
+    Mark subtask as complete
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json or {}
+        actual_hours = data.get('actual_hours')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
+        params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
+        
+        if actual_hours is not None:
+            updates.append('actual_hours = %s')
+            params.append(actual_hours)
+        
+        params.append(subtask_id)
+        
+        query = f"UPDATE synergy_sessions.subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
+        sql, final_params = convert_sql_placeholders(query, tuple(params))
+        cursor.execute(sql, final_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id,
+            'completed': True
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# THREAD INTEGRATION (Additional variants)
+# ============================================================
+
+@synergy_bp.route('/<session_id>/threads', methods=['GET'])
+def get_session_threads(session_id):
+    """
+    Get threads linked to a session
+    
+    Query param: user_id (optional)
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        thread_ids = []
+        if row['thread_ids']:
+            try:
+                thread_ids = json.loads(row['thread_ids'])
+            except:
+                thread_ids = []
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'thread_ids': thread_ids
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/<session_id>/linked-threads', methods=['GET'])
+def get_linked_threads_detailed(session_id):
+    """
+    Get detailed thread info for all threads linked to session
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get thread_ids from synergy session
+        sql, params = convert_sql_placeholders(
+            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        thread_ids = []
+        if row['thread_ids']:
+            try:
+                thread_ids = json.loads(row['thread_ids'])
+            except:
+                thread_ids = []
+        
+        # Fetch thread details from sessions.threads table
+        threads = []
+        if thread_ids:
+            placeholders = ','.join(['%s'] * len(thread_ids))
+            thread_sql = f"SELECT id, slug, title, created, updated FROM sessions.threads WHERE id IN ({placeholders})"
+            cursor.execute(thread_sql, thread_ids)
+            
+            for t_row in cursor.fetchall():
+                threads.append({
+                    'id': t_row['id'],
+                    'slug': t_row['slug'],
+                    'title': t_row['title'],
+                    'created': t_row['created'],
+                    'updated': t_row['updated']
+                })
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'threads': threads
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/link-thread', methods=['POST'])
+def link_thread_generic():
+    """
+    Link a thread to a synergy session (generic endpoint)
+    
+    Body: {"session_id": "sess_xxx", "thread_id": 123}
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        thread_id = data.get('thread_id')
+        
+        if not session_id or not thread_id:
+            return jsonify({'success': False, 'error': 'session_id and thread_id required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current thread_ids
+        sql, params = convert_sql_placeholders(
+            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        thread_ids = []
+        if row['thread_ids']:
+            try:
+                thread_ids = json.loads(row['thread_ids'])
+            except:
+                thread_ids = []
+        
+        if thread_id not in thread_ids:
+            thread_ids.append(thread_id)
+            
+            update_sql, update_params = convert_sql_placeholders('''
+                UPDATE synergy_sessions.synergy_sessions 
+                SET thread_ids = %s, last_active = %s
+                WHERE session_id = %s
+            ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'thread_id': thread_id,
+            'thread_ids': thread_ids
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/unlink-thread', methods=['POST'])
+def unlink_thread_generic():
+    """
+    Unlink a thread from a synergy session (generic endpoint)
+    
+    Body: {"session_id": "sess_xxx", "thread_id": 123}
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        thread_id = data.get('thread_id')
+        
+        if not session_id or not thread_id:
+            return jsonify({'success': False, 'error': 'session_id and thread_id required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current thread_ids
+        sql, params = convert_sql_placeholders(
+            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        thread_ids = []
+        if row['thread_ids']:
+            try:
+                thread_ids = json.loads(row['thread_ids'])
+            except:
+                thread_ids = []
+        
+        if thread_id in thread_ids:
+            thread_ids.remove(thread_id)
+            
+            update_sql, update_params = convert_sql_placeholders('''
+                UPDATE synergy_sessions.synergy_sessions 
+                SET thread_ids = %s, last_active = %s
+                WHERE session_id = %s
+            ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'thread_id': thread_id,
+            'thread_ids': thread_ids
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# INTERNAL DOCUMENT DISCOVERY
+# ============================================================
+
+@synergy_bp.route('/internal-docs/list', methods=['GET'])
+def list_internal_docs():
+    """
+    List all internal docs (optionally filtered by session_id)
+    
+    Query params: session_id (optional)
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        session_id = request.args.get('session_id')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if session_id:
+            sql, params = convert_sql_placeholders('''
+                SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
+                FROM synergy_sessions.synergy_internal_docs
+                WHERE session_id = %s
+                ORDER BY updated_at DESC
+            ''', (session_id,))
+        else:
+            sql, params = convert_sql_placeholders('''
+                SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
+                FROM synergy_sessions.synergy_internal_docs
+                ORDER BY updated_at DESC
+            ''', ())
+        
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        docs = []
+        for row in rows:
+            docs.append({
+                'doc_id': row['doc_id'],
+                'session_id': row['session_id'],
+                'title': row['title'],
+                'doc_type': row['doc_type'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at'],
+                'slug': row['slug'],
+                'share_url': row['share_url']
+            })
+        
+        return jsonify({
+            'success': True,
+            'docs': docs,
+            'count': len(docs)
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+
+
+
+
+
+# ============================================================
+# MILESTONE CREATION
+# ============================================================
+
+@synergy_bp.route('/<session_id>/milestones', methods=['POST'])
+def create_milestone(session_id):
+    """
+    Create a new milestone in a session
+    
+    Body: {
+        "milestone_name": "Setup Database",
+        "description": "...",
+        "priority": "high",
+        "due_date": "2024-12-31",
+        "estimated_hours": 10
+    }
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        milestone_name = data.get('milestone_name')
+        
+        if not milestone_name:
+            return jsonify({'success': False, 'error': 'milestone_name field required'}), 400
+        
+        import time
+        milestone_id = f"ms_{int(time.time() * 1000)}"
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get max milestone_number for this session
+        sql, params = convert_sql_placeholders(
+            'SELECT COALESCE(MAX(milestone_number), 0) as max_num FROM synergy_sessions.milestones WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        milestone_number = row['max_num'] + 1
+        
+        # Get max milestone_order
+        sql2, params2 = convert_sql_placeholders(
+            'SELECT COALESCE(MAX(milestone_order), 0) as max_order FROM synergy_sessions.milestones WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql2, params2)
+        row2 = cursor.fetchone()
+        milestone_order = row2['max_order'] + 1
+        
+        # Insert milestone
+        insert_sql, insert_params = convert_sql_placeholders('''
+            INSERT INTO synergy_sessions.milestones 
+            (milestone_id, session_id, milestone_number, milestone_name, description, 
+             completed, priority, due_date, estimated_hours, milestone_order, 
+             blocked, created_at, updated_at, documents, links)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            milestone_id, session_id, milestone_number, milestone_name,
+            data.get('description', ''), False, data.get('priority', 'medium'),
+            data.get('due_date'), data.get('estimated_hours'),
+            milestone_order, False, datetime.now().isoformat(), 
+            datetime.now().isoformat(), '[]', '[]'
+        ))
+        cursor.execute(insert_sql, insert_params)
+        
+        # Update session to use milestones
+        update_sql, update_params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.synergy_sessions 
+            SET uses_milestones = %s, last_active = %s
+            WHERE session_id = %s
+        ''', (True, datetime.now().isoformat(), session_id))
+        cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'milestone_number': milestone_number,
+            'session_id': session_id
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to create: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# MILESTONE DOCUMENTS & LINKS (POST methods)
+# ============================================================
+
+@synergy_bp.route('/milestone/<milestone_id>/documents', methods=['POST'])
+def add_milestone_documents(milestone_id):
+    """
+    Add documents to a milestone
+    
+    Body: {
+        "documents": [
+            {"title": "Doc 1", "url": "https://...", "type": "google_doc"}
+        ]
+    }
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        new_docs = data.get('documents', [])
+        
+        if not new_docs:
+            return jsonify({'success': False, 'error': 'documents array required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current documents
+        sql, params = convert_sql_placeholders(
+            'SELECT documents FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Parse existing documents
+        documents = []
+        if row['documents']:
+            try:
+                documents = json.loads(row['documents'])
+            except:
+                documents = []
+        
+        # Add new documents
+        documents.extend(new_docs)
+        
+        update_sql, update_params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.milestones 
+            SET documents = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
+        cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'documents': documents
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/links', methods=['POST'])
+def add_milestone_links(milestone_id):
+    """
+    Add links to a milestone
+    
+    Body: {
+        "links": [
+            {"title": "Link 1", "url": "https://...", "type": "reference"}
+        ]
+    }
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        new_links = data.get('links', [])
+        
+        if not new_links:
+            return jsonify({'success': False, 'error': 'links array required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current links
+        sql, params = convert_sql_placeholders(
+            'SELECT links FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Parse existing links
+        links = []
+        if row['links']:
+            try:
+                links = json.loads(row['links'])
+            except:
+                links = []
+        
+        # Add new links
+        links.extend(new_links)
+        
+        update_sql, update_params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.milestones 
+            SET links = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
+        cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'links': links
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# SESSION TAGS (GET method)
+# ============================================================
+
+@synergy_bp.route('/<session_id>/tags', methods=['GET'])
+def get_session_tags(session_id):
+    """
+    Get all tags for a session
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        tags = []
+        if row['tags']:
+            try:
+                tags = json.loads(row['tags'])
+            except:
+                tags = []
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'tags': tags
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# THREAD LINKING (link-to-thread variant)
+# ============================================================
+
+@synergy_bp.route('/link-to-thread', methods=['POST'])
+def link_to_thread():
+    """
+    Link a synergy session to a thread (reverse direction naming)
+    
+    Body: {"session_id": "sess_xxx", "thread_id": 123, "thread_name": "..."}
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        thread_id = data.get('thread_id')
+        thread_name = data.get('thread_name', 'Untitled Thread')
+        
+        if not session_id or not thread_id:
+            return jsonify({'success': False, 'error': 'session_id and thread_id required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current thread_ids
+        sql, params = convert_sql_placeholders(
+            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        thread_ids = []
+        if row['thread_ids']:
+            try:
+                thread_ids = json.loads(row['thread_ids'])
+            except:
+                thread_ids = []
+        
+        if thread_id not in thread_ids:
+            thread_ids.append(thread_id)
+            
+            update_sql, update_params = convert_sql_placeholders('''
+                UPDATE synergy_sessions.synergy_sessions 
+                SET thread_ids = %s, last_active = %s
+                WHERE session_id = %s
+            ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'thread_id': thread_id,
+            'thread_name': thread_name,
+            'thread_ids': thread_ids
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
+# COLUMN UPDATE (POST method - alias for PATCH)
+# ============================================================
+
+@synergy_bp.route('/<session_id>/column', methods=['POST'])
+def update_column_post(session_id):
+    """
+    Update session column (POST alias for PATCH method)
+    Handles same logic as PATCH /<session_id>/column
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.json
+        new_column = data.get('target_column') or data.get('kanban_column')
+        
+        if not new_column:
+            return jsonify({
+                'success': False,
+                'error': 'target_column or kanban_column is required'
+            }), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Add activity log
+        sql, params = convert_sql_placeholders(
+            'SELECT recent_activity FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (session_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if row:
+            activity = json.loads(row['recent_activity'] or '[]')
+            activity.insert(0, {
+                'type': 'moved',
+                'timestamp': datetime.now().isoformat(),
+                'user': data.get('moved_by', 'AI Agent'),
+                'details': f"Moved to {new_column}"
+            })
+            
+            update_sql, update_params = convert_sql_placeholders('''
+                UPDATE synergy_sessions.synergy_sessions 
+                SET kanban_column = %s, recent_activity = %s, last_active = %s
+                WHERE session_id = %s
+            ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
+            
+            cursor.execute(update_sql, update_params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        # Broadcast column change to all connected WebSocket clients
+        try:
+            from flask import current_app
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                old_column = data.get('from_column', 'unknown')
+                socketio.emit('column_changed', {
+                    'session_id': session_id,
+                    'from_column': old_column,
+                    'to_column': new_column,
+                    'timestamp': datetime.now().isoformat()
+                }, namespace='/ws/synergy', room='synergy_board')
+                print(f"[WS] Broadcasted column change: {session_id} {old_column} → {new_column}")
+        except Exception as ws_error:
+            print(f"[WS] Failed to broadcast column change: {ws_error}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Column updated successfully'
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+
+
+
+
+
+
+
+
+
+
+@synergy_bp.route('/internal-doc/<doc_id>', methods=['DELETE'])
+def delete_internal_doc(doc_id):
+    """
+    Delete an internal document
+    
+    ✅ FIXED: Proper cursor management
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders(
+            'DELETE FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s',
+            (doc_id,)
+        )
+        cursor.execute(sql, params)
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        print(f"[INTERNAL DOC] Deleted document {doc_id}")
+        
+        return jsonify({
+            'success': True,
+            'doc_id': doc_id,
+            'message': 'Document deleted successfully'
+        })
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to delete {doc_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+

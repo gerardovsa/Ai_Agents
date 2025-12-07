@@ -154,7 +154,7 @@ class ModuleRegistry:
         Scan modules directory and load all module manifests
         
         Args:
-            modules_directory: Path to modules folder (default: frontend/modules)
+            modules_directory: Path to modules folder (default: frontend/modules AND UI/modules_internal)
         
         Process:
             1. Scan modules/ directory for subdirectories
@@ -163,21 +163,32 @@ class ModuleRegistry:
             4. Build dependency graph
             5. Register module
         """
+        base_dir = Path(__file__).parent.parent.parent  # Go up to AI_agents root
+        
+        # Scan MULTIPLE module directories
+        module_search_paths = []
+        
         if modules_directory is None:
-            # Default to frontend/modules relative to this file
-            base_dir = Path(__file__).parent.parent.parent  # Go up to AI_agents root
-            modules_directory = os.path.join(base_dir, "frontend", "modules")
+            # Default: Scan both frontend/modules AND UI/modules_internal
+            module_search_paths.append(base_dir / "frontend" / "modules")
+            module_search_paths.append(base_dir / "UI" / "modules_internal")
+        else:
+            module_search_paths.append(Path(modules_directory))
         
-        modules_directory = Path(modules_directory)
+        all_module_dirs = []
+        for search_path in module_search_paths:
+            if search_path.exists():
+                logger.info(f"Scanning modules directory: {search_path}")
+                module_dirs = [d for d in search_path.iterdir() if d.is_dir()]
+                all_module_dirs.extend(module_dirs)
+                logger.info(f"  Found {len(module_dirs)} module directories")
+            else:
+                logger.warning(f"Modules directory not found: {search_path}")
         
-        if not modules_directory.exists():
-            logger.warning(f"Modules directory not found: {modules_directory}")
-            return
+        logger.info(f"Total module directories to process: {len(all_module_dirs)}")
         
-        logger.info(f"Scanning modules directory: {modules_directory}")
-        
-        # Scan for module directories
-        module_dirs = [d for d in modules_directory.iterdir() if d.is_dir()]
+        # Process all collected module directories
+        module_dirs = all_module_dirs
         
         for module_dir in module_dirs:
             manifest_path = module_dir / "manifest.json"
