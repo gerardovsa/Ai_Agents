@@ -90,11 +90,17 @@
         "properties": {
           "business_id": {
             "type": "integer",
-            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
           },
           "search": {
             "type": "string",
             "description": "Search by contact name (optional)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of contacts to return (default: 50)",
+            "default": 50
           }
         },
         "required": [
@@ -102,8 +108,111 @@
         ]
       },
       "returns": {
-        "type": "array",
-        "description": "List of contacts with details"
+        "type": "object",
+        "description": "List of contacts with details including contact_id, name, email, phone, customer/supplier status"
+      },
+      "example": {
+        "request": {
+          "business_id": 1,
+          "search": "CJ King",
+          "limit": 10
+        },
+        "response": {
+          "success": true,
+          "business_id": 1,
+          "business_name": "InHouse Print",
+          "contact_count": 1,
+          "contacts": [
+            {
+              "contact_id": "996dfeab-0754-4d5c-881b-00740d6d12a2",
+              "name": "CJ King Printing",
+              "email": "info@cjking.com",
+              "phone": "555-0123",
+              "is_customer": true,
+              "is_supplier": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "xero_get_contact_by_id",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead contact details from **Xero Contacts API**\n- Contact ID: `996dfeab-0754-4d5c-881b-00740d6d12a2`\n- Contact: CJ King Printing\n- Data: [full contact details with addresses, phones, contact persons]\n\nGet detailed information for a specific contact by ContactID. Returns complete contact profile including addresses, phone numbers, contact persons, and account details. Use this BEFORE getting quotes to understand the full customer relationship.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "Xero ContactID (GUID format) - get from xero_get_contacts first"
+          }
+        },
+        "required": [
+          "business_id",
+          "contact_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Detailed contact information including: contact details (name, email, phones, addresses), contact status and type (customer/supplier), account numbers and tax details, contact persons, and related data tools suggestions"
+      },
+      "example": {
+        "request": {
+          "business_id": 1,
+          "contact_id": "996dfeab-0754-4d5c-881b-00740d6d12a2"
+        },
+        "response": {
+          "success": true,
+          "business_id": 1,
+          "business_name": "InHouse Print",
+          "contact": {
+            "contact_id": "996dfeab-0754-4d5c-881b-00740d6d12a2",
+            "contact_number": "C001",
+            "name": "CJ King Printing",
+            "email": "info@cjking.com",
+            "is_customer": true,
+            "is_supplier": false,
+            "status": "ACTIVE",
+            "addresses": [
+              {
+                "type": "STREET",
+                "line1": "123 Main St",
+                "city": "Sydney",
+                "region": "NSW",
+                "postal_code": "2000",
+                "country": "Australia"
+              }
+            ],
+            "phones": [
+              {
+                "type": "DEFAULT",
+                "number": "555-0123",
+                "area_code": "02",
+                "country_code": "+61"
+              }
+            ],
+            "contact_persons": [
+              {
+                "first_name": "John",
+                "last_name": "Doe",
+                "email": "john@cjking.com",
+                "include_in_emails": true
+              }
+            ],
+            "tax_number": "ABN 12345678901",
+            "default_currency": "AUD"
+          },
+          "related_data_tools": {
+            "get_invoices": "Use xero_get_invoices with contact_name parameter",
+            "get_quotes": "Use xero_list_quotes (from xero_quotes.py) with contact_id parameter",
+            "get_payments": "Use xero_get_payments for payment history"
+          }
+        }
       }
     },
     {

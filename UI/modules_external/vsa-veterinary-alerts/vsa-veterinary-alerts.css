@@ -301,95 +301,244 @@
     gap: 0.5rem;
 }
 
-/* ==================== ALERT CARDS ==================== */
+/* ==================== TIERED ALERT CARDS (Streamlit-style) ==================== */
+
+/* Tier 3 Alert Cards - Main container */
 .vsa-alert-card {
-    background: #1E2530;
+    margin-bottom: 1.5rem;
     border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    border-left: 4px solid;
-    border-right: 1px solid #2A3142;
-    border-top: 1px solid #2A3142;
-    border-bottom: 1px solid #2A3142;
-    transition: all 0.3s;
-    cursor: pointer;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #1E2530;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .vsa-alert-card:hover {
-    transform: translateX(4px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.vsa-severity-high {
-    border-left-color: #d32f2f;
+.vsa-alert-card:focus-within {
+    outline: 2px solid #1E88E5;
+    outline-offset: 2px;
 }
 
-.vsa-severity-medium {
-    border-left-color: #f57c00;
-}
-
-.vsa-severity-low {
-    border-left-color: #388e3c;
-}
-
-.vsa-alert-header {
-    margin-bottom: 1rem;
-}
-
-.vsa-alert-title-row {
+/* Tier Header - Gradient background with border */
+.vsa-tier-header {
+    padding: 14px 20px 16px 20px;
+    border-radius: 12px 12px 0 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    position: relative;
+    box-shadow: 
+        0 0 0 1px rgba(211, 47, 47, 0.33),
+        0 4px 12px rgba(0, 0, 0, 0.3);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
 }
 
-.vsa-alert-type {
-    font-size: 1.125rem;
-    /* font-weight: 600; */
-    color: #E8EAED;
+.vsa-tier-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.vsa-title-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.5px;
     margin: 0;
 }
 
-.vsa-alert-meta {
-    display: flex;
-    gap: 1.5rem;
-    font-size: 0.8125rem;
-    color: #9AA0A6;
+/* Tier-specific font sizes (T1 > T2 > T3 > T4) */
+.vsa-tier-1 .vsa-title-text { font-size: 1.4rem; }
+.vsa-tier-2 .vsa-title-text { font-size: 1.2rem; }
+.vsa-tier-3 .vsa-title-text { font-size: 1.1rem; }
+.vsa-tier-4 .vsa-title-text { font-size: 1.0rem; }
+
+/* Description/Subtitle */
+.vsa-tier-description {
+    font-size: 0.95rem;
+    color: #b8c5d0;
+    font-style: italic;
+    line-height: 1.4;
+    padding: 12px 20px;
+    background: rgba(42, 49, 66, 0.5);
 }
 
-.vsa-alert-meta span {
+/* Expander Toggle Button */
+.vsa-expander-toggle {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    justify-content: center;
 }
 
-.vsa-alert-meta i {
-    color: #5A6170;
+.vsa-expander-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-.vsa-alert-body {
+.vsa-expander-toggle:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+    outline-offset: 2px;
+}
+
+.vsa-expander-toggle[aria-expanded="true"] i {
+    transform: rotate(180deg);
+}
+
+.vsa-expander-toggle i {
+    transition: transform 0.3s ease;
+}
+
+/* Expandable Content */
+.vsa-expander-content {
+    padding: 1.5rem;
+    background: #1E2530;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vsa-expander-content[aria-hidden="false"] {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Detail Sections */
+.vsa-detail-section {
+    margin-bottom: 1.5rem;
     padding: 1rem;
-    background: #2A3142;
+    background: rgba(42, 49, 66, 0.4);
     border-radius: 8px;
-    margin-bottom: 1rem;
+    border-left: 3px solid #1E88E5;
 }
 
-.vsa-alert-body p {
+.vsa-detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.vsa-warning-section {
+    border-left-color: #f57c00;
+    background: rgba(245, 124, 0, 0.1);
+}
+
+.vsa-action-section {
+    border-left-color: #388e3c;
+    background: rgba(56, 142, 60, 0.1);
+}
+
+.vsa-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #E8EAED;
+    margin: 0 0 0.75rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vsa-section-title i {
+    color: #1E88E5;
+}
+
+.vsa-warning-section .vsa-section-title i {
+    color: #f57c00;
+}
+
+.vsa-action-section .vsa-section-title i {
+    color: #388e3c;
+}
+
+.vsa-detail-text {
     margin: 0;
     color: #BDC1C6;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 0.9375rem;
 }
 
-.vsa-alert-footer {
+.vsa-evidence {
+    font-family: 'Monaco', 'Courier New', monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.vsa-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.vsa-detail-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
-.vsa-alert-status {
+.vsa-detail-item label {
     font-size: 0.8125rem;
     color: #9AA0A6;
-    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.vsa-detail-item span {
+    color: #E8EAED;
+    font-size: 0.9375rem;
+}
+
+.vsa-code {
+    font-family: 'Monaco', 'Courier New', monospace;
+    background: rgba(30, 136, 229, 0.15);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #64B5F6;
+}
+
+/* Alert Actions */
+.vsa-alert-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vsa-btn-primary {
+    background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+}
+
+.vsa-btn-primary:hover {
+    background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
+}
+
+.vsa-btn-secondary {
+    background: linear-gradient(135deg, #5E35B1 0%, #4527A0 100%);
+}
+
+.vsa-btn-secondary:hover {
+    background: linear-gradient(135deg, #512DA8 0%, #311B92 100%);
 }
 
 /* ==================== FOLLOW-UP CARDS ==================== */
@@ -479,30 +628,49 @@
     text-transform: capitalize;
 }
 
-/* ==================== BADGES ==================== */
+/* ==================== BADGES (Enhanced Streamlit-style) ==================== */
 .vsa-badge {
-    display: inline-block;
-    padding: 0.25rem 0.625rem;
-    border-radius: 4px;
-    font-size: 0.6875rem;
-    /* font-weight: 600; */
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    font-size: 0.65rem;
+    padding: 6px 10px 5px 10px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    text-shadow: none;
+    backdrop-filter: blur(4px);
+    box-shadow: 
+        0 2px 6px -1px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+    transition: all 0.2s ease;
+}
+
+.vsa-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+        0 4px 8px -1px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .vsa-badge-danger {
-    background: #d32f2f;
-    color: white;
+    background: linear-gradient(145deg, rgba(211, 47, 47, 0.9), rgba(198, 40, 40, 0.8));
+    border-color: rgba(211, 47, 47, 0.4);
 }
 
 .vsa-badge-warning {
-    background: #f57c00;
-    color: white;
+    background: linear-gradient(145deg, rgba(245, 124, 0, 0.9), rgba(239, 108, 0, 0.8));
+    border-color: rgba(245, 124, 0, 0.4);
 }
 
 .vsa-badge-success {
-    background: #388e3c;
-    color: white;
+    background: linear-gradient(145deg, rgba(56, 142, 60, 0.9), rgba(46, 125, 50, 0.8));
+    border-color: rgba(56, 142, 60, 0.4);
 }
 
 /* ==================== EMPTY STATES ==================== */

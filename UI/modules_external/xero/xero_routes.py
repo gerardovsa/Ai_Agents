@@ -285,6 +285,16 @@ class XeroAPIClient:
             )
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 401:
+                raise Exception(
+                    f"Xero API 401 Unauthorized for endpoint '{endpoint}'. "
+                    f"This may indicate missing OAuth scope. "
+                    f"For 'Accounts' endpoint, ensure 'accounting.settings.read' scope is enabled in Xero Developer Portal. "
+                    f"Business: {self.config['name']} (ID: {self.business_id}). "
+                    f"Error: {str(e)}"
+                )
+            raise Exception(f"Xero API request failed ({response.status_code}): {str(e)}")
         except requests.exceptions.RequestException as e:
             raise Exception(f"Xero API request failed: {str(e)}")
 

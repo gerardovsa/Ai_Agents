@@ -77,6 +77,24 @@ def _extract_token(kwargs: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _ensure_int(value: Any, default: int) -> int:
+    """
+    Ensure value is an integer, converting from string if needed.
+    Returns default if conversion fails.
+    
+    This handles cases where API/JSON calls pass string values
+    instead of integers (e.g., limit="100" instead of limit=100)
+    """
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
+    return default
+
+
 def xero_platform_guide(task_description: Optional[str] = None, **kwargs) -> Dict[str, Any]:
     """
     ⚠️ CALL THIS FIRST BEFORE USING ANY XERO TOOLS!
@@ -584,6 +602,9 @@ def xero_get_invoice_by_id(business_id: int = 1, invoice_id: str = None, **kwarg
 def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, limit: int = 50, **kwargs) -> Dict[str, Any]:
     """Get contacts (customers/suppliers) from Xero. Limited to 50 records by default to prevent overwhelming responses."""
     try:
+        # Ensure limit is integer (handle string inputs from API/JSON)
+        limit = _ensure_int(limit, 50)
+        
         client = _get_client(business_id)
         
         params = {}
@@ -638,9 +659,122 @@ def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, limit:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
-def xero_get_accounts(business_id: int = 1, **kwargs) -> Dict[str, Any]:
+def xero_get_contact_by_id(business_id: int = 1, contact_id: str = None, **kwargs) -> Dict[str, Any]:
+    """
+    Get detailed information for a specific contact by ContactID.
+    Use this to retrieve full contact details including addresses, phones, and contact persons.
+    
+    Args:
+        business_id: Business ID (1=InHouse Print, 2=Publishing, 3=Signs)
+        contact_id: Xero ContactID (GUID format)
+    
+    Returns:
+        Dict with detailed contact information including:
+        - Contact details (name, email, phones, addresses)
+        - Contact status and type (customer/supplier)
+        - Account numbers and tax details
+        - Contact persons
+        - Balances (accounts receivable/payable)
+    
+    Example:
+        # Get contact details
+        contact = xero_get_contact_by_id(business_id=1, contact_id="abc-123-def")
+        
+        # Then get their quotes
+        from tools.implementations.xero_quotes import xero_list_quotes
+        quotes = xero_list_quotes(business_id=1, contact_id=contact['contact']['contact_id'])
+    """
+    try:
+        if not contact_id:
+            raise ValueError('contact_id is required')
+        
+        client = _get_client(business_id)
+        
+        # Use make_request to get contact by ID
+        data = client.make_request('GET', f'Contacts/{contact_id}')
+        contacts = data.get('Contacts', [])
+        
+        if not contacts:
+            return {
+                "success": False,
+                "error": f"Contact not found: {contact_id}"
+            }
+        
+        contact = contacts[0]
+        
+        # Extract addresses
+        addresses = []
+        for addr in contact.get('Addresses', []):
+            addresses.append({
+                'type': addr.get('AddressType'),
+                'line1': addr.get('AddressLine1'),
+                'line2': addr.get('AddressLine2'),
+                'city': addr.get('City'),
+                'region': addr.get('Region'),
+                'postal_code': addr.get('PostalCode'),
+                'country': addr.get('Country')
+            })
+        
+        # Extract phones
+        phones = []
+        for phone in contact.get('Phones', []):
+            phones.append({
+                'type': phone.get('PhoneType'),
+                'number': phone.get('PhoneNumber'),
+                'area_code': phone.get('PhoneAreaCode'),
+                'country_code': phone.get('PhoneCountryCode')
+            })
+        
+        # Extract contact persons
+        contact_persons = []
+        for person in contact.get('ContactPersons', []):
+            contact_persons.append({
+                'first_name': person.get('FirstName'),
+                'last_name': person.get('LastName'),
+                'email': person.get('EmailAddress'),
+                'include_in_emails': person.get('IncludeInEmails')
+            })
+        
+        return {
+            "success": True,
+            "business_id": business_id,
+            "business_name": client.config['name'],
+            "contact": {
+                'contact_id': contact.get('ContactID'),
+                'contact_number': contact.get('ContactNumber'),
+                'name': contact.get('Name'),
+                'email': contact.get('EmailAddress'),
+                'is_customer': contact.get('IsCustomer'),
+                'is_supplier': contact.get('IsSupplier'),
+                'status': contact.get('ContactStatus'),
+                'addresses': addresses,
+                'phones': phones,
+                'contact_persons': contact_persons,
+                'tax_number': contact.get('TaxNumber'),
+                'account_number': contact.get('AccountNumber'),
+                'accounts_receivable_outstanding': contact.get('AccountsReceivableTaxType'),
+                'accounts_payable_outstanding': contact.get('AccountsPayableTaxType'),
+                'default_currency': contact.get('DefaultCurrency'),
+                'website': contact.get('Website'),
+                'bank_account_details': contact.get('BankAccountDetails'),
+                'updated_date_utc': contact.get('UpdatedDateUTC')
+            },
+            "related_data_tools": {
+                "get_invoices": "Use xero_get_invoices with contact_name parameter",
+                "get_quotes": "Use xero_list_quotes (from xero_quotes.py) with contact_id parameter",
+                "get_payments": "Use xero_get_payments for payment history"
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
+def xero_get_accounts(business_id: int = 1, limit: int = 50, **kwargs) -> Dict[str, Any]:
     """Get chart of accounts from Xero. Limited to 50 records by default to prevent overwhelming responses."""
     try:
+        # Ensure limit is integer (handle string inputs from API/JSON)
+        limit = _ensure_int(limit, 50)
+        
         client = _get_client(business_id)
         
         # Use make_request to get accounts
@@ -944,13 +1078,17 @@ def xero_get_data_metadata(business_id: int = 1, **kwargs) -> Dict[str, Any]:
 
 
 def xero_get_contacts_by_date_range(business_id: int = 1, from_date: str = None, 
-                                    to_date: str = None, limit: int = 1000, 
+                                    to_date: str = None, limit: int = 100, 
                                     **kwargs) -> Dict[str, Any]:
     """
     Get contacts created/updated within a specific date range.
     Use xero_get_data_metadata first to understand volume.
+    Limited to 100 records by default.
     """
     try:
+        # Ensure limit is integer (handle string inputs from API/JSON)
+        limit = _ensure_int(limit, 100)
+        
         if not from_date or not to_date:
             raise ValueError("from_date and to_date are required (YYYY-MM-DD format)")
         
@@ -1012,12 +1150,16 @@ def xero_get_contacts_by_date_range(business_id: int = 1, from_date: str = None,
 
 def xero_get_invoices_by_date_range(business_id: int = 1, from_date: str = None,
                                     to_date: str = None, status: Optional[str] = None,
-                                    limit: int = 1000, **kwargs) -> Dict[str, Any]:
+                                    limit: int = 100, **kwargs) -> Dict[str, Any]:
     """
     Get invoices within a specific date range.
     Use xero_get_data_metadata first to understand volume.
+    Limited to 100 records by default.
     """
     try:
+        # Ensure limit is integer (handle string inputs from API/JSON)
+        limit = _ensure_int(limit, 100)
+        
         if not from_date or not to_date:
             raise ValueError("from_date and to_date are required (YYYY-MM-DD format)")
         
@@ -1084,13 +1226,17 @@ def xero_get_invoices_by_date_range(business_id: int = 1, from_date: str = None,
 
 
 def xero_get_payments_by_date_range(business_id: int = 1, from_date: str = None,
-                                    to_date: str = None, limit: int = 1000,
+                                    to_date: str = None, limit: int = 100,
                                     **kwargs) -> Dict[str, Any]:
     """
     Get payments within a specific date range.
     Use xero_get_data_metadata first to understand volume.
+    Limited to 100 records by default.
     """
     try:
+        # Ensure limit is integer (handle string inputs from API/JSON)
+        limit = _ensure_int(limit, 100)
+        
         if not from_date or not to_date:
             raise ValueError("from_date and to_date are required (YYYY-MM-DD format)")
         
@@ -1162,6 +1308,9 @@ def xero_get_accounts_metadata(business_id: int = 1, limit: int = 50, **kwargs) 
     Use this FIRST before retrieving all accounts to understand structure.
     """
     try:
+        # Ensure limit is integer (handle string inputs from API/JSON)
+        limit = _ensure_int(limit, 50)
+        
         client = _get_client(business_id)
         
         # Get all accounts
@@ -1307,7 +1456,7 @@ def xero_get_accounts_by_type(business_id: int = 1, account_type: str = None,
 
 def xero_get_bank_transactions_by_date_range(business_id: int = 1, from_date: str = None,
                                              to_date: str = None, transaction_type: Optional[str] = None,
-                                             status: Optional[str] = None, limit: int = 1000,
+                                             status: Optional[str] = None, limit: int = 100,
                                              **kwargs) -> Dict[str, Any]:
     """
     Get bank transactions within a specific date range with additional filters.
@@ -1319,8 +1468,12 @@ def xero_get_bank_transactions_by_date_range(business_id: int = 1, from_date: st
     - Date range coverage
     
     Use xero_get_data_metadata first to understand volume.
+    Limited to 100 records by default.
     """
     try:
+        # Ensure limit is integer (handle string inputs from API/JSON)
+        limit = _ensure_int(limit, 100)
+        
         if not from_date or not to_date:
             raise ValueError("from_date and to_date are required (YYYY-MM-DD format)")
         
