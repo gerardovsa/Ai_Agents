@@ -1145,7 +1145,7 @@ def calculate_saddle_stitch_books(
         }
 
 
-def calculate_bollard_signs_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_bollard_signs(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Bollard Signs"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1169,7 +1169,7 @@ def calculate_bollard_signs_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_construction_signs_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_construction_signs(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Construction Signs"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1193,7 +1193,7 @@ def calculate_construction_signs_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_election_signs_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_election_signs(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Election Signs"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1217,7 +1217,7 @@ def calculate_election_signs_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_corflute_insert_a_frame_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_corflute_insert_a_frame(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Corflute Insert A-Frame"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1242,7 +1242,7 @@ def calculate_corflute_insert_a_frame_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_metal_face_a_frame_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_metal_face_a_frame(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Metal Face A-Frame"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1266,7 +1266,7 @@ def calculate_metal_face_a_frame_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_luxury_classic_pull_up_banners_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_luxury_classic_pull_up_banners(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Luxury Classic Pull Up Banners"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1290,7 +1290,7 @@ def calculate_luxury_classic_pull_up_banners_shopify(**kwargs) -> Dict[str, Any]
         return {"success": False, "error": str(e)}
 
 
-def calculate_selfie_frames_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_selfie_frames(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Selfie Frames"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1314,7 +1314,7 @@ def calculate_selfie_frames_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_stackable_cubes_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_stackable_cubes(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Stackable Cubes"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1338,7 +1338,7 @@ def calculate_stackable_cubes_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_strut_cards_a3_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_strut_cards_a3(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Strut Cards A3"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1362,7 +1362,7 @@ def calculate_strut_cards_a3_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_strut_cards_a4_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_strut_cards_a4(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Strut Cards A4"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1386,7 +1386,7 @@ def calculate_strut_cards_a4_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_custom_poster_printing_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_custom_poster_printing(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Custom Poster Printing"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1410,7 +1410,7 @@ def calculate_custom_poster_printing_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_custom_vinyl_stickers_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_custom_vinyl_stickers(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Custom Vinyl Stickers"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1434,7 +1434,7 @@ def calculate_custom_vinyl_stickers_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_premium_bookmarks_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_premium_bookmarks(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Premium Bookmarks"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1458,7 +1458,7 @@ def calculate_premium_bookmarks_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_printed_letterheads_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_printed_letterheads(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Printed Letterheads"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1482,7 +1482,7 @@ def calculate_printed_letterheads_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_with_compliments_slips_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_with_compliments_slips(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for With Compliments Slips"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1506,7 +1506,7 @@ def calculate_with_compliments_slips_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_notepads_a4_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_notepads_a4(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Notepads A4"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1530,7 +1530,7 @@ def calculate_notepads_a4_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_notepads_a5_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_notepads_a5(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Notepads A5"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1554,7 +1554,7 @@ def calculate_notepads_a5_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_notepads_a6_shopify(**kwargs) -> Dict[str, Any]:
+def calculate_notepads_a6(**kwargs) -> Dict[str, Any]:
     """Shopify calculator for Notepads A6"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -1578,30 +1578,17 @@ def calculate_notepads_a6_shopify(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def calculate_perfect_bound_books_shopify(
-    quantity: int,
-    pages: int,
-    size: str = "A5",
-    cover_stock: str = "300GSM Satin",
-    inner_stock: str = "Uncoated Bond 100GSM",
-    **kwargs
-) -> Dict[str, Any]:
-    """Shopify calculator for Perfect Bound Books"""
+def calculate_spiral_bound_books(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Spiral Bound Books"""
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator
-        calculator = PerfectBoundShopifyCalculator()
-        result = calculator.calculate(
-            quantity=quantity,
-            pages=pages,
-            size=size,
-            cover_stock=cover_stock,
-            inner_stock=inner_stock
-        )
+        from inhouse_modules.shopify_calculators.SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
+        calculator = SpiralBoundShopifyCalculator()
+        result = calculator.calculate(**kwargs)
         return {
             "success": True,
-            "product_type": "Perfect Bound Books",
+            "product_type": "Spiral Bound Books",
             "quantity": result.quantity,
             "total_price": float(result.total_price),
             "unit_price": float(result.unit_price),
@@ -1610,7 +1597,7 @@ def calculate_perfect_bound_books_shopify(
             "specifications": result.specifications
         }
     except Exception as e:
-        print(f"❌ [Shopify Perfect Bound Books] Error: {e}")
+        print(f"❌ [Shopify Spiral Bound Books] Error: {e}")
         traceback.print_exc()
         return {"success": False, "error": str(e)}
 

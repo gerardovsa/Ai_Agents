@@ -1,0 +1,1493 @@
+{
+  "platform": "quote_calculator",
+  "description": "InHouse Print quote calculator tools - Calculate pricing with GOD (database-driven) and Shopify (hardcoded) calculators for business cards, flyers, booklets, perfect bound books, letterheads, and corflute signs",
+  "tools": [
+    {
+      "name": "calculate_business_cards",
+      "description": "Calculate quote for business cards. Returns total price, per-card cost, stock details, and turnaround time. Standard size is 90x55mm.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of business cards to print (minimum: 50, maximum: 10000)"
+          },
+          "stock_type": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "premium"
+            ],
+            "description": "Paper stock type - 'standard' (350GSM Satin) or 'premium' (400GSM Satin)"
+          },
+          "sides": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "Number of printed sides (1 for single-sided, 2 for double-sided)"
+          }
+        },
+        "required": [
+          "quantity",
+          "stock_type",
+          "sides"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Quote result with total_price, per_unit_price, stock_details, turnaround_days"
+      },
+      "examples": [
+        {
+          "description": "Quote for 1000 double-sided premium business cards",
+          "parameters": {
+            "quantity": 1000,
+            "stock_type": "premium",
+            "sides": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "calculate_flyers",
+      "description": "Calculate quote for flyers/leaflets. Supports multiple sizes (A6, DL, A5, A4) and paper stocks. Returns pricing breakdown.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of flyers to print"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "A6",
+              "DL",
+              "A5",
+              "A4"
+            ],
+            "description": "Flyer size - A6 (105x148mm), DL (99x210mm), A5 (148x210mm), A4 (210x297mm)"
+          },
+          "stock": {
+            "type": "string",
+            "description": "Paper stock (e.g. '150GSM Gloss', '250GSM Satin', '300GSM Uncoated'). Use get_stock_list to see available stocks."
+          },
+          "sides": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "Number of printed sides (1 or 2)"
+          }
+        },
+        "required": [
+          "quantity",
+          "size",
+          "stock",
+          "sides"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Quote with total_price, per_unit_price, stock_details"
+      }
+    },
+    {
+      "name": "calculate_booklets",
+      "description": "Calculate quote for saddle-stitched booklets. Booklets are folded and stapled along the spine. Page count must be divisible by 4.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of booklets to print"
+          },
+          "pages": {
+            "type": "integer",
+            "description": "Total number of pages (must be divisible by 4, e.g. 8, 12, 16, 20)"
+          },
+          "cover_stock": {
+            "type": "string",
+            "description": "Cover paper stock (e.g. '250GSM Gloss')"
+          },
+          "inner_stock": {
+            "type": "string",
+            "description": "Inner pages paper stock (e.g. '150GSM Gloss')"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "A5",
+              "A4"
+            ],
+            "description": "Finished booklet size"
+          }
+        },
+        "required": [
+          "quantity",
+          "pages",
+          "cover_stock",
+          "inner_stock",
+          "size"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Quote with total_price, per_booklet_price, binding_cost"
+      }
+    },
+    {
+      "name": "calculate_perfect_bound_books",
+      "description": "Calculate quote for perfect bound books (glued spine, like paperback books). For books with more pages that need durable binding.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of books to print"
+          },
+          "pages": {
+            "type": "integer",
+            "description": "Total number of pages (minimum: 24)"
+          },
+          "cover_stock": {
+            "type": "string",
+            "description": "Cover paper stock (typically heavier, e.g. '300GSM Gloss')"
+          },
+          "inner_stock": {
+            "type": "string",
+            "description": "Inner pages paper stock (e.g. '115GSM Uncoated')"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "A5",
+              "A4"
+            ],
+            "description": "Book size"
+          }
+        },
+        "required": [
+          "quantity",
+          "pages",
+          "cover_stock",
+          "inner_stock",
+          "size"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Quote with total_price, per_book_price, binding_cost"
+      }
+    },
+    {
+      "name": "calculate_letterheads",
+      "description": "Calculate quote for letterheads (company stationery). Typically A4 size, single-sided.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of letterheads to print"
+          },
+          "stock": {
+            "type": "string",
+            "description": "Paper stock (e.g. '100GSM Uncoated', '120GSM Bond')"
+          },
+          "colors": {
+            "type": "integer",
+            "description": "Number of ink colors (1 for black, 4 for full color)"
+          }
+        },
+        "required": [
+          "quantity",
+          "stock",
+          "colors"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Quote with total_price, per_sheet_price"
+      }
+    },
+    {
+      "name": "calculate_corflute_signs",
+      "description": "Calculate quote for corflute signs (rigid plastic signage). Used for outdoor signs, real estate signs, event signage.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of signs to print"
+          },
+          "size": {
+            "type": "string",
+            "description": "Sign size in format 'WIDTHxHEIGHT' (e.g. '600x900', '900x1200')"
+          },
+          "thickness": {
+            "type": "string",
+            "enum": [
+              "3mm",
+              "5mm"
+            ],
+            "description": "Corflute sheet thickness"
+          },
+          "sides": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "Number of printed sides"
+          }
+        },
+        "required": [
+          "quantity",
+          "size",
+          "thickness",
+          "sides"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Quote with total_price, per_sign_price, material_cost"
+      }
+    },
+    {
+      "name": "get_stock_list",
+      "description": "Get list of all available paper stocks with specifications. Returns stock name, GSM weight, finish type, and pricing multipliers. Use this BEFORE calculating quotes to see available stock options.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "all",
+              "gloss",
+              "satin",
+              "uncoated",
+              "specialty"
+            ],
+            "description": "Filter stocks by category (optional, defaults to 'all')"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "array",
+        "description": "List of stock objects with: name, gsm, finish, suitable_for, price_multiplier"
+      },
+      "examples": [
+        {
+          "description": "Get all available stocks",
+          "parameters": {
+            "category": "all"
+          }
+        }
+      ]
+    },
+    {
+      "name": "calculate_flyers_god",
+      "description": "GOD (database-driven) flyer calculator - Most accurate pricing using live database. Supports custom sizes, folding, cellophane lamination. Use for complex quotes or when database accuracy is critical.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of flyers to print (minimum: 1)"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Finished width in mm (e.g., 210 for A4 width)"
+          },
+          "height": {
+            "type": "integer",
+            "description": "Finished height in mm (e.g., 297 for A4 height)"
+          },
+          "gsm": {
+            "type": "integer",
+            "description": "Paper weight in GSM (e.g., 150, 250, 300)"
+          },
+          "print_side1": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "Print mode for side 1: 0=none, 1=colour, 2=b&w, 3=b&w on colour (default: 1)"
+          },
+          "print_side2": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "Print mode for side 2: 0=none, 1=colour, 2=b&w, 3=b&w on colour (default: 0)"
+          },
+          "folding_required": {
+            "type": "boolean",
+            "description": "Whether folding is required (default: false)"
+          },
+          "folding_passes": {
+            "type": "integer",
+            "description": "Number of folds: 1=half fold, 2=z-fold, 3=gate fold (default: 1)"
+          },
+          "cello_required": {
+            "type": "boolean",
+            "description": "Whether cellophane lamination required (default: false)"
+          },
+          "cello_side1": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "Cello type for side 1: 0=none, 1=gloss, 2=matt (default: 0)"
+          },
+          "cello_side2": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "Cello type for side 2: 0=none, 1=gloss, 2=matt (default: 0)"
+          }
+        },
+        "required": [
+          "quantity",
+          "width",
+          "height",
+          "gsm"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "QuoteResult with cost_to_business, profit_margin, total_cost_ex_gst, total_cost_inc_gst, breakdown, specifications"
+      },
+      "examples": [
+        {
+          "description": "A4 flyer, 250GSM, full colour both sides",
+          "parameters": {
+            "quantity": 1000,
+            "width": 210,
+            "height": 297,
+            "gsm": 250,
+            "print_side1": 1,
+            "print_side2": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "calculate_letterheads_god",
+      "description": "GOD (database-driven) letterhead calculator - Database-accurate pricing for company stationery. Supports custom sizes, multiple print modes, cellophane options.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of letterheads to print"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Finished width in mm (typically 210 for A4)"
+          },
+          "height": {
+            "type": "integer",
+            "description": "Finished height in mm (typically 297 for A4)"
+          },
+          "gsm": {
+            "type": "integer",
+            "description": "Paper weight in GSM (e.g., 100, 120)"
+          },
+          "print_side1": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "Print mode for side 1: 0=none, 1=colour, 2=b&w, 3=b&w on colour (default: 1)"
+          },
+          "print_side2": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "Print mode for side 2: 0=none, 1=colour, 2=b&w, 3=b&w on colour (default: 0)"
+          },
+          "cello_required": {
+            "type": "boolean",
+            "description": "Whether cellophane lamination required (default: false)"
+          },
+          "cello_side1": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "Cello type for side 1: 0=none, 1=gloss, 2=matt (default: 0)"
+          }
+        },
+        "required": [
+          "quantity",
+          "width",
+          "height",
+          "gsm"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "QuoteResult with complete cost breakdown and specifications"
+      }
+    },
+    {
+      "name": "calculate_perfect_bound_books_god",
+      "description": "GOD (database-driven) perfect bound books calculator - Database-accurate pricing for glued-spine books. Supports multiple page counts, cover/inner stock combinations, A4/A5 sizes.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of books to print"
+          },
+          "pages": {
+            "type": "integer",
+            "description": "Total number of pages (minimum: 24)"
+          },
+          "cover_width": {
+            "type": "integer",
+            "description": "Cover width in mm (typically 210 for A4, 148 for A5)"
+          },
+          "cover_height": {
+            "type": "integer",
+            "description": "Cover height in mm (typically 297 for A4, 210 for A5)"
+          },
+          "cover_gsm": {
+            "type": "integer",
+            "description": "Cover paper weight (e.g., 250, 300)"
+          },
+          "inner_gsm": {
+            "type": "integer",
+            "description": "Inner pages paper weight (e.g., 100, 115, 120)"
+          },
+          "print_cover_outside": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "Print mode for cover outside: 0=none, 1=colour, 2=b&w (default: 1)"
+          },
+          "print_cover_inside": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "Print mode for cover inside: 0=none, 1=colour, 2=b&w (default: 0)"
+          },
+          "print_inner": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "Print mode for inner pages: 0=none, 1=colour, 2=b&w (default: 2)"
+          },
+          "cello_required": {
+            "type": "boolean",
+            "description": "Cover cellophane lamination (default: false)"
+          }
+        },
+        "required": [
+          "quantity",
+          "pages",
+          "cover_width",
+          "cover_height",
+          "cover_gsm",
+          "inner_gsm"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "QuoteResult with cost breakdown, binding cost, material cost"
+      }
+    },
+    {
+      "name": "calculate_corflute_signs_god",
+      "description": "GOD (database-driven) corflute signs calculator - Database-accurate pricing for rigid plastic signage. Supports custom sizes, 3mm/5mm thickness, single/double sided printing.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of signs to print"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Sign width in mm (e.g., 600, 900, 1200)"
+          },
+          "height": {
+            "type": "integer",
+            "description": "Sign height in mm (e.g., 600, 900, 1200)"
+          },
+          "thickness": {
+            "type": "integer",
+            "enum": [
+              3,
+              5
+            ],
+            "description": "Corflute thickness in mm: 3 or 5 (default: 3)"
+          },
+          "print_sides": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "Number of printed sides: 1 or 2 (default: 1)"
+          }
+        },
+        "required": [
+          "quantity",
+          "width",
+          "height"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "QuoteResult with material cost, printing cost, total cost"
+      }
+    },
+    {
+      "name": "calculate_economical_business_cards_shopify",
+      "description": "Shopify calculator for Economical Business Cards - Hardcoded Shopify pricing (90x55mm, 300GSM Satin, single/double sided). Fast quotes matching website.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "enum": [
+              250,
+              500,
+              1000,
+              2000,
+              5000,
+              10000
+            ],
+            "description": "Number of cards (Shopify fixed quantities)"
+          },
+          "print_sides": {
+            "type": "string",
+            "enum": [
+              "Single side print",
+              "Double side print"
+            ],
+            "description": "Printing sides"
+          },
+          "print_type": {
+            "type": "string",
+            "enum": [
+              "Colour",
+              "Black & White"
+            ],
+            "description": "Print color mode (default: Colour)"
+          },
+          "artworks": {
+            "type": "integer",
+            "description": "Number of different designs (1-50, default: 1, first free, $15 per extra)"
+          }
+        },
+        "required": [
+          "quantity",
+          "print_sides"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "EconomicalBusinessCardsQuoteResult with total_price, unit_price, cost_per_card, breakdown"
+      }
+    },
+    {
+      "name": "calculate_premium_business_cards_shopify",
+      "description": "Shopify calculator for Premium Business Cards - Hardcoded Shopify pricing (90x55mm, 400GSM Satin, single/double sided, optional cellophane). Fast quotes matching website.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "enum": [
+              250,
+              500,
+              1000,
+              2000,
+              5000,
+              10000
+            ],
+            "description": "Number of cards (Shopify fixed quantities)"
+          },
+          "print_sides": {
+            "type": "string",
+            "enum": [
+              "Single side print",
+              "Double side print"
+            ],
+            "description": "Printing sides"
+          },
+          "print_type": {
+            "type": "string",
+            "enum": [
+              "Colour",
+              "Black & White"
+            ],
+            "description": "Print color mode (default: Colour)"
+          },
+          "cellophane": {
+            "type": "string",
+            "enum": [
+              "No Cellophane",
+              "Gloss Cellophane",
+              "Matt Cellophane"
+            ],
+            "description": "Cellophane lamination option (default: No Cellophane)"
+          },
+          "artworks": {
+            "type": "integer",
+            "description": "Number of different designs (1-50, default: 1)"
+          }
+        },
+        "required": [
+          "quantity",
+          "print_sides"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "PremiumBusinessCardsQuoteResult with total_price, unit_price, breakdown"
+      }
+    },
+    {
+      "name": "calculate_folded_flyers_shopify",
+      "description": "Shopify calculator for Folded Flyers - Hardcoded Shopify pricing (A4/A5/DL, multiple stocks, folding options). Fast quotes matching website.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of flyers (Shopify quantities vary by size)"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "A4",
+              "A5",
+              "DL"
+            ],
+            "description": "Flyer size"
+          },
+          "paper_stock": {
+            "type": "string",
+            "description": "Paper stock (e.g., '150GSM Gloss Art', '300GSM Gloss Art')"
+          },
+          "print_sides": {
+            "type": "string",
+            "enum": [
+              "Single side print",
+              "Double side print"
+            ],
+            "description": "Printing sides"
+          },
+          "folding": {
+            "type": "string",
+            "enum": [
+              "No Folding",
+              "Half Fold",
+              "Z Fold",
+              "Gate Fold"
+            ],
+            "description": "Folding option (default: No Folding)"
+          }
+        },
+        "required": [
+          "quantity",
+          "size",
+          "paper_stock",
+          "print_sides"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "FoldedFlyersQuoteResult with total_price, unit_price, breakdown"
+      }
+    },
+    {
+      "name": "calculate_wire_bound_books_shopify",
+      "description": "Shopify calculator for Wire Bound Books - Hardcoded Shopify pricing (wire-o binding, A4/A5, multiple page counts). Fast quotes matching website.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of books (Shopify quantities)"
+          },
+          "pages": {
+            "type": "integer",
+            "description": "Total page count (must be divisible by 4)"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "A4",
+              "A5"
+            ],
+            "description": "Book size"
+          },
+          "cover_stock": {
+            "type": "string",
+            "description": "Cover paper stock"
+          },
+          "inner_stock": {
+            "type": "string",
+            "description": "Inner pages paper stock"
+          },
+          "cover_cellophane": {
+            "type": "string",
+            "enum": [
+              "No Cellophane",
+              "Gloss Cellophane",
+              "Matt Cellophane"
+            ],
+            "description": "Cover cellophane option (default: No Cellophane)"
+          }
+        },
+        "required": [
+          "quantity",
+          "pages",
+          "size",
+          "cover_stock",
+          "inner_stock"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "WireBoundQuoteResult with total_price, unit_price, binding_cost, breakdown"
+      }
+    },
+    {
+      "name": "calculate_spiral_bound_books_shopify",
+      "description": "Shopify calculator for Spiral Bound Books - Hardcoded Shopify pricing (plastic coil binding, A4/A5, multiple page counts). Fast quotes matching website.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of books (Shopify quantities)"
+          },
+          "pages": {
+            "type": "integer",
+            "description": "Total page count (must be divisible by 4)"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "A4",
+              "A5"
+            ],
+            "description": "Book size"
+          },
+          "cover_stock": {
+            "type": "string",
+            "description": "Cover paper stock"
+          },
+          "inner_stock": {
+            "type": "string",
+            "description": "Inner pages paper stock"
+          },
+          "cover_cellophane": {
+            "type": "string",
+            "enum": [
+              "No Cellophane",
+              "Gloss Cellophane",
+              "Matt Cellophane"
+            ],
+            "description": "Cover cellophane option (default: No Cellophane)"
+          }
+        },
+        "required": [
+          "quantity",
+          "pages",
+          "size",
+          "cover_stock",
+          "inner_stock"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "SpiralBoundQuoteResult with total_price, unit_price, binding_cost, breakdown"
+      }
+    },
+    {
+      "name": "calculate_bollard_signs",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Bollard Signs. Professional bollard signs available in various sizes with three-sided or four-sided configurations. Perfect for directional signage, advertising, and outdoor displays. Made from durable corflute material.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of bollard signs to produce (min: 1, max: 1000)"
+        },
+        "material": {
+          "type": "string",
+          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: '270mm W x 1000mm H - Three Sided', '270mm W x 1200mm H - Three Sided', '270mm W x 1800mm H - Three Sided', '300mm W x 1000mm H - Three Sided', '300mm W x 1200mm H - Three Sided', '300mm W x 1800mm H - Three Sided', '155mm W x 1000mm H - Four Sided', '155mm W x 1200mm H - Four Sided', '155mm W x 1800mm H - Four Sided', '175mm W x 1000mm H - Four Sided', '175mm W x 1200mm H - Four Sided', '175mm W x 1800mm H - Four Sided'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_construction_signs",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Construction Signs. Professional construction and safety signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for secure installation. Perfect for construction sites, safety warnings, and industrial signage.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of construction signs to produce (min: 1, max: 10000)"
+        },
+        "eyelets": {
+          "type": "string",
+          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left & right corners)', '2 x Eyelets (center left & right)', '2 x Eyelets (center top & bottom)', '6 x Eyelets (3 each top & bottom)', '6 x Eyelets (3 each left & right)'"
+        },
+        "width_mm": {
+          "type": "integer",
+          "description": "Custom width in millimeters (only for custom sizes) (min: 100, max: 5000)",
+          "required": false
+        },
+        "thickness": {
+          "type": "string",
+          "description": "thickness. Valid options: '3mm', '5mm'"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'"
+        },
+        "length_mm": {
+          "type": "integer",
+          "description": "Custom height/length in millimeters (only for custom sizes) (min: 100, max: 5000)",
+          "required": false
+        },
+        "sides": {
+          "type": "string",
+          "description": "sides. Valid options: 'Single Sided', 'Double Sided'"
+        },
+        "cutting": {
+          "type": "string",
+          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_corflute_insert_a_frame",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Corflute Insert A-Frame. Professional corflute insert A-frame signs perfect for outdoor advertising, retail displays, and promotional signage. Durable weather-resistant construction with replaceable corflute inserts for versatile messaging.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of A-frame signs required (min: 1, max: 10000)"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: '600mm(W) x 900mm(H)'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_custom_poster_printing",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Custom Poster Printing. High-quality custom poster printing available in standard A-series sizes or custom dimensions. Choose from premium 250GSM Satin Poster Paper or waterproof 200GSM Yuppo Synthetic Paper with sophisticated square meter-based pricing.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of posters required (min: 1, max: 10000)"
+        },
+        "width_mm": {
+          "type": "integer",
+          "description": "Custom width in millimeters (only visible for custom size) (min: 100, max: 2000)"
+        },
+        "paper_type": {
+          "type": "string",
+          "description": "paper_type. Valid options: '250GSM Satin Poster Paper', '200GSM Yuppo Synthetic Paper'"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: 'A2 - 420mm x 594mm', 'A1 - 594mm x 841mm', 'A0 - 841mm x 1189mm', 'Custom'"
+        },
+        "length_mm": {
+          "type": "integer",
+          "description": "Custom length/height in millimeters (only visible for custom size) (min: 100, max: 3000)"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_custom_vinyl_stickers",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Custom Vinyl Stickers. Custom vinyl stickers with roll-to-roll production rules, square-meter pricing and finishing costs (lamination, cutting).",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of stickers required (min: 1, max: 10000)"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: '50mm Circle', '75mm Circle', '100mm Circle', '50mm Square', '75mm Square', '100mm Square', '75mm \u00c3\u2014 50mm Rectangle', '100mm \u00c3\u2014 75mm Rectangle', '150mm \u00c3\u2014 100mm Rectangle', 'Custom Size'"
+        },
+        "width_mm": {
+          "type": "integer",
+          "description": "Custom width in millimetres (min: 25, max: 500)"
+        },
+        "height_mm": {
+          "type": "integer",
+          "description": "Custom height in millimetres (min: 25, max: 500)"
+        },
+        "vinyl_family": {
+          "type": "string",
+          "description": "Choose monomeric (short-term) or polymeric (long-term) vinyl.. Valid options: 'Standard (Monomeric)', 'Premium (Polymeric)'"
+        },
+        "adhesive": {
+          "type": "string",
+          "description": "Adhesive type (Permanent or Removable). Valid options: 'Permanent', 'Removable'"
+        },
+        "laminate": {
+          "type": "string",
+          "description": "Optional protective laminate (match monomeric/polymeric family).. Valid options: 'No Lamination', 'Gloss Laminate', 'Matte Laminate'"
+        },
+        "cutting_method": {
+          "type": "string",
+          "description": "Cutting/finishing method. Valid options: 'Kiss-Cut (Individual)', 'Die-Cut (No background)', 'Contour-Cut (Custom shapes)', 'Sheet (Uncut Grid)'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (first included, additional $5 each) (min: 1, max: 20)"
+        },
+        "labour_rate": {
+          "type": "string",
+          "description": "Choose whether trade or non-trade labour rates apply for laminating and cutting. Valid options: 'Trade ($70/hr)', 'Non-Trade ($90/hr)'"
+        }
+      }
+    },
+    {
+      "name": "calculate_election_signs",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Election Signs. Professional election campaign signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for easy installation. Perfect for political campaigns, candidate promotion, and electoral advertising.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of election signs to produce (min: 1, max: 10000)"
+        },
+        "eyelets": {
+          "type": "string",
+          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left and right corners)', '2 x Eyelets (center left and right)', '2 x Eyelets (center top and bottom)', '6 x Eyelets (3 each top and bottom)', '6 x Eyelets (3 each left and right)'"
+        },
+        "width_mm": {
+          "type": "integer",
+          "description": "Width in millimeters. For custom sizes only. Min: 100mm, Max: 5000mm",
+          "required": false
+        },
+        "thickness": {
+          "type": "string",
+          "description": "thickness. Valid options: '3mm', '5mm'"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'"
+        },
+        "length_mm": {
+          "type": "integer",
+          "description": "Custom height/length in millimeters (only for custom sizes) (min: 100, max: 5000)",
+          "required": false
+        },
+        "sides": {
+          "type": "string",
+          "description": "sides. Valid options: 'Single Sided', 'Double Sided'"
+        },
+        "cutting": {
+          "type": "string",
+          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_luxury_classic_pull_up_banners",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Luxury Classic Pull Up Banners. Premium luxury classic pull up banners with professional aluminum base. Perfect for trade shows, exhibitions, retail displays, and corporate events. Available in multiple sizes with high-quality printing on durable banner material.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of luxury pull up banners to produce (min: 1, max: 100)"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        },
+        "base_colour": {
+          "type": "string",
+          "description": "base_colour. Valid options: 'Silver', 'Black'"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: '850mm W x 2000mm H', '850mm W x 1500mm H', '850mm W x 1400mm H Shopping Center'"
+        }
+      }
+    },
+    {
+      "name": "calculate_metal_face_a_frame",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Metal Face A-Frame. Premium metal face A-frame signs with durable construction and professional finish. Perfect for high-traffic outdoor locations, retail displays, and permanent signage applications where durability and weather resistance are essential.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of metal face A-frame signs required (min: 1, max: 100)"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (first artwork included, additional at $6 each) (min: 1, max: 20)"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: '600mm W x 900mm H'"
+        }
+      }
+    },
+    {
+      "name": "calculate_notepads_a4",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A4. Professional A4 notepads with custom printing options. Perfect for office use, meeting notes, and promotional stationery.",
+      "parameters": {
+        "quantity": {
+          "type": "string",
+          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs"
+        },
+        "leaves_per_pad": {
+          "type": "string",
+          "description": "leaves_per_pad. Valid options: '25', '50', '100'"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "finish_size. Valid options: 'A4 Portrait'"
+        },
+        "print_type": {
+          "type": "string",
+          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
+        },
+        "stock_type": {
+          "type": "string",
+          "description": "stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
+        }
+      }
+    },
+    {
+      "name": "calculate_notepads_a5",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A5. Professional A5 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery. Features padding service with cardboard backing.",
+      "parameters": {
+        "quantity": {
+          "type": "string",
+          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 10)"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "Notepad size (currently only A5 Portrait supported). Valid options: 'A5 Portrait'"
+        },
+        "leaves_per_pad": {
+          "type": "string",
+          "description": "Number of sheets in each notepad. Valid options: '25', '50', '100'"
+        },
+        "print_type": {
+          "type": "string",
+          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
+        },
+        "stock_type": {
+          "type": "string",
+          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
+        }
+      }
+    },
+    {
+      "name": "calculate_notepads_a6",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A6. Professional A6 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery.",
+      "parameters": {
+        "quantity": {
+          "type": "string",
+          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 10)"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "Notepad size (currently only A6 Portrait supported). Valid options: 'A6 Portrait'"
+        },
+        "leaves_per_pad": {
+          "type": "string",
+          "description": "Number of sheets in each notepad. Valid options: '10', '15', '25', '50', '100'"
+        },
+        "print_type": {
+          "type": "string",
+          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
+        },
+        "stock_type": {
+          "type": "string",
+          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
+        }
+      }
+    },
+    {
+      "name": "calculate_premium_bookmarks",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Premium Bookmarks. High-quality premium bookmarks with custom printing options, ideal for branding, gifts, and promotional use.",
+      "parameters": {
+        "quantity": {
+          "type": "string",
+          "description": "quantity. Valid options: '25', '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000'"
+        },
+        "celloglaze": {
+          "type": "string",
+          "description": "celloglaze. Valid options: 'None', 'Gloss 1 Sided', 'Gloss 2 Sided', 'Matt 1 Sided', 'Matt 2 Sided'"
+        },
+        "print_type": {
+          "type": "string",
+          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided'"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "finish_size. Valid options: '50mm x 150mm', '50mm x 185mm', '50mm x 230mm', '65mm x 215mm'"
+        },
+        "paper_stock_type": {
+          "type": "string",
+          "description": "paper_stock_type. Valid options: 'Satin 350GSM', 'Uncoated 300GSM'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs"
+        }
+      }
+    },
+    {
+      "name": "calculate_printed_letterheads",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Printed Letterheads. High-quality printed letterheads with custom branding, ideal for professional business correspondence and official documents.",
+      "parameters": {
+        "quantity": {
+          "type": "string",
+          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'"
+        },
+        "print_sides": {
+          "type": "string",
+          "description": "print_sides. Valid options: 'Single side print', 'Double side print'"
+        },
+        "print_type": {
+          "type": "string",
+          "description": "print_type. Valid options: 'Colour', 'Black & White'"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "finish_size. Valid options: 'A4 - 210mm x 297mm'"
+        },
+        "paper_stock_type": {
+          "type": "string",
+          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs"
+        }
+      }
+    },
+    {
+      "name": "calculate_saddle_stitch_books",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Saddle Stitch Books. Professional saddle stitch booklets with customizable covers, content pages, and finishing options. Perfect for brochures, catalogs, programs, and marketing materials with optional celloglaze protection.",
+      "parameters": {
+        "quantity": {
+          "type": "string",
+          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs"
+        },
+        "cover_option": {
+          "type": "string",
+          "description": "cover_option. Valid options: 'Self Cover', 'Hard Cover'"
+        },
+        "cover_stock": {
+          "type": "string",
+          "description": "cover_stock. Valid options: 'Satin 150GSM', 'Satin 200GSM', 'Satin 250GSM', 'Satin 300GSM', 'Satin 350GSM'"
+        },
+        "cover_print_type": {
+          "type": "string",
+          "description": "cover_print_type. Valid options: '1 side colour (2pp)', '2 side colour (4pp)', '1 side Black & White (2pp)', '2 side Black & White (4pp)'"
+        },
+        "celloglaze": {
+          "type": "string",
+          "description": "celloglaze. Valid options: 'None', 'Gloss outside only', 'Matt outside only'"
+        },
+        "printed_pages": {
+          "type": "string",
+          "description": "printed_pages. Valid options: '4pp', '8pp', '12pp', '16pp', '20pp', '24pp', '28pp', '32pp', '36pp', '40pp', '44pp', '48pp', '52pp', '56pp', '60pp', '64pp'"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "finish_size. Valid options: 'A5 Portrait', 'A4 Portrait', 'A4 Landscape'"
+        },
+        "content_print_type": {
+          "type": "string",
+          "description": "content_print_type. Valid options: 'Colour', 'Black & White'"
+        },
+        "content_stock_type": {
+          "type": "string",
+          "description": "content_stock_type. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Satin 200GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
+        }
+      }
+    },
+    {
+      "name": "calculate_selfie_frames",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Selfie Frames. Professional selfie frames perfect for events, marketing campaigns, photo booths, and social media promotions. Available in two sizes with custom artwork printing options.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of selfie frames to produce (min: 1, max: 200)"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: 'Small 600mm x 900mm', 'Large 900mm x 1200mm'"
+        },
+        "number_of_artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_spiral_bound_books",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Spiral Bound Books. Professional spiral bound books with customizable covers, content pages, and finishing options. Perfect for notebooks, manuals, catalogs, and presentations.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of spiral bound books to print (min: 1, max: 10000)"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 10)"
+        },
+        "outer_front_cover": {
+          "type": "string",
+          "description": "outer_front_cover. Valid options: 'Not Required', 'Clear PVC'"
+        },
+        "printed_front_cover": {
+          "type": "string",
+          "description": "printed_front_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'"
+        },
+        "cover_print_type": {
+          "type": "string",
+          "description": "cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
+        },
+        "celloglaze": {
+          "type": "string",
+          "description": "celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'"
+        },
+        "outer_back_cover": {
+          "type": "string",
+          "description": "outer_back_cover. Valid options: 'Not Required', 'Clear PVC'"
+        },
+        "printed_back_cover": {
+          "type": "string",
+          "description": "printed_back_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'"
+        },
+        "back_cover_print_type": {
+          "type": "string",
+          "description": "back_cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
+        },
+        "back_celloglaze": {
+          "type": "string",
+          "description": "back_celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'"
+        },
+        "number_of_content_pages": {
+          "type": "integer",
+          "description": "Total number of content pages (must be even) (min: 4, max: 500)"
+        },
+        "content_paper_stock": {
+          "type": "string",
+          "description": "content_paper_stock. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 140GSM', 'Uncoated Bond 100GSM', 'Satin 300GSM'"
+        },
+        "content_print_type": {
+          "type": "string",
+          "description": "content_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "finish_size. Valid options: 'A6 Portrait', 'A6 Landscape', 'DL Portrait', 'DL Landscape', 'A5 Portrait', 'A5 Landscape', 'A4 Portrait', 'A4 Landscape'"
+        }
+      }
+    },
+    {
+      "name": "calculate_stackable_cubes",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Stackable Cubes. Professional stackable display cubes made from durable corflute material. Perfect for retail displays, exhibitions, promotional events, and modular signage solutions. Available in multiple sizes with custom printing options.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of stackable cubes to produce (min: 1, max: 1000)"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        },
+        "material": {
+          "type": "string",
+          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'"
+        },
+        "cube_size": {
+          "type": "string",
+          "description": "cube_size. Valid options: 'Small 300mm x 300mm', 'Medium 400mm x 400mm', 'Large 500mm x 500mm', 'X-Large 580mm x 580mm'"
+        }
+      }
+    },
+    {
+      "name": "calculate_strut_cards_a3",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Strut Cards A3. Professional A3 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of A3 strut cards to produce (min: 1, max: 10000)"
+        },
+        "stock": {
+          "type": "string",
+          "description": "stock. Valid options: '2mm Screenboard'"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: 'A3 - 297mm x 420mm'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_strut_cards_a4",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Strut Cards A4. Professional A4 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support for maximum visibility.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of A4 strut cards to produce (min: 1, max: 10000)"
+        },
+        "stock": {
+          "type": "string",
+          "description": "stock. Valid options: '2mm Screenboard'"
+        },
+        "size": {
+          "type": "string",
+          "description": "size. Valid options: 'A4 - 210mm x 297mm'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_with_compliments_slips",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for With Compliments Slips. Custom printed With Compliments slips designed to match your brand, perfect for adding a personal touch to documents, packages, and client communications.",
+      "parameters": {
+        "quantity": {
+          "type": "string",
+          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'"
+        },
+        "print_sides": {
+          "type": "string",
+          "description": "print_sides. Valid options: 'Single side print', 'Double side print'"
+        },
+        "print_type": {
+          "type": "string",
+          "description": "print_type. Valid options: 'Colour', 'Black & White'"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "finish_size. Valid options: 'DL - 99mm x 210mm'"
+        },
+        "paper_stock_type": {
+          "type": "string",
+          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs"
+        }
+      }
+    },
+    {
+      "name": "get_calculator_requirements",
+      "description": "\u00f0\u0178\u0161\u00a8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet detailed requirements for a specific product calculator including required parameters, business rules, common defaults, and historical data insights. Use this BEFORE calculating quotes to understand what information you need.",
+      "parameters": {
+        "product_type": {
+          "type": "string",
+          "description": "Product type: 'flyers', 'business_cards', 'perfect_bound_books', 'corflute_signs', 'booklets', 'notepads_a5'"
+        }
+      }
+    }
+  ]
+}
