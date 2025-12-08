@@ -952,7 +952,7 @@
     },
     {
       "name": "synergy_add_document",
-      "description": "🔗 ADD CLICKABLE DOCUMENT TO SESSION\n\n⚠️ CRITICAL: Call this IMMEDIATELY after creating each resource!\n\nLinks a document to a Synergy session. Documents become CLICKABLE links in the UI that open in new browser tabs.\n\nSupports:\n- Internal documents (created with synergy_create_internal_doc) - Opens in modal popup\n- Google Docs, Sheets, Forms, Slides - Opens in new tab with full URL\n- External links and resources - Opens in new tab\n\n🔗 URL REQUIREMENTS:\n✅ MUST use FULL URL from creation response (https://docs.google.com/...)\n✅ MUST include document type for proper icon (google_sheet, google_doc, etc.)\n✅ MUST use descriptive title (not \"Document 1\" - use actual resource name)\n\n💡 WORKFLOW:\n1. Create resource (doc/sheet/form)\n2. Get the FULL URL from creation response\n3. IMMEDIATELY call synergy_add_document(url=full_url, type=resource_type, title=descriptive_name)\n4. Repeat for each resource\n\n⚠️ EXCEPTION: Internal docs (type='internal_doc' or 'internal_sheet') open in modal popup, not new tab",
+      "description": "🔗 ADD CLICKABLE DOCUMENT/LINK TO SESSION\n\n⚠️ CRITICAL: Call this IMMEDIATELY after creating each resource!\n\nLinks a document or resource to a Synergy session. Documents become CLICKABLE links in the UI that open in new browser tabs or modal popups.\n\n📚 SUPPORTS:\n1. **Synergy Files** (created with synergy_create_internal_doc)\n   - Synergy Docs (type='internal_doc') - Opens in modal popup\n   - Synergy Sheets (type='internal_sheet') - Opens in modal popup\n   - Automatically linked when created, but can manually add if needed\n\n2. **Google Workspace**\n   - Google Docs, Sheets, Forms, Slides - Opens in new tab with full URL\n   - MUST use FULL URL from creation response\n\n3. **External Resources**\n   - Links to websites, dashboards, tools\n   - PDFs, Word docs, Excel files\n   - Any web URL\n\n🔗 URL REQUIREMENTS:\n✅ MUST use FULL URL from creation response (https://docs.google.com/...)\n✅ MUST include document type for proper icon (google_sheet, google_doc, etc.)\n✅ MUST use descriptive title (not \"Document 1\" - use actual resource name)\n✅ For Synergy Files: use doc_id OR share_url as the URL\n\n💡 WORKFLOW:\n1. Create resource (Google doc/sheet/form OR Synergy File)\n2. Get the FULL URL or doc_id from creation response\n3. IMMEDIATELY call synergy_add_document(url=full_url, type=resource_type, title=descriptive_name)\n4. Repeat for each resource\n\n🎨 DISPLAY BEHAVIOR:\n- Synergy Files (internal_doc/internal_sheet): Modal popup overlay\n- External resources (google_doc, google_sheet, etc): New browser tab\n- Links (type='link'): New browser tab",
       "platform": "synergy",
       "parameters": {
         "type": "object",
@@ -1059,25 +1059,28 @@
     },
     {
       "name": "synergy_create_internal_doc",
-      "description": "📄 CREATE INTERNAL DOCUMENT\n\nCreate an internal document (rich text or spreadsheet) within Synergy. These are:\n- Stored in Synergy database (not Google Drive)\n- Editable in popup window\n- Automatically linked to session\n- Support markdown, tables, formulas\n\n💡 USE FOR:\n✅ Meeting notes, project documentation\n✅ Email templates, copy drafts\n✅ Data tables with calculations\n✅ Planning documents\n\n❌ DON'T USE FOR:\n❌ Large datasets (use Google Sheets instead)\n❌ Collaborative editing with external users (use Google Docs)\n❌ Files that need external sharing",
+      "description": "📄 CREATE SYNERGY FILE (aka Synergy Doc/Sheet)\n\n🆕 REBRANDED: Internal Documents → Synergy Files\nAliases: Synergy Docs (richtext), Synergy Sheets (spreadsheet)\n\nCreate a Synergy-native file stored in the platform database. These files are:\n✅ Automatically linked to Synergy sessions\n✅ Editable in popup window (no external app needed)\n✅ Version controlled and tracked\n✅ Searchable within Synergy\n✅ Support markdown, rich text, tables, formulas\n\n📊 TWO TYPES:\n1. **Synergy Docs** (richtext): Text documents with markdown, formatting, lists\n2. **Synergy Sheets** (spreadsheet): Tables with formulas, calculations, data\n\n💡 USE FOR:\n✅ Project documentation and planning notes\n✅ Meeting notes and action items\n✅ Email templates and copy drafts\n✅ Requirements checklists\n✅ Small data tables with calculations\n✅ Session-specific reference materials\n\n❌ DON'T USE FOR:\n❌ Large datasets >1000 rows (use Google Sheets instead)\n❌ Collaborative editing with external users (use Google Docs)\n❌ Files that need external sharing outside team\n❌ Binary files (PDFs, images, videos)\n\n🔗 SYNERGY SESSION INTEGRATION:\n- Files are automatically attached to the session\n- Appear in session's resources list\n- Clickable from Synergy dashboard\n- Can be linked to specific milestones\n- Tracked in session history",
       "platform": "synergy",
       "parameters": {
         "type": "object",
         "properties": {
           "session_id": {
             "type": "string",
-            "description": "Session ID to attach document to (REQUIRED)",
+            "description": "Synergy session ID to attach this file to (REQUIRED). The file will be linked to this session and appear in its resources list.\n\nFormat: sess_YYYYMMDD_HHMM_slug\n\nGet from:\n- synergy_smart_project_tracker() return value\n- synergy_list_sessions() results",
             "examples": [
-              "sess_20251127_1430_customer_onboarding"
+              "sess_20251127_1430_customer_onboarding",
+              "sess_20251208_0900_email_automation"
             ]
           },
           "title": {
             "type": "string",
-            "description": "Document title (REQUIRED)",
+            "description": "Synergy File title (REQUIRED). Be descriptive - this appears in the session's resources list.\n\nGood examples:\n- 'Project Planning Notes - Phase 1'\n- 'Email Template Library - Customer Onboarding'\n- 'Requirements Checklist - Database Setup'\n\nAvoid generic names like 'Document 1' or 'Notes'",
             "examples": [
-              "Project Planning Notes",
-              "Email Template Library",
-              "Requirements Checklist"
+              "Project Planning Notes - Phase 1",
+              "Email Template Library - Customer Onboarding",
+              "Requirements Checklist - Database Setup",
+              "Meeting Notes - Dec 8 Standup",
+              "Budget Tracking Sheet"
             ]
           },
           "doc_type": {
@@ -1086,27 +1089,34 @@
               "richtext",
               "spreadsheet"
             ],
-            "description": "Document type (REQUIRED):\n- 'richtext': Text documents with formatting, markdown, lists\n- 'spreadsheet': Tables with formulas, calculations, data",
+            "description": "Synergy File type (REQUIRED):\n\n- **'richtext'** → Creates a Synergy Doc\n  Text document with markdown, formatting, lists, headings\n  Use for: notes, documentation, templates, requirements\n\n- **'spreadsheet'** → Creates a Synergy Sheet\n  Table with rows, columns, formulas, calculations\n  Use for: data tracking, budgets, checklists, small datasets",
             "default": "richtext"
           },
           "content": {
             "type": "string",
-            "description": "Initial content (OPTIONAL). For richtext: markdown. For spreadsheet: leave empty or provide CSV data.",
-            "default": ""
+            "description": "Initial content for the Synergy File (OPTIONAL).\n\nFor Synergy Docs (richtext):\n- Use markdown format\n- Supports headings (#, ##), lists (-, *), bold (**text**), italic (*text*)\n- Can include tables, code blocks, links\n\nFor Synergy Sheets (spreadsheet):\n- Leave empty to create blank sheet\n- Or provide CSV data: 'Name,Email,Status\\nJohn,john@example.com,Active'\n- Can add formulas and formatting after creation",
+            "default": "",
+            "examples": [
+              "# Project Overview\\n\\n## Goals\\n- Goal 1\\n- Goal 2\\n\\n## Timeline\\nWeek 1-2: Planning",
+              "Task,Status,Priority\\nCreate form,Complete,High\\nSetup database,In Progress,High"
+            ]
           },
           "description": {
             "type": "string",
-            "description": "Brief description (OPTIONAL)",
+            "description": "Brief description of what this Synergy File contains (OPTIONAL). Helps team understand purpose.",
             "examples": [
-              "Planning notes for customer onboarding system"
+              "Planning notes for customer onboarding system",
+              "Email templates for automated follow-ups",
+              "Budget tracking for Q1 2025"
             ]
           },
           "tags": {
             "type": "string",
-            "description": "Comma-separated tags (OPTIONAL). Example: 'planning, notes, phase-1'",
+            "description": "Comma-separated tags for organizing Synergy Files (OPTIONAL).\n\nUseful for filtering and searching. Examples: 'planning, notes, phase-1'",
             "examples": [
-              "planning, documentation",
-              "templates, email, customer-facing"
+              "planning, documentation, phase-1",
+              "templates, email, customer-facing",
+              "budget, tracking, q1-2025"
             ]
           }
         },
@@ -1124,27 +1134,39 @@
           },
           "doc_id": {
             "type": "string",
-            "description": "Internal document ID (format: int_doc_[timestamp]). Save this!"
+            "description": "Synergy File ID (format: int_doc_[timestamp]). SAVE THIS! Use it to:\n- Read file: synergy_get_internal_doc(doc_id)\n- Update file: synergy_update_internal_doc(doc_id, content)\n- Link to milestone: synergy_add_milestone_document(milestone_id, url=share_url)"
           },
           "share_url": {
             "type": "string",
-            "description": "URL to edit this document"
+            "description": "URL to view/edit this Synergy File. Clickable link in session resources. Opens in modal popup."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Success message with file details"
           }
         }
       },
       "examples": [
         {
-          "description": "Create planning document",
+          "description": "Create Synergy Doc (richtext) for project planning",
           "parameters": {
             "session_id": "sess_20251127_1430_customer_onboarding",
             "title": "Project Planning and Requirements",
             "doc_type": "richtext",
             "content": "# Customer Onboarding System\n\n## Requirements\n- Google Form for signup\n- Google Sheet for database\n- Gmail for welcome emails\n\n## Timeline\n- Week 1: Form and database\n- Week 2: Email automation\n- Week 3: Testing and launch",
-            "description": "Planning notes and requirements",
+            "description": "Planning notes and requirements for onboarding project",
             "tags": "planning, requirements, documentation"
+          }
+        },
+        {
+          "description": "Create Synergy Sheet (spreadsheet) for task tracking",
+          "parameters": {
+            "session_id": "sess_20251208_0900_email_automation",
+            "title": "Task Tracking Sheet - Email Automation",
+            "doc_type": "spreadsheet",
+            "content": "Task,Status,Priority,Owner\nCreate templates,In Progress,High,AI\nTest flows,Not Started,Medium,Team\nDeploy,Not Started,Low,DevOps",
+            "description": "Track tasks and progress for email automation project",
+            "tags": "tracking, tasks, spreadsheet"
           }
         }
       ]
@@ -1202,7 +1224,7 @@
     },
     {
       "name": "synergy_create_milestone",
-      "description": "➕ ADD NEW MILESTONE\n\nAdd a new milestone to an existing session. Use when:\n- Need to add another phase to project\n- Breaking down work further\n- Adding follow-up work\n\n💡 TIP: Can add milestones at any time - don't need to plan everything upfront!",
+      "description": "➕ ADD NEW MILESTONE TO EXISTING PROJECT\n\n📌 WHAT IT DOES:\nAdds a new milestone (phase/stage) to an EXISTING Synergy session. Creates the milestone + ALL its tasks + ALL subtasks in ONE atomic call.\n\n✅ WHEN TO USE:\n- Project already exists (you have session_id)\n- Need to add another phase/stage\n- Breaking down work further as project evolves\n- Adding follow-up work or new requirements\n- Expanding project scope with new phase\n\n❌ DON'T USE IF:\n- Starting a NEW project (use synergy_smart_project_tracker instead)\n- Don't have a session_id yet\n\n🎯 CREATES COMPLETE HIERARCHY:\n✅ Milestone record (with name, description, priority, dates)\n✅ All tasks in the milestone (with priorities and order)\n✅ All subtasks under each task (with priorities and order)\n✅ Documents array (if provided)\n✅ Links array (if provided)\n✅ Tags array (if provided)\n\n⚡ KEY FEATURES:\n- Atomic transaction (all or nothing - no partial milestones)\n- Returns tasks_created and subtasks_created counts\n- Handles both simple strings and complex objects\n- Auto-generates IDs and ordering\n- Rollback on errors\n\n💡 TIP: Can add milestones at ANY time - don't need to plan everything upfront! Add new phases as the project evolves.",
       "platform": "synergy",
       "parameters": {
         "type": "object",
@@ -1304,7 +1326,95 @@
           "milestone_name",
           "tasks"
         ]
-      }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "milestone_id": {
+            "type": "string",
+            "description": "New milestone ID - save this!"
+          },
+          "milestone_number": {
+            "type": "number",
+            "description": "Milestone sequence number (1, 2, 3...)"
+          },
+          "tasks_created": {
+            "type": "number",
+            "description": "Count of tasks created"
+          },
+          "subtasks_created": {
+            "type": "number",
+            "description": "Count of subtasks created"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add new testing phase with simple tasks",
+          "parameters": {
+            "session_id": "sess_20251208_1400_customer_onboarding",
+            "milestone_name": "Phase 3: Testing & QA",
+            "description": "Test all components and fix bugs",
+            "tasks": [
+              "Test form submission",
+              "Test email delivery",
+              "Test data validation",
+              "Fix any bugs found"
+            ],
+            "priority": "high",
+            "due_date": "2025-12-20",
+            "estimated_hours": 12
+          }
+        },
+        {
+          "description": "Add deployment phase with tasks and subtasks",
+          "parameters": {
+            "session_id": "sess_20251208_1400_customer_onboarding",
+            "milestone_name": "Phase 4: Production Deployment",
+            "description": "Deploy system to production and monitor",
+            "tasks": [
+              {
+                "task": "Prepare production environment",
+                "priority": "critical",
+                "subtasks": [
+                  {
+                    "task": "Set up production Google Workspace",
+                    "priority": "critical"
+                  },
+                  {
+                    "task": "Configure domain settings",
+                    "priority": "high"
+                  },
+                  {
+                    "task": "Set up monitoring",
+                    "priority": "medium"
+                  }
+                ]
+              },
+              {
+                "task": "Deploy and test",
+                "priority": "critical",
+                "subtasks": [
+                  "Deploy form to production",
+                  "Deploy sheet to production",
+                  "Test end-to-end workflow",
+                  "Monitor for 24 hours"
+                ]
+              },
+              "Document deployment process"
+            ],
+            "priority": "critical",
+            "due_date": "2025-12-25",
+            "estimated_hours": 16
+          }
+        }
+      ]
     },
     {
       "name": "synergy_create_task",
@@ -1780,16 +1890,17 @@
     },
     {
       "name": "synergy_get_internal_doc",
-      "description": "📖 GET INTERNAL DOCUMENT CONTENT\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) MUST cite resource: 'Read from **[title]** (ID: `[doc_id]` | URL: [url])'\n(3) Use EXACT [doc_id] provided - NEVER substitute\n(4) If tool fails (404), say 'Document not found: [doc_id]'\n(5) NEVER make up content if read fails\n\nRetrieve full content of an internal document. Returns:\n- Rich text content (markdown/HTML)\n- Spreadsheet data (JSON with rows/columns)\n- Metadata (title, version, timestamps)\n- Share URL\n\nUse when:\n- User asks to read/view document\n- Need content for processing\n- Summarizing document\n- Referencing document data",
+      "description": "📖 READ SYNERGY FILE CONTENT (Synergy Doc/Sheet)\n\n🆕 REBRANDED: Internal Documents → Synergy Files\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) MUST cite resource: 'Read from **[title]** (Synergy File ID: `[doc_id]`)'\n(3) Use EXACT [doc_id] provided - NEVER substitute\n(4) If tool fails (404), say 'Synergy File not found: [doc_id]'\n(5) NEVER make up content if read fails\n\n📊 WHAT IT DOES:\nRetrieves full content and metadata from a Synergy File (Doc or Sheet). Returns:\n\n**For Synergy Docs (richtext):**\n- Markdown content\n- HTML version (formatted)\n- Plain text version\n\n**For Synergy Sheets (spreadsheet):**\n- JSON data (rows and columns)\n- Parsed table structure\n- Formula results\n\n**Metadata (both types):**\n- Title, description, tags\n- Version number (for tracking changes)\n- Created/updated timestamps\n- Share URL (for linking)\n- Attached session ID\n\n✅ USE WHEN:\n- User asks to read/view a Synergy File\n- Need content for processing or analysis\n- Summarizing file contents\n- Referencing data from Synergy Sheet\n- Checking current version before updating\n- Copying content to another location\n\n🔗 SESSION INTEGRATION:\n- Files are linked to specific Synergy sessions\n- Can retrieve session_id from file metadata\n- Access from session's resources list",
       "platform": "synergy",
       "parameters": {
         "type": "object",
         "properties": {
           "doc_id": {
             "type": "string",
-            "description": "Internal document ID (REQUIRED). Format: int_doc_[timestamp]",
+            "description": "Synergy File ID (REQUIRED). Format: int_doc_[timestamp]\n\nGet this from:\n- synergy_create_internal_doc() return value\n- synergy_get_session() resources list\n- Session resources in Synergy dashboard",
             "examples": [
-              "int_doc_1732728394"
+              "int_doc_1732728394",
+              "int_doc_1733672800"
             ]
           }
         },
@@ -1853,29 +1964,30 @@
     },
     {
       "name": "synergy_update_internal_doc",
-      "description": "✏️ UPDATE INTERNAL DOCUMENT\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to edit from memory\n(2) MUST cite: 'Updated **[title]** (ID: `[doc_id]`)'\n(3) Use EXACT [doc_id] provided\n(4) If tool fails, say 'Failed to update' and explain\n(5) Show before/after if applicable\n\nUpdate internal document content or metadata. Use to:\n- Edit document content\n- Update title\n- Append content\n- Update description\n\n⚠️ CONTENT UPDATE: Full replacement. To append, fetch existing content first, then update with old + new.",
+      "description": "✏️ UPDATE SYNERGY FILE (Synergy Doc/Sheet)\n\n🆕 REBRANDED: Internal Documents → Synergy Files\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to edit from memory\n(2) MUST cite: 'Updated **[title]** (Synergy File ID: `[doc_id]`)'\n(3) Use EXACT [doc_id] provided\n(4) If tool fails, say 'Failed to update Synergy File' and explain\n(5) Show before/after changes if applicable\n\n📊 WHAT IT DOES:\nUpdates content or metadata of a Synergy File (Doc or Sheet).\n\n✅ CAN UPDATE:\n- Content (markdown for Docs, data for Sheets)\n- Title\n- Description\n- Tags\n\n🔄 VERSION CONTROL:\n- Each update increments version number\n- Previous versions are tracked\n- Updated timestamp recorded\n\n⚠️ CONTENT REPLACEMENT:\nUpdating 'content' REPLACES existing content entirely.\n\n**To APPEND instead of replace:**\n1. First: synergy_get_internal_doc(doc_id) to fetch existing\n2. Combine: old_content + new_content\n3. Then: synergy_update_internal_doc(doc_id, content=combined)\n\n🔗 SESSION INTEGRATION:\n- File remains linked to same session\n- Updates visible in session history\n- Version tracking per file",
       "platform": "synergy",
       "parameters": {
         "type": "object",
         "properties": {
           "doc_id": {
             "type": "string",
-            "description": "Internal document ID (REQUIRED)",
+            "description": "Synergy File ID to update (REQUIRED). Format: int_doc_[timestamp]",
             "examples": [
-              "int_doc_1732728394"
+              "int_doc_1732728394",
+              "int_doc_1733672800"
             ]
           },
           "content": {
             "type": "string",
-            "description": "New content (OPTIONAL). For richtext: markdown. For spreadsheet: JSON. REPLACES existing content - fetch first to append!"
+            "description": "New content (OPTIONAL). REPLACES existing content - fetch first to append!\n\nFor Synergy Docs (richtext):\n- Provide markdown text\n- Supports headings, lists, formatting\n\nFor Synergy Sheets (spreadsheet):\n- Provide JSON: {\"rows\": [[\"A1\", \"B1\"], [\"A2\", \"B2\"]]}\n- Or CSV format: \"Col1,Col2\\nVal1,Val2\"\n\n⚠️ WARNING: This REPLACES all content. To append, first get existing content."
           },
           "title": {
             "type": "string",
-            "description": "New title (OPTIONAL)"
+            "description": "New title for Synergy File (OPTIONAL). Updates how it appears in session resources."
           },
           "description": {
             "type": "string",
-            "description": "New description (OPTIONAL)"
+            "description": "New description (OPTIONAL). Updates file metadata."
           }
         },
         "required": [
@@ -1905,17 +2017,25 @@
       },
       "examples": [
         {
-          "description": "Update document content",
+          "description": "Update Synergy Doc content (richtext)",
           "parameters": {
             "doc_id": "int_doc_1732728394",
-            "content": "# Updated Planning Notes\n\n## Phase 1 Complete\n- Database created\n- Schema configured\n- Test data imported\n\n## Next: Phase 2\n- Create signup form\n- Connect to database"
+            "content": "# Updated Planning Notes\n\n## Phase 1 Complete ✅\n- Database created\n- Schema configured\n- Test data imported\n\n## Next: Phase 2 🛠️\n- Create signup form\n- Connect to database\n- Test end-to-end flow"
           }
         },
         {
-          "description": "Update document title",
+          "description": "Update Synergy File title and description",
           "parameters": {
             "doc_id": "int_doc_1732728394",
-            "title": "Project Planning Notes - Updated Nov 27"
+            "title": "Project Planning Notes - Updated Dec 8, 2025",
+            "description": "Comprehensive planning doc with milestones, requirements, and timeline"
+          }
+        },
+        {
+          "description": "Update Synergy Sheet data (spreadsheet)",
+          "parameters": {
+            "doc_id": "int_doc_1733672800",
+            "content": "Task,Status,Priority,Completed\nSetup database,Complete,High,2025-12-01\nCreate forms,In Progress,High,\nTest workflows,Not Started,Medium,\nDeploy,Not Started,Low,"
           }
         }
       ]
@@ -2909,6 +3029,337 @@
             "tags": [
               "automation"
             ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_add_milestone_document",
+      "description": "🆕 SURGICAL ADD - Add ONE document to a milestone without touching existing documents\n\n📌 WHAT IT DOES:\nAppends a single document to a milestone's document list without fetching, modifying, or rewriting the entire array.\n\n✅ WHEN TO USE:\n- Adding reference documentation to a milestone\n- Linking Google Docs, Sheets, PDFs, Figma designs\n- Adding multiple documents one at a time\n- No need to know existing documents\n\n⚡ WHY IT'S BETTER:\n- No race conditions (no fetch-modify-update cycle)\n- Faster (only sends new document)\n- Safer (can't accidentally delete existing documents)\n- Simpler (no array manipulation needed)\n\n📋 DOCUMENT TYPES:\n- 'google_doc' - Google Docs\n- 'google_sheet' - Google Sheets\n- 'figma' - Figma designs\n- 'pdf' - PDF files\n- 'other' - Other document types",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID (REQUIRED). Format: ms_YYYYMMDDHHMMSS\n\nGet from:\n- synergy_create_milestone() response\n- synergy_get_milestones() results\n- synergy_get_session() milestone list"
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title (REQUIRED). Be descriptive.\n\nExamples:\n- 'API Documentation'\n- 'Database Schema Design'\n- 'UI Wireframes'\n- 'Security Audit Report'"
+          },
+          "url": {
+            "type": "string",
+            "description": "Full URL to document (REQUIRED).\n\nExamples:\n- 'https://docs.google.com/document/d/abc123/edit'\n- 'https://docs.google.com/spreadsheets/d/xyz789/edit'\n- 'https://www.figma.com/file/abc123/Design'\n- 'https://drive.google.com/file/d/pdf123/view'"
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "google_doc",
+              "google_sheet",
+              "figma",
+              "pdf",
+              "other"
+            ],
+            "default": "other",
+            "description": "Document type (OPTIONAL, default: 'other').\n\nChoose the appropriate type for visual icons and categorization."
+          }
+        },
+        "required": [
+          "milestone_id",
+          "title",
+          "url"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "document_added": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          },
+          "total_documents": {
+            "type": "number",
+            "description": "New total count after addition"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add API documentation to milestone",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "API Documentation",
+            "url": "https://docs.google.com/document/d/abc123/edit",
+            "doc_type": "google_doc"
+          }
+        },
+        {
+          "description": "Add Figma wireframes",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "UI Wireframes - User Dashboard",
+            "url": "https://www.figma.com/file/xyz789/Dashboard",
+            "doc_type": "figma"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_add_milestone_link",
+      "description": "🆕 SURGICAL ADD - Add ONE link to a milestone without touching existing links\n\n📌 WHAT IT DOES:\nAppends a single link to a milestone's link list without fetching, modifying, or rewriting the entire array.\n\n✅ WHEN TO USE:\n- Adding dashboard URLs\n- Linking production/staging environments\n- Adding GitHub PRs or Issues\n- Linking monitoring tools, admin panels\n- No need to know existing links\n\n⚡ WHY IT'S BETTER:\n- No race conditions\n- Faster (only sends new link)\n- Safer (can't accidentally delete existing links)\n- Simpler (no array manipulation)",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID (REQUIRED). Format: ms_YYYYMMDDHHMMSS"
+          },
+          "title": {
+            "type": "string",
+            "description": "Link title (REQUIRED). Be descriptive.\n\nExamples:\n- 'Production Dashboard'\n- 'Staging Environment'\n- 'GitHub PR #123'\n- 'Monitoring Dashboard'"
+          },
+          "url": {
+            "type": "string",
+            "description": "Full URL (REQUIRED).\n\nExamples:\n- 'https://dashboard.example.com'\n- 'https://staging.myapp.com'\n- 'https://github.com/user/repo/pull/123'\n- 'https://grafana.example.com/dashboards'"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "title",
+          "url"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "link_added": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          },
+          "total_links": {
+            "type": "number",
+            "description": "New total count after addition"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add production dashboard link",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "Production Dashboard",
+            "url": "https://dashboard.example.com"
+          }
+        },
+        {
+          "description": "Add GitHub PR",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "GitHub PR #456 - Add Authentication",
+            "url": "https://github.com/myorg/myrepo/pull/456"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_task_field",
+      "description": "🆕 SURGICAL UPDATE - Update ONE field of a task without touching other fields\n\n📌 WHAT IT DOES:\nUpdates a SINGLE field on a task. No other fields are touched, no arrays are rewritten.\n\n✅ WHEN TO USE:\n- Change task description\n- Update priority (low/medium/high/critical)\n- Mark task complete/incomplete\n- Update time estimates or actuals\n- Block/unblock a task\n- Add blocker reason\n\n⚡ WHY IT'S BETTER:\n- Atomic operation (no race conditions)\n- Much faster than fetch-modify-update\n- Safer (can't accidentally change other fields)\n- Cleaner code (no JSON manipulation)\n\n🔧 ALLOWED FIELDS:\n1. 'task' - Task description text\n2. 'priority' - Priority level (low/medium/high/critical)\n3. 'completed' - Completion status (true/false)\n4. 'estimated_hours' - Time estimate (number)\n5. 'actual_hours' - Actual time spent (number)\n6. 'blocked' - Block status (true/false)\n7. 'blocker_reason' - Why task is blocked (string)",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (REQUIRED). Format: task_YYYYMMDDHHMMSS\n\nGet from:\n- synergy_get_milestones() task list\n- synergy_get_session() tasks array\n- synergy_create_milestone() response"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "task",
+              "priority",
+              "completed",
+              "estimated_hours",
+              "actual_hours",
+              "blocked",
+              "blocker_reason"
+            ],
+            "description": "Field name to update (REQUIRED).\n\nChoose from:\n- 'task' = Task description\n- 'priority' = Priority level\n- 'completed' = Completion status\n- 'estimated_hours' = Time estimate\n- 'actual_hours' = Actual time\n- 'blocked' = Block status\n- 'blocker_reason' = Blocker description"
+          },
+          "value": {
+            "description": "New value for the field (REQUIRED).\n\nType depends on field:\n- task: string\n- priority: 'low'|'medium'|'high'|'critical'\n- completed: true|false\n- estimated_hours: number\n- actual_hours: number\n- blocked: true|false\n- blocker_reason: string"
+          }
+        },
+        "required": [
+          "task_id",
+          "field",
+          "value"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "field_updated": {
+            "type": "string"
+          },
+          "new_value": {
+            "description": "The new value that was set"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Update task description",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "task",
+            "value": "Implement OAuth2 authentication with Google"
+          }
+        },
+        {
+          "description": "Change priority to urgent",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "priority",
+            "value": "critical"
+          }
+        },
+        {
+          "description": "Mark task complete",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "completed",
+            "value": true
+          }
+        },
+        {
+          "description": "Block a task",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "blocked",
+            "value": true
+          }
+        },
+        {
+          "description": "Add blocker reason",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "blocker_reason",
+            "value": "Waiting for API credentials from customer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_subtask_field",
+      "description": "🆕 SURGICAL UPDATE - Update ONE field of a subtask without touching other fields\n\n📌 WHAT IT DOES:\nUpdates a SINGLE field on a subtask. No other fields are touched, no arrays are rewritten.\n\n✅ WHEN TO USE:\n- Change subtask description\n- Update priority\n- Mark subtask complete/incomplete\n- Update time estimates or actuals\n\n⚡ WHY IT'S BETTER:\n- Atomic operation (no race conditions)\n- Much faster than fetch-modify-update\n- Safer (can't accidentally change other fields)\n- Cleaner code (no JSON manipulation)\n\n🔧 ALLOWED FIELDS:\n1. 'task' - Subtask description text\n2. 'priority' - Priority level (low/medium/high/critical)\n3. 'completed' - Completion status (true/false)\n4. 'estimated_hours' - Time estimate (number)\n5. 'actual_hours' - Actual time spent (number)",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "subtask_id": {
+            "type": "string",
+            "description": "Subtask ID (REQUIRED). Format: subtask_YYYYMMDDHHMMSS\n\nGet from:\n- synergy_get_milestones() subtask list\n- synergy_get_session() subtasks array\n- synergy_create_milestone() response"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "task",
+              "priority",
+              "completed",
+              "estimated_hours",
+              "actual_hours"
+            ],
+            "description": "Field name to update (REQUIRED).\n\nChoose from:\n- 'task' = Subtask description\n- 'priority' = Priority level\n- 'completed' = Completion status\n- 'estimated_hours' = Time estimate\n- 'actual_hours' = Actual time"
+          },
+          "value": {
+            "description": "New value for the field (REQUIRED).\n\nType depends on field:\n- task: string\n- priority: 'low'|'medium'|'high'|'critical'\n- completed: true|false\n- estimated_hours: number\n- actual_hours: number"
+          }
+        },
+        "required": [
+          "subtask_id",
+          "field",
+          "value"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "subtask_id": {
+            "type": "string"
+          },
+          "field_updated": {
+            "type": "string"
+          },
+          "new_value": {
+            "description": "The new value that was set"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Update subtask description",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "task",
+            "value": "Test OAuth flow with test Google account"
+          }
+        },
+        {
+          "description": "Change priority",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "priority",
+            "value": "high"
+          }
+        },
+        {
+          "description": "Mark subtask complete",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "completed",
+            "value": true
+          }
+        },
+        {
+          "description": "Update time estimate",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "estimated_hours",
+            "value": 2.5
           }
         }
       ]

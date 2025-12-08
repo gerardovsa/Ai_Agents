@@ -173,7 +173,7 @@ window.ThreadCardRealtime = {
         }
 
         const formattedThread = this._formatThread(updatedThread);
-        
+
         // 🔧 FIX 1: Check if linkage changed (before updating cache)
         let linkageChanged = false;
         const existingIndex = ThreadManager.threads.findIndex(t => t.id === formattedThread.id);
@@ -239,31 +239,31 @@ window.ThreadCardRealtime = {
      */
     refreshThreadBadge(thread) {
         console.log('[ThreadCardRealtime] Refreshing badges for thread:', thread.id);
-        
+
         // Find all instances of this thread card in DOM (could be in multiple locations)
         const threadCards = document.querySelectorAll(`[data-thread-slug="${thread.id}"]`);
-        
+
         if (threadCards.length === 0) {
             console.log('[ThreadCardRealtime] No thread cards found in DOM for:', thread.id);
             return;
         }
-        
+
         threadCards.forEach(card => {
             const badgeContainer = card.querySelector('.linkage-badges-container');
             if (!badgeContainer) {
                 console.log('[ThreadCardRealtime] No badge container found in card');
                 return;
             }
-            
+
             // Clear old badges
             badgeContainer.innerHTML = '';
-            
+
             // Render new badges using integration modules
             const badgeConfig = {
                 showUnlinkButton: true,
                 compact: false
             };
-            
+
             // Synergy badge
             if (thread.synergy_card_id && typeof window.SynergyThreadIntegration !== 'undefined') {
                 try {
@@ -276,7 +276,7 @@ window.ThreadCardRealtime = {
                     console.error('[ThreadCardRealtime] Error rendering Synergy badge:', error);
                 }
             }
-            
+
             // Workflow badge
             if (thread.workflow_slug && typeof window.WorkflowThreadIntegration !== 'undefined') {
                 try {
@@ -289,7 +289,7 @@ window.ThreadCardRealtime = {
                     console.error('[ThreadCardRealtime] Error rendering Workflow badge:', error);
                 }
             }
-            
+
             // Automation badge
             if (thread.automation_slug && typeof window.AutomationThreadIntegration !== 'undefined') {
                 try {
@@ -302,7 +302,7 @@ window.ThreadCardRealtime = {
                     console.error('[ThreadCardRealtime] Error rendering Automation badge:', error);
                 }
             }
-            
+
             // Internal docs badge
             if (thread.internal_doc_slug && typeof window.InternalDocsThreadIntegration !== 'undefined') {
                 try {
@@ -315,7 +315,7 @@ window.ThreadCardRealtime = {
                     console.error('[ThreadCardRealtime] Error rendering Internal Docs badge:', error);
                 }
             }
-            
+
             console.log('[ThreadCardRealtime] ✅ Badge refresh complete for:', thread.id);
         });
     },
@@ -342,6 +342,23 @@ window.ThreadCardRealtime = {
         if (existingIndex !== -1) {
             ThreadManager.threads.splice(existingIndex, 1);
             console.log(`[ThreadCardRealtime] Removed thread from cache: ${deletedThreadId}`);
+        }
+
+        // Clear from agent columns if loaded (Dec 9, 2025 FIX)
+        if (typeof MultiAgent !== 'undefined') {
+            [1, 2, 3, 4, 5, 6, 7, 8].forEach(agentId => {
+                const loadedThread = MultiAgent.loadedThreads?.[agentId];
+                if (loadedThread && loadedThread.threadId === deletedThreadId) {
+                    console.log(`[ThreadCardRealtime] Clearing deleted thread from agent ${agentId}`);
+                    // Use AgentColumn.unloadThread to properly show empty state
+                    if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.unloadThread === 'function') {
+                        AgentColumn.unloadThread(agentId);
+                    } else {
+                        // Fallback: clear via MultiAgent
+                        MultiAgent.clearAgentThread?.(agentId);
+                    }
+                }
+            });
         }
 
         // Remove thread cards from all locations

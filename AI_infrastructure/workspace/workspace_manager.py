@@ -7,9 +7,10 @@ Handles all workspace lifecycle operations including:
 - Access control and permissions
 - Workspace settings and configuration
 - Integration with thread system
+
+Uses Supabase PostgreSQL via get_database_connection('ai_infrastructure')
 """
 
-import sqlite3
 import sys
 import secrets
 from typing import List, Optional, Dict, Any
@@ -18,7 +19,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.database_utils import get_database_connection
-from pathlib import Path
 
 from .constants import (
     WorkspaceRole,
@@ -99,11 +99,8 @@ class WorkspaceManager:
         self.db_path = str(db_path)
     
     def _get_connection(self):
-        """Get database connection (SQLite or Supabase)"""
-        conn = get_database_connection('ai_infrastructure')
-        if hasattr(conn, 'row_factory'):  # SQLite
-            conn.row_factory = sqlite3.Row
-        return conn
+        """Get Supabase PostgreSQL connection for ai_infrastructure schema"""
+        return get_database_connection('ai_infrastructure')
     
     def _generate_workspace_slug(self) -> str:
         """Generate unique workspace slug"""

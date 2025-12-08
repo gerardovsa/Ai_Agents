@@ -171,6 +171,7 @@ print("[DEBUG] Loading vector_db_routes...")
 from routes.vector_db_routes import vector_db_bp  # NEW: Vector Database management (Pinecone + embeddings)
 print("[DEBUG] Loading workspace_routes...")
 from routes.workspace_routes import workspace_bp  # NEW: Workspace management (CRUD, members, invitations)
+from routes.workspace_search_routes import workspace_search_bp  # NEW: Workspace search & message retrieval (4 endpoints: search, semantic-search, messages, transcriptions)
 print("[DEBUG] Loading thread_sharing_routes...")
 from routes.thread_sharing_routes import thread_sharing_bp  # NEW: Thread sharing (multi-user collaboration)
 print("[DEBUG] Loading communication_routes...")
@@ -375,6 +376,7 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to register vector_db_enhanced routes: {e}")
 app.register_blueprint(workspace_bp)                                 # NEW: Workspace management (18 endpoints: /api/workspaces/*)
+app.register_blueprint(workspace_search_bp)                          # NEW: Workspace search & message retrieval (4 endpoints: /api/v1/workspace/*)
 app.register_blueprint(communication_bp)                             # NEW: Communication Hub (8 endpoints: /api/communication-hub/*)
 app.register_blueprint(user_management_bp)                           # NEW: Sub-user management (5 endpoints: /api/users/sub-users/*)
 app.register_blueprint(render_bp)                                    # NEW: Render cloud management (6 endpoints: /api/render/*)
@@ -1828,15 +1830,14 @@ def log_response_info(response):
 @app.after_request
 def add_no_cache_headers(response):
     """
-    Force browsers to revalidate JavaScript modules on every request.
+    Force browsers to revalidate JavaScript and CSS modules on every request.
     
-    CRITICAL FIX: Browser was caching old module-utilities.js despite cache-busting
-    query parameters. This prevented the module-aware dom.getContainer() wrapper
-    from loading, causing "Cannot read properties of null" errors.
+    CRITICAL FIX: Browser was caching old module-utilities.js and CSS files despite cache-busting
+    query parameters. This prevented UI updates from appearing.
     
-    Solution: Add strict no-cache headers to ALL JavaScript responses.
+    Solution: Add strict no-cache headers to ALL JavaScript AND CSS responses.
     """
-    if response.content_type and 'javascript' in response.content_type:
+    if response.content_type and ('javascript' in response.content_type or 'css' in response.content_type):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'

@@ -17,7 +17,6 @@ Features:
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
 import json
 import sys
 import os
@@ -33,21 +32,17 @@ from task_sync_universal import UniversalTaskMapper
 # Import tool registry for Google/Microsoft API calls
 from tools.registry import ToolRegistry
 
-# Import database utilities
-from shared.database_utils import convert_sql_placeholders
+# Import database utilities - PostgreSQL only
+from shared.database_utils import convert_sql_placeholders, get_database_connection
 
 # Initialize
 task_sync_bp = Blueprint('task_sync', __name__, url_prefix='/api/sync')
 tool_registry = ToolRegistry()
 mapper = UniversalTaskMapper()
 
-DATABASE_PATH = 'data/synergy_sessions.db'
-
 def get_db_connection():
-    """Get database connection"""
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get Supabase PostgreSQL connection for synergy_sessions schema"""
+    return get_database_connection('synergy_sessions')
 
 def dict_from_row(row):
     """Convert SQLite row to dict"""

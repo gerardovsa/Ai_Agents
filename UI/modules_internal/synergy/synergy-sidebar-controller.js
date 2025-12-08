@@ -279,7 +279,8 @@ class SynergySidebarController {
             item.classList.toggle('pinned', !isPinned);
         }
 
-        const btn = item?.querySelector('.pin-btn');
+        // Update button class - look for both .pin-btn and .synergy-icon-btn with thumbtack
+        const btn = item?.querySelector('.pin-btn, .synergy-icon-btn .fa-thumbtack')?.closest('.synergy-icon-btn');
         if (btn) {
             btn.classList.toggle('pinned', !isPinned);
         }

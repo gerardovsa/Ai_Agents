@@ -3,9 +3,9 @@ Access Control - Workspace Permission System
 
 Handles permission checking and access control for workspaces and threads.
 Implements role-based access control (RBAC) with hierarchical permissions.
+Uses Supabase PostgreSQL via get_database_connection('ai_infrastructure')
 """
 
-import sqlite3
 import sys
 from typing import Optional, List
 from pathlib import Path
@@ -131,11 +131,8 @@ class AccessControl:
         self.db_path = str(db_path)
     
     def _get_connection(self):
-        """Get database connection (SQLite or Supabase)"""
-        conn = get_database_connection('ai_infrastructure')
-        if hasattr(conn, 'row_factory'):  # SQLite
-            conn.row_factory = sqlite3.Row
-        return conn
+        """Get Supabase PostgreSQL connection for ai_infrastructure schema"""
+        return get_database_connection('ai_infrastructure')
     
     def get_user_role(self, workspace_id: int, user_id: int) -> Optional[WorkspaceRole]:
         """

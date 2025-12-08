@@ -257,46 +257,56 @@ def save_transcription():
         if not user_id and hasattr(request, 'user_id'):
             user_id = request.user_id
 
-        from AI_infrastructure.database_toolkit.schema_manager import SchemaManager
-        mgr = SchemaManager()
-        conn = mgr.get_connection()
-        cur = conn.cursor()
+        # ✅ FIX: Use PostgreSQL instead of SQLite
+        from AI_infrastructure.shared.database_utils import get_connection
+        
+        cursor = None
+        try:
+            with get_connection('ai_infrastructure') as conn:
+                cursor = conn.cursor()
 
-        cur.execute('''
-            INSERT INTO user_transcriptions
-            (user_id, source_type, transcript_text, confidence, language, duration_seconds, word_count, model_used, metadata)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            user_id,
-            source_type,
-            transcript,
-            confidence,
-            language,
-            duration,
-            len(transcript.split()) if transcript else 0,
-            model_used,
-            metadata
-        ))
-        transcription_id = cur.lastrowid
-
-        # If file_info provided, store
-        if file_info and transcription_id:
-            try:
-                cur.execute('''
-                    INSERT INTO transcription_uploads
-                    (transcription_id, filename, file_size, file_type, mime_type, original_duration, processing_time_ms)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                cursor.execute('''
+                    INSERT INTO ai_infrastructure.user_transcriptions
+                    (user_id, source_type, transcript_text, confidence, language, duration_seconds, word_count, model_used, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
                 ''', (
-                    transcription_id,
-                    file_info.get('filename'),
-                    file_info.get('size'),
-                    file_info.get('format') or file_info.get('file_type'),
-                    file_info.get('mime_type'),
-                    file_info.get('duration_seconds'),
-                    file_info.get('processing_time_ms')
+                    user_id,
+                    source_type,
+                    transcript,
+                    confidence,
+                    language,
+                    duration,
+                    len(transcript.split()) if transcript else 0,
+                    model_used,
+                    metadata
                 ))
-            except Exception:
-                logger.exception('[TRANSCRIPTION] Failed to save upload metadata')
+                transcription_id = cursor.fetchone()[0]
+
+                # If file_info provided, store
+                if file_info and transcription_id:
+                    try:
+                        cursor.execute('''
+                            INSERT INTO ai_infrastructure.transcription_uploads
+                            (transcription_id, filename, file_size, file_type, mime_type, original_duration, processing_time_ms)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ''', (
+                            transcription_id,
+                            file_info.get('filename'),
+                            file_info.get('size'),
+                            file_info.get('format') or file_info.get('file_type'),
+                            file_info.get('mime_type'),
+                            file_info.get('duration_seconds'),
+                            file_info.get('processing_time_ms')
+                        ))
+                    except Exception:
+                        logger.exception('[TRANSCRIPTION] Failed to save upload metadata')
+                
+                cursor.close()
+        except Exception as e:
+            if cursor:
+                cursor.close()
+            raise e
 
         conn.commit()
         
@@ -333,8 +343,7 @@ def transcription_history():
     
     ✅ FIXED: Proper cursor management with finally block
     """
-    cur = None  # ✅ Initialize cursor before try
-    conn = None  # ✅ Initialize connection before try
+    cursor = None  # ✅ Initialize cursor before try
     try:
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
@@ -346,34 +355,30 @@ def transcription_history():
         if not user_id and hasattr(request, 'user_id'):
             user_id = request.user_id
 
-        from AI_infrastructure.database_toolkit.schema_manager import SchemaManager
-        mgr = SchemaManager()
-        conn = mgr.get_connection()
-        cur = conn.cursor()
-
-        if user_id:
-            cur.execute('''
-                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
-                FROM user_transcriptions
-                WHERE user_id = ?
-                ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
-            ''', (user_id, limit, offset))
-        else:
-            cur.execute('''
-                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
-                FROM user_transcriptions
-                ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
-            ''', (limit, offset))
-
-        rows = cur.fetchall()
+        # ✅ FIX: Use PostgreSQL instead of SQLite
+        from AI_infrastructure.shared.database_utils import get_connection
         
-        # ✅ Close cursor BEFORE connection
-        cur.close()
-        cur = None
-        conn.close()
-        conn = None
+        with get_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+
+            if user_id:
+                cursor.execute('''
+                    SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+                    FROM ai_infrastructure.user_transcriptions
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                ''', (user_id, limit, offset))
+            else:
+                cursor.execute('''
+                    SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+                    FROM ai_infrastructure.user_transcriptions
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                ''', (limit, offset))
+
+            rows = cursor.fetchall()
+            cursor.close()
 
         results = []
         for r in rows:
@@ -394,10 +399,9 @@ def transcription_history():
         logger.error(f'[TRANSCRIPTION] History error: {e}', exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        # ✅ Guaranteed cleanup
-        if cur:
+        if cursor:
             try:
-                cur.close()
+                cursor.close()
             except:
                 pass
         if conn:

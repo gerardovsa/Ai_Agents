@@ -1,392 +1,378 @@
 <!-- ==================== VECTOR DATABASE SIDEBAR MODULE ==================== -->
-<!-- Follows Synergy sidebar pattern (450px width, expandable) -->
+<!-- Uses universal-sidebar framework for consistent behavior -->
 
-<div id="vector-db-sidebar" class="vector-db-sidebar">
-    <!-- HEADER -->
-    <div class="vector-db-sidebar-header">
-        <div class="vector-db-header-top">
-            <div class="vector-db-sidebar-title">
-                <i class="fas fa-database"></i>
-                <span>Vector Database</span>
-            </div>
-            <div class="vector-db-header-actions">
-                <button class="vector-db-icon-btn" onclick="window.vectorDbSidebar.refresh()" title="Refresh">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-                <button class="vector-db-icon-btn" onclick="window.vectorDbSidebar.toggleSidebar()" title="Close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+<!-- HEADER -->
+<div class="universal-sidebar-header">
+    <div class="vector-db-header-top">
+        <div class="universal-sidebar-title">
+            <i class="fas fa-database"></i>
+            <span>Vector Database</span>
         </div>
-
-        <!-- STATS ROW -->
-        <div class="vector-db-stats">
-            <div class="vector-db-stat">
-                <span class="vector-db-stat-value" id="stat-documents">0</span>
-                <span class="vector-db-stat-label">Documents</span>
-            </div>
-            <div class="vector-db-stat">
-                <span class="vector-db-stat-value" id="stat-vectors">0</span>
-                <span class="vector-db-stat-label">Vectors</span>
-            </div>
-            <div class="vector-db-stat">
-                <span class="vector-db-stat-value" id="stat-namespaces">0</span>
-                <span class="vector-db-stat-label">Namespaces</span>
-            </div>
-        </div>
-
-        <!-- CREDENTIAL STATUS BANNER -->
-        <div id="credential-status-banner"
-            style="margin: 12px 16px; padding: 12px; background: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 6px; display: none;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-exclamation-triangle" style="color: #F59E0B; font-size: 18px;"></i>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; font-size: 13px; color: #92400E; margin-bottom: 4px;">
-                        Vector Database Not Configured
-                    </div>
-                    <div style="font-size: 12px; color: #92400E; line-height: 1.5;">
-                        Configure Pinecone and embedding provider credentials in Platform Connections to enable vector
-                        database features.
-                    </div>
-                </div>
-            </div>
-            <button onclick="window.moduleState.loadConnectionsModal()"
-                style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #F59E0B; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-                <i class="fas fa-cog"></i> Configure in Platform Connections
+        <div class="vector-db-header-actions">
+            <button class="synergy-icon-btn" onclick="window.location.reload()" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
             </button>
-        </div>
-
-        <div id="credential-connected-banner"
-            style="margin: 12px 16px; padding: 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 6px; display: none;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-check-circle" style="color: #059669; font-size: 18px;"></i>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; font-size: 13px; color: #065F46; margin-bottom: 4px;">
-                        Connected to Vector Database
-                    </div>
-                    <div style="font-size: 12px; color: #065F46;">
-                        <div><strong>Pinecone:</strong> <span id="banner-index-name">-</span> (<span
-                                id="banner-environment">-</span>)</div>
-                        <div><strong>Embedding:</strong> <span id="banner-embedding-provider">-</span> - <span
-                                id="banner-embedding-model">-</span></div>
-                    </div>
-                </div>
-            </div>
-            <button onclick="window.moduleState.loadConnectionsModal()"
-                style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-                <i class="fas fa-cog"></i> Manage Credentials
-            </button>
-        </div>
-
-        <!-- PROVIDER SELECTOR -->
-        <div
-            style="margin: 12px 16px; padding: 12px; background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <label
-                style="display: block; font-weight: 700; font-size: 12px; color: #FFFFFF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                <i class="fas fa-database"></i> Vector Database Provider
-            </label>
-            <select id="provider-selector"
-                style="width: 100%; padding: 10px 12px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600; color: #1F2937; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <option value="pinecone">🌲 Pinecone (Cloud - $70/mo)</option>
-                <option value="voyager">🚀 Voyager (Cloud - Pay-per-use)</option>
-                <option value="pgvector">🐘 pgvector (Supabase - FREE)</option>
-                <option value="qdrant">⚡ Qdrant (Server-based - FREE)</option>
-            </select>
-            <div id="provider-info"
-                style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; font-size: 11px; color: #FFFFFF; line-height: 1.5;">
-                <strong>Pinecone:</strong> Cloud-managed, 150ms latency, enterprise-grade
-            </div>
-        </div>
-
-        <!-- TAB NAVIGATION -->
-        <div class="vector-db-tabs">
-            <button class="vector-db-tab active" data-tab="upload" onclick="window.vectorDbSidebar.switchTab('upload')">
-                <i class="fas fa-upload"></i> Upload
-            </button>
-            <button class="vector-db-tab" data-tab="documents" onclick="window.vectorDbSidebar.switchTab('documents')">
-                <i class="fas fa-file-alt"></i> Documents
-            </button>
-            <button class="vector-db-tab" data-tab="qdrant" onclick="window.vectorDbSidebar.switchTab('qdrant')"
-                style="display: none;">
-                <i class="fas fa-server"></i> Qdrant
-            </button>
-        </div>
-    </div>
-
-    <!-- CONTENT AREA -->
-    <div class="vector-db-sidebar-content">
-        <!-- CREDENTIALS TAB REMOVED - NOW MANAGED VIA PLATFORM CONNECTIONS -->
-
-        <!-- TAB 0: QDRANT CONFIGURATION (shown when Qdrant is selected) -->
-        <div id="qdrant-tab" class="tab-content" style="display: none;">
-            <div class="qdrant-config-section">
-                <div class="section-header">
-                    <div class="section-title">
-                        <i class="fas fa-server"></i> Qdrant Setup
-                    </div>
-                </div>
-
-                <!-- DEPLOYMENT TYPE SELECTOR -->
-                <div style="margin-bottom: 20px;">
-                    <label
-                        style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 8px;">
-                        Deployment Type
-                    </label>
-                    <select id="qdrant-deployment-type"
-                        style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
-                        <option value="customer-server">🖥️ Customer Server (Docker - FREE, 1-5ms)</option>
-                        <option value="valor-cloud">☁️ Valor Cloud (Render - FREE, 100-150ms)</option>
-                        <option value="qdrant-cloud">🌐 Qdrant Cloud (Managed - $25-99/mo, 50-100ms)</option>
-                    </select>
-                    <div id="deployment-info"
-                        style="margin-top: 8px; padding: 10px; background: #F3F4F6; border-radius: 4px; font-size: 12px; color: #6B7280; line-height: 1.5;">
-                        <strong>Customer Server:</strong> Deploy Qdrant on your hardware via Docker. Full control,
-                        unlimited storage, lowest latency.
-                    </div>
-                </div>
-
-                <!-- DOCKER DEPLOYMENT WIZARD -->
-                <div id="docker-wizard" style="display: block;">
-                    <div
-                        style="padding: 16px; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; margin-bottom: 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <i class="fas fa-rocket" style="font-size: 24px; color: #FFFFFF;"></i>
-                            <div>
-                                <div style="font-weight: 700; font-size: 15px; color: #FFFFFF;">Docker Deployment Wizard
-                                </div>
-                                <div style="font-size: 11px; color: rgba(255,255,255,0.9);">AI agent will deploy Qdrant
-                                    on your server</div>
-                            </div>
-                        </div>
-                        <button id="deploy-docker-btn"
-                            style="width: 100%; padding: 12px; background: #FFFFFF; color: #2563EB; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s;">
-                            <i class="fas fa-terminal"></i> Deploy Qdrant Docker Container
-                        </button>
-                    </div>
-
-                    <div id="docker-commands"
-                        style="display: none; padding: 12px; background: #1F2937; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #10B981; margin-bottom: 16px; max-height: 300px; overflow-y: auto;">
-                        <!-- Docker commands will be inserted here -->
-                    </div>
-                </div>
-
-                <!-- CONNECTION SETTINGS -->
-                <div id="qdrant-connection-settings" style="display: block;">
-                    <div style="margin-bottom: 12px;">
-                        <label
-                            style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
-                            Host <span style="color: #EF4444;">*</span>
-                        </label>
-                        <input type="text" id="qdrant-host" placeholder="localhost or 192.168.1.100" value="localhost"
-                            style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
-                    </div>
-
-                    <div style="margin-bottom: 12px;">
-                        <label
-                            style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
-                            Port <span style="color: #EF4444;">*</span>
-                        </label>
-                        <input type="number" id="qdrant-port" placeholder="6333" value="6333"
-                            style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
-                    </div>
-
-                    <div style="margin-bottom: 16px;">
-                        <label
-                            style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
-                            API Key <span style="font-weight: 400; color: #6B7280;">(optional)</span>
-                        </label>
-                        <input type="password" id="qdrant-api-key"
-                            placeholder="Enter API key if authentication is enabled"
-                            style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
-                    </div>
-
-                    <button id="test-qdrant-connection-btn"
-                        style="width: 100%; padding: 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px;">
-                        <i class="fas fa-plug"></i> Test Connection
-                    </button>
-
-                    <div id="qdrant-connection-status"
-                        style="display: none; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px;">
-                        <!-- Connection status will be shown here -->
-                    </div>
-                </div>
-
-                <!-- ADVANCED FEATURES -->
-                <div
-                    style="margin-top: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;">
-                    <div style="font-weight: 700; font-size: 14px; color: #1F2937; margin-bottom: 12px;">
-                        <i class="fas fa-brain"></i> Advanced Features
-                    </div>
-
-                    <div <div
-                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Multi-Modal Embeddings</div>
-                            <div style="font-size: 11px; color: #6B7280;">Image + Text + Audio + Video</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="multi-modal-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Vector Quantization</div>
-                            <div style="font-size: 11px; color: #6B7280;">4-32x compression, 10x faster</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="quantization-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Hybrid Search</div>
-                            <div style="font-size: 11px; color: #6B7280;">Dense + Sparse BM25</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="hybrid-search-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Vector Quantization</div>
-                            <div style="font-size: 11px; color: #6B7280;">Binary/Scalar/Product (4-32x compression)
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="quantization-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 13px; color: #374151;">Hybrid Search</div>
-                            <div style="font-size: 11px; color: #6B7280;">Dense + Sparse (BM25 + Semantic)</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="hybrid-search-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 1: UPLOAD -->
-        <div id="upload-tab" class="tab-content active">
-            <div class="upload-section">
-                <div class="section-header">
-                    <div class="section-title">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        Upload Documents
-                    </div>
-                </div>
-
-                <div class="upload-zone" id="upload-zone">
-                    <div class="upload-icon">
-                        <i class="fas fa-file-upload"></i>
-                    </div>
-                    <div class="upload-text">
-                        Drop files here or click to browse
-                    </div>
-                    <div class="upload-hint">
-                        Supports PDF, TXT, MD, DOCX (Max 10MB per file)
-                    </div>
-                </div>
-
-                <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.txt,.md,.docx" />
-
-                <div id="uploaded-files" style="margin-top: 16px;"></div>
-
-                <div id="upload-progress" class="progress-container" style="display: none;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
-                    </div>
-                    <div class="progress-text" id="progress-text">Processing...</div>
-                </div>
-
-                <button type="button" class="btn-primary" id="process-btn"
-                    onclick="window.vectorDbSidebar.processFiles()"
-                    style="width: 100%; margin-top: 16px; display: none;">
-                    <i class="fas fa-cogs"></i> Process & Upload to Vector DB
-                </button>
-            </div>
-
-            <!-- Upload Settings -->
-            <div class="upload-section">
-                <div class="section-header">
-                    <div class="section-title">
-                        <i class="fas fa-sliders-h"></i>
-                        Processing Settings
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="chunk-size">
-                        Chunk Size (characters)
-                    </label>
-                    <input type="number" id="chunk-size" class="form-input" value="800" min="100" max="2000" />
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="chunk-overlap">
-                        Chunk Overlap (characters)
-                    </label>
-                    <input type="number" id="chunk-overlap" class="form-input" value="20" min="0" max="200" />
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="upload-namespace">
-                        Target Namespace
-                    </label>
-                    <input type="text" id="upload-namespace" class="form-input" placeholder="Leave empty for default" />
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 3: DOCUMENTS -->
-        <div id="documents-tab" class="tab-content" style="display: none;">
-            <div class="documents-section">
-                <div class="section-header">
-                    <div class="section-title">
-                        <i class="fas fa-file-alt"></i>
-                        Indexed Documents
-                    </div>
-                    <button class="vector-db-icon-btn" onclick="window.vectorDbSidebar.loadDocuments()" title="Refresh">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-
-                <div id="documents-list">
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-database"></i>
-                        </div>
-                        <div class="empty-text">No documents indexed yet</div>
-                        <div class="empty-hint">Upload documents to get started</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- FOOTER -->
-    <div class="vector-db-sidebar-footer">
-        <div class="footer-actions">
-            <button class="btn-secondary" onclick="window.vectorDbSidebar.openHelp()">
-                <i class="fas fa-question-circle"></i> Help
-            </button>
-            <button class="vector-db-icon-btn" onclick="window.vectorDbSidebar.toggleSidebar()" title="Close">
+            <button class="synergy-icon-btn" onclick="window.SidebarManager?.close('vector-database')" title="Close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
     </div>
+
+    <!-- STATS ROW -->
+    <div class="vector-db-stats">
+        <div class="vector-db-stat">
+            <span class="vector-db-stat-value" id="stat-documents">0</span>
+            <span class="vector-db-stat-label">Documents</span>
+        </div>
+        <div class="vector-db-stat">
+            <span class="vector-db-stat-value" id="stat-vectors">0</span>
+            <span class="vector-db-stat-label">Vectors</span>
+        </div>
+        <div class="vector-db-stat">
+            <span class="vector-db-stat-value" id="stat-namespaces">0</span>
+            <span class="vector-db-stat-label">Namespaces</span>
+        </div>
+    </div>
+</div><!-- CONTENT -->
+<div class="universal-sidebar-content">
+    <!-- CREDENTIAL STATUS BANNER -->
+    <div id="credential-status-banner"
+        style="margin: 12px 16px; padding: 12px; background: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 6px; display: none;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-exclamation-triangle" style="color: #F59E0B; font-size: 18px;"></i>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 13px; color: #92400E; margin-bottom: 4px;">
+                    Vector Database Not Configured
+                </div>
+                <div style="font-size: 12px; color: #92400E; line-height: 1.5;">
+                    Configure Pinecone and embedding provider credentials in Platform Connections to enable vector
+                    database features.
+                </div>
+            </div>
+        </div>
+        <button onclick="window.moduleState.loadConnectionsModal()"
+            style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #F59E0B; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+            <i class="fas fa-cog"></i> Configure in Platform Connections
+        </button>
+    </div>
+
+    <div id="credential-connected-banner"
+        style="margin: 12px 16px; padding: 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 6px; display: none;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-check-circle" style="color: #059669; font-size: 18px;"></i>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 13px; color: #065F46; margin-bottom: 4px;">
+                    Connected to Vector Database
+                </div>
+                <div style="font-size: 12px; color: #065F46;">
+                    <div><strong>Pinecone:</strong> <span id="banner-index-name">-</span> (<span
+                            id="banner-environment">-</span>)</div>
+                    <div><strong>Embedding:</strong> <span id="banner-embedding-provider">-</span> - <span
+                            id="banner-embedding-model">-</span></div>
+                </div>
+            </div>
+        </div>
+        <button onclick="window.moduleState.loadConnectionsModal()"
+            style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+            <i class="fas fa-cog"></i> Manage Credentials
+        </button>
+    </div>
+
+    <!-- PROVIDER SELECTOR -->
+    <div class="vector-db-provider-section">
+        <label class="vector-db-label">
+            <i class="fas fa-database"></i> Vector Database Provider
+        </label>
+        <select id="provider-selector" class="vector-db-select">
+            <option value="pinecone">🌲 Pinecone (Cloud - $70/mo)</option>
+            <option value="voyager">🚀 Voyager (Cloud - Pay-per-use)</option>
+            <option value="pgvector">🐘 pgvector (Supabase - FREE)</option>
+            <option value="qdrant">⚡ Qdrant (Server-based - FREE)</option>
+        </select>
+        <div id="provider-info" class="vector-db-provider-info">
+            <strong>Pinecone:</strong> Cloud-managed, 150ms latency, enterprise-grade
+        </div>
+    </div> <!-- TAB NAVIGATION -->
+    <div class="vector-db-tabs">
+        <button class="vector-db-tab active" data-tab="upload" onclick="window.vectorDbSidebar.switchTab('upload')">
+            <i class="fas fa-upload"></i> Upload
+        </button>
+        <button class="vector-db-tab" data-tab="documents" onclick="window.vectorDbSidebar.switchTab('documents')">
+            <i class="fas fa-file-alt"></i> Documents
+        </button>
+        <button class="vector-db-tab" data-tab="qdrant" onclick="window.vectorDbSidebar.switchTab('qdrant')"
+            style="display: none;">
+            <i class="fas fa-server"></i> Qdrant
+        </button>
+    </div>
+</div>
+
+<!-- CONTENT AREA -->
+<div class="vector-db-sidebar-content">
+    <!-- CREDENTIALS TAB REMOVED - NOW MANAGED VIA PLATFORM CONNECTIONS -->
+
+    <!-- TAB 0: QDRANT CONFIGURATION (shown when Qdrant is selected) -->
+    <div id="qdrant-tab" class="tab-content" style="display: none;">
+        <div class="qdrant-config-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-server"></i> Qdrant Setup
+                </div>
+            </div>
+
+            <!-- DEPLOYMENT TYPE SELECTOR -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 8px;">
+                    Deployment Type
+                </label>
+                <select id="qdrant-deployment-type"
+                    style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                    <option value="customer-server">🖥️ Customer Server (Docker - FREE, 1-5ms)</option>
+                    <option value="valor-cloud">☁️ Valor Cloud (Render - FREE, 100-150ms)</option>
+                    <option value="qdrant-cloud">🌐 Qdrant Cloud (Managed - $25-99/mo, 50-100ms)</option>
+                </select>
+                <div id="deployment-info"
+                    style="margin-top: 8px; padding: 10px; background: #F3F4F6; border-radius: 4px; font-size: 12px; color: #6B7280; line-height: 1.5;">
+                    <strong>Customer Server:</strong> Deploy Qdrant on your hardware via Docker. Full control,
+                    unlimited storage, lowest latency.
+                </div>
+            </div>
+
+            <!-- DOCKER DEPLOYMENT WIZARD -->
+            <div id="docker-wizard" style="display: block;">
+                <div
+                    style="padding: 16px; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 8px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <i class="fas fa-rocket" style="font-size: 24px; color: #FFFFFF;"></i>
+                        <div>
+                            <div style="font-weight: 700; font-size: 15px; color: #FFFFFF;">Docker Deployment Wizard
+                            </div>
+                            <div style="font-size: 11px; color: rgba(255,255,255,0.9);">AI agent will deploy Qdrant
+                                on your server</div>
+                        </div>
+                    </div>
+                    <button id="deploy-docker-btn"
+                        style="width: 100%; padding: 12px; background: #FFFFFF; color: #2563EB; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-terminal"></i> Deploy Qdrant Docker Container
+                    </button>
+                </div>
+
+                <div id="docker-commands"
+                    style="display: none; padding: 12px; background: #1F2937; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #10B981; margin-bottom: 16px; max-height: 300px; overflow-y: auto;">
+                    <!-- Docker commands will be inserted here -->
+                </div>
+            </div>
+
+            <!-- CONNECTION SETTINGS -->
+            <div id="qdrant-connection-settings" style="display: block;">
+                <div style="margin-bottom: 12px;">
+                    <label
+                        style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
+                        Host <span style="color: #EF4444;">*</span>
+                    </label>
+                    <input type="text" id="qdrant-host" placeholder="localhost or 192.168.1.100" value="localhost"
+                        style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label
+                        style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
+                        Port <span style="color: #EF4444;">*</span>
+                    </label>
+                    <input type="number" id="qdrant-port" placeholder="6333" value="6333"
+                        style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label
+                        style="display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px;">
+                        API Key <span style="font-weight: 400; color: #6B7280;">(optional)</span>
+                    </label>
+                    <input type="password" id="qdrant-api-key" placeholder="Enter API key if authentication is enabled"
+                        style="width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                </div>
+
+                <button id="test-qdrant-connection-btn"
+                    style="width: 100%; padding: 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px;">
+                    <i class="fas fa-plug"></i> Test Connection
+                </button>
+
+                <div id="qdrant-connection-status"
+                    style="display: none; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px;">
+                    <!-- Connection status will be shown here -->
+                </div>
+            </div>
+
+            <!-- ADVANCED FEATURES -->
+            <div
+                style="margin-top: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;">
+                <div style="font-weight: 700; font-size: 14px; color: #1F2937; margin-bottom: 12px;">
+                    <i class="fas fa-brain"></i> Advanced Features
+                </div>
+
+                <div <div
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px; color: #374151;">Multi-Modal Embeddings</div>
+                        <div style="font-size: 11px; color: #6B7280;">Image + Text + Audio + Video</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="multi-modal-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px; color: #374151;">Vector Quantization</div>
+                        <div style="font-size: 11px; color: #6B7280;">4-32x compression, 10x faster</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="quantization-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px; color: #374151;">Hybrid Search</div>
+                        <div style="font-size: 11px; color: #6B7280;">Dense + Sparse BM25</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="hybrid-search-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #E5E7EB;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px; color: #374151;">Vector Quantization</div>
+                        <div style="font-size: 11px; color: #6B7280;">Binary/Scalar/Product (4-32x compression)
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="quantization-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px; color: #374151;">Hybrid Search</div>
+                        <div style="font-size: 11px; color: #6B7280;">Dense + Sparse (BM25 + Semantic)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="hybrid-search-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 1: UPLOAD -->
+    <div id="upload-tab" class="tab-content active">
+        <div class="upload-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Upload Documents
+                </div>
+            </div>
+
+            <div class="upload-zone" id="upload-zone">
+                <div class="upload-icon">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <div class="upload-text">
+                    Drop files here or click to browse
+                </div>
+                <div class="upload-hint">
+                    Supports PDF, TXT, MD, DOCX (Max 10MB per file)
+                </div>
+            </div>
+
+            <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.txt,.md,.docx" />
+
+            <div id="uploaded-files" style="margin-top: 16px;"></div>
+
+            <div id="upload-progress" class="progress-container" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-text" id="progress-text">Processing...</div>
+            </div>
+
+            <button type="button" class="btn-primary" id="process-btn" onclick="window.vectorDbSidebar.processFiles()"
+                style="width: 100%; margin-top: 16px; display: none;">
+                <i class="fas fa-cogs"></i> Process & Upload to Vector DB
+            </button>
+        </div>
+
+        <!-- Upload Settings -->
+        <div class="upload-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-sliders-h"></i>
+                    Processing Settings
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="chunk-size">
+                    Chunk Size (characters)
+                </label>
+                <input type="number" id="chunk-size" class="form-input" value="800" min="100" max="2000" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="chunk-overlap">
+                    Chunk Overlap (characters)
+                </label>
+                <input type="number" id="chunk-overlap" class="form-input" value="20" min="0" max="200" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="upload-namespace">
+                    Target Namespace
+                </label>
+                <input type="text" id="upload-namespace" class="form-input" placeholder="Leave empty for default" />
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: DOCUMENTS -->
+    <div id="documents-tab" class="tab-content" style="display: none;">
+        <div class="documents-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-file-alt"></i>
+                    Indexed Documents
+                </div>
+                <button class="vector-db-icon-btn" onclick="window.vectorDbSidebar.loadDocuments()" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+
+            <div id="documents-list">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="empty-text">No documents indexed yet</div>
+                    <div class="empty-hint">Upload documents to get started</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="universal-sidebar-footer">
+    <button class="btn-secondary" onclick="window.vectorDbSidebar?.openHelp()">
+        <i class="fas fa-question-circle"></i> Help
+    </button>
 </div>

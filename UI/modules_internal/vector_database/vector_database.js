@@ -79,6 +79,26 @@ window.VectorDatabaseModule = {
             return;
         }
 
+        // Load HTML template if container is empty
+        if (!this.container.innerHTML || this.container.innerHTML.trim() === '' ||
+            this.container.innerHTML.includes('Content loaded dynamically')) {
+            try {
+                const htmlPath = '/modules_internal/vector_database/vector_database.html';
+                const response = await fetch(htmlPath);
+                if (response.ok) {
+                    const html = await response.text();
+                    this.container.innerHTML = html;
+                    this.log.info('[VECTOR DB] HTML template loaded');
+                } else {
+                    this.log.error('[VECTOR DB] Failed to load HTML template');
+                    return;
+                }
+            } catch (error) {
+                this.log.error('[VECTOR DB] Error loading HTML template:', error);
+                return;
+            }
+        }
+
         // Setup event listeners (tracked automatically by framework)
         this.setupEventListeners();
 
@@ -724,10 +744,17 @@ window.VectorDatabaseModule = {
     // ==================== TAB MANAGEMENT ====================
 
     switchTab(tabName) {
+        // Safety check - ensure container exists
+        const container = this.container || document.getElementById('vector-database');
+        if (!container) {
+            console.error('[VECTOR DB] Container not found in switchTab');
+            return;
+        }
+
         this.state.currentTab = tabName;
 
         // Update tab buttons
-        const tabs = this.container.querySelectorAll('.vector-db-tab');
+        const tabs = container.querySelectorAll('.vector-db-tab');
         tabs.forEach(tab => {
             tab.classList.remove('active');
             if (tab.dataset.tab === tabName) {
@@ -736,12 +763,12 @@ window.VectorDatabaseModule = {
         });
 
         // Update tab content
-        const contents = this.container.querySelectorAll('.tab-content');
+        const contents = container.querySelectorAll('.tab-content');
         contents.forEach(content => {
             content.style.display = 'none';
         });
 
-        const activeContent = this.container.querySelector(`#${tabName}-tab`);
+        const activeContent = container.querySelector(`#${tabName}-tab`);
         if (activeContent) {
             activeContent.style.display = 'block';
         }

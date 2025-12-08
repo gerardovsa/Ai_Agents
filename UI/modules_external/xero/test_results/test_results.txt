@@ -1,0 +1,269 @@
+====================================================================================================
+XERO CONTACT + QUOTES TOOLS - TEST RESULTS
+====================================================================================================
+Test Run: 2025-12-08 22:23:10
+Python: 3.13.2 (tags/v3.13.2:4f8bb39, Feb  4 2025, 15:23:48) [MSC v.1942 64 bit (AMD64)]
+====================================================================================================
+
+
+====================================================================================================
+TEST 1: xero_get_contacts - List contacts with search
+====================================================================================================
+
+Tool: xero_get_contacts
+Parameters:
+  - business_id: 1
+  - search: None
+  - limit: 5
+
+Executing...
+
+RESULT:
+----------------------------------------------------------------------------------------------------
+✅ SUCCESS
+
+Business: InHouse Print
+Contact Count: 5
+Truncated: True
+Limit Applied: 5
+
+CONTACTS:
+
+Contact 1:
+  contact_id: 996dfeab-0754-4d5c-881b-00740d6d12a2
+  name: CJ King Printing
+  email: 
+  phone: None
+  is_customer: False
+  is_supplier: False
+
+Contact 2:
+  contact_id: 0a2f58a2-2ec0-483b-8b93-00e6d57718f4
+  name: Jacob Vogel
+  email: 
+  phone: None
+  is_customer: False
+  is_supplier: False
+
+Contact 3:
+  contact_id: fa904160-cf37-418b-886d-01915a9b88e8
+  name: Audrey Dawson
+  email: audrey@superconfidence.com.au
+  phone: None
+  is_customer: False
+  is_supplier: False
+
+Contact 4:
+  contact_id: 0109b771-16fe-4fea-83bc-01aeeca30ac8
+  name: 44318425 CAPITAL 44318425
+  email: 
+  phone: None
+  is_customer: False
+  is_supplier: False
+
+Contact 5:
+  contact_id: 87bb4849-c28d-486f-a56e-01cbca4602bf
+  name: Jain 108
+  email: 
+  phone: None
+  is_customer: False
+  is_supplier: False
+
+====================================================================================================
+TEST 2: xero_get_contact_by_id - Get detailed contact information
+====================================================================================================
+
+Tool: xero_get_contact_by_id
+Parameters:
+  - business_id: 1
+  - contact_id: 996dfeab-0754-4d5c-881b-00740d6d12a2
+
+Executing...
+
+RESULT:
+----------------------------------------------------------------------------------------------------
+✅ SUCCESS
+
+Business: InHouse Print
+
+CONTACT DETAILS:
+
+Basic Information:
+  Contact ID: 996dfeab-0754-4d5c-881b-00740d6d12a2
+  Contact Number: None
+  Name: CJ King Printing
+  Email: 
+  Status: ACTIVE
+  Is Customer: False
+  Is Supplier: False
+
+Addresses (2):
+  Address 1:
+    type: STREET
+    line1: None
+    line2: None
+    city: 
+    region: 
+    postal_code: 
+    country: 
+  Address 2:
+    type: POBOX
+    line1: None
+    line2: None
+    city: 
+    region: 
+    postal_code: 
+    country: 
+
+Phones (4):
+  Phone 1:
+    type: DDI
+    number: 
+    area_code: 
+    country_code: 
+  Phone 2:
+    type: DEFAULT
+    number: 
+    area_code: 
+    country_code: 
+  Phone 3:
+    type: FAX
+    number: 
+    area_code: 
+    country_code: 
+  Phone 4:
+    type: MOBILE
+    number: 
+    area_code: 
+    country_code: 
+
+Additional Information:
+  Tax Number: None
+  Account Number: None
+  Default Currency: None
+  Website: None
+
+Related Data Tools:
+  get_invoices: Use xero_get_invoices with contact_name parameter
+  get_quotes: Use xero_list_quotes (from xero_quotes.py) with contact_id parameter
+  get_payments: Use xero_get_payments for payment history
+
+====================================================================================================
+TEST 3: xero_list_quotes - Get quotes for contact
+====================================================================================================
+
+Tool: xero_list_quotes
+Parameters:
+  - business_id: 1
+  - contact_id: 996dfeab-0754-4d5c-881b-00740d6d12a2
+  - page_size: 10
+
+Executing...
+
+RESULT:
+----------------------------------------------------------------------------------------------------
+✅ SUCCESS
+
+Business: InHouse Print
+
+PAGINATION:
+  Page: 1
+  Page Size: 10
+  Total Count: 100
+  Returned Count: 10
+  Total Pages: 10
+
+FILTERS APPLIED:
+  date_from: None
+  date_to: None
+  contact_id: 996dfeab-0754-4d5c-881b-00740d6d12a2
+  status: None
+  quote_number: None
+  where_clause: Contact.ContactID == Guid("996dfeab-0754-4d5c-881b-00740d6d12a2")
+
+QUOTES (10):
+
+Quote 1:
+  Quote ID: 03e240e3-a3ca-4229-a3e1-dfa4620b8553
+  Quote Number: QU-0001
+  Status: DELETED
+  Date: /Date(1421884800000)/
+  Expiry Date: /Date(1424563200000)/
+  Title: Test Quote
+  Sub Total: $100000.00
+  Total Tax: $10000.00
+  Total: $110000.00
+  Branding Theme ID: 32100229-6ef6-4f34-8edf-4459b4f8135f
+  Updated: /Date(1421884774797)/
+
+Quote 2:
+  Quote ID: 41f30c20-9bbd-41db-901b-b38aaf819072
+  Quote Number: QU-0002
+  Status: DELETED
+  Date: /Date(1421884800000)/
+  Expiry Date: /Date(1424563200000)/
+  Title: 
+  Sub Total: $10.00
+  Total Tax: $1.00
+  Total: $11.00
+  Branding Theme ID: 0314d730-51a6-4529-af37-2bf71c79667a
+  Updated: /Date(1421886089700)/
+
+Quote 3:
+  Quote ID: 4a281f13-05e0-4282-a21b-00e1db21045b
+  Quote Number: QU-0003
+  Status: DELETED
+  Date: /Date(1421884800000)/
+  Expiry Date: /Date(1424476800000)/
+  Title: 
+  Sub Total: $20.00
+  Total Tax: $2.00
+  Total: $22.00
+  Branding Theme ID: 0314d730-51a6-4529-af37-2bf71c79667a
+  Updated: /Date(1421886201957)/
+
+Quote 4:
+  Quote ID: d852f09f-98d2-4992-a1cf-496c2f9b34d2
+  Quote Number: QU-0004
+  Status: DELETED
+  Date: /Date(1421884800000)/
+  Expiry Date: /Date(1424476800000)/
+  Title: 
+  Sub Total: $1.00
+  Total Tax: $0.10
+  Total: $1.10
+  Branding Theme ID: 0314d730-51a6-4529-af37-2bf71c79667a
+  Updated: /Date(1421887670560)/
+
+Quote 5:
+  Quote ID: dc95e73a-6629-4b69-b689-c8ac53f854d0
+  Quote Number: QU-0005
+  Status: DELETED
+  Date: /Date(1421884800000)/
+  Expiry Date: /Date(1424476800000)/
+  Title: 
+  Sub Total: N/A
+  Total Tax: N/A
+  Total: N/A
+  Branding Theme ID: 0314d730-51a6-4529-af37-2bf71c79667a
+  Updated: /Date(1421967226383)/
+
+... and 5 more quotes
+
+====================================================================================================
+TEST SUMMARY
+====================================================================================================
+
+Tools Tested:
+  1. ✅ xero_get_contacts - List contacts
+  2. ✅ xero_get_contact_by_id - Get detailed contact info
+  3. ✅ xero_list_quotes - Get quotes for contact
+
+Complete Workflow:
+  Step 1: Search/list contacts → Get contact_id
+  Step 2: Get full contact details → See addresses, phones, etc.
+  Step 3: Get all quotes for contact → Filter by contact_id
+
+====================================================================================================
+END OF TEST RESULTS
+====================================================================================================

@@ -91,16 +91,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease;
+    transition: background 0.2s ease;
     border-radius: 4px;
 }
 
 .milestone-expand-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .milestone-expand-btn i {
-    transition: transform 0.2s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Rotate chevron when expanded (JavaScript adds .fa-chevron-down class) */
+.milestone-expand-btn i.fa-chevron-down {
+    transform: rotate(90deg);
 }
 
 .milestone-number {
@@ -160,15 +165,39 @@
 /* ==================== MILESTONE BODY ==================== */
 
 .milestone-body {
-    padding: 0;
-    max-height: 0;
+    padding: 12px;
     overflow: hidden;
-    transition: max-height 0.4s ease, padding 0.4s ease;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        padding 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s ease;
 }
 
+/* Collapsed: Show only description */
+.milestone-body.collapsed {
+    max-height: 120px;
+    /* Enough for description */
+}
+
+.milestone-body.collapsed .milestone-tasks {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+/* Expanded: Show description + tasks */
 .milestone-body.expanded {
-    max-height: 3000px;
+    max-height: 5000px;
     padding: 16px;
+}
+
+.milestone-body.expanded .milestone-tasks {
+    max-height: none;
+    overflow: visible;
+    opacity: 1;
+    transition: max-height 0.5s ease, opacity 0.4s ease 0.1s;
 }
 
 .milestone-description {
@@ -233,6 +262,15 @@
 
 .task-expand-btn:hover {
     background: var(--bg-quaternary, #f9fafb);
+}
+
+.task-expand-btn i {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Rotate chevron when expanded */
+.task-expand-btn i.fa-chevron-down {
+    transform: rotate(90deg);
 }
 
 .task-number {
@@ -304,11 +342,25 @@
     margin-top: 8px;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
+    opacity: 0;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s ease,
+        margin-top 0.3s ease;
 }
 
+/* Task collapsed: hide subtasks */
+.task-subtasks.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+}
+
+/* Task expanded: show subtasks */
 .task-subtasks.expanded {
-    max-height: 800px;
+    max-height: 1000px;
+    opacity: 1;
+    margin-top: 8px;
 }
 
 .subtask-item {
@@ -1123,7 +1175,8 @@ body.dark-mode .inline-edit-input {
 .synergy-title-text {
     /* font-weight: 400; */
     font-style: normal;
-    font-size: 20px;
+    font-size: 18px;
+    /* Reduced from 20px to make cards more compact */
     color: var(--text-primary, #f3f4f6);
     flex: 1;
 }
@@ -1205,8 +1258,8 @@ body.dark-mode .inline-edit-input {
 }
 
 .synergy-icon-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     background: transparent;
     border: 1px solid var(--border-default);
     border-radius: 6px;
@@ -1216,7 +1269,7 @@ body.dark-mode .inline-edit-input {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .synergy-icon-btn:hover {
@@ -1226,16 +1279,12 @@ body.dark-mode .inline-edit-input {
 }
 
 .synergy-icon-btn.synergy-chevron {
-    font-size: 16px;
+    font-size: 14px;
 }
 
-/* Chevron rotation when expanded */
-.synergy-session-item.expanded .synergy-chevron i {
-    transform: rotate(180deg);
-}
-
+/* Chevron icon transition (JavaScript changes icon class) */
 .synergy-chevron i {
-    transition: transform 0.3s ease;
+    transition: transform 0.2s ease;
 }
 
 /* ROW 2: Description */

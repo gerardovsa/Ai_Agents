@@ -131,7 +131,7 @@ class SynergyMilestoneRenderer {
                 <!-- Milestone Header -->
                 <div class="milestone-header" 
                      style="background: linear-gradient(135deg, ${statusColor} 0%, ${this.darkenColor(statusColor)} 100%);"
-                     onclick="SynergyMilestoneInteractions.toggleMilestone('${milestone.milestone_id}')">
+                     onclick="SynergyMilestoneInteractions.toggleMilestone('${milestone.milestone_id}', event)">
                     
                     <button class="milestone-expand-btn">
                         <i class="fas ${expandIcon}"></i>
@@ -208,7 +208,7 @@ class SynergyMilestoneRenderer {
                 
                 ${hasSubtasks ? `
                     <button class="task-expand-btn" 
-                            onclick="SynergyMilestoneInteractions.toggleTask('${task.task_id}')">
+                            onclick="event.stopPropagation(); SynergyMilestoneInteractions.toggleTask('${task.task_id}', event)">
                         <i class="fas ${expandIcon}"></i>
                     </button>
                 ` : '<span style="width: 20px;"></span>'}

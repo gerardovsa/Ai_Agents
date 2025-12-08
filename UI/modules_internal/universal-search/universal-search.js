@@ -210,74 +210,95 @@ window.UniversalSearchModule = {
         }
 
         this.container.innerHTML = `
-            <div class="universal-search-dashboard">
-                <!-- Header -->
-                <div class="universal-search-header">
-                    <div class="header-left">
-                        <h1><i class="fas fa-search"></i> Universal Search</h1>
-                        <p>Search across all your connected platforms in one place</p>
+            <div class="module-dashboard">
+                <!-- Search Bar Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-search"></i> Search Query
+                        </h3>
                     </div>
-                </div>
-                
-                <!-- Search Bar -->
-                <div class="universal-search-bar">
-                    <div class="search-input-wrapper">
-                        <i class="fas fa-search search-icon"></i>
-                        <input 
-                            type="text" 
-                            id="universal-search-input" 
-                            class="search-input"
-                            placeholder="Search documents, messages, threads, Synergy sessions, automations, Gmail, Slack..."
-                            autocomplete="off"
-                        />
-                        <button class="search-clear-btn" id="search-clear" style="display: none;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Filters & Options -->
-                <div class="universal-search-filters">
-                    <div class="filter-group">
-                        <label>Search Type:</label>
-                        <select id="search-type" class="filter-select">
-                            <option value="hybrid">🎯 Hybrid (Best Results)</option>
-                            <option value="semantic">🧠 Semantic (AI-Powered)</option>
-                            <option value="fulltext">📝 Full-Text (Exact Match)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>Sources:</label>
-                        <div class="source-checkboxes">
-                            ${this.renderSourceCheckboxes()}
+                    <div class="card-content" style="padding: var(--space-4);">
+                        <div class="search-input-wrapper" style="display: flex; gap: var(--space-2); align-items: center;">
+                            <input 
+                                type="text" 
+                                id="universal-search-input" 
+                                class="search-input"
+                                placeholder="Search documents, messages, threads, Synergy sessions, automations, Gmail, Slack..."
+                                autocomplete="off"
+                                style="flex: 1; padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;"
+                            />
+                            <button class="search-clear-btn" id="search-clear" style="display: none; padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer;">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Search States -->
-                <div id="universal-search-empty" class="search-state empty-state">
-                    <i class="fas fa-search empty-icon"></i>
-                    <h3>Start Searching</h3>
-                    <p>Enter a query to search across all your connected platforms</p>
+                <!-- Filters & Options Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-filter"></i> Search Options
+                        </h3>
+                    </div>
+                    <div class="card-content" style="padding: var(--space-4);">
+                        <div class="universal-search-filters" style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
+                            <div class="filter-group" style="flex: 1; min-width: 200px;">
+                                <label style="display: block; margin-bottom: var(--space-2); color: var(--text-secondary); font-size: 13px;">Search Type:</label>
+                                <select id="search-type" class="filter-select" style="width: 100%; padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary);">
+                                    <option value="hybrid">🎯 Hybrid (Best Results)</option>
+                                    <option value="semantic">🧠 Semantic (AI-Powered)</option>
+                                    <option value="fulltext">📝 Full-Text (Exact Match)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group" style="flex: 2; min-width: 300px;">
+                                <label style="display: block; margin-bottom: var(--space-2); color: var(--text-secondary); font-size: 13px;">Sources:</label>
+                                <div class="source-checkboxes" style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                                    ${this.renderSourceCheckboxes()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div id="universal-search-loading" class="search-state loading-state" style="display: none;">
-                    <i class="fas fa-spinner fa-spin loading-icon"></i>
-                    <h3>Searching...</h3>
-                    <p>Searching across your platforms</p>
+                <!-- Search States & Results Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-list"></i> Search Results
+                        </h3>
+                    </div>
+                    <div class="card-content">
+                        <!-- Empty State -->
+                        <div id="universal-search-empty" class="search-state empty-state" style="text-align: center; padding: 60px 20px;">
+                            <i class="fas fa-search empty-icon" style="font-size: 48px; color: var(--text-tertiary); margin-bottom: var(--space-3);"></i>
+                            <h3 style="margin-bottom: var(--space-2); color: var(--text-primary);">Start Searching</h3>
+                            <p style="color: var(--text-secondary);">Enter a query to search across all your connected platforms</p>
+                        </div>
+                        
+                        <!-- Loading State -->
+                        <div id="universal-search-loading" class="search-state loading-state" style="display: none; text-align: center; padding: 60px 20px;">
+                            <i class="fas fa-spinner fa-spin loading-icon" style="font-size: 48px; color: var(--accent-primary); margin-bottom: var(--space-3);"></i>
+                            <h3 style="margin-bottom: var(--space-2); color: var(--text-primary);">Searching...</h3>
+                            <p style="color: var(--text-secondary);">Searching across your platforms</p>
+                        </div>
+                        
+                        <!-- No Results State -->
+                        <div id="universal-search-no-results" class="search-state no-results-state" style="display: none; text-align: center; padding: 60px 20px;">
+                            <i class="fas fa-inbox empty-icon" style="font-size: 48px; color: var(--text-tertiary); margin-bottom: var(--space-3);"></i>
+                            <h3 style="margin-bottom: var(--space-2); color: var(--text-primary);">No Results Found</h3>
+                            <p style="color: var(--text-secondary);">Try different keywords or search across more platforms</p>
+                        </div>
+                        
+                        <!-- Results Container -->
+                        <div id="universal-search-results" class="search-results-container" style="display: none;">
+                            <!-- Results will be rendered here -->
+                        </div>
+                    </div>
                 </div>
-                
-                <div id="universal-search-no-results" class="search-state no-results-state" style="display: none;">
-                    <i class="fas fa-inbox empty-icon"></i>
-                    <h3>No Results Found</h3>
-                    <p>Try different keywords or search across more platforms</p>
-                </div>
-                
-                <!-- Results Container -->
-                <div id="universal-search-results" class="search-results-container" style="display: none;">
-                    <!-- Results will be rendered here -->
-                </div>
+            </div>
             </div>
         `;
     },

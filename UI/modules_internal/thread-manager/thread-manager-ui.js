@@ -561,6 +561,7 @@ window.ThreadManagerUI = {
     /**
      * Refresh all thread-info cards for a specific thread across the entire UI
      * Also updates UI pills (Synergy, Workflow, etc.)
+     * PRESERVES expansion state (Dec 9, 2025)
      */
     refreshAllThreadInfoCards(threadId) {
         console.log(`🔄 [refreshAllThreadInfoCards] Refreshing all cards for thread ${threadId}`);
@@ -569,14 +570,41 @@ window.ThreadManagerUI = {
         const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
 
         threadCards.forEach(card => {
-            // Get the location from the card's context
             const location = card.getAttribute('data-location') || 'prime';
+
+            // CRITICAL (Dec 9, 2025): Check expansion state BEFORE replacing
+            // For Prime/Agents, check the CONTAINER; for Thread History, check the CARD
+            let wasExpanded = false;
+            if (location === 'thread-history') {
+                wasExpanded = card.classList.contains('expanded');
+            } else if (location === 'prime' || location === 'prime-loaded') {
+                const primeContainer = document.getElementById('prime-thread-info');
+                wasExpanded = primeContainer?.classList.contains('expanded') || false;
+            } else {
+                // Agent column - check the container
+                const container = card.closest('[id^="thread-info-"]');
+                wasExpanded = container?.classList.contains('expanded') || false;
+            }
 
             // Re-render the card with updated agent info AND UI pills
             const newCardHTML = this.renderThreadInfoContainer(location, threadId, card.classList.contains('compact'));
 
-            // Replace the card's innerHTML
+            // Replace the card's outerHTML
             card.outerHTML = newCardHTML;
+
+            // CRITICAL (Dec 9, 2025): Restore expansion state after replacement
+            if (wasExpanded && window.ThreadCardExpansion) {
+                // Card was replaced, need to find it again
+                const newCard = window.ThreadCardExpansion.findCardElement(threadId);
+                if (newCard) {
+                    // Get the element that should have .expanded class
+                    const elementToExpand = window.ThreadCardExpansion.getExpandableElement(newCard);
+                    if (elementToExpand) {
+                        elementToExpand.classList.add('expanded');
+                        console.log(`🔄 [refreshAllThreadInfoCards] Restored expansion state for ${location}`);
+                    }
+                }
+            }
 
             console.log(`✅ [refreshAllThreadInfoCards] Updated thread-info card at ${location}`);
         });
@@ -668,12 +696,14 @@ window.ThreadManagerUI = {
                     <h3 class="welcome-title" id="${location}-welcome-title">${greeting.title}</h3>
                     <p class="welcome-subtitle" id="${location}-welcome-subtitle">${greeting.subtitle}</p>
                     
-                    <div class="welcome-actions">
-                        <button class="welcome-btn welcome-btn-primary" onclick="ThreadManager.showNewChatModal('${location}')">
-                            <i class="fas fa-plus"></i> Start New Chat
+                    <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('${location}')" style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding: 10px 20px; background-color: var(--accent-primary, #58a6ff); border-color: var(--accent-primary, #58a6ff);">
+                            <i class="fas fa-plus" style="font-size: 14px; display: inline-flex; align-items: center; margin: 0;"></i>
+                            Start New Chat
                         </button>
-                        <button class="welcome-btn welcome-btn-secondary" onclick="ThreadManager.toggleThreadMenu()">
-                            <i class="fas fa-history"></i> Thread History
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); ThreadManager.toggleThreadMenu()" style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding: 10px 20px;">
+                            <i class="fas fa-history" style="font-size: 14px; display: inline-flex; align-items: center; margin: 0;"></i>
+                            Thread History
                         </button>
                     </div>
                 </div>
@@ -690,14 +720,14 @@ window.ThreadManagerUI = {
             }
         } else if (location.startsWith('agent-')) {
             const agentId = location.replace('agent-', '');
-            
+
             // NEW: Use correct selector for expandable input container
             const agentInputContainer = document.querySelector(`#agent-column-${agentId} .agent-input-container`);
             if (agentInputContainer) {
                 agentInputContainer.style.display = 'none';
                 console.log(`[Empty State] Hid input container for agent-${agentId}`);
             }
-            
+
             // Cleanup input handlers when hiding
             if (typeof AgentInput !== 'undefined' && typeof AgentInput.cleanupHandlers === 'function') {
                 AgentInput.cleanupHandlers(agentId);

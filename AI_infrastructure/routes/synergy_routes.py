@@ -3390,6 +3390,310 @@ def complete_milestone(milestone_id):
                 pass
 
 
+# ============================================================
+# SURGICAL UPDATE ENDPOINTS - Update individual elements without rewriting entire arrays
+# ============================================================
+
+@synergy_bp.route('/milestone/<milestone_id>/document/add', methods=['POST'])
+def add_single_milestone_document(milestone_id):
+    """
+    🆕 SURGICAL ADD: Add ONE document to milestone without touching existing documents
+    
+    Body: {
+        "title": "New Document",
+        "url": "https://...",
+        "type": "google_doc"
+    }
+    
+    Response: {
+        "success": true,
+        "document_added": {"title": "...", "url": "...", "type": "..."},
+        "total_documents": 5
+    }
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        
+        if not data.get('title') or not data.get('url'):
+            return jsonify({'success': False, 'error': 'title and url required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current documents
+        sql, params = convert_sql_placeholders(
+            'SELECT documents FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Parse existing documents
+        documents = []
+        if row['documents']:
+            try:
+                documents = json.loads(row['documents'])
+            except:
+                documents = []
+        
+        # Add new document
+        new_doc = {
+            "title": data['title'],
+            "url": data['url'],
+            "type": data.get('type', 'other')
+        }
+        documents.append(new_doc)
+        
+        # Update
+        sql, params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.milestones 
+            SET documents = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
+        cursor.execute(sql, params)
+        
+        cursor.close()
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'document_added': new_doc,
+            'total_documents': len(documents)
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/link/add', methods=['POST'])
+def add_single_milestone_link(milestone_id):
+    """
+    🆕 SURGICAL ADD: Add ONE link to milestone without touching existing links
+    
+    Body: {
+        "title": "Dashboard",
+        "url": "https://..."
+    }
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        
+        if not data.get('title') or not data.get('url'):
+            return jsonify({'success': False, 'error': 'title and url required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current links
+        sql, params = convert_sql_placeholders(
+            'SELECT links FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            (milestone_id,)
+        )
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Parse existing links
+        links = []
+        if row['links']:
+            try:
+                links = json.loads(row['links'])
+            except:
+                links = []
+        
+        # Add new link
+        new_link = {
+            "title": data['title'],
+            "url": data['url']
+        }
+        links.append(new_link)
+        
+        # Update
+        sql, params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.milestones 
+            SET links = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
+        cursor.execute(sql, params)
+        
+        cursor.close()
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'link_added': new_link,
+            'total_links': len(links)
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/task/<task_id>/update-field', methods=['PATCH'])
+def update_single_task_field(task_id):
+    """
+    🆕 SURGICAL UPDATE: Update ONE field of a task without touching others
+    
+    Body: {
+        "field": "task",
+        "value": "Updated task description"
+    }
+    
+    Allowed fields: task, priority, completed, estimated_hours, actual_hours, blocked, blocker_reason
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        field = data.get('field')
+        value = data.get('value')
+        
+        allowed_fields = ['task', 'priority', 'completed', 'estimated_hours', 'actual_hours', 'blocked', 'blocker_reason']
+        if field not in allowed_fields:
+            return jsonify({'success': False, 'error': f'Field must be one of: {", ".join(allowed_fields)}'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update the field
+        sql, params = convert_sql_placeholders(
+            f'UPDATE synergy_sessions.tasks SET {field} = %s, updated_at = %s WHERE task_id = %s',
+            (value, datetime.now().isoformat(), task_id)
+        )
+        cursor.execute(sql, params)
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        cursor.close()
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'field_updated': field,
+            'new_value': value
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/subtask/<subtask_id>/update-field', methods=['PATCH'])
+def update_single_subtask_field(subtask_id):
+    """
+    🆕 SURGICAL UPDATE: Update ONE field of a subtask without touching others
+    
+    Body: {
+        "field": "task",
+        "value": "Updated subtask description"
+    }
+    
+    Allowed fields: task, priority, completed, estimated_hours, actual_hours
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        field = data.get('field')
+        value = data.get('value')
+        
+        allowed_fields = ['task', 'priority', 'completed', 'estimated_hours', 'actual_hours']
+        if field not in allowed_fields:
+            return jsonify({'success': False, 'error': f'Field must be one of: {", ".join(allowed_fields)}'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update the field
+        sql, params = convert_sql_placeholders(
+            f'UPDATE synergy_sessions.subtasks SET {field} = %s, updated_at = %s WHERE subtask_id = %s',
+            (value, datetime.now().isoformat(), subtask_id)
+        )
+        cursor.execute(sql, params)
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+        
+        cursor.close()
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id,
+            'field_updated': field,
+            'new_value': value
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
 @synergy_bp.route('/milestone/<milestone_id>/comment', methods=['POST'])
 def add_milestone_comment(milestone_id):
     """
@@ -4615,13 +4919,222 @@ def list_internal_docs():
 
 
 # ============================================================
-# MILESTONE CREATION
+# MILESTONE CREATION - COMPLETE WITH TASKS & SUBTASKS
 # ============================================================
+
+@synergy_bp.route('/milestone/create', methods=['POST'])
+def create_milestone_complete():
+    """
+    🆕 COMPLETE MILESTONE CREATION - Creates milestone + tasks + subtasks in ONE call
+    
+    This is the PRIMARY endpoint for creating milestones with full hierarchy.
+    Replaces the old /<session_id>/milestones endpoint which created empty milestones.
+    
+    Request Body:
+    {
+        "session_id": "sess_abc123",
+        "milestone_name": "Database Setup",
+        "description": "Create customer database and import contacts",
+        "tasks": [
+            "Create Google Sheet",
+            {
+                "task": "Import existing contacts",
+                "priority": "high",
+                "subtasks": ["Export from old CRM", "Clean data", "Import"]
+            }
+        ],
+        "due_date": "2025-12-31",
+        "priority": "high",
+        "estimated_hours": 8,
+        "documents": [{"title": "Doc", "url": "https://...", "type": "pdf"}],
+        "links": [{"title": "Link", "url": "https://..."}],
+        "tags": ["database", "migration"]
+    }
+    
+    Response:
+    {
+        "success": true,
+        "milestone_id": "ms_20251208...",
+        "milestone_number": 1,
+        "tasks_created": 2,
+        "subtasks_created": 3,
+        "message": "Created milestone with 2 tasks and 3 subtasks"
+    }
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('session_id'):
+            return jsonify({'success': False, 'error': 'session_id required'}), 400
+        if not data.get('milestone_name'):
+            return jsonify({'success': False, 'error': 'milestone_name required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if session exists
+        sql, params = convert_sql_placeholders(
+            'SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            (data['session_id'],)
+        )
+        cursor.execute(sql, params)
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Get next milestone number
+        sql, params = convert_sql_placeholders('''
+            SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
+            FROM synergy_sessions.milestones 
+            WHERE session_id = %s
+        ''', (data['session_id'],))
+        cursor.execute(sql, params)
+        result = cursor.fetchone()
+        milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
+        
+        # Generate milestone ID
+        milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Prepare documents and links as JSON
+        documents_json = json.dumps(data.get('documents', []))
+        links_json = json.dumps(data.get('links', []))
+        tags_json = json.dumps(data.get('tags', []))
+        
+        # Insert milestone with ALL fields
+        sql, params = convert_sql_placeholders('''
+            INSERT INTO synergy_sessions.milestones (
+                milestone_id, session_id, milestone_number, milestone_order, milestone_name,
+                description, completed, due_date, priority, estimated_hours,
+                created_at, updated_at, documents, links, blocked
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            milestone_id,
+            data['session_id'],
+            milestone_number,
+            milestone_number,  # milestone_order same as milestone_number
+            data['milestone_name'],
+            data.get('description', ''),
+            False,
+            data.get('due_date'),
+            data.get('priority', 'medium'),
+            data.get('estimated_hours'),
+            datetime.now().isoformat(),
+            datetime.now().isoformat(),
+            documents_json,
+            links_json,
+            False
+        ))
+        cursor.execute(sql, params)
+        
+        # Insert tasks and subtasks
+        tasks_created = 0
+        subtasks_created = 0
+        tasks_list = data.get('tasks', [])
+        
+        for task_order, task_item in enumerate(tasks_list, start=1):
+            import time
+            time.sleep(0.001)  # Ensure unique IDs
+            task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}_{task_order}"
+            
+            # Handle both string and object formats
+            if isinstance(task_item, str):
+                task_text = task_item
+                task_priority = 'medium'
+                subtasks = []
+            else:
+                task_text = task_item.get('task', '')
+                task_priority = task_item.get('priority', 'medium')
+                subtasks = task_item.get('subtasks', [])
+            
+            # Insert task
+            sql, params = convert_sql_placeholders('''
+                INSERT INTO synergy_sessions.tasks (
+                    task_id, milestone_id, task, completed, task_order, priority, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (task_id, milestone_id, task_text, False, task_order, task_priority, datetime.now().isoformat()))
+            cursor.execute(sql, params)
+            tasks_created += 1
+            
+            # Insert subtasks
+            for subtask_order, subtask_item in enumerate(subtasks, start=1):
+                time.sleep(0.001)
+                subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}_{task_order}_{subtask_order}"
+                
+                # Handle both string and object formats for subtasks
+                if isinstance(subtask_item, str):
+                    subtask_text = subtask_item
+                    subtask_priority = 'medium'
+                else:
+                    subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                    subtask_priority = subtask_item.get('priority', 'medium')
+                
+                sql, params = convert_sql_placeholders('''
+                    INSERT INTO synergy_sessions.subtasks (
+                        subtask_id, task_id, task, completed, subtask_order, priority, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
+                cursor.execute(sql, params)
+                subtasks_created += 1
+        
+        # Mark session as using milestones
+        sql, params = convert_sql_placeholders('''
+            UPDATE synergy_sessions.synergy_sessions 
+            SET uses_milestones = %s, last_active = %s
+            WHERE session_id = %s
+        ''', (True, datetime.now().isoformat(), data['session_id']))
+        cursor.execute(sql, params)
+        
+        cursor.close()
+        cursor = None
+        conn.commit()
+        conn.close()
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'milestone_number': milestone_number,
+            'tasks_created': tasks_created,
+            'subtasks_created': subtasks_created,
+            'message': f"Created milestone '{data['milestone_name']}' with {tasks_created} tasks and {subtasks_created} subtasks"
+        })
+    
+    except Exception as e:
+        if conn:
+            try:
+                conn.rollback()  # Undo partial inserts
+            except:
+                pass
+        print(f"[MILESTONE ERROR] Failed to create milestone: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
 
 @synergy_bp.route('/<session_id>/milestones', methods=['POST'])
 def create_milestone(session_id):
     """
-    Create a new milestone in a session
+    [DEPRECATED] Simple milestone creation (no tasks)
+    
+    ⚠️ Use POST /milestone/create instead for complete milestone creation with tasks/subtasks.
+    
+    This endpoint only creates an empty milestone shell.
+    Kept for backward compatibility only.
     
     Body: {
         "milestone_name": "Setup Database",
@@ -4630,8 +5143,6 @@ def create_milestone(session_id):
         "due_date": "2024-12-31",
         "estimated_hours": 10
     }
-    
-    ✅ FIXED: Proper cursor management
     """
     cursor = None
     conn = None
@@ -4700,7 +5211,8 @@ def create_milestone(session_id):
             'success': True,
             'milestone_id': milestone_id,
             'milestone_number': milestone_number,
-            'session_id': session_id
+            'session_id': session_id,
+            'warning': 'This endpoint creates empty milestones. Use POST /milestone/create for complete milestone creation with tasks/subtasks.'
         })
     
     except Exception as e:

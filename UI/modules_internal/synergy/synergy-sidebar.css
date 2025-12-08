@@ -74,14 +74,14 @@
 
 .synergy-icon-btn {
     display: flex;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     color: var(--text-secondary);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-default);
     padding: var(--space-1);
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 12px;
     /* font-weight: 500; */
     cursor: pointer;
     align-items: center;
@@ -94,6 +94,19 @@
     color: var(--accent-primary);
     transform: scale(1.05);
     border: 1px solid var(--accent-primary);
+}
+
+/* Pin button active state */
+.synergy-icon-btn.pinned {
+    background: #fbbf24;
+    color: #78350f;
+    border-color: #f59e0b;
+}
+
+.synergy-icon-btn.pinned:hover {
+    background: #f59e0b;
+    color: #78350f;
+    border-color: #d97706;
 }
 
 /* ==================== VIEW TABS ==================== */
@@ -231,11 +244,9 @@
     border: 1px solid var(--border-default);
     border-radius: 12px;
     margin-bottom: var(--space-3);
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.2s ease;
-    min-height: 100px;
-    /* ~100px collapsed card height */
-    max-height: 100px;
+    /* No fixed height - content determines collapsed card size */
 }
 
 .synergy-session-item.expanded {

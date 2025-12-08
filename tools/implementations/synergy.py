@@ -3474,3 +3474,316 @@ def synergy_set_task_blocker(
         blocker_reason=blocker_reason if blocked else None,
         **kwargs
     )
+
+
+# ============================================================
+# 🆕 SURGICAL UPDATE FUNCTIONS - No array rewrites
+# ============================================================
+
+def synergy_add_milestone_document(
+    milestone_id: str,
+    title: str,
+    url: str,
+    doc_type: str = "other",
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    🆕 SURGICAL ADD: Add ONE document to a milestone without rewriting the entire documents array
+    
+    This function APPENDS a single document to the existing documents list.
+    It does NOT touch or rewrite any existing documents.
+    
+    Args:
+        milestone_id: Milestone ID (required)
+        title: Document title (required)
+        url: Document URL (required)
+        doc_type: Document type (default: "other")
+                  Options: "google_doc", "google_sheet", "figma", "pdf", "other"
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - document_added: Dict with title, url, type
+        - total_documents: int (new count after addition)
+        
+    Raises:
+        SynergyError: If API call fails
+        
+    Example:
+        result = synergy_add_milestone_document(
+            milestone_id="ms_20251124120000",
+            title="API Documentation",
+            url="https://docs.google.com/document/d/abc123",
+            doc_type="google_doc"
+        )
+        # Result: {"success": True, "document_added": {...}, "total_documents": 3}
+        
+    Note: This is MUCH faster than fetching all documents, appending, and rewriting the array.
+    """
+    try:
+        payload = {
+            "title": title,
+            "url": url,
+            "type": doc_type
+        }
+        
+        response = requests.post(
+            f"{SYNERGY_API_BASE}/milestone/{milestone_id}/document/add",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "document_added": result.get("document_added"),
+            "total_documents": result.get("total_documents"),
+            "message": f"✅ Added document '{title}' to milestone"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to add document to milestone: {str(e)}")
+
+
+def synergy_add_milestone_link(
+    milestone_id: str,
+    title: str,
+    url: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    🆕 SURGICAL ADD: Add ONE link to a milestone without rewriting the entire links array
+    
+    This function APPENDS a single link to the existing links list.
+    It does NOT touch or rewrite any existing links.
+    
+    Args:
+        milestone_id: Milestone ID (required)
+        title: Link title (required)
+        url: Link URL (required)
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - link_added: Dict with title, url
+        - total_links: int (new count after addition)
+        
+    Raises:
+        SynergyError: If API call fails
+        
+    Example:
+        result = synergy_add_milestone_link(
+            milestone_id="ms_20251124120000",
+            title="Production Dashboard",
+            url="https://dashboard.example.com"
+        )
+        # Result: {"success": True, "link_added": {...}, "total_links": 2}
+    """
+    try:
+        payload = {
+            "title": title,
+            "url": url
+        }
+        
+        response = requests.post(
+            f"{SYNERGY_API_BASE}/milestone/{milestone_id}/link/add",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "link_added": result.get("link_added"),
+            "total_links": result.get("total_links"),
+            "message": f"✅ Added link '{title}' to milestone"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to add link to milestone: {str(e)}")
+
+
+def synergy_update_task_field(
+    task_id: str,
+    field: str,
+    value: Any,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    🆕 SURGICAL UPDATE: Update ONE field of a task without touching other fields
+    
+    This function updates a SINGLE field on a task. No other fields are touched.
+    This is MUCH faster than fetching the entire task, modifying it, and sending it back.
+    
+    Args:
+        task_id: Task ID (required)
+        field: Field name to update (required)
+               Allowed: "task", "priority", "completed", "estimated_hours", 
+                       "actual_hours", "blocked", "blocker_reason"
+        value: New value for the field (required)
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - task_id: str
+        - field_updated: str
+        - new_value: Any
+        
+    Raises:
+        SynergyError: If API call fails or field is invalid
+        
+    Examples:
+        # Update task text
+        synergy_update_task_field(
+            task_id="task_20251124120000",
+            field="task",
+            value="Update user authentication flow"
+        )
+        
+        # Change priority
+        synergy_update_task_field(
+            task_id="task_20251124120000",
+            field="priority",
+            value="high"
+        )
+        
+        # Mark complete
+        synergy_update_task_field(
+            task_id="task_20251124120000",
+            field="completed",
+            value=True
+        )
+        
+        # Add blocker
+        synergy_update_task_field(
+            task_id="task_20251124120000",
+            field="blocked",
+            value=True
+        )
+        synergy_update_task_field(
+            task_id="task_20251124120000",
+            field="blocker_reason",
+            value="Waiting for API keys"
+        )
+    """
+    try:
+        allowed_fields = ['task', 'priority', 'completed', 'estimated_hours', 
+                         'actual_hours', 'blocked', 'blocker_reason']
+        
+        if field not in allowed_fields:
+            raise SynergyError(f"Invalid field '{field}'. Allowed: {', '.join(allowed_fields)}")
+        
+        payload = {
+            "field": field,
+            "value": value
+        }
+        
+        response = requests.patch(
+            f"{SYNERGY_API_BASE}/task/{task_id}/update-field",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "task_id": result.get("task_id"),
+            "field_updated": result.get("field_updated"),
+            "new_value": result.get("new_value"),
+            "message": f"✅ Updated task.{field} = {value}"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update task field: {str(e)}")
+
+
+def synergy_update_subtask_field(
+    subtask_id: str,
+    field: str,
+    value: Any,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    🆕 SURGICAL UPDATE: Update ONE field of a subtask without touching other fields
+    
+    This function updates a SINGLE field on a subtask. No other fields are touched.
+    This is MUCH faster than fetching the entire subtask, modifying it, and sending it back.
+    
+    Args:
+        subtask_id: Subtask ID (required)
+        field: Field name to update (required)
+               Allowed: "task", "priority", "completed", "estimated_hours", "actual_hours"
+        value: New value for the field (required)
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - subtask_id: str
+        - field_updated: str
+        - new_value: Any
+        
+    Raises:
+        SynergyError: If API call fails or field is invalid
+        
+    Examples:
+        # Update subtask text
+        synergy_update_subtask_field(
+            subtask_id="subtask_20251124120000",
+            field="task",
+            value="Test OAuth flow with Google"
+        )
+        
+        # Change priority
+        synergy_update_subtask_field(
+            subtask_id="subtask_20251124120000",
+            field="priority",
+            value="high"
+        )
+        
+        # Mark complete
+        synergy_update_subtask_field(
+            subtask_id="subtask_20251124120000",
+            field="completed",
+            value=True
+        )
+    """
+    try:
+        allowed_fields = ['task', 'priority', 'completed', 'estimated_hours', 'actual_hours']
+        
+        if field not in allowed_fields:
+            raise SynergyError(f"Invalid field '{field}'. Allowed: {', '.join(allowed_fields)}")
+        
+        payload = {
+            "field": field,
+            "value": value
+        }
+        
+        response = requests.patch(
+            f"{SYNERGY_API_BASE}/subtask/{subtask_id}/update-field",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "subtask_id": result.get("subtask_id"),
+            "field_updated": result.get("field_updated"),
+            "new_value": result.get("new_value"),
+            "message": f"✅ Updated subtask.{field} = {value}"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update subtask field: {str(e)}")

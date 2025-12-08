@@ -133,6 +133,31 @@
             }
           ]
         }
+      },
+      "workflow_context": {
+        "typical_usage": "First step in any customer-related workflow - find the contact to get their contact_id",
+        "common_workflows": [
+          "Step 1 of 5: Quote Creation + Email workflow - Find customer before creating quote",
+          "Step 1 of 4: Contact + Quotes workflow - Find customer then get all their quotes",
+          "Step 1 of 5: Customer Research workflow - Find customer then get invoices, quotes, payments"
+        ],
+        "key_returned_fields": [
+          "contact_id - Required for xero_create_quote, xero_list_quotes, xero_get_invoices",
+          "name - Customer name for email personalization and quote titles",
+          "email - Email address for sending quotes via outlook_send_email"
+        ],
+        "search_tips": [
+          "Use search parameter for faster results: search='ABC Company'",
+          "Search is case-insensitive and matches partial names",
+          "Without search, returns all contacts (can be 7,000+ records)",
+          "Use limit parameter to control result size (default: 50, max: 100)"
+        ],
+        "next_steps": [
+          "For quote creation: xero_create_quote(contact_id=<from_this_result>)",
+          "For detailed contact info: xero_get_contact_by_id(contact_id=<from_this_result>)",
+          "For customer quotes: xero_list_quotes(contact_id=<from_this_result>)",
+          "For customer invoices: xero_get_invoices(contact_name=<from_this_result>)"
+        ]
       }
     },
     {
@@ -213,6 +238,38 @@
             "get_payments": "Use xero_get_payments for payment history"
           }
         }
+      },
+      "workflow_context": {
+        "typical_usage": "Get complete customer details after finding contact_id with xero_get_contacts",
+        "common_workflows": [
+          "Step 2 of 4: Contact + Quotes workflow - Get full contact profile before retrieving quotes",
+          "Step 2 of 5: Customer Research workflow - Get detailed info before analyzing history"
+        ],
+        "key_returned_fields": [
+          "email - Primary email for sending quotes via outlook_send_email",
+          "addresses - Physical/postal addresses (up to 2: STREET, POBOX)",
+          "phones - Contact phone numbers (up to 4: DEFAULT, DDI, MOBILE, FAX)",
+          "contact_persons - Individual contacts within organization with their emails",
+          "tax_number - ABN/Tax ID for invoicing compliance",
+          "account_number - Your internal account reference for this customer"
+        ],
+        "use_cases": [
+          "Before creating quote: Verify email address exists for sending quote",
+          "Email personalization: Use contact_persons for addressing email (Dear John)",
+          "Quote details: Include customer address on quote for shipping/billing",
+          "Customer research: See full profile with all contact methods"
+        ],
+        "next_steps": [
+          "For creating quote: xero_create_quote(contact_id=<this_contact_id>)",
+          "For customer quotes: xero_list_quotes(contact_id=<this_contact_id>)",
+          "For draft email: outlook_send_email(to=[<email_from_this_result>])"
+        ],
+        "important_notes": [
+          "📧 Always check if email field exists before attempting to send quotes",
+          "👥 contact_persons may have different emails than main contact email",
+          "📍 Addresses array can contain STREET (physical) and POBOX (postal) types",
+          "☎️ Phones array supports DEFAULT, DDI, MOBILE, FAX types"
+        ]
       }
     },
     {

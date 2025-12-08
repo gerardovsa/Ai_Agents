@@ -89,6 +89,27 @@ EOF
     echo "→ Creating /app/config directory for runtime configs..."
     mkdir -p /app/config
     chmod 777 /app/config
+    
+    # Copy database-config.json to /app/config if it exists
+    if [ -f "/data/database-config.json" ]; then
+        echo "  Copying database-config.json to /app/config..."
+        cp /data/database-config.json /app/config/database-config.json
+    elif [ -f "/app/config/database-config.json" ]; then
+        echo "  ✓ database-config.json already in /app/config"
+    else
+        echo "  Warning: database-config.json not found"
+    fi
+    
+    # Create symlink from root /config to /app/config for backward compatibility
+    # This fixes quote calculator tools looking for /config/database-config.json
+    echo "→ Creating symlink: /config → /app/config..."
+    if [ ! -e "/config" ]; then
+        ln -s /app/config /config 2>/dev/null || echo "  Note: Could not create /config symlink (may need root)"
+        echo "✓ Symlink created (fixes quote calculator config path)"
+    else
+        echo "  ✓ /config already exists"
+    fi
+    
     echo "✓ /app/config directory ready"
     echo ""
 else

@@ -168,13 +168,14 @@ window.ThreadCardTemplates = {
             headerHtml = this.headerRowWithUnload(thread, location, agent);
         }
 
-        // For agent columns, don't add ID (container already has id="thread-info-1", etc.)
-        // For other locations (thread-history, prime), use id="${location}-thread-info"
-        const idAttr = isAgent ? '' : `id="${location}-thread-info"`;
+        // CRITICAL FIX (Dec 9, 2025): Do NOT add ID to cards - causes duplicate IDs
+        // Prime has outer <div id="prime-thread-info"> container - card inside should not have ID
+        // Thread History cards are multiple items in a list - cannot share same ID
+        // Agent columns work correctly without ID (container has id="thread-info-1" etc.)
+        // All cards use data-thread-id for identification - findCardElement() searches by this
 
         return `
             <div class="ai-chat-header-info agent-thread-card" 
-                 ${idAttr}
                  data-thread-id="${thread.id}" 
                  data-location="${location}"
                  draggable="true"

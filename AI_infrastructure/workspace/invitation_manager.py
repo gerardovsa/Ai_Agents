@@ -2,16 +2,15 @@
 Invitation Manager - Workspace Invitation System
 
 Handles sending, accepting, declining, and managing workspace invitations.
+Uses Supabase PostgreSQL via get_database_connection('ai_infrastructure')
 """
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.database_utils import get_database_connection
-import sqlite3
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-from pathlib import Path
 import secrets
 
 from .constants import (
@@ -67,11 +66,9 @@ class InvitationManager:
         self.db_path = str(db_path)
         self.default_expiry_days = 7  # Invitations expire after 7 days
     
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection"""
-        conn = get_database_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _get_connection(self):
+        """Get Supabase PostgreSQL connection for ai_infrastructure schema"""
+        return get_database_connection('ai_infrastructure')
     
     def _generate_token(self) -> str:
         """Generate secure invitation token"""

@@ -168,7 +168,237 @@ def xero_platform_guide(task_description: Optional[str] = None, **kwargs) -> Dic
             "✅ Check 'truncated' flag - if true, narrow your date range",
             "❌ Never call standard tools without filters on production",
             "❌ Never use year-long date ranges without checking volume first"
-        ]
+        ],
+        
+        "complete_workflows": {
+            "contact_and_quotes_workflow": {
+                "description": "Find a customer and retrieve all their quotes",
+                "steps": [
+                    {
+                        "step": 1,
+                        "tool": "xero_get_contacts",
+                        "purpose": "Search for contact by name or list contacts",
+                        "example": "xero_get_contacts(business_id=1, search='ABC Company', limit=10)",
+                        "output": "List of contacts with contact_id needed for next step"
+                    },
+                    {
+                        "step": 2,
+                        "tool": "xero_get_contact_by_id",
+                        "purpose": "Get complete contact details including addresses and phones",
+                        "example": "xero_get_contact_by_id(business_id=1, contact_id='abc-123-guid')",
+                        "output": "Full contact profile with 2 addresses, 4 phones, contact persons"
+                    },
+                    {
+                        "step": 3,
+                        "tool": "xero_list_quotes",
+                        "purpose": "Get all quotes for this specific contact",
+                        "example": "xero_list_quotes(business_id=1, contact_id='abc-123-guid', page_size=50)",
+                        "output": "List of quotes with quote_number, status, totals, dates",
+                        "note": "⚠️ With 70,000+ quotes, ALWAYS filter by contact_id or date range"
+                    },
+                    {
+                        "step": 4,
+                        "tool": "xero_get_quote_by_id",
+                        "purpose": "Optional - Get full details of specific quote with line items",
+                        "example": "xero_get_quote_by_id(business_id=1, quote_id='quote-guid')",
+                        "output": "Complete quote with line items, pricing breakdown"
+                    }
+                ],
+                "real_world_results": "CJ King Printing: 100 quotes found, 10 returned, Quote QU-0001 = $110,000.00"
+            },
+            
+            "invoice_management_workflow": {
+                "description": "Get unpaid invoices and payment tracking",
+                "steps": [
+                    {
+                        "step": 1,
+                        "tool": "xero_get_invoices",
+                        "purpose": "List unpaid invoices (accounts receivable)",
+                        "example": "xero_get_invoices(business_id=1, status='AUTHORISED')",
+                        "output": "List of unpaid invoices with due dates and amounts",
+                        "note": "AUTHORISED = unpaid/outstanding invoices"
+                    },
+                    {
+                        "step": 2,
+                        "tool": "xero_get_invoice_by_id",
+                        "purpose": "Get detailed invoice with line items",
+                        "example": "xero_get_invoice_by_id(business_id=1, invoice_id='inv-guid')",
+                        "output": "Full invoice details, line items, payment status"
+                    },
+                    {
+                        "step": 3,
+                        "tool": "xero_get_payments",
+                        "purpose": "Check payment history for invoice",
+                        "example": "xero_get_payments(business_id=1, invoice_id='inv-guid')",
+                        "output": "Payment records linked to invoice"
+                    }
+                ],
+                "real_world_results": "204 AUTHORISED invoices, 50 payments tracked"
+            },
+            
+            "monthly_reporting_workflow": {
+                "description": "Generate monthly financial reports",
+                "steps": [
+                    {
+                        "step": 1,
+                        "tool": "xero_get_data_metadata",
+                        "purpose": "Check data volume for the month",
+                        "example": "xero_get_data_metadata(business_id=1)",
+                        "output": "Summary showing 1 month = ~500 invoices, safe to query"
+                    },
+                    {
+                        "step": 2,
+                        "tool": "xero_get_invoices_by_date_range",
+                        "purpose": "Get all invoices for the month",
+                        "example": "xero_get_invoices_by_date_range(business_id=1, from_date='2025-11-01', to_date='2025-11-30', status='PAID')",
+                        "output": "Invoices with totals for revenue calculation"
+                    },
+                    {
+                        "step": 3,
+                        "tool": "xero_get_bank_transactions_by_date_range",
+                        "purpose": "Get cash flow summary",
+                        "example": "xero_get_bank_transactions_by_date_range(business_id=1, from_date='2025-11-01', to_date='2025-11-30')",
+                        "output": "Automatic spend/receive/net cash flow summary"
+                    }
+                ]
+            },
+            
+            "customer_research_workflow": {
+                "description": "Research a customer's complete history",
+                "steps": [
+                    {
+                        "step": 1,
+                        "tool": "xero_get_contacts",
+                        "purpose": "Find the customer",
+                        "example": "xero_get_contacts(business_id=1, search='Smith Corp')",
+                        "output": "Contact list with contact_id"
+                    },
+                    {
+                        "step": 2,
+                        "tool": "xero_get_contact_by_id",
+                        "purpose": "Get customer details",
+                        "example": "xero_get_contact_by_id(business_id=1, contact_id='contact-guid')",
+                        "output": "Full profile with addresses and contact persons"
+                    },
+                    {
+                        "step": 3,
+                        "tool": "xero_get_invoices",
+                        "purpose": "Get customer's invoices",
+                        "example": "xero_get_invoices(business_id=1, contact_name='Smith Corp')",
+                        "output": "All invoices for this customer"
+                    },
+                    {
+                        "step": 4,
+                        "tool": "xero_list_quotes",
+                        "purpose": "Get customer's quotes",
+                        "example": "xero_list_quotes(business_id=1, contact_id='contact-guid')",
+                        "output": "All quotes for this customer"
+                    },
+                    {
+                        "step": 5,
+                        "tool": "xero_get_payments",
+                        "purpose": "Check payment history",
+                        "example": "xero_get_payments(business_id=1)",
+                        "output": "Payment records to analyze payment patterns"
+                    }
+                ]
+            },
+            
+            "create_quote_and_email_workflow": {
+                "description": "Create a branded quote with template and attach to draft email",
+                "steps": [
+                    {
+                        "step": 1,
+                        "tool": "xero_get_contacts",
+                        "purpose": "Find the customer who will receive the quote",
+                        "example": "xero_get_contacts(business_id=1, search='ABC Company', limit=10)",
+                        "output": "Contact list with contact_id and email addresses"
+                    },
+                    {
+                        "step": 2,
+                        "tool": "xero_get_branding_themes",
+                        "purpose": "List available quote templates with logos and styling",
+                        "example": "xero_get_branding_themes(business_id=1)",
+                        "output": "Array of branding themes with theme_id, name, logo_url",
+                        "note": "⚠️ Requires 'accounting.settings.read' OAuth scope"
+                    },
+                    {
+                        "step": 3,
+                        "tool": "xero_create_quote",
+                        "purpose": "Create quote with selected template and line items",
+                        "example": """xero_create_quote(
+    business_id=1,
+    contact_id='abc-123-guid',
+    line_items=[
+        {
+            'description': 'Business Cards - 1000qty, 350GSM',
+            'quantity': 1,
+            'unit_amount': 150.00,
+            'account_code': '200'
+        },
+        {
+            'description': 'Letterhead - 500 sheets',
+            'quantity': 1,
+            'unit_amount': 85.00,
+            'account_code': '200'
+        }
+    ],
+    template_name='Standard Invoice',
+    title='Printing Services Quote',
+    expiry_date='2025-12-31',
+    summary='Professional printing services for your business materials'
+)""",
+                        "output": "Created quote with quote_id, quote_number, status, total, PDF_url",
+                        "note": "💡 Can use template_name (easier) or branding_theme_id (if you have GUID)"
+                    },
+                    {
+                        "step": 4,
+                        "tool": "xero_get_quote_by_id",
+                        "purpose": "Get complete quote details including PDF download URL",
+                        "example": "xero_get_quote_by_id(business_id=1, quote_id='quote-guid')",
+                        "output": "Full quote with line items and 'pdf_url' field for download link"
+                    },
+                    {
+                        "step": 5,
+                        "tool": "outlook_send_email",
+                        "purpose": "Create draft email with quote attached (saves as draft, not sent)",
+                        "example": """outlook_send_email(
+    to=['customer@abccompany.com'],
+    subject='Quote QU-0123 - Printing Services',
+    body='<p>Hi,</p><p>Please find attached your quote for printing services.</p><p>Quote Total: $235.00</p><p>Valid until: 2025-12-31</p><p>Best regards</p>',
+    body_type='html',
+    attachments=[
+        {
+            'name': 'Quote-QU-0123.pdf',
+            'content_type': 'application/pdf',
+            'content': '<base64_encoded_pdf_content>'
+        }
+    ]
+)""",
+                        "output": "Draft email created in Outlook Drafts folder with quote attached",
+                        "note": "⚠️ Email saved as DRAFT - user must manually send from Outlook"
+                    }
+                ],
+                "alternative_approach": {
+                    "description": "If you don't have PDF content, link to quote instead of attaching",
+                    "example": """outlook_send_email(
+    to=['customer@abccompany.com'],
+    subject='Quote QU-0123 - Printing Services',
+    body='<p>Hi,</p><p>Your quote is ready to view:</p><p><a href=\"https://go.xero.com/quote/view/abc123\">View Quote QU-0123</a></p><p>Quote Total: $235.00</p>',
+    body_type='html'
+)"""
+                },
+                "real_world_results": "Quote created with 2 line items ($235 total), draft email saved to Outlook with PDF attachment",
+                "important_notes": [
+                    "📧 outlook_send_email creates DRAFTS only - user must send manually",
+                    "🔐 xero_get_branding_themes requires 'accounting.settings.read' OAuth scope",
+                    "📄 PDF attachments must be base64 encoded in 'content' field",
+                    "✅ Can use template_name parameter for easier template selection",
+                    "💡 Quote PDF URLs expire - download immediately if attaching to email",
+                    "🎨 Branding themes control logo, colors, fonts on quote PDFs"
+                ]
+            }
+        }
     }
     
     # Add task-specific recommendations if provided

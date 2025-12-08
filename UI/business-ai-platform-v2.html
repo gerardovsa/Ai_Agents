@@ -4611,6 +4611,15 @@
             position: relative;
         }
 
+        /* Hide expandable content when card is collapsed */
+        .ai-chat-header-info:not(.expanded) .thread-expand-on-hover {
+            display: none;
+            height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
         /* REMOVED - Now using external CSS from thread-card-styles.css */
         /* Old nth-child rules conflicted with new .thread-expand-on-hover container */
         /* See: UI/external/modules_internal/thread-cards/thread-card-styles.css lines 1210-1270 */
@@ -15785,11 +15794,6 @@
                 <i class="fa-solid fa-hexagon-nodes-bolt fa-lg"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-action="universal-search"
-                title="Universal Search - Search Across All Platforms">
-                <i class="fas fa-magnifying-glass"></i>
-            </button>
-
             <button class="sidebar-icon-btn" data-action="vectordb" title="Vector Database - Document Management">
                 <i class="fas fa-database"></i>
             </button>
@@ -16365,8 +16369,20 @@
                 <!-- ==================== UNIVERSAL SEARCH TAB ==================== -->
                 <!-- Universal Search module injects content here via module_loader.js -->
                 <div class="tab-content" id="tab-universal-search">
-                    <!-- Dynamic content loaded from UI/modules_internal/universal-search/ -->
-                    <div id="universal-search-container" style="height: 100%; width: 100%;"></div>
+                    <div class="universal-search-dashboard-wrapper">
+                        <!-- Dashboard Header -->
+                        <div class="dashboard-header-section" style="margin-bottom: var(--space-5);">
+                            <h2 style="font-size: 28px; display: flex; align-items: center; gap: var(--space-3);">
+                                <i class="fas fa-search" style="color: #3b82f6;"></i>
+                                Universal Search
+                            </h2>
+                            <p style="margin-top: var(--space-2); color: var(--text-secondary); font-size: 14px;">
+                                Search across all your connected platforms in one place
+                            </p>
+                        </div>
+                        <!-- Dynamic content loaded from UI/modules_internal/universal-search/ -->
+                        <div id="universal-search-container" style="height: calc(100% - 100px); width: 100%;"></div>
+                    </div>
                 </div>
 
                 <!-- ==================== VECTOR DATABASE TAB ==================== -->
@@ -19580,7 +19596,7 @@
         // ==================== CONFIRMATION MODAL FUNCTIONS ====================
         let confirmationCallback = null;
 
-        function showConfirmation(title, message, onConfirm) {
+        function showConfirmation(title, message, onConfirm, options = {}) {
             const modal = document.getElementById('confirmation-modal');
             const titleEl = document.getElementById('confirmation-title');
             const messageEl = document.getElementById('confirmation-message');
@@ -19589,6 +19605,16 @@
             titleEl.textContent = title;
             messageEl.textContent = message;
             confirmationCallback = onConfirm;
+
+            // Customize button based on action type
+            const isDelete = title.toLowerCase().includes('delete');
+            const buttonText = options.confirmText || (isDelete ? 'Delete' : 'Unload');
+            const buttonIcon = options.confirmIcon || (isDelete ? 'fa-trash' : 'fa-sign-out-alt');
+            const buttonColor = options.confirmColor || (isDelete ? '#ef4444' : '#f59e0b');
+
+            confirmBtn.innerHTML = `<i class="fas ${buttonIcon}"></i> ${buttonText}`;
+            confirmBtn.style.background = buttonColor;
+            confirmBtn.style.color = 'white';
 
             modal.classList.add('active');
 

@@ -92,7 +92,7 @@ class SynergySidebarRenderer {
                         <i class="fas fa-${statusBadge.icon}"></i> ${status}
                     </span>
                     <div class="synergy-actions">
-                        <button class="synergy-icon-btn" title="Pin" onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')">
+                        <button class="synergy-icon-btn ${session.is_pinned ? 'pinned' : ''}" title="Pin" onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')">
                             <i class="fas fa-thumbtack"></i>
                         </button>
                         <button class="synergy-icon-btn" title="Open Popup" onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}')">
@@ -170,10 +170,10 @@ class SynergySidebarRenderer {
         if (diffDays === 1) return 'Yesterday';
         if (diffDays < 7) return `${diffDays}d ago`;
         if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-        return date.toLocaleDateString('en-US', { 
-            month: 'short', 
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
             day: 'numeric',
-            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
         });
     }
 
@@ -184,14 +184,14 @@ class SynergySidebarRenderer {
     getFormattedDateTime(dateString) {
         if (!dateString) return 'No date';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
             year: 'numeric'
-        }) + ' at ' + date.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
+        }) + ' at ' + date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
             minute: '2-digit',
-            hour12: true 
+            hour12: true
         });
     }
 
@@ -531,7 +531,7 @@ class SynergySidebarRenderer {
      */
     renderDescriptionSection(description) {
         const hasDescription = description && description.trim().length > 0;
-        
+
         return `
             <div style="
                 padding: 12px;

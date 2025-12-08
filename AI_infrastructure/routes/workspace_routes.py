@@ -65,11 +65,11 @@ from workspace.constants import WorkspaceRole, WorkspaceVisibility
 # Create blueprint
 workspace_bp = Blueprint('workspace', __name__)
 
-# Initialize managers (cursor management happens inside these classes)
-DB_PATH = 'data/ai_infrastructure.db'
-workspace_mgr = WorkspaceManager(DB_PATH)
-invitation_mgr = InvitationManager(DB_PATH)
-access_control = AccessControl(DB_PATH)
+# Initialize managers (use Supabase PostgreSQL via get_database_connection)
+# Note: Managers handle their own database connections internally
+workspace_mgr = WorkspaceManager()  # Uses Supabase PostgreSQL 'ai_infrastructure' schema
+invitation_mgr = InvitationManager()  # Uses Supabase PostgreSQL 'ai_infrastructure' schema
+access_control = AccessControl()  # Uses Supabase PostgreSQL 'ai_infrastructure' schema
 
 
 def get_user_id() -> int:

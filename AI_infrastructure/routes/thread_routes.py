@@ -112,7 +112,11 @@ def list_available_agents():
             'is_create_new': True
         })
         
-        return list_response(agents, field_name='agents')
+        return jsonify({
+            'success': True,
+            'agents': agents,
+            'count': len(agents)
+        })
         
     except Exception as e:
         print(f"[AGENTS LIST] Error: {str(e)}")

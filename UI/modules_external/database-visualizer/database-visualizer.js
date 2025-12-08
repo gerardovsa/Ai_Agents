@@ -453,14 +453,25 @@ class DatabaseVisualizerModule extends BaseModule {
         const totalSize = this.databases.reduce((sum, db) => sum + (db.size_bytes || 0), 0);
         const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
 
-        document.getElementById('stat-total-dbs').textContent = totalDbs;
-        document.getElementById('stat-total-tables').textContent = totalTables;
-        document.getElementById('stat-total-size').textContent = `${totalSizeMB} MB`;
-        document.getElementById('stat-last-scan').textContent = new Date().toLocaleTimeString();
+        // Null checks - elements may not exist yet during initialization
+        const statTotalDbs = document.getElementById('stat-total-dbs');
+        const statTotalTables = document.getElementById('stat-total-tables');
+        const statTotalSize = document.getElementById('stat-total-size');
+        const statLastScan = document.getElementById('stat-last-scan');
+
+        if (statTotalDbs) statTotalDbs.textContent = totalDbs;
+        if (statTotalTables) statTotalTables.textContent = totalTables;
+        if (statTotalSize) statTotalSize.textContent = `${totalSizeMB} MB`;
+        if (statLastScan) statLastScan.textContent = new Date().toLocaleTimeString();
     }
 
     renderDatabaseGrid() {
         const container = document.getElementById('databases-grid');
+        if (!container) {
+            console.warn('[DatabaseVisualizer] renderDatabaseGrid: databases-grid element not found');
+            return;
+        }
+
         const primaryColor = (this.manifest && this.manifest.colors && this.manifest.colors.primary)
             ? this.manifest.colors.primary
             : 'var(--accent-primary)';
@@ -985,8 +996,6 @@ class DatabaseVisualizerModule extends BaseModule {
     }
 }
 
-// Register module (backward compatibility)
+// Register module - Use ONLY window assignment (ES6 export causes syntax error)
+window.ModuleRegistry = window.ModuleRegistry || {};
 window.ModuleRegistry['database-visualizer'] = DatabaseVisualizerModule;
-
-// ES6 Export
-export default DatabaseVisualizerModule;

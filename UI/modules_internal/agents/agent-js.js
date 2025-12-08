@@ -374,19 +374,26 @@ const MultiAgent = {
         this.sessions[agentId] = null;
         console.log(`[ISOLATION] ✅ Agent-${agentId} session cleared`);
 
-        // Clear UI
-        const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
-        if (messagesContainer) {
-            messagesContainer.innerHTML = '';
-        }
+        // Clear UI and show empty state (Dec 9, 2025 FIX)
+        if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.unloadThread === 'function') {
+            // Use AgentColumn.unloadThread to properly show empty state with welcome message
+            AgentColumn.unloadThread(agentId);
+            console.log(`[CLEAR] Called AgentColumn.unloadThread for agent ${agentId}`);
+        } else {
+            // Fallback: Clear UI manually
+            const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            }
 
-        // Update thread info header - Keep EMPTY when no thread loaded
-        const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
-        if (threadInfoContainer) {
-            threadInfoContainer.innerHTML = `
-                <div class="thread-info-wrapper">
-                </div>
-            `;
+            // Update thread info header - Keep EMPTY when no thread loaded
+            const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+            if (threadInfoContainer) {
+                threadInfoContainer.innerHTML = `
+                    <div class="thread-info-wrapper">
+                    </div>
+                `;
+            }
         }
 
         this.saveState();

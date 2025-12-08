@@ -918,14 +918,6 @@ def get_thread_emails(thread_slug):
         
         assignments = cursor.fetchall()
         
-        # ✅ CLOSE CURSOR IMMEDIATELY after fetching results
-        if cursor:
-            cursor.close()
-            cursor = None
-        if conn:
-            conn.close()
-            conn = None
-        
         if not assignments:
             return jsonify({
                 'success': True,
@@ -1011,16 +1003,16 @@ def get_thread_emails(thread_slug):
     
     finally:
         # ✅ CRITICAL: GUARANTEED cleanup
-        if cursor:
-            try:
+        try:
+            if 'cursor' in locals() and cursor:
                 cursor.close()
-            except Exception as e:
-                print(f"⚠️ Error closing cursor: {e}")
-        if conn:
-            try:
+        except Exception as e:
+            print(f"⚠️ Error closing cursor: {e}")
+        try:
+            if 'conn' in locals() and conn:
                 conn.close()
-            except Exception as e:
-                print(f"⚠️ Error closing connection: {e}")
+        except Exception as e:
+            print(f"⚠️ Error closing connection: {e}")
 
 
 @communication_bp.route('/health', methods=['GET'])

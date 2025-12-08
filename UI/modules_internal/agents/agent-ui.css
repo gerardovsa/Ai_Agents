@@ -29,8 +29,8 @@
     border-radius: 8px;
     overflow: hidden;
     transition: all 0.3s ease;
-    min-width: 320px;
-    max-width: 600px;
+    min-width: 400px;
+    max-width: 400px;
     flex: 1;
 }
 
@@ -47,13 +47,15 @@
 }
 
 .agent-column.wide {
-    flex: 2;
-    max-width: 800px;
+    min-width: 600px;
+    max-width: 600px;
+    flex: 1.5;
 }
 
 .agent-column.extra-wide {
-    flex: 3;
-    max-width: 1200px;
+    min-width: 800px;
+    max-width: 800px;
+    flex: 2;
 }
 
 /* ==================== COLLAPSED STATE ==================== */
@@ -92,20 +94,20 @@
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-size: 11px;
-    color: var(--text-primary);
-    /* Changed from text-secondary for better visibility */
+    color: var(--text-tertiary);
+    /* Changed to text-tertiary for subtlety */
     display: flex;
-    flex-direction: row;
-    /* Changed from column to row - puts status and timestamp side by side */
+    flex-direction: column;
+    /* Column layout for vertical stacking */
     gap: var(--space-1);
-    /* Reduced gap for tighter horizontal spacing */
+    /* Reduced gap for tighter vertical spacing */
     align-items: center;
 }
 
 .thread-status-vertical,
 .thread-timestamp-vertical {
-    color: var(--text-primary);
-    /* Ensure child elements also use primary text color */
+    color: var(--text-tertiary);
+    /* Match parent tertiary text color */
     white-space: nowrap;
 }
 
@@ -115,6 +117,8 @@
     padding: var(--space-3);
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border-default);
+    overflow: visible;
+    /* Allow ring animation to show */
 }
 
 .agent-header-top {
@@ -122,11 +126,15 @@
     align-items: center;
     gap: var(--space-2);
     margin-bottom: var(--space-2);
+    overflow: visible;
+    /* Allow ring animation to show */
 }
 
 .agent-title-wrapper {
     flex: 1;
     min-width: 0;
+    overflow: visible;
+    /* Allow ring animation to show */
 }
 
 .agent-title-wrapper h2 {
@@ -138,7 +146,8 @@
     align-items: center;
     gap: var(--space-2);
     white-space: nowrap;
-    overflow: hidden;
+    overflow: visible;
+    /* Allow ring animation to show */
     text-overflow: ellipsis;
 }
 
@@ -147,10 +156,23 @@
     width: 32px;
     height: 32px;
     font-size: 18px;
-    display: flex;
+    display: inline-flex !important;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+.agent-title-wrapper h2 i {
+    font-style: normal !important;
+    /* Override user agent stylesheet font-style:italic */
+}
+
+.agent-title-wrapper h2 i::before {
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
 }
 
 .agent-header-controls {
@@ -525,7 +547,6 @@
 
 .agent-messages-container .empty-state i {
     font-size: 2em;
-    margin-bottom: 15px;
     display: block;
 }
 
@@ -813,11 +834,11 @@
     box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
 }
 
-/* Chevron indicator (double stacked) */
+/* Chevron indicator (double stacked chevrons - matches Prime AI) */
 .agent-input-container::after {
     content: '\f077\A\f077';
     font-family: 'Font Awesome 5 Free';
-    /* font-weight: 900; */
+    font-weight: 900;
     white-space: pre;
     line-height: 0.5;
     position: absolute;

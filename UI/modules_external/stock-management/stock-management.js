@@ -236,6 +236,11 @@ class SQLViewerHelper {
         const infoDiv = document.getElementById('sql-execution-info');
         const gridDiv = document.getElementById('sql-results-grid');
 
+        if (!infoDiv || !gridDiv) {
+            console.warn('[StockManagement] displayResults: Required elements not found');
+            return;
+        }
+
         // Show execution info
         infoDiv.innerHTML = `
             <div class="success-banner">
@@ -291,6 +296,10 @@ class SQLViewerHelper {
      */
     showError(message) {
         const infoDiv = document.getElementById('sql-execution-info');
+        if (!infoDiv) {
+            console.error('[StockManagement] showError: sql-execution-info element not found');
+            return;
+        }
         infoDiv.innerHTML = `
             <div class="error-banner">
                 ✗ Error: ${message}
@@ -780,15 +789,19 @@ class StockManagementModule extends BaseModule {
         console.log('📄 Processing invoice:', file.name);
 
         // Show processing indicator
-        document.getElementById('invoice-upload-zone').style.display = 'none';
-        document.getElementById('invoice-processing-status').style.display = 'block';
-        document.getElementById('processing-message').textContent = 'Reading file...';
+        const uploadZone = document.getElementById('invoice-upload-zone');
+        const processingStatus = document.getElementById('invoice-processing-status');
+        const processingMsg = document.getElementById('processing-message');
+
+        if (uploadZone) uploadZone.style.display = 'none';
+        if (processingStatus) processingStatus.style.display = 'block';
+        if (processingMsg) processingMsg.textContent = 'Reading file...';
 
         try {
             // Read file as base64
             const base64 = await this.readFileAsBase64(file);
 
-            document.getElementById('processing-message').textContent = 'Sending to AI for extraction...';
+            if (processingMsg) processingMsg.textContent = 'Sending to AI for extraction...';
 
             // Send to backend for AI processing
             const response = await fetch(`${this.backendUrl}${this.apiEndpoint}/invoice-process`, {
@@ -1056,10 +1069,15 @@ class StockManagementModule extends BaseModule {
             const fastMovers = data.filter(item => item.usage_count > avgUsage).length;
             const slowMovers = data.filter(item => item.usage_count < avgUsage).length;
 
-            document.getElementById('total-stocks-used').textContent = totalStocks;
-            document.getElementById('total-sheets-used').textContent = totalSheets.toLocaleString();
-            document.getElementById('fast-movers-count').textContent = fastMovers;
-            document.getElementById('slow-movers-count').textContent = slowMovers;
+            const totalStocksEl = document.getElementById('total-stocks-used');
+            const totalSheetsEl = document.getElementById('total-sheets-used');
+            const fastMoversEl = document.getElementById('fast-movers-count');
+            const slowMoversEl = document.getElementById('slow-movers-count');
+
+            if (totalStocksEl) totalStocksEl.textContent = totalStocks;
+            if (totalSheetsEl) totalSheetsEl.textContent = totalSheets.toLocaleString();
+            if (fastMoversEl) fastMoversEl.textContent = fastMovers;
+            if (slowMoversEl) slowMoversEl.textContent = slowMovers;
 
             // Render Tabulator table
             this.renderUsageTable(data);

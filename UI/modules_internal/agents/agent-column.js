@@ -344,14 +344,14 @@ const AgentColumn = (function () {
                     <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
                         <button class="btn btn-primary" 
                                 onclick="event.stopPropagation(); AgentColumn.newThread(${agentId})" 
-                                style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1;">
-                            <i class="fas fa-plus" style="font-size: 14px;"></i>
+                                style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1; background-color: var(--accent-primary, #58a6ff); border-color: var(--accent-primary, #58a6ff);">
+                            <i class="fas fa-plus" style="font-size: 14px; margin: 0;"></i>
                             Start New Chat
                         </button>
                         <button class="btn btn-secondary" 
                                 onclick="event.stopPropagation(); AgentColumn.showHistory(${agentId})" 
                                 style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1;">
-                            <i class="fas fa-history" style="font-size: 14px;"></i>
+                            <i class="fas fa-history" style="font-size: 14px; margin: 0;"></i>
                             Thread History
                         </button>
                     </div>
@@ -779,7 +779,7 @@ const AgentColumn = (function () {
     }
 
     /**
-     * Toggle column width (3-stage cycle: normal > wide > extra-wide > normal)
+     * Toggle column width (3-stage cycle: 400px > 600px > 800px > 400px)
      * @param {number} agentId - Agent ID
      */
     function toggleWidth(agentId) {
@@ -791,24 +791,24 @@ const AgentColumn = (function () {
             const hasExtraWide = column.classList.contains('extra-wide');
 
             if (!hasWide && !hasExtraWide) {
-                // Stage 1 -> 2: Normal to Wide (>)
+                // Stage 1 -> 2: 400px to 600px (icon: >)
                 column.classList.add('wide');
                 icon.className = 'fas fa-angle-double-right'; // >>
                 icon.style.transform = 'none';
-                console.log(`[AgentColumn] Width for agent ${agentId}: normal -> wide`);
+                console.log(`[AgentColumn] Width for agent ${agentId}: 400px -> 600px`);
             } else if (hasWide && !hasExtraWide) {
-                // Stage 2 -> 3: Wide to Extra-Wide (>>)
+                // Stage 2 -> 3: 600px to 800px (icon: >>)
                 column.classList.remove('wide');
                 column.classList.add('extra-wide');
                 icon.className = 'fas fa-chevron-left'; // <
-                icon.style.transform = 'scaleX(-1)';
-                console.log(`[AgentColumn] Width for agent ${agentId}: wide -> extra-wide`);
+                icon.style.transform = 'none';
+                console.log(`[AgentColumn] Width for agent ${agentId}: 600px -> 800px`);
             } else {
-                // Stage 3 -> 1: Extra-Wide back to Normal (<)
+                // Stage 3 -> 1: 800px back to 400px (icon: <)
                 column.classList.remove('extra-wide');
                 icon.className = 'fas fa-chevron-right'; // >
                 icon.style.transform = 'none';
-                console.log(`[AgentColumn] Width for agent ${agentId}: extra-wide -> normal`);
+                console.log(`[AgentColumn] Width for agent ${agentId}: 800px -> 400px`);
             }
         }
     }

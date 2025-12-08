@@ -2,10 +2,10 @@
 Slug Generator - Unique URL-safe identifiers
 
 Generates unique, collision-resistant slugs for workspaces and threads.
+Uses Supabase PostgreSQL via get_database_connection('ai_infrastructure')
 """
 
 import re
-import sqlite3
 import sys
 import secrets
 from typing import Optional, Set
@@ -52,11 +52,8 @@ class SlugGenerator:
         self.db_path = str(db_path)
     
     def _get_connection(self):
-        """Get database connection (SQLite or Supabase)"""
-        conn = get_database_connection('ai_infrastructure')
-        if hasattr(conn, 'row_factory'):  # SQLite
-            conn.row_factory = sqlite3.Row
-        return conn
+        """Get Supabase PostgreSQL connection for ai_infrastructure schema"""
+        return get_database_connection('ai_infrastructure')
     
     def _slugify(self, text: str) -> str:
         """

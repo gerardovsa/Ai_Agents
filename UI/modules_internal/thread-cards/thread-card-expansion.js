@@ -52,7 +52,14 @@ window.ThreadCardExpansion = {
             return;
         }
 
-        const isExpanded = card.classList.contains('expanded');
+        // Get the element that should have .expanded class (card or container)
+        const expandableElement = this.getExpandableElement(card);
+        if (!expandableElement) {
+            console.warn(`[ThreadCardExpansion] Expandable element not found for ID: ${threadId}`);
+            return;
+        }
+
+        const isExpanded = expandableElement.classList.contains('expanded');
         console.log(`[ThreadCardExpansion] Toggling ${threadId}: ${isExpanded ? 'collapse' : 'expand'}`);
 
         if (isExpanded) {
@@ -71,9 +78,13 @@ window.ThreadCardExpansion = {
         const card = this.findCardElement(threadId);
         if (!card) return;
 
-        card.classList.add('expanded');
+        // Get the element that should receive the .expanded class
+        const expandableElement = this.getExpandableElement(card);
+        if (!expandableElement) return;
 
-        // Update aria label
+        expandableElement.classList.add('expanded');
+
+        // Update aria label on button (search from the card, not the container)
         const btn = card.querySelector('.thread-card-expand-btn');
         if (btn) {
             btn.setAttribute('aria-label', 'Collapse details');
@@ -90,9 +101,13 @@ window.ThreadCardExpansion = {
         const card = this.findCardElement(threadId);
         if (!card) return;
 
-        card.classList.remove('expanded');
+        // Get the element that has the .expanded class
+        const expandableElement = this.getExpandableElement(card);
+        if (!expandableElement) return;
 
-        // Update aria label
+        expandableElement.classList.remove('expanded');
+
+        // Update aria label on button (search from the card, not the container)
         const btn = card.querySelector('.thread-card-expand-btn');
         if (btn) {
             btn.setAttribute('aria-label', 'Expand details');
@@ -118,49 +133,73 @@ window.ThreadCardExpansion = {
      * Find thread card element by thread ID
      * Searches across all locations (prime, agent-1, agent-2, agent-3, thread-history, prime-loaded, etc.)
      * 
+     * CRITICAL BEHAVIOR (Dec 9, 2025 - FIXED):
+     * - ALWAYS returns the CARD element itself (the element with data-thread-id)
+     * - Expansion logic handles finding the correct parent container if needed
+     * - This ensures the button inside the card can be found
+     * 
      * @param {string} threadId - Thread ID to find
-     * @returns {HTMLElement|null} Thread card element or null
+     * @returns {HTMLElement|null} Thread card element (always the .ai-chat-header-info element)
      */
     findCardElement(threadId) {
-        // PRIORITY 1: Search by data-thread-id attribute (works for ALL card types)
-        // This includes thread-history, prime-loaded, and agent cards
-        const cardByData = document.querySelector(`.ai-chat-header-info[data-thread-id="${threadId}"]`);
-        if (cardByData) {
-            console.log(`[ThreadCardExpansion] Found card by data-thread-id: ${threadId}`);
-            return cardByData;
+        // Search by data-thread-id attribute (works for ALL card types)
+        const card = document.querySelector(`.ai-chat-header-info[data-thread-id="${threadId}"]`);
+        if (card) {
+            const location = card.dataset.location || 'unknown';
+            console.log(`[ThreadCardExpansion] Found card by data-thread-id: ${threadId} at location: ${location}`);
+            return card;
         }
 
-        // PRIORITY 2: Search by agent-thread-card class (for agent panel cards)
+        // Fallback: Search by agent-thread-card class
         const agentCard = document.querySelector(`.agent-thread-card[data-thread-id="${threadId}"]`);
         if (agentCard) {
             console.log(`[ThreadCardExpansion] Found card by agent-thread-card class: ${threadId}`);
             return agentCard;
         }
 
-        // PRIORITY 3: Try all possible static location IDs (legacy fallback)
-        const locations = [
-            'prime-thread-info',       // Prime panel
-            'prime-loaded-thread-info', // Prime-Loaded panel
-            'thread-history-thread-info', // Thread History panel
-            'thread-info-1',           // Agent 1
-            'thread-info-2',           // Agent 2
-            'thread-info-3',           // Agent 3
-            'thread-info-4',           // Agent 4
-            'thread-info-5',           // Agent 5
-            'thread-info-6',           // Agent 6
-            'thread-info-7',           // Agent 7
-        ];
-
-        for (const locationId of locations) {
-            const card = document.getElementById(locationId);
-            if (card && card.dataset.threadId === threadId) {
-                console.log(`[ThreadCardExpansion] Found card by static ID: ${locationId}`);
-                return card;
-            }
-        }
-
         console.warn(`[ThreadCardExpansion] Card not found for thread ID: ${threadId}`);
         return null;
+    },
+
+    /**
+     * Get the element that should have the .expanded class added
+     * - Thread History: The card itself
+     * - Prime/Prime-Loaded: The #prime-thread-info container
+     * - Agent columns: The #thread-info-N container
+     * 
+     * @param {HTMLElement} card - The thread card element
+     * @returns {HTMLElement|null} Element to add .expanded class to
+     */
+    getExpandableElement(card) {
+        if (!card) return null;
+
+        // Check actual parent container to determine location
+        // (don't trust data-location, as cards can have prime-loaded but be in thread history)
+        const isInThreadHistory = card.closest('.thread-history-panel');
+        const isInPrimeContainer = card.closest('#prime-thread-info');
+        const agentContainer = card.closest('[id^="thread-info-"]');
+
+        // Thread History: expand the card itself
+        if (isInThreadHistory) {
+            console.log(`[ThreadCardExpansion] Expandable element: card itself (in thread-history panel)`);
+            return card;
+        }
+
+        // Prime/Prime-Loaded: expand the container
+        if (isInPrimeContainer) {
+            console.log(`[ThreadCardExpansion] Expandable element: #prime-thread-info container`);
+            return isInPrimeContainer;
+        }
+
+        // Agent columns: expand the parent container
+        if (agentContainer) {
+            console.log(`[ThreadCardExpansion] Expandable element: container ${agentContainer.id}`);
+            return agentContainer;
+        }
+
+        // Fallback: expand the card itself
+        console.warn(`[ThreadCardExpansion] No container found, using card itself`);
+        return card;
     },
 
     /**

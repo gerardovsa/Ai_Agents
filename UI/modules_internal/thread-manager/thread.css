@@ -2322,6 +2322,7 @@ textarea.form-control {
     resize: vertical;
     font-family: var(--font-sans);
     line-height: 1.5;
+    background: var(--bg-primary, #1a1f2e) !important;
 }
 
 .form-row {

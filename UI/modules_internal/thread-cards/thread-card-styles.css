@@ -256,12 +256,11 @@
    Action buttons: Hidden until hover
    ============================================================ */
 
-/* Agent Thread Cards (thread-info-1, thread-info-2, thread-info-3) */
+/* Agent Thread Cards (thread-info-1 through thread-info-20) */
 /* BUTTON-ONLY EXPANSION (Hover disabled Dec 6, 2025) */
+/* UPDATED Dec 9, 2025: Added support for agents 4-20 */
 /* Hide expanded content by default */
-#thread-info-1 .thread-expand-on-hover,
-#thread-info-2 .thread-expand-on-hover,
-#thread-info-3 .thread-expand-on-hover {
+[id^="thread-info-"] .thread-expand-on-hover {
     opacity: 0;
     max-height: 0;
     overflow: hidden;
@@ -271,12 +270,8 @@
 }
 
 /* Show expanded content ONLY when clicked (.expanded class) */
-/* #thread-info-1:hover .thread-expand-on-hover, */
-/* #thread-info-2:hover .thread-expand-on-hover, */
-/* #thread-info-3:hover .thread-expand-on-hover, */
-#thread-info-1.expanded .thread-expand-on-hover,
-#thread-info-2.expanded .thread-expand-on-hover,
-#thread-info-3.expanded .thread-expand-on-hover {
+/* Hover expansion disabled - see commit Dec 6, 2025 */
+[id^="thread-info-"].expanded .thread-expand-on-hover {
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
@@ -284,12 +279,8 @@
 }
 
 /* Chevron rotation ONLY when clicked (.expanded class) */
-/* #thread-info-1:hover .chevron-icon, */
-/* #thread-info-2:hover .chevron-icon, */
-/* #thread-info-3:hover .chevron-icon, */
-#thread-info-1.expanded .chevron-icon,
-#thread-info-2.expanded .chevron-icon,
-#thread-info-3.expanded .chevron-icon {
+/* Hover rotation disabled - see commit Dec 6, 2025 */
+[id^="thread-info-"].expanded .chevron-icon {
     transform: rotate(180deg);
     transition: transform 0.5s ease;
 }

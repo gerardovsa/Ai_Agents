@@ -96,7 +96,7 @@ class SynergySidebarRendererV2 {
                         <i class="fas fa-${statusBadge.icon}"></i> ${status}
                     </span>
                     <div class="synergy-actions">
-                        <button class="synergy-icon-btn" title="Pin" onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')">
+                        <button class="synergy-icon-btn ${session.is_pinned ? 'pinned' : ''}" title="Pin" onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')">
                             <i class="fas fa-thumbtack"></i>
                         </button>
                         <button class="synergy-icon-btn" title="Open Popup" onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}')">

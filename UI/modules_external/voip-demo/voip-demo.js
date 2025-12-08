@@ -186,10 +186,15 @@ class VoIPDemoModule extends BaseModule {
 
             // Update UI
             this.updateCallStatus('In Call');
-            document.getElementById('voip-start-call').disabled = true;
-            document.getElementById('voip-end-call').disabled = false;
-            document.getElementById('voip-mute-audio').disabled = false;
-            document.getElementById('voip-toggle-transcription').disabled = false;
+            const startBtn = document.getElementById('voip-start-call');
+            const endBtn = document.getElementById('voip-end-call');
+            const muteBtn = document.getElementById('voip-mute-audio');
+            const transcriptBtn = document.getElementById('voip-toggle-transcription');
+
+            if (startBtn) startBtn.disabled = true;
+            if (endBtn) endBtn.disabled = false;
+            if (muteBtn) muteBtn.disabled = false;
+            if (transcriptBtn) transcriptBtn.disabled = false;
 
             console.log('[VoIPDemo] ✅ Call started');
             this.showNotification('Call started', 'success');
@@ -230,11 +235,17 @@ class VoIPDemoModule extends BaseModule {
 
         // Update UI
         this.updateCallStatus('Call Ended');
-        document.getElementById('voip-start-call').disabled = false;
-        document.getElementById('voip-end-call').disabled = true;
-        document.getElementById('voip-mute-audio').disabled = true;
-        document.getElementById('voip-toggle-transcription').disabled = true;
-        document.getElementById('voip-call-timer').style.display = 'none';
+        const startBtn = document.getElementById('voip-start-call');
+        const endBtn = document.getElementById('voip-end-call');
+        const muteBtn = document.getElementById('voip-mute-audio');
+        const transcriptBtn = document.getElementById('voip-toggle-transcription');
+        const timerEl = document.getElementById('voip-call-timer');
+
+        if (startBtn) startBtn.disabled = false;
+        if (endBtn) endBtn.disabled = true;
+        if (muteBtn) muteBtn.disabled = true;
+        if (transcriptBtn) transcriptBtn.disabled = true;
+        if (timerEl) timerEl.style.display = 'none';
 
         // Stop transcription if enabled
         if (this.transcriptionEnabled) {
@@ -442,7 +453,8 @@ class VoIPDemoModule extends BaseModule {
             if (sidebarStatus) sidebarStatus.textContent = 'Connected';
 
             // Enable call button
-            document.getElementById('voip-start-call').disabled = false;
+            const startBtn = document.getElementById('voip-start-call');
+            if (startBtn) startBtn.disabled = false;
             document.getElementById('voip-sidebar-start-call')?.setAttribute('disabled', false);
 
         } else {
@@ -452,7 +464,8 @@ class VoIPDemoModule extends BaseModule {
             if (sidebarStatus) sidebarStatus.textContent = 'Disconnected';
 
             // Disable call button
-            document.getElementById('voip-start-call').disabled = true;
+            const startBtn = document.getElementById('voip-start-call');
+            if (startBtn) startBtn.disabled = true;
             document.getElementById('voip-sidebar-start-call')?.setAttribute('disabled', true);
         }
     }

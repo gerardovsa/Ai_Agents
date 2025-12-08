@@ -241,49 +241,57 @@ def save_transcription():
         if not user_id and hasattr(request, 'user_id'):
             user_id = request.user_id
 
-        from AI_infrastructure.database_toolkit.schema_manager import SchemaManager
-        mgr = SchemaManager()
-        conn = mgr.get_connection()
-        cur = conn.cursor()
+        from shared.database_utils import get_database_connection
+        
+        cursor = None
+        conn = None
+        try:
+            # Connect to Supabase PostgreSQL 'ai_infrastructure' schema
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
 
-        cur.execute('''
-            INSERT INTO user_transcriptions
-            (user_id, source_type, transcript_text, confidence, language, duration_seconds, word_count, model_used, metadata)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            user_id,
-            source_type,
-            transcript,
-            confidence,
-            language,
-            duration,
-            len(transcript.split()) if transcript else 0,
-            model_used,
-            metadata
-        ))
-        transcription_id = cur.lastrowid
+            cursor.execute('''
+                INSERT INTO user_transcriptions
+                (user_id, source_type, transcript_text, confidence, language, duration_seconds, word_count, model_used, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                user_id,
+                source_type,
+                transcript,
+                confidence,
+                language,
+                duration,
+                len(transcript.split()) if transcript else 0,
+                model_used,
+                metadata
+            ))
+            transcription_id = cursor.lastrowid
 
-        # If file_info provided, store
-        if file_info and transcription_id:
-            try:
-                cur.execute('''
-                    INSERT INTO transcription_uploads
-                    (transcription_id, filename, file_size, file_type, mime_type, original_duration, processing_time_ms)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    transcription_id,
-                    file_info.get('filename'),
-                    file_info.get('size'),
-                    file_info.get('format') or file_info.get('file_type'),
-                    file_info.get('mime_type'),
-                    file_info.get('duration_seconds'),
-                    file_info.get('processing_time_ms')
-                ))
-            except Exception:
-                logger.exception('[TRANSCRIPTION] Failed to save upload metadata')
+            # If file_info provided, store
+            if file_info and transcription_id:
+                try:
+                    cursor.execute('''
+                        INSERT INTO transcription_uploads
+                        (transcription_id, filename, file_size, file_type, mime_type, original_duration, processing_time_ms)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''', (
+                        transcription_id,
+                        file_info.get('filename'),
+                        file_info.get('size'),
+                        file_info.get('format') or file_info.get('file_type'),
+                        file_info.get('mime_type'),
+                        file_info.get('duration_seconds'),
+                        file_info.get('processing_time_ms')
+                    ))
+                except Exception:
+                    logger.exception('[TRANSCRIPTION] Failed to save upload metadata')
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
         return jsonify({'success': True, 'transcription_id': transcription_id}), 200
 
@@ -307,42 +315,49 @@ def transcription_history():
         if not user_id and hasattr(request, 'user_id'):
             user_id = request.user_id
 
-        from AI_infrastructure.database_toolkit.schema_manager import SchemaManager
-        mgr = SchemaManager()
-        conn = mgr.get_connection()
-        cur = conn.cursor()
+        from shared.database_utils import get_database_connection
+        
+        cursor = None
+        conn = None
+        try:
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
 
-        if user_id:
-            cur.execute('''
-                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
-                FROM user_transcriptions
-                WHERE user_id = ?
-                ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
-            ''', (user_id, limit, offset))
-        else:
-            cur.execute('''
-                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
-                FROM user_transcriptions
-                ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
-            ''', (limit, offset))
+            if user_id:
+                cursor.execute('''
+                    SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+                    FROM user_transcriptions
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                ''', (user_id, limit, offset))
+            else:
+                cursor.execute('''
+                    SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+                    FROM user_transcriptions
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                ''', (limit, offset))
 
-        rows = cur.fetchall()
-        conn.close()
-
-        results = []
-        for r in rows:
-            results.append({
-                'id': r[0],
-                'source_type': r[1],
-                'transcript': r[2],
-                'confidence': r[3],
-                'language': r[4],
-                'duration_seconds': r[5],
-                'model_used': r[6],
-                'created_at': r[7]
-            })
+            rows = cursor.fetchall()
+            
+            results = []
+            for r in rows:
+                results.append({
+                    'id': r[0],
+                    'source_type': r[1],
+                    'transcript': r[2],
+                    'confidence': r[3],
+                    'language': r[4],
+                    'duration_seconds': r[5],
+                    'model_used': r[6],
+                    'created_at': r[7]
+                })
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
         return jsonify({'success': True, 'history': results}), 200
     except Exception as e:

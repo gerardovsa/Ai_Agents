@@ -1147,7 +1147,8 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 synergy_card_id,
                 workflow_slug, workflow_title,
                 automation_slug, automation_title,
-                internal_doc_slug, internal_doc_title
+                internal_doc_slug, internal_doc_title,
+                email_thread_id, email_subject, email_participants
             FROM sessions.threads 
             WHERE thread_slug = %s
             LIMIT 1
@@ -1234,6 +1235,57 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 
                 except Exception as synergy_error:
                     print(f"[STREAM] ⚠️  Error loading Synergy context: {synergy_error}")
+            
+            # Email Thread Context
+            if thread_row['email_thread_id']:
+                email_thread_id = thread_row['email_thread_id']
+                email_subject = thread_row['email_subject'] or 'No Subject'
+                email_participants = thread_row['email_participants']
+                
+                print(f"[STREAM] 📧 EMAIL THREAD LINKED → {email_thread_id}")
+                
+                email_context = f"\n\n{'='*80}\n"
+                email_context += "📧 EMAIL THREAD CONTEXT\n"
+                email_context += f"{'='*80}\n\n"
+                email_context += f"This thread is linked to an email conversation:\n\n"
+                email_context += f"**Subject:** {email_subject}\n"
+                email_context += f"**Email ID:** {email_thread_id}\n"
+                
+                # Parse participants
+                if email_participants:
+                    try:
+                        participants_list = json.loads(email_participants) if isinstance(email_participants, str) else email_participants
+                        if participants_list:
+                            if isinstance(participants_list, list):
+                                email_context += f"**Participants:** {', '.join(participants_list)}\n"
+                            else:
+                                email_context += f"**Participants:** {participants_list}\n"
+                    except:
+                        email_context += f"**Participants:** {email_participants}\n"
+                
+                email_context += f"\n**Email Integration:**\n"
+                email_context += f"- This conversation was initiated from or linked to an email in the Communication Hub\n"
+                email_context += f"- You have full context about this email thread and can reference it in your responses\n"
+                email_context += f"- The user may ask questions about this email or request actions related to it\n"
+                email_context += f"- You can help compose replies, summarize the email, extract action items, etc.\n"
+                
+                email_context += f"\n**Available Email Tools:**\n"
+                email_context += f"- gmail_get_message(message_id='{email_thread_id}') - Get full email content and thread\n"
+                email_context += f"- gmail_send_message(...) - Send a reply to this email\n"
+                email_context += f"- gmail_create_draft(...) - Create a draft reply\n"
+                email_context += f"- gmail_search_messages(...) - Search related emails\n"
+                email_context += f"- gmail_modify_labels(message_id='{email_thread_id}', ...) - Add/remove email labels\n"
+                
+                email_context += f"\n**What You Can Do:**\n"
+                email_context += f"- Answer questions about the email content\n"
+                email_context += f"- Help draft responses or replies\n"
+                email_context += f"- Extract action items or important details from the email\n"
+                email_context += f"- Summarize the email conversation if it's lengthy\n"
+                email_context += f"- Suggest appropriate follow-up actions\n"
+                email_context += f"- Track email-related tasks in this thread\n"
+                email_context += f"- Use Communication Hub to view the full email if needed\n"
+                
+                context_sections.append(email_context)
             
             # Workflow Automation Context
             if thread_row['workflow_slug']:
