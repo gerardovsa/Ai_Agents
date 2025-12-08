@@ -803,10 +803,32 @@ def stream_agent(agent_id):
     conversation = load_conversation_from_database(thread_slug)
     print(f"[STREAM] Loaded {len(conversation)} messages from database")
     
+    # ✅ FIX: Allow empty conversation for new threads
+    # The start endpoint saves the user message, but there might be a timing issue
+    # or the thread might be brand new. Instead of failing, we should handle it gracefully.
     if not conversation:
-        error_msg = f"No messages found in database for thread {thread_slug}"
-        print(f"[STREAM] ❌ ERROR: {error_msg}")
-        return error_response(error_msg, 400)
+        print(f"[STREAM] ⚠️ WARNING: No messages found in database for thread {thread_slug}")
+        print(f"[STREAM] This might be a new thread or a timing issue.")
+        print(f"[STREAM] Checking if we can get message from request parameters...")
+        
+        # Try to get message from request args as fallback
+        message_param = request.args.get('message')
+        if message_param:
+            print(f"[STREAM] ✅ Found message in request parameters: {message_param[:100]}...")
+            conversation = []
+            last_message = message_param
+        else:
+            # Wait briefly and retry once
+            print(f"[STREAM] Waiting 500ms for database write to complete...")
+            import time
+            time.sleep(0.5)
+            conversation = load_conversation_from_database(thread_slug)
+            print(f"[STREAM] Retry: Loaded {len(conversation)} messages")
+            
+            if not conversation:
+                error_msg = f"No messages found in database for thread {thread_slug} even after retry"
+                print(f"[STREAM] ❌ ERROR: {error_msg}")
+                return error_response(error_msg, 400)
     
     # Extract last user message
     last_message = ''

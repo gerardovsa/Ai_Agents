@@ -1070,6 +1070,551 @@ def calculate_spiral_bound_books_shopify(
         }
 
 
+def calculate_saddle_stitch_books(
+    quantity: int,
+    artworks: int = 1,
+    cover_option: str = "Hard Cover",
+    cover_stock: str = "Satin 350GSM",
+    cover_print_type: str = "2 side colour (4pp)",
+    celloglaze: str = "None",
+    printed_pages: str = "20pp",
+    finish_size: str = "A5 Portrait",
+    content_print_type: str = "Colour",
+    content_stock_type: str = "Satin 150GSM",
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Saddle Stitch Books
+    
+    Args:
+        quantity: Number of books
+        artworks: Number of different artworks (1 = included, >1 = extra charge)
+        cover_option: "Hard Cover" or other options
+        cover_stock: Cover paper stock (e.g., "Satin 350GSM")
+        cover_print_type: Cover printing type (e.g., "2 side colour (4pp)")
+        celloglaze: Celloglaze finish (e.g., "None", "Gloss outside only")
+        printed_pages: Page count as string (e.g., "20pp", "24pp")
+        finish_size: Book size (e.g., "A5 Portrait", "A4 Landscape")
+        content_print_type: Interior printing (e.g., "Colour", "Black & White")
+        content_stock_type: Interior paper stock (e.g., "Satin 150GSM")
+    
+    Returns:
+        Dict with success, quote result, or error
+    """
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Shopify calculators not available."
+        }
+    
+    try:
+        from inhouse_modules.shopify_calculators.SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalculator
+        
+        calculator = SaddleStitchBooksShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            artworks=artworks,
+            cover_option=cover_option,
+            cover_stock=cover_stock,
+            cover_print_type=cover_print_type,
+            celloglaze=celloglaze,
+            printed_pages=printed_pages,
+            finish_size=finish_size,
+            content_print_type=content_print_type,
+            content_stock_type=content_stock_type
+        )
+        
+        return {
+            "success": True,
+            "product_type": "Saddle Stitch Books",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+        
+    except Exception as e:
+        print(f"❌ [Shopify Saddle Stitch Books] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+def calculate_bollard_signs_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Bollard Signs"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.BollardSigns_Shopify_Calculator import BollardSignsShopifyCalculator
+        calculator = BollardSignsShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Bollard Signs",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Bollard Signs] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_construction_signs_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Construction Signs"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.ConstructionSigns_Shopify_Calculator import ConstructionSignsShopifyCalculator
+        calculator = ConstructionSignsShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Construction Signs",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Construction Signs] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_election_signs_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Election Signs"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.ElectionSigns_Shopify_Calculator import ElectionSignsShopifyCalculator
+        calculator = ElectionSignsShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Election Signs",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Election Signs] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_corflute_insert_a_frame_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Corflute Insert A-Frame"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators import CorfluteInsertAFrameShopifyCalculator
+        CorfluteInsertAFrameShopifyCalculator = getattr(__import__('inhouse_modules.shopify_calculators.CorfluteInsertA-Frame_Shopify_Calculator', fromlist=['CorfluteInsertAFrameShopifyCalculator']), 'CorfluteInsertAFrameShopifyCalculator')
+        calculator = CorfluteInsertAFrameShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Corflute Insert A-Frame",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Corflute Insert A-Frame] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_metal_face_a_frame_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Metal Face A-Frame"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        MetalFaceAFrameShopifyCalculator = getattr(__import__('inhouse_modules.shopify_calculators.MetalFaceA-Frame_Shopify_Calculator', fromlist=['MetalFaceAFrameShopifyCalculator']), 'MetalFaceAFrameShopifyCalculator')
+        calculator = MetalFaceAFrameShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Metal Face A-Frame",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Metal Face A-Frame] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_luxury_classic_pull_up_banners_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Luxury Classic Pull Up Banners"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.LuxuryClassicPullUpBanners_Shopify_Calculator import LuxuryClassicPullUpBannersShopifyCalculator
+        calculator = LuxuryClassicPullUpBannersShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Luxury Classic Pull Up Banners",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Luxury Classic Pull Up Banners] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_selfie_frames_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Selfie Frames"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.SelfieFrames_Shopify_Calculator import SelfieFramesShopifyCalculator
+        calculator = SelfieFramesShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Selfie Frames",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Selfie Frames] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_stackable_cubes_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Stackable Cubes"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.StackableCubes_Shopify_Calculator import StackableCubesShopifyCalculator
+        calculator = StackableCubesShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Stackable Cubes",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Stackable Cubes] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_strut_cards_a3_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Strut Cards A3"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.StrutCardsA3_Shopify_Calculator import StrutCardsA3ShopifyCalculator
+        calculator = StrutCardsA3ShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Strut Cards A3",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Strut Cards A3] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_strut_cards_a4_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Strut Cards A4"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.StrutCardsA4_Shopify_Calculator import StrutCardsA4ShopifyCalculator
+        calculator = StrutCardsA4ShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Strut Cards A4",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Strut Cards A4] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_custom_poster_printing_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Custom Poster Printing"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.CustomPosterPrinting_Shopify_Calculator import CustomPosterPrintingShopifyCalculator
+        calculator = CustomPosterPrintingShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Custom Poster Printing",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Custom Poster Printing] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_custom_vinyl_stickers_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Custom Vinyl Stickers"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.CustomVinylStickers_Shopify_Calculator import CustomVinylStickersShopifyCalculator
+        calculator = CustomVinylStickersShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Custom Vinyl Stickers",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Custom Vinyl Stickers] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_premium_bookmarks_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Premium Bookmarks"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.PremiumBookmarks_Shopify_Calculator import PremiumBookmarksShopifyCalculator
+        calculator = PremiumBookmarksShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Premium Bookmarks",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Premium Bookmarks] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_printed_letterheads_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Printed Letterheads"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.PrintedLetterheads_Shopify_Calculator import PrintedLetterheadsShopifyCalculator
+        calculator = PrintedLetterheadsShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Printed Letterheads",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Printed Letterheads] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_with_compliments_slips_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for With Compliments Slips"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.WithComplimentsSlips_Shopify_Calculator import WithComplimentsSlipsShopifyCalculator
+        calculator = WithComplimentsSlipsShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "With Compliments Slips",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify With Compliments Slips] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_notepads_a4_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Notepads A4"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.NotepadsA4_Shopify_Calculator import NotepadsA4ShopifyCalculator
+        calculator = NotepadsA4ShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Notepads A4",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Notepads A4] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_notepads_a5_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Notepads A5"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.NotepadsA5_Shopify_Calculator import NotepadsA5ShopifyCalculator
+        calculator = NotepadsA5ShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Notepads A5",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Notepads A5] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_notepads_a6_shopify(**kwargs) -> Dict[str, Any]:
+    """Shopify calculator for Notepads A6"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.NotepadsA6_Shopify_Calculator import NotepadsA6ShopifyCalculator
+        calculator = NotepadsA6ShopifyCalculator()
+        result = calculator.calculate(**kwargs)
+        return {
+            "success": True,
+            "product_type": "Notepads A6",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Notepads A6] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_perfect_bound_books_shopify(
+    quantity: int,
+    pages: int,
+    size: str = "A5",
+    cover_stock: str = "300GSM Satin",
+    inner_stock: str = "Uncoated Bond 100GSM",
+    **kwargs
+) -> Dict[str, Any]:
+    """Shopify calculator for Perfect Bound Books"""
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    try:
+        from inhouse_modules.shopify_calculators.PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator
+        calculator = PerfectBoundShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            pages=pages,
+            size=size,
+            cover_stock=cover_stock,
+            inner_stock=inner_stock
+        )
+        return {
+            "success": True,
+            "product_type": "Perfect Bound Books",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Perfect Bound Books] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
 # ==================== MODULE INITIALIZATION ====================
 
 if __name__ == "__main__":
