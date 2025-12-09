@@ -610,24 +610,38 @@ def get_microsoft_access_token(user_id: Optional[int] = None, **kwargs) -> str:
     # ✅ AUTO-REFRESH: Check if token is expired or expiring soon (within 5 minutes)
     if expires_at_str:
         try:
-            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
-            now = datetime.utcnow()
+            # Handle both datetime objects and strings from database
+            if isinstance(expires_at_str, datetime):
+                expires_at = expires_at_str
+            elif isinstance(expires_at_str, str):
+                # Remove timezone marker and parse
+                expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+            else:
+                print(f"⚠️ Unexpected expires_at type: {type(expires_at_str)}")
+                expires_at = None
             
-            # Refresh if expired or expiring in next 5 minutes
-            if now >= (expires_at - timedelta(minutes=5)):
-                print(f"🔄 Microsoft OAuth token expiring soon for user {user_id}, refreshing...")
+            if expires_at:
+                # Make sure we have timezone-aware comparison
+                now = datetime.now(expires_at.tzinfo) if expires_at.tzinfo else datetime.utcnow()
                 
-                if not refresh_token:
-                    raise Exception(f"No refresh token available for user {user_id}")
-                
-                # Refresh the token
-                new_access_token = _refresh_microsoft_token(user_id, refresh_token)
-                
-                if new_access_token:
-                    access_token = new_access_token
-                    print(f"✅ Microsoft token refreshed successfully")
+                # Refresh if expired or expiring in next 5 minutes
+                if now >= (expires_at - timedelta(minutes=5)):
+                    print(f"🔄 Microsoft OAuth token expiring soon for user {user_id}, refreshing...")
+                    
+                    if not refresh_token:
+                        raise Exception(f"No refresh token available for user {user_id}")
+                    
+                    # Refresh the token
+                    new_access_token = _refresh_microsoft_token(user_id, refresh_token)
+                    
+                    if new_access_token:
+                        access_token = new_access_token
+                        print(f"✅ Microsoft token refreshed successfully")
+                    else:
+                        raise Exception("Token refresh failed")
                 else:
-                    raise Exception("Token refresh failed")
+                    time_until_expiry = (expires_at - now).total_seconds() / 60
+                    print(f"✅ Microsoft token valid for {time_until_expiry:.1f} more minutes")
                     
         except Exception as e:
             print(f"⚠️ Token expiry check/refresh failed: {e}")

@@ -1521,11 +1521,13 @@ def run_simple_agent_worker(
             messages.append({'role': 'user', 'content': prompt})
             print(f"{log_prefix} ✅ No history - added current prompt as first message")
         
-        # CRITICAL FIX (Nov 27, 2025): Strip server tool blocks before sending to API
-        # Server-side tool blocks (server_tool_use and their result blocks) cause 400 errors 
-        # when replayed because result blocks require tool_use_id references that are removed
-        # NOTE: Result blocks are already stored in DB and visible in UI - no data loss
-        print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks...")
+        # CRITICAL FIX (Dec 10, 2025): Strip server tool blocks while preserving thinking blocks
+        # Server-side tool blocks cause 400 errors when replayed
+        # CRITICAL: Thinking blocks MUST NEVER be modified (Anthropic API requirement)
+        # - Thinking blocks must remain in exact original positions
+        # - Cannot be edited, removed, or reordered
+        # - Violating this causes: "thinking blocks in latest assistant message cannot be modified"
+        print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks (preserving thinking)...")
         
         # Work on a deep copy to avoid partial modifications on error
         import copy
@@ -1537,20 +1539,21 @@ def run_simple_agent_worker(
                     content = msg.get('content', [])
                     if isinstance(content, list):
                         original_count = len(content)
-                        # Filter out ALL server-side tool blocks (both requests and results)
-                        # These blocks are for display only and shouldn't be replayed to API
+                        # Filter out ONLY server-side tool blocks
+                        # PRESERVE: thinking, redacted_thinking, text, tool_use, tool_result
                         cleaned_content = [
                             block for block in content
                             if not (isinstance(block, dict) and block.get('type') in [
-                                'server_tool_use',           # Server tool request
-                                'web_search_tool_result',    # Web search result
-                                'web_fetch_tool_result'      # Web fetch result
+                                'server_tool_use',           # Server tool request (REMOVE)
+                                'web_search_tool_result',    # Web search result (REMOVE)
+                                'web_fetch_tool_result'      # Web fetch result (REMOVE)
                             ])
+                            # Keep ALL other blocks including thinking/redacted_thinking
                         ]
                         
                         if len(cleaned_content) < original_count:
                             removed = original_count - len(cleaned_content)
-                            print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks")
+                            print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks (thinking preserved)")
                             messages_cleaned[idx]['content'] = cleaned_content
                         
                         # SAFETY CHECK: If ALL blocks were removed, mark for removal
@@ -1582,19 +1585,62 @@ def run_simple_agent_worker(
         
         print(f"{log_prefix} ✅ Final message count after cleaning: {len(messages)} messages")
         
+        # CRITICAL: Check if conversation is too long and truncate if needed
+        MAX_MESSAGES = 30  # Keep last 30 messages to avoid API timeouts
+        if len(messages) > MAX_MESSAGES:
+            print(f"{log_prefix} ⚠️ Conversation too long ({len(messages)} messages)")
+            print(f"{log_prefix} 🔪 Truncating to last {MAX_MESSAGES} messages to avoid API timeout")
+            
+            # Keep last MAX_MESSAGES messages, ensuring we maintain role alternation
+            truncated = messages[-MAX_MESSAGES:]
+            
+            # Ensure first message is 'user' for valid conversation
+            if truncated[0].get('role') != 'user':
+                # Find first user message
+                for i, msg in enumerate(truncated):
+                    if msg.get('role') == 'user':
+                        truncated = truncated[i:]
+                        break
+            
+            messages = truncated
+            print(f"{log_prefix} ✅ Truncated to {len(messages)} messages (starts with {messages[0].get('role')})")
+        
+        # Estimate conversation tokens before API call
+        total_conversation_tokens = 0
+        for msg in messages:
+            content = msg.get('content', '')
+            if isinstance(content, str):
+                total_conversation_tokens += estimate_tokens(content)
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        if 'text' in block:
+                            total_conversation_tokens += estimate_tokens(block['text'])
+                        elif 'thinking' in block:
+                            total_conversation_tokens += estimate_tokens(block['thinking'])
+        
+        print(f"{log_prefix} 📊 CONVERSATION SIZE: {total_conversation_tokens:,} tokens (~{total_conversation_tokens/200000*100:.1f}% of 200K context limit)")
+        print(f"{log_prefix} 🚀 Calling Anthropic API (claude-sonnet-4-5)...")
+        
         # Call AI with tools
-        response = ai_client.create_message(
-            messages=messages,
-            provider='anthropic',
-            model='claude-sonnet-4-5-20250929',
-            max_tokens=16000,
-            system=system_prompt,
-            tools=tools,
-            enable_thinking=True,
-            thinking_budget=5000,
-            enable_web_search=True,
-            enable_web_fetch=True
-        )
+        try:
+            response = ai_client.create_message(
+                messages=messages,
+                provider='anthropic',
+                model='claude-sonnet-4-5-20250929',
+                max_tokens=16000,
+                system=system_prompt,
+                tools=tools,
+                enable_thinking=True,
+                thinking_budget=5000,
+                enable_web_search=True,
+                enable_web_fetch=True
+            )
+            print(f"{log_prefix} ✅ Anthropic API call successful")
+        except Exception as api_error:
+            print(f"{log_prefix} ❌ ANTHROPIC API ERROR: {api_error}")
+            queue.put({'type': 'error', 'error': f'API Error: {str(api_error)}'})
+            raise
         
         # Extract response
         response_text = ''
@@ -2281,31 +2327,64 @@ def execute_streaming_request(
                             after_first = messages[idx]['content'][0].get('type') if messages[idx]['content'] else 'empty'
                             print(f"{log_prefix} ✅ Fixed: First block is now '{after_first}'")
         
-            # CRITICAL FIX (Nov 27, 2025): Strip server tool blocks before sending to API
-            # Server-side tool blocks (server_tool_use and their result blocks) cause 400 errors 
-            # when replayed because result blocks require tool_use_id references that are removed
-            # NOTE: Result blocks are already stored in DB and visible in UI - no data loss
-            print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks...")
+            # CRITICAL FIX (Dec 10, 2025): Strip server tool blocks while preserving thinking blocks
+            # Server-side tool blocks cause 400 errors when replayed
+            # CRITICAL: Thinking blocks MUST NEVER be modified (Anthropic API requirement)
+            # - Thinking blocks must remain in exact original positions
+            # - Cannot be edited, removed, or reordered
+            # - Violating this causes: "thinking blocks in latest assistant message cannot be modified"
+            print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks (preserving thinking)...")
             for idx, msg in enumerate(messages):
                 if msg.get('role') == 'assistant':
                     content = msg.get('content', [])
                     if isinstance(content, list):
                         original_count = len(content)
-                        # Filter out ALL server-side tool blocks (both requests and results)
-                        # These blocks are for display only and shouldn't be replayed to API
+                        # Filter out ONLY server-side tool blocks
+                        # PRESERVE: thinking, redacted_thinking, text, tool_use, tool_result
                         cleaned_content = [
                             block for block in content
                             if not (isinstance(block, dict) and block.get('type') in [
-                                'server_tool_use',           # Server tool request
-                                'web_search_tool_result',    # Web search result
-                                'web_fetch_tool_result'      # Web fetch result
+                                'server_tool_use',           # Server tool request (REMOVE)
+                                'web_search_tool_result',    # Web search result (REMOVE)
+                                'web_fetch_tool_result'      # Web fetch result (REMOVE)
                             ])
+                            # Keep ALL other blocks including thinking/redacted_thinking
                         ]
                         
                         if len(cleaned_content) < original_count:
                             removed = original_count - len(cleaned_content)
-                            print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks")
-                            messages[idx]['content'] = cleaned_content        # DEBUG: Log message structure being sent to API
+                            print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks (thinking preserved)")
+                            messages[idx]['content'] = cleaned_content
+        
+        # CRITICAL FIX (Dec 10, 2025): Prevent "thinking blocks cannot be modified" error
+        # Anthropic API forbids resending thinking blocks from previous API responses
+        # If conversation contains thinking blocks in assistant messages, we must ensure
+        # the last message is a USER message (so Claude generates new thinking, not reuses old)
+        print(f"{log_prefix} 🔍 Checking for thinking blocks in conversation history...")
+        has_thinking_blocks = False
+        for idx, msg in enumerate(messages):
+            if msg.get('role') == 'assistant':
+                content = msg.get('content', [])
+                if isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get('type') in ('thinking', 'redacted_thinking'):
+                            has_thinking_blocks = True
+                            print(f"{log_prefix}   Found thinking block in message [{idx}]")
+                            break
+                if has_thinking_blocks:
+                    break
+        
+        if has_thinking_blocks:
+            # Ensure last message is user (requirement for Extended Thinking)
+            if messages and messages[-1].get('role') != 'user':
+                print(f"{log_prefix} ⚠️  WARNING: Last message is assistant with thinking blocks")
+                print(f"{log_prefix} ℹ️  This will cause 400 error: 'thinking blocks cannot be modified'")
+                print(f"{log_prefix} 🔧 FIX: Removing last assistant message (will regenerate)")
+                removed_msg = messages.pop()
+                removed_blocks = len(removed_msg.get('content', [])) if isinstance(removed_msg.get('content'), list) else 1
+                print(f"{log_prefix} ✅ Removed last assistant message ({removed_blocks} blocks)")
+        
+        # DEBUG: Log message structure being sent to API
         print(f"{log_prefix} 📋 FINAL MESSAGE STRUCTURE BEING SENT:")
         for idx, msg in enumerate(messages):
             role = msg.get('role')
