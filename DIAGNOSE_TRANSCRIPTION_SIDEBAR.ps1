@@ -148,7 +148,8 @@ if (Test-Path $transcriptionSidebarCSS) {
         }
     }
     
-} else {
+}
+else {
     Write-Host "  ❌ CSS file not found: $transcriptionSidebarCSS" -ForegroundColor Red
 }
 
@@ -290,21 +291,24 @@ if (Test-Path $transcriptionSidebarHTML) {
         # Check for data-side attribute
         if ($containerTag -match 'data-side="([^"]+)"') {
             Write-Property "data-side attribute" $matches[1] "OK"
-        } else {
+        }
+        else {
             Write-Property "data-side attribute" "MISSING" "WARNING"
         }
         
         # Check for ID
         if ($containerTag -match 'id="([^"]+)"') {
             Write-Property "id attribute" $matches[1] "OK"
-        } else {
+        }
+        else {
             Write-Property "id attribute" "MISSING" "ERROR"
         }
         
         # Check for collapsed class
         if ($containerTag -match 'collapsed') {
             Write-Property "Initial state" "collapsed" "OK"
-        } else {
+        }
+        else {
             Write-Property "Initial state" "expanded" "WARNING"
         }
     }
@@ -313,7 +317,8 @@ if (Test-Path $transcriptionSidebarHTML) {
     
     if ($htmlContent -match 'onclick="[^"]*toggleSidebar[^"]*"') {
         Write-Property "Toggle button" "FOUND in HTML" "OK"
-    } else {
+    }
+    else {
         Write-Property "Toggle button" "NOT FOUND in sidebar HTML" "WARNING"
         Write-Host "  Note: Toggle may be created dynamically by JS" -ForegroundColor Yellow
     }
@@ -332,7 +337,8 @@ if (Test-Path $transcriptionSidebarJS) {
     # Check for TranscriptionSidebar object
     if ($jsContent -match 'TranscriptionSidebar\s*=') {
         Write-Property "TranscriptionSidebar object" "DEFINED" "OK"
-    } else {
+    }
+    else {
         Write-Property "TranscriptionSidebar object" "NOT FOUND" "ERROR"
     }
     
@@ -358,7 +364,8 @@ if (Test-Path $transcriptionSidebarJS) {
                 Write-Host "  Note: Should use CSS class toggle, not direct style manipulation" -ForegroundColor Yellow
             }
         }
-    } else {
+    }
+    else {
         Write-Property "toggleSidebar() method" "NOT FOUND" "ERROR"
     }
     
@@ -376,10 +383,12 @@ if (Test-Path $transcriptionSidebarJS) {
         # Check where it's injected
         if ($platformContent -match "insertAdjacentHTML.*beforeend.*transcription-sidebar") {
             Write-Property "Injection target" "document.body (beforeend)" "OK"
-        } elseif ($platformContent -match "innerHTML.*transcription-sidebar") {
+        }
+        elseif ($platformContent -match "innerHTML.*transcription-sidebar") {
             Write-Property "Injection target" "container.innerHTML" "WARNING"
         }
-    } else {
+    }
+    else {
         Write-Property "Sidebar HTML injection" "NOT FOUND" "ERROR"
     }
 }
@@ -397,10 +406,10 @@ $issues = @()
 $htmlContent = Get-Content $transcriptionSidebarHTML -Raw
 if ($htmlContent -notmatch 'data-side="left"') {
     $issues += @{
-        Level = "HIGH"
-        Issue = "Missing data-side attribute"
+        Level  = "HIGH"
+        Issue  = "Missing data-side attribute"
         Impact = "Sidebar won't match synergy-sidebar's positioning logic"
-        Fix = "Add data-side='left' to <div class='transcription-sidebar'>"
+        Fix    = "Add data-side='left' to <div class='transcription-sidebar'>"
     }
 }
 
@@ -410,10 +419,10 @@ if ($cssContent -match '\.transcription-sidebar\s*\{[^}]*z-index:\s*(\d+)') {
     $zIndex = [int]$matches[1]
     if ($zIndex -lt 9999) {
         $issues += @{
-            Level = "MEDIUM"
-            Issue = "Lower z-index than synergy-sidebar (1000 vs 9999)"
+            Level  = "MEDIUM"
+            Issue  = "Lower z-index than synergy-sidebar (1000 vs 9999)"
             Impact = "May be hidden behind other elements"
-            Fix = "Change z-index to 9999 in .transcription-sidebar"
+            Fix    = "Change z-index to 9999 in .transcription-sidebar"
         }
     }
 }
@@ -422,10 +431,10 @@ if ($cssContent -match '\.transcription-sidebar\s*\{[^}]*z-index:\s*(\d+)') {
 if (-not (Test-Path $transcriptionSidebarHTML) -or 
     (Get-Content $transcriptionSidebarHTML -Raw) -notmatch 'class="[^"]*toggle[^"]*"') {
     $issues += @{
-        Level = "HIGH"
-        Issue = "No visible toggle button in HTML"
+        Level  = "HIGH"
+        Issue  = "No visible toggle button in HTML"
         Impact = "Users cannot open/close the sidebar"
-        Fix = "Add a floating toggle button like synergy-sidebar-toggle"
+        Fix    = "Add a floating toggle button like synergy-sidebar-toggle"
     }
 }
 
@@ -434,10 +443,10 @@ if ($cssContent -match '\.transcription-sidebar\.collapsed\s*\{[^}]*transform:\s
     $transform = $matches[1].Trim()
     if ($transform -notmatch 'calc\(-100% - 60px\)') {
         $issues += @{
-            Level = "HIGH"
-            Issue = "Collapsed transform doesn't account for left offset"
+            Level  = "HIGH"
+            Issue  = "Collapsed transform doesn't account for left offset"
             Impact = "Sidebar may still be partially visible when collapsed"
-            Fix = "Change transform to: translateX(calc(-100% - 60px))"
+            Fix    = "Change transform to: translateX(calc(-100% - 60px))"
         }
     }
 }
@@ -518,10 +527,10 @@ Write-Host @"
 Write-Section "8. FILE VERIFICATION"
 
 $files = @(
-    @{Path = $transcriptionSidebarHTML; Name = "transcription-sidebar.html"},
-    @{Path = $transcriptionSidebarCSS; Name = "transcription-sidebar.css"},
-    @{Path = $transcriptionSidebarJS; Name = "transcription-sidebar.js"},
-    @{Path = $businessPlatformHTML; Name = "business-ai-platform-v2.html"}
+    @{Path = $transcriptionSidebarHTML; Name = "transcription-sidebar.html" },
+    @{Path = $transcriptionSidebarCSS; Name = "transcription-sidebar.css" },
+    @{Path = $transcriptionSidebarJS; Name = "transcription-sidebar.js" },
+    @{Path = $businessPlatformHTML; Name = "business-ai-platform-v2.html" }
 )
 
 foreach ($file in $files) {
@@ -530,7 +539,8 @@ foreach ($file in $files) {
         $lines = (Get-Content $file.Path).Count
         Write-Host "  ✓ $($file.Name.PadRight(35))" -NoNewline -ForegroundColor Green
         Write-Host " [$($size.ToString('N0').PadLeft(8)) bytes, $($lines.ToString('N0').PadLeft(6)) lines]" -ForegroundColor Gray
-    } else {
+    }
+    else {
         Write-Host "  ✗ $($file.Name.PadRight(35))" -NoNewline -ForegroundColor Red
         Write-Host " [NOT FOUND]" -ForegroundColor Red
     }

@@ -134,13 +134,24 @@ class UniversalSidebarManager {
         const toggleButton = document.getElementById(config.toggleButtonId);
 
         if (!sidebar) {
-            console.warn(`[SIDEBAR MANAGER] Sidebar element '${config.id}' not found`);
+            // If DOM isn't ready yet, try again once DOMContentLoaded fires
+            console.warn(`[SIDEBAR MANAGER] Sidebar element '${config.id}' not found - will retry on DOMContentLoaded`);
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    // Retry initialization once after DOM is available
+                    try {
+                        this.initializeSidebar(sidebarId);
+                    } catch (e) {
+                        console.error(`[SIDEBAR MANAGER] Retry initialize failed for ${sidebarId}:`, e);
+                    }
+                }, { once: true });
+            }
             return;
         }
 
         if (!toggleButton) {
-            console.warn(`[SIDEBAR MANAGER] Toggle button '${config.toggleButtonId}' not found`);
-            return;
+            console.warn(`[SIDEBAR MANAGER] Toggle button '${config.toggleButtonId}' not found - sidebar can still be controlled programmatically`);
+            // Don't return - allow sidebar to be controlled via SidebarManager.open/close
         }
 
         config.element = sidebar;
@@ -149,17 +160,22 @@ class UniversalSidebarManager {
         // Apply standard classes and styles
         this.applySidebarStyles(sidebar, config);
 
-        // Setup toggle button click handler
-        toggleButton.onclick = () => this.toggle(sidebarId);
+        // Setup toggle button click handler (if button exists)
+        if (toggleButton) {
+            toggleButton.onclick = () => this.toggle(sidebarId);
+        }
 
         // Add data attribute for tracking
         sidebar.setAttribute('data-sidebar-id', sidebarId);
         sidebar.setAttribute('data-sidebar-side', config.side);
-        toggleButton.setAttribute('data-sidebar-id', sidebarId);
-        toggleButton.setAttribute('data-side', config.side);
 
-        // Make toggle button draggable
-        this.makeButtonDraggable(toggleButton, config);
+        if (toggleButton) {
+            toggleButton.setAttribute('data-sidebar-id', sidebarId);
+            toggleButton.setAttribute('data-side', config.side);
+
+            // Make toggle button draggable
+            this.makeButtonDraggable(toggleButton, config);
+        }
 
         console.log(`[SIDEBAR MANAGER] Initialized: ${sidebarId}`);
     }
@@ -184,11 +200,16 @@ class UniversalSidebarManager {
             sidebar.style.borderRight = '1px solid var(--border-default)';
             sidebar.style.boxShadow = '4px 0 24px rgba(0, 0, 0, 0.3)';
             sidebar.style.transform = 'translateX(calc(-100% - 60px))';  // Start hidden beyond left edge
+            // Use transform-based transitions for left side
+            sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease';
         } else {
-            sidebar.style.right = '60px';  // 60px from right edge
+            // Right-side sidebars: position off-screen using `right` property with !important
+            // Default hidden offset: -450px (user requested)
+            sidebar.style.setProperty('right', '-450px', 'important');
             sidebar.style.borderLeft = '1px solid var(--border-default)';
             sidebar.style.boxShadow = '-4px 0 24px rgba(0, 0, 0, 0.3)';
-            sidebar.style.transform = 'translateX(calc(100% + 60px))';  // Start hidden beyond right edge
+            // Use right-based transitions for right side so it behaves like .thread-menu-overlay
+            sidebar.style.setProperty('transition', 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease', 'important');
         }
 
         // Add standard classes
@@ -345,7 +366,13 @@ class UniversalSidebarManager {
         // Open the sidebar
         config.element.classList.remove('collapsed');
         config.element.classList.add('expanded');
-        config.element.style.transform = 'translateX(0)';
+        // Use side-specific open animation: left uses transform, right uses right property
+        if (config.side === 'right') {
+            // Slide in from right to 60px from edge with !important to override
+            config.element.style.setProperty('right', '60px', 'important');
+        } else {
+            config.element.style.transform = 'translateX(0)';
+        }
         config.isOpen = true;
         this.activeSidebars.add(sidebarId);
 
@@ -372,12 +399,16 @@ class UniversalSidebarManager {
         const config = this.sidebars.get(sidebarId);
         if (!config || !config.element) return;
 
-        // Slide sidebar off-screen with 60px offset
-        const translateValue = config.side === 'left' ? 'translateX(calc(-100% - 60px))' : 'translateX(calc(100% + 60px))';
-
+        // Slide sidebar off-screen
         config.element.classList.remove('expanded');
         config.element.classList.add('collapsed');
-        config.element.style.transform = translateValue;
+        if (config.side === 'right') {
+            // Move it back off-screen to the requested hidden offset (-450px) with !important
+            config.element.style.setProperty('right', '-450px', 'important');
+        } else {
+            const translateValue = 'translateX(calc(-100% - 60px))';
+            config.element.style.transform = translateValue;
+        }
         config.isOpen = false;
         this.activeSidebars.delete(sidebarId);
 

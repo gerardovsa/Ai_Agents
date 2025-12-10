@@ -15,66 +15,47 @@
  */
 
 /* ==================== SIDEBAR CONTAINER ==================== */
-
-.transcription-sidebar {
-    position: fixed;
-    top: 60px;
-    left: 60px;
-    width: 450px;
-    height: calc(100vh - 60px);
-    background: var(--bg-secondary, #1c1f26);
-    border-right: 1px solid var(--border-default, #30363d);
-    border-radius: 0 8px 8px 0;
-    display: flex;
-    flex-direction: column;
-    z-index: 1000;
-    transform: translateX(0);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.3);
-}
-
-.transcription-sidebar.collapsed {
-    transform: translateX(-100%);
-}
+/* Note: Universal framework handles ALL container styling via .universal-sidebar */
+/* DO NOT override #transcription-sidebar - it breaks the framework! */
+/* Only style child elements within the sidebar */
 
 /* ==================== HEADER ==================== */
+/* Uses .universal-sidebar-header from framework + transcription-specific classes */
 
 .transcription-sidebar-header {
+    /* universal-sidebar-header provides base styles */
     background: var(--bg-tertiary, #161921);
-    border-bottom: 1px solid var(--border-default, #30363d);
-    padding: 16px;
-    flex-shrink: 0;
+    padding: var(--space-3);
 }
 
 .transcription-header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: var(--space-3);
 }
 
 .transcription-sidebar-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 18px;
-    /* font-weight: 600; */
+    gap: var(--space-2);
+    font-size: 16px;
     color: var(--text-primary, #c9d1d9);
 }
 
 .transcription-sidebar-title i {
-    font-size: 20px;
+    font-size: 18px;
     color: var(--accent-primary, #58a6ff);
 }
 
 .transcription-header-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-1);
 }
 
 .transcription-icon-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: none;
     background: transparent;
     color: var(--text-muted, #8b949e);

@@ -68,10 +68,72 @@ class SpiralBoundBooksShopifyCalculator:
         Returns:
             SpiralBoundBooksShopifyCalculatorQuoteResult with pricing details
         """
-        # TODO: Implement calculation logic based on JSON config
-        # This is a template - actual implementation needed
-        
-        raise NotImplementedError("Calculator implementation pending")
+        quantity = int(kwargs.get('quantity', kwargs.get('qty', 50)))
+        pages = int(kwargs.get('pages', 50))
+        size = kwargs.get('size', 'A4')
+        paper_stock = kwargs.get('paper_stock', '80gsm')
+
+        if quantity <= 0 or pages <= 0:
+            raise ValueError('Quantity and pages must be > 0')
+
+        impos_setup = Decimal('60')
+        guilo_setup = Decimal('20')
+
+        # cost per page (approx)
+        page_cost = Decimal('0.005') if '80' in paper_stock else Decimal('0.007')
+        cover_cost = Decimal('1.20')
+
+        paper_cost = Decimal(pages) * page_cost * Decimal(quantity)
+        cover_total = cover_cost * Decimal(quantity)
+
+        # binding cost per book
+        binding_cost = Decimal('0.50') * Decimal(quantity)
+
+        biz_cost = impos_setup + guilo_setup + paper_cost + cover_total + binding_cost
+
+        profit_margin_rate = self._get_profit_margin(float(biz_cost))
+        profit_amount = biz_cost * profit_margin_rate
+        sub_total = biz_cost + profit_amount
+
+        PRICE_INCREASE_MULTIPLIER = Decimal('1.00')
+        GST_RATE = Decimal('1.10')
+
+        subtotal_with_increase = sub_total * PRICE_INCREASE_MULTIPLIER
+        total_price = (subtotal_with_increase * GST_RATE) * GST_RATE
+        total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        unit_price = total_price / Decimal(quantity)
+
+        breakdown = {
+            'impos_setup': impos_setup,
+            'guilo_setup': guilo_setup,
+            'paper_cost': paper_cost,
+            'cover_total': cover_total,
+            'binding_cost': binding_cost,
+            'biz_cost': biz_cost,
+            'profit_margin_rate': Decimal(profit_margin_rate),
+            'profit_amount': profit_amount,
+            'subtotal': sub_total,
+            'subtotal_with_increase': subtotal_with_increase,
+            'gst_rate': GST_RATE,
+            'total_price': total_price,
+        }
+
+        specifications = {
+            'quantity': quantity,
+            'pages': pages,
+            'size': size,
+            'paper_stock': paper_stock
+        }
+
+        return SpiralBoundBooksShopifyCalculatorQuoteResult(
+            total_price=total_price,
+            unit_price=unit_price,
+            cost_per_item=unit_price,
+            quantity=quantity,
+            breakdown=breakdown,
+            specifications=specifications
+        )
     
     def _get_padding_rate(self, quantity: int) -> Decimal:
         """Get padding rate (no tiers defined)"""

@@ -135,9 +135,9 @@ Object.assign(window.ThreadManager, {
                 await this.assignThread(newThreadId, location === 'prime' ? 'prime-loaded' : location);
             }
 
-            // Refresh UI
+            // Refresh UI - IMMEDIATE (thread creation)
             if (typeof this.renderThreadList === 'function') {
-                this.renderThreadList();
+                this.renderThreadList(true); // immediate=true bypasses debounce
             }
 
             return newThreadId;
@@ -191,9 +191,9 @@ Object.assign(window.ThreadManager, {
                             }
                         }
 
-                        // Refresh UI
+                        // Refresh UI - IMMEDIATE (user action)
                         if (typeof this.renderThreadList === 'function') {
-                            this.renderThreadList();
+                            this.renderThreadList(true); // immediate=true bypasses debounce
                         }
 
                         if (typeof showNotification === 'function') {
@@ -464,7 +464,7 @@ Object.assign(window.ThreadManager, {
                     await this.saveThreadToBackend(thread);
 
                     if (typeof this.renderThreadList === 'function') {
-                        this.renderThreadList();
+                        this.renderThreadList(true); // immediate=true bypasses debounce
                     }
 
                     if (typeof showNotification === 'function') {

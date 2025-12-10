@@ -18,7 +18,6 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from flask import Blueprint, request, jsonify
-from functools import wraps
 from typing import Dict, Any
 
 # Import tool implementations
@@ -29,21 +28,11 @@ from tools.implementations.workspace_search import (
     workspace_get_transcriptions
 )
 
+# Import real authentication decorator
+from AI_infrastructure.auth.user_auth import require_auth
+
 # Create Blueprint
 workspace_search_bp = Blueprint('workspace_search', __name__)
-
-
-def require_auth(f):
-    """
-    Decorator to require authentication for routes
-    Checks for valid session or API key
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # For now, just pass through - implement proper auth as needed
-        # In production, check session['user_id'] or validate API key
-        return f(*args, **kwargs)
-    return decorated_function
 
 
 def get_user_workspaces(user_id: int) -> list:
@@ -99,9 +88,8 @@ def simple_search():
                 'error': 'search_query is required'
             }), 400
         
-        # Get user from session (implement proper session handling)
-        # user_id = session.get('user_id')
-        user_id = data.get('user_id')  # For now, allow from request
+        # Extract user ID from validated JWT token (set by @require_auth decorator)
+        user_id = request.user.get('user_id') if hasattr(request, 'user') else None
         
         # Get workspace filter (optional)
         workspace_ids = data.get('workspace_ids')

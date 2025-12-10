@@ -42,6 +42,38 @@
  * Main entry point that initializes all modules and exposes unified API
  */
 
+// ==================== DEBOUNCE UTILITY ====================
+/**
+ * ✅ FIX #3: Universal debounce utility for performance optimization
+ * Creates a debounced version of a function that delays execution
+ * @param {Function} func - Function to debounce
+ * @param {number} delay - Delay in milliseconds
+ * @param {Object} options - Configuration options
+ * @returns {Function} Debounced function
+ */
+function createDebounce(func, delay, options = {}) {
+    let timer = null;
+    const immediate = options.immediate || false;
+
+    return function debounced(...args) {
+        const context = this;
+        const shouldCallImmediately = immediate && !timer;
+
+        clearTimeout(timer);
+
+        if (shouldCallImmediately) {
+            func.apply(context, args);
+        }
+
+        timer = setTimeout(() => {
+            timer = null;
+            if (!immediate) {
+                func.apply(context, args);
+            }
+        }, delay);
+    };
+}
+
 const ThreadManager = {
     // ==================== STATE ====================
     currentThreadId: null,

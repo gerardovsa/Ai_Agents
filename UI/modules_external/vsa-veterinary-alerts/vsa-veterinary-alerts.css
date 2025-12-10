@@ -285,10 +285,189 @@
     color: #5A6170;
 }
 
+/* ==================== MULTI-SELECT DROPDOWN ==================== */
+.vsa-multiselect-wrapper {
+    position: relative;
+}
+
+.vsa-multiselect-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border: 1px solid #3A4152;
+    background: #2A3142;
+    color: #E8EAED;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.vsa-multiselect-toggle:hover {
+    border-color: #4A5162;
+    background: #323B4F;
+}
+
+.vsa-multiselect-toggle i:last-child {
+    margin-left: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.vsa-filter-badge {
+    background: #1E88E5;
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.vsa-multiselect-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 280px;
+    max-width: 400px;
+    background: #2A3142;
+    border: 1px solid #3A4152;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: none;
+}
+
+.vsa-multiselect-dropdown.open {
+    display: block;
+}
+
+.vsa-multiselect-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #3A4152;
+}
+
+.vsa-multiselect-header span {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #E8EAED;
+}
+
+.vsa-multiselect-clear {
+    background: none;
+    border: none;
+    color: #1E88E5;
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.vsa-multiselect-clear:hover {
+    background: rgba(30, 136, 229, 0.1);
+}
+
+.vsa-multiselect-options {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.vsa-multiselect-options::-webkit-scrollbar {
+    width: 6px;
+}
+
+.vsa-multiselect-options::-webkit-scrollbar-track {
+    background: #1E2530;
+    border-radius: 3px;
+}
+
+.vsa-multiselect-options::-webkit-scrollbar-thumb {
+    background: #3A4152;
+    border-radius: 3px;
+}
+
+.vsa-multiselect-options::-webkit-scrollbar-thumb:hover {
+    background: #4A5162;
+}
+
+.vsa-multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+    font-size: 0.875rem;
+}
+
+.vsa-multiselect-option:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.vsa-multiselect-option input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: #1E88E5;
+}
+
+.vsa-multiselect-option span {
+    color: #E8EAED;
+    flex: 1;
+}
+
+/* ==================== CONTENT WRAPPER ==================== */
+.vsa-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    /* Parent hides overflow */
+    min-height: 0;
+}
+
 /* ==================== LISTS ==================== */
 .vsa-alerts-list,
 .vsa-followups-list {
-    margin-top: 2rem;
+    flex: 1;
+    /* Take remaining space */
+    margin-top: 1rem;
+    padding-right: 10px;
+    overflow-y: auto !important;
+    /* Child scrolls - MUST be scrollable */
+    overflow-x: hidden;
+    min-height: 0;
+    max-height: calc(100vh - 250px);
+    /* Ensure vertical scrolling works */
+}
+
+/* Custom scrollbar for alerts list */
+.vsa-alerts-list::-webkit-scrollbar,
+.vsa-followups-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.vsa-alerts-list::-webkit-scrollbar-track,
+.vsa-followups-list::-webkit-scrollbar-track {
+    background: #1E2530;
+    border-radius: 4px;
+}
+
+.vsa-alerts-list::-webkit-scrollbar-thumb,
+.vsa-followups-list::-webkit-scrollbar-thumb {
+    background: #3A4152;
+    border-radius: 4px;
+}
+
+.vsa-alerts-list::-webkit-scrollbar-thumb:hover,
+.vsa-followups-list::-webkit-scrollbar-thumb:hover {
+    background: #4A5162;
 }
 
 .vsa-list-title {
@@ -301,12 +480,45 @@
     gap: 0.5rem;
 }
 
+/* ==================== DATE SEPARATORS ==================== */
+.vsa-date-group {
+    margin-bottom: 1.5rem;
+}
+
+.vsa-date-separator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, rgba(30, 136, 229, 0.15) 0%, rgba(30, 136, 229, 0.05) 100%);
+    border-left: 3px solid #1E88E5;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
+}
+
+.vsa-date-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1E88E5;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.vsa-date-count {
+    font-size: 0.85rem;
+    color: #b8c5d0;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
 /* ==================== TIERED ALERT CARDS (Streamlit-style) ==================== */
 
 /* Tier 3 Alert Cards - Main container */
 .vsa-alert-card {
     margin-bottom: 1.5rem;
-    border-radius: 12px;
+    border-radius: 4px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: #1E2530;
@@ -326,11 +538,11 @@
 
 /* Tier Header - Gradient background with border */
 .vsa-tier-header {
-    padding: 14px 20px 16px 20px;
-    border-radius: 12px 12px 0 0;
+    padding: 5px 10px;
+    border-radius: 4px 4px 0 0;
     font-family: 'Inter', -apple-system, sans-serif;
     position: relative;
-    box-shadow: 
+    box-shadow:
         0 0 0 1px rgba(211, 47, 47, 0.33),
         0 4px 12px rgba(0, 0, 0, 0.3);
     display: flex;
@@ -354,10 +566,21 @@
 }
 
 /* Tier-specific font sizes (T1 > T2 > T3 > T4) */
-.vsa-tier-1 .vsa-title-text { font-size: 1.4rem; }
-.vsa-tier-2 .vsa-title-text { font-size: 1.2rem; }
-.vsa-tier-3 .vsa-title-text { font-size: 1.1rem; }
-.vsa-tier-4 .vsa-title-text { font-size: 1.0rem; }
+.vsa-tier-1 .vsa-title-text {
+    font-size: 1.4rem;
+}
+
+.vsa-tier-2 .vsa-title-text {
+    font-size: 1.2rem;
+}
+
+.vsa-tier-3 .vsa-title-text {
+    font-size: 1.1rem;
+}
+
+.vsa-tier-4 .vsa-title-text {
+    font-size: 1.0rem;
+}
 
 /* Description/Subtitle */
 .vsa-tier-description {
@@ -403,7 +626,7 @@
 
 /* Expandable Content */
 .vsa-expander-content {
-    padding: 1.5rem;
+    padding: 10px;
     background: #1E2530;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -418,6 +641,7 @@
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -642,7 +866,7 @@
     text-transform: uppercase;
     text-shadow: none;
     backdrop-filter: blur(4px);
-    box-shadow: 
+    box-shadow:
         0 2px 6px -1px rgba(0, 0, 0, 0.35),
         0 0 0 1px rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -653,7 +877,7 @@
 
 .vsa-badge:hover {
     transform: translateY(-1px);
-    box-shadow: 
+    box-shadow:
         0 4px 8px -1px rgba(0, 0, 0, 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.12);
 }
@@ -845,8 +1069,13 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .vsa-modal-content {
@@ -866,6 +1095,7 @@
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -995,4 +1225,641 @@
 
 .vsa-btn-secondary:hover {
     background: #3A4152;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - MOBILE-FIRST APPROACH
+   ============================================ */
+
+/* Tablet Portrait (768px and below) */
+@media (max-width: 768px) {
+    .vsa-tier-header {
+        padding: 10px 14px 12px 14px;
+    }
+
+    .vsa-tier-1 .vsa-title-text {
+        font-size: 1.1rem;
+    }
+
+    .vsa-tier-2 .vsa-title-text {
+        font-size: 1.0rem;
+    }
+
+    .vsa-tier-3 .vsa-title-text {
+        font-size: 0.95rem;
+    }
+
+    .vsa-tier-4 .vsa-title-text {
+        font-size: 0.9rem;
+    }
+
+    .vsa-tier-description {
+        font-size: 0.8rem;
+    }
+
+    .vsa-expander-content {
+        padding: 12px 14px;
+    }
+
+    .vsa-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .vsa-alert-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .vsa-alert-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .vsa-alert-actions .vsa-btn {
+        width: 100%;
+    }
+}
+
+/* Mobile (480px and below) */
+@media (max-width: 480px) {
+    .vsa-tier-header {
+        padding: 8px 12px 10px 12px;
+        border-left-width: 4px !important;
+        /* Uniform borders for mobile */
+    }
+
+    .vsa-tier-1 .vsa-title-text {
+        font-size: 0.95rem;
+    }
+
+    .vsa-tier-2 .vsa-title-text {
+        font-size: 0.9rem;
+    }
+
+    .vsa-tier-3 .vsa-title-text {
+        font-size: 0.85rem;
+    }
+
+    .vsa-tier-4 .vsa-title-text {
+        font-size: 0.8rem;
+    }
+
+    .vsa-tier-description {
+        font-size: 0.7rem;
+        display: none;
+        /* Hide descriptions on very small screens */
+    }
+
+    .vsa-badge {
+        font-size: 0.55rem;
+        padding: 3px 6px 2px 6px;
+        letter-spacing: 0.5px;
+    }
+
+    .vsa-expander-toggle {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+    }
+
+    .vsa-expander-content {
+        padding: 10px 12px;
+    }
+
+    .vsa-detail-section {
+        padding: 8px 10px;
+        margin-bottom: 8px;
+    }
+
+    .vsa-detail-label {
+        font-size: 0.65rem;
+        margin-bottom: 3px;
+    }
+
+    .vsa-detail-value {
+        font-size: 0.75rem;
+    }
+
+    .vsa-alert-card {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+}
+
+/* Landscape Orientation (900px width) */
+@media (max-width: 900px) and (orientation: landscape) {
+    .vsa-detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .vsa-alert-stats {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+/* High DPI Displays (Retina, 4K) */
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
+    .vsa-tier-header,
+    .vsa-detail-value,
+    .vsa-badge {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+/* ==================== TIER 3: CALL CONTAINER STYLES ==================== */
+.vsa-call-container {
+    background: linear-gradient(135deg, #1A1D24 0%, #0D1720 100%);
+    border: 1px solid #2A3142;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.vsa-call-container:hover {
+    border-color: #3D4758;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.vsa-tier3-header {
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.vsa-tier3-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.vsa-tier3-header:hover {
+    filter: brightness(1.15);
+}
+
+.vsa-tier3-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.vsa-tier3-title .vsa-title-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    letter-spacing: 0.3px;
+}
+
+.vsa-alert-count-badge {
+    background: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.vsa-tier3-description {
+    padding: 0.875rem 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9375rem;
+    color: #B8BEC5;
+    line-height: 1.5;
+}
+
+.vsa-tier3-description strong {
+    color: #E8EAED;
+    font-weight: 600;
+}
+
+.vsa-tier3-description code {
+    background: rgba(30, 136, 229, 0.15);
+    color: #64B5F6;
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.875rem;
+}
+
+/* ==================== SHARED CONTEXT SECTION ==================== */
+.vsa-shared-context {
+    padding: 1.5rem;
+    background: rgba(30, 136, 229, 0.05);
+    border: 1px solid rgba(30, 136, 229, 0.15);
+    border-radius: 8px;
+    margin: 1.5rem 1.5rem 1rem 1.5rem;
+}
+
+.vsa-shared-context-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.vsa-context-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.vsa-context-item label {
+    font-weight: 600;
+    color: #64B5F6;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vsa-context-item label i {
+    opacity: 0.7;
+}
+
+.vsa-context-item p,
+.vsa-context-item span {
+    color: #E8EAED;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.vsa-context-full-width {
+    grid-column: 1 / -1;
+}
+
+.vsa-tags {
+    background: rgba(255, 193, 7, 0.15);
+    color: #FFD54F;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.vsa-section-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 1.5rem 0;
+}
+
+/* ==================== TIER 4: INDIVIDUAL ALERT STYLES ==================== */
+.vsa-tier4-alerts-container {
+    padding: 0 1.5rem 1rem 1.5rem;
+}
+
+.vsa-tier4-header-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #E8EAED;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vsa-tier4-header-label i {
+    color: #FFC107;
+}
+
+.vsa-tier4-alert {
+    background: linear-gradient(135deg, #1E2530 0%, #151A23 100%);
+    border: 1px solid #3D4758;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.vsa-tier4-alert:hover {
+    border-color: #4A5568;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.vsa-tier4-header {
+    padding: 0.875rem 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.vsa-tier4-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.vsa-tier4-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.vsa-alert-number {
+    font-weight: 700;
+    color: #64B5F6;
+    font-size: 0.875rem;
+    background: rgba(100, 181, 246, 0.15);
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+}
+
+.vsa-alert-type {
+    font-weight: 600;
+    color: #E8EAED;
+    font-size: 0.9375rem;
+}
+
+/* ==================== ALERT SECTION STYLES ==================== */
+.vsa-subsection-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #64B5F6;
+    margin: 0 0 0.75rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vsa-subsection-title i {
+    opacity: 0.7;
+    font-size: 0.875rem;
+}
+
+.vsa-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.vsa-overview-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.vsa-overview-item label {
+    font-size: 0.75rem;
+    color: #9AA0A6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.vsa-overview-item span {
+    font-size: 0.9375rem;
+    color: #E8EAED;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .vsa-overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ==================== PLACEHOLDER STYLES ==================== */
+.vsa-manager-followup-placeholder,
+.vsa-ai-coaching-placeholder {
+    padding: 1.5rem;
+    background: rgba(255, 152, 0, 0.05);
+    border: 1px dashed rgba(255, 152, 0, 0.3);
+    border-radius: 8px;
+    margin: 1rem 1.5rem;
+}
+
+.vsa-manager-followup-placeholder h4,
+.vsa-ai-coaching-placeholder h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #FFB74D;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vsa-coming-soon {
+    color: #9AA0A6;
+    font-style: italic;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.vsa-error-text {
+    color: #EF5350;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.vsa-loading-spinner {
+    text-align: center;
+    padding: 2rem;
+    color: #64B5F6;
+    font-size: 0.9375rem;
+}
+
+.vsa-loading-spinner i {
+    margin-right: 0.5rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==================== CALL ID CONTEXT ==================== */
+.vsa-call-id-context {
+    padding: 1rem 1.5rem;
+    background: rgba(100, 181, 246, 0.08);
+    border-left: 3px solid #64B5F6;
+    margin: 1rem 1.5rem 0 1.5rem;
+}
+
+.vsa-call-id-context h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #64B5F6;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vsa-call-id-context h4 i {
+    font-size: 0.9rem;
+}
+
+.vsa-call-id-context h4 strong {
+    color: #E8EAED;
+    font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* ==================== TRANSCRIPT SECTION ==================== */
+.vsa-transcript-section {
+    padding: 0 1.5rem;
+    margin: 1rem 0;
+}
+
+.vsa-transcript-toggle {
+    width: 100%;
+    background: rgba(100, 181, 246, 0.1);
+    border: 1px solid rgba(100, 181, 246, 0.3);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    color: #64B5F6;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.vsa-transcript-toggle:hover {
+    background: rgba(100, 181, 246, 0.15);
+    border-color: rgba(100, 181, 246, 0.5);
+}
+
+.vsa-transcript-toggle i.vsa-toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.vsa-transcript-toggle[aria-expanded="true"] i.vsa-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.vsa-transcript-content {
+    padding-top: 1rem;
+}
+
+.vsa-transcript-container {
+    background: #0D1720;
+    border: 1px solid #2A3142;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.vsa-transcript-textarea {
+    width: 100%;
+    background: #0B0E13;
+    border: 1px solid #3D4758;
+    border-radius: 4px;
+    padding: 1rem;
+    color: #E8EAED;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 400px;
+}
+
+.vsa-transcript-textarea:focus {
+    outline: 2px solid #64B5F6;
+    border-color: #64B5F6;
+}
+
+.vsa-transcript-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #64B5F6;
+}
+
+.vsa-transcript-loading i {
+    margin-right: 0.5rem;
+    animation: spin 1s linear infinite;
+}
+
+.vsa-transcript-empty,
+.vsa-transcript-error {
+    padding: 1.5rem;
+    text-align: center;
+    color: #9AA0A6;
+    font-style: italic;
+}
+
+.vsa-transcript-empty i,
+.vsa-transcript-error i {
+    margin-right: 0.5rem;
+}
+
+.vsa-transcript-error {
+    color: #EF5350;
+}
+
+/* ==================== EXPANDER ENHANCEMENTS ==================== */
+.vsa-expander-content {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.vsa-expander-content[aria-hidden="false"] {
+    animation: expandDown 0.3s ease-out;
+}
+
+@keyframes expandDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+
+    to {
+        opacity: 1;
+        max-height: 5000px;
+    }
+}
+
+/* Print Styles */
+@media print {
+
+    .vsa-expander-toggle,
+    .vsa-alert-actions,
+    .vsa-search-container {
+        display: none !important;
+    }
+
+    .vsa-expander-content {
+        display: block !important;
+        max-height: none !important;
+    }
+
+    .vsa-call-container,
+    .vsa-tier4-alert {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #333;
+    }
+
+    .vsa-tier3-header,
+    .vsa-tier4-header {
+        background: #f5f5f5 !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 }

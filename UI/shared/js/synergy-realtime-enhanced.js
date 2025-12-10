@@ -71,10 +71,10 @@ window.SynergyRealtimeEnhanced = {
             this.socket.on('session_updated', (data) => this._handleSessionUpdated(data));
             this.socket.on('session_deleted', (data) => this._handleSessionDeleted(data));
             this.socket.on('column_changed', (data) => this._handleColumnChanged(data));
-            
+
             // New metadata change events
             this.socket.on('session_metadata_changed', (data) => this._handleMetadataChanged(data));
-            
+
             // Ping/pong for connection monitoring
             this.socket.on('pong', (data) => {
                 this._log('Pong received:', data);
@@ -113,19 +113,19 @@ window.SynergyRealtimeEnhanced = {
         if (synergyTab && synergyTab.classList.contains('active')) {
             return true;
         }
-        
+
         // Check if Synergy sidebar is open
         const synergySidebar = document.getElementById('synergy-sidebar');
         if (synergySidebar && !synergySidebar.classList.contains('collapsed')) {
             return true;
         }
-        
+
         // Check if Synergy dashboard is visible
         const synergyDashboard = document.getElementById('synergy-dashboard');
         if (synergyDashboard && synergyDashboard.offsetParent !== null) {
             return true;
         }
-        
+
         return false;
     },
 
@@ -134,19 +134,19 @@ window.SynergyRealtimeEnhanced = {
      */
     isUserSession(session) {
         if (!this.currentUserId || !session) return false;
-        
+
         // Check owner
         if (session.owner_user_id === this.currentUserId) {
             return true;
         }
-        
+
         // Check if user is in assignees
         if (session.assignees) {
             try {
-                const assignees = typeof session.assignees === 'string' 
-                    ? JSON.parse(session.assignees) 
+                const assignees = typeof session.assignees === 'string'
+                    ? JSON.parse(session.assignees)
                     : session.assignees;
-                    
+
                 if (Array.isArray(assignees) && assignees.includes(this.currentUserId)) {
                     return true;
                 }
@@ -154,7 +154,7 @@ window.SynergyRealtimeEnhanced = {
                 // Parse error, ignore
             }
         }
-        
+
         return false;
     },
 
@@ -249,17 +249,17 @@ window.SynergyRealtimeEnhanced = {
         if (!this.config.conditionalUpdates || this.isUserViewingSynergy()) {
             // Detect what changed
             const changes = this._detectChanges(updates);
-            
+
             // Update card in board
             if (window.synergyBoard && typeof window.synergyBoard.updateCardRealtime === 'function') {
                 window.synergyBoard.updateCardRealtime(session_id, updates);
             } else {
                 this._refreshBoard();
             }
-            
+
             // Apply visual updates based on what changed
             this._applyVisualUpdates(session_id, changes);
-            
+
         } else {
             this._log('⏸️ Not viewing Synergy - update queued');
         }

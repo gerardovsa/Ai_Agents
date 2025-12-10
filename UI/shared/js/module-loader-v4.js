@@ -174,8 +174,23 @@ class ModuleLoaderV4 {
             const moduleExports = await this.importModule(modulePath);
 
             // 2. Detect pattern (modern vs legacy)
-            const pattern = this.detectPattern(moduleExports);
-            console.log(`[ModuleLoaderV4] Detected pattern: ${pattern}`);
+            let pattern = this.detectPattern(moduleExports);
+            console.log(`[ModuleLoaderV4] Initial pattern detection: ${pattern}`);
+
+            // FIXED (Dec 10, 2025): If pattern is unknown, check again after module execution
+            // Some legacy modules register themselves to window.ModuleRegistry during execution
+            if (pattern === 'unknown') {
+                // Wait a bit for module to execute and register itself
+                await new Promise(resolve => setTimeout(resolve, 50));
+                pattern = this.detectPattern(moduleExports);
+                console.log(`[ModuleLoaderV4] Re-checked pattern after delay: ${pattern}`);
+
+                // If still unknown, default to legacy (most backward-compatible)
+                if (pattern === 'unknown') {
+                    console.warn(`[ModuleLoaderV4] Pattern still unknown for ${moduleId}, defaulting to legacy`);
+                    pattern = 'legacy';
+                }
+            }
 
             // 3. Load based on pattern
             if (pattern === 'modern') {
@@ -246,7 +261,18 @@ class ModuleLoaderV4 {
      * @returns {'modern' | 'legacy' | 'unknown'}
      */
     detectPattern(moduleExports) {
-        // Modern pattern: Exports object with lifecycle hooks
+        const moduleId = this.activeModuleId;
+
+        // PRIORITY 1: Check ModuleRegistry first (most common legacy pattern)
+        if (window.ModuleRegistry && window.ModuleRegistry[moduleId]) {
+            const ModuleClass = window.ModuleRegistry[moduleId];
+            if (typeof ModuleClass === 'function') {
+                console.log(`[ModuleLoaderV4] Detected legacy via ModuleRegistry for ${moduleId}`);
+                return 'legacy';
+            }
+        }
+
+        // PRIORITY 2: Modern pattern - Exports object with lifecycle hooks
         if (moduleExports.default && typeof moduleExports.default === 'object') {
             if (typeof moduleExports.default.onLoad === 'function' ||
                 typeof moduleExports.default.onDashboardLoad === 'function' ||
@@ -255,7 +281,7 @@ class ModuleLoaderV4 {
             }
         }
 
-        // Legacy pattern: ES6 exported class (check if it's a constructor function)
+        // PRIORITY 3: Legacy pattern - ES6 exported class (check if it's a constructor function)
         if (moduleExports.default && typeof moduleExports.default === 'function') {
             // Check if it's a class constructor
             if (moduleExports.default.prototype && moduleExports.default.prototype.constructor === moduleExports.default) {
@@ -263,7 +289,7 @@ class ModuleLoaderV4 {
             }
         }
 
-        // Legacy pattern: Class extends BaseModule (check prototype chain)
+        // PRIORITY 4: Legacy pattern - Class extends BaseModule (check prototype chain)
         if (typeof BaseModule !== 'undefined') {
             if (moduleExports.default &&
                 moduleExports.default.prototype instanceof BaseModule) {
@@ -271,16 +297,7 @@ class ModuleLoaderV4 {
             }
         }
 
-        // Check ModuleRegistry for legacy class-based modules
-        const moduleId = this.activeModuleId;
-        if (window.ModuleRegistry && window.ModuleRegistry[moduleId]) {
-            const ModuleClass = window.ModuleRegistry[moduleId];
-            if (typeof ModuleClass === 'function') {
-                return 'legacy';
-            }
-        }
-
-        // Check window for legacy global instantiation
+        // PRIORITY 5: Check window for legacy global instantiation
         if (window[moduleId] && typeof window[moduleId].initialize === 'function') {
             return 'legacy';
         }

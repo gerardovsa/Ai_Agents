@@ -98,6 +98,52 @@
             }
         });
 
+        // ==================== TRANSCRIPTION SIDEBAR ====================
+        SidebarManager.register({
+            id: 'transcription-sidebar',
+            side: 'left',
+            toggleButtonId: 'transcription-sidebar-toggle',
+            width: '450px',
+            icon: 'fa-microphone',
+            title: 'Transcription',
+            zIndex: 9998,
+            onInit: async () => {
+                console.log('[TRANSCRIPTION] First open - loading sidebar HTML...');
+                const container = document.getElementById('transcription-sidebar');
+                if (container && !container.querySelector('.transcription-sidebar-header')) {
+                    try {
+                        const response = await fetch('/modules_internal/transcription/transcription-sidebar.html');
+                        if (response.ok) {
+                            const html = await response.text();
+                            container.innerHTML = html;
+                            console.log('[TRANSCRIPTION] HTML loaded successfully');
+                        } else {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                    } catch (error) {
+                        console.error('[TRANSCRIPTION] Failed to load HTML:', error);
+                        container.innerHTML = '<div style="padding: 20px; color: #dc3545;">Failed to load Transcription module</div>';
+                    }
+                }
+
+                // Initialize TranscriptionSidebar module if available
+                if (window.TranscriptionSidebar && typeof TranscriptionSidebar.init === 'function') {
+                    await TranscriptionSidebar.init();
+                    console.log('[TRANSCRIPTION] Module initialized');
+                }
+            },
+            onOpen: () => {
+                console.log('[TRANSCRIPTION] Sidebar opened');
+                // Refresh status when opening
+                if (window.TranscriptionSidebar && typeof TranscriptionSidebar.refreshStatus === 'function') {
+                    TranscriptionSidebar.refreshStatus();
+                }
+            },
+            onClose: () => {
+                console.log('[TRANSCRIPTION] Sidebar closed');
+            }
+        });
+
         // ==================== DEBUG SIDEBAR ====================
         SidebarManager.register({
             id: 'debug-sidebar',
@@ -121,12 +167,37 @@
             }
         });
 
-        // Note: Universal Search loads via ModuleLoader (hybrid module with dashboard + sidebar views)    // ==================== VECTOR DATABASE SIDEBAR ====================
+        // Note: Universal Search loads via ModuleLoader (hybrid module with dashboard + sidebar views)
+
+        // ==================== TRANSCRIPTION SIDEBAR ====================
+        SidebarManager.register({
+            id: 'transcription-sidebar',
+            side: 'right',
+            toggleButtonId: 'transcription-toggle',
+            width: '500px',
+            icon: 'fa-microphone',
+            title: 'Transcription',
+            zIndex: 9999,
+            onInit: async () => {
+                console.log('[TRANSCRIPTION] First open - initializing...');
+                if (window.TranscriptionSidebar && typeof TranscriptionSidebar.init === 'function') {
+                    await TranscriptionSidebar.init();
+                }
+            },
+            onOpen: () => {
+                console.log('[TRANSCRIPTION] Sidebar opened');
+            },
+            onClose: () => {
+                console.log('[TRANSCRIPTION] Sidebar closed');
+            }
+        });
+
+        // ==================== VECTOR DATABASE SIDEBAR ====================
         SidebarManager.register({
             id: 'vector-database',
             side: 'right',
             toggleButtonId: 'vector-database-toggle',
-            width: '600px',
+            width: '450px',
             icon: 'fa-database',
             title: 'Vector Database',
             zIndex: 9999,
@@ -135,21 +206,21 @@
                 const container = document.getElementById('vector-database');
                 console.log('[VECTOR DATABASE] Container element:', container);
                 console.log('[VECTOR DATABASE] Container innerHTML length:', container ? container.innerHTML.length : 'N/A');
-                
+
                 if (container && !container.querySelector('#vector-db-sidebar')) {
                     try {
                         console.log('[VECTOR DATABASE] Fetching HTML from /modules_internal/vector_database/vector_database.html');
                         const response = await fetch('/modules_internal/vector_database/vector_database.html');
                         console.log('[VECTOR DATABASE] Fetch response status:', response.status, response.statusText);
-                        
+
                         if (!response.ok) {
                             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
-                        
+
                         const html = await response.text();
                         console.log('[VECTOR DATABASE] Fetched HTML length:', html.length);
                         console.log('[VECTOR DATABASE] HTML preview:', html.substring(0, 200));
-                        
+
                         container.innerHTML = html;
                         console.log('[VECTOR DATABASE] HTML inserted into container');
 
@@ -176,10 +247,101 @@
                     }
                 }
             },
-            onOpen: () => {
+            onOpen: async () => {
                 console.log('[VECTOR DATABASE] Sidebar opened');
-                if (window.vectorDbSidebar && typeof window.vectorDbSidebar.refresh === 'function') {
-                    window.vectorDbSidebar.refresh();
+
+                // Initialize VectorDatabaseModule with utilities
+                if (window.VectorDatabaseModule) {
+                    const utilities = {
+                        container: document.getElementById('vector-database'),
+                        dom: {
+                            getContainer: () => document.getElementById('vector-database'),
+                            querySelector: (selector) => document.querySelector(selector),
+                            querySelectorAll: (selector) => document.querySelectorAll(selector),
+                            on: (element, event, selector, handler) => {
+                                if (typeof selector === 'function') {
+                                    handler = selector;
+                                    element.addEventListener(event, handler);
+                                } else {
+                                    element.addEventListener(event, (e) => {
+                                        if (e.target.matches(selector) || e.target.closest(selector)) {
+                                            handler.call(e.target.closest(selector) || e.target, e);
+                                        }
+                                    });
+                                }
+                            }
+                        },
+                        api: {
+                            get: async (url) => {
+                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || 'http://localhost:5001'}${url}`;
+                                const response = await fetch(fullUrl, {
+                                    method: 'GET',
+                                    headers: { 'Content-Type': 'application/json' }
+                                });
+                                return response.json();
+                            },
+                            post: async (url, data) => {
+                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || 'http://localhost:5001'}${url}`;
+                                const response = await fetch(fullUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(data)
+                                });
+                                return response.json();
+                            },
+                            delete: async (url) => {
+                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || 'http://localhost:5001'}${url}`;
+                                const response = await fetch(fullUrl, {
+                                    method: 'DELETE',
+                                    headers: { 'Content-Type': 'application/json' }
+                                });
+                                return response.json();
+                            },
+                            call: async (endpoint, options = {}) => {
+                                const url = `${window.API_BASE_URL || 'http://localhost:5001'}${endpoint}`;
+                                const response = await fetch(url, options);
+                                return response.json();
+                            }
+                        },
+                        storage: {
+                            get: (key) => {
+                                const value = localStorage.getItem(key);
+                                try {
+                                    return JSON.parse(value);
+                                } catch {
+                                    return value;
+                                }
+                            },
+                            set: (key, value) => {
+                                const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+                                localStorage.setItem(key, stringValue);
+                            },
+                            remove: (key) => localStorage.removeItem(key)
+                        },
+                        events: {
+                            emit: (event, data) => window.dispatchEvent(new CustomEvent(event, { detail: data })),
+                            on: (event, callback) => window.addEventListener(event, callback),
+                            off: (event, callback) => window.removeEventListener(event, callback)
+                        },
+                        log: {
+                            info: (...args) => console.log('[VECTOR DB]', ...args),
+                            warn: (...args) => console.warn('[VECTOR DB]', ...args),
+                            error: (...args) => console.error('[VECTOR DB]', ...args),
+                            debug: (...args) => console.debug('[VECTOR DB]', ...args)
+                        }
+                    };
+
+                    // Call onOpen lifecycle hook with utilities
+                    if (typeof window.VectorDatabaseModule.onOpen === 'function') {
+                        await window.VectorDatabaseModule.onOpen(utilities);
+                    } else {
+                        console.warn('[VECTOR DATABASE] onOpen method not found, using refresh fallback');
+                        if (typeof window.VectorDatabaseModule.refresh === 'function') {
+                            await window.VectorDatabaseModule.refresh();
+                        }
+                    }
+                } else {
+                    console.error('[VECTOR DATABASE] window.VectorDatabaseModule not found');
                 }
             },
             onClose: () => {

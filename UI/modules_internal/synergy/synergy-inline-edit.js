@@ -1035,6 +1035,13 @@ document.addEventListener('click', function (e) {
         return;
     }
 
+    // Add document button
+    if (target.classList.contains('synergy-add-document-btn')) {
+        const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
+        window.SynergyInlineEdit.addDocument(sessionId);
+        return;
+    }
+
     // Add task button
     if (target.classList.contains('synergy-add-task-btn')) {
         // Verify button is in a synergy container

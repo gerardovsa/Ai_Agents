@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Engineering Module</title>
+    <link rel="stylesheet" href="design-engineering.css">
+</head>
+
+<body>
+    <div class="design-engineering-container">
+        <!-- Header -->
+        <header class="de-header">
+            <div class="de-header-content">
+                <h1>🏗️ Design Engineering</h1>
+                <p class="de-subtitle">AI-Powered Structural Analysis & CAD Generation for T-Slot Aluminum</p>
+            </div>
+            <div class="de-header-actions">
+                <button id="quickStartBtn" class="de-btn de-btn-secondary">
+                    <span class="icon">⚡</span>
+                    Quick Start Guide
+                </button>
+                <button id="loadExampleBtn" class="de-btn de-btn-secondary">
+                    <span class="icon">📋</span>
+                    Load Example
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="de-main-grid">
+            <!-- Left Panel: Input Form -->
+            <aside class="de-panel de-input-panel">
+                <h2 class="de-panel-title">
+                    <span class="icon">⚙️</span>
+                    Component Specifications
+                </h2>
+
+                <form id="designForm" class="de-form">
+                    <!-- Design Type -->
+                    <div class="de-form-group">
+                        <label for="designType">Design Type</label>
+                        <select id="designType" class="de-select" required>
+                            <option value="beam">Single Beam</option>
+                            <option value="bed_frame">Bed Frame (Campervan)</option>
+                            <option value="kitchen_module">Kitchen Module</option>
+                            <option value="custom">Custom Assembly</option>
+                        </select>
+                        <small class="de-help-text">Select the type of structure to design</small>
+                    </div>
+
+                    <!-- Dimensions -->
+                    <div class="de-form-section">
+                        <h3 class="de-section-title">Dimensions</h3>
+
+                        <div class="de-form-row">
+                            <div class="de-form-group">
+                                <label for="length">Length (mm) *</label>
+                                <input type="number" id="length" class="de-input" value="1900" min="100" max="5000"
+                                    step="50" required>
+                            </div>
+
+                            <div class="de-form-group" id="widthGroup">
+                                <label for="width">Width (mm)</label>
+                                <input type="number" id="width" class="de-input" value="1400" min="100" max="3000"
+                                    step="50">
+                            </div>
+                        </div>
+
+                        <div class="de-form-group" id="heightGroup" style="display: none;">
+                            <label for="height">Height (mm)</label>
+                            <input type="number" id="height" class="de-input" value="900" min="100" max="3000"
+                                step="50">
+                        </div>
+                    </div>
+
+                    <!-- Load Specifications -->
+                    <div class="de-form-section">
+                        <h3 class="de-section-title">Load Specifications</h3>
+
+                        <div class="de-form-group">
+                            <label for="load">Expected Load (kg) *</label>
+                            <input type="number" id="load" class="de-input" value="200" min="1" max="1000" step="10"
+                                required>
+                            <small class="de-help-text">Total weight the structure must support</small>
+                        </div>
+
+                        <div class="de-form-group">
+                            <label for="supportType">Support Type</label>
+                            <select id="supportType" class="de-select">
+                                <option value="simply_supported">Simply Supported (both ends on supports)</option>
+                                <option value="cantilever">Cantilever (one end fixed)</option>
+                                <option value="fixed_both">Fixed Both Ends</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Profile Selection -->
+                    <div class="de-form-section">
+                        <h3 class="de-section-title">T-Slot Profile</h3>
+
+                        <div class="de-form-group">
+                            <label>
+                                <input type="radio" name="profileMode" value="auto" checked>
+                                Auto-Recommend (AI selects optimal profile)
+                            </label>
+                            <label>
+                                <input type="radio" name="profileMode" value="manual">
+                                Manual Selection
+                            </label>
+                        </div>
+
+                        <div class="de-form-group" id="profileSelectGroup" style="display: none;">
+                            <label for="profile">Profile Size</label>
+                            <select id="profile" class="de-select">
+                                <option value="20x20_light">20x20mm Light</option>
+                                <option value="30x30_standard">30x30mm Standard</option>
+                                <option value="40x40_light">40x40mm Light</option>
+                                <option value="40x40_standard" selected>40x40mm Standard (Most Common)</option>
+                                <option value="40x40_heavy">40x40mm Heavy</option>
+                                <option value="60x60_standard">60x60mm Standard</option>
+                                <option value="80x80_standard">80x80mm Standard</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="de-form-actions">
+                        <button type="submit" class="de-btn de-btn-primary de-btn-large">
+                            <span class="icon">🔧</span>
+                            Calculate Engineering
+                        </button>
+                        <button type="button" id="generateCADBtn" class="de-btn de-btn-secondary de-btn-large" disabled>
+                            <span class="icon">🎨</span>
+                            Generate 3D Model
+                        </button>
+                        <button type="button" id="createBOMBtn" class="de-btn de-btn-secondary de-btn-large" disabled>
+                            <span class="icon">📋</span>
+                            Create BOM
+                        </button>
+                    </div>
+                </form>
+            </aside>
+
+            <!-- Right Panel: Results -->
+            <main class="de-panel de-results-panel">
+                <h2 class="de-panel-title">
+                    <span class="icon">📊</span>
+                    Analysis Results
+                </h2>
+
+                <div id="resultsArea" class="de-results-area">
+                    <div class="de-placeholder">
+                        <div class="de-placeholder-icon">🏗️</div>
+                        <h3>Ready to Engineer</h3>
+                        <p>Enter your specifications on the left and click "Calculate Engineering" to see:</p>
+                        <ul>
+                            <li>✓ Structural deflection analysis</li>
+                            <li>✓ Safety factor calculations</li>
+                            <li>✓ Profile recommendations</li>
+                            <li>✓ 3D CAD models</li>
+                            <li>✓ Bill of Materials with pricing</li>
+                        </ul>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Visualization Panel (Expandable) -->
+        <section class="de-panel de-viz-panel" id="vizPanel" style="display: none;">
+            <div class="de-panel-header">
+                <h2 class="de-panel-title">
+                    <span class="icon">🎨</span>
+                    3D Visualization
+                </h2>
+                <button id="closeVizBtn" class="de-btn-icon">✕</button>
+            </div>
+            <div id="vizArea" class="de-viz-area"></div>
+        </section>
+
+        <!-- BOM Panel (Expandable) -->
+        <section class="de-panel de-bom-panel" id="bomPanel" style="display: none;">
+            <div class="de-panel-header">
+                <h2 class="de-panel-title">
+                    <span class="icon">📋</span>
+                    Bill of Materials
+                </h2>
+                <div class="de-panel-actions">
+                    <button id="exportBOMBtn" class="de-btn de-btn-small">Export CSV</button>
+                    <button id="closeBOMBtn" class="de-btn-icon">✕</button>
+                </div>
+            </div>
+            <div id="bomArea" class="de-bom-area"></div>
+        </section>
+    </div>
+
+    <!-- Quick Start Modal -->
+    <div id="quickStartModal" class="de-modal" style="display: none;">
+        <div class="de-modal-content">
+            <div class="de-modal-header">
+                <h2>⚡ Quick Start Guide</h2>
+                <button class="de-modal-close">✕</button>
+            </div>
+            <div class="de-modal-body">
+                <h3>Common Campervan Designs:</h3>
+                <div class="de-example-cards">
+                    <div class="de-example-card" data-example="bed_frame">
+                        <h4>🛏️ Bed Frame</h4>
+                        <p>1900mm × 1400mm, 200kg capacity</p>
+                        <small>Profile: 40x40mm Standard</small>
+                    </div>
+                    <div class="de-example-card" data-example="kitchen">
+                        <h4>🍳 Kitchen Module</h4>
+                        <p>600mm × 900mm, 50kg capacity</p>
+                        <small>Profile: 30x30mm Standard</small>
+                    </div>
+                    <div class="de-example-card" data-example="storage">
+                        <h4>📦 Storage Rack</h4>
+                        <p>1200mm × 600mm, 100kg capacity</p>
+                        <small>Profile: 40x40mm Light</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="design-engineering.js"></script>
+</body>
+
+</html>

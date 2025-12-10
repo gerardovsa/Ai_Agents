@@ -510,9 +510,11 @@ const UserAuth = {
             this.mainAppInitialized = true;
             console.log('✅ 🔓🔓 [AUTH] Main app initialization COMPLETE - Flag set to true');
 
+            // ✅ FIX (Dec 10, 2025): Show UI immediately when ready (was 10s delay)
+            // Circuit animation will stop automatically when overlay is hidden
             setTimeout(() => {
                 this.hideLoadingOverlay();
-            }, 10000); // 10 second delay before hiding auth loading overlay
+            }, 500); // Show UI immediately (500ms for smooth transition)
 
         } catch (error) {
             console.error('❌ [AUTH] Failed to initialize main app:', error);

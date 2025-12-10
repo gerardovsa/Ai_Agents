@@ -28,10 +28,10 @@ class CalculatorWrapper:
         self._initialize_calculator()
     
     def _initialize_calculator(self):
-        """Import and initialize the STANDALONE calculator module"""
+        """Import and initialize the calculator module"""
         try:
-            # Add standalone calculator module to path
-            calculator_path = Path(__file__).parent.parent.parent / "UI" / "external" / "modules" / "calculator-module" / "backend"
+            # Add calculator module to path
+            calculator_path = Path(__file__).parent.parent.parent / "UI" / "modules_external" / "quote-calculator" / "implementations"
             
             if not calculator_path.exists():
                 print(f"⚠️ Calculator module not found: {calculator_path}")
@@ -39,17 +39,17 @@ class CalculatorWrapper:
             
             sys.path.insert(0, str(calculator_path))
             
-            # Import STANDALONE calculator wrapper
-            from calculator_wrapper import QuoteCalculatorWrapper
+            # Import calculator wrapper functions directly
+            import calculator_wrapper
             
-            # Initialize calculator (NO database needed!)
-            self.calculator = QuoteCalculatorWrapper()
+            # Store the module so we can call its functions
+            self.calculator = calculator_wrapper
             
-            print("✅ Standalone calculator initialized successfully (8 calculators loaded)")
+            print("✅ Calculator module initialized successfully (GOD + Shopify calculators available)")
             
         except Exception as e:
-            print(f"⚠️ Warning: Could not initialize calculator: {e}")
-            print(f"   Calculator tools will return error messages")
+            print(f"WARNING: Could not initialize calculator: {e}")
+            print(f"Calculator tools will return error messages")
             self.calculator = None
             self.db_connector = None
     
@@ -243,19 +243,52 @@ class CalculatorWrapper:
             return self._format_error("Calculator not available - check server logs")
         
         try:
-            print_type = "double" if double_sided else "single"
+            # Import GOD calculator
+            backend_dir = Path(__file__).parent.parent.parent / "UI" / "modules_external" / "quote-calculator" / "backend"
+            if str(backend_dir) not in sys.path:
+                sys.path.insert(0, str(backend_dir))
             
-            result = self.calculator.calculate_corflute_signs(
+            from god_calculators.corflute_calculator import CorflutePricingCalculator
+            
+            # Initialize calculator (no db needed)
+            calculator = CorflutePricingCalculator()
+            
+            # Convert parameters
+            thickness_int = int(thickness.replace("mm", ""))  # Convert "3mm" to 3
+            print_sides_str = "double" if double_sided else "single"
+            
+            # Calculate quote
+            result = calculator.calculate_base_quote(
+                quantity=quantity,
                 width_mm=width,
                 height_mm=height,
-                quantity=quantity,
-                thickness=thickness,
-                print_type=print_type,
-                mounting=mounting or "none"
+                thickness_mm=thickness_int,
+                print_sides=print_sides_str
             )
             
-            # Result is already a dict
-            return result if isinstance(result, dict) else {"success": True, "quote": result}
+            # Format result (result is already a dict)
+            return {
+                "success": True,
+                "product_type": "Corflute Signs (PVC Foamboard)",
+                "quantity": result["quantity"],
+                "total_price": float(result["total_inc_gst"]),
+                "unit_price": float(result["price_per_unit_inc_gst"]),
+                "unit_price_ex_gst": float(result["price_per_unit_ex_gst"]),
+                "breakdown": {
+                    "material_cost_per_unit": float(result["material_cost_per_unit"]),
+                    "print_cost_per_unit": float(result["print_cost_per_unit"]),
+                    "cutting_cost_per_unit": float(result["cutting_cost_per_unit"]),
+                    "total_ex_gst": float(result["total_cost_inc_margin"]),
+                    "gst_amount": float(result["gst_amount"]),
+                    "margin_percent": float(result["margin_percent"])
+                },
+                "specifications": {
+                    "size": f"{width}x{height}mm",
+                    "thickness": f"{thickness_int}mm",
+                    "print_sides": result["print_specification"],
+                    "area_sqm": float(result["area_sqm"])
+                }
+            }
                 
         except Exception as e:
             return self._format_error(f"Corflute calculation failed: {str(e)}")

@@ -79,6 +79,47 @@ window.synergyBoard = {
         console.log('✅ Synergy Dashboard initialized - Board rendered with real-time updates');
     },
 
+    // Toggle kanban column width (350px → 500px → 700px)
+    // Icons: > (350px) >> (500px) < (700px back to 350px)
+    toggleColumnWidth(columnId, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
+        const column = document.querySelector(`.kanban-column[data-column="${columnId}"]`);
+        if (!column) {
+            console.error('[SYNERGY] Column not found:', columnId);
+            return;
+        }
+
+        const widthCycle = ['350px', '500px', '700px'];
+        const currentWidth = column.style.width || '350px';
+        const currentIndex = widthCycle.indexOf(currentWidth);
+        const nextIndex = (currentIndex + 1) % widthCycle.length;
+        const nextWidth = widthCycle[nextIndex];
+
+        // Apply new width with !important to override CSS
+        column.style.setProperty('width', nextWidth, 'important');
+        column.style.setProperty('min-width', nextWidth, 'important');
+        column.style.transition = 'width 0.3s ease';
+
+        // Update icon based on NEW width: > (350px) >> (500px) < (700px)
+        const icon = column.querySelector('.synergy-width-toggle-btn i');
+        if (icon) {
+            if (nextWidth === '350px') {
+                icon.className = 'fas fa-chevron-right'; // >
+            } else if (nextWidth === '500px') {
+                icon.className = 'fas fa-angle-double-right'; // >>
+            } else { // 700px
+                icon.className = 'fas fa-chevron-left'; // <
+            }
+            console.log(`[SYNERGY] Icon updated to: ${icon.className.split(' ').pop()}`);
+        }
+
+        console.log(`[SYNERGY] Column ${columnId} width: ${currentWidth} → ${nextWidth}`);
+    },
+
     // Escape text for use in JavaScript strings (onclick handlers)
     escapeJs(text) {
         if (!text) return '';
@@ -907,13 +948,19 @@ window.synergyBoard = {
 
                     console.log(`[SYNERGY] Loaded ${milestones.length} milestones for ${sessionId}`);
 
-                    // Use unified renderer from SynergySidebarRenderer
-                    if (window.SynergySidebarRenderer) {
+                    // Use FLAT renderer V2 with expand buttons (Dec 9, 2025)
+                    if (window.SynergySidebarRendererV2) {
+                        const renderer = new window.SynergySidebarRendererV2();
+                        expandedContent.innerHTML = renderer.renderExpandedCardContent(session, milestones, sessionId);
+                        console.log(`[SYNERGY] Rendered with FLAT V2 renderer (expand buttons enabled)`);
+                    } else if (window.SynergySidebarRenderer) {
                         const renderer = new window.SynergySidebarRenderer();
                         expandedContent.innerHTML = renderer.renderExpandedCardContent(session, milestones, sessionId);
+                        console.warn(`[SYNERGY] Using OLD renderer (no expand buttons)`);
                     } else {
                         // Fallback to basic rendering if renderer not available
                         expandedContent.innerHTML = this.renderExpandedContentFallback(session, milestones, sessionId);
+                        console.error(`[SYNERGY] Using fallback renderer (minimal features)`);
                     }
 
                     // Update chevron
@@ -1409,9 +1456,14 @@ window.synergyBoard = {
                     <h3 class="column-title">${this.escapeHtml(columnName)}</h3>
                     <span class="column-count" data-column="${columnId}">0</span>
                 </div>
-                <button class="column-menu-btn" onclick="synergyBoard.columnMenu('${columnId}')">
-                    <i class="fas fa-ellipsis-h"></i>
-                </button>
+                <div class="column-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    <button class="synergy-width-toggle-btn" title="Toggle column width (350px > | 500px >> | 700px <)" onclick="synergyBoard.toggleColumnWidth('${columnId}', event)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="column-menu-btn" onclick="synergyBoard.columnMenu('${columnId}')">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
             </div>
             <div class="kanban-cards-container" id="${columnId}-cards" data-column="${columnId}">
                 <!-- Cards will be inserted here -->

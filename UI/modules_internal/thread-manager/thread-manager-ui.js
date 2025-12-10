@@ -38,148 +38,170 @@
 window.ThreadManagerUI = {
     /**
      * Render thread list in sidebar
+     * ✅ FIX #3: Wrapped with smart debouncing (300ms delay)
+     * - Normal calls: Debounced (batches 97 call sites automatically)
+     * - immediate=true: Bypasses debounce for critical user actions
      */
-    async renderThreadList() {
-        const listContainer = document.getElementById('thread-list');
-        if (!listContainer) return;
+    renderThreadList: (function () {
+        // Store reference to original function
+        const _originalRenderThreadList = async function () {
+            const listContainer = document.getElementById('thread-list');
+            if (!listContainer) return;
 
-        // Access ThreadManager's threads array
-        const threads = window.ThreadManager.threads || [];
+            // Access ThreadManager's threads array
+            const threads = window.ThreadManager.threads || [];
 
-        if (threads.length === 0) {
-            listContainer.innerHTML = '<div style="padding: var(--space-4); text-align: center; color: var(--text-secondary);">No threads yet</div>';
-            return;
-        }
-
-        // Build location mapping
-        const threadToLocation = {};
-        threads.forEach(thread => {
-            if (thread.location && thread.location !== 'prime') {
-                threadToLocation[thread.id] = thread.location;
-            }
-        });
-
-        // Filter threads using ThreadManager's state
-        const currentFilter = window.ThreadManager.currentFilter || 'active';
-        const searchQuery = window.ThreadManager.searchQuery || '';
-        const locationFilter = window.ThreadManager.locationFilter || 'all';
-        const activeTagFilter = window.ThreadManager.activeTagFilter || null;
-        const dateRangeFilter = window.ThreadManager.dateRangeFilter || { range: 'all', startDate: null };
-
-        const filteredThreads = threads.filter(thread => {
-            const isArchived = thread.archived || false;
-
-            // Active/Archived filter
-            if (currentFilter === 'archived' ? !isArchived : isArchived) {
-                return false;
+            if (threads.length === 0) {
+                listContainer.innerHTML = '<div style="padding: var(--space-4); text-align: center; color: var(--text-secondary);">No threads yet</div>';
+                return;
             }
 
-            // Search query
-            if (searchQuery) {
-                const query = searchQuery.toLowerCase();
-                const titleMatch = thread.title.toLowerCase().includes(query);
-                const idMatch = thread.id.includes(query);
+            // Build location mapping
+            const threadToLocation = {};
+            threads.forEach(thread => {
+                if (thread.location && thread.location !== 'prime') {
+                    threadToLocation[thread.id] = thread.location;
+                }
+            });
 
-                let dateMatch = false;
-                if (thread.updated) {
+            // Filter threads using ThreadManager's state
+            const currentFilter = window.ThreadManager.currentFilter || 'active';
+            const searchQuery = window.ThreadManager.searchQuery || '';
+            const locationFilter = window.ThreadManager.locationFilter || 'all';
+            const activeTagFilter = window.ThreadManager.activeTagFilter || null;
+            const dateRangeFilter = window.ThreadManager.dateRangeFilter || { range: 'all', startDate: null };
+
+            const filteredThreads = threads.filter(thread => {
+                const isArchived = thread.archived || false;
+
+                // Active/Archived filter
+                if (currentFilter === 'archived' ? !isArchived : isArchived) {
+                    return false;
+                }
+
+                // Search query
+                if (searchQuery) {
+                    const query = searchQuery.toLowerCase();
+                    const titleMatch = thread.title.toLowerCase().includes(query);
+                    const idMatch = thread.id.includes(query);
+
+                    let dateMatch = false;
+                    if (thread.updated) {
+                        const threadDate = new Date(thread.updated);
+                        const dateStr = threadDate.toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric'
+                        }).toLowerCase();
+                        dateMatch = dateStr.includes(query);
+                    }
+
+                    if (!titleMatch && !idMatch && !dateMatch) {
+                        return false;
+                    }
+                }
+
+                // Location filter
+                if (locationFilter && locationFilter !== 'all') {
+                    const threadLocation = thread.location || 'prime';
+
+                    if (locationFilter === 'prime' && threadLocation !== 'prime') {
+                        return false;
+                    } else if (locationFilter === 'all-agents' && threadLocation === 'prime') {
+                        return false;
+                    } else if (locationFilter.startsWith('agent-') && threadLocation !== locationFilter) {
+                        return false;
+                    }
+                }
+
+                // Tag filter
+                if (activeTagFilter) {
+                    if (activeTagFilter === 'synergy' && !thread.synergy_card_id) {
+                        return false;
+                    }
+                    if (activeTagFilter === 'automation' && !thread.automation_workflow_id) {
+                        return false;
+                    }
+                }
+
+                // Date range filter
+                if (dateRangeFilter && thread.updated) {
                     const threadDate = new Date(thread.updated);
-                    const dateStr = threadDate.toLocaleDateString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric'
-                    }).toLowerCase();
-                    dateMatch = dateStr.includes(query);
+
+                    // Check start date
+                    if (dateRangeFilter.startDate && threadDate < dateRangeFilter.startDate) {
+                        return false;
+                    }
+
+                    // Check end date
+                    if (dateRangeFilter.endDate && threadDate > dateRangeFilter.endDate) {
+                        return false;
+                    }
                 }
 
-                if (!titleMatch && !idMatch && !dateMatch) {
-                    return false;
-                }
-            }
+                return true;
+            });
 
-            // Location filter
-            if (locationFilter && locationFilter !== 'all') {
-                const threadLocation = thread.location || 'prime';
-
-                if (locationFilter === 'prime' && threadLocation !== 'prime') {
-                    return false;
-                } else if (locationFilter === 'all-agents' && threadLocation === 'prime') {
-                    return false;
-                } else if (locationFilter.startsWith('agent-') && threadLocation !== locationFilter) {
-                    return false;
-                }
-            }
-
-            // Tag filter
-            if (activeTagFilter) {
-                if (activeTagFilter === 'synergy' && !thread.synergy_card_id) {
-                    return false;
-                }
-                if (activeTagFilter === 'automation' && !thread.automation_workflow_id) {
-                    return false;
-                }
-            }
-
-            // Date range filter
-            if (dateRangeFilter && thread.updated) {
-                const threadDate = new Date(thread.updated);
-
-                // Check start date
-                if (dateRangeFilter.startDate && threadDate < dateRangeFilter.startDate) {
-                    return false;
-                }
-
-                // Check end date
-                if (dateRangeFilter.endDate && threadDate > dateRangeFilter.endDate) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-
-        if (filteredThreads.length === 0) {
-            listContainer.innerHTML = `<div style="padding: var(--space-4); text-align: center; color: var(--text-secondary);">
+            if (filteredThreads.length === 0) {
+                listContainer.innerHTML = `<div style="padding: var(--space-4); text-align: center; color: var(--text-secondary);">
                 ${currentFilter === 'archived' ? 'No archived threads' : 'No active threads'}
             </div>`;
-            return;
-        }
-
-        // Sort by date based on sortOrder setting
-        const sortOrder = this.sortOrder || 'updated';
-        if (sortOrder === 'created') {
-            // Sort by creation date (oldest first for chronological)
-            filteredThreads.sort((a, b) => new Date(a.created) - new Date(b.created));
-        } else {
-            // Sort by updated date (newest first for recent activity)
-            filteredThreads.sort((a, b) => new Date(b.updated) - new Date(a.updated));
-        }
-
-        // Group by date
-        const groupedThreads = [];
-        // thread-manager-ui.js (lines 134-269)
-        let currentDateGroup = null;
-
-        filteredThreads.forEach(thread => {
-            const dateField = sortOrder === 'created' ? thread.created : thread.updated;
-            const threadDate = new Date(dateField);
-            const dateLabel = window.ThreadManagerUI.getDateLabel(threadDate);
-
-            if (currentDateGroup !== dateLabel) {
-                groupedThreads.push({ type: 'separator', label: dateLabel });
-                currentDateGroup = dateLabel;
-            }
-            groupedThreads.push({ type: 'thread', data: thread });
-        });
-
-        // Render
-        listContainer.innerHTML = groupedThreads.map(item => {
-            if (item.type === 'separator') {
-                return `<div class="thread-date-separator"><span>${item.label}</span></div>`;
+                return;
             }
 
-            const thread = item.data;
-            // ✅ FIX: Use window.ThreadManagerUI explicitly
-            return window.ThreadManagerUI.renderThreadCard(thread, threadToLocation[thread.id] || 'prime');
-        }).join('');
-    },
+            // Sort by date based on sortOrder setting
+            const sortOrder = this.sortOrder || 'updated';
+            if (sortOrder === 'created') {
+                // Sort by creation date (oldest first for chronological)
+                filteredThreads.sort((a, b) => new Date(a.created) - new Date(b.created));
+            } else {
+                // Sort by updated date (newest first for recent activity)
+                filteredThreads.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+            }
+
+            // Group by date
+            const groupedThreads = [];
+            // thread-manager-ui.js (lines 134-269)
+            let currentDateGroup = null;
+
+            filteredThreads.forEach(thread => {
+                const dateField = sortOrder === 'created' ? thread.created : thread.updated;
+                const threadDate = new Date(dateField);
+                const dateLabel = window.ThreadManagerUI.getDateLabel(threadDate);
+
+                if (currentDateGroup !== dateLabel) {
+                    groupedThreads.push({ type: 'separator', label: dateLabel });
+                    currentDateGroup = dateLabel;
+                }
+                groupedThreads.push({ type: 'thread', data: thread });
+            });
+
+            // Render
+            listContainer.innerHTML = groupedThreads.map(item => {
+                if (item.type === 'separator') {
+                    return `<div class="thread-date-separator"><span>${item.label}</span></div>`;
+                }
+
+                const thread = item.data;
+                // ✅ FIX: Use window.ThreadManagerUI explicitly
+                return window.ThreadManagerUI.renderThreadCard(thread, threadToLocation[thread.id] || 'prime');
+            }).join('');
+        };
+
+        // Create debounced version (300ms delay) using utility from thread-manager-core.js
+        const _debouncedRender = createDebounce(_originalRenderThreadList, 300);
+
+        // Return smart wrapper that supports immediate parameter
+        return async function renderThreadList(immediate = false) {
+            if (immediate) {
+                // Critical operations bypass debounce (archive, delete, create)
+                console.log('🎯 [FIX #3] renderThreadList() - IMMEDIATE (bypassing debounce)');
+                return await _originalRenderThreadList.call(this);
+            } else {
+                // Normal operations debounced (batches 97 call sites automatically)
+                console.log('🎯 [FIX #3] renderThreadList() - DEBOUNCED (300ms delay)');
+                return await _debouncedRender.call(this);
+            }
+        };
+    })(),
 
     /**
      * Render individual thread card with expandable hover content
@@ -562,68 +584,88 @@ window.ThreadManagerUI = {
      * Refresh all thread-info cards for a specific thread across the entire UI
      * Also updates UI pills (Synergy, Workflow, etc.)
      * PRESERVES expansion state (Dec 9, 2025)
+     * ✅ FIX #3: Wrapped with smart debouncing (300ms delay)
      */
-    refreshAllThreadInfoCards(threadId) {
-        console.log(`🔄 [refreshAllThreadInfoCards] Refreshing all cards for thread ${threadId}`);
+    refreshAllThreadInfoCards: (function () {
+        // Store reference to original function
+        const _originalRefreshCards = function (threadId) {
+            console.log(`🔄 [refreshAllThreadInfoCards] Refreshing all cards for thread ${threadId}`);
 
-        // Find all thread-info cards with this thread ID
-        const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
+            // Find all thread-info cards with this thread ID
+            const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
 
-        threadCards.forEach(card => {
-            const location = card.getAttribute('data-location') || 'prime';
+            threadCards.forEach(card => {
+                const location = card.getAttribute('data-location') || 'prime';
 
-            // CRITICAL (Dec 9, 2025): Check expansion state BEFORE replacing
-            // For Prime/Agents, check the CONTAINER; for Thread History, check the CARD
-            let wasExpanded = false;
-            if (location === 'thread-history') {
-                wasExpanded = card.classList.contains('expanded');
-            } else if (location === 'prime' || location === 'prime-loaded') {
-                const primeContainer = document.getElementById('prime-thread-info');
-                wasExpanded = primeContainer?.classList.contains('expanded') || false;
-            } else {
-                // Agent column - check the container
-                const container = card.closest('[id^="thread-info-"]');
-                wasExpanded = container?.classList.contains('expanded') || false;
-            }
+                // CRITICAL (Dec 9, 2025): Check expansion state BEFORE replacing
+                // For Prime/Agents, check the CONTAINER; for Thread History, check the CARD
+                let wasExpanded = false;
+                if (location === 'thread-history') {
+                    wasExpanded = card.classList.contains('expanded');
+                } else if (location === 'prime' || location === 'prime-loaded') {
+                    const primeContainer = document.getElementById('prime-thread-info');
+                    wasExpanded = primeContainer?.classList.contains('expanded') || false;
+                } else {
+                    // Agent column - check the container
+                    const container = card.closest('[id^="thread-info-"]');
+                    wasExpanded = container?.classList.contains('expanded') || false;
+                }
 
-            // Re-render the card with updated agent info AND UI pills
-            const newCardHTML = this.renderThreadInfoContainer(location, threadId, card.classList.contains('compact'));
+                // Re-render the card with updated agent info AND UI pills
+                const newCardHTML = this.renderThreadInfoContainer(location, threadId, card.classList.contains('compact'));
 
-            // Replace the card's outerHTML
-            card.outerHTML = newCardHTML;
+                // Replace the card's outerHTML
+                card.outerHTML = newCardHTML;
 
-            // CRITICAL (Dec 9, 2025): Restore expansion state after replacement
-            if (wasExpanded && window.ThreadCardExpansion) {
-                // Card was replaced, need to find it again
-                const newCard = window.ThreadCardExpansion.findCardElement(threadId);
-                if (newCard) {
-                    // Get the element that should have .expanded class
-                    const elementToExpand = window.ThreadCardExpansion.getExpandableElement(newCard);
-                    if (elementToExpand) {
-                        elementToExpand.classList.add('expanded');
-                        console.log(`🔄 [refreshAllThreadInfoCards] Restored expansion state for ${location}`);
+                // CRITICAL (Dec 9, 2025): Restore expansion state after replacement
+                if (wasExpanded && window.ThreadCardExpansion) {
+                    // Card was replaced, need to find it again
+                    const newCard = window.ThreadCardExpansion.findCardElement(threadId);
+                    if (newCard) {
+                        // Get the element that should have .expanded class
+                        const elementToExpand = window.ThreadCardExpansion.getExpandableElement(newCard);
+                        if (elementToExpand) {
+                            elementToExpand.classList.add('expanded');
+                            console.log(`🔄 [refreshAllThreadInfoCards] Restored expansion state for ${location}`);
+                        }
                     }
+                }
+
+                console.log(`✅ [refreshAllThreadInfoCards] Updated thread-info card at ${location}`);
+            });
+
+            // Also update sidebar thread items (shows UI pills)
+            const threads = window.ThreadManager.threads || [];
+            const thread = threads.find(t => t.id === threadId);
+            if (thread) {
+                const sidebarItem = document.querySelector(`[data-thread-id="${threadId}"].thread-item`);
+                if (sidebarItem) {
+                    // Re-render just the pills section
+                    this.updateThreadPills(sidebarItem, thread);
                 }
             }
 
-            console.log(`✅ [refreshAllThreadInfoCards] Updated thread-info card at ${location}`);
-        });
+            // REALTIME: No need to refresh Synergy board - Supabase realtime handles it
+            // Synergy board subscribes to postgres_changes on synergy_sessions table
+            // Removed synergyBoard.loadSessions() to prevent unnecessary API calls
+        };
 
-        // Also update sidebar thread items (shows UI pills)
-        const threads = window.ThreadManager.threads || [];
-        const thread = threads.find(t => t.id === threadId);
-        if (thread) {
-            const sidebarItem = document.querySelector(`[data-thread-id="${threadId}"].thread-item`);
-            if (sidebarItem) {
-                // Re-render just the pills section
-                this.updateThreadPills(sidebarItem, thread);
+        // Create debounced version (300ms delay)
+        const _debouncedRefresh = createDebounce(_originalRefreshCards, 300);
+
+        // Return smart wrapper that supports immediate parameter
+        return function refreshAllThreadInfoCards(threadId, immediate = false) {
+            if (immediate) {
+                // Critical operations bypass debounce
+                console.log('🎯 [FIX #3] refreshAllThreadInfoCards() - IMMEDIATE (bypassing debounce)');
+                return _originalRefreshCards.call(this, threadId);
+            } else {
+                // Normal operations debounced
+                console.log('🎯 [FIX #3] refreshAllThreadInfoCards() - DEBOUNCED (300ms delay)');
+                return _debouncedRefresh.call(this, threadId);
             }
-        }
-
-        // REALTIME: No need to refresh Synergy board - Supabase realtime handles it
-        // Synergy board subscribes to postgres_changes on synergy_sessions table
-        // Removed synergyBoard.loadSessions() to prevent unnecessary API calls
-    },
+        };
+    })(),
 
 
 

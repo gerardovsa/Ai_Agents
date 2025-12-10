@@ -332,6 +332,9 @@ window.ThreadManagerFilters = {
         // Add tag options
         if (uniqueTags.size > 0) {
             Array.from(uniqueTags).sort().forEach(tag => {
+                // Skip null/undefined tags
+                if (!tag) return;
+
                 const tagIcon = tag === 'synergy' ? '🔄' :
                     tag === 'automation' ? '⚡' : '🏷️';
                 const tagLabel = tag.charAt(0).toUpperCase() + tag.slice(1);

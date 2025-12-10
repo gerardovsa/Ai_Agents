@@ -49,8 +49,29 @@ class SynergySidebarRendererV2 {
         item.setAttribute('data-context', 'sidebar');
         if (isPinned) item.classList.add('pinned');
         if (isExpanded) item.classList.add('expanded');
+        
+        // Fix #3: Restore width state from controller
+        if (window.SynergySidebar && window.SynergySidebar.getWidthState) {
+            const widthState = window.SynergySidebar.getWidthState(session.session_id);
+            if (widthState === 'wide') {
+                item.classList.add('synergy-wide');
+            } else if (widthState === 'extra-wide') {
+                item.classList.add('synergy-extra-wide');
+            }
+        }
 
         item.innerHTML = this.renderSimpleListItem(session);
+        
+        // Fix #3: Update icon to match restored width state
+        if (window.SynergySidebar && window.SynergySidebar.getWidthState) {
+            const widthState = window.SynergySidebar.getWidthState(session.session_id);
+            const icon = item.querySelector('.synergy-width-toggle-btn i');
+            if (icon && widthState === 'wide') {
+                icon.className = 'fas fa-angle-double-right';
+            } else if (icon && widthState === 'extra-wide') {
+                icon.className = 'fas fa-chevron-left';
+            }
+        }
 
         if (isExpanded) {
             this.loadAndRenderFullCard(session.session_id, item);
@@ -96,6 +117,7 @@ class SynergySidebarRendererV2 {
                         <i class="fas fa-${statusBadge.icon}"></i> ${status}
                     </span>
                     <div class="synergy-actions">
+                        <!-- Width toggle removed - now in kanban column header -->
                         <button class="synergy-icon-btn ${session.is_pinned ? 'pinned' : ''}" title="Pin" onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')">
                             <i class="fas fa-thumbtack"></i>
                         </button>
@@ -316,6 +338,7 @@ class SynergySidebarRendererV2 {
                     <b>Project milestones</b>
                     <span style="font-size: 15px; color: var(--text-secondary);">${completedCount}/${totalCount} (${progress}%)</span>
                     <div class="synergy-flat-header-right">
+                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link" onclick="window.synergySidebarRendererV2?.linkSession('${sessionId}', event)"><i class="fas fa-external-link-alt"></i></button>
                         <button class="synergy-flat-action-btn synergy-add-milestone-btn" title="Add Milestone"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
@@ -348,8 +371,6 @@ class SynergySidebarRendererV2 {
                     <div class="synergy-flat-header-left">
                         <input type="checkbox" ${isCompleted ? 'checked' : ''} class="synergy-flat-checkbox">
                         <span class="synergy-flat-index">M${milestoneNum}</span>
-                    </div>
-                    <div class="synergy-flat-header-right">
                         <span class="synergy-priority-display">${milestone.priority ? `<span class="priority-badge priority-${milestone.priority}">${milestone.priority.toUpperCase()}</span>` : ''}</span>
                         <select class="synergy-priority-select" data-field="priority" style="display: none;">
                             <option value="low" ${milestone.priority === 'low' ? 'selected' : ''}>Low</option>
@@ -357,9 +378,12 @@ class SynergySidebarRendererV2 {
                             <option value="high" ${milestone.priority === 'high' ? 'selected' : ''}>High</option>
                             <option value="critical" ${milestone.priority === 'critical' ? 'selected' : ''}>Critical</option>
                         </select>
+                    </div>
+                    <div class="synergy-flat-header-right">
                         <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit"><i class="fas fa-pen"></i></button>
-                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
-                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link"><i class="fas fa-external-link-alt"></i></button>
+                        <button class="synergy-flat-expand-btn" onclick="window.synergySidebarRendererV2?.toggleMilestone('${milestoneId}', event)" title="Expand/Collapse">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -368,10 +392,11 @@ class SynergySidebarRendererV2 {
                     ${this.escapeHtml(milestone.milestone || 'Untitled Milestone')}
                 </div>
 
-                <!-- Save/Cancel buttons (hidden by default) -->
+                <!-- Save/Cancel/Delete buttons (hidden by default) -->
                 <div class="synergy-flat-edit-actions" style="display: none;">
-                    <button class="synergy-flat-action-btn synergy-save-btn" title="Save"><i class="fas fa-check"></i></button>
+                    <button class="synergy-flat-action-btn synergy-save-btn" title="Save"><i class="fas fa-save"></i></button>
                     <button class="synergy-flat-action-btn synergy-cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
+                    <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
                 </div>
 
                 <!-- Milestone Description -->
@@ -388,29 +413,31 @@ class SynergySidebarRendererV2 {
                     ${milestone.assigned_to ? `<span><i class="fas fa-user"></i> ${this.escapeHtml(milestone.assigned_to)}</span>` : ''}
                 </div>
 
-                <!-- Tasks Section -->
-                <hr class="synergy-flat-section-divider">
-                
-                <!-- Tasks Header Row: Label + Add Button -->
-                <div class="synergy-flat-section-header">
-                    <span class="synergy-flat-section-label">Tasks:</span>
-                    <button class="synergy-flat-action-btn synergy-add-task-btn" data-milestone-id="${milestoneId}" title="Add Task">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-                
-                <!-- Progress Bar Row -->
-                ${tasks.length > 0 ? `
-                    <div class="synergy-flat-progress-section">
-                        <span class="synergy-flat-progress-label">${completedTasks}/${tasks.length} (${taskProgress}%)</span>
-                        <div class="synergy-flat-progress-bar">
-                            <div class="synergy-flat-progress-fill" style="width: ${taskProgress}%"></div>
-                        </div>
+                <!-- Collapsible Tasks Section -->
+                <div class="synergy-flat-milestone-tasks collapsed">
+                    <hr class="synergy-flat-section-divider">
+                    
+                    <!-- Tasks Header Row: Label + Add Button -->
+                    <div class="synergy-flat-section-header">
+                        <span class="synergy-flat-section-label">Tasks:</span>
+                        <button class="synergy-flat-action-btn synergy-add-task-btn" data-milestone-id="${milestoneId}" title="Add Task">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
-                ` : ''}
+                    
+                    <!-- Progress Bar Row -->
+                    ${tasks.length > 0 ? `
+                        <div class="synergy-flat-progress-section">
+                            <span class="synergy-flat-progress-label">${completedTasks}/${tasks.length} (${taskProgress}%)</span>
+                            <div class="synergy-flat-progress-bar">
+                                <div class="synergy-flat-progress-fill" style="width: ${taskProgress}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
 
-                <!-- Tasks (FLAT - NO INDENT) -->
-                ${tasks.map((task, tIdx) => this.renderTask(task, milestoneNum, tIdx + 1, sessionId)).join('')}
+                    <!-- Tasks (FLAT - NO INDENT) -->
+                    ${tasks.map((task, tIdx) => this.renderTask(task, milestoneNum, tIdx + 1, sessionId)).join('')}
+                </div>
             </div>
         `;
     }
@@ -435,8 +462,6 @@ class SynergySidebarRendererV2 {
                     <div class="synergy-flat-header-left">
                         <input type="checkbox" ${isCompleted ? 'checked' : ''} ${isBlocked ? 'disabled' : ''} class="synergy-flat-checkbox">
                         <span class="synergy-flat-index">T${milestoneNum}.${taskNum}</span>
-                    </div>
-                    <div class="synergy-flat-header-right">
                         <span class="synergy-priority-display">${task.priority ? `<span class="priority-badge priority-${task.priority}">${task.priority.toUpperCase()}</span>` : ''}</span>
                         <select class="synergy-priority-select" data-field="priority" style="display: none;">
                             <option value="low" ${task.priority === 'low' ? 'selected' : ''}>Low</option>
@@ -445,9 +470,14 @@ class SynergySidebarRendererV2 {
                             <option value="critical" ${task.priority === 'critical' ? 'selected' : ''}>Critical</option>
                         </select>
                         ${isBlocked ? `<span class="synergy-flat-blocked-badge">BLOCKED</span>` : ''}
+                    </div>
+                    <div class="synergy-flat-header-right">
                         <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit"><i class="fas fa-pen"></i></button>
-                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
-                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link"><i class="fas fa-external-link-alt"></i></button>
+                        ${subtasks.length > 0 ? `
+                            <button class="synergy-flat-expand-btn" onclick="window.synergySidebarRendererV2?.toggleTask('${taskId}', event)" title="Expand/Collapse">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
 
@@ -456,10 +486,11 @@ class SynergySidebarRendererV2 {
                     ${this.escapeHtml(task.task || 'Untitled Task')}
                 </div>
 
-                <!-- Save/Cancel buttons (hidden by default) -->
+                <!-- Save/Cancel/Delete buttons (hidden by default) -->
                 <div class="synergy-flat-edit-actions" style="display: none;">
-                    <button class="synergy-flat-action-btn synergy-save-btn" title="Save"><i class="fas fa-check"></i></button>
+                    <button class="synergy-flat-action-btn synergy-save-btn" title="Save"><i class="fas fa-save"></i></button>
                     <button class="synergy-flat-action-btn synergy-cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
+                    <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
                 </div>
 
                 <!-- Task Metadata -->
@@ -480,29 +511,31 @@ class SynergySidebarRendererV2 {
                     </div>
                 ` : ''}
 
-                <!-- Subtasks Section -->
-                <hr class="synergy-flat-section-divider">
-                
-                <!-- Subtasks Header Row: Label + Add Button -->
-                <div class="synergy-flat-section-header">
-                    <span class="synergy-flat-section-label">Subtasks:</span>
-                    <button class="synergy-flat-action-btn synergy-add-subtask-btn" data-task-id="${taskId}" title="Add Subtask">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-                
-                <!-- Progress Bar Row -->
-                ${subtasks.length > 0 ? `
-                    <div class="synergy-flat-progress-section">
-                        <span class="synergy-flat-progress-label">${completedSubtasks}/${subtasks.length} (${subtaskProgress}%)</span>
-                        <div class="synergy-flat-progress-bar">
-                            <div class="synergy-flat-progress-fill" style="width: ${subtaskProgress}%"></div>
-                        </div>
+                <!-- Collapsible Subtasks Section -->
+                <div class="synergy-flat-task-subtasks collapsed">
+                    <hr class="synergy-flat-section-divider">
+                    
+                    <!-- Subtasks Header Row: Label + Add Button -->
+                    <div class="synergy-flat-section-header">
+                        <span class="synergy-flat-section-label">Subtasks:</span>
+                        <button class="synergy-flat-action-btn synergy-add-subtask-btn" data-task-id="${taskId}" title="Add Subtask">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
-                ` : ''}
-                
-                <!-- Subtasks (FLAT - NO INDENT) -->
-                ${subtasks.map((subtask, sIdx) => this.renderSubtask(subtask, milestoneNum, taskNum, sIdx + 1, sessionId)).join('')}
+                    
+                    <!-- Progress Bar Row -->
+                    ${subtasks.length > 0 ? `
+                        <div class="synergy-flat-progress-section">
+                            <span class="synergy-flat-progress-label">${completedSubtasks}/${subtasks.length} (${subtaskProgress}%)</span>
+                            <div class="synergy-flat-progress-bar">
+                                <div class="synergy-flat-progress-fill" style="width: ${subtaskProgress}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Subtasks (FLAT - NO INDENT) -->
+                    ${subtasks.map((subtask, sIdx) => this.renderSubtask(subtask, milestoneNum, taskNum, sIdx + 1, sessionId)).join('')}
+                </div>
             </div>
         `;
     }
@@ -563,6 +596,9 @@ class SynergySidebarRendererV2 {
                 <div class="synergy-flat-section-header">
                     <b>Documents</b>
                     <span style="font-size: 14px; color: var(--text-secondary);">${docs.length} files</span>
+                    <div class="synergy-flat-header-right">
+                        <button class="synergy-flat-action-btn synergy-add-document-btn" title="Add Document"><i class="fas fa-plus"></i></button>
+                    </div>
                 </div>
                 ${docs.length > 0 ? `
                     <div class="synergy-flat-docs-list">
@@ -631,8 +667,10 @@ class SynergySidebarRendererV2 {
      * Called after card expansion and after thread linking
      */
     async loadLinkedThreads(sessionId) {
-        const container = document.querySelector(`#synergy-linked-threads-${sessionId} .synergy-linked-threads-container`);
-        const countSpan = document.querySelector(`#synergy-linked-threads-${sessionId} .linked-threads-count`);
+        // Escape session ID for querySelector (handles special chars like &, :, etc.)
+        const escapedId = CSS.escape(sessionId);
+        const container = document.querySelector(`#synergy-linked-threads-${escapedId} .synergy-linked-threads-container`);
+        const countSpan = document.querySelector(`#synergy-linked-threads-${escapedId} .linked-threads-count`);
 
         if (!container) {
             console.warn('[SYNERGY] Linked threads container not found for session', sessionId);
@@ -936,17 +974,188 @@ class SynergySidebarRendererV2 {
     formatTimeAgo(dateString) {
         return this.getRelativeTime(dateString);
     }
+
+    /**
+     * Toggle Synergy card width (3-stage cycle: 350px → 500px → 700px → 350px)
+     * Matches Agent column width toggle pattern with same icon flow
+     */
+    toggleSynergyCardWidth(sessionId, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
+        // Find the session card - ONLY in sidebar context to avoid dashboard conflicts
+        const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"][data-context="sidebar"]`);
+        if (!card) {
+            console.warn(`[Synergy Width Toggle] Card not found in sidebar: ${sessionId}`);
+            return;
+        }
+
+        // Find the button and icon
+        const button = card.querySelector('.synergy-width-toggle-btn');
+        const icon = button?.querySelector('i');
+        if (!icon) {
+            console.warn(`[Synergy Width Toggle] Icon not found for: ${sessionId}`);
+            return;
+        }
+
+        // Check current state
+        const hasWide = card.classList.contains('synergy-wide');
+        const hasExtraWide = card.classList.contains('synergy-extra-wide');
+
+        // Cycle through 3 stages
+        if (!hasWide && !hasExtraWide) {
+            // Stage 1 → Stage 2: 350px → 500px
+            card.classList.add('synergy-wide');
+            icon.className = 'fas fa-angle-double-right'; // ⏩
+            console.log(`[Synergy Width Toggle] ${sessionId}: 350px → 500px`);
+            // Fix #3: Persist state
+            if (window.SynergySidebar && window.SynergySidebar.setWidthState) {
+                window.SynergySidebar.setWidthState(sessionId, 'wide');
+            }
+        } else if (hasWide && !hasExtraWide) {
+            // Stage 2 → Stage 3: 500px → 700px
+            card.classList.remove('synergy-wide');
+            card.classList.add('synergy-extra-wide');
+            icon.className = 'fas fa-chevron-left'; // ◀
+            console.log(`[Synergy Width Toggle] ${sessionId}: 500px → 700px`);
+            // Fix #3: Persist state
+            if (window.SynergySidebar && window.SynergySidebar.setWidthState) {
+                window.SynergySidebar.setWidthState(sessionId, 'extra-wide');
+            }
+        } else {
+            // Stage 3 → Stage 1: 700px → 350px
+            card.classList.remove('synergy-extra-wide');
+            icon.className = 'fas fa-chevron-right'; // ▶
+            console.log(`[Synergy Width Toggle] ${sessionId}: 700px → 350px`);
+            // Fix #3: Persist state
+            if (window.SynergySidebar && window.SynergySidebar.setWidthState) {
+                window.SynergySidebar.setWidthState(sessionId, null);
+            }
+        }
+    }
+
+    /**
+     * Toggle milestone expand/collapse
+     */
+    toggleMilestone(milestoneId, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
+        console.log('[SYNERGY] toggleMilestone called for:', milestoneId);
+        const milestoneEl = document.querySelector(`[data-milestone-id="${milestoneId}"]`);
+        if (!milestoneEl) {
+            console.error('[SYNERGY] Milestone element not found:', milestoneId);
+            return;
+        }
+
+        const tasksContainer = milestoneEl.querySelector('.synergy-flat-milestone-tasks');
+        const chevron = milestoneEl.querySelector('.synergy-flat-expand-btn i');
+
+        console.log('[SYNERGY] Found:', { tasksContainer: !!tasksContainer, chevron: !!chevron });
+        if (!tasksContainer || !chevron) {
+            console.error('[SYNERGY] Missing elements - tasksContainer:', !!tasksContainer, 'chevron:', !!chevron);
+            return;
+        }
+
+        const isCollapsed = tasksContainer.classList.contains('collapsed');
+
+        if (isCollapsed) {
+            // Expand
+            tasksContainer.classList.remove('collapsed');
+            tasksContainer.classList.add('expanded');
+            chevron.classList.remove('fa-chevron-right');
+            chevron.classList.add('fa-chevron-down');
+        } else {
+            // Collapse
+            tasksContainer.classList.remove('expanded');
+            tasksContainer.classList.add('collapsed');
+            chevron.classList.remove('fa-chevron-down');
+            chevron.classList.add('fa-chevron-right');
+        }
+    }
+
+    /**
+     * Toggle task expand/collapse
+     */
+    toggleTask(taskId, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
+        const taskEl = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (!taskEl) return;
+
+        const subtasksContainer = taskEl.querySelector('.synergy-flat-task-subtasks');
+        const chevron = taskEl.querySelector('.synergy-flat-expand-btn i');
+
+        if (!subtasksContainer || !chevron) return;
+
+        const isCollapsed = subtasksContainer.classList.contains('collapsed');
+
+        if (isCollapsed) {
+            // Expand
+            subtasksContainer.classList.remove('collapsed');
+            subtasksContainer.classList.add('expanded');
+            chevron.classList.remove('fa-chevron-right');
+            chevron.classList.add('fa-chevron-down');
+        } else {
+            // Collapse
+            subtasksContainer.classList.remove('expanded');
+            subtasksContainer.classList.add('collapsed');
+            chevron.classList.remove('fa-chevron-down');
+            chevron.classList.add('fa-chevron-right');
+        }
+    }
+
+    linkSession(sessionId, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
+        console.log('[SYNERGY] linkSession called for:', sessionId);
+
+        // Copy session ID to clipboard
+        navigator.clipboard.writeText(sessionId).then(() => {
+            console.log('[SYNERGY] Session ID copied to clipboard');
+            
+            // Show temporary toast notification
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--synergy-action); color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; font-size: 14px;';
+            toast.innerHTML = '<i class="fas fa-check"></i> Session ID copied to clipboard';
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.3s';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }).catch(err => {
+            console.error('[SYNERGY] Failed to copy session ID:', err);
+        });
+    }
 }
 
 // Export to global scope
 console.log('[SYNERGY V2] Exporting to window object...');
 window.SynergySidebarRendererV2 = SynergySidebarRendererV2;
-console.log('[SYNERGY V2] ✅ window.SynergySidebarRendererV2 =', typeof window.SynergySidebarRendererV2);
 
-// BACKWARD COMPATIBILITY: Make V2 available as original name
-window.SynergySidebarRenderer = SynergySidebarRendererV2;
-console.log('[SYNERGY V2] ✅ window.SynergySidebarRenderer =', typeof window.SynergySidebarRenderer);
+// Create GLOBAL SINGLETON instance for onclick handlers
+// This allows HTML like: onclick="window.synergySidebarRendererV2.toggleMilestone(...)"
+window.synergySidebarRendererV2 = new SynergySidebarRendererV2();
+console.log('[SYNERGY V2] ✅ window.SynergySidebarRendererV2 (class) =', typeof window.SynergySidebarRendererV2);
+console.log('[SYNERGY V2] ✅ window.synergySidebarRendererV2 (instance) =', typeof window.synergySidebarRendererV2);
+
+// ❌ REMOVED: Do NOT overwrite window.SynergySidebarRenderer
+// This breaks popup-modal, inline-edit, and board-init which expect original renderer
+// window.SynergySidebarRenderer = SynergySidebarRendererV2;  // DANGEROUS!
+console.log('[SYNERGY V2] ⚠️  NOT overwriting window.SynergySidebarRenderer (prevents module crashes)');
 
 console.log('[SYNERGY V2] ========================================');
-console.log('[SYNERGY V2] FLAT spacing renderer loaded and registered');
+console.log('[SYNERGY V2] FLAT spacing renderer loaded with GLOBAL INSTANCE');
 console.log('[SYNERGY V2] ========================================');

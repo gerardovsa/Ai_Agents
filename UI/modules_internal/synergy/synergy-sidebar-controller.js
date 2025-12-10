@@ -27,6 +27,10 @@ class SynergySidebarController {
         this.currentView = 'list'; // 'list' or 'pinned'
         this.currentFilter = 'all'; // 'all', 'backlog', 'in_progress', 'review', 'done'
         this.searchQuery = '';
+        
+        // Fix #3: Track width state - Map<sessionId, 'wide' | 'extra-wide' | null>
+        this.widthExpandedSessions = new Map();
+        this.loadWidthState();
 
         // Renderer instance - check for V2 first, then fallback
         this.renderer = null;
@@ -41,6 +45,53 @@ class SynergySidebarController {
         }
 
         console.log('[SYNERGY SIDEBAR CONTROLLER] Initialized');
+    }
+    
+    /**
+     * Fix #3: Load width state from localStorage
+     */
+    loadWidthState() {
+        try {
+            const saved = localStorage.getItem('synergy-card-widths');
+            if (saved) {
+                const data = JSON.parse(saved);
+                this.widthExpandedSessions = new Map(Object.entries(data));
+                console.log(`[SYNERGY SIDEBAR] Loaded ${this.widthExpandedSessions.size} width states from storage`);
+            }
+        } catch (error) {
+            console.error('[SYNERGY SIDEBAR] Error loading width state:', error);
+        }
+    }
+    
+    /**
+     * Fix #3: Save width state to localStorage
+     */
+    saveWidthState() {
+        try {
+            const data = Object.fromEntries(this.widthExpandedSessions);
+            localStorage.setItem('synergy-card-widths', JSON.stringify(data));
+        } catch (error) {
+            console.error('[SYNERGY SIDEBAR] Error saving width state:', error);
+        }
+    }
+    
+    /**
+     * Fix #3: Set width state for a session
+     */
+    setWidthState(sessionId, width) {
+        if (width === null || width === undefined) {
+            this.widthExpandedSessions.delete(sessionId);
+        } else {
+            this.widthExpandedSessions.set(sessionId, width);
+        }
+        this.saveWidthState();
+    }
+    
+    /**
+     * Fix #3: Get width state for a session
+     */
+    getWidthState(sessionId) {
+        return this.widthExpandedSessions.get(sessionId) || null;
     }
 
     /**

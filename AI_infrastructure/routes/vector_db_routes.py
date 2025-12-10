@@ -243,7 +243,11 @@ def upload_document():
             return jsonify({'success': False, 'error': 'Empty filename'}), 400
         
         # Get parameters
-        user_id = request.user['id']  # From JWT token via @require_auth
+        # Prefer 'user_id' (JWT payload) but fall back to 'id' for compatibility
+        user_id = (request.user.get('user_id') if hasattr(request, 'user') else None) or \
+                  (request.user.get('id') if hasattr(request, 'user') else None)
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User ID missing from token'}), 401
         chunk_size = request.form.get('chunk_size', 800, type=int)
         chunk_overlap = request.form.get('chunk_overlap', 20, type=int)
         namespace = request.form.get('namespace', 'default')
@@ -364,7 +368,11 @@ def list_documents():
     ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
-        user_id = request.user['id']  # From JWT token via @require_auth
+        # Prefer 'user_id' (JWT payload) but fall back to 'id' for compatibility
+        user_id = (request.user.get('user_id') if hasattr(request, 'user') else None) or \
+                  (request.user.get('id') if hasattr(request, 'user') else None)
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User ID missing from token'}), 401
         include_metadata = request.args.get('include_metadata', 'true') == 'true'
         include_cloud_links = request.args.get('include_cloud_links', 'true') == 'true'
         
@@ -414,7 +422,10 @@ def get_stats():
     ✅ NO DATABASE OPERATIONS - Safe (uses vector_db_list_namespaces tool)
     """
     try:
-        user_id = request.user['id']  # From JWT token via @require_auth
+        # FIXED: Use 'user_id' key (set by @require_auth decorator in user_auth.py line 2147)
+        user_id = request.user.get('user_id') or request.user.get('id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User ID not found in token'}), 401
         
         # Get credentials from Platform Connections
         credentials = _get_vector_db_credentials(user_id)
@@ -455,81 +466,99 @@ def get_stats():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@vector_db_bp.route('/api/vector-db/credentials/get', methods=['GET'])
+@vector_db_bp.route('/api/vector-db/credentials/load', methods=['GET'])
 @require_auth
-def get_credentials():
+def load_credentials():
     """
-    Get saved Pinecone credentials for user
+    Load vector database credentials for current user
+    
+    Query params:
+        - provider: 'pinecone', 'voyager', 'pgvector', 'qdrant' (optional, defaults to all)
     
     Returns:
-        JSON with credentials (api_key masked)
+        JSON with credentials (API keys masked for security)
     
-    FIXED: Added proper cursor management with try/finally block
+    FIXED: Dec 9, 2025 - Updated to use actual schema (metadata + credentials columns)
     """
-    cursor = None  # ✅ CRITICAL: Initialize before try
+    cursor = None
     conn = None
     
     try:
-        user_id = request.user['id']  # From JWT token via @require_auth
+        user_id = request.user['id']
+        provider = request.args.get('provider')  # Optional filter
         
-        # Import auth manager
-        from auth.user_auth import UserAuthManager
-        auth_manager = UserAuthManager()
-        
-        # Get Pinecone credentials
-        pinecone_creds = auth_manager.get_platform_credentials(user_id, 'pinecone')
-        
-        if not pinecone_creds or 'PINECONE_API_KEY' not in pinecone_creds:
-            return jsonify({
-                'success': False,
-                'error': 'No credentials found. Please save credentials first.'
-            }), 404
-        
-        # Get settings/metadata from database
         from shared.database_utils import get_database_connection
-        settings = {}
-        
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
-        cursor.execute('''
-            SELECT settings
-            FROM ai_infrastructure.user_platform_credentials
-            WHERE user_id = %s AND platform = %s
-            LIMIT 1
-        ''', (user_id, 'pinecone'))
+        # Query using ACTUAL schema columns: metadata + credentials
+        if provider:
+            cursor.execute('''
+                SELECT platform, metadata, credentials, is_active, updated_at
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s AND platform = %s AND is_active = true
+                ORDER BY updated_at DESC
+                LIMIT 1
+            ''', (user_id, provider))
+        else:
+            # Load all vector DB providers (exclude embedding/SQL providers)
+            cursor.execute('''
+                SELECT platform, metadata, credentials, is_active, updated_at
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s 
+                  AND platform IN ('pinecone', 'voyager', 'pgvector', 'qdrant')
+                  AND is_active = true
+                ORDER BY platform, updated_at DESC
+            ''', (user_id,))
         
-        row = cursor.fetchone()
+        rows = cursor.fetchall()
         
-        if row:
-            settings_json = row['settings'] if isinstance(row, dict) else row[0]
-            if settings_json:
-                import json
-                settings = json.loads(settings_json) if isinstance(settings_json, str) else settings_json
+        if not rows:
+            return jsonify({
+                'success': False,
+                'error': f'No credentials found for {provider or "vector databases"}',
+                'credentials': {}
+            }), 404
         
-        # ✅ FIX: Close cursor BEFORE conn
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
+        # Parse and mask credentials
+        result = {}
+        for row in rows:
+            platform_name = row['platform'] if isinstance(row, dict) else row[0]
+            metadata_json = row['metadata'] if isinstance(row, dict) else row[1]
+            credentials_json = row['credentials'] if isinstance(row, dict) else row[2]
+            
+            # Parse JSON fields
+            import json
+            metadata = json.loads(metadata_json) if isinstance(metadata_json, str) else (metadata_json or {})
+            credentials = json.loads(credentials_json) if isinstance(credentials_json, str) else (credentials_json or {})
+            
+            # Mask API key for security (show last 4 chars only)
+            if 'api_key' in credentials and credentials['api_key']:
+                api_key = credentials['api_key']
+                credentials['api_key_masked'] = f"{'*' * (len(api_key) - 4)}{api_key[-4:]}" if len(api_key) > 4 else "****"
+                del credentials['api_key']  # Don't send full key to frontend
+            
+            result[platform_name] = {
+                **metadata,
+                **credentials,
+                'provider': platform_name
+            }
         
-        # Mask API key (show last 8 chars only) - AFTER connection closed
-        api_key = pinecone_creds['PINECONE_API_KEY']
-        masked_key = f"{'*' * (len(api_key) - 8)}{api_key[-8:]}" if len(api_key) > 8 else '****'
+        # ✅ Close cursor BEFORE conn
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
         
         return jsonify({
             'success': True,
-            'credentials': {
-                'api_key': masked_key,
-                'api_key_exists': True,
-                'index_name': settings.get('index_name', ''),
-                'environment': settings.get('environment', ''),
-                'namespace': settings.get('namespace', '')
-            }
+            'credentials': result,
+            'provider': provider if provider else 'all',
+            'count': len(result)
         })
     
     except Exception as e:
-        print(f"❌ Get credentials error: {str(e)}")
+        print(f"❌ Load credentials error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -548,74 +577,266 @@ def get_credentials():
                 print(f"⚠️ Error closing connection: {e}")
 
 
+@vector_db_bp.route('/api/vector-db/credentials/status', methods=['GET'])
+@require_auth
+def check_connection_status():
+    """
+    Test connection to vector database provider
+    
+    Query params:
+        - provider: 'pinecone', 'voyager', 'pgvector', 'qdrant' (required)
+    
+    Returns:
+        JSON with connection status and provider stats
+    
+    NEW: Dec 9, 2025 - Added connection testing endpoint
+    """
+    cursor = None
+    conn = None
+    
+    try:
+        user_id = request.user['id']
+        provider = request.args.get('provider')
+        
+        if not provider:
+            return jsonify({'success': False, 'error': 'provider parameter required'}), 400
+        
+        # Load credentials from database
+        from shared.database_utils import get_database_connection
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT metadata, credentials
+            FROM ai_infrastructure.user_platform_credentials
+            WHERE user_id = %s AND platform = %s AND is_active = true
+            LIMIT 1
+        ''', (user_id, provider))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({
+                'success': False,
+                'connected': False,
+                'error': f'No credentials configured for {provider}'
+            }), 404
+        
+        metadata_json = row['metadata'] if isinstance(row, dict) else row[0]
+        credentials_json = row['credentials'] if isinstance(row, dict) else row[1]
+        
+        import json
+        metadata = json.loads(metadata_json) if isinstance(metadata_json, str) else (metadata_json or {})
+        credentials = json.loads(credentials_json) if isinstance(credentials_json, str) else (credentials_json or {})
+        
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+        
+        # Test connection based on provider
+        if provider == 'pinecone':
+            if not PINECONE_AVAILABLE:
+                return jsonify({
+                    'success': False,
+                    'connected': False,
+                    'error': 'Pinecone library not installed'
+                }), 500
+            
+            api_key = credentials.get('api_key')
+            environment = credentials.get('environment') or metadata.get('environment')
+            index_name = credentials.get('index_name') or metadata.get('index_name')
+            
+            if not api_key:
+                return jsonify({
+                    'success': False,
+                    'connected': False,
+                    'error': 'API key not found in credentials'
+                }), 400
+            
+            # Test Pinecone connection
+            try:
+                pc = Pinecone(api_key=api_key)
+                index = pc.Index(index_name)
+                stats = index.describe_index_stats()
+                
+                return jsonify({
+                    'success': True,
+                    'connected': True,
+                    'provider': 'pinecone',
+                    'index_name': index_name,
+                    'environment': environment,
+                    'stats': {
+                        'total_vectors': stats.get('total_vector_count', 0),
+                        'dimensions': stats.get('dimension', 0),
+                        'namespaces': len(stats.get('namespaces', {}))
+                    }
+                })
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'connected': False,
+                    'error': f'Connection failed: {str(e)}'
+                }), 500
+        
+        elif provider == 'voyager':
+            # Voyager is embedding provider, not vector DB - just check API key exists
+            api_key = credentials.get('api_key')
+            return jsonify({
+                'success': True,
+                'connected': bool(api_key),
+                'provider': 'voyager',
+                'note': 'Voyager is embedding provider (not tested until first use)'
+            })
+        
+        elif provider in ['pgvector', 'qdrant']:
+            # Future: Add connection testing for these providers
+            return jsonify({
+                'success': True,
+                'connected': False,
+                'provider': provider,
+                'note': f'{provider} connection testing not yet implemented'
+            })
+        
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Unknown provider: {provider}'
+            }), 400
+    
+    except Exception as e:
+        print(f"❌ Connection status error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
 @vector_db_bp.route('/api/vector-db/credentials/save', methods=['POST'])
 @require_auth
 def save_credentials():
     """
-    Save Pinecone credentials for user
+    Save vector database credentials for user
     
     Body:
-        - api_key: Pinecone API key (required)
-        - index_name: Index name (optional)
-        - environment: Environment (optional)
-        - namespace: Namespace (optional)
+        - provider: 'pinecone', 'voyager', 'pgvector', 'qdrant' (required)
+        - credentials: Object with provider-specific fields (required)
+        - metadata: Object with additional config (optional)
+    
+    Example for Pinecone:
+    {
+      "provider": "pinecone",
+      "credentials": {
+        "api_key": "pcsk_...",
+        "index_name": "my-index",
+        "environment": "us-east-1"
+      },
+      "metadata": {
+        "description": "Production vector database",
+        "namespace": ""
+      }
+    }
     
     Returns:
         JSON with success status
     
-    ✅ NO DATABASE OPERATIONS - Safe (uses auth_manager)
+    UPDATED: Dec 9, 2025 - Fixed to match actual schema
     """
+    cursor = None
+    conn = None
+    
     try:
         data = request.get_json()
+        user_id = request.user['id']
         
-        user_id = request.user['id']  # From JWT token via @require_auth
-        api_key = data.get('api_key', '').strip()
-        index_name = data.get('index_name', '').strip()
-        environment = data.get('environment', '').strip()
-        namespace = data.get('namespace', '').strip()
+        provider = data.get('provider', '').strip()
+        credentials = data.get('credentials', {})
+        metadata = data.get('metadata', {})
         
-        if not api_key:
-            return jsonify({'success': False, 'error': 'api_key required'}), 400
+        if not provider or not credentials:
+            return jsonify({'success': False, 'error': 'provider and credentials required'}), 400
         
-        # Import auth manager
-        from auth.user_auth import UserAuthManager
-        auth_manager = UserAuthManager()
+        # Validate provider
+        valid_providers = ['pinecone', 'voyager', 'pgvector', 'qdrant']
+        if provider not in valid_providers:
+            return jsonify({'success': False, 'error': f'Invalid provider. Must be one of: {valid_providers}'}), 400
         
-        # Build metadata
-        metadata = {
-            'index_name': index_name or 'ai-agents-vectors',
-            'environment': environment or 'us-east-1',
-            'namespace': namespace or '',
-            'description': 'Vector database credentials for autonomous AI document search',
-            'saved_at': datetime.utcnow().isoformat()
-        }
+        # Extract primary credential for backward compatibility
+        credential_key = f'{provider.upper()}_API_KEY'
+        credential_value = credentials.get('api_key') or credentials.get('connection_string') or ''
         
-        # Store credentials
-        result = auth_manager.store_platform_credential(
-            user_id=user_id,
-            platform='pinecone',
-            credentials_dict={'PINECONE_API_KEY': api_key},
-            settings_dict=metadata,
-            credential_type='api_key'
-        )
+        from shared.database_utils import get_database_connection
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
         
-        if result.get('success'):
-            print(f"✅ Saved Pinecone credentials for user {user_id}")
-            return jsonify({
-                'success': True,
-                'message': 'Credentials saved successfully',
-                'index_name': metadata['index_name'],
-                'environment': metadata['environment']
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result.get('error', 'Failed to save credentials')
-            }), 500
+        # Upsert credentials (update if exists, insert if new)
+        import json
+        cursor.execute('''
+            INSERT INTO ai_infrastructure.user_platform_credentials 
+            (user_id, platform, credential_type, credential_key, credential_value, metadata, credentials, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (user_id, platform)
+            DO UPDATE SET
+                credential_value = EXCLUDED.credential_value,
+                metadata = EXCLUDED.metadata,
+                credentials = EXCLUDED.credentials,
+                updated_at = NOW()
+        ''', (
+            user_id,
+            provider,
+            'api_key',
+            credential_key,
+            credential_value,
+            json.dumps(metadata),
+            json.dumps(credentials)
+        ))
+        
+        conn.commit()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+        
+        print(f"✅ Saved {provider} credentials for user {user_id}")
+        return jsonify({
+            'success': True,
+            'message': f'{provider.title()} credentials saved successfully',
+            'provider': provider
+        })
     
     except Exception as e:
+        if conn:
+            try:
+                conn.rollback()
+            except:
+                pass
         print(f"❌ Save credentials error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @vector_db_bp.route('/api/vector-db/embedding-config/get', methods=['GET'])

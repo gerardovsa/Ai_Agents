@@ -42,19 +42,20 @@
 
 /* Right-side sidebars - positioned 60px from right edge */
 .universal-sidebar.sidebar-right {
-    right: 60px;
-    /* 60px spacing from right edge */
+    right: -450px !important;
+    /* Start off-screen to the right */
     border-left: 1px solid var(--border-default);
     box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
 }
 
 .universal-sidebar.sidebar-right.collapsed {
-    transform: translateX(calc(100% + 60px));
-    /* Slide beyond right edge */
+    right: -450px !important;
+    /* Hidden off-screen to the right */
 }
 
 .universal-sidebar.sidebar-right.expanded {
-    transform: translateX(0);
+    right: 60px !important;
     /* Slides in from right, stops at 60px from edge */
 }
 

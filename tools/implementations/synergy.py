@@ -2715,13 +2715,46 @@ def synergy_update_milestone(
         
         # Send simple field updates
         if len(updates) > 0:
-            response = requests.patch(
-                f"{SYNERGY_API_BASE}/milestone/{milestone_id}/update",
-                json=updates,
-                headers={"Content-Type": "application/json"},
-                timeout=10
-            )
-            response.raise_for_status()
+            try:
+                # Preferred: send multiple fields in one PATCH (newer backend)
+                response = requests.patch(
+                    f"{SYNERGY_API_BASE}/milestone/{milestone_id}/update",
+                    json=updates,
+                    headers={"Content-Type": "application/json"},
+                    timeout=10
+                )
+                response.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                # Some deployments have an older inline-update endpoint that expects
+                # {"field": "milestone_name", "value": "New Name"} per request.
+                # Fallback: try sending each field individually to maximize compatibility.
+                try:
+                    status_code = None
+                    if hasattr(e, 'response') and e.response is not None:
+                        status_code = e.response.status_code
+                except Exception:
+                    status_code = None
+
+                # Only attempt per-field fallback for client/server errors
+                fallback_success = True
+                updated_fields = []
+                for key, val in updates.items():
+                    try:
+                        # Inline-update format used by some backends
+                        resp = requests.patch(
+                            f"{SYNERGY_API_BASE}/milestone/{milestone_id}/update",
+                            json={"field": key, "value": val},
+                            headers={"Content-Type": "application/json"},
+                            timeout=10
+                        )
+                        resp.raise_for_status()
+                        updated_fields.append(key)
+                    except requests.exceptions.RequestException:
+                        fallback_success = False
+
+                if not fallback_success and len(updated_fields) == 0:
+                    # Re-raise original exception if fallback didn't update anything
+                    raise SynergyError(f"Failed to update milestone {milestone_id}: {str(e)}")
         
         return {
             "success": True,

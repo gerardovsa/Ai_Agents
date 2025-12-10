@@ -102,8 +102,9 @@ window.VectorDatabaseModule = {
         // Setup event listeners (tracked automatically by framework)
         this.setupEventListeners();
 
-        // Load saved credentials
+        // Load saved credentials and check connection status
         await this.loadCredentials();
+        await this.checkConnectionStatus();
 
         // Load stats if connected
         if (this.state.isConnected) {
@@ -114,6 +115,17 @@ window.VectorDatabaseModule = {
         this.switchTab(this.state.currentTab);
 
         this.log.info('[VECTOR DB] Sidebar loaded successfully');
+    },
+
+    /**
+     * Called when sidebar is opened (after initial load)
+     */
+    async onOpen(utilities) {
+        Object.assign(this, utilities);
+        this.log.info('[VECTOR DB] Sidebar opened');
+        
+        // Refresh data when sidebar opens
+        await this.refresh();
     },
 
     /**
@@ -277,31 +289,114 @@ window.VectorDatabaseModule = {
 
     async loadCredentials() {
         try {
+            const provider = this.state.selectedProvider;
             const response = await this.api.get(
-                `${this.state.API_BASE_URL}/api/vector-db/credentials/get`
+                `${this.state.API_BASE_URL}/api/vector-db/credentials/load?provider=${provider}`
             );
 
             if (response.success && response.credentials) {
-                const creds = response.credentials;
+                const creds = response.credentials[provider];
+                
+                if (creds) {
+                    const indexInput = this.container.querySelector('#index-name');
+                    const envInput = this.container.querySelector('#environment');
+                    const nsInput = this.container.querySelector('#namespace');
 
-                const indexInput = this.container.querySelector('#index-name');
-                const envInput = this.container.querySelector('#environment');
-                const nsInput = this.container.querySelector('#namespace');
+                    if (indexInput) indexInput.value = creds.index_name || '';
+                    if (envInput) envInput.value = creds.environment || '';
+                    if (nsInput) nsInput.value = creds.namespace || '';
 
-                if (indexInput) indexInput.value = creds.index_name || '';
-                if (envInput) envInput.value = creds.environment || '';
-                if (nsInput) nsInput.value = creds.namespace || '';
-
-                this.state.isConnected = true;
-                this.updateConnectionStatus(true);
-                this.log.info('[VECTOR DB] Credentials loaded');
+                    this.state.isConnected = true;
+                    this.updateConnectionStatus(true);
+                    this.showConnectedBanner(creds);
+                    this.log.info(`[VECTOR DB] ${provider} credentials loaded`);
+                } else {
+                    this.state.isConnected = false;
+                    this.updateConnectionStatus(false);
+                    this.showNotConfiguredBanner();
+                }
+            } else {
+                this.state.isConnected = false;
+                this.updateConnectionStatus(false);
+                this.showNotConfiguredBanner();
             }
 
             // Load embedding configuration
             await this.loadEmbeddingConfig();
         } catch (error) {
             this.log.error('[VECTOR DB] Load credentials error:', error);
+            this.state.isConnected = false;
+            this.updateConnectionStatus(false);
+            this.showNotConfiguredBanner();
         }
+    },
+
+    async checkConnectionStatus() {
+        try {
+            const provider = this.state.selectedProvider;
+            this.log.info(`[VECTOR DB] Testing ${provider} connection...`);
+            
+            const response = await this.api.get(
+                `${this.state.API_BASE_URL}/api/vector-db/credentials/status?provider=${provider}`
+            );
+
+            if (response.success && response.connected) {
+                this.state.isConnected = true;
+                
+                // Update stats if provider returned them
+                if (response.stats) {
+                    this.state.stats.vectors = response.stats.total_vectors || 0;
+                    this.state.stats.namespaces = response.stats.namespaces || 0;
+                    this.updateStatsUI();
+                }
+                
+                this.showConnectedBanner({
+                    index_name: response.index_name,
+                    environment: response.environment,
+                    provider: provider
+                });
+                
+                this.log.info(`[VECTOR DB] ${provider} connected successfully`);
+            } else {
+                this.state.isConnected = false;
+                this.showNotConfiguredBanner();
+                this.log.warn(`[VECTOR DB] ${provider} not connected: ${response.error}`);
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Check connection status error:', error);
+            this.state.isConnected = false;
+            this.showNotConfiguredBanner();
+        }
+    },
+
+    showConnectedBanner(credentials) {
+        const connectedBanner = this.container.querySelector('#credential-connected-banner');
+        const notConfiguredBanner = this.container.querySelector('#credential-status-banner');
+
+        if (connectedBanner) connectedBanner.style.display = 'block';
+        if (notConfiguredBanner) notConfiguredBanner.style.display = 'none';
+
+        // Populate banner fields
+        const indexName = this.container.querySelector('#banner-index-name');
+        const environment = this.container.querySelector('#banner-environment');
+        const embeddingProvider = this.container.querySelector('#banner-embedding-provider');
+        const embeddingModel = this.container.querySelector('#banner-embedding-model');
+
+        const provider = credentials.provider || this.state.selectedProvider;
+        const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
+
+        if (indexName) indexName.textContent = credentials.index_name || '-';
+        if (environment) environment.textContent = credentials.environment || '-';
+        if (embeddingProvider) embeddingProvider.textContent = providerDisplay;
+        if (embeddingModel) embeddingModel.textContent = credentials.model || credentials.embedding_model || 'ada-002';
+    },
+
+    showNotConfiguredBanner() {
+        const connectedBanner = this.container.querySelector('#credential-connected-banner');
+        const notConfiguredBanner = this.container.querySelector('#credential-status-banner');
+
+        if (connectedBanner) connectedBanner.style.display = 'none';
+        if (notConfiguredBanner) notConfiguredBanner.style.display = 'block';
     },
 
     async loadEmbeddingConfig() {
@@ -566,6 +661,10 @@ window.VectorDatabaseModule = {
         const chunkSize = parseInt(this.container.querySelector('#chunk-size')?.value) || 800;
         const chunkOverlap = parseInt(this.container.querySelector('#chunk-overlap')?.value) || 20;
         const namespace = this.container.querySelector('#upload-namespace')?.value.trim();
+        const category = this.container.querySelector('#upload-category')?.value || 'general';
+        const tagsInput = this.container.querySelector('#upload-tags')?.value || '';
+        const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+        const visibility = this.container.querySelector('#upload-visibility')?.value || 'user';
 
         const progressContainer = this.container.querySelector('#upload-progress');
         const progressFill = this.container.querySelector('#progress-fill');
@@ -588,6 +687,9 @@ window.VectorDatabaseModule = {
                 formData.append('chunk_size', chunkSize);
                 formData.append('chunk_overlap', chunkOverlap);
                 formData.append('namespace', namespace || '');
+                formData.append('category', category);
+                formData.append('tags', JSON.stringify(tags));
+                formData.append('visibility', visibility);
                 formData.append('include_cloud_metadata', 'true');
                 formData.append('enable_ai_retrieval', 'true');
                 formData.append('file_type', file.type || 'application/octet-stream');
@@ -654,6 +756,235 @@ window.VectorDatabaseModule = {
         if (docsEl) docsEl.textContent = this.state.stats.documents || 0;
         if (vectorsEl) vectorsEl.textContent = this.formatNumber(this.state.stats.vectors || 0);
         if (namespacesEl) namespacesEl.textContent = this.state.stats.namespaces || 0;
+    },
+
+    async loadNamespaces() {
+        const container = this.container.querySelector('#namespaces-list');
+        if (!container) return;
+
+        try {
+            container.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Loading folders...</div></div>';
+
+            const response = await this.api.get(
+                `${this.state.API_BASE_URL}/api/vector-db/namespaces?include_stats=true`
+            );
+
+            if (response.success && response.namespaces && response.namespaces.length > 0) {
+                container.innerHTML = '';
+                response.namespaces.forEach(ns => {
+                    const card = this.createNamespaceCard(ns);
+                    container.appendChild(card);
+                });
+
+                // Update search dropdown
+                this.updateSearchNamespaceOptions(response.namespaces);
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-folder"></i></div>
+                        <div class="empty-text">No folders created yet</div>
+                        <div class="empty-hint">Upload documents to create folders</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Load namespaces error:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="empty-text">Failed to load folders</div>
+                    <div class="empty-hint">${error.message}</div>
+                </div>
+            `;
+        }
+    },
+
+    createNamespaceCard(ns) {
+        const card = document.createElement('div');
+        card.className = 'namespace-card';
+        card.style.cssText = 'padding: 12px; margin-bottom: 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px;';
+        card.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 24px;">📂</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 14px; color: #1F2937;">${this.escapeHtml(ns.display_name)}</div>
+                    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">
+                        <i class="fas fa-vector-square"></i> ${ns.vector_count || 0} vectors
+                    </div>
+                </div>
+                <button class="file-action-btn delete" data-action="delete-namespace" data-namespace="${this.escapeHtml(ns.name)}" title="Delete folder">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+
+        // Add delete listener
+        const deleteBtn = card.querySelector('[data-action="delete-namespace"]');
+        if (deleteBtn) {
+            this.dom.on(deleteBtn, 'click', () => {
+                this.deleteNamespace(ns.name, ns.display_name);
+            });
+        }
+
+        return card;
+    },
+
+    updateSearchNamespaceOptions(namespaces) {
+        const select = this.container.querySelector('#search-namespaces');
+        if (!select) return;
+
+        // Keep "All Folders" option
+        select.innerHTML = '<option value="all" selected>All Folders</option>';
+
+        // Add namespace options
+        namespaces.forEach(ns => {
+            const option = document.createElement('option');
+            option.value = ns.name;
+            option.textContent = `📂 ${ns.display_name} (${ns.vector_count || 0})`;
+            select.appendChild(option);
+        });
+    },
+
+    async deleteNamespace(namespace, displayName) {
+        if (!confirm(`Are you sure you want to delete the folder "${displayName}"? This will remove all vectors in this folder.`)) {
+            return;
+        }
+
+        if (!confirm('This action cannot be undone. Type DELETE to confirm.')) {
+            return;
+        }
+
+        try {
+            const response = await this.api.delete(
+                `${this.state.API_BASE_URL}/api/vector-db/namespaces/${namespace}?confirm=DELETE`
+            );
+
+            if (response.success) {
+                this.showMessage(`Folder "${displayName}" deleted successfully`, 'success');
+                await this.loadNamespaces();
+                await this.loadStats();
+            } else {
+                this.showMessage(`Error: ${response.error}`, 'error');
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Delete namespace error:', error);
+            this.showMessage('Failed to delete folder', 'error');
+        }
+    },
+
+    async performSearch() {
+        const query = this.container.querySelector('#search-query')?.value.trim();
+        if (!query) {
+            this.showMessage('Enter a search query', 'error');
+            return;
+        }
+
+        const namespacesSelect = this.container.querySelector('#search-namespaces');
+        const selectedNamespaces = Array.from(namespacesSelect.selectedOptions)
+            .map(opt => opt.value)
+            .filter(v => v !== 'all');
+
+        const category = this.container.querySelector('#search-category')?.value;
+
+        const filter = {};
+        if (category) filter.category = { $eq: category };
+
+        const resultsContainer = this.container.querySelector('#search-results');
+
+        try {
+            this.showMessage('Searching...', 'loading');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Searching...</div></div>';
+            }
+
+            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/query-namespaces`, {
+                query_text: query,
+                namespaces: selectedNamespaces.length > 0 ? selectedNamespaces : [],
+                top_k: 10,
+                filter: filter,
+                include_metadata: true
+            });
+
+            if (response.success) {
+                const matches = response.matches || [];
+                this.showMessage(`Found ${matches.length} results`, 'success');
+                this.renderSearchResults(matches);
+            } else {
+                this.showMessage(`Search failed: ${response.error}`, 'error');
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="empty-text">Search failed</div>
+                            <div class="empty-hint">${response.error}</div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            this.log.error('[VECTOR DB] Search error:', error);
+            this.showMessage('Search failed', 'error');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="empty-text">Search failed</div>
+                        <div class="empty-hint">${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+    },
+
+    renderSearchResults(matches) {
+        const container = this.container.querySelector('#search-results');
+        if (!container) return;
+
+        if (matches.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-search"></i></div>
+                    <div class="empty-text">No results found</div>
+                    <div class="empty-hint">Try different keywords or filters</div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+
+        matches.forEach((match, index) => {
+            const resultCard = document.createElement('div');
+            resultCard.style.cssText = 'padding: 12px; margin-bottom: 12px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px;';
+            
+            const metadata = match.metadata || {};
+            const score = (match.score * 100).toFixed(1);
+            const text = metadata.text || 'No text available';
+            const truncatedText = text.length > 200 ? text.substring(0, 200) + '...' : text;
+            const category = metadata.category || 'general';
+            const document = metadata.document || 'Unknown';
+
+            resultCard.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 13px; color: #1F2937;">
+                            ${index + 1}. ${this.escapeHtml(document)}
+                        </div>
+                        <div style="font-size: 11px; color: #6B7280; margin-top: 2px;">
+                            Category: ${this.escapeHtml(category)} • Score: ${score}%
+                        </div>
+                    </div>
+                    <div style="padding: 4px 8px; background: #10B981; color: white; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                        ${score}%
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: #4B5563; line-height: 1.5;">
+                    ${this.escapeHtml(truncatedText)}
+                </div>
+            `;
+
+            container.appendChild(resultCard);
+        });
     },
 
     async loadDocuments() {
@@ -776,6 +1107,11 @@ window.VectorDatabaseModule = {
         // Load data for specific tabs
         if (tabName === 'documents') {
             this.loadDocuments();
+        } else if (tabName === 'namespaces') {
+            this.loadNamespaces();
+        } else if (tabName === 'search') {
+            // Pre-load namespace options for search
+            this.loadNamespaces();
         }
 
         this.log.info(`[VECTOR DB] Switched to ${tabName} tab`);
@@ -810,6 +1146,10 @@ window.VectorDatabaseModule = {
         }
 
         this.log.info(`[VECTOR DB] Provider changed to: ${provider}`);
+        
+        // Reload credentials for new provider
+        this.loadCredentials();
+        this.checkConnectionStatus();
     },
 
     onQdrantDeploymentTypeChange(event) {

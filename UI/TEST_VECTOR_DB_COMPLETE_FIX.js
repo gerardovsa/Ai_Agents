@@ -9,15 +9,15 @@
  * 5. ✅ Refresh button added
  */
 
-(async function() {
+(async function () {
     console.log('🔧 COMPLETE FIX: Vector Database Sidebar\n');
-    
+
     const sidebar = document.getElementById('vector-database');
     if (!sidebar) {
         console.error('❌ Sidebar not found!');
         return;
     }
-    
+
     // Load updated HTML
     console.log('📥 Loading updated HTML...');
     const response = await fetch('/modules_internal/vector_database/vector_database.html?v=' + Date.now());
@@ -28,7 +28,7 @@
         console.error('❌ Failed to load HTML');
         return;
     }
-    
+
     // Open sidebar using SidebarManager
     console.log('📂 Opening sidebar via SidebarManager...');
     if (window.SidebarManager) {
@@ -40,10 +40,10 @@
         sidebar.classList.add('expanded');
         console.log('⚠️ Used fallback open (SidebarManager not found)');
     }
-    
+
     // Wait for render
     await new Promise(r => setTimeout(r, 300));
-    
+
     // Show first tab
     const tabs = sidebar.querySelectorAll('.tab-content');
     if (tabs.length > 0) {
@@ -51,25 +51,25 @@
         tabs[0].style.display = 'block';
         console.log('✅ First tab activated');
     }
-    
+
     // Test buttons
     console.log('\n🧪 TESTING FUNCTIONALITY:');
-    
+
     const closeBtn = sidebar.querySelector('.synergy-icon-btn[onclick*="close"]');
     console.log('Close button:', !!closeBtn, '- onclick:', closeBtn?.getAttribute('onclick'));
-    
+
     const refreshBtn = sidebar.querySelector('.synergy-icon-btn[onclick*="reload"]');
     console.log('Refresh button:', !!refreshBtn);
-    
+
     const providerSelect = sidebar.querySelector('#provider-selector');
     console.log('Provider selector:', !!providerSelect, '- options:', providerSelect?.options.length);
-    
+
     const stats = sidebar.querySelectorAll('.vector-db-stat');
     console.log('Stats:', stats.length);
-    
+
     const tabButtons = sidebar.querySelectorAll('.vector-db-tab');
     console.log('Tab buttons:', tabButtons.length);
-    
+
     console.log('\n🎨 STYLING CHECK:');
     const providerSection = sidebar.querySelector('.vector-db-provider-section');
     if (providerSection) {
@@ -77,7 +77,7 @@
         console.log('Provider section background:', styles.background.substring(0, 50) + '...');
         console.log('Provider section border-radius:', styles.borderRadius);
     }
-    
+
     console.log('\n' + '='.repeat(60));
     console.log('✅ VECTOR DATABASE FULLY FUNCTIONAL!');
     console.log('='.repeat(60));

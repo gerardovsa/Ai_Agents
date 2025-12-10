@@ -167,38 +167,42 @@ window.ThreadCardExpansion = {
      * - Prime/Prime-Loaded: The #prime-thread-info container
      * - Agent columns: The #thread-info-N container
      * 
+     * CRITICAL FIX (Dec 9, 2025):
+     * Check ACTUAL parent container in DOM, NOT data-location attribute!
+     * Thread History cards can have data-location="prime-loaded" but live in .thread-list
+     * 
      * @param {HTMLElement} card - The thread card element
      * @returns {HTMLElement|null} Element to add .expanded class to
      */
     getExpandableElement(card) {
         if (!card) return null;
 
-        // Check actual parent container to determine location
-        // (don't trust data-location, as cards can have prime-loaded but be in thread history)
-        const isInThreadHistory = card.closest('.thread-history-panel');
-        const isInPrimeContainer = card.closest('#prime-thread-info');
-        const agentContainer = card.closest('[id^="thread-info-"]');
+        // Check ACTUAL parent container in DOM hierarchy
+        // Order matters: most specific first (agent/prime), then general (thread-list)
+        const parentThreadList = card.closest('.thread-list');  // Thread History container
+        const parentPrimeContainer = card.closest('#prime-thread-info');  // Prime container
+        const parentAgentContainer = card.closest('[id^="thread-info-"]');  // Agent container (#thread-info-1, etc.)
 
-        // Thread History: expand the card itself
-        if (isInThreadHistory) {
-            console.log(`[ThreadCardExpansion] Expandable element: card itself (in thread-history panel)`);
+        // Agent columns: card is inside #thread-info-N → expand the CONTAINER
+        if (parentAgentContainer) {
+            console.log(`[ThreadCardExpansion] Expandable: ${parentAgentContainer.id} container`);
+            return parentAgentContainer;
+        }
+
+        // Prime: card is inside #prime-thread-info → expand the CONTAINER
+        if (parentPrimeContainer) {
+            console.log(`[ThreadCardExpansion] Expandable: #prime-thread-info container`);
+            return parentPrimeContainer;
+        }
+
+        // Thread History: card is inside .thread-list → expand the CARD ITSELF
+        if (parentThreadList) {
+            console.log(`[ThreadCardExpansion] Expandable: card itself (in .thread-list)`);
             return card;
         }
 
-        // Prime/Prime-Loaded: expand the container
-        if (isInPrimeContainer) {
-            console.log(`[ThreadCardExpansion] Expandable element: #prime-thread-info container`);
-            return isInPrimeContainer;
-        }
-
-        // Agent columns: expand the parent container
-        if (agentContainer) {
-            console.log(`[ThreadCardExpansion] Expandable element: container ${agentContainer.id}`);
-            return agentContainer;
-        }
-
         // Fallback: expand the card itself
-        console.warn(`[ThreadCardExpansion] No container found, using card itself`);
+        console.warn(`[ThreadCardExpansion] No known container found, using card itself`);
         return card;
     },
 

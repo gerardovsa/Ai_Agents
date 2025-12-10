@@ -672,7 +672,7 @@ def get_sessions_with_internal_docs():
                     # Re-raise unexpected errors
                     raise
             
-            # Group internal docs by session_id
+            # Group internal docs by session_id (Gap #2 fix - full file details)
             docs_by_session = {}
             for doc_row in docs_rows:
                 doc = dict(doc_row)
@@ -687,18 +687,21 @@ def get_sessions_with_internal_docs():
                     'type': 'internal_doc',
                     'doc_type': doc.get('doc_type', 'richtext'),
                     'version': doc.get('version', 1),
-                    'created_at': doc.get('created_at'),
-                    'updated_at': doc.get('updated_at'),
-                    'slug': doc.get('slug'),
-                    'share_url': doc.get('share_url')
+                    'created_at': str(doc.get('created_at', '')),
+                    'updated_at': str(doc.get('updated_at', '')),
+                    'slug': doc.get('slug', ''),
+                    'share_url': doc.get('share_url', '')
                 })
             
-            # Attach internal docs to sessions
+            # Attach internal docs array to sessions (Gap #2 complete)
             for session in sessions:
                 sess_id = session['session_id']
                 if sess_id in docs_by_session:
                     session['internal_docs'] = docs_by_session[sess_id]
                     session['internal_docs_count'] = len(docs_by_session[sess_id])
+                else:
+                    session['internal_docs'] = []
+                    session['internal_docs_count'] = 0
         
         # Step 3: Batch load milestone, task, and subtask counts
         if session_ids:

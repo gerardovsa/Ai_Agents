@@ -355,30 +355,35 @@ def transcription_history():
         if not user_id and hasattr(request, 'user_id'):
             user_id = request.user_id
 
+        # Initialize variables before try block
+        cursor = None
+        conn = None
+
         # ✅ FIX: Use PostgreSQL instead of SQLite
-        from AI_infrastructure.shared.database_utils import get_connection
+        from AI_infrastructure.shared.database_utils import get_database_connection
         
-        with get_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
 
-            if user_id:
-                cursor.execute('''
-                    SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
-                    FROM ai_infrastructure.user_transcriptions
-                    WHERE user_id = %s
-                    ORDER BY created_at DESC
-                    LIMIT %s OFFSET %s
-                ''', (user_id, limit, offset))
-            else:
-                cursor.execute('''
-                    SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
-                    FROM ai_infrastructure.user_transcriptions
-                    ORDER BY created_at DESC
-                    LIMIT %s OFFSET %s
-                ''', (limit, offset))
+        if user_id:
+            cursor.execute('''
+                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+                FROM ai_infrastructure.user_transcriptions
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+            ''', (user_id, limit, offset))
+        else:
+            cursor.execute('''
+                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+                FROM ai_infrastructure.user_transcriptions
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+            ''', (limit, offset))
 
-            rows = cursor.fetchall()
-            cursor.close()
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
         results = []
         for r in rows:

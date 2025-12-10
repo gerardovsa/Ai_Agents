@@ -110,9 +110,11 @@ def _get_calculator():
         # Import credentials manager
         import sys
         import json
-        # From: UI/external/modules/quote-calculator/implementations/calculator_wrapper.py
-        # To: AI_infrastructure/auth (root_dir should be project root)
-        project_root = Path(__file__).parent.parent.parent.parent.parent.parent
+        
+        # From: UI/modules_external/quote-calculator/implementations/calculator_wrapper.py
+        # To: AI_infrastructure/auth (need to go up 5 levels to project root)
+        # Levels: implementations -> quote-calculator -> modules_external -> UI -> AI_agents (root)
+        project_root = Path(__file__).parent.parent.parent.parent.parent
         credentials_path = project_root / 'AI_infrastructure' / 'auth'
         
         if str(credentials_path) not in sys.path:
@@ -131,14 +133,24 @@ def _get_calculator():
         with open(config_file, 'w') as f:
             json.dump(config, f, indent=2)
         
-        return ComprehensiveQuoteCalculator(config_path=str(config_file))
+        # Import InHousePrintDB to create db_connector
+        # ComprehensiveQuoteCalculator expects a db_connector, NOT a config_path
+        if str(root_dir) not in sys.path:
+            sys.path.insert(0, str(root_dir))
+        
+        from inhouse_modules.db_connector import InHousePrintDB
+        
+        # Create database connector
+        db_connector = InHousePrintDB(str(config_file))
+        
+        # Initialize calculator with db_connector
+        return ComprehensiveQuoteCalculator(db_connector)
         
     except Exception as e:
-        print(f"⚠️  [Calculator] Failed to load config: {e}")
+        print(f"⚠️  [Calculator] Failed to initialize: {e}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
-        # Fallback to None (calculator will use defaults)
-        return ComprehensiveQuoteCalculator(config_path=None)
+        raise RuntimeError(f"Calculator initialization failed: {e}")
 
 
 def _handle_calculator_error(e: Exception, product_type: str) -> Dict[str, Any]:
@@ -217,12 +229,32 @@ def calculate_flyers(
         Dict with success, total_price, per_unit_price, stock_details
     """
     try:
+        # Convert size to dimensions (mm)
+        size_map = {
+            "A6": (105, 148),
+            "DL": (99, 210),
+            "A5": (148, 210),
+            "A4": (210, 297)
+        }
+        width, height = size_map.get(size.upper(), (210, 297))
+        
+        # Extract GSM from stock string (e.g. "150GSM Gloss" -> 150)
+        import re
+        gsm_match = re.search(r'(\d+)GSM', stock, re.IGNORECASE)
+        gsm = int(gsm_match.group(1)) if gsm_match else 150
+        
+        # Convert sides to print_side parameters
+        print_side1 = 1  # Always print side 1
+        print_side2 = 1 if sides == 2 else 0
+        
         calculator = _get_calculator()
         result = calculator.calculate_flyers(
             quantity=quantity,
-            size=size,
-            stock=stock,
-            sides=sides
+            width=width,
+            height=height,
+            gsm=gsm,
+            print_side1=print_side1,
+            print_side2=print_side2
         )
         
         return {
@@ -232,9 +264,10 @@ def calculate_flyers(
             "size": size,
             "stock": stock,
             "sides": sides,
-            "total_price": result.get("total_price"),
-            "per_unit_price": result.get("per_unit_price"),
-            "stock_details": result.get("stock_details")
+            "total_cost_ex_gst": float(result.cost_to_business),
+            "total_cost_inc_gst": float(result.total_cost_inc_gst),
+            "per_unit_price": float(result.total_cost_inc_gst / quantity),
+            "stock_details": f"{width}x{height}mm, {gsm}GSM"
         }
         
     except Exception as e:
@@ -247,43 +280,112 @@ def calculate_booklets(
     cover_stock: str,
     inner_stock: str,
     size: str,
+    binding_type: str = "saddle_stitch",
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Calculate quote for saddle-stitched booklets
+    Calculate quote for booklets using Shopify calculators (database-independent)
     
     Args:
         quantity: Number of booklets
         pages: Total pages (must be divisible by 4)
-        cover_stock: Cover paper stock
-        inner_stock: Inner pages paper stock
-        size: "A5" or "A4"
+        cover_stock: Cover paper stock (e.g., "350GSM Gloss", "300GSM Satin")
+        inner_stock: Inner pages paper stock (e.g., "150GSM Gloss", "Uncoated Bond 100GSM")
+        size: "A5" or "A4" (Portrait/Landscape)
+        binding_type: "saddle_stitch", "wire_bound", "spiral_bound" (default: saddle_stitch)
         **kwargs: Additional parameters
     
     Returns:
         Dict with success, total_price, per_booklet_price, binding_cost
     """
     try:
-        calculator = _get_calculator()
-        result = calculator.calculate_booklets(
-            quantity=quantity,
-            pages=pages,
-            cover_stock=cover_stock,
-            inner_stock=inner_stock,
-            size=size
-        )
+        # Use Shopify calculators (no database dependency)
+        if not SHOPIFY_CALCULATORS_AVAILABLE:
+            raise RuntimeError("Shopify calculators not available")
+        
+        # Map stock names to Shopify format
+        cover_stock_mapped = cover_stock.replace("GSM", "GSM")  # Normalize GSM
+        inner_stock_mapped = inner_stock.replace("GSM", "GSM")
+        
+        # Map size to finish_size format
+        if size.upper() == "A5":
+            finish_size = "A5 Portrait"
+        elif size.upper() == "A4":
+            finish_size = "A4 Portrait"
+        else:
+            finish_size = f"{size} Portrait"
+        
+        # Determine cover print type based on stock
+        if "350" in cover_stock or "300" in cover_stock:
+            cover_print = "2pp Colour"  # Assume full color for heavier stocks
+        else:
+            cover_print = "1pp Colour"
+        
+        # Determine internal print type
+        if "Uncoated" in inner_stock or "Bond" in inner_stock:
+            internal_print = "Black & White"
+        else:
+            internal_print = "Full Colour"
+        
+        # Choose calculator based on binding type
+        if binding_type == "wire_bound" or "wire" in binding_type.lower():
+            calculator = WireBoundShopifyCalculator()
+            result = calculator.calculate(
+                quantity=quantity,
+                artworks=1,  # Single artwork
+                finish_size=finish_size,
+                printed_front_cover=cover_stock_mapped,
+                front_cover_print=cover_print,
+                printed_back_cover=cover_stock_mapped,
+                back_cover_print=cover_print,
+                internal_pages=pages - 4,  # Subtract cover pages
+                internal_stock=inner_stock_mapped,
+                internal_print=internal_print
+            )
+        elif binding_type == "spiral_bound" or "spiral" in binding_type.lower():
+            calculator = SpiralBoundShopifyCalculator()
+            result = calculator.calculate(
+                quantity=quantity,
+                artworks=1,
+                finish_size=finish_size,
+                printed_front_cover=cover_stock_mapped,
+                front_cover_print=cover_print,
+                printed_back_cover=cover_stock_mapped,
+                back_cover_print=cover_print,
+                internal_pages=pages - 4,
+                internal_stock=inner_stock_mapped,
+                internal_print=internal_print
+            )
+        else:
+            # Default: Use wire bound for saddle stitch approximation
+            calculator = WireBoundShopifyCalculator()
+            result = calculator.calculate(
+                quantity=quantity,
+                artworks=1,
+                finish_size=finish_size,
+                printed_front_cover=cover_stock_mapped,
+                front_cover_print=cover_print,
+                printed_back_cover=cover_stock_mapped,
+                back_cover_print=cover_print,
+                internal_pages=pages - 4,
+                internal_stock=inner_stock_mapped,
+                internal_print=internal_print
+            )
         
         return {
             "success": True,
-            "product": f"{size} Booklet ({pages} pages)",
+            "product": f"{size} Booklet ({pages} pages, {binding_type})",
             "quantity": quantity,
             "pages": pages,
             "cover_stock": cover_stock,
             "inner_stock": inner_stock,
             "size": size,
-            "total_price": result.get("total_price"),
-            "per_booklet_price": result.get("per_booklet_price"),
-            "binding_cost": result.get("binding_cost")
+            "binding_type": binding_type,
+            "total_price": float(result.total_price),
+            "per_booklet_price": float(result.unit_price),
+            "unit_price": float(result.unit_price),
+            "breakdown": {k: float(v) if hasattr(v, '__float__') else v 
+                         for k, v in result.breakdown.items()}
         }
         
     except Exception as e:
@@ -426,42 +528,71 @@ def calculate_corflute_signs(
         return _handle_calculator_error(e, "corflute signs")
 
 
-def get_stock_list(category: str = "all", **kwargs) -> List[Dict[str, Any]]:
+def get_stock_list(category: str = "all", **kwargs) -> Dict[str, Any]:
     """
-    Get list of available paper stocks with specifications
+    Get list of available paper stocks with specifications (hardcoded - no database)
     
     Args:
         category: Filter by category ("all", "gloss", "satin", "uncoated", "specialty")
         **kwargs: Additional parameters (ignored)
     
     Returns:
-        List of stock objects with name, gsm, finish, suitable_for, price_multiplier
+        Dict with success status and list of stock objects
     """
     try:
-        calculator = _get_calculator()
-        stocks = calculator.get_stock_list()
+        # Hardcoded stock list based on Shopify calculator standards
+        all_stocks = [
+            # Gloss Stocks
+            {"name": "150GSM Gloss", "gsm": 150, "finish": "Gloss", "suitable_for": ["flyers", "leaflets"], "price_multiplier": 1.0},
+            {"name": "170GSM Gloss", "gsm": 170, "finish": "Gloss", "suitable_for": ["flyers", "booklets"], "price_multiplier": 1.1},
+            {"name": "250GSM Gloss", "gsm": 250, "finish": "Gloss", "suitable_for": ["business cards", "covers"], "price_multiplier": 1.3},
+            {"name": "300GSM Gloss", "gsm": 300, "finish": "Gloss", "suitable_for": ["business cards", "covers"], "price_multiplier": 1.5},
+            {"name": "350GSM Gloss", "gsm": 350, "finish": "Gloss", "suitable_for": ["business cards", "covers"], "price_multiplier": 1.7},
+            
+            # Satin Stocks
+            {"name": "170GSM Satin", "gsm": 170, "finish": "Satin", "suitable_for": ["flyers", "booklets"], "price_multiplier": 1.1},
+            {"name": "250GSM Satin", "gsm": 250, "finish": "Satin", "suitable_for": ["business cards", "covers"], "price_multiplier": 1.3},
+            {"name": "300GSM Satin", "gsm": 300, "finish": "Satin", "suitable_for": ["business cards", "covers"], "price_multiplier": 1.5},
+            {"name": "350GSM Satin", "gsm": 350, "finish": "Satin", "suitable_for": ["business cards", "covers"], "price_multiplier": 1.7},
+            {"name": "400GSM Satin", "gsm": 400, "finish": "Satin", "suitable_for": ["premium business cards"], "price_multiplier": 2.0},
+            
+            # Uncoated Bond Stocks
+            {"name": "Uncoated Bond 80GSM", "gsm": 80, "finish": "Uncoated", "suitable_for": ["letterheads", "internal pages"], "price_multiplier": 0.7},
+            {"name": "Uncoated Bond 90GSM", "gsm": 90, "finish": "Uncoated", "suitable_for": ["letterheads", "internal pages"], "price_multiplier": 0.8},
+            {"name": "Uncoated Bond 100GSM", "gsm": 100, "finish": "Uncoated", "suitable_for": ["letterheads", "booklet internals"], "price_multiplier": 0.9},
+            {"name": "Uncoated Bond 120GSM", "gsm": 120, "finish": "Uncoated", "suitable_for": ["letterheads", "booklet internals"], "price_multiplier": 1.0},
+            
+            # Specialty Stocks
+            {"name": "Revive 100% Recycled 80GSM Bond", "gsm": 80, "finish": "Recycled Uncoated", "suitable_for": ["eco-friendly letterheads"], "price_multiplier": 0.85},
+            {"name": "310GSM Enviro Uncoated", "gsm": 310, "finish": "Recycled Uncoated", "suitable_for": ["eco-friendly business cards"], "price_multiplier": 1.6},
+        ]
         
         # Filter by category if specified
         if category and category != "all":
             category_lower = category.lower()
-            stocks = [
-                stock for stock in stocks
-                if category_lower in stock.get("finish", "").lower()
+            filtered_stocks = [
+                stock for stock in all_stocks
+                if category_lower in stock["finish"].lower()
             ]
+        else:
+            filtered_stocks = all_stocks
         
         # Format for AI consumption
-        return [{
-            "name": stock.get("name"),
-            "gsm": stock.get("gsm"),
-            "finish": stock.get("finish"),
-            "suitable_for": stock.get("suitable_for", []),
-            "price_multiplier": stock.get("price_multiplier", 1.0),
-            "description": f"{stock.get('gsm')}GSM {stock.get('finish')}"
-        } for stock in stocks]
+        return {
+            "success": True,
+            "data": [{
+                "name": stock["name"],
+                "gsm": stock["gsm"],
+                "finish": stock["finish"],
+                "suitable_for": stock["suitable_for"],
+                "price_multiplier": stock["price_multiplier"],
+                "description": f"{stock['gsm']}GSM {stock['finish']}"
+            } for stock in filtered_stocks]
+        }
         
     except Exception as e:
         print(f"❌ [Stock List] Error: {e}")
-        return []
+        return {"success": False, "error": str(e), "data": []}
 
 
 # ==================== GOD CALCULATOR WRAPPERS ====================

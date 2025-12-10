@@ -947,3 +947,199 @@ def test_credentials():
                 conn.close()
             except:
                 pass
+
+
+@auth_bp.route('/preferences', methods=['GET'])
+@require_auth
+def get_user_preferences():
+    """
+    GET /api/auth/preferences
+    Get user preferences and settings
+    
+    Returns all fields from ai_infrastructure.user_preferences table
+    """
+    user_id = request.user['user_id']
+    cursor = None
+    
+    try:
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders(
+                'SELECT * FROM ai_infrastructure.user_preferences WHERE user_id = %s',
+                (user_id,)
+            )
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            
+            cursor.close()
+            
+            if not row:
+                # Return default preferences if none exist
+                return jsonify({
+                    'success': True,
+                    'preferences': {
+                        'user_id': user_id,
+                        'communication_style': 'professional',
+                        'detail_level': 'standard',
+                        'auth_platform': 'auto',
+                        'preferred_tools': None,
+                        'custom_preferences': None,
+                        'nickname': '',
+                        'ai_model': 'claude-sonnet-4-5-20250929',
+                        'ai_temperature': 1.0,
+                        'ai_top_p': 1.0,
+                        'ai_max_tokens': 4096,
+                        'ai_thinking_enabled': 0,
+                        'ai_thinking_budget': 10000,
+                        'ai_streaming_enabled': 1
+                    }
+                })
+            
+            # Convert row to dict
+            if isinstance(row, dict):
+                prefs = row
+            else:
+                # Map tuple to dict based on table schema
+                prefs = {
+                    'user_id': row[0],
+                    'communication_style': row[1],
+                    'detail_level': row[2],
+                    'auth_platform': row[3],
+                    'preferred_tools': row[4],
+                    'custom_preferences': row[5],
+                    'created_at': row[6].isoformat() if row[6] else None,
+                    'updated_at': row[7].isoformat() if row[7] else None,
+                    'nickname': row[8],
+                    'detected_country': row[9],
+                    'detected_city': row[10],
+                    'detected_timezone': row[11],
+                    'detected_ip_address': row[12],
+                    'manual_location_override': row[13],
+                    'manual_timezone_override': row[14],
+                    'use_manual_location': row[15],
+                    'use_manual_timezone': row[16],
+                    'last_location_check': row[17].isoformat() if row[17] else None,
+                    'ai_memories': row[18],
+                    'memory_updated_at': row[19].isoformat() if row[19] else None,
+                    'ai_model': row[20],
+                    'ai_temperature': float(row[21]) if row[21] else 1.0,
+                    'ai_top_p': float(row[22]) if row[22] else 1.0,
+                    'ai_max_tokens': int(row[23]) if row[23] else 4096,
+                    'ai_thinking_enabled': int(row[24]) if row[24] else 0,
+                    'ai_thinking_budget': int(row[25]) if row[25] else 10000,
+                    'ai_streaming_enabled': int(row[26]) if row[26] else 1
+                }
+            
+            return jsonify({
+                'success': True,
+                'preferences': prefs
+            })
+    
+    except Exception as e:
+        print(f'❌ [GET PREFERENCES] Error for user {user_id}: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+
+
+@auth_bp.route('/preferences', methods=['PUT'])
+@require_auth
+def update_user_preferences():
+    """
+    PUT /api/auth/preferences
+    Update user preferences and settings
+    
+    Request body can include any fields from user_preferences table
+    """
+    user_id = request.user['user_id']
+    data = request.get_json()
+    cursor = None
+    
+    try:
+        # Build UPDATE query dynamically based on provided fields
+        allowed_fields = [
+            'communication_style', 'detail_level', 'auth_platform',
+            'preferred_tools', 'custom_preferences', 'nickname',
+            'manual_location_override', 'manual_timezone_override',
+            'use_manual_location', 'use_manual_timezone',
+            'ai_model', 'ai_temperature', 'ai_top_p', 'ai_max_tokens',
+            'ai_thinking_enabled', 'ai_thinking_budget', 'ai_streaming_enabled'
+        ]
+        
+        updates = []
+        values = []
+        
+        for field in allowed_fields:
+            if field in data:
+                updates.append(f"{field} = %s")
+                values.append(data[field])
+        
+        if not updates:
+            return jsonify({
+                'success': False,
+                'error': 'No valid fields to update'
+            }), 400
+        
+        # Add updated_at
+        updates.append("updated_at = NOW()")
+        values.append(user_id)
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Check if preferences exist
+            sql_check, params_check = convert_sql_placeholders(
+                'SELECT user_id FROM ai_infrastructure.user_preferences WHERE user_id = %s',
+                (user_id,)
+            )
+            cursor.execute(sql_check, params_check)
+            exists = cursor.fetchone()
+            
+            if exists:
+                # UPDATE
+                sql = f"UPDATE ai_infrastructure.user_preferences SET {', '.join(updates)} WHERE user_id = %s"
+                sql, params = convert_sql_placeholders(sql, tuple(values))
+                cursor.execute(sql, params)
+            else:
+                # INSERT with defaults
+                field_names = ['user_id'] + [f.split(' = ')[0] for f in updates if f != "updated_at = NOW()"]
+                placeholders = ['%s'] * len(field_names)
+                sql = f"INSERT INTO ai_infrastructure.user_preferences ({', '.join(field_names)}) VALUES ({', '.join(placeholders)})"
+                insert_values = [user_id] + [v for i, v in enumerate(values) if i < len(values) - 1]
+                sql, params = convert_sql_placeholders(sql, tuple(insert_values))
+                cursor.execute(sql, params)
+            
+            conn.commit()
+            cursor.close()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Preferences updated successfully'
+            })
+    
+    except Exception as e:
+        print(f'❌ [UPDATE PREFERENCES] Error for user {user_id}: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass

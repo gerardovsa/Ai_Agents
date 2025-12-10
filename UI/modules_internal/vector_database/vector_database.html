@@ -50,7 +50,8 @@
                 </div>
             </div>
         </div>
-        <button onclick="window.moduleState.loadConnectionsModal()"
+        <button
+            onclick="window.parent.loadConnectionsModal ? window.parent.loadConnectionsModal() : (window.loadConnectionsModal ? window.loadConnectionsModal() : alert('Platform Connections not available'))"
             style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #F59E0B; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
             <i class="fas fa-cog"></i> Configure in Platform Connections
         </button>
@@ -72,7 +73,8 @@
                 </div>
             </div>
         </div>
-        <button onclick="window.moduleState.loadConnectionsModal()"
+        <button
+            onclick="window.parent.loadConnectionsModal ? window.parent.loadConnectionsModal() : (window.loadConnectionsModal ? window.loadConnectionsModal() : alert('Platform Connections not available'))"
             style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
             <i class="fas fa-cog"></i> Manage Credentials
         </button>
@@ -103,6 +105,12 @@
         <button class="vector-db-tab" data-tab="qdrant" onclick="window.vectorDbSidebar.switchTab('qdrant')"
             style="display: none;">
             <i class="fas fa-server"></i> Qdrant
+        </button>
+        <button class="vector-db-tab" data-tab="namespaces" onclick="window.vectorDbSidebar.switchTab('namespaces')">
+            <i class="fas fa-folder"></i> Folders
+        </button>
+        <button class="vector-db-tab" data-tab="search" onclick="window.vectorDbSidebar.switchTab('search')">
+            <i class="fas fa-search"></i> Search
         </button>
     </div>
 </div>
@@ -340,10 +348,120 @@
                 </label>
                 <input type="text" id="upload-namespace" class="form-input" placeholder="Leave empty for default" />
             </div>
+
+            <div class="form-group">
+                <label class="form-label" for="upload-category">
+                    <i class="fas fa-folder"></i> Category
+                </label>
+                <select id="upload-category" class="form-input">
+                    <option value="general">📂 General</option>
+                    <option value="legal">⚖️ Legal</option>
+                    <option value="finance">💰 Finance</option>
+                    <option value="marketing">📢 Marketing</option>
+                    <option value="hr">👥 HR</option>
+                    <option value="engineering">⚙️ Engineering</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="upload-tags">
+                    <i class="fas fa-tags"></i> Tags (comma separated)
+                </label>
+                <input type="text" id="upload-tags" class="form-input" placeholder="important, 2024, confidential" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="upload-visibility">
+                    <i class="fas fa-eye"></i> Visibility
+                </label>
+                <select id="upload-visibility" class="form-input">
+                    <option value="user">🔒 Private (Only Me)</option>
+                    <option value="team">👥 Team</option>
+                    <option value="global">🌍 Global (Everyone)</option>
+                </select>
+            </div>
         </div>
     </div>
 
-    <!-- TAB 3: DOCUMENTS -->
+    <!-- TAB 3: NAMESPACES (FOLDERS) -->
+    <div id="namespaces-tab" class="tab-content" style="display: none;">
+        <div class="namespaces-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-folder"></i> Document Folders
+                </div>
+                <button class="vector-db-icon-btn" onclick="window.vectorDbSidebar.loadNamespaces()" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+
+            <div id="namespaces-list" style="margin-top: 16px;">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                    <div class="empty-text">No folders created yet</div>
+                    <div class="empty-hint">Upload documents to create folders</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: SEARCH -->
+    <div id="search-tab" class="tab-content" style="display: none;">
+        <div class="search-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-search"></i> Advanced Search
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="search-query">
+                    <i class="fas fa-search"></i> Search Query
+                </label>
+                <input type="text" id="search-query" class="form-input" placeholder="Enter your search query..." />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="search-namespaces">
+                    <i class="fas fa-folder"></i> Search In (Folders)
+                </label>
+                <select id="search-namespaces" class="form-input" multiple size="4">
+                    <option value="all" selected>All Folders</option>
+                </select>
+                <div style="font-size: 11px; color: #6B7280; margin-top: 4px;">
+                    Hold Ctrl/Cmd to select multiple folders
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="search-category">
+                    <i class="fas fa-filter"></i> Category Filter
+                </label>
+                <select id="search-category" class="form-input">
+                    <option value="">All Categories</option>
+                    <option value="legal">⚖️ Legal</option>
+                    <option value="finance">💰 Finance</option>
+                    <option value="marketing">📢 Marketing</option>
+                    <option value="hr">👥 HR</option>
+                    <option value="engineering">⚙️ Engineering</option>
+                    <option value="general">📂 General</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" onclick="window.vectorDbSidebar.performSearch()"
+                style="width: 100%; margin-top: 16px;">
+                <i class="fas fa-search"></i> Search
+            </button>
+
+            <div id="search-results" style="margin-top: 24px;">
+                <!-- Search results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 5: DOCUMENTS -->
     <div id="documents-tab" class="tab-content" style="display: none;">
         <div class="documents-section">
             <div class="section-header">

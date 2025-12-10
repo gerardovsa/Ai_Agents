@@ -183,8 +183,8 @@
 }
 
 .kanban-column {
-    min-width: 400px;
-    max-width: 400px;
+    width: 350px;
+    min-width: 350px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-default);
     border-radius: 8px;
@@ -192,6 +192,7 @@
     flex-direction: column;
     height: fit-content;
     max-height: calc(100vh - var(--header-height) - 180px);
+    flex-shrink: 0;
 }
 
 .kanban-column-header {

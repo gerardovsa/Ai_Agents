@@ -84,3 +84,11 @@ python-dateutil==2.8.2
 # Authentication & Security (NEW)
 bcrypt==4.0.1
 PyJWT==2.8.0
+
+# Engineering & CAD Libraries (NEW Dec 10, 2025)
+PyNiteFEA>=1.6.2         # Structural engineering calculations (beam deflection, stress analysis)
+sectionproperties>=3.9.0 # Cross-section properties for structural members
+forallpeople>=2.7.1      # Unit conversion and dimensional analysis
+handcalcs>=1.10.0        # Beautiful engineering calculation documentation
+cadquery>=2.6.1          # Parametric 3D CAD model generation (STEP/STL export)
+ezdxf>=1.4.3             # 2D CAD (DXF/DWG) file generation and editing

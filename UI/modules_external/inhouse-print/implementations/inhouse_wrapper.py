@@ -80,6 +80,7 @@ def _get_agent() -> ToolUseAgent:
             
             # Path calculation: From UI/modules_external/inhouse-print/implementations/
             # To: AI_infrastructure/auth/ (need to go up 5 levels to project root)
+            # Levels: implementations -> inhouse-print -> modules_external -> UI -> AI_agents (root)
             current_file = Path(__file__).resolve()
             project_root = current_file.parent.parent.parent.parent.parent
             credentials_path = project_root / 'AI_infrastructure' / 'auth'

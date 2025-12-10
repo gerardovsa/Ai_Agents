@@ -86,9 +86,9 @@ def _get_query_library(**kwargs) -> Optional[QueryLibrary]:
             # Import credentials manager
             import sys
             import json
-            # From: UI/external/modules/quote-calculator/implementations/query_library_wrapper.py
-            # To: AI_infrastructure/auth (need to go up 6 levels to project root)
-            project_root = Path(__file__).parent.parent.parent.parent.parent.parent
+            # From: UI/modules_external/quote-calculator/implementations/query_library_wrapper.py
+            # Levels: implementations -> quote-calculator -> modules_external -> UI -> AI_agents (5 levels up)
+            project_root = Path(__file__).parent.parent.parent.parent.parent
             credentials_path = project_root / 'AI_infrastructure' / 'auth'
             
             if str(credentials_path) not in sys.path:

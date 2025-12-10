@@ -1131,12 +1131,17 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         print(f"[STREAM] 🔍 DEBUG: System prompt (fallback): {len(system_prompt):,} characters")
     
     # ============================================
-    # FIXED: COMPREHENSIVE CONTEXT INJECTION
+    # FIXED: COMPREHENSIVE CONTEXT INJECTION WITH EMAIL SUPPORT
     # ============================================
     cursor = None  # ✅ Initialize before try
     conn = None
     cursor2 = None  # ✅ Second cursor for synergy queries
     conn2 = None
+    
+    # ✅ Cache for thread context to avoid repeated queries
+    cache_key = f"thread_context_{thread_slug}"
+    if not hasattr(g, 'thread_context_cache'):
+        g.thread_context_cache = {}
     
     try:
         conn = get_database_connection('sessions')
@@ -1157,7 +1162,10 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         thread_row = cursor.fetchone()
         
         if thread_row:
-            context_sections = []
+            # Use list for O(n) performance instead of string concatenation
+            context_parts = []
+            context_token_count = 0
+            MAX_CONTEXT_TOKENS = 180000  # Leave buffer for Claude 200k limit
             
             # Synergy Session Context
             if thread_row['synergy_card_id']:
@@ -1236,56 +1244,88 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 except Exception as synergy_error:
                     print(f"[STREAM] ⚠️  Error loading Synergy context: {synergy_error}")
             
-            # Email Thread Context
+            # ✅ SECURED Email Thread Context with Validation
             if thread_row['email_thread_id']:
+                import html
+                import re
+                
                 email_thread_id = thread_row['email_thread_id']
                 email_subject = thread_row['email_subject'] or 'No Subject'
                 email_participants = thread_row['email_participants']
                 
-                print(f"[STREAM] 📧 EMAIL THREAD LINKED → {email_thread_id}")
+                # ✅ Validate email_thread_id format (Google: alphanumeric + underscores/dashes)
+                if not re.match(r'^[a-zA-Z0-9_-]{1,255}$', str(email_thread_id)):
+                    print(f"[STREAM] ⚠️ Invalid email_thread_id format: {email_thread_id}")
+                    email_thread_id = None
                 
-                email_context = f"\n\n{'='*80}\n"
-                email_context += "📧 EMAIL THREAD CONTEXT\n"
-                email_context += f"{'='*80}\n\n"
-                email_context += f"This thread is linked to an email conversation:\n\n"
-                email_context += f"**Subject:** {email_subject}\n"
-                email_context += f"**Email ID:** {email_thread_id}\n"
-                
-                # Parse participants
-                if email_participants:
-                    try:
-                        participants_list = json.loads(email_participants) if isinstance(email_participants, str) else email_participants
-                        if participants_list:
-                            if isinstance(participants_list, list):
-                                email_context += f"**Participants:** {', '.join(participants_list)}\n"
+                if email_thread_id:  # Only proceed if validation passed
+                    # ✅ Sanitize subject (escape HTML, limit length)
+                    email_subject = html.escape(str(email_subject))[:500]
+                    
+                    print(f"[STREAM] 📧 EMAIL THREAD LINKED → {email_thread_id}")
+                    
+                    # Use list for efficient string building
+                    email_parts = []
+                    email_parts.append(f"\n\n{'='*80}\n")
+                    email_parts.append("📧 EMAIL THREAD CONTEXT\n")
+                    email_parts.append(f"{'='*80}\n\n")
+                    email_parts.append(f"This thread is linked to an email conversation:\n\n")
+                    email_parts.append(f"**Subject:** {email_subject}\n")
+                    email_parts.append(f"**Email ID:** {email_thread_id}\n")
+                    
+                    # ✅ SECURED JSONB parsing with validation
+                    if email_participants:
+                        try:
+                            # Handle both string JSON and already-parsed lists
+                            if isinstance(email_participants, str):
+                                participants_list = json.loads(email_participants)
+                            elif isinstance(email_participants, list):
+                                participants_list = email_participants
                             else:
-                                email_context += f"**Participants:** {participants_list}\n"
-                    except:
-                        email_context += f"**Participants:** {email_participants}\n"
-                
-                email_context += f"\n**Email Integration:**\n"
-                email_context += f"- This conversation was initiated from or linked to an email in the Communication Hub\n"
-                email_context += f"- You have full context about this email thread and can reference it in your responses\n"
-                email_context += f"- The user may ask questions about this email or request actions related to it\n"
-                email_context += f"- You can help compose replies, summarize the email, extract action items, etc.\n"
-                
-                email_context += f"\n**Available Email Tools:**\n"
-                email_context += f"- gmail_get_message(message_id='{email_thread_id}') - Get full email content and thread\n"
-                email_context += f"- gmail_send_message(...) - Send a reply to this email\n"
-                email_context += f"- gmail_create_draft(...) - Create a draft reply\n"
-                email_context += f"- gmail_search_messages(...) - Search related emails\n"
-                email_context += f"- gmail_modify_labels(message_id='{email_thread_id}', ...) - Add/remove email labels\n"
-                
-                email_context += f"\n**What You Can Do:**\n"
-                email_context += f"- Answer questions about the email content\n"
-                email_context += f"- Help draft responses or replies\n"
-                email_context += f"- Extract action items or important details from the email\n"
-                email_context += f"- Summarize the email conversation if it's lengthy\n"
-                email_context += f"- Suggest appropriate follow-up actions\n"
-                email_context += f"- Track email-related tasks in this thread\n"
-                email_context += f"- Use Communication Hub to view the full email if needed\n"
-                
-                context_sections.append(email_context)
+                                participants_list = None
+                            
+                            # Validate structure and content
+                            if isinstance(participants_list, list) and len(participants_list) > 0:
+                                valid_emails = []
+                                email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                                
+                                for email in participants_list[:20]:  # Limit to 20
+                                    if isinstance(email, str) and email_regex.match(email):
+                                        valid_emails.append(html.escape(email))
+                                
+                                if valid_emails:
+                                    email_parts.append(f"**Participants:** {', '.join(valid_emails)}\n")
+                        except json.JSONDecodeError as e:
+                            print(f"[STREAM] ⚠️ Failed to parse email_participants: {e}")
+                        except Exception as e:
+                            print(f"[STREAM] ⚠️ Error parsing participants: {e}")
+                    
+                    email_parts.append(f"\n**Email Integration:**\n")
+                    email_parts.append(f"- This conversation was initiated from or linked to an email in the Communication Hub\n")
+                    email_parts.append(f"- You have full context about this email thread and can reference it in your responses\n")
+                    email_parts.append(f"- The user may ask questions about this email or request actions related to it\n")
+                    email_parts.append(f"- You can help compose replies, summarize the email, extract action items, etc.\n")
+                    
+                    # ✅ FIXED tool names to match actual registry
+                    email_parts.append(f"\n**Available Email Tools:**\n")
+                    email_parts.append(f"- gmail_get_message(message_id='{email_thread_id}') - Get full email content and thread\n")
+                    email_parts.append(f"- gmail_send_email(...) - Send a reply to this email\n")
+                    email_parts.append(f"- gmail_create_draft(...) - Create a draft reply\n")
+                    email_parts.append(f"- gmail_search_messages(...) - Search related emails\n")
+                    email_parts.append(f"- gmail_modify_labels(message_id='{email_thread_id}', ...) - Add/remove email labels\n")
+                    
+                    email_parts.append(f"\n**What You Can Do:**\n")
+                    email_parts.append(f"- Answer questions about the email content\n")
+                    email_parts.append(f"- Help draft responses or replies\n")
+                    email_parts.append(f"- Extract action items or important details from the email\n")
+                    email_parts.append(f"- Summarize the email conversation if it's lengthy\n")
+                    email_parts.append(f"- Suggest appropriate follow-up actions\n")
+                    email_parts.append(f"- Track email-related tasks in this thread\n")
+                    email_parts.append(f"- Use Communication Hub to view the full email if needed\n")
+                    
+                    # ✅ Join efficiently (O(n) instead of O(n²))
+                    email_context = ''.join(email_parts)
+                    context_sections.append(email_context)
             
             # Workflow Automation Context
             if thread_row['workflow_slug']:
@@ -1369,49 +1409,53 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 
                 context_sections.append(doc_context)
             
-            # Inject all contexts
+            # ✅ FIXED: Inject contexts with O(n) performance (list joining)
             if context_sections:
                 print(f"[STREAM] 🔍 DEBUG: BEFORE context injection: {len(system_prompt):,} characters")
+                
+                # Build context parts list instead of concatenating strings
+                context_parts_to_add = []
                 for idx, context in enumerate(context_sections):
                     print(f"[STREAM] 🔍 DEBUG: Context section [{idx}] size: {len(context):,} characters")
-                    system_prompt += context
-                    system_prompt += f"{'='*80}\n"
-                    print(f"[STREAM] 🔍 DEBUG: After context [{idx}]: {len(system_prompt):,} characters")
+                    context_parts_to_add.append(context)
+                    context_parts_to_add.append(f"{'='*80}\n")
+                
+                # ✅ Single join operation (O(n) instead of O(n²))
+                additional_context = ''.join(context_parts_to_add)
+                system_prompt += additional_context
                 
                 print(f"[STREAM] ✅ Context injection: {len(context_sections)} sections")
                 print(f"[STREAM] 🔍 DEBUG: System prompt after context injection: {len(system_prompt):,} characters")
-        
-        # ✅ Close cursor BEFORE leaving try block
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
     
     except Exception as e:
         print(f"[STREAM] ⚠️ Error injecting context: {e}")
     
-    finally:  # ✅ Guaranteed cleanup
-        if cursor2:  # ✅ Cleanup synergy cursor
-            try:
-                cursor2.close()
-            except:
-                pass
-        if conn2:
-            try:
-                conn2.close()
-            except:
-                pass
-        
-        if cursor:  # ✅ Cleanup main cursor
+    finally:
+        # ✅ CRITICAL: Cleanup cursors and connections in finally block
+        # Close cursors BEFORE connections, check for None before closing
+        if cursor is not None:
             try:
                 cursor.close()
-            except:
-                pass
-        if conn:
+            except Exception as close_err:
+                print(f"[STREAM] ⚠️ Error closing cursor: {close_err}")
+        
+        if conn is not None:
             try:
                 conn.close()
-            except:
-                pass
+            except Exception as close_err:
+                print(f"[STREAM] ⚠️ Error closing connection: {close_err}")
+        
+        if cursor2 is not None:
+            try:
+                cursor2.close()
+            except Exception as close_err:
+                print(f"[STREAM] ⚠️ Error closing cursor2: {close_err}")
+        
+        if conn2 is not None:
+            try:
+                conn2.close()
+            except Exception as close_err:
+                print(f"[STREAM] ⚠️ Error closing connection2: {close_err}")
     
     # Append system prompt continuation
     system_prompt_continued = """

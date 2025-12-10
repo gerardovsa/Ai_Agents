@@ -894,6 +894,13 @@ window.ThreadCardTemplates = {
         const safeEscape = window.safeEscape || ((str) => String(str).replace(/[&<>"']/g, ''));
         const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
+        
+        // File count badge (Gap #1 fix)
+        const fileCount = synergyMeta?.internal_docs_count || 0;
+        const fileList = synergyMeta?.internal_docs || [];
+        const fileTooltip = fileList.length > 0 
+            ? fileList.map(f => `📄 ${f.title} (${f.doc_type})`).join('\n')
+            : 'No files attached';
 
         return thread.synergy_card_id ? `
             <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}">
@@ -907,6 +914,14 @@ window.ThreadCardTemplates = {
                     <span class="synergy-badge-title">${synergyDisplay}</span>
                     ${synergyPriority ? `<span class="synergy-badge-priority">${synergyPriority}</span>` : ''}
                 </button>
+                ${fileCount > 0 ? `
+                <span class="synergy-file-count-badge" 
+                      title="${safeEscape(fileTooltip)}"
+                      onclick="event.stopPropagation(); ThreadManager.showSynergyFiles('${thread.synergy_card_id}')">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="file-count">${fileCount}</span>
+                </span>
+                ` : ''}
                 <button class="thread-synergy-unlink" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
                     <i class="fas fa-unlink"></i>
                 </button>

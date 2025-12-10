@@ -236,6 +236,7 @@ def create_thread():
         
         thread_data = {
             'id': thread_id,
+            'slug': thread_id,  # ✅ CRITICAL: Frontend expects 'slug' field
             'title': title,
             'created': created,
             'agent_id': agent_id,
@@ -246,7 +247,10 @@ def create_thread():
         }
         
         return success_response(
-            {'thread': thread_data},
+            {
+                'thread': thread_data,
+                'thread_slug': thread_id  # ✅ CRITICAL: Communication Hub expects this at root level
+            },
             message='Thread created successfully'
         )
         

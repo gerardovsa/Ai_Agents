@@ -68,10 +68,60 @@ class LuxuryClassicPullUpBannersShopifyCalculator:
         Returns:
             LuxuryClassicPullUpBannersShopifyCalculatorQuoteResult with pricing details
         """
-        # TODO: Implement calculation logic based on JSON config
-        # This is a template - actual implementation needed
-        
-        raise NotImplementedError("Calculator implementation pending")
+        quantity = int(kwargs.get('quantity', kwargs.get('qty', 5)))
+        width = Decimal(kwargs.get('width_mm', kwargs.get('width', 850)))
+        height = Decimal(kwargs.get('height_mm', kwargs.get('height', 2000)))
+        material = kwargs.get('material', 'Premium Vinyl')
+
+        if quantity <= 0:
+            raise ValueError('Quantity must be > 0')
+
+        area_m2 = (width * height) / Decimal('1000000')
+        material_rate = Decimal('28.00') if 'premium' in material.lower() else Decimal('18.00')
+
+        impos_setup = Decimal('75')
+        print_cost = area_m2 * Decimal('18.00') * Decimal(quantity)
+        hardware_cost = Decimal('75.00') * Decimal(quantity)
+
+        biz_cost = impos_setup + print_cost + hardware_cost
+
+        profit_margin_rate = self._get_profit_margin(float(biz_cost))
+        profit_amount = biz_cost * profit_margin_rate
+        sub_total = biz_cost + profit_amount
+
+        GST_RATE = Decimal('1.10')
+        subtotal_with_increase = sub_total
+        total_price = (subtotal_with_increase * GST_RATE) * GST_RATE
+        total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        unit_price = total_price / Decimal(quantity)
+
+        breakdown = {
+            'impos_setup': impos_setup,
+            'print_cost': print_cost,
+            'hardware_cost': hardware_cost,
+            'biz_cost': biz_cost,
+            'profit_margin_rate': Decimal(profit_margin_rate),
+            'profit_amount': profit_amount,
+            'subtotal': sub_total,
+            'total_price': total_price,
+        }
+
+        specifications = {
+            'quantity': quantity,
+            'width_mm': float(width),
+            'height_mm': float(height),
+            'material': material
+        }
+
+        return LuxuryClassicPullUpBannersShopifyCalculatorQuoteResult(
+            total_price=total_price,
+            unit_price=unit_price,
+            cost_per_item=unit_price,
+            quantity=quantity,
+            breakdown=breakdown,
+            specifications=specifications
+        )
     
     def _get_padding_rate(self, quantity: int) -> Decimal:
         """Get padding rate (no tiers defined)"""

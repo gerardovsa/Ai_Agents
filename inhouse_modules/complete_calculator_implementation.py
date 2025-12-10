@@ -30,6 +30,17 @@ from shopify_calculators.business_card_calculator_shopify import (
     ShopifyBusinessCardResult
 )
 
+# Import Shopify Calculator Wrappers (Simplified AI-friendly interface)
+from shopify_calculator_wrappers import (
+    calculate_wire_bound_books_shopify,
+    calculate_spiral_bound_books_shopify,
+    calculate_perfect_bound_books_shopify,
+    calculate_saddle_stitch_books_shopify,
+    calculate_folded_flyers_shopify,
+    calculate_economical_business_cards_shopify,
+    calculate_premium_business_cards_shopify
+)
+
 # ============================================================================
 # DATA STRUCTURES
 # ============================================================================
@@ -2751,6 +2762,800 @@ class ComprehensiveQuoteCalculator:
                         "min": 1,
                         "max": 10,
                         "error_message": "Artworks must be between 1 and 10"
+                    }
+                }
+            },
+            
+            "wire_bound_books": {
+                "description": "Wire Bound Books - Metal wire coil binding using Shopify calculator (simplified interface)",
+                "calculator_type": "Shopify (WireBoundShopifyCalculator via wrapper)",
+                "wrapper_function": "calculate_wire_bound_books_shopify",
+                "product_features": {
+                    "binding_type": "Metal wire coil (WooCommerce DPO logic)",
+                    "lays_flat": "Books lay completely flat when opened (ideal for presentations)",
+                    "thickness_tiers": "14 binding price tiers based on book thickness",
+                    "clear_pvc_front": "Optional clear PVC overlay on front cover",
+                    "gst_surcharge": "15% GST + $44 surcharge (WooCommerce DPO)",
+                    "size_factor": "Small sizes (A6, DL, A5 Landscape) use HALF wire cost"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of books to produce",
+                        "validation": "Must be positive integer",
+                        "typical_values": [3, 5, 10, 25, 50, 100],
+                        "example": 3,
+                        "extraction_hints": [
+                            "Look for quantities in email: '3 copies', '5 books', etc.",
+                            "Default to 1 if not specified"
+                        ]
+                    },
+                    "pages": {
+                        "type": "int",
+                        "description": "Total page count (internal pages only, not including covers)",
+                        "validation": "Must be 1-500",
+                        "example": 316,
+                        "extraction_hints": [
+                            "Look for 'pp', 'pages', 'page count' in specifications",
+                            "Example: '316pp' means 316 pages",
+                            "If specs say '315pp + 6pp A3', add them: 315+6=321 total pages"
+                        ]
+                    },
+                    "size": {
+                        "type": "string",
+                        "description": "Book size",
+                        "enum": ["A4", "A5", "A6", "DL"],
+                        "default": "A4",
+                        "most_common": "A4",
+                        "example": "A4",
+                        "extraction_hints": [
+                            "Look for 'A4', 'A5', 'A6', 'DL' in specifications",
+                            "If size says 'A4 Portrait', use 'A4'",
+                            "Default to A4 if not specified"
+                        ]
+                    },
+                    "cover_stock": {
+                        "type": "string",
+                        "description": "Cover paper stock weight and type",
+                        "enum": ["250GSM Satin", "300GSM Satin", "350GSM Satin"],
+                        "default": "350GSM Satin",
+                        "most_common": "350GSM Satin",
+                        "example": "350GSM Satin",
+                        "extraction_hints": [
+                            "Look for GSM weight in specifications: '350gsm', '350GSM'",
+                            "Look for stock type: 'Satin', 'Silk', 'Gloss'",
+                            "Common pattern: '350GSM Satin' or '350gsm Black Satin'",
+                            "Default to 350GSM Satin if not specified"
+                        ]
+                    },
+                    "inner_stock": {
+                        "type": "string",
+                        "description": "Internal pages paper stock",
+                        "enum": ["100GSM Uncoated", "100GSM Satin", "80GSM Uncoated", "80GSM Satin"],
+                        "default": "100GSM Uncoated",
+                        "most_common": "100GSM Uncoated",
+                        "example": "100GSM Uncoated",
+                        "extraction_hints": [
+                            "Look for 'internals', 'internal pages', 'inner pages'",
+                            "Common: '100GSM Uncoated', '100gsm Uncoated Bond'",
+                            "Default to 100GSM Uncoated if not specified"
+                        ]
+                    }
+                },
+                
+                "optional_parameters": {
+                    "cover_cellophane": {
+                        "type": "string",
+                        "description": "Cellophane finish on covers",
+                        "enum": ["No Cellophane", "Gloss Cellophane", "Matt Cellophane"],
+                        "default": "No Cellophane",
+                        "example": "No Cellophane",
+                        "extraction_hints": [
+                            "Look for 'cellophane', 'cello', 'laminate', 'gloss', 'matt'",
+                            "Default to No Cellophane if not specified"
+                        ]
+                    },
+                    "front_cover_pvc": {
+                        "type": "bool",
+                        "description": "Add clear PVC overlay on front cover",
+                        "default": True,
+                        "example": True,
+                        "extraction_hints": [
+                            "Look for 'Clear Acetate', 'Clear PVC', 'Clear overlay'",
+                            "Default to True (most wire bound books have PVC front)"
+                        ]
+                    }
+                },
+                
+                "natural_language_mapping": {
+                    "wire_bound": "Use wire_bound_books calculator",
+                    "wire binding": "Use wire_bound_books calculator",
+                    "wire coil": "Use wire_bound_books calculator",
+                    "lay flat binding": "Use wire_bound_books calculator (wire binding lays flat)",
+                    "presentation books": "Often use wire_bound_books",
+                    "manual binding": "Could be wire_bound_books or spiral_bound_books"
+                },
+                
+                "business_rules": {
+                    "pacific_partnerships_example": {
+                        "specs": "A4 Portrait, Clear Acetate front, 350GSM Black Satin back, 100GSM Uncoated internals",
+                        "mapping": {
+                            "quantity": 3,
+                            "pages": 316,
+                            "size": "A4",
+                            "cover_stock": "350GSM Satin",
+                            "inner_stock": "100GSM Uncoated",
+                            "cover_cellophane": "No Cellophane",
+                            "front_cover_pvc": True
+                        }
+                    }
+                },
+                
+                "validation_rules": {
+                    "page_count": {
+                        "rule": "Must be 1-500 pages",
+                        "min": 1,
+                        "max": 500,
+                        "error_message": "Page count must be between 1 and 500"
+                    },
+                    "quantity": {
+                        "rule": "Must be positive integer",
+                        "min": 1,
+                        "error_message": "Quantity must be at least 1"
+                    }
+                }
+            },
+            
+            "spiral_bound_books": {
+                "description": "Spiral Bound Books - Plastic spiral coil binding using Shopify calculator (simplified interface)",
+                "calculator_type": "Shopify (SpiralBoundShopifyCalculator via wrapper)",
+                "wrapper_function": "calculate_spiral_bound_books_shopify",
+                "product_features": {
+                    "binding_type": "Plastic spiral coil (WooCommerce DPO logic)",
+                    "durability": "More durable than wire for heavy use",
+                    "thickness_tiers": "17 binding price tiers (more granular than wire's 14)",
+                    "clear_pvc_front": "Optional clear PVC overlay on front cover",
+                    "gst_surcharge": "15% GST + $44 surcharge (same as wire)",
+                    "size_factor": "Small sizes (A6, DL, A5 Landscape) use HALF spiral cost"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of books to produce",
+                        "validation": "Must be positive integer",
+                        "typical_values": [3, 5, 10, 25, 50, 100],
+                        "example": 5
+                    },
+                    "pages": {
+                        "type": "int",
+                        "description": "Total page count (internal pages only)",
+                        "validation": "Must be 1-500",
+                        "example": 372
+                    },
+                    "size": {
+                        "type": "string",
+                        "description": "Book size",
+                        "enum": ["A4", "A5", "A6", "DL"],
+                        "default": "A4",
+                        "example": "A4"
+                    },
+                    "cover_stock": {
+                        "type": "string",
+                        "description": "Cover paper stock",
+                        "enum": ["250GSM Satin", "300GSM Satin", "350GSM Satin"],
+                        "default": "350GSM Satin",
+                        "example": "350GSM Satin"
+                    },
+                    "inner_stock": {
+                        "type": "string",
+                        "description": "Internal pages paper stock",
+                        "enum": ["100GSM Uncoated", "100GSM Satin", "80GSM Uncoated", "80GSM Satin"],
+                        "default": "100GSM Uncoated",
+                        "example": "100GSM Uncoated"
+                    }
+                },
+                
+                "optional_parameters": {
+                    "cover_cellophane": {
+                        "type": "string",
+                        "description": "Cellophane finish",
+                        "enum": ["No Cellophane", "Gloss Cellophane", "Matt Cellophane"],
+                        "default": "No Cellophane"
+                    },
+                    "front_cover_pvc": {
+                        "type": "bool",
+                        "description": "Add clear PVC overlay on front",
+                        "default": True
+                    }
+                },
+                
+                "natural_language_mapping": {
+                    "spiral bound": "Use spiral_bound_books calculator",
+                    "spiral binding": "Use spiral_bound_books calculator",
+                    "plastic coil": "Use spiral_bound_books calculator",
+                    "notebook binding": "Often use spiral_bound_books",
+                    "heavy use manual": "Use spiral_bound_books (more durable)"
+                },
+                
+                "validation_rules": {
+                    "page_count": {
+                        "rule": "Must be 1-500 pages",
+                        "min": 1,
+                        "max": 500,
+                        "error_message": "Page count must be between 1 and 500"
+                    }
+                }
+            },
+            
+            "perfect_bound_books": {
+                "description": "Perfect Bound Books - Glued spine binding for professional soft-cover books",
+                "calculator_type": "Shopify (PerfectBoundShopifyCalculator via wrapper)",
+                "wrapper_function": "calculate_perfect_bound_books_shopify",
+                "product_features": {
+                    "binding_type": "Glued spine (professional soft-cover)",
+                    "best_for": "Books, catalogs, reports with 60+ pages",
+                    "page_range": "40-800 pages (must be divisible by 4)",
+                    "appearance": "Professional appearance, cost-effective for medium runs",
+                    "lay_flat": "Does NOT lay flat like saddle stitch"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of books to produce",
+                        "validation": "1-20,000",
+                        "typical_values": [25, 50, 100, 250, 500],
+                        "example": 100
+                    },
+                    "pages": {
+                        "type": "int",
+                        "description": "Internal page count (excluding covers)",
+                        "validation": "40-800, must be divisible by 4",
+                        "example": 200
+                    },
+                    "size": {
+                        "type": "string",
+                        "description": "Book size",
+                        "enum": ["A5", "A4", "US Trade", "A4 Landscape"],
+                        "default": "A5",
+                        "note": "A5 is most common for books",
+                        "example": "A5"
+                    },
+                    "cover_stock": {
+                        "type": "string",
+                        "description": "Cover paper stock",
+                        "enum": ["Satin 250GSM", "Satin 300GSM", "Satin 350GSM"],
+                        "default": "Satin 300GSM",
+                        "example": "Satin 300GSM"
+                    },
+                    "inner_stock": {
+                        "type": "string",
+                        "description": "Internal pages paper stock",
+                        "enum": ["Uncoated Bond 100GSM", "Satin 128GSM", "Satin 150GSM"],
+                        "default": "Uncoated Bond 100GSM",
+                        "example": "Uncoated Bond 100GSM"
+                    },
+                    "inner_print": {
+                        "type": "string",
+                        "description": "Internal pages print type",
+                        "enum": ["Black & White", "Full Colour"],
+                        "default": "Black & White",
+                        "note": "B&W significantly cheaper for text-heavy books",
+                        "example": "Black & White"
+                    }
+                },
+                
+                "optional_parameters": {
+                    "cover_cellophane": {
+                        "type": "string",
+                        "description": "Cover finish/lamination",
+                        "enum": ["None", "Gloss", "Matt"],
+                        "default": "None",
+                        "note": "Gloss = shiny protective layer, Matt = non-reflective"
+                    }
+                },
+                
+                "natural_language_mapping": {
+                    "perfect bound": "Use perfect_bound_books calculator",
+                    "perfect binding": "Use perfect_bound_books calculator",
+                    "glued spine": "Use perfect_bound_books calculator",
+                    "soft cover book": "Use perfect_bound_books calculator",
+                    "catalog": "Use perfect_bound_books if 60+ pages",
+                    "report": "Use perfect_bound_books if 60+ pages",
+                    "book": "Use perfect_bound_books if 60+ pages, else saddle_stitch_books"
+                },
+                
+                "common_examples": {
+                    "standard_book": {
+                        "description": "100 A5 books, 200 pages, B&W internals",
+                        "parameters": {
+                            "quantity": 100,
+                            "pages": 200,
+                            "size": "A5",
+                            "cover_stock": "Satin 300GSM",
+                            "inner_stock": "Uncoated Bond 100GSM",
+                            "inner_print": "Black & White"
+                        }
+                    },
+                    "color_catalog": {
+                        "description": "50 A4 catalogs, 120 pages, full color",
+                        "parameters": {
+                            "quantity": 50,
+                            "pages": 120,
+                            "size": "A4",
+                            "inner_print": "Full Colour",
+                            "cover_cellophane": "Gloss"
+                        }
+                    }
+                },
+                
+                "validation_rules": {
+                    "page_count": {
+                        "rule": "Must be 40-800 pages, divisible by 4",
+                        "min": 40,
+                        "max": 800,
+                        "divisible_by": 4,
+                        "error_message": "Perfect binding requires 40-800 pages divisible by 4"
+                    }
+                }
+            },
+            
+            "saddle_stitch_books": {
+                "description": "Saddle Stitch Books - Stapled spine binding for magazines and booklets",
+                "calculator_type": "Shopify (SaddleStitchBooksShopifyCalculator via wrapper)",
+                "wrapper_function": "calculate_saddle_stitch_books_shopify",
+                "product_features": {
+                    "binding_type": "Staples through center fold",
+                    "best_for": "Magazines, programs, booklets, short documents",
+                    "page_range": "8-48 pages including covers",
+                    "lays_flat": "Opens completely flat (major advantage)",
+                    "cost_effective": "Cheaper than perfect binding for short documents",
+                    "quantity_options": "Fixed quantities: 25, 50, 75, 100, 150, 200, 250, 500, 1000"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of books",
+                        "enum": [25, 50, 75, 100, 150, 200, 250, 500, 1000],
+                        "validation": "Must be one of the fixed quantity options",
+                        "typical_values": [100, 250, 500],
+                        "example": 100
+                    },
+                    "pages": {
+                        "type": "int",
+                        "description": "Total page count including covers",
+                        "validation": "8-48, must be divisible by 4",
+                        "typical_values": [12, 16, 20, 24, 32],
+                        "example": 16
+                    },
+                    "size": {
+                        "type": "string",
+                        "description": "Book size",
+                        "enum": ["A4", "A5", "A6"],
+                        "default": "A4",
+                        "note": "A4 most common for magazines",
+                        "example": "A4"
+                    },
+                    "cover_stock": {
+                        "type": "string",
+                        "description": "Cover paper stock",
+                        "enum": ["Satin 200GSM", "Satin 250GSM", "Satin 300GSM"],
+                        "default": "Satin 200GSM",
+                        "example": "Satin 200GSM"
+                    },
+                    "inner_stock": {
+                        "type": "string",
+                        "description": "Internal pages paper stock",
+                        "enum": ["Uncoated Bond 80GSM", "Uncoated Bond 100GSM", "Satin 128GSM"],
+                        "default": "Uncoated Bond 80GSM",
+                        "example": "Uncoated Bond 80GSM"
+                    },
+                    "inner_print": {
+                        "type": "string",
+                        "description": "Internal pages print type",
+                        "enum": ["Colour", "Black & White"],
+                        "default": "Colour",
+                        "note": "Magazines typically full color",
+                        "example": "Colour"
+                    }
+                },
+                
+                "optional_parameters": {
+                    "cover_cellophane": {
+                        "type": "string",
+                        "description": "Cover finish",
+                        "enum": ["None", "Gloss", "Matt"],
+                        "default": "None"
+                    }
+                },
+                
+                "natural_language_mapping": {
+                    "saddle stitch": "Use saddle_stitch_books calculator",
+                    "saddle stitched": "Use saddle_stitch_books calculator",
+                    "stapled booklet": "Use saddle_stitch_books calculator",
+                    "magazine": "Use saddle_stitch_books calculator",
+                    "program": "Use saddle_stitch_books (conference programs, event programs)",
+                    "booklet": "Use saddle_stitch_books if 8-48 pages",
+                    "newsletter": "Use saddle_stitch_books if multi-page"
+                },
+                
+                "common_examples": {
+                    "magazine": {
+                        "description": "100 A4 magazines, 16 pages, color printing",
+                        "parameters": {
+                            "quantity": 100,
+                            "pages": 16,
+                            "size": "A4",
+                            "cover_stock": "Satin 200GSM",
+                            "inner_stock": "Uncoated Bond 80GSM",
+                            "inner_print": "Colour"
+                        }
+                    },
+                    "program": {
+                        "description": "250 A5 event programs, 12 pages",
+                        "parameters": {
+                            "quantity": 250,
+                            "pages": 12,
+                            "size": "A5",
+                            "inner_print": "Colour"
+                        }
+                    }
+                },
+                
+                "validation_rules": {
+                    "page_count": {
+                        "rule": "Must be 8-48 pages including covers, divisible by 4",
+                        "min": 8,
+                        "max": 48,
+                        "divisible_by": 4,
+                        "error_message": "Saddle stitch requires 8-48 pages divisible by 4"
+                    },
+                    "quantity": {
+                        "rule": "Must be one of: 25, 50, 75, 100, 150, 200, 250, 500, 1000",
+                        "error_message": "Quantity must be from fixed options"
+                    }
+                }
+            },
+            
+            "folded_flyers": {
+                "description": "Folded Flyers - Single sheet printed and folded into brochure/leaflet",
+                "calculator_type": "Shopify (FoldedFlyersShopifyCalculator via wrapper)",
+                "wrapper_function": "calculate_folded_flyers_shopify",
+                "product_features": {
+                    "product_type": "Single sheet folded into panels",
+                    "best_for": "Brochures, leaflets, direct mail, marketing materials",
+                    "cost_effective": "Cheaper than multi-page booklets",
+                    "fold_options": "Single Fold (2 panels), Double Fold (3 panels), Triple Fold (4 panels)",
+                    "profit_margins": "Complex tiered pricing by size and quantity"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of flyers",
+                        "validation": "Minimum 100",
+                        "typical_values": [500, 1000, 2500, 5000, 10000],
+                        "example": 5000
+                    },
+                    "size": {
+                        "type": "string",
+                        "description": "Flat size before folding",
+                        "enum": ["A5", "A4", "A3", "6pp A4"],
+                        "default": "A4",
+                        "note": "A4 and A3 most common for brochures",
+                        "example": "A4"
+                    },
+                    "stock": {
+                        "type": "string",
+                        "description": "Paper stock weight",
+                        "enum": ["Satin 128GSM", "Satin 150GSM", "Satin 250GSM", "Satin 300GSM", "Satin 350GSM", "Uncoated Bond 80GSM", "Uncoated Bond 90GSM", "Uncoated Bond 100GSM"],
+                        "default": "Satin 150GSM",
+                        "note": "150GSM-300GSM popular for brochures",
+                        "example": "Satin 300GSM"
+                    },
+                    "double_sided": {
+                        "type": "bool",
+                        "description": "Print both sides of sheet",
+                        "default": True,
+                        "note": "Most brochures are double-sided",
+                        "example": True
+                    },
+                    "colour": {
+                        "type": "bool",
+                        "description": "Color printing (vs black & white)",
+                        "default": True,
+                        "note": "Marketing materials typically color",
+                        "example": True
+                    },
+                    "fold_type": {
+                        "type": "string",
+                        "description": "How the sheet is folded",
+                        "enum": ["Single Fold", "Double Fold", "Triple Fold"],
+                        "default": "Double Fold",
+                        "note": "Double Fold = tri-fold brochure (3 panels)",
+                        "example": "Double Fold"
+                    }
+                },
+                
+                "optional_parameters": {
+                    "cellophane": {
+                        "type": "string",
+                        "description": "Lamination finish (Satin stocks only)",
+                        "enum": ["None", "Gloss", "Matt"],
+                        "default": "None",
+                        "note": "Celloglaze only available on Satin stocks"
+                    }
+                },
+                
+                "natural_language_mapping": {
+                    "folded flyer": "Use folded_flyers calculator",
+                    "brochure": "Use folded_flyers calculator",
+                    "leaflet": "Use folded_flyers calculator",
+                    "tri-fold": "Use folded_flyers with fold_type='Double Fold'",
+                    "trifold brochure": "Use folded_flyers with fold_type='Double Fold'",
+                    "bi-fold": "Use folded_flyers with fold_type='Single Fold'",
+                    "bifold brochure": "Use folded_flyers with fold_type='Single Fold'",
+                    "direct mail": "Often use folded_flyers with A4 or DL size"
+                },
+                
+                "common_examples": {
+                    "trifold_brochure": {
+                        "description": "5000 A4 tri-fold brochures, double-sided color",
+                        "parameters": {
+                            "quantity": 5000,
+                            "size": "A4",
+                            "stock": "Satin 300GSM",
+                            "double_sided": True,
+                            "colour": True,
+                            "fold_type": "Double Fold"
+                        }
+                    },
+                    "bifold_a3": {
+                        "description": "1000 A3 bi-fold leaflets, color, gloss laminate",
+                        "parameters": {
+                            "quantity": 1000,
+                            "size": "A3",
+                            "stock": "Satin 250GSM",
+                            "fold_type": "Single Fold",
+                            "cellophane": "Gloss"
+                        }
+                    }
+                },
+                
+                "validation_rules": {
+                    "quantity": {
+                        "rule": "Must be at least 100",
+                        "min": 100,
+                        "error_message": "Minimum order quantity is 100 flyers"
+                    },
+                    "cellophane_stock_compatibility": {
+                        "rule": "Celloglaze only available on Satin stocks",
+                        "error_message": "Cannot apply celloglaze to Uncoated Bond stocks"
+                    }
+                }
+            },
+            
+            # ==================== PHASE 3: BUSINESS STATIONERY ====================
+            
+            "economical_business_cards": {
+                "description": "Standard business cards with economical pricing",
+                "wrapper_function": "calculate_economical_business_cards_shopify",
+                
+                "product_features": {
+                    "sizes": ["90x55mm (Standard Business Card)"],
+                    "quantities": [250, 500, 1000, 2000, 5000, 10000],
+                    "stocks": ["Satin 300GSM (Only option for economical)"],
+                    "print_options": ["Single-sided", "Double-sided"],
+                    "color_options": ["Black & White", "Full Color"],
+                    "artwork_pricing": "First artwork free, $15 per additional artwork",
+                    "cards_per_sheet": "21 cards per 330x483mm sheet"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of business cards (250-10,000)",
+                        "valid_values": [250, 500, 1000, 2000, 5000, 10000]
+                    },
+                    "double_sided": {
+                        "type": "bool",
+                        "description": "Print both sides of the card",
+                        "default": True,
+                        "usage_note": "88% of customers choose double-sided"
+                    },
+                    "colour": {
+                        "type": "bool",
+                        "description": "Full color (True) or black & white (False)",
+                        "default": True
+                    },
+                    "stock": {
+                        "type": "str",
+                        "description": "Paper stock (fixed for economical)",
+                        "valid_values": ["Satin 300GSM"],
+                        "default": "Satin 300GSM",
+                        "note": "Only Satin 300GSM available for economical business cards"
+                    },
+                    "artworks": {
+                        "type": "int",
+                        "description": "Number of different artwork designs (1-50)",
+                        "default": 1,
+                        "pricing_note": "First artwork free, $15 per additional"
+                    }
+                },
+                
+                "natural_language_mapping": {
+                    "business cards": "Use economical_business_cards for standard orders",
+                    "cheap business cards": "Use economical_business_cards",
+                    "standard business cards": "Use economical_business_cards",
+                    "basic business cards": "Use economical_business_cards",
+                    "business card quote": "Use economical_business_cards for budget option",
+                    "networking cards": "Use economical_business_cards",
+                    "contact cards": "Use economical_business_cards"
+                },
+                
+                "common_examples": {
+                    "standard_order": {
+                        "description": "1000 double-sided business cards on Satin 350GSM",
+                        "parameters": {
+                            "quantity": 1000,
+                            "double_sided": True,
+                            "colour": True,
+                            "stock": "Satin 350GSM",
+                            "artworks": 1
+                        },
+                        "historical_note": "Most common order (34.5% choose 1000 qty)"
+                    },
+                    "multi_employee": {
+                        "description": "2000 cards with 5 employee names (5 artworks)",
+                        "parameters": {
+                            "quantity": 2000,
+                            "double_sided": True,
+                            "artworks": 5
+                        },
+                        "cost_note": "4 additional artworks × $15 = $60 extra"
+                    }
+                },
+                
+                "validation_rules": {
+                    "quantity": {
+                        "rule": "Must be in [250, 500, 1000, 2000, 5000, 10000]",
+                        "error_message": "Invalid quantity. Choose from: 250, 500, 1000, 2000, 5000, 10000"
+                    },
+                    "artworks": {
+                        "rule": "Must be between 1 and 50",
+                        "min": 1,
+                        "max": 50,
+                        "error_message": "Number of artworks must be between 1 and 50"
+                    }
+                }
+            },
+            
+            "premium_business_cards": {
+                "description": "Premium business cards with luxury finishes including celloglaze",
+                "wrapper_function": "calculate_premium_business_cards_shopify",
+                
+                "product_features": {
+                    "sizes": ["90x55mm (Standard Business Card)"],
+                    "quantities": [250, 500, 1000, 2000, 5000, 10000],
+                    "stocks": [
+                        "Satin 300GSM", 
+                        "Satin 350GSM", 
+                        "King Kong High Bulk 700GSM",
+                        "EcoStar 350GSM Uncoated"
+                    ],
+                    "premium_stocks": "King Kong (luxury thick), EcoStar (eco-friendly)",
+                    "print_options": ["Single-sided", "Double-sided"],
+                    "cellophane_options": [
+                        "No Cellophane (55.5% choose this)",
+                        "1 Side Gloss",
+                        "2 Side Gloss",
+                        "1 Side Matt",
+                        "2 Side Matt",
+                        "1 Side SILK FEEL Matt",
+                        "2 Side SILK FEEL Matt"
+                    ],
+                    "artwork_pricing": "First artwork free, $15 per additional artwork",
+                    "gst_application": "Dual GST application (Total × 1.1 × 1.1) - Shopify quirk"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of business cards (250-10,000)",
+                        "valid_values": [250, 500, 1000, 2000, 5000, 10000]
+                    },
+                    "double_sided": {
+                        "type": "bool",
+                        "description": "Print both sides of the card",
+                        "default": True
+                    },
+                    "colour": {
+                        "type": "bool",
+                        "description": "Full color (True) or black & white (False)",
+                        "default": True
+                    },
+                    "stock": {
+                        "type": "str",
+                        "description": "Premium paper stock",
+                        "valid_values": [
+                            "Satin 300GSM",
+                            "Satin 350GSM",
+                            "King Kong High Bulk 700GSM",
+                            "EcoStar 350GSM Uncoated"
+                        ],
+                        "default": "Satin 350GSM",
+                        "premium_note": "King Kong provides luxury thickness, EcoStar is eco-friendly"
+                    },
+                    "cellophane": {
+                        "type": "str",
+                        "description": "Premium celloglaze finish (7 options)",
+                        "valid_values": [
+                            "No Cellophane",
+                            "1 Side Gloss",
+                            "2 Side Gloss",
+                            "1 Side Matt",
+                            "2 Side Matt",
+                            "1 Side SILK FEEL Matt",
+                            "2 Side SILK FEEL Matt"
+                        ],
+                        "default": "1 Side Gloss",
+                        "premium_feature": "SILK FEEL Matt provides luxury soft-touch finish"
+                    },
+                    "artworks": {
+                        "type": "int",
+                        "description": "Number of different artwork designs (1-50)",
+                        "default": 1,
+                        "pricing_note": "First artwork free, $15 per additional"
+                    }
+                },
+                
+                "natural_language_mapping": {
+                    "premium business cards": "Use premium_business_cards",
+                    "luxury business cards": "Use premium_business_cards",
+                    "high quality business cards": "Use premium_business_cards",
+                    "thick business cards": "Use premium_business_cards with King Kong stock",
+                    "silk feel cards": "Use premium_business_cards with SILK FEEL Matt",
+                    "soft touch business cards": "Use premium_business_cards with SILK FEEL Matt",
+                    "laminated business cards": "Use premium_business_cards with celloglaze"
+                },
+                
+                "common_examples": {
+                    "luxury_order": {
+                        "description": "500 premium cards on King Kong with 2-side silk feel",
+                        "parameters": {
+                            "quantity": 500,
+                            "double_sided": True,
+                            "colour": True,
+                            "stock": "King Kong High Bulk 700GSM",
+                            "cellophane": "2 Side SILK FEEL Matt",
+                            "artworks": 1
+                        },
+                        "use_case": "High-end professionals, luxury brands"
+                    },
+                    "eco_premium": {
+                        "description": "1000 eco-friendly cards with matt laminate",
+                        "parameters": {
+                            "quantity": 1000,
+                            "stock": "EcoStar 350GSM Uncoated",
+                            "cellophane": "1 Side Matt"
+                        },
+                        "use_case": "Environmentally conscious businesses"
+                    }
+                },
+                
+                "validation_rules": {
+                    "quantity": {
+                        "rule": "Must be in [250, 500, 1000, 2000, 5000, 10000]",
+                        "error_message": "Invalid quantity. Choose from: 250, 500, 1000, 2000, 5000, 10000"
+                    },
+                    "artworks": {
+                        "rule": "Must be between 1 and 50",
+                        "min": 1,
+                        "max": 50,
+                        "error_message": "Number of artworks must be between 1 and 50"
                     }
                 }
             }

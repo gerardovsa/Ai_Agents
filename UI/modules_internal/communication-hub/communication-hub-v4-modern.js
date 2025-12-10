@@ -1878,9 +1878,69 @@ export default {
             this.showSuccess(`Email assigned to ${agentName}`);
             this.log.success(`Email ${emailId} assigned to agent ${agentName} in thread ${threadSlug}`);
 
+            // ✅ CRITICAL: Load thread into AI agent column and trigger AI response
+            await this.loadThreadIntoAgentAndTrigger(threadSlug, location, fullEmail);
+
         } catch (error) {
             this.log.error('Failed to assign email to agent:', error);
             this.showError(`Failed to assign email: ${error.message}`);
+        }
+    },
+
+    /**
+     * Load thread into agent column and trigger automatic AI response
+     * @param {string} threadSlug - Thread ID
+     * @param {string} location - Agent location (e.g., 'agent-9')
+     * @param {object} emailData - Email data for context
+     */
+    async loadThreadIntoAgentAndTrigger(threadSlug, location, emailData) {
+        try {
+            this.log.info(`🔄 Loading thread ${threadSlug} into ${location}...`);
+
+            // Step 1: Refresh thread list to get the new thread with email badge
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                await ThreadManager.loadThreadsFromBackend();
+                this.log.success('✅ Thread list refreshed');
+            }
+
+            // Step 2: Extract agent ID from location (e.g., 'agent-9' → 9)
+            const agentMatch = location.match(/agent-(\d+)/);
+            if (!agentMatch) {
+                this.log.warn(`⚠️ Invalid agent location format: ${location}`);
+                return;
+            }
+            const agentId = parseInt(agentMatch[1]);
+
+            // Step 3: Load thread into agent column (clears welcome message, shows thread card)
+            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.loadThreadIntoAgent === 'function') {
+                await AgentColumn.loadThreadIntoAgent(agentId, threadSlug);
+                this.log.success(`✅ Thread loaded into agent column ${agentId}`);
+            } else if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
+                // Fallback to MultiAgent if AgentColumn not available
+                const thread = ThreadManager.threads?.find(t => t.id === threadSlug);
+                if (thread) {
+                    await MultiAgent.loadThreadIntoAgent(agentId, thread);
+                    this.log.success(`✅ Thread loaded via MultiAgent into agent ${agentId}`);
+                }
+            } else {
+                this.log.warn('⚠️ AgentColumn.loadThreadIntoAgent not available');
+            }
+
+            // Step 4: Auto-trigger AI with email context message
+            const initialMessage = `Analyze this email and provide a summary of key points and suggested actions:\n\nFrom: ${emailData.from}\nSubject: ${emailData.subject}\nDate: ${emailData.date}`;
+
+            // Send message to trigger AI processing (use MultiAgent for agent columns, not PrimeAI)
+            if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.sendMessage === 'function') {
+                this.log.info('🤖 Triggering AI response...');
+                await MultiAgent.sendMessage(agentId, initialMessage);
+                this.log.success('✅ AI processing started automatically');
+            } else {
+                this.log.warn('⚠️ MultiAgent.sendMessage not available - manual trigger required');
+            }
+
+        } catch (error) {
+            this.log.error('Failed to load thread and trigger AI:', error);
+            // Don't throw - assignment still succeeded
         }
     },
 

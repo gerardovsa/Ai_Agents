@@ -141,6 +141,7 @@ from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent in
 from routes.database_visualizer_routes import database_visualizer_bp  # ✅ MIGRATED to Supabase PostgreSQL (2025-12-07)
 print("[DEBUG] Importing synergy_routes...")
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
+from routes.synergy_file_search import synergy_search_bp  # NEW: Synergy Files global search (Gap #8 fix)
 print("[DEBUG] Importing scheduler_routes...")
 from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
 print("[DEBUG] Importing automation_routes...")
@@ -351,6 +352,7 @@ app.register_blueprint(account_linking_bp)                           # NEW: Acco
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
 app.register_blueprint(database_visualizer_bp)                       # ✅ ENABLED (Migrated to Supabase 2025-12-07)
 app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
+app.register_blueprint(synergy_search_bp, url_prefix='/api/synergy')  # NEW: Synergy file search (Gap #8 fix: 2 endpoints)
 app.register_blueprint(cloud_storage_bp)                             # NEW: Cloud storage sync (6 endpoints: Google Drive folders to database)
 app.register_blueprint(connections_bp)                               # Platform connections (2 endpoints: list, disconnect)
 app.register_blueprint(scheduler_bp)                                 # NEW: AI Automation Scheduler (10 endpoints: /api/scheduler/*)

@@ -68,10 +68,77 @@ class PremiumBookmarksShopifyCalculator:
         Returns:
             PremiumBookmarksShopifyCalculatorQuoteResult with pricing details
         """
-        # TODO: Implement calculation logic based on JSON config
-        # This is a template - actual implementation needed
-        
-        raise NotImplementedError("Calculator implementation pending")
+        quantity = int(kwargs.get('quantity', kwargs.get('qty', 250)))
+        width = Decimal(kwargs.get('width_mm', kwargs.get('width', 55)))
+        height = Decimal(kwargs.get('height_mm', kwargs.get('height', 200)))
+        paper_stock = kwargs.get('paper_stock', '350gsm')
+        lamination = kwargs.get('lamination', 'Matte')
+
+        if quantity <= 0:
+            raise ValueError('Quantity must be > 0')
+
+        area_m2 = (width * height) / Decimal('1000000')
+        bookmarks_per_sheet = Decimal('12')  # typical layout
+
+        impos_setup = Decimal('20')
+        guilo_setup = Decimal('12')
+
+        stock_waste = Decimal('1.05')
+        sheets_needed = (Decimal(quantity) / bookmarks_per_sheet) * stock_waste
+
+        stock_cost_per_1000 = Decimal('140') if '350' in paper_stock else Decimal('110')
+        stock_cost = (sheets_needed / Decimal('1000')) * stock_cost_per_1000
+
+        print_cost = sheets_needed * Decimal('0.055')
+        cutting_cost = (sheets_needed / Decimal('500')) * Decimal('10')
+
+        lamination_cost_per_bookmark = Decimal('0.08') if lamination else Decimal('0')
+        lamination_cost = lamination_cost_per_bookmark * Decimal(quantity)
+
+        biz_cost = impos_setup + guilo_setup + stock_cost + print_cost + cutting_cost + lamination_cost
+
+        profit_margin_rate = self._get_profit_margin(float(biz_cost))
+        profit_amount = biz_cost * profit_margin_rate
+        sub_total = biz_cost + profit_amount
+
+        GST_RATE = Decimal('1.10')
+        subtotal_with_increase = sub_total
+        total_price = (subtotal_with_increase * GST_RATE) * GST_RATE
+        total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        unit_price = total_price / Decimal(quantity)
+
+        breakdown = {
+            'impos_setup': impos_setup,
+            'guilo_setup': guilo_setup,
+            'stock_cost': stock_cost,
+            'print_cost': print_cost,
+            'cutting_cost': cutting_cost,
+            'lamination_cost': lamination_cost,
+            'biz_cost': biz_cost,
+            'profit_margin_rate': Decimal(profit_margin_rate),
+            'profit_amount': profit_amount,
+            'subtotal': sub_total,
+            'total_price': total_price,
+        }
+
+        specifications = {
+            'quantity': quantity,
+            'width_mm': float(width),
+            'height_mm': float(height),
+            'paper_stock': paper_stock,
+            'lamination': lamination,
+            'bookmarks_per_sheet': float(bookmarks_per_sheet)
+        }
+
+        return PremiumBookmarksShopifyCalculatorQuoteResult(
+            total_price=total_price,
+            unit_price=unit_price,
+            cost_per_item=unit_price,
+            quantity=quantity,
+            breakdown=breakdown,
+            specifications=specifications
+        )
     
     def _get_padding_rate(self, quantity: int) -> Decimal:
         """Get padding rate (no tiers defined)"""

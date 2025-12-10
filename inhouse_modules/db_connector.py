@@ -30,13 +30,34 @@ class InHousePrintDB:
     """Database connection and query utility for InHousePrint system."""
     
     def __init__(self, config_path: str = None):
-        """Initialize database connection with configuration."""
-        if config_path is None:
-            # Default to the config in the parent directory structure
-            import os
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            config_path = os.path.join(current_dir, "..", "..", "config", "database-config.json")
-        self.config = self._load_config(config_path)
+        """
+        Initialize database connection with configuration.
+        
+        Priority order:
+        1. Try Supabase credentials (for Render deployment)
+        2. Fall back to config_path (for local development)
+        """
+        import os
+        
+        # Try Supabase credentials first (Render deployment)
+        self.config = None
+        try:
+            # Check if we should use Supabase
+            if os.environ.get('SUPABASE_DB_URL_POOLER'):
+                print("🔧 Render deployment mode - using Supabase credentials")
+                from AI_infrastructure.auth.supabase_credentials import get_database_config
+                self.config = get_database_config()
+                print("✅ Credentials loaded from Supabase")
+        except Exception as e:
+            print(f"⚠️  Supabase credentials not available: {e}")
+        
+        # Fall back to config file if Supabase not available
+        if self.config is None:
+            if config_path is None:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                config_path = os.path.join(current_dir, "..", "..", "config", "database-config.json")
+            self.config = self._load_config(config_path)
+        
         self.connection = None
         self.connect()
     

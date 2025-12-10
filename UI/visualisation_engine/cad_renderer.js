@@ -28,11 +28,6 @@ class CADRenderer {
      * @param {string} chartId - Unique chart identifier
      */
     async render(item, contentArea, chartId) {
-        // Ensure Three.js library is loaded
-        if (!window.THREE) {
-            await this.loadLibrary();
-        }
-
         // DOM validation
         if (!contentArea || !document.contains(contentArea)) {
             throw new Error('CAD: Invalid content area');
@@ -65,9 +60,15 @@ class CADRenderer {
             config = item.content;
         }
 
-        // If SVG, render as 2D drawing instead of 3D model
+        // If SVG, render as 2D drawing instead of 3D model (NO Three.js needed)
         if (isSVG) {
             return this.renderSVGDrawing(config.svg, contentArea, chartId);
+        }
+
+        // ONLY load Three.js if rendering 3D models (not for SVG)
+        if (!window.THREE) {
+            console.log('[CAD] Loading Three.js for 3D rendering...');
+            await this.loadLibrary();
         }
 
         // Get dynamic theme colors
@@ -266,6 +267,7 @@ class CADRenderer {
 
     /**
      * Load Three.js library dynamically
+     * FIXED (Dec 10, 2025): Use blob URL to avoid CSP inline script restrictions
      */
     async loadLibrary() {
         return new Promise((resolve, reject) => {
@@ -274,32 +276,54 @@ class CADRenderer {
                 return;
             }
 
-            // Load Three.js as ES6 module with OrbitControls
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.textContent = `
+            // Create module script as blob to bypass CSP and load Three.js
+            const moduleCode = `
                 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
                 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
                 
                 window.THREE = THREE;
                 window.THREE.OrbitControls = OrbitControls;
                 window.dispatchEvent(new Event('three-loaded'));
-                console.log('✅ Three.js core + OrbitControls loaded');
+                console.log('✅ [CAD] Three.js core + OrbitControls loaded from CDN');
             `;
+
+            const blob = new Blob([moduleCode], { type: 'application/javascript' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = blobUrl; // Use blob URL instead of inline textContent
+
+            script.onerror = (e) => {
+                console.error('[CAD] Failed to load Three.js:', e);
+                URL.revokeObjectURL(blobUrl);
+                reject(new Error('Failed to load Three.js from CDN'));
+            };
 
             document.head.appendChild(script);
 
             // Wait for Three.js to load
-            window.addEventListener('three-loaded', () => {
+            const loadHandler = () => {
+                URL.revokeObjectURL(blobUrl);
+                console.log('✅ [CAD] Three.js loaded successfully');
                 resolve();
-            }, { once: true });
+            };
 
-            // Timeout fallback
+            window.addEventListener('three-loaded', loadHandler, { once: true });
+
+            // Timeout with cleanup
             setTimeout(() => {
                 if (!window.THREE) {
-                    reject(new Error('Three.js failed to load within timeout'));
+                    URL.revokeObjectURL(blobUrl);
+                    window.removeEventListener('three-loaded', loadHandler);
+                    console.error('❌ [CAD] Three.js CDN timeout');
+                    reject(new Error('Three.js CDN timeout - check network'));
+                } else {
+                    URL.revokeObjectURL(blobUrl);
+                    console.log('✅ [CAD] Three.js loaded (event missed)');
+                    resolve();
                 }
-            }, 10000);
+            }, 15000); // 15 seconds
         });
     }
 

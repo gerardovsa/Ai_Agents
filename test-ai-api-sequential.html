@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI API Sequential Integration Tests</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .env-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .env-selector label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .env-selector select {
+            padding: 10px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e9ecef;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .test-grid {
+            padding: 30px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .test-card {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .test-card.running {
+            border-color: #ffc107;
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+        }
+
+        .test-card.passed {
+            border-color: #28a745;
+        }
+
+        .test-card.failed {
+            border-color: #dc3545;
+        }
+
+        .test-header {
+            padding: 20px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .test-header:hover {
+            background: #e9ecef;
+        }
+
+        .test-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .test-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .test-info h3 {
+            font-size: 18px;
+            color: #212529;
+            margin-bottom: 5px;
+        }
+
+        .test-info p {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .test-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .status-running {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-passed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .expand-icon {
+            width: 24px;
+            height: 24px;
+            transition: transform 0.3s ease;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .test-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .test-body.expanded {
+            max-height: 2000px;
+        }
+
+        .test-content {
+            padding: 20px;
+            background: white;
+        }
+
+        .test-log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .test-log .log-line {
+            margin-bottom: 8px;
+        }
+
+        .log-time {
+            color: #858585;
+        }
+
+        .log-success {
+            color: #4ec9b0;
+        }
+
+        .log-error {
+            color: #f48771;
+        }
+
+        .log-info {
+            color: #4fc1ff;
+        }
+
+        .log-warning {
+            color: #ffd700;
+        }
+
+        .test-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-header h4 {
+            color: #495057;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+
+        .copy-btn.copied {
+            background: #28a745;
+        }
+
+        .result-data {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .summary {
+            padding: 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .summary-value.total {
+            color: #667eea;
+        }
+
+        .summary-value.passed {
+            color: #28a745;
+        }
+
+        .summary-value.failed {
+            color: #dc3545;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 AI API Sequential Integration Tests</h1>
+            <button class="close-btn" onclick="closeTestUI()">✕ Close</button>
+        </div>
+
+        <div class="controls">
+            <div class="env-selector">
+                <label for="env-select">Environment:</label>
+                <select id="env-select">
+                    <option value="local">Local (http://localhost:5001)</option>
+                    <option value="render">Render (Production)</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" onclick="runAllTests()" id="run-btn">
+                <span>▶ Run All Tests</span>
+            </button>
+
+            <button class="btn btn-secondary" onclick="stopTests()" id="stop-btn" disabled>
+                <span>⏹ Stop</span>
+            </button>
+
+            <button class="btn btn-success" onclick="expandAll()">
+                <span>⬇ Expand All</span>
+            </button>
+
+            <button class="btn btn-success" onclick="collapseAll()">
+                <span>⬆ Collapse All</span>
+            </button>
+
+            <button class="btn btn-secondary" onclick="copyAllResults()">
+                <span>📋 Copy All Results</span>
+            </button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <div class="test-grid" id="test-grid">
+            <!-- Tests will be dynamically inserted here -->
+        </div>
+
+        <div class="summary">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value total" id="total-tests">0</div>
+                    <div class="summary-label">Total Tests</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value passed" id="passed-tests">0</div>
+                    <div class="summary-label">Passed</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value failed" id="failed-tests">0</div>
+                    <div class="summary-label">Failed</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="success-rate">0%</div>
+                    <div class="summary-label">Success Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let testResults = new Map();
+        let workspaceId = null;
+        let threadId = null;
+        let messageId = null;
+        let isRunning = false;
+        let shouldStop = false;
+
+        // Test definitions
+        const tests = [
+            {
+                id: 1,
+                name: 'Environment Detection',
+                description: 'Verify API endpoint is accessible and returns expected response',
+                endpoint: '/api/agent/quote',
+                method: 'POST',
+                data: { message: 'Test connection' },
+                validate: (response) => response && (response.response || response.error)
+            },
+            {
+                id: 2,
+                name: 'Create Workspace',
+                description: 'Create a new workspace for testing',
+                endpoint: '/api/workspaces',
+                method: 'POST',
+                data: { name: `Test Workspace ${Date.now()}`, description: 'Automated test workspace' },
+                validate: (response) => {
+                    if (response && response.workspace_id) {
+                        workspaceId = response.workspace_id;
+                        return true;
+                    }
+                    return false;
+                }
+            },
+            {
+                id: 3,
+                name: 'Create Thread',
+                description: 'Create a new conversation thread in the workspace',
+                endpoint: '/api/threads',
+                method: 'POST',
+                getData: () => ({
+                    workspace_id: workspaceId,
+                    name: `Test Thread ${Date.now()}`
+                }),
+                validate: (response) => {
+                    if (response && response.thread_id) {
+                        threadId = response.thread_id;
+                        return true;
+                    }
+                    return false;
+                }
+            },
+            {
+                id: 4,
+                name: 'Rename Thread',
+                description: 'Update thread name to verify modification capability',
+                endpoint: null, // Dynamic
+                method: 'PUT',
+                getEndpoint: () => `/api/threads/${threadId}`,
+                getData: () => ({ name: `Renamed Thread ${Date.now()}` }),
+                validate: (response) => response && response.success
+            },
+            {
+                id: 5,
+                name: 'Send Message',
+                description: 'Send a test message to the thread',
+                endpoint: '/api/agent/data_agent/start',
+                method: 'POST',
+                getData: () => ({
+                    thread_slug: threadId,
+                    message: 'What tools do you have access to? Please list the top 5.'
+                }),
+                validate: (response) => response && (response.session_id || response.thread_slug)
+            },
+            {
+                id: 6,
+                name: 'Get Messages',
+                description: 'Retrieve messages from the thread',
+                endpoint: null, // Dynamic
+                method: 'GET',
+                getEndpoint: () => `/api/messages?thread_id=${threadId}`,
+                validate: (response) => {
+                    if (response && response.messages && response.messages.length > 0) {
+                        messageId = response.messages[0].id;
+                        return true;
+                    }
+                    return false;
+                }
+            },
+            {
+                id: 7,
+                name: 'Copy Message Content',
+                description: 'Test copying message content to clipboard (client-side)',
+                endpoint: null,
+                method: 'CLIENT',
+                execute: async () => {
+                    if (!messageId) throw new Error('No message ID available');
+                    await navigator.clipboard.writeText(`Message ID: ${messageId}`);
+                    return { success: true, copied: true };
+                },
+                validate: (response) => response && response.copied
+            },
+            {
+                id: 8,
+                name: 'Export Thread',
+                description: 'Export thread data in JSON format',
+                endpoint: null, // Dynamic
+                method: 'GET',
+                getEndpoint: () => `/api/threads/${threadId}/export`,
+                validate: (response) => response && (response.thread || response.data)
+            },
+            {
+                id: 9,
+                name: 'Delete Message',
+                description: 'Delete a specific message from the thread',
+                endpoint: null, // Dynamic
+                method: 'DELETE',
+                getEndpoint: () => `/api/messages/${messageId}`,
+                validate: (response) => response && response.success
+            },
+            {
+                id: 10,
+                name: 'Delete Thread',
+                description: 'Delete the test thread',
+                endpoint: null, // Dynamic
+                method: 'DELETE',
+                getEndpoint: () => `/api/threads/${threadId}`,
+                validate: (response) => response && response.success
+            },
+            {
+                id: 11,
+                name: 'Delete Workspace',
+                description: 'Delete the test workspace and cleanup',
+                endpoint: null, // Dynamic
+                method: 'DELETE',
+                getEndpoint: () => `/api/workspaces/${workspaceId}`,
+                validate: (response) => response && response.success
+            }
+        ];
+
+        // Initialize UI
+        function initializeUI() {
+            const grid = document.getElementById('test-grid');
+            grid.innerHTML = tests.map(test => `
+                <div class="test-card" id="test-${test.id}">
+                    <div class="test-header" onclick="toggleTest(${test.id})">
+                        <div class="test-title">
+                            <div class="test-number">${test.id}</div>
+                            <div class="test-info">
+                                <h3>${test.name}</h3>
+                                <p>${test.description}</p>
+                            </div>
+                        </div>
+                        <div class="test-status">
+                            <span class="status-badge status-pending" id="status-${test.id}">Pending</span>
+                            <svg class="expand-icon" id="icon-${test.id}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="test-body" id="body-${test.id}">
+                        <div class="test-content">
+                            <div class="test-log" id="log-${test.id}">
+                                <div class="log-line log-info">Waiting to run...</div>
+                            </div>
+                            <div class="test-result" id="result-${test.id}" style="display: none;">
+                                <div class="result-header">
+                                    <h4>Response Data</h4>
+                                    <button class="copy-btn" onclick="copyResult(${test.id})">Copy</button>
+                                </div>
+                                <div class="result-data" id="data-${test.id}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('total-tests').textContent = tests.length;
+        }
+
+        // Toggle test expansion
+        function toggleTest(testId) {
+            const body = document.getElementById(`body-${testId}`);
+            const icon = document.getElementById(`icon-${testId}`);
+            body.classList.toggle('expanded');
+            icon.classList.toggle('expanded');
+        }
+
+        // Expand/Collapse all
+        function expandAll() {
+            tests.forEach(test => {
+                document.getElementById(`body-${test.id}`).classList.add('expanded');
+                document.getElementById(`icon-${test.id}`).classList.add('expanded');
+            });
+        }
+
+        function collapseAll() {
+            tests.forEach(test => {
+                document.getElementById(`body-${test.id}`).classList.remove('expanded');
+                document.getElementById(`icon-${test.id}`).classList.remove('expanded');
+            });
+        }
+
+        // Logging utilities
+        function log(testId, message, type = 'info') {
+            const logEl = document.getElementById(`log-${testId}`);
+            const time = new Date().toLocaleTimeString();
+            const colorClass = `log-${type}`;
+            logEl.innerHTML += `<div class="log-line ${colorClass}"><span class="log-time">[${time}]</span> ${message}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog(testId) {
+            document.getElementById(`log-${testId}`).innerHTML = '';
+        }
+
+        // Update test status
+        function updateStatus(testId, status) {
+            const card = document.getElementById(`test-${testId}`);
+            const badge = document.getElementById(`status-${testId}`);
+
+            card.classList.remove('running', 'passed', 'failed');
+            badge.classList.remove('status-pending', 'status-running', 'status-passed', 'status-failed');
+
+            if (status === 'running') {
+                card.classList.add('running');
+                badge.classList.add('status-running');
+                badge.textContent = 'Running';
+            } else if (status === 'passed') {
+                card.classList.add('passed');
+                badge.classList.add('status-passed');
+                badge.textContent = 'Passed ✓';
+            } else if (status === 'failed') {
+                card.classList.add('failed');
+                badge.classList.add('status-failed');
+                badge.textContent = 'Failed ✗';
+            }
+        }
+
+        // Get base URL
+        function getBaseUrl() {
+            const env = document.getElementById('env-select').value;
+            return env === 'local'
+                ? 'http://localhost:5001'
+                : 'https://valor-ai-synergy-suite-docker-image.onrender.com';
+        }
+
+        // Execute a single test
+        async function executeTest(test) {
+            if (shouldStop) return { success: false, stopped: true };
+
+            clearLog(test.id);
+            updateStatus(test.id, 'running');
+            log(test.id, `Starting test: ${test.name}`, 'info');
+
+            try {
+                // Client-side test (like clipboard)
+                if (test.method === 'CLIENT' && test.execute) {
+                    log(test.id, 'Executing client-side operation...', 'info');
+                    const result = await test.execute();
+                    testResults.set(test.id, result);
+
+                    if (test.validate(result)) {
+                        updateStatus(test.id, 'passed');
+                        log(test.id, 'Test passed! ✓', 'success');
+                        displayResult(test.id, result);
+                        return { success: true, result };
+                    } else {
+                        updateStatus(test.id, 'failed');
+                        log(test.id, 'Validation failed!', 'error');
+                        return { success: false, result };
+                    }
+                }
+
+                // API test
+                const baseUrl = getBaseUrl();
+                const endpoint = test.getEndpoint ? test.getEndpoint() : test.endpoint;
+                const url = baseUrl + endpoint;
+                const data = test.getData ? test.getData() : test.data;
+
+                log(test.id, `Method: ${test.method}`, 'info');
+                log(test.id, `URL: ${url}`, 'info');
+
+                if (data && (test.method === 'POST' || test.method === 'PUT')) {
+                    log(test.id, `Request: ${JSON.stringify(data, null, 2)}`, 'info');
+                }
+
+                const options = {
+                    method: test.method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test_token_123'
+                    }
+                };
+
+                if (data && (test.method === 'POST' || test.method === 'PUT')) {
+                    options.body = JSON.stringify(data);
+                }
+
+                log(test.id, 'Sending request...', 'info');
+                const response = await fetch(url, options);
+
+                log(test.id, `Status: ${response.status} ${response.statusText}`,
+                    response.ok ? 'success' : 'warning');
+
+                const contentType = response.headers.get('content-type');
+                let result;
+
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                    log(test.id, 'Received JSON response', 'success');
+                } else {
+                    const text = await response.text();
+                    if (text.startsWith('<!DOCTYPE html>')) {
+                        log(test.id, '⚠️ Received HTML instead of JSON! API routing issue detected.', 'error');
+                        result = { error: 'HTML_RESPONSE', html_length: text.length };
+                    } else {
+                        result = { raw: text };
+                    }
+                }
+
+                testResults.set(test.id, result);
+                displayResult(test.id, result);
+
+                // Validate result
+                if (test.validate(result)) {
+                    updateStatus(test.id, 'passed');
+                    log(test.id, 'Test passed! ✓', 'success');
+                    return { success: true, result };
+                } else {
+                    updateStatus(test.id, 'failed');
+                    log(test.id, 'Validation failed!', 'error');
+                    return { success: false, result };
+                }
+
+            } catch (error) {
+                updateStatus(test.id, 'failed');
+                log(test.id, `Error: ${error.message}`, 'error');
+                testResults.set(test.id, { error: error.message });
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Display test result
+        function displayResult(testId, data) {
+            const resultEl = document.getElementById(`result-${testId}`);
+            const dataEl = document.getElementById(`data-${testId}`);
+
+            resultEl.style.display = 'block';
+            dataEl.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Copy individual result
+        function copyResult(testId) {
+            const data = testResults.get(testId);
+            if (!data) return;
+
+            navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+            const btn = event.target;
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+
+        // Copy all results
+        function copyAllResults() {
+            const report = {
+                timestamp: new Date().toISOString(),
+                environment: document.getElementById('env-select').value,
+                tests: tests.map(test => ({
+                    id: test.id,
+                    name: test.name,
+                    status: document.getElementById(`status-${test.id}`).textContent,
+                    result: testResults.get(test.id) || null
+                })),
+                summary: {
+                    total: tests.length,
+                    passed: parseInt(document.getElementById('passed-tests').textContent),
+                    failed: parseInt(document.getElementById('failed-tests').textContent),
+                    rate: document.getElementById('success-rate').textContent
+                }
+            };
+
+            navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+            alert('Full test report copied to clipboard!');
+        }
+
+        // Update summary
+        function updateSummary() {
+            let passed = 0;
+            let failed = 0;
+
+            tests.forEach(test => {
+                const status = document.getElementById(`status-${test.id}`).textContent;
+                if (status.includes('Passed')) passed++;
+                else if (status.includes('Failed')) failed++;
+            });
+
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
+
+            const total = passed + failed;
+            const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
+            document.getElementById('success-rate').textContent = `${rate}%`;
+        }
+
+        // Update progress
+        function updateProgress(current, total) {
+            const percent = (current / total) * 100;
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+        }
+
+        // Run all tests sequentially
+        async function runAllTests() {
+            if (isRunning) return;
+
+            isRunning = true;
+            shouldStop = false;
+            workspaceId = null;
+            threadId = null;
+            messageId = null;
+            testResults.clear();
+
+            document.getElementById('run-btn').disabled = true;
+            document.getElementById('stop-btn').disabled = false;
+
+            for (let i = 0; i < tests.length; i++) {
+                if (shouldStop) break;
+
+                const test = tests[i];
+                const result = await executeTest(test);
+
+                updateSummary();
+                updateProgress(i + 1, tests.length);
+
+                // Stop if test failed and it's critical (workspace/thread creation)
+                if (!result.success && [2, 3].includes(test.id)) {
+                    alert(`Critical test failed: ${test.name}\nCannot continue sequential tests.`);
+                    break;
+                }
+
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            isRunning = false;
+            document.getElementById('run-btn').disabled = false;
+            document.getElementById('stop-btn').disabled = true;
+        }
+
+        // Stop test execution
+        function stopTests() {
+            shouldStop = true;
+            document.getElementById('stop-btn').disabled = true;
+        }
+
+        // Close test UI
+        function closeTestUI() {
+            if (confirm('Close test interface?')) {
+                document.querySelector('.container').style.display = 'none';
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initializeUI);
+    </script>
+</body>
+
+</html>
