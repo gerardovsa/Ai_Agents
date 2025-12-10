@@ -28,7 +28,7 @@ USED BY:
 
 NOTES:
 - All functions use credential injection via **kwargs
-- API endpoint: https://ai-agents-backend-singapore.onrender.com/api/automation/ (default, configurable via API_BASE_URL env var)
+- API endpoint: Dynamically detected (RENDER_EXTERNAL_URL or localhost:5001), configurable via API_BASE_URL env var
 - Returns standardized JSON responses
 
 LAST MODIFIED: 2025-11-20 - Added automation_update_workflow for programmatic workflow updates
@@ -61,9 +61,15 @@ def _generate_unique_slug() -> str:
 
 
 def _get_api_url() -> str:
-    """Get API base URL from environment or default to Render deployment"""
+    """Get API base URL - dynamically detect deployment platform
+    Priority: API_BASE_URL > RENDER_EXTERNAL_URL > localhost
+    """
     import os
-    return os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com')
+    return (
+        os.getenv('API_BASE_URL') or 
+        os.getenv('RENDER_EXTERNAL_URL') or 
+        'http://localhost:5001'
+    )
 
 
 def _get_headers(kwargs: dict) -> dict:

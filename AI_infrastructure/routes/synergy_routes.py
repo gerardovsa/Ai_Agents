@@ -5720,3 +5720,408 @@ def delete_internal_doc(doc_id):
             except:
                 pass
 
+
+# ═══════════════════════════════════════════════════════════════════
+# MILESTONE SYSTEM ENDPOINTS (LEAK-FREE)
+# ═══════════════════════════════════════════════════════════════════
+
+@synergy_bp.route('/<session_id>/milestone/create', methods=['POST'])
+def create_session_milestone(session_id):
+    """
+    Create milestone with tasks and subtasks (ALL 15 LEAK PREVENTION RULES APPLIED)
+    
+    Request Body:
+    {
+        "milestone_name": "Phase 1: Setup",
+        "description": "Initial setup phase",
+        "priority": "high",
+        "due_date": "2025-12-31",
+        "tasks": [
+            {
+                "task": "Setup database",
+                "priority": "critical",
+                "subtasks": ["Install PostgreSQL", "Create schemas"]
+            }
+        ]
+    }
+    """
+    cursor = None  # Rule #1
+    conn = None    # Rule #2
+    
+    try:
+        data = request.get_json()
+        
+        if not data.get('milestone_name'):
+            return jsonify({'success': False, 'error': 'milestone_name required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check session exists
+        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        if not cursor.fetchone():
+            # Rule #3, #4, #5
+            try:
+                cursor.close()
+            except:
+                pass
+            cursor = None
+            # Rule #6, #7
+            try:
+                conn.close()
+            except:
+                pass
+            conn = None
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Get next milestone number
+        cursor.execute('''
+            SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
+            FROM synergy_sessions.milestones 
+            WHERE session_id = %s
+        ''', (session_id,))
+        result = cursor.fetchone()
+        milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
+        
+        # Generate milestone ID
+        milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Insert milestone
+        cursor.execute('''
+            INSERT INTO synergy_sessions.milestones (
+                milestone_id, session_id, milestone_number, milestone_order, milestone_name,
+                description, completed, due_date, priority, estimated_hours,
+                created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            milestone_id,
+            session_id,
+            milestone_number,
+            milestone_number,
+            data['milestone_name'],
+            data.get('description'),
+            False,
+            data.get('due_date'),
+            data.get('priority', 'medium'),
+            data.get('estimated_hours'),
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        ))
+        
+        # Insert tasks
+        tasks_created = 0
+        subtasks_created = 0
+        tasks_list = data.get('tasks', [])
+        
+        for task_order, task_item in enumerate(tasks_list, start=1):
+            task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}"
+            
+            # Handle both string and object formats
+            if isinstance(task_item, str):
+                task_text = task_item
+                task_priority = 'medium'
+                subtasks = []
+            else:
+                task_text = task_item.get('task', '')
+                task_priority = task_item.get('priority', 'medium')
+                subtasks = task_item.get('subtasks', [])
+            
+            # Insert task
+            cursor.execute('''
+                INSERT INTO synergy_sessions.tasks (
+                    task_id, milestone_id, task, completed, task_order, priority, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (task_id, milestone_id, task_text, False, task_order, task_priority, datetime.now().isoformat()))
+            tasks_created += 1
+            
+            # Insert subtasks
+            for subtask_order, subtask_item in enumerate(subtasks, start=1):
+                subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}_{subtask_order}"
+                
+                if isinstance(subtask_item, str):
+                    subtask_text = subtask_item
+                    subtask_priority = 'medium'
+                else:
+                    subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                    subtask_priority = subtask_item.get('priority', 'medium')
+                
+                cursor.execute('''
+                    INSERT INTO synergy_sessions.subtasks (
+                        subtask_id, task_id, task, completed, subtask_order, priority, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
+                subtasks_created += 1
+        
+        # Mark session as using milestones
+        cursor.execute('''
+            UPDATE synergy_sessions.synergy_sessions 
+            SET uses_milestones = TRUE, last_active = %s
+            WHERE session_id = %s
+        ''', (datetime.now().isoformat(), session_id))
+        
+        conn.commit()
+        
+        # Rule #3, #4, #5 - Close before return
+        try:
+            cursor.close()
+        except:
+            pass
+        cursor = None
+        
+        # Rule #6, #7
+        try:
+            conn.close()
+        except:
+            pass
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'tasks_created': tasks_created,
+            'subtasks_created': subtasks_created
+        })
+    
+    except Exception as e:
+        # Rule #14 - Exception paths cleaned via finally
+        print(f"[MILESTONE ERROR] Failed to create milestone: {e}")
+        if conn:
+            try:
+                conn.rollback()
+            except:
+                pass
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        # Rule #8, #9, #10 - finally with cursor checks
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        # Rule #11, #12 - finally with conn checks
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/milestone/<milestone_id>/task/create', methods=['POST'])
+def create_milestone_task(milestone_id):
+    """
+    Add task to milestone (LEAK-FREE)
+    
+    Request Body:
+    {
+        "task": "Configure backups",
+        "priority": "high",
+        "subtasks": ["Setup S3", "Test restore"]
+    }
+    """
+    cursor = None  # Rule #1
+    conn = None    # Rule #2
+    
+    try:
+        data = request.get_json()
+        
+        if not data.get('task'):
+            return jsonify({'success': False, 'error': 'task text required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check milestone exists
+        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        if not cursor.fetchone():
+            # Rule #3, #4, #5, #6, #7
+            try:
+                cursor.close()
+            except:
+                pass
+            cursor = None
+            try:
+                conn.close()
+            except:
+                pass
+            conn = None
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Get next task order
+        cursor.execute('''
+            SELECT COALESCE(MAX(task_order), 0) + 1 
+            FROM synergy_sessions.tasks 
+            WHERE milestone_id = %s
+        ''', (milestone_id,))
+        task_order = cursor.fetchone()[0]
+        
+        # Generate task ID
+        task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        task_priority = data.get('priority', 'medium')
+        
+        # Insert task
+        cursor.execute('''
+            INSERT INTO synergy_sessions.tasks (
+                task_id, milestone_id, task, completed, task_order, priority, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (task_id, milestone_id, data['task'], False, task_order, task_priority, datetime.now().isoformat()))
+        
+        # Insert subtasks
+        subtasks_created = 0
+        subtasks = data.get('subtasks', [])
+        for subtask_order, subtask_item in enumerate(subtasks, start=1):
+            subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{subtask_order}"
+            
+            if isinstance(subtask_item, str):
+                subtask_text = subtask_item
+                subtask_priority = 'medium'
+            else:
+                subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                subtask_priority = subtask_item.get('priority', 'medium')
+            
+            cursor.execute('''
+                INSERT INTO synergy_sessions.subtasks (
+                    subtask_id, task_id, task, completed, subtask_order, priority, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
+            subtasks_created += 1
+        
+        conn.commit()
+        
+        # Rule #3, #4, #5, #6, #7
+        try:
+            cursor.close()
+        except:
+            pass
+        cursor = None
+        try:
+            conn.close()
+        except:
+            pass
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'subtasks_created': subtasks_created
+        })
+    
+    except Exception as e:
+        print(f"[TASK ERROR] Failed to create task: {e}")
+        if conn:
+            try:
+                conn.rollback()
+            except:
+                pass
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        # Rule #8, #9, #10, #11, #12
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@synergy_bp.route('/task/<task_id>/subtask/create', methods=['POST'])
+def create_task_subtask(task_id):
+    """
+    Add subtask to task (LEAK-FREE)
+    
+    Request Body:
+    {
+        "subtask": "Validate backups",
+        "priority": "medium"
+    }
+    """
+    cursor = None  # Rule #1
+    conn = None    # Rule #2
+    
+    try:
+        data = request.get_json()
+        
+        if not data.get('subtask'):
+            return jsonify({'success': False, 'error': 'subtask text required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check task exists
+        cursor.execute('SELECT task_id FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
+        if not cursor.fetchone():
+            # Rule #3, #4, #5, #6, #7
+            try:
+                cursor.close()
+            except:
+                pass
+            cursor = None
+            try:
+                conn.close()
+            except:
+                pass
+            conn = None
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        # Get next subtask order
+        cursor.execute('''
+            SELECT COALESCE(MAX(subtask_order), 0) + 1 
+            FROM synergy_sessions.subtasks 
+            WHERE task_id = %s
+        ''', (task_id,))
+        subtask_order = cursor.fetchone()[0]
+        
+        # Generate subtask ID
+        subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        subtask_priority = data.get('priority', 'medium')
+        
+        # Insert subtask
+        cursor.execute('''
+            INSERT INTO synergy_sessions.subtasks (
+                subtask_id, task_id, task, completed, subtask_order, priority, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (subtask_id, task_id, data['subtask'], False, subtask_order, subtask_priority, datetime.now().isoformat()))
+        
+        conn.commit()
+        
+        # Rule #3, #4, #5, #6, #7
+        try:
+            cursor.close()
+        except:
+            pass
+        cursor = None
+        try:
+            conn.close()
+        except:
+            pass
+        conn = None
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id
+        })
+    
+    except Exception as e:
+        print(f"[SUBTASK ERROR] Failed to create subtask: {e}")
+        if conn:
+            try:
+                conn.rollback()
+            except:
+                pass
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        # Rule #8, #9, #10, #11, #12
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+

@@ -4,11 +4,21 @@
   "tools": [
     {
       "name": "calculate_flyers",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for digital flyers/leaflets. ALSO used for BUSINESS CARDS (90mm x 55mm). Supports various stock types, print modes (single/double sided), quantities, and cellophane finishes. Returns detailed quote with cost breakdown.",
+      "short_description": "Calculate printing quote for flyers and business cards with sizing, stock, and finish options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for digital flyers/leaflets. ALSO used for BUSINESS CARDS (90mm x 55mm). Supports various stock types, print modes (single/double sided), quantities, and cellophane finishes. Returns detailed quote with cost breakdown.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of items to print (e.g., 1000, 5000)"
+          "description": "Number of items to print (e.g., 1000, 5000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "width": {
           "type": "integer",
@@ -20,16 +30,38 @@
         },
         "stock_gsm": {
           "type": "integer",
-          "description": "Stock weight in GSM. Common: 350 (business cards), 170 (flyers), 250 (thick flyers)"
+          "description": "Stock weight in GSM. Common: 350 (business cards), 170 (flyers), 250 (thick flyers)",
+          "enum": [
+            128,
+            150,
+            170,
+            200,
+            250,
+            300,
+            350,
+            400
+          ]
         },
         "print_mode": {
           "type": "string",
-          "description": "Printing mode: 'single_sided', 'double_sided', 'no_print'"
+          "description": "Printing mode: 'single_sided', 'double_sided', 'no_print'",
+          "enum": [
+            "single_sided",
+            "double_sided",
+            "no_print"
+          ]
         },
         "cello_type": {
           "type": "string",
           "description": "Cellophane finish: 'none', 'gloss_both_sides', 'matt_both_sides', 'gloss_front_only', 'matt_front_only'",
-          "required": false
+          "required": false,
+          "enum": [
+            "none",
+            "gloss_both_sides",
+            "matt_both_sides",
+            "gloss_front_only",
+            "matt_front_only"
+          ]
         },
         "folded": {
           "type": "boolean",
@@ -40,38 +72,86 @@
     },
     {
       "name": "calculate_business_cards",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for business cards using Shopify pricing (website prices). Supports standard sizes (90x55mm, 90x50mm, 85x55mm), various stock types, single/double sided printing, and cellophane finishes. Returns quote matching website calculator.",
+      "short_description": "Calculate business card quote with size, stock, print type, and celloglaze finish options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for business cards using Shopify pricing (website prices). Supports standard sizes (90x55mm, 90x50mm, 85x55mm), various stock types, single/double sided printing, and cellophane finishes. Returns quote matching website calculator.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of business cards (e.g., 250, 500, 1000, 2000, 5000)"
+          "description": "Number of business cards (e.g., 250, 500, 1000, 2000, 5000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "Card size: '90x55mm' (standard), '90x50mm', '85x55mm'"
+          "description": "Card size: '90x55mm' (standard), '90x50mm', '85x55mm'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "stock_type": {
           "type": "string",
-          "description": "Stock type: 'standard' (350gsm Satin) or 'premium' (400gsm Knight Smooth, 400gsm Satin)"
+          "description": "Stock type: 'standard' (350gsm Satin) or 'premium' (400gsm Knight Smooth, 400gsm Satin)",
+          "enum": [
+            "standard",
+            "premium",
+            "satin",
+            "uncoated"
+          ]
         },
         "print_type": {
           "type": "string",
-          "description": "Print sides: 'single_sided' or 'double_sided'"
+          "description": "Print sides: 'single_sided' or 'double_sided'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "celloglaze": {
           "type": "string",
           "description": "Finish: 'none', 'gloss', 'matt'. Premium stock only supports matt celloglaze.",
-          "required": false
+          "required": false,
+          "enum": [
+            "none",
+            "gloss",
+            "matt",
+            "1_side_gloss",
+            "2_side_gloss",
+            "1_side_matt",
+            "2_side_matt"
+          ]
         }
       }
     },
     {
       "name": "calculate_perfect_bound_books",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for perfect bound books (glued spine). Requires cover stock, internal pages stock, page count, quantity, and optional extras (lamination, spot UV). Returns detailed quote with binding costs.",
+      "short_description": "Calculate perfect bound book quote with page count, cover, internal stock, and binding options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for perfect bound books (glued spine). Requires cover stock, internal pages stock, page count, quantity, and optional extras (lamination, spot UV). Returns detailed quote with binding costs.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of books to print (e.g., 100, 500, 1000)"
+          "description": "Number of books to print (e.g., 100, 500, 1000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "total_pages": {
           "type": "integer",
@@ -79,24 +159,52 @@
         },
         "cover_stock_gsm": {
           "type": "integer",
-          "description": "Cover stock weight in GSM (e.g., 300, 350)"
+          "description": "Cover stock weight in GSM (e.g., 300, 350)",
+          "enum": [
+            250,
+            300,
+            350,
+            400
+          ]
         },
         "internal_stock_gsm": {
           "type": "integer",
-          "description": "Internal pages stock weight in GSM (e.g., 128, 150, 170)"
+          "description": "Internal pages stock weight in GSM (e.g., 128, 150, 170)",
+          "enum": [
+            80,
+            100,
+            128,
+            150,
+            170
+          ]
         },
         "cover_print_mode": {
           "type": "string",
-          "description": "Cover printing: 'single_sided', 'double_sided'"
+          "description": "Cover printing: 'single_sided', 'double_sided'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "internal_print_mode": {
           "type": "string",
-          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white', 'mixed'"
+          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white', 'mixed'",
+          "enum": [
+            "single_sided",
+            "double_sided",
+            "black_white",
+            "mixed"
+          ]
         },
         "cover_lamination": {
           "type": "string",
           "description": "Cover finish: 'none', 'gloss', 'matt'",
-          "required": false
+          "required": false,
+          "enum": [
+            "none",
+            "gloss",
+            "matt"
+          ]
         },
         "spot_uv": {
           "type": "boolean",
@@ -107,11 +215,21 @@
     },
     {
       "name": "calculate_corflute_signs",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for corflute signs (rigid signage). Uses WooCommerce tier-based pricing (5mm standard). Supports various sizes and quantities with volume discounts.",
+      "short_description": "Calculate corflute sign quote with size, thickness, and single or double-sided printing",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for corflute signs (rigid signage). Uses WooCommerce tier-based pricing (5mm standard). Supports various sizes and quantities with volume discounts.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of signs (e.g., 1, 5, 10, 50). Tier pricing applies."
+          "description": "Number of signs (e.g., 1, 5, 10, 50). Tier pricing applies.",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "width": {
           "type": "integer",
@@ -124,22 +242,40 @@
         "thickness": {
           "type": "string",
           "description": "Corflute thickness: '3mm' or '5mm' (standard)",
-          "required": false
+          "required": false,
+          "enum": [
+            "3mm",
+            "5mm"
+          ]
         },
         "double_sided": {
           "type": "boolean",
           "description": "Print on both sides",
-          "required": false
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
         }
       }
     },
     {
       "name": "calculate_booklets",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for saddle-stitched booklets (stapled spine). Requires cover and internal stock, page count, and quantity. Simpler than perfect bound books.",
+      "short_description": "Calculate saddle-stitched booklet quote with page count, cover, and internal stock options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for saddle-stitched booklets (stapled spine). Requires cover and internal stock, page count, and quantity. Simpler than perfect bound books.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of booklets (e.g., 100, 500, 1000)"
+          "description": "Number of booklets (e.g., 100, 500, 1000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "total_pages": {
           "type": "integer",
@@ -147,34 +283,68 @@
         },
         "cover_stock_gsm": {
           "type": "integer",
-          "description": "Cover stock weight in GSM (e.g., 250, 300)"
+          "description": "Cover stock weight in GSM (e.g., 250, 300)",
+          "enum": [
+            250,
+            300,
+            350,
+            400
+          ]
         },
         "internal_stock_gsm": {
           "type": "integer",
-          "description": "Internal pages stock weight in GSM (e.g., 128, 150)"
+          "description": "Internal pages stock weight in GSM (e.g., 128, 150)",
+          "enum": [
+            80,
+            100,
+            128,
+            150,
+            170
+          ]
         },
         "cover_print_mode": {
           "type": "string",
-          "description": "Cover printing: 'single_sided', 'double_sided'"
+          "description": "Cover printing: 'single_sided', 'double_sided'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "internal_print_mode": {
           "type": "string",
-          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white'"
+          "description": "Internal printing: 'single_sided', 'double_sided', 'black_white'",
+          "enum": [
+            "single_sided",
+            "double_sided",
+            "black_white",
+            "mixed"
+          ]
         }
       }
     },
     {
       "name": "get_stock_list",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet list of available paper stocks with GSM weights, descriptions, and costs. Use this to help customers choose appropriate stock for their project.",
+      "short_description": "Get available paper stock types with GSM weights, descriptions, and pricing information",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet list of available paper stocks with GSM weights, descriptions, and costs. Use this to help customers choose appropriate stock for their project.",
       "parameters": {}
     },
     {
       "name": "calculate_saddle_stitch_books",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Saddle Stitch Books. Professional saddle stitch booklets with customizable covers, content pages, and finishing options. Perfect for brochures, catalogs, programs, and marketing materials with optional celloglaze protection.",
+      "short_description": "Calculate saddle stitch book quote with cover, content pages, and celloglaze finish options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Saddle Stitch Books. Professional saddle stitch booklets with customizable covers, content pages, and finishing options. Perfect for brochures, catalogs, programs, and marketing materials with optional celloglaze protection.",
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
@@ -182,317 +352,744 @@
         },
         "cover_option": {
           "type": "string",
-          "description": "cover_option. Valid options: 'Self Cover', 'Hard Cover'"
+          "description": "cover_option. Valid options: 'Self Cover', 'Hard Cover'",
+          "enum": [
+            "Self Cover",
+            "Hard Cover"
+          ]
         },
         "cover_stock": {
           "type": "string",
-          "description": "cover_stock. Valid options: 'Satin 150GSM', 'Satin 200GSM', 'Satin 250GSM', 'Satin 300GSM', 'Satin 350GSM'"
+          "description": "cover_stock. Valid options: 'Satin 150GSM', 'Satin 200GSM', 'Satin 250GSM', 'Satin 300GSM', 'Satin 350GSM'",
+          "enum": [
+            "350GSM Satin",
+            "300GSM Satin",
+            "250GSM Satin"
+          ]
         },
         "cover_print_type": {
           "type": "string",
-          "description": "cover_print_type. Valid options: '1 side colour (2pp)', '2 side colour (4pp)', '1 side Black & White (2pp)', '2 side Black & White (4pp)'"
+          "description": "cover_print_type. Valid options: '1 side colour (2pp)', '2 side colour (4pp)', '1 side Black & White (2pp)', '2 side Black & White (4pp)'",
+          "enum": [
+            "1 side colour (2pp)",
+            "2 side colour (4pp)",
+            "1 side Black & White (2pp)",
+            "2 side Black & White (4pp)"
+          ]
         },
         "celloglaze": {
           "type": "string",
-          "description": "celloglaze. Valid options: 'None', 'Gloss outside only', 'Matt outside only'"
+          "description": "celloglaze. Valid options: 'None', 'Gloss outside only', 'Matt outside only'",
+          "enum": [
+            "none",
+            "gloss",
+            "matt",
+            "1_side_gloss",
+            "2_side_gloss",
+            "1_side_matt",
+            "2_side_matt"
+          ]
         },
         "printed_pages": {
           "type": "string",
-          "description": "printed_pages. Valid options: '4pp', '8pp', '12pp', '16pp', '20pp', '24pp', '28pp', '32pp', '36pp', '40pp', '44pp', '48pp', '52pp', '56pp', '60pp', '64pp'"
+          "description": "printed_pages. Valid options: '4pp', '8pp', '12pp', '16pp', '20pp', '24pp', '28pp', '32pp', '36pp', '40pp', '44pp', '48pp', '52pp', '56pp', '60pp', '64pp'",
+          "enum": [
+            "4pp",
+            "8pp",
+            "12pp",
+            "16pp",
+            "20pp",
+            "24pp",
+            "28pp",
+            "32pp",
+            "36pp",
+            "40pp",
+            "44pp",
+            "48pp",
+            "52pp",
+            "56pp",
+            "60pp",
+            "64pp"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A5 Portrait', 'A4 Portrait', 'A4 Landscape'"
+          "description": "finish_size. Valid options: 'A5 Portrait', 'A4 Portrait', 'A4 Landscape'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "content_print_type": {
           "type": "string",
-          "description": "content_print_type. Valid options: 'Colour', 'Black & White'"
+          "description": "content_print_type. Valid options: 'Colour', 'Black & White'",
+          "enum": [
+            "Colour",
+            "Black & White"
+          ]
         },
         "content_stock_type": {
           "type": "string",
-          "description": "content_stock_type. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Satin 200GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
+          "description": "content_stock_type. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Satin 200GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'",
+          "enum": [
+            "Satin 128GSM",
+            "Satin 150GSM",
+            "Satin 200GSM",
+            "Uncoated Bond 80GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ]
         }
       }
     },
     {
       "name": "calculate_spiral_bound_books",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Spiral Bound Books. Professional spiral bound books with customizable covers, content pages, and finishing options. Perfect for notebooks, manuals, catalogs, and presentations.",
+      "short_description": "Calculate spiral bound book quote with covers, content pages, and PVC finish options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Spiral Bound Books. Professional spiral bound books with customizable covers, content pages, and finishing options. Perfect for notebooks, manuals, catalogs, and presentations.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of spiral bound books to print (min: 1, max: 10000)"
+          "description": "Number of spiral bound books to print (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 10)"
+          "description": "Number of different artwork designs (min: 1, max: 10)",
+          "enum": [
+            "1",
+            "max"
+          ]
         },
         "outer_front_cover": {
           "type": "string",
-          "description": "outer_front_cover. Valid options: 'Not Required', 'Clear PVC'"
+          "description": "outer_front_cover. Valid options: 'Not Required', 'Clear PVC'",
+          "enum": [
+            "Not Required",
+            "Clear PVC"
+          ]
         },
         "printed_front_cover": {
           "type": "string",
-          "description": "printed_front_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'"
+          "description": "printed_front_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'",
+          "enum": [
+            "None",
+            "250GSM Satin",
+            "300GSM Satin",
+            "350GSM Satin"
+          ]
         },
         "cover_print_type": {
           "type": "string",
-          "description": "cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
+          "description": "cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'",
+          "enum": [
+            "1pp Colour",
+            "2pp Colour",
+            "1pp Black & White",
+            "2pp Black & White"
+          ]
         },
         "celloglaze": {
           "type": "string",
-          "description": "celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'"
+          "description": "celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'",
+          "enum": [
+            "none",
+            "gloss",
+            "matt",
+            "1_side_gloss",
+            "2_side_gloss",
+            "1_side_matt",
+            "2_side_matt"
+          ]
         },
         "outer_back_cover": {
           "type": "string",
-          "description": "outer_back_cover. Valid options: 'Not Required', 'Clear PVC'"
+          "description": "outer_back_cover. Valid options: 'Not Required', 'Clear PVC'",
+          "enum": [
+            "Not Required",
+            "Clear PVC"
+          ]
         },
         "printed_back_cover": {
           "type": "string",
-          "description": "printed_back_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'"
+          "description": "printed_back_cover. Valid options: 'None', '250GSM Satin', '300GSM Satin', '350GSM Satin'",
+          "enum": [
+            "None",
+            "250GSM Satin",
+            "300GSM Satin",
+            "350GSM Satin"
+          ]
         },
         "back_cover_print_type": {
           "type": "string",
-          "description": "back_cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
+          "description": "back_cover_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'",
+          "enum": [
+            "1pp Colour",
+            "2pp Colour",
+            "1pp Black & White",
+            "2pp Black & White"
+          ]
         },
         "back_celloglaze": {
           "type": "string",
-          "description": "back_celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'"
+          "description": "back_celloglaze. Valid options: 'None', '1 Side Gloss', '2 Sided Gloss', '1 Side Matt', '2 Sided Matt'",
+          "enum": [
+            "None",
+            "1 Side Gloss",
+            "2 Sided Gloss",
+            "1 Side Matt",
+            "2 Sided Matt"
+          ]
         },
         "number_of_content_pages": {
           "type": "integer",
-          "description": "Total number of content pages (must be even) (min: 4, max: 500)"
+          "description": "Total number of content pages (must be even) (min: 4, max: 500)",
+          "enum": [
+            "4",
+            "max"
+          ]
         },
         "content_paper_stock": {
           "type": "string",
-          "description": "content_paper_stock. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 140GSM', 'Uncoated Bond 100GSM', 'Satin 300GSM'"
+          "description": "content_paper_stock. Valid options: 'Satin 128GSM', 'Satin 150GSM', 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 140GSM', 'Uncoated Bond 100GSM', 'Satin 300GSM'",
+          "enum": [
+            "Satin 128GSM",
+            "Satin 150GSM",
+            "Uncoated Bond 80GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 140GSM",
+            "Uncoated Bond 100GSM",
+            "Satin 300GSM"
+          ]
         },
         "content_print_type": {
           "type": "string",
-          "description": "content_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'"
+          "description": "content_print_type. Valid options: '1pp Colour', '2pp Colour', '1pp Black & White', '2pp Black & White'",
+          "enum": [
+            "1pp Colour",
+            "2pp Colour",
+            "1pp Black & White",
+            "2pp Black & White"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A6 Portrait', 'A6 Landscape', 'DL Portrait', 'DL Landscape', 'A5 Portrait', 'A5 Landscape', 'A4 Portrait', 'A4 Landscape'"
+          "description": "finish_size. Valid options: 'A6 Portrait', 'A6 Landscape', 'DL Portrait', 'DL Landscape', 'A5 Portrait', 'A5 Landscape', 'A4 Portrait', 'A4 Landscape'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         }
       }
     },
     {
       "name": "calculate_bollard_signs",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Bollard Signs. Professional bollard signs available in various sizes with three-sided or four-sided configurations. Perfect for directional signage, advertising, and outdoor displays. Made from durable corflute material.",
+      "short_description": "Calculate bollard sign quote with size, material, and three or four-sided configurations",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Bollard Signs. Professional bollard signs available in various sizes with three-sided or four-sided configurations. Perfect for directional signage, advertising, and outdoor displays. Made from durable corflute material.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of bollard signs to produce (min: 1, max: 1000)"
+          "description": "Number of bollard signs to produce (min: 1, max: 1000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "material": {
           "type": "string",
-          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'"
+          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'",
+          "enum": [
+            "3mm Corflute",
+            "5mm Corflute"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '270mm W x 1000mm H - Three Sided', '270mm W x 1200mm H - Three Sided', '270mm W x 1800mm H - Three Sided', '300mm W x 1000mm H - Three Sided', '300mm W x 1200mm H - Three Sided', '300mm W x 1800mm H - Three Sided', '155mm W x 1000mm H - Four Sided', '155mm W x 1200mm H - Four Sided', '155mm W x 1800mm H - Four Sided', '175mm W x 1000mm H - Four Sided', '175mm W x 1200mm H - Four Sided', '175mm W x 1800mm H - Four Sided'"
+          "description": "size. Valid options: '270mm W x 1000mm H - Three Sided', '270mm W x 1200mm H - Three Sided', '270mm W x 1800mm H - Three Sided', '300mm W x 1000mm H - Three Sided', '300mm W x 1200mm H - Three Sided', '300mm W x 1800mm H - Three Sided', '155mm W x 1000mm H - Four Sided', '155mm W x 1200mm H - Four Sided', '155mm W x 1800mm H - Four Sided', '175mm W x 1000mm H - Four Sided', '175mm W x 1200mm H - Four Sided', '175mm W x 1800mm H - Four Sided'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_stackable_cubes",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Stackable Cubes. Professional stackable display cubes made from durable corflute material. Perfect for retail displays, exhibitions, promotional events, and modular signage solutions. Available in multiple sizes with custom printing options.",
+      "short_description": "Calculate stackable display cube quote with size, material, and custom artwork options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Stackable Cubes. Professional stackable display cubes made from durable corflute material. Perfect for retail displays, exhibitions, promotional events, and modular signage solutions. Available in multiple sizes with custom printing options.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of stackable cubes to produce (min: 1, max: 1000)"
+          "description": "Number of stackable cubes to produce (min: 1, max: 1000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         },
         "material": {
           "type": "string",
-          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'"
+          "description": "material. Valid options: '3mm Corflute', '5mm Corflute'",
+          "enum": [
+            "3mm Corflute",
+            "5mm Corflute"
+          ]
         },
         "cube_size": {
           "type": "string",
-          "description": "cube_size. Valid options: 'Small 300mm x 300mm', 'Medium 400mm x 400mm', 'Large 500mm x 500mm', 'X-Large 580mm x 580mm'"
+          "description": "cube_size. Valid options: 'Small 300mm x 300mm', 'Medium 400mm x 400mm', 'Large 500mm x 500mm', 'X-Large 580mm x 580mm'",
+          "enum": [
+            "Small 300mm x 300mm",
+            "Medium 400mm x 400mm",
+            "Large 500mm x 500mm",
+            "X-Large 580mm x 580mm"
+          ]
         }
       }
     },
     {
       "name": "calculate_election_signs",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Election Signs. Professional election campaign signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for easy installation. Perfect for political campaigns, candidate promotion, and electoral advertising.",
+      "short_description": "Calculate election sign quote with size, thickness, eyelet placement, and cutting options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Election Signs. Professional election campaign signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for easy installation. Perfect for political campaigns, candidate promotion, and electoral advertising.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of election signs to produce (min: 1, max: 10000)"
+          "description": "Number of election signs to produce (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "eyelets": {
           "type": "string",
-          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left and right corners)', '2 x Eyelets (center left and right)', '2 x Eyelets (center top and bottom)', '6 x Eyelets (3 each top and bottom)', '6 x Eyelets (3 each left and right)'"
+          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left and right corners)', '2 x Eyelets (center left and right)', '2 x Eyelets (center top and bottom)', '6 x Eyelets (3 each top and bottom)', '6 x Eyelets (3 each left and right)'",
+          "enum": [
+            "No Eyelets",
+            "4 x Eyelets (1 In Each Corner)",
+            "2 x Eyelets (top left and right corners)",
+            "2 x Eyelets (center left and right)",
+            "2 x Eyelets (center top and bottom)",
+            "6 x Eyelets (3 each top and bottom)",
+            "6 x Eyelets (3 each left and right)"
+          ]
         },
         "width_mm": {
           "type": "integer",
           "description": "Width in millimeters. For custom sizes only. Min: 100mm, Max: 5000mm",
-          "required": false
+          "required": false,
+          "enum": [
+            "100mm",
+            "Max"
+          ]
         },
         "thickness": {
           "type": "string",
-          "description": "thickness. Valid options: '3mm', '5mm'"
+          "description": "thickness. Valid options: '3mm', '5mm'",
+          "enum": [
+            "3mm",
+            "5mm"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'"
+          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "length_mm": {
           "type": "integer",
           "description": "Custom height/length in millimeters (only for custom sizes) (min: 100, max: 5000)",
-          "required": false
+          "required": false,
+          "enum": [
+            "100",
+            "max"
+          ]
         },
         "sides": {
           "type": "string",
-          "description": "sides. Valid options: 'Single Sided', 'Double Sided'"
+          "description": "sides. Valid options: 'Single Sided', 'Double Sided'",
+          "enum": [
+            "Single Sided",
+            "Double Sided"
+          ]
         },
         "cutting": {
           "type": "string",
-          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'"
+          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'",
+          "enum": [
+            "Standard square edge",
+            "Custom Shape"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_selfie_frames",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Selfie Frames. Professional selfie frames perfect for events, marketing campaigns, photo booths, and social media promotions. Available in two sizes with custom artwork printing options.",
+      "short_description": "Calculate selfie frame quote with size selection and custom artwork for events and marketing",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Selfie Frames. Professional selfie frames perfect for events, marketing campaigns, photo booths, and social media promotions. Available in two sizes with custom artwork printing options.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of selfie frames to produce (min: 1, max: 200)"
+          "description": "Number of selfie frames to produce (min: 1, max: 200)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'Small 600mm x 900mm', 'Large 900mm x 1200mm'"
+          "description": "size. Valid options: 'Small 600mm x 900mm', 'Large 900mm x 1200mm'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "number_of_artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_construction_signs",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Construction Signs. Professional construction and safety signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for secure installation. Perfect for construction sites, safety warnings, and industrial signage.",
+      "short_description": "Calculate construction sign quote with size, thickness, eyelet placement, and safety features",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Construction Signs. Professional construction and safety signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for secure installation. Perfect for construction sites, safety warnings, and industrial signage.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of construction signs to produce (min: 1, max: 10000)"
+          "description": "Number of construction signs to produce (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "eyelets": {
           "type": "string",
-          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left & right corners)', '2 x Eyelets (center left & right)', '2 x Eyelets (center top & bottom)', '6 x Eyelets (3 each top & bottom)', '6 x Eyelets (3 each left & right)'"
+          "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left & right corners)', '2 x Eyelets (center left & right)', '2 x Eyelets (center top & bottom)', '6 x Eyelets (3 each top & bottom)', '6 x Eyelets (3 each left & right)'",
+          "enum": [
+            "No Eyelets",
+            "4 x Eyelets (1 In Each Corner)",
+            "2 x Eyelets (top left & right corners)",
+            "2 x Eyelets (center left & right)",
+            "2 x Eyelets (center top & bottom)",
+            "6 x Eyelets (3 each top & bottom)",
+            "6 x Eyelets (3 each left & right)"
+          ]
         },
         "width_mm": {
           "type": "integer",
           "description": "Custom width in millimeters (only for custom sizes) (min: 100, max: 5000)",
-          "required": false
+          "required": false,
+          "enum": [
+            "100",
+            "max"
+          ]
         },
         "thickness": {
           "type": "string",
-          "description": "thickness. Valid options: '3mm', '5mm'"
+          "description": "thickness. Valid options: '3mm', '5mm'",
+          "enum": [
+            "3mm",
+            "5mm"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'"
+          "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "length_mm": {
           "type": "integer",
           "description": "Custom height/length in millimeters (only for custom sizes) (min: 100, max: 5000)",
-          "required": false
+          "required": false,
+          "enum": [
+            "100",
+            "max"
+          ]
         },
         "sides": {
           "type": "string",
-          "description": "sides. Valid options: 'Single Sided', 'Double Sided'"
+          "description": "sides. Valid options: 'Single Sided', 'Double Sided'",
+          "enum": [
+            "Single Sided",
+            "Double Sided"
+          ]
         },
         "cutting": {
           "type": "string",
-          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'"
+          "description": "cutting. Valid options: 'Standard square edge', 'Custom Shape'",
+          "enum": [
+            "Standard square edge",
+            "Custom Shape"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_strut_cards_a3",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Strut Cards A3. Professional A3 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support.",
+      "short_description": "Calculate A3 strut card quote with screenboard material for point-of-sale displays",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Strut Cards A3. Professional A3 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of A3 strut cards to produce (min: 1, max: 10000)"
+          "description": "Number of A3 strut cards to produce (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "stock": {
           "type": "string",
-          "description": "stock. Valid options: '2mm Screenboard'"
+          "description": "stock. Valid options: '2mm Screenboard'",
+          "enum": [
+            "Satin 150GSM",
+            "Satin 300GSM",
+            "Uncoated Bond 80GSM",
+            "Satin 128GSM",
+            "Satin 250GSM",
+            "Satin 350GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'A3 - 297mm x 420mm'"
+          "description": "size. Valid options: 'A3 - 297mm x 420mm'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_strut_cards_a4",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Strut Cards A4. Professional A4 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support for maximum visibility.",
+      "short_description": "Calculate A4 strut card quote with screenboard material for counter-top displays",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Strut Cards A4. Professional A4 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support for maximum visibility.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of A4 strut cards to produce (min: 1, max: 10000)"
+          "description": "Number of A4 strut cards to produce (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "stock": {
           "type": "string",
-          "description": "stock. Valid options: '2mm Screenboard'"
+          "description": "stock. Valid options: '2mm Screenboard'",
+          "enum": [
+            "Satin 150GSM",
+            "Satin 300GSM",
+            "Uncoated Bond 80GSM",
+            "Satin 128GSM",
+            "Satin 250GSM",
+            "Satin 350GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'A4 - 210mm x 297mm'"
+          "description": "size. Valid options: 'A4 - 210mm x 297mm'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_premium_bookmarks",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Premium Bookmarks. High-quality premium bookmarks with custom printing options, ideal for branding, gifts, and promotional use.",
+      "short_description": "Calculate premium bookmark quote with size, stock, print type, and celloglaze finish options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Premium Bookmarks. High-quality premium bookmarks with custom printing options, ideal for branding, gifts, and promotional use.",
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '25', '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000'"
+          "description": "quantity. Valid options: '25', '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000'",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "celloglaze": {
           "type": "string",
-          "description": "celloglaze. Valid options: 'None', 'Gloss 1 Sided', 'Gloss 2 Sided', 'Matt 1 Sided', 'Matt 2 Sided'"
+          "description": "celloglaze. Valid options: 'None', 'Gloss 1 Sided', 'Gloss 2 Sided', 'Matt 1 Sided', 'Matt 2 Sided'",
+          "enum": [
+            "none",
+            "gloss",
+            "matt",
+            "1_side_gloss",
+            "2_side_gloss",
+            "1_side_matt",
+            "2_side_matt"
+          ]
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided'"
+          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: '50mm x 150mm', '50mm x 185mm', '50mm x 230mm', '65mm x 215mm'"
+          "description": "finish_size. Valid options: '50mm x 150mm', '50mm x 185mm', '50mm x 230mm', '65mm x 215mm'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "paper_stock_type": {
           "type": "string",
-          "description": "paper_stock_type. Valid options: 'Satin 350GSM', 'Uncoated 300GSM'"
+          "description": "paper_stock_type. Valid options: 'Satin 350GSM', 'Uncoated 300GSM'",
+          "enum": [
+            "Satin 350GSM",
+            "Uncoated 300GSM"
+          ]
         },
         "artworks": {
           "type": "integer",
@@ -502,11 +1099,21 @@
     },
     {
       "name": "calculate_notepads_a4",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A4. Professional A4 notepads with custom printing options. Perfect for office use, meeting notes, and promotional stationery.",
+      "short_description": "Calculate A4 notepad quote with leaves per pad, stock type, and print specifications",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A4. Professional A4 notepads with custom printing options. Perfect for office use, meeting notes, and promotional stationery.",
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+          "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
@@ -514,45 +1121,101 @@
         },
         "leaves_per_pad": {
           "type": "string",
-          "description": "leaves_per_pad. Valid options: '25', '50', '100'"
+          "description": "leaves_per_pad. Valid options: '25', '50', '100'",
+          "enum": [
+            "25",
+            "50",
+            "100"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A4 Portrait'"
+          "description": "finish_size. Valid options: 'A4 Portrait'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
+          "description": "print_type. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "stock_type": {
           "type": "string",
-          "description": "stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
+          "description": "stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'",
+          "enum": [
+            "standard",
+            "premium",
+            "satin",
+            "uncoated"
+          ]
         }
       }
     },
     {
       "name": "calculate_printed_letterheads",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Printed Letterheads. High-quality printed letterheads with custom branding, ideal for professional business correspondence and official documents.",
+      "short_description": "Calculate letterhead quote with paper stock, print type, and single or double-sided options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Printed Letterheads. High-quality printed letterheads with custom branding, ideal for professional business correspondence and official documents.",
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'"
+          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "print_sides": {
           "type": "string",
-          "description": "print_sides. Valid options: 'Single side print', 'Double side print'"
+          "description": "print_sides. Valid options: 'Single side print', 'Double side print'",
+          "enum": [
+            "Single side print",
+            "Double side print"
+          ]
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour', 'Black & White'"
+          "description": "print_type. Valid options: 'Colour', 'Black & White'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'A4 - 210mm x 297mm'"
+          "description": "finish_size. Valid options: 'A4 - 210mm x 297mm'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "paper_stock_type": {
           "type": "string",
-          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
+          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'",
+          "enum": [
+            "Uncoated Bond 80GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ]
         },
         "artworks": {
           "type": "integer",
@@ -562,27 +1225,59 @@
     },
     {
       "name": "calculate_with_compliments_slips",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for With Compliments Slips. Custom printed With Compliments slips designed to match your brand, perfect for adding a personal touch to documents, packages, and client communications.",
+      "short_description": "Calculate compliments slip quote with paper stock, print type, and quantity options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for With Compliments Slips. Custom printed With Compliments slips designed to match your brand, perfect for adding a personal touch to documents, packages, and client communications.",
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'"
+          "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "print_sides": {
           "type": "string",
-          "description": "print_sides. Valid options: 'Single side print', 'Double side print'"
+          "description": "print_sides. Valid options: 'Single side print', 'Double side print'",
+          "enum": [
+            "Single side print",
+            "Double side print"
+          ]
         },
         "print_type": {
           "type": "string",
-          "description": "print_type. Valid options: 'Colour', 'Black & White'"
+          "description": "print_type. Valid options: 'Colour', 'Black & White'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "finish_size. Valid options: 'DL - 99mm x 210mm'"
+          "description": "finish_size. Valid options: 'DL - 99mm x 210mm'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "paper_stock_type": {
           "type": "string",
-          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'"
+          "description": "paper_stock_type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'",
+          "enum": [
+            "Uncoated Bond 80GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ]
         },
         "artworks": {
           "type": "integer",
@@ -592,205 +1287,796 @@
     },
     {
       "name": "calculate_notepads_a5",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A5. Professional A5 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery. Features padding service with cardboard backing.",
+      "short_description": "Calculate A5 notepad quote with leaves per pad, stock type, and print specifications",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A5. Professional A5 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery. Features padding service with cardboard backing.",
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 10)"
+          "description": "Number of different artwork designs (min: 1, max: 10)",
+          "enum": [
+            "1",
+            "max"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "Notepad size (currently only A5 Portrait supported). Valid options: 'A5 Portrait'"
+          "description": "Notepad size (currently only A5 Portrait supported). Valid options: 'A5 Portrait'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "leaves_per_pad": {
           "type": "string",
-          "description": "Number of sheets in each notepad. Valid options: '25', '50', '100'"
+          "description": "Number of sheets in each notepad. Valid options: '25', '50', '100'",
+          "enum": [
+            "25",
+            "50",
+            "100"
+          ]
         },
         "print_type": {
           "type": "string",
-          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
+          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "stock_type": {
           "type": "string",
-          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
+          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'",
+          "enum": [
+            "standard",
+            "premium",
+            "satin",
+            "uncoated"
+          ]
         }
       }
     },
     {
       "name": "calculate_notepads_a6",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A6. Professional A6 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery.",
+      "short_description": "Calculate A6 notepad quote with leaves per pad, stock type, and print specifications",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A6. Professional A6 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery.",
       "parameters": {
         "quantity": {
           "type": "string",
-          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'"
+          "description": "Number of notepads to produce (pads, not sheets). Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 10)"
+          "description": "Number of different artwork designs (min: 1, max: 10)",
+          "enum": [
+            "1",
+            "max"
+          ]
         },
         "finish_size": {
           "type": "string",
-          "description": "Notepad size (currently only A6 Portrait supported). Valid options: 'A6 Portrait'"
+          "description": "Notepad size (currently only A6 Portrait supported). Valid options: 'A6 Portrait'",
+          "enum": [
+            "90x55mm",
+            "90x50mm",
+            "85x55mm",
+            "A4",
+            "A5",
+            "A6",
+            "DL"
+          ]
         },
         "leaves_per_pad": {
           "type": "string",
-          "description": "Number of sheets in each notepad. Valid options: '10', '15', '25', '50', '100'"
+          "description": "Number of sheets in each notepad. Valid options: '10', '15', '25', '50', '100'",
+          "enum": [
+            "10",
+            "15",
+            "25",
+            "50",
+            "100"
+          ]
         },
         "print_type": {
           "type": "string",
-          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'"
+          "description": "Printing type - color or black & white, single or double sided. Valid options: 'Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided'",
+          "enum": [
+            "single_sided",
+            "double_sided"
+          ]
         },
         "stock_type": {
           "type": "string",
-          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'"
+          "description": "Paper stock weight and type. Valid options: 'Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond'",
+          "enum": [
+            "standard",
+            "premium",
+            "satin",
+            "uncoated"
+          ]
         }
       }
     },
     {
       "name": "calculate_luxury_classic_pull_up_banners",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Luxury Classic Pull Up Banners. Premium luxury classic pull up banners with professional aluminum base. Perfect for trade shows, exhibitions, retail displays, and corporate events. Available in multiple sizes with high-quality printing on durable banner material.",
+      "short_description": "Calculate luxury pull-up banner quote with size, base color, and aluminum stand options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Luxury Classic Pull Up Banners. Premium luxury classic pull up banners with professional aluminum base. Perfect for trade shows, exhibitions, retail displays, and corporate events. Available in multiple sizes with high-quality printing on durable banner material.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of luxury pull up banners to produce (min: 1, max: 100)"
+          "description": "Number of luxury pull up banners to produce (min: 1, max: 100)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (min: 1, max: 20)"
+          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         },
         "base_colour": {
           "type": "string",
-          "description": "base_colour. Valid options: 'Silver', 'Black'"
+          "description": "base_colour. Valid options: 'Silver', 'Black'",
+          "enum": [
+            "Silver",
+            "Black"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '850mm W x 2000mm H', '850mm W x 1500mm H', '850mm W x 1400mm H Shopping Center'"
+          "description": "size. Valid options: '850mm W x 2000mm H', '850mm W x 1500mm H', '850mm W x 1400mm H Shopping Center'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         }
       }
     },
     {
       "name": "calculate_corflute_insert_a_frame",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Corflute Insert A-Frame. Professional corflute insert A-frame signs perfect for outdoor advertising, retail displays, and promotional signage. Durable weather-resistant construction with replaceable corflute inserts for versatile messaging.",
+      "short_description": "Calculate corflute insert A-frame sign quote with replaceable inserts for outdoor displays",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Corflute Insert A-Frame. Professional corflute insert A-frame signs perfect for outdoor advertising, retail displays, and promotional signage. Durable weather-resistant construction with replaceable corflute inserts for versatile messaging.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of A-frame signs required (min: 1, max: 10000)"
+          "description": "Number of A-frame signs required (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '600mm(W) x 900mm(H)'"
+          "description": "size. Valid options: '600mm(W) x 900mm(H)'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)"
+          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_metal_face_a_frame",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Metal Face A-Frame. Premium metal face A-frame signs with durable construction and professional finish. Perfect for high-traffic outdoor locations, retail displays, and permanent signage applications where durability and weather resistance are essential.",
+      "short_description": "Calculate metal face A-frame sign quote with durable construction for outdoor use",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Metal Face A-Frame. Premium metal face A-frame signs with durable construction and professional finish. Perfect for high-traffic outdoor locations, retail displays, and permanent signage applications where durability and weather resistance are essential.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of metal face A-frame signs required (min: 1, max: 100)"
+          "description": "Number of metal face A-frame signs required (min: 1, max: 100)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first artwork included, additional at $6 each) (min: 1, max: 20)"
+          "description": "Number of different artwork designs (first artwork included, additional at $6 each) (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '600mm W x 900mm H'"
+          "description": "size. Valid options: '600mm W x 900mm H'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         }
       }
     },
     {
       "name": "calculate_custom_poster_printing",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Custom Poster Printing. High-quality custom poster printing available in standard A-series sizes or custom dimensions. Choose from premium 250GSM Satin Poster Paper or waterproof 200GSM Yuppo Synthetic Paper with sophisticated square meter-based pricing.",
+      "short_description": "Calculate custom poster quote with size, paper type, and standard or custom dimensions",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Custom Poster Printing. High-quality custom poster printing available in standard A-series sizes or custom dimensions. Choose from premium 250GSM Satin Poster Paper or waterproof 200GSM Yuppo Synthetic Paper with sophisticated square meter-based pricing.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of posters required (min: 1, max: 10000)"
+          "description": "Number of posters required (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "width_mm": {
           "type": "integer",
-          "description": "Custom width in millimeters (only visible for custom size) (min: 100, max: 2000)"
+          "description": "Custom width in millimeters (only visible for custom size) (min: 100, max: 2000)",
+          "enum": [
+            "100",
+            "max"
+          ]
         },
         "paper_type": {
           "type": "string",
-          "description": "paper_type. Valid options: '250GSM Satin Poster Paper', '200GSM Yuppo Synthetic Paper'"
+          "description": "paper_type. Valid options: '250GSM Satin Poster Paper', '200GSM Yuppo Synthetic Paper'",
+          "enum": [
+            "250GSM Satin Poster Paper",
+            "200GSM Yuppo Synthetic Paper"
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: 'A2 - 420mm x 594mm', 'A1 - 594mm x 841mm', 'A0 - 841mm x 1189mm', 'Custom'"
+          "description": "size. Valid options: 'A2 - 420mm x 594mm', 'A1 - 594mm x 841mm', 'A0 - 841mm x 1189mm', 'Custom'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "length_mm": {
           "type": "integer",
-          "description": "Custom length/height in millimeters (only visible for custom size) (min: 100, max: 3000)"
+          "description": "Custom length/height in millimeters (only visible for custom size) (min: 100, max: 3000)",
+          "enum": [
+            "100",
+            "max"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)"
+          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         }
       }
     },
     {
       "name": "calculate_custom_vinyl_stickers",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Custom Vinyl Stickers. Custom vinyl stickers with roll-to-roll production rules, square-meter pricing and finishing costs (lamination, cutting).",
+      "short_description": "Calculate vinyl sticker quote with size, vinyl type, lamination, and cutting method options",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Custom Vinyl Stickers. Custom vinyl stickers with roll-to-roll production rules, square-meter pricing and finishing costs (lamination, cutting).",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of stickers required (min: 1, max: 10000)"
+          "description": "Number of stickers required (min: 1, max: 10000)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
         },
         "size": {
           "type": "string",
-          "description": "size. Valid options: '50mm Circle', '75mm Circle', '100mm Circle', '50mm Square', '75mm Square', '100mm Square', '75mm × 50mm Rectangle', '100mm × 75mm Rectangle', '150mm × 100mm Rectangle', 'Custom Size'"
+          "description": "size. Valid options: '50mm Circle', '75mm Circle', '100mm Circle', '50mm Square', '75mm Square', '100mm Square', '75mm \u00d7 50mm Rectangle', '100mm \u00d7 75mm Rectangle', '150mm \u00d7 100mm Rectangle', 'Custom Size'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
         },
         "width_mm": {
           "type": "integer",
-          "description": "Custom width in millimetres (min: 25, max: 500)"
+          "description": "Custom width in millimetres (min: 25, max: 500)",
+          "enum": [
+            "25",
+            "max"
+          ]
         },
         "height_mm": {
           "type": "integer",
-          "description": "Custom height in millimetres (min: 25, max: 500)"
+          "description": "Custom height in millimetres (min: 25, max: 500)",
+          "enum": [
+            "25",
+            "max"
+          ]
         },
         "vinyl_family": {
           "type": "string",
-          "description": "Choose monomeric (short-term) or polymeric (long-term) vinyl.. Valid options: 'Standard (Monomeric)', 'Premium (Polymeric)'"
+          "description": "Choose monomeric (short-term) or polymeric (long-term) vinyl.. Valid options: 'Standard (Monomeric)', 'Premium (Polymeric)'",
+          "enum": [
+            "Standard (Monomeric)",
+            "Premium (Polymeric)"
+          ]
         },
         "adhesive": {
           "type": "string",
-          "description": "Adhesive type (Permanent or Removable). Valid options: 'Permanent', 'Removable'"
+          "description": "Adhesive type (Permanent or Removable). Valid options: 'Permanent', 'Removable'",
+          "enum": [
+            "Permanent",
+            "Removable"
+          ]
         },
         "laminate": {
           "type": "string",
-          "description": "Optional protective laminate (match monomeric/polymeric family).. Valid options: 'No Lamination', 'Gloss Laminate', 'Matte Laminate'"
+          "description": "Optional protective laminate (match monomeric/polymeric family).. Valid options: 'No Lamination', 'Gloss Laminate', 'Matte Laminate'",
+          "enum": [
+            "No Lamination",
+            "Gloss Laminate",
+            "Matte Laminate"
+          ]
         },
         "cutting_method": {
           "type": "string",
-          "description": "Cutting/finishing method. Valid options: 'Kiss-Cut (Individual)', 'Die-Cut (No background)', 'Contour-Cut (Custom shapes)', 'Sheet (Uncut Grid)'"
+          "description": "Cutting/finishing method. Valid options: 'Kiss-Cut (Individual)', 'Die-Cut (No background)', 'Contour-Cut (Custom shapes)', 'Sheet (Uncut Grid)'",
+          "enum": [
+            "Kiss-Cut (Individual)",
+            "Die-Cut (No background)",
+            "Contour-Cut (Custom shapes)",
+            "Sheet (Uncut Grid)"
+          ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first included, additional $5 each) (min: 1, max: 20)"
+          "description": "Number of different artwork designs (first included, additional $5 each) (min: 1, max: 20)",
+          "enum": [
+            "1",
+            "max"
+          ]
         },
         "labour_rate": {
           "type": "string",
-          "description": "Choose whether trade or non-trade labour rates apply for laminating and cutting. Valid options: 'Trade ($70/hr)', 'Non-Trade ($90/hr)'"
+          "description": "Choose whether trade or non-trade labour rates apply for laminating and cutting. Valid options: 'Trade ($70/hr)', 'Non-Trade ($90/hr)'",
+          "enum": [
+            "Trade ($70/hr)",
+            "Non-Trade ($90/hr)"
+          ]
         }
       }
     },
     {
       "name": "get_calculator_requirements",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet detailed requirements for a specific product calculator including required parameters, business rules, common defaults, and historical data insights. Use this BEFORE calculating quotes to understand what information you need.",
+      "short_description": "Get calculator requirements with parameters, business rules, and defaults for specific products",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet detailed requirements for a specific product calculator including required parameters, business rules, common defaults, and historical data insights. Use this BEFORE calculating quotes to understand what information you need.",
       "parameters": {
         "product_type": {
           "type": "string",
-          "description": "Product type: 'flyers', 'business_cards', 'perfect_bound_books', 'corflute_signs', 'booklets', 'notepads_a5'"
+          "description": "Product type: 'flyers', 'business_cards', 'perfect_bound_books', 'corflute_signs', 'booklets', 'notepads_a5'",
+          "enum": [
+            "flyers",
+            "business_cards",
+            "perfect_bound_books",
+            "corflute_signs",
+            "booklets",
+            "notepads_a5"
+          ]
+        }
+      }
+    },
+    {
+      "name": "calculate_wire_bound_books_shopify",
+      "short_description": "Calculate Wire Bound Books quote with simplified parameters for size, stock, and covers",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate Wire Bound Books quote using simplified interface that maps to complex F1-F14 parameters. Wire binding provides professional look with durable metal binding. Default includes Clear PVC overlay on front cover.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of books to print",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
+        },
+        "pages": {
+          "type": "integer",
+          "description": "Total page count for internal pages only (not including covers)"
+        },
+        "size": {
+          "type": "string",
+          "description": "Book size: 'A4', 'A5', 'A6', 'DL'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
+        },
+        "cover_stock": {
+          "type": "string",
+          "description": "Cover paper stock: '350GSM Satin', '300GSM Satin', '250GSM Satin'",
+          "enum": [
+            "350GSM Satin",
+            "300GSM Satin",
+            "250GSM Satin"
+          ]
+        },
+        "inner_stock": {
+          "type": "string",
+          "description": "Internal pages paper: '100GSM Uncoated', '100GSM Satin', '80GSM Uncoated', '80GSM Satin'",
+          "enum": [
+            "100GSM Uncoated",
+            "100GSM Satin",
+            "80GSM Uncoated",
+            "80GSM Satin"
+          ]
+        },
+        "cover_cellophane": {
+          "type": "string",
+          "description": "Cellophane finish: 'No Cellophane', 'Gloss Cellophane', 'Matt Cellophane'",
+          "required": false,
+          "enum": [
+            "No Cellophane",
+            "Gloss Cellophane",
+            "Matt Cellophane"
+          ]
+        },
+        "front_cover_pvc": {
+          "type": "boolean",
+          "description": "Whether to add Clear PVC overlay on front cover (default True)",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        }
+      }
+    },
+    {
+      "name": "calculate_spiral_bound_books_shopify",
+      "short_description": "Calculate Spiral Bound Books quote with plastic spiral binding instead of wire binding",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate Spiral Bound Books quote. Same interface as wire_bound but uses plastic spiral binding. Has 17 thickness tiers vs wire's 14 tiers. Provides flexible page-turning experience.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of books to print",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
+        },
+        "pages": {
+          "type": "integer",
+          "description": "Total page count for internal pages only"
+        },
+        "size": {
+          "type": "string",
+          "description": "Book size: 'A4', 'A5', 'A6', 'DL'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
+        },
+        "cover_stock": {
+          "type": "string",
+          "description": "Cover paper stock: '350GSM Satin', '300GSM Satin', '250GSM Satin'",
+          "enum": [
+            "350GSM Satin",
+            "300GSM Satin",
+            "250GSM Satin"
+          ]
+        },
+        "inner_stock": {
+          "type": "string",
+          "description": "Internal pages paper: '100GSM Uncoated', '100GSM Satin', '80GSM Uncoated', '80GSM Satin'",
+          "enum": [
+            "100GSM Uncoated",
+            "100GSM Satin",
+            "80GSM Uncoated",
+            "80GSM Satin"
+          ]
+        },
+        "cover_cellophane": {
+          "type": "string",
+          "description": "Cellophane finish: 'No Cellophane', 'Gloss Cellophane', 'Matt Cellophane'",
+          "required": false,
+          "enum": [
+            "No Cellophane",
+            "Gloss Cellophane",
+            "Matt Cellophane"
+          ]
+        },
+        "front_cover_pvc": {
+          "type": "boolean",
+          "description": "Whether to add Clear PVC overlay on front cover (default True)",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        }
+      }
+    },
+    {
+      "name": "calculate_folded_flyers_shopify",
+      "short_description": "Calculate Folded Flyers quote for single-sheet brochures with various fold types",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate Folded Flyers quote. Single sheet printed and folded into panels. Best for brochures, leaflets, direct mail. Cost-effective marketing materials. Minimum 100 quantity.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of flyers (minimum 100)",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
+        },
+        "size": {
+          "type": "string",
+          "description": "Flat size before folding: 'A5', 'A4', 'A3', '6pp A4'",
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "DL",
+            "A3",
+            "6pp A4"
+          ]
+        },
+        "stock": {
+          "type": "string",
+          "description": "Paper stock: 'Satin 150GSM', 'Satin 300GSM', 'Uncoated Bond 80GSM', 'Satin 128GSM', 'Satin 250GSM', 'Satin 350GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM'",
+          "enum": [
+            "Satin 150GSM",
+            "Satin 300GSM",
+            "Uncoated Bond 80GSM",
+            "Satin 128GSM",
+            "Satin 250GSM",
+            "Satin 350GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ]
+        },
+        "double_sided": {
+          "type": "boolean",
+          "description": "True for printing both sides (default), False for one side",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        },
+        "colour": {
+          "type": "boolean",
+          "description": "True for colour printing (default), False for black & white",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        },
+        "fold_type": {
+          "type": "string",
+          "description": "Fold configuration: 'Single Fold', 'Double Fold', 'Triple Fold'",
+          "required": false,
+          "enum": [
+            "Single Fold",
+            "Double Fold",
+            "Triple Fold"
+          ]
+        },
+        "cellophane": {
+          "type": "string",
+          "description": "Lamination: 'None', 'Gloss', 'Matt' (Satin stocks only)",
+          "required": false,
+          "enum": [
+            "None",
+            "Gloss",
+            "Matt"
+          ]
+        }
+      }
+    },
+    {
+      "name": "calculate_economical_business_cards_shopify",
+      "short_description": "Calculate Economical Business Cards quote with standard 300GSM Satin stock at competitive pricing",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate Economical Business Cards quote. Standard 90mm x 55mm, 300GSM Satin stock. Cost-effective option. Historical: 88% double-sided, 55% no cellophane. Popular: 1000 qty (34.5%), 500 (26%), 250 (24%).",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of cards: 250, 500, 1000, 2000, 5000, 10000",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
+        },
+        "double_sided": {
+          "type": "boolean",
+          "description": "True for printing both sides (default, 88% of orders)",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        },
+        "colour": {
+          "type": "boolean",
+          "description": "True for color printing (default)",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different designs (1-50, default 1, extra designs cost $15 each)",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "calculate_premium_business_cards_shopify",
+      "short_description": "Calculate Premium Business Cards quote with luxury stock options and celloglaze finishes",
+      "description": "\ud83d\udea8 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate Premium Business Cards quote. Standard 90mm x 55mm with high-end options. Historical: 18% choose 400GSM, 21.5% Matt Cellophane both sides, 21% Gloss. Silk Feel Matt is ultra-premium.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of cards: 250, 500, 1000, 2000, 5000, 10000",
+          "enum": [
+            100,
+            250,
+            500,
+            1000,
+            2000,
+            5000,
+            10000
+          ]
+        },
+        "double_sided": {
+          "type": "boolean",
+          "description": "True for printing both sides (default)",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        },
+        "colour": {
+          "type": "boolean",
+          "description": "True for color printing (default)",
+          "required": false,
+          "enum": [
+            true,
+            false
+          ]
+        },
+        "stock": {
+          "type": "string",
+          "description": "Paper stock: 'Satin 350GSM', 'King Kong High Bulk', 'EcoStar 350GSM Uncoated'",
+          "required": false,
+          "enum": [
+            "Satin 150GSM",
+            "Satin 300GSM",
+            "Uncoated Bond 80GSM",
+            "Satin 128GSM",
+            "Satin 250GSM",
+            "Satin 350GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ]
+        },
+        "celloglaze": {
+          "type": "string",
+          "description": "Finish: '1 Side Gloss', '2 Side Gloss', '1 Side Matt', '2 Side Matt', '1 Side SILK FEEL Matt', '2 Side SILK FEEL Matt', 'None'",
+          "required": false,
+          "enum": [
+            "none",
+            "gloss",
+            "matt",
+            "1_side_gloss",
+            "2_side_gloss",
+            "1_side_matt",
+            "2_side_matt"
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different designs (1-50, default 1)",
+          "required": false
         }
       }
     }

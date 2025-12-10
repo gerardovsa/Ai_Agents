@@ -499,13 +499,14 @@ class IntelligentToolSuggestion:
                             tool_name.startswith(f"{preferred_platform}_")):
                             all_scores[tool_name]['context_boost'] = 1.3
         
-        # Step 4: User platform authentication filtering (NEW - 2.0x boost)
+        # Step 4: User platform authentication filtering (HARD FILTER - exclude unavailable platforms)
         if user_platforms and not explicit_platform_mentioned:
             print(f"[Platform Filter] User {user_id} authenticated with: {user_platforms}")
-            print(f"[Platform Filter] No explicit platform in query - applying auth-based filtering")
+            print(f"[Platform Filter] No explicit platform in query - filtering to authenticated platforms only")
             
             boost_count = 0
-            penalty_count = 0
+            excluded_count = 0
+            tools_to_exclude = []
             
             for tool_name, tool_data in self.registry.tools.items():
                 if tool_name not in all_scores:
@@ -543,15 +544,19 @@ class IntelligentToolSuggestion:
                     all_scores[tool_name]['platform_boost'] = 2.0
                     boost_count += 1
                     if boost_count <= 5:  # Only show first 5 to avoid spam
-                        print(f"  ✅ BOOST {tool_name} (user has '{matched_platform}' - platform='{tool_platform}')")
+                        print(f"  ✅ KEEP {tool_name} (user has '{matched_platform}' - platform='{tool_platform}')")
                 else:
-                    # User DOESN'T have this platform - penalize
-                    all_scores[tool_name]['platform_boost'] = 0.3
-                    penalty_count += 1
-                    if penalty_count <= 5:  # Only show first 5 to avoid spam
-                        print(f"  ❌ PENALTY {tool_name} (user lacks platform - platform='{tool_platform}')")
+                    # User DOESN'T have this platform - EXCLUDE from results entirely
+                    tools_to_exclude.append(tool_name)
+                    excluded_count += 1
+                    if excluded_count <= 5:  # Only show first 5 to avoid spam
+                        print(f"  🚫 EXCLUDE {tool_name} (user lacks auth - platform='{tool_platform}')")
             
-            print(f"[Platform Filter] Summary: {boost_count} tools boosted, {penalty_count} tools penalized")
+            # Remove excluded tools from scoring
+            for tool_name in tools_to_exclude:
+                all_scores.pop(tool_name, None)
+            
+            print(f"[Platform Filter] Summary: {boost_count} tools available, {excluded_count} tools excluded (no auth)")
         
         elif explicit_platform_mentioned:
             print(f"[Platform Filter] Explicit platform mentioned in query - no auth filtering")
@@ -596,8 +601,8 @@ class IntelligentToolSuggestion:
                     'recent_boost': scores['recent_boost'],
                     'platform_boost': scores['platform_boost']
                 },
-                'match_reasons': scores.get('match_reasons', []),
-                'user_has_auth': scores['platform_boost'] >= 1.0  # True if user can use this tool
+                'match_reasons': scores.get('match_reasons', [])
+                # Note: All results are guaranteed to have user auth (unauthenticated platforms are excluded)
             })
         
         # Calculate overall confidence

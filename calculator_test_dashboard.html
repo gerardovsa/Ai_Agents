@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator Test Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 40px;
+            background: #e9ecef;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            min-width: 200px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .status-indicator.disconnected {
+            background: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+            animation: none;
+        }
+
+        .status-indicator.checking {
+            background: #ffc107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-text {
+            font-size: 14px;
+        }
+
+        .status-text.connected {
+            color: #28a745;
+        }
+
+        .status-text.disconnected {
+            color: #dc3545;
+        }
+
+        .status-text.checking {
+            color: #ffc107;
+        }
+
+        .server-offline-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+        }
+
+        .server-offline-modal h2 {
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+
+        .server-offline-modal p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .command-box {
+            background: #2d2d2d;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .command-box code {
+            display: block;
+            word-break: break-all;
+        }
+
+        .copy-command-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .calculator-sections {
+            display: grid;
+            gap: 25px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .section-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1.1em;
+        }
+
+        .stat {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .stat-total {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .stat-pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .stat-fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 20px;
+        }
+
+        .calculator-card {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .calculator-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .calculator-card.testing {
+            border-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .calculator-card.passed {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .calculator-card.failed {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .calc-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        .calc-keywords {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .test-phases {
+            display: grid;
+            gap: 10px;
+        }
+
+        .phase {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            background: white;
+        }
+
+        .phase-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .phase-icon.pending {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .phase-icon.testing {
+            background: #ffc107;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .phase-icon.pass {
+            background: #28a745;
+            color: white;
+        }
+
+        .phase-icon.fail {
+            background: #dc3545;
+            color: white;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .phase-label {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .phase-result {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        .test-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.85em;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .test-details pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .summary-label {
+            color: #6c757d;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .log-window {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 800px;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+        }
+
+        .log-entry.info {
+            color: #4fc3f7;
+        }
+
+        .log-entry.success {
+            color: #81c784;
+        }
+
+        .log-entry.error {
+            color: #e57373;
+        }
+
+        .log-entry.warning {
+            color: #ffb74d;
+        }
+
+        .copy-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        .copy-btn.copied {
+            background: #2196F3;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 600px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .calculators-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .logs-column {
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .log-window {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            height: 800px;
+            overflow: hidden;
+        }
+
+        .server-log-window {
+            background: #2d2d2d;
+            color: #00ff00;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            overflow: hidden;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #444;
+            background: #1e1e1e;
+            border-radius: 8px 8px 0 0;
+            flex-shrink: 0;
+        }
+
+        .server-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 2px solid #444;
+            background: #2d2d2d;
+            border-radius: 8px 8px 0 0;
+            flex-shrink: 0;
+        }
+
+        #logContent {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #serverLogContent {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+            font-size: 0.95em;
+        }
+
+        .log-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🧪 Calculator Test Dashboard</h1>
+        <p>Comprehensive AI Workflow Testing for Shopify & GOD Calculators</p>
+    </div>
+
+    <div class="controls">
+        <button id="runAllTests" class="btn btn-primary">▶️ Run All Tests</button>
+        <button id="runShopifyTests" class="btn btn-secondary">Run Shopify Only</button>
+        <button id="runGODTests" class="btn btn-secondary">Run GOD Only</button>
+        <button id="stopTests" class="btn btn-secondary" style="display:none;">⏹️ Stop Tests</button>
+        <button id="restartServer" class="btn btn-secondary" onclick="restartServer()"
+            title="Restart the backend server">🔄 Restart Server</button>
+        <div class="server-status" id="serverStatus">
+            <div class="status-indicator checking" id="statusIndicator"></div>
+            <span class="status-text checking" id="statusText">Checking server...</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+        </div>
+    </div>
+
+    <div class="summary-stats" id="summaryStats">
+        <div class="summary-card">
+            <div class="summary-label">Total Calculators</div>
+            <div class="summary-value" id="totalCalcs">0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Passed</div>
+            <div class="summary-value" style="color: #28a745;" id="passedCalcs">0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Failed</div>
+            <div class="summary-value" style="color: #dc3545;" id="failedCalcs">0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Discovery Rate</div>
+            <div class="summary-value" style="color: #667eea;" id="discoveryRate">0%</div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="calculators-column">
+            <div class="calculator-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-title">🛍️ Shopify Calculators (25)</div>
+                        <div class="section-stats">
+                            <span class="stat stat-total">Total: <span id="shopifyTotal">25</span></span>
+                            <span class="stat stat-pass">Pass: <span id="shopifyPass">0</span></span>
+                            <span class="stat stat-fail">Fail: <span id="shopifyFail">0</span></span>
+                        </div>
+                    </div>
+                    <div class="calculator-grid" id="shopifyGrid">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Loading calculators...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-title">⚡ GOD Calculators (3)</div>
+                        <div class="section-stats">
+                            <span class="stat stat-total">Total: <span id="godTotal">3</span></span>
+                            <span class="stat stat-pass">Pass: <span id="godPass">0</span></span>
+                            <span class="stat stat-fail">Fail: <span id="godFail">0</span></span>
+                        </div>
+                    </div>
+                    <div class="calculator-grid" id="godGrid">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Loading calculators...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-column">
+            <div class="log-window" id="logWindow">
+                <div class="log-header">
+                    <div class="log-title">📋 Test Logs</div>
+                    <button class="copy-btn" id="copyAllLogsBtn" onclick="copyAllLogs()">📋 Copy All Logs</button>
+                </div>
+                <div id="logContent">
+                    <div class="log-entry info">System ready. Click "Run All Tests" to begin...</div>
+                </div>
+            </div>
+
+            <div class="server-log-window" id="serverLogWindow">
+                <div class="server-log-header">
+                    <div class="log-title">🖥️ Server Logs</div>
+                    <button class="copy-btn" id="copyServerLogsBtn" onclick="copyServerLogs()">📋 Copy Server
+                        Logs</button>
+                </div>
+                <div id="serverLogContent">
+                    <div class="log-entry info">Waiting for server connection...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'http://localhost:5001/api/calculator-test';
+        const FETCH_TIMEOUT = 30000; // 30 seconds timeout
+
+        // Helper function for fetch with timeout
+        async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return response;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error(`Request timeout after ${timeout / 1000}s`);
+                }
+                throw error;
+            }
+        }
+
+        // Calculator configurations with search keywords
+        const SHOPIFY_CALCULATORS = [
+            { name: "calculate_bollard_signs", keywords: ["bollard", "signs", "quote", "calculator"] },
+            { name: "calculate_construction_signs", keywords: ["construction", "signs", "quote", "calculator"] },
+            { name: "calculate_corflute_insert_a_frame", keywords: ["corflute", "frame", "insert", "signs"] },
+            { name: "calculate_custom_poster_printing", keywords: ["poster", "printing", "custom", "quote"] },
+            { name: "calculate_custom_vinyl_stickers", keywords: ["vinyl", "stickers", "custom", "quote"] },
+            { name: "calculate_economical_business_cards_shopify", keywords: ["business cards", "economical", "cheap", "quote"] },
+            { name: "calculate_election_signs", keywords: ["election", "signs", "corflute", "quote"] },
+            { name: "calculate_folded_flyers_shopify", keywords: ["flyer", "folded", "brochure", "quote"] },
+            { name: "calculate_luxury_classic_pull_up_banners", keywords: ["banner", "pull up", "luxury", "stand"] },
+            { name: "calculate_metal_face_a_frame", keywords: ["metal", "frame", "face", "signs"] },
+            { name: "calculate_notepads_a4", keywords: ["notepad", "a4", "pad", "quote"] },
+            { name: "calculate_notepads_a5", keywords: ["notepad", "a5", "pad", "quote"] },
+            { name: "calculate_notepads_a6", keywords: ["notepad", "a6", "pad", "quote"] },
+            { name: "calculate_premium_bookmarks", keywords: ["bookmark", "premium", "quote"] },
+            { name: "calculate_premium_business_cards_shopify", keywords: ["business cards", "premium", "luxury", "quote"] },
+            { name: "calculate_printed_letterheads", keywords: ["letterhead", "stationery", "printed", "quote"] },
+            { name: "calculate_saddle_stitch_books", keywords: ["booklet", "saddle stitch", "stapled", "book"] },
+            { name: "calculate_selfie_frames", keywords: ["selfie", "frame", "photo", "instagram"] },
+            { name: "calculate_spiral_bound_books", keywords: ["spiral", "book", "bound", "quote"] },
+            { name: "calculate_spiral_bound_books_shopify", keywords: ["spiral", "book", "bound", "shopify"] },
+            { name: "calculate_stackable_cubes", keywords: ["cube", "stackable", "display", "quote"] },
+            { name: "calculate_strut_cards_a3", keywords: ["strut", "card", "a3", "easel"] },
+            { name: "calculate_strut_cards_a4", keywords: ["strut", "card", "a4", "easel"] },
+            { name: "calculate_wire_bound_books_shopify", keywords: ["wire", "book", "bound", "quote"] },
+            { name: "calculate_with_compliments_slips", keywords: ["compliment slip", "with compliments", "stationery"] }
+        ];
+
+        const GOD_CALCULATORS = [
+            { name: "calculate_god_flyers", keywords: ["flyer", "god", "database", "digital", "quote"] },
+            { name: "calculate_god_letterheads", keywords: ["letterhead", "god", "database", "stationery", "quote"] },
+            { name: "calculate_god_perfect_bound_books", keywords: ["perfect bound", "book", "god", "database", "quote"] }
+        ];
+
+        // State
+        let testingInProgress = false;
+        let currentTests = [];
+
+        // Check server status
+        async function checkServerStatus() {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+
+            try {
+                const response = await fetch(`${API_URL}/health`, {
+                    method: 'GET'
+                });
+
+                if (response.ok) {
+                    indicator.className = 'status-indicator connected';
+                    statusText.className = 'status-text connected';
+                    statusText.textContent = '✓ Server Connected';
+                    logServerMessage('✓ Server health check: OK', 'success');
+
+                    // Try to fetch server logs
+                    try {
+                        const logsResponse = await fetch(`${API_URL}/logs`);
+                        if (logsResponse.ok) {
+                            const logsData = await logsResponse.json();
+                            if (logsData.logs && logsData.logs.length > 0) {
+                                logsData.logs.forEach(log => logServerMessage(log, 'info'));
+                            }
+                        }
+                    } catch (e) {
+                        // Server logs endpoint not available, that's ok
+                    }
+                } else {
+                    indicator.className = 'status-indicator disconnected';
+                    statusText.className = 'status-text disconnected';
+                    statusText.textContent = '✗ Server Error';
+                    logServerMessage('✗ Server returned error status', 'error');
+                }
+            } catch (error) {
+                indicator.className = 'status-indicator disconnected';
+                statusText.className = 'status-text disconnected';
+                statusText.textContent = '✗ Server Offline';
+                logServerMessage(`✗ Cannot connect to server: ${error.message}`, 'error');
+            }
+        }
+
+        // Log server messages
+        function logServerMessage(message, type = 'info') {
+            const serverLogContent = document.getElementById('serverLogContent');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            serverLogContent.appendChild(entry);
+            serverLogContent.scrollTop = serverLogContent.scrollHeight;
+        }
+
+        // Copy server logs
+        function copyServerLogs() {
+            const serverLogContent = document.getElementById('serverLogContent');
+            const logText = Array.from(serverLogContent.querySelectorAll('.log-entry'))
+                .map(entry => entry.textContent)
+                .join('\n');
+
+            navigator.clipboard.writeText(logText).then(() => {
+                const btn = document.getElementById('copyServerLogsBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ Copied!';
+                btn.style.background = '#10b981';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            });
+        }
+
+        // Restart server
+        async function restartServer() {
+            const btn = document.getElementById('restartServer');
+            const originalText = btn.innerHTML;
+
+            try {
+                btn.innerHTML = '🔄 Restarting...';
+                btn.disabled = true;
+                logMessage('Requesting server restart...', 'info');
+                logServerMessage('Server restart requested from UI', 'info');
+
+                const response = await fetch(`${API_URL}/restart`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    logMessage('✓ Server restart initiated', 'success');
+                    logServerMessage('Server restart initiated successfully', 'success');
+
+                    // Wait a bit for server to restart
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+
+                    // Check if server is back online
+                    await checkServerStatus();
+
+                    btn.innerHTML = '✓ Restarted!';
+                    btn.style.background = '#10b981';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error('Server restart failed');
+                }
+            } catch (error) {
+                logMessage(`✗ Server restart failed: ${error.message}`, 'error');
+                logServerMessage(`Server restart failed: ${error.message}`, 'error');
+                btn.innerHTML = '✗ Failed';
+                btn.style.background = '#e57373';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                    btn.disabled = false;
+                }, 2000);
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDashboard();
+            setupEventListeners();
+            checkServerStatus();
+
+            // Check server status every 10 seconds
+            setInterval(checkServerStatus, 10000);
+        });
+
+        function initializeDashboard() {
+            renderCalculatorCards('shopifyGrid', SHOPIFY_CALCULATORS);
+            renderCalculatorCards('godGrid', GOD_CALCULATORS);
+            updateStats();
+            logMessage('Dashboard initialized. Ready to run tests.', 'info');
+        }
+
+        function renderCalculatorCards(gridId, calculators) {
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+
+            calculators.forEach(calc => {
+                const card = createCalculatorCard(calc);
+                grid.appendChild(card);
+            });
+        }
+
+        function createCalculatorCard(calc) {
+            const card = document.createElement('div');
+            card.className = 'calculator-card';
+            card.id = `card-${calc.name}`;
+
+            card.innerHTML = `
+                <div class="calc-name">${formatCalculatorName(calc.name)}</div>
+                <div class="calc-keywords">🔍 ${calc.keywords.join(', ')}</div>
+                <div class="test-phases">
+                    <div class="phase">
+                        <div class="phase-icon pending" id="${calc.name}-discovery-icon">1</div>
+                        <div class="phase-label">Discovery</div>
+                        <div class="phase-result" id="${calc.name}-discovery-result">-</div>
+                    </div>
+                    <div class="phase">
+                        <div class="phase-icon pending" id="${calc.name}-schema-icon">2</div>
+                        <div class="phase-label">Schema</div>
+                        <div class="phase-result" id="${calc.name}-schema-result">-</div>
+                    </div>
+                    <div class="phase">
+                        <div class="phase-icon pending" id="${calc.name}-requirements-icon">3</div>
+                        <div class="phase-label">Requirements</div>
+                        <div class="phase-result" id="${calc.name}-requirements-result">-</div>
+                    </div>
+                    <div class="phase">
+                        <div class="phase-icon pending" id="${calc.name}-execution-icon">4</div>
+                        <div class="phase-label">Execution</div>
+                        <div class="phase-result" id="${calc.name}-execution-result">-</div>
+                    </div>
+                </div>
+                <div class="test-details" id="${calc.name}-details" style="display:none;"></div>
+                <button class="copy-btn" onclick="copyCalculatorLogs('${calc.name}')" style="width: 100%; margin-top: 10px;">📋 Copy Logs</button>
+            `;
+
+            return card;
+        }
+
+        function formatCalculatorName(name) {
+            return name
+                .replace('calculate_', '')
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function setupEventListeners() {
+            document.getElementById('runAllTests').addEventListener('click', () => runTests('all'));
+            document.getElementById('runShopifyTests').addEventListener('click', () => runTests('shopify'));
+            document.getElementById('runGODTests').addEventListener('click', () => runTests('god'));
+            document.getElementById('stopTests').addEventListener('click', stopTests);
+        }
+
+        async function runTests(type) {
+            if (testingInProgress) return;
+
+            testingInProgress = true;
+            document.getElementById('runAllTests').disabled = true;
+            document.getElementById('runShopifyTests').disabled = true;
+            document.getElementById('runGODTests').disabled = true;
+            document.getElementById('stopTests').style.display = 'inline-block';
+
+            // Wait for server to be ready before starting tests
+            logMessage(`Checking server status before starting tests...`, 'info');
+            let serverReady = false;
+            let attempts = 0;
+            const maxAttempts = 10;
+
+            while (!serverReady && attempts < maxAttempts) {
+                try {
+                    const response = await fetchWithTimeout(`${API_URL}/health`, {}, 5000);
+                    if (response.ok) {
+                        serverReady = true;
+                        logMessage(`✓ Server is ready. Starting tests...`, 'success');
+                    }
+                } catch (error) {
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        logMessage(`  → Waiting for server... (attempt ${attempts}/${maxAttempts})`, 'info');
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                }
+            }
+
+            if (!serverReady) {
+                logMessage(`❌ Server is not responding after ${maxAttempts} attempts. Please restart the server and try again.`, 'error');
+                testingInProgress = false;
+                document.getElementById('runAllTests').disabled = false;
+                document.getElementById('runShopifyTests').disabled = false;
+                document.getElementById('runGODTests').disabled = false;
+                document.getElementById('stopTests').style.display = 'none';
+                return;
+            }
+
+            // Determine which calculators to test
+            let calculators = [];
+            if (type === 'all') {
+                calculators = [...SHOPIFY_CALCULATORS, ...GOD_CALCULATORS];
+            } else if (type === 'shopify') {
+                calculators = SHOPIFY_CALCULATORS;
+            } else if (type === 'god') {
+                calculators = GOD_CALCULATORS;
+            }
+
+            logMessage(`Starting ${type.toUpperCase()} tests for ${calculators.length} calculators...`, 'info');
+            currentTests = calculators;
+
+            // Reset all cards
+            calculators.forEach(calc => resetCalculatorCard(calc.name));
+
+            // Run tests with rate limiting
+            let completed = 0;
+            for (const calc of calculators) {
+                if (!testingInProgress) break;
+
+                await runCalculatorTest(calc);
+                completed++;
+                updateProgress(completed, calculators.length);
+
+                // Add delay between calculators (execution test runs 2 comprehensive tests per calculator)
+                // This prevents overwhelming the server with 56 rapid execution calls
+                if (completed < calculators.length) {
+                    logMessage(`  → Pausing 800ms before next calculator (preventing server overload)...`, 'info');
+                    await new Promise(resolve => setTimeout(resolve, 800)); // 800ms between calculators
+                }
+            }
+
+            testingInProgress = false;
+            document.getElementById('runAllTests').disabled = false;
+            document.getElementById('runShopifyTests').disabled = false;
+            document.getElementById('runGODTests').disabled = false;
+            document.getElementById('stopTests').style.display = 'none';
+
+            logMessage(`Testing complete! ${completed}/${calculators.length} calculators tested.`, 'success');
+            updateStats();
+        }
+
+        function resetCalculatorCard(calcName) {
+            const card = document.getElementById(`card-${calcName}`);
+            card.className = 'calculator-card';
+
+            ['discovery', 'schema', 'requirements', 'execution'].forEach(phase => {
+                const icon = document.getElementById(`${calcName}-${phase}-icon`);
+                const result = document.getElementById(`${calcName}-${phase}-result`);
+                icon.className = 'phase-icon pending';
+                result.textContent = '-';
+            });
+
+            const details = document.getElementById(`${calcName}-details`);
+            details.style.display = 'none';
+            details.innerHTML = '';
+        }
+
+        async function runCalculatorTest(calc) {
+            // Set current calculator for log tracking
+            currentCalculator = calc.name;
+            calculatorLogs[calc.name] = [];
+
+            const card = document.getElementById(`card-${calc.name}`);
+            card.className = 'calculator-card testing';
+
+            logMessage(`\n▶️ Testing ${formatCalculatorName(calc.name)}...`, 'info');
+
+            try {
+                // Run test phases with small delays between phases
+                await testDiscovery(calc);
+                await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
+
+                await testSchema(calc);
+                await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
+
+                await testRequirements(calc);
+                await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay before execution
+
+                await testExecution(calc);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 1s delay after execution (2 tests = heavier load)
+
+                // Check overall result
+                const allPassed = checkAllPhasesPassed(calc.name);
+                card.className = allPassed ? 'calculator-card passed' : 'calculator-card failed';
+
+                if (allPassed) {
+                    logMessage(`🎉 ${formatCalculatorName(calc.name)} - ALL 4 PHASES PASSED!\n`, 'success');
+                } else {
+                    const phases = ['discovery', 'schema', 'requirements', 'execution'];
+                    const failed = phases.filter(phase => {
+                        const icon = document.getElementById(`${calc.name}-${phase}-icon`);
+                        return icon && icon.classList.contains('fail');
+                    });
+                    logMessage(`❌ ${formatCalculatorName(calc.name)} - FAILED: ${failed.join(', ')}\n`, 'error');
+                }
+
+            } catch (error) {
+                card.className = 'calculator-card failed';
+                logMessage(`❌ Error testing ${calc.name}: ${error.message}\n`, 'error');
+            } finally {
+                // Clear current calculator
+                currentCalculator = null;
+            }
+        }
+
+        async function testDiscovery(calc) {
+            updatePhase(calc.name, 'discovery', 'testing');
+            logMessage(`  → Testing Discovery for ${calc.name}...`, 'info');
+
+            try {
+                const response = await fetchWithTimeout(`${API_URL}/test/discovery`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        calculator: calc.name,
+                        keywords: calc.keywords
+                    })
+                }, 30000);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updatePhase(calc.name, 'discovery', 'pass', `Found in ${result.search_count} searches`);
+                    logMessage(`  ✅ Discovery PASSED`, 'success');
+                    logMessage(`     └─ Found in ${result.search_count}/${result.total_keywords} keyword searches`, 'success');
+                    if (result.details) {
+                        const foundKeywords = result.details.filter(d => d.found).map(d => d.keyword);
+                        logMessage(`     └─ Keywords: ${foundKeywords.join(', ')}`, 'success');
+                    }
+                } else {
+                    updatePhase(calc.name, 'discovery', 'fail', 'Not discoverable');
+                    logMessage(`  ❌ Discovery FAILED`, 'error');
+                    logMessage(`     └─ Calculator not found in any keyword searches`, 'error');
+                    if (result.details) {
+                        const testedKeywords = result.details.map(d => d.keyword);
+                        logMessage(`     └─ Tested keywords: ${testedKeywords.join(', ')}`, 'error');
+                    }
+                    if (result.error) {
+                        logMessage(`     └─ Error: ${result.error}`, 'error');
+                    }
+                }
+
+                return result.success;
+            } catch (error) {
+                updatePhase(calc.name, 'discovery', 'fail', error.message);
+                logMessage(`  ❌ Discovery ERROR`, 'error');
+                logMessage(`     └─ ${error.message}`, 'error');
+                logMessage(`     └─ Check if server is running on ${API_URL}`, 'error');
+                logServerMessage(`Discovery test failed for ${calc.name}: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testSchema(calc) {
+            updatePhase(calc.name, 'schema', 'testing');
+            logMessage(`  → Testing Schema for ${calc.name}...`, 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/test/schema`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ calculator: calc.name })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updatePhase(calc.name, 'schema', 'pass', `${result.param_count} parameters`);
+                    logMessage(`  ✅ Schema PASSED`, 'success');
+                    logMessage(`     └─ Total: ${result.param_count} parameters`, 'success');
+                    logMessage(`     └─ Required: ${result.required_count} parameters`, 'success');
+                } else {
+                    updatePhase(calc.name, 'schema', 'fail', 'Schema invalid');
+                    logMessage(`  ❌ Schema FAILED`, 'error');
+                    logMessage(`     └─ No parameters found`, 'error');
+                    if (result.error) {
+                        logMessage(`     └─ ${result.error}`, 'error');
+                    }
+                }
+
+                return result.success;
+            } catch (error) {
+                updatePhase(calc.name, 'schema', 'fail', error.message);
+                logMessage(`  ❌ Schema ERROR`, 'error');
+                logMessage(`     └─ ${error.message}`, 'error');
+                logServerMessage(`Schema test failed for ${calc.name}: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testRequirements(calc) {
+            updatePhase(calc.name, 'requirements', 'testing');
+            logMessage(`  → Testing Requirements for ${calc.name}...`, 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/test/requirements`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ calculator: calc.name })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updatePhase(calc.name, 'requirements', 'pass', `${result.enum_count} enums`);
+                    logMessage(`  ✅ Requirements PASSED`, 'success');
+                    logMessage(`     └─ ${result.enum_count}/${result.total_params} parameters with enums`, 'success');
+                } else {
+                    updatePhase(calc.name, 'requirements', 'fail', 'Missing enums');
+                    logMessage(`  ❌ Requirements FAILED`, 'error');
+                    logMessage(`     └─ No enum guidance found`, 'error');
+                    if (result.error) {
+                        logMessage(`     └─ ${result.error}`, 'error');
+                    }
+                }
+
+                return result.success;
+            } catch (error) {
+                updatePhase(calc.name, 'requirements', 'fail', error.message);
+                logMessage(`  ❌ Requirements ERROR`, 'error');
+                logMessage(`     └─ ${error.message}`, 'error');
+                logServerMessage(`Requirements test failed for ${calc.name}: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testExecution(calc) {
+            updatePhase(calc.name, 'execution', 'testing');
+            logMessage(`  → Testing Execution for ${calc.name}...`, 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/test/execution`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ calculator: calc.name })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const testsRun = result.tests_run || 2;
+                    const testsPassed = result.tests_passed || 0;
+                    updatePhase(calc.name, 'execution', 'pass', `${testsPassed}/${testsRun} tests passed`);
+                    logMessage(`  ✅ Execution PASSED (${testsPassed}/${testsRun} tests)`, 'success');
+
+                    // Show details for each test
+                    if (result.test_results && result.test_results.length > 0) {
+                        result.test_results.forEach((test, idx) => {
+                            if (test.success) {
+                                logMessage(`     └─ Test ${test.test_number}: ✅ Quote=$${test.quote?.total_price?.toFixed(2) || 'N/A'}`, 'success');
+                                logMessage(`        Parameters: ${JSON.stringify(test.sample_params).substring(0, 80)}...`, 'success');
+                            } else {
+                                logMessage(`     └─ Test ${test.test_number}: ❌ ${test.error}`, 'error');
+                            }
+                        });
+                    }
+
+                    showTestDetails(calc.name, result.test_results);
+                } else {
+                    const testsRun = result.tests_run || 2;
+                    const testsPassed = result.tests_passed || 0;
+                    updatePhase(calc.name, 'execution', 'fail', `${testsPassed}/${testsRun} tests passed`);
+                    logMessage(`  ❌ Execution FAILED (${testsPassed}/${testsRun} tests passed)`, 'error');
+
+                    if (result.error) {
+                        logMessage(`     └─ ${result.error}`, 'error');
+                    }
+
+                    // Show details for each test
+                    if (result.test_results && result.test_results.length > 0) {
+                        result.test_results.forEach((test, idx) => {
+                            if (test.success) {
+                                logMessage(`     └─ Test ${test.test_number}: ✅ Quote=$${test.quote?.total_price?.toFixed(2) || 'N/A'}`, 'success');
+                            } else {
+                                logMessage(`     └─ Test ${test.test_number}: ❌ ${test.error}`, 'error');
+                            }
+                        });
+                    }
+
+                    showTestDetails(calc.name, result.test_results);
+                }
+
+                return result.success;
+            } catch (error) {
+                updatePhase(calc.name, 'execution', 'fail', error.message);
+                logMessage(`  ❌ Execution ERROR`, 'error');
+                logMessage(`     └─ ${error.message}`, 'error');
+                logServerMessage(`Execution test failed for ${calc.name}: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function updatePhase(calcName, phase, status, message = '') {
+            const icon = document.getElementById(`${calcName}-${phase}-icon`);
+            const result = document.getElementById(`${calcName}-${phase}-result`);
+
+            icon.className = `phase-icon ${status}`;
+
+            if (status === 'pass') {
+                icon.textContent = '✓';
+            } else if (status === 'fail') {
+                icon.textContent = '✗';
+            } else if (status === 'testing') {
+                icon.textContent = '⟳';
+            }
+
+            result.textContent = message;
+        }
+
+        function showTestDetails(calcName, details) {
+            const detailsDiv = document.getElementById(`${calcName}-details`);
+            detailsDiv.style.display = 'block';
+            detailsDiv.innerHTML = `<pre>${JSON.stringify(details, null, 2)}</pre>`;
+        }
+
+        function checkAllPhasesPassed(calcName) {
+            const phases = ['discovery', 'schema', 'requirements', 'execution'];
+            return phases.every(phase => {
+                const icon = document.getElementById(`${calcName}-${phase}-icon`);
+                return icon.classList.contains('pass');
+            });
+        }
+
+        function updateProgress(current, total) {
+            const percentage = Math.round((current / total) * 100);
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = `${percentage}%`;
+            progressFill.textContent = `${percentage}%`;
+        }
+
+        function updateStats() {
+            const shopifyCards = SHOPIFY_CALCULATORS.map(c => document.getElementById(`card-${c.name}`));
+            const godCards = GOD_CALCULATORS.map(c => document.getElementById(`card-${c.name}`));
+
+            const shopifyPassed = shopifyCards.filter(c => c.classList.contains('passed')).length;
+            const shopifyFailed = shopifyCards.filter(c => c.classList.contains('failed')).length;
+            const godPassed = godCards.filter(c => c.classList.contains('passed')).length;
+            const godFailed = godCards.filter(c => c.classList.contains('failed')).length;
+
+            const totalPassed = shopifyPassed + godPassed;
+            const totalFailed = shopifyFailed + godFailed;
+            const total = SHOPIFY_CALCULATORS.length + GOD_CALCULATORS.length;
+
+            document.getElementById('shopifyPass').textContent = shopifyPassed;
+            document.getElementById('shopifyFail').textContent = shopifyFailed;
+            document.getElementById('godPass').textContent = godPassed;
+            document.getElementById('godFail').textContent = godFailed;
+
+            document.getElementById('totalCalcs').textContent = total;
+            document.getElementById('passedCalcs').textContent = totalPassed;
+            document.getElementById('failedCalcs').textContent = totalFailed;
+
+            // Calculate discovery rate
+            const totalTested = totalPassed + totalFailed;
+            const discoveryRate = totalTested > 0 ? Math.round((totalPassed / totalTested) * 100) : 0;
+            document.getElementById('discoveryRate').textContent = `${discoveryRate}%`;
+        }
+
+        function stopTests() {
+            testingInProgress = false;
+            logMessage('Tests stopped by user.', 'warning');
+        }
+
+        // Store logs per calculator
+        const calculatorLogs = {};
+        let currentCalculator = null;
+
+        function logMessage(message, type = 'info') {
+            const logContent = document.getElementById('logContent');
+            const timestamp = new Date().toLocaleTimeString();
+            const logText = `[${timestamp}] ${message}`;
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = logText;
+            logContent.appendChild(entry);
+
+            // Store log for current calculator
+            if (currentCalculator) {
+                if (!calculatorLogs[currentCalculator]) {
+                    calculatorLogs[currentCalculator] = [];
+                }
+                calculatorLogs[currentCalculator].push(logText);
+            }
+
+            const logWindow = document.getElementById('logWindow');
+            logWindow.scrollTop = logWindow.scrollHeight;
+        }
+
+        // Copy all logs function
+        function copyAllLogs() {
+            const logContent = document.getElementById('logContent');
+            const logText = Array.from(logContent.querySelectorAll('.log-entry'))
+                .map(entry => entry.textContent)
+                .join('\n');
+
+            navigator.clipboard.writeText(logText).then(() => {
+                const btn = document.getElementById('copyAllLogsBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                logMessage('Failed to copy logs: ' + err, 'error');
+            });
+        }
+
+        // Copy calculator-specific logs
+        function copyCalculatorLogs(calculatorName) {
+            const logs = calculatorLogs[calculatorName];
+            if (!logs || logs.length === 0) {
+                alert('No logs found for this calculator. Run tests first.');
+                return;
+            }
+
+            const logText = logs.join('\n');
+            navigator.clipboard.writeText(logText).then(() => {
+                // Find the button that was clicked
+                const card = document.getElementById(`card-${calculatorName}`);
+                const btn = card.querySelector('.copy-btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy logs: ' + err);
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -21,13 +21,48 @@ from typing import Dict, List, Optional, Any
 import json
 import os
 
-# Synergy backend URL - use environment variable or default to Render deployment
-SYNERGY_API_BASE = os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com').rstrip('/') + '/api/synergy'
+# Synergy backend URL - dynamically detect deployment platform
+# Priority: API_BASE_URL (manual override) > RENDER_EXTERNAL_URL (auto-set by Render) > localhost
+SYNERGY_API_BASE = (
+    os.getenv('API_BASE_URL') or 
+    os.getenv('RENDER_EXTERNAL_URL') or 
+    'http://localhost:5001'
+).rstrip('/') + '/api/synergy'
 
 
 class SynergyError(Exception):
     """Custom exception for Synergy API errors"""
     pass
+
+
+def _parse_title_description(text: str) -> tuple[str, str]:
+    """
+    Parse title and description from a combined string.
+    
+    Format: [title]\\n\\n[description]
+    If no \\n\\n found, entire text is treated as title.
+    
+    Args:
+        text: Combined title+description string
+        
+    Returns:
+        Tuple of (title, description)
+        
+    Examples:
+        >>> _parse_title_description("Setup database\\n\\nInstall PostgreSQL and create schema")
+        ("Setup database", "Install PostgreSQL and create schema")
+        
+        >>> _parse_title_description("Simple task")
+        ("Simple task", "")
+    """
+    if not text:
+        return ("", "")
+    
+    if "\\n\\n" in text:
+        parts = text.split("\\n\\n", 1)
+        return (parts[0].strip(), parts[1].strip())
+    
+    return (text.strip(), "")
 
 
 def synergy_smart_project_tracker(
@@ -81,7 +116,7 @@ def synergy_smart_project_tracker(
         Dict with:
         - session_id: For future updates
         - session: Complete session object
-        - dashboard_url: https://ai-agents-backend-singapore.onrender.com
+        - dashboard_url: [Dynamically detected platform URL]
         - message: User-friendly status message
         - auto_update_enabled: Whether AI will auto-update
         
@@ -98,7 +133,7 @@ def synergy_smart_project_tracker(
         )
         
         print(result["message"])
-        # "✅ Project tracker created! View dashboard: https://ai-agents-backend-singapore.onrender.com"
+        # "✅ Project tracker created! View dashboard: [dynamically detected URL]"
         # AI will auto-update as you create documents
     """
     try:
@@ -217,8 +252,12 @@ def synergy_smart_project_tracker(
             except:
                 google_sync_status = " (Google sync failed - continuing with Synergy only)"
         
-        # Build user message
-        dashboard_url = os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com').rstrip('/')
+        # Build user message - use dynamic URL detection
+        dashboard_url = (
+            os.getenv('API_BASE_URL') or 
+            os.getenv('RENDER_EXTERNAL_URL') or 
+            'http://localhost:5001'
+        ).rstrip('/')
         doc_count = len(initial_documents) if initial_documents else 0
         
         message_parts = [
@@ -2424,8 +2463,9 @@ def synergy_create_milestone(
     
     Args:
         session_id: Synergy session ID (required)
-        milestone_name: Milestone title (required)
-        description: Detailed milestone description
+        milestone_name: Milestone title (required) - Short name for the milestone
+        description: Detailed milestone description (optional) - Longer explanation
+                     The UI renders this with line breaks preserved
         tasks: List of tasks - can be strings or objects with subtasks
                Examples:
                - ["Create database", "Import data"]
@@ -2476,10 +2516,16 @@ def synergy_create_milestone(
         
         milestone_id = result["milestone_id"]  # Save this!
     """
+    # Validation
+    if not session_id:
+        raise SynergyError("session_id is required")
+    if not milestone_name or not milestone_name.strip():
+        raise SynergyError("milestone_name is required and cannot be empty")
+    
     try:
         payload = {
             "session_id": session_id,
-            "milestone_name": milestone_name,
+            "milestone_name": milestone_name.strip(),
             "description": description,
             "tasks": tasks or [],
             "due_date": due_date,
@@ -2789,9 +2835,20 @@ def synergy_create_task(
     - Dependencies on other tasks
     - Links and tags
     
+    **TITLE + DESCRIPTION FORMAT:**
+    The `task` field can contain both a title and description using this format:
+        "[Title]\\n\\n[Description]"
+    
+    The UI will render this with the title prominent and description below.
+    Line breaks in the description are preserved.
+    
+    Examples:
+        task="Setup database"  # Title only
+        task="Setup database\\n\\nInstall PostgreSQL 14 and create initial schema"  # Title + description
+    
     Args:
         milestone_id: Parent milestone ID (required)
-        task: Task description (required)
+        task: Task text (required) - Can be title only, or "Title\\n\\nDescription" format
         subtasks: List of subtask descriptions
                   Example: ["Step 1", "Step 2", "Step 3"]
         priority: Priority level (low|medium|high|critical) - default: medium
@@ -2826,9 +2883,15 @@ def synergy_create_task(
         
         task_id = result["task_id"]  # Save this!
     """
+    # Validation
+    if not milestone_id:
+        raise SynergyError("milestone_id is required")
+    if not task or not task.strip():
+        raise SynergyError("task is required and cannot be empty")
+    
     try:
         payload = {
-            "task": task,
+            "task": task.strip(),
             "subtasks": subtasks or [],
             "priority": priority
         }
@@ -2958,14 +3021,42 @@ def synergy_update_task(
         if links is not None:
             updates["links"] = links
         
-        response = requests.patch(
-            f"{SYNERGY_API_BASE}/task/{task_id}",
-            json=updates,
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
+        if len(updates) == 0:
+            return {
+                "success": True,
+                "task_id": task_id,
+                "updated_fields": [],
+                "message": "No fields to update"
+            }
         
-        response.raise_for_status()
+        try:
+            # Preferred: multi-field PATCH (newer backend)
+            response = requests.patch(
+                f"{SYNERGY_API_BASE}/task/{task_id}",
+                json=updates,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            # Fallback: per-field PATCH for older deployments
+            fallback_success = True
+            updated_fields = []
+            for key, val in updates.items():
+                try:
+                    resp = requests.patch(
+                        f"{SYNERGY_API_BASE}/task/{task_id}",
+                        json={"field": key, "value": val},
+                        headers={"Content-Type": "application/json"},
+                        timeout=10
+                    )
+                    resp.raise_for_status()
+                    updated_fields.append(key)
+                except requests.exceptions.RequestException:
+                    fallback_success = False
+            
+            if not fallback_success and len(updated_fields) == 0:
+                raise SynergyError(f"Failed to update task {task_id}: {str(e)}")
         
         return {
             "success": True,
@@ -2995,9 +3086,20 @@ def synergy_create_subtask(
     - Tracking detailed progress
     - Assigning specific steps to individuals
     
+    **TITLE + DESCRIPTION FORMAT:**
+    The `task` field can contain both a title and description using this format:
+        "[Title]\\n\\n[Description]"
+    
+    The UI will render this with the title prominent and description below.
+    Line breaks in the description are preserved.
+    
+    Examples:
+        task="Configure backup"  # Title only
+        task="Configure backup\\n\\nSet up daily automated backups to S3 with 30-day retention"  # Title + description
+    
     Args:
         task_id: Parent task ID (required)
-        task: Subtask description (required)
+        task: Subtask text (required) - Can be title only, or "Title\\n\\nDescription" format
         priority: Priority level (low|medium|high|critical) - default: medium
         estimated_hours: Estimated time
         assigned_to: Person assigned
@@ -3019,9 +3121,15 @@ def synergy_create_subtask(
         
         subtask_id = result["subtask_id"]
     """
+    # Validation
+    if not task_id:
+        raise SynergyError("task_id is required")
+    if not task or not task.strip():
+        raise SynergyError("task is required and cannot be empty")
+    
     try:
         payload = {
-            "task": task,
+            "task": task.strip(),
             "priority": priority
         }
         
@@ -3108,14 +3216,42 @@ def synergy_update_subtask(
         if archived is not None:
             updates["archived"] = archived
         
-        response = requests.patch(
-            f"{SYNERGY_API_BASE}/subtask/{subtask_id}",
-            json=updates,
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
+        if len(updates) == 0:
+            return {
+                "success": True,
+                "subtask_id": subtask_id,
+                "updated_fields": [],
+                "message": "No fields to update"
+            }
         
-        response.raise_for_status()
+        try:
+            # Preferred: multi-field PATCH (newer backend)
+            response = requests.patch(
+                f"{SYNERGY_API_BASE}/subtask/{subtask_id}",
+                json=updates,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            # Fallback: per-field PATCH for older deployments
+            fallback_success = True
+            updated_fields = []
+            for key, val in updates.items():
+                try:
+                    resp = requests.patch(
+                        f"{SYNERGY_API_BASE}/subtask/{subtask_id}",
+                        json={"field": key, "value": val},
+                        headers={"Content-Type": "application/json"},
+                        timeout=10
+                    )
+                    resp.raise_for_status()
+                    updated_fields.append(key)
+                except requests.exceptions.RequestException:
+                    fallback_success = False
+            
+            if not fallback_success and len(updated_fields) == 0:
+                raise SynergyError(f"Failed to update subtask {subtask_id}: {str(e)}")
         
         return {
             "success": True,

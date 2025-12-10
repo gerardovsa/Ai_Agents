@@ -3114,7 +3114,7 @@ def create_milestone_task(milestone_id):
         task_priority = data.get('priority', 'medium')  # Get priority from request or default to medium
         
         # Insert task with priority
-        sql, params = convert_sql_placeholders('''
+        cursor.execute('''
             INSERT INTO synergy_sessions.tasks (
                 task_id, milestone_id, task, completed, task_order, priority, created_at
             ) VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -3202,13 +3202,14 @@ def create_task_subtask(task_id):
         
         # Generate subtask ID
         subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        subtask_priority = data.get('priority', 'medium')
         
         # Insert subtask
-        sql, params = convert_sql_placeholders('''
+        cursor.execute('''
             INSERT INTO synergy_sessions.subtasks (
-                subtask_id, task_id, task, completed, subtask_order, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (subtask_id, task_id, data['subtask'], False, subtask_order, datetime.now().isoformat()))
+                subtask_id, task_id, task, completed, subtask_order, priority, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (subtask_id, task_id, data['subtask'], False, subtask_order, subtask_priority, datetime.now().isoformat()))
         
         conn.commit()
         conn.close()

@@ -619,24 +619,81 @@ def _get_visualization_guidance():
         
         "cad": {
             "delimiter": "<CAD>...</CAD>",
-            "description": "Engineering CAD drawings, technical details, and mechanical parts",
+            "description": "Engineering CAD drawings, technical details, and mechanical parts. SUPPORTS BOTH: (1) SVG technical drawings, (2) Constrained 3D models with CadQuery",
             "structure": {
-                "svg": "Technical drawing with precise measurements",
+                "option_1_svg": "Technical 2D drawing with SVG - simple approach",
+                "option_2_constrained": "Constrained 3D engineering CAD with validation - use for accurate mechanical parts",
                 "dimension_lines": "Lines with arrow markers indicating measurements",
                 "annotations": "Text labels for measurements and specifications",
                 "cross_sections": "Detailed component views and cutaways",
                 "leader_lines": "Lines connecting labels to parts"
             },
             "rules": [
-                "RULE 1: Use precise measurements and dimensions",
-                "RULE 2: Include title with part number/description",
-                "RULE 3: Show all dimension lines with arrows",
-                "RULE 4: Use standard CAD colors (gray fill #e0e0e0, black stroke)",
-                "RULE 5: Label all critical dimensions and tolerances"
+                "RULE 1: For ACCURATE mechanical parts, use constrained_engineering_cad format (see examples)",
+                "RULE 2: Use precise measurements and dimensions (±0.1mm tolerance available)",
+                "RULE 3: Include title with part number/description",
+                "RULE 4: Show all dimension lines with arrows (for SVG)",
+                "RULE 5: Label all critical dimensions and tolerances",
+                "RULE 6: For 3D models, include model3D geometry + technical_drawing SVG + constraints"
             ],
             "examples": [
                 {
-                    "title": "Steel Beam Connection",
+                    "title": "CONSTRAINED 3D CAD - T-Slot Beam (RECOMMENDED for accurate mechanical parts)",
+                    "use_case": "Accurate mechanical engineering with constraint validation",
+                    "code": """<CAD>
+{
+  "type": "constrained_engineering_cad",
+  "profile": "20x40mm T-Slot Extrusion",
+  "dimensions": {
+    "width_mm": 20,
+    "height_mm": 40,
+    "length_mm": 500
+  },
+  "solver": "CadQuery",
+  
+  "model3D": {
+    "type": "box",
+    "dimensions": {
+      "width": 0.02,
+      "height": 0.04,
+      "depth": 0.5
+    },
+    "material": {
+      "color": 12632256,
+      "metalness": 0.7,
+      "roughness": 0.3
+    },
+    "camera": {
+      "position": {
+        "x": 0.3,
+        "y": 0.3,
+        "z": 0.8
+      }
+    }
+  },
+  
+  "technical_drawing": "<svg viewBox='0 0 800 400' xmlns='http://www.w3.org/2000/svg'><title>Technical Drawing</title><rect x='100' y='150' width='600' height='100' fill='none' stroke='black' stroke-width='2'/><text x='400' y='280' text-anchor='middle' font-size='14'>500mm</text></svg>",
+  
+  "constraints": {
+    "accuracy": "±0.1mm tolerance",
+    "validation": {
+      "dimensional_accuracy": true,
+      "spacing_validated": true,
+      "proportions_maintained": true
+    },
+    "applied": [
+      "Length: 500mm (exact)",
+      "Width: 20mm (exact)",
+      "Height: 40mm (exact)",
+      "All edges perpendicular (90°)",
+      "All faces planar"
+    ]
+  }
+}
+</CAD>"""
+                },
+                {
+                    "title": "SVG Technical Drawing - Steel Beam Connection (Simple 2D approach)",
                     "use_case": "Structural engineers showing connection details",
                     "code": """<CAD>
 <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
@@ -668,6 +725,10 @@ def _get_visualization_guidance():
                 }
             ],
             "best_practices": [
+                "🔥 USE CONSTRAINED CAD FORMAT when accuracy matters (±0.1mm tolerance)",
+                "For constrained CAD: Set type='constrained_engineering_cad' in JSON",
+                "Include both model3D (3D geometry) AND technical_drawing (2D SVG) for complete documentation",
+                "Add constraints section to show validation status",
                 "Show all critical dimensions with dimension lines",
                 "Use standard engineering notation and units",
                 "Include material specifications in annotations",
@@ -679,25 +740,37 @@ def _get_visualization_guidance():
             ],
             "when_to_use": [
                 "Engineering drawings and specifications",
-                "Mechanical part details",
+                "Mechanical part details with ACCURACY requirements (use constrained format)",
                 "Manufacturing documentation",
                 "Structural connection details",
                 "Assembly instructions",
-                "Technical proposals"
+                "Technical proposals",
+                "T-slot extrusions, beams, brackets, mounting plates"
             ],
             "when_not_to_use": [
-                "3D models (use Three.js or dedicated CAD software)",
+                "Simple sketches or concepts (use SVG_VISUAL instead)",
                 "Architectural plans (use BLUEPRINT)",
                 "Electrical circuits (use SCHEMATIC)",
-                "Animated assemblies"
+                "Animated assemblies (constrained CAD is static)"
             ],
             "common_errors": [
+                "❌ Using SVG when accuracy is critical (use constrained format instead)",
+                "❌ Missing 'type: constrained_engineering_cad' field in JSON",
+                "❌ Missing constraints section",
                 "Missing critical dimensions",
-                "Incorrect scale or proportions",
+                "Incorrect scale or proportions (constrained CAD fixes this!)",
                 "No title or part description",
                 "Poor line weights (all same thickness)",
                 "Missing material specifications",
                 "Dimension lines without arrows"
+            ],
+            "constraint_solver_features": [
+                "✅ Dimensional accuracy: ±0.1mm tolerance (vs ±5mm without constraints)",
+                "✅ Hole spacing validation: Minimum 20mm enforced",
+                "✅ Edge distance validation: Minimum 10mm enforced",
+                "✅ Perpendicularity: All edges exactly 90°",
+                "✅ Assembly constraints: Coincident, distance, parallel relationships",
+                "✅ Renders as tabbed interface: 3D Model | Technical Drawing | Constraints tabs"
             ]
         },
         

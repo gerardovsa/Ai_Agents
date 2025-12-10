@@ -18,8 +18,8 @@ class EngineeringCADRenderer {
     }
 
     /**
-     * Parse engineering CAD output with delimiters
-     * @param {string} content - Raw content with delimiter blocks
+     * Parse engineering CAD output - SINGLE <CAD> TAG
+     * @param {string} content - Raw content with <CAD> delimiter
      * @returns {Object} Parsed engineering data
      */
     parseEngineeringContent(content) {
@@ -28,42 +28,34 @@ class EngineeringCADRenderer {
             metadata: null,
             model3D: null,
             technicalDrawing: null,
-            bom: null
+            bom: null,
+            constraintsInfo: null
         };
 
-        // Extract ENGINEERING_CAD metadata
-        const metadataMatch = content.match(/```ENGINEERING_CAD\s*\n([\s\S]*?)\n```/);
-        if (metadataMatch) {
+        // Extract single <CAD> block
+        const cadMatch = content.match(/<CAD>([\s\S]*?)<\/CAD>/);
+        if (cadMatch) {
             try {
-                result.metadata = JSON.parse(metadataMatch[1]);
-            } catch (e) {
-                console.warn('Failed to parse ENGINEERING_CAD metadata:', e);
-            }
-        }
+                const cadData = JSON.parse(cadMatch[1]);
 
-        // Extract 3D_MODEL
-        const modelMatch = content.match(/```3D_MODEL\s*\n([\s\S]*?)\n```/);
-        if (modelMatch) {
-            try {
-                result.model3D = JSON.parse(modelMatch[1]);
+                // Check if it's constrained engineering CAD
+                if (cadData.type === 'constrained_engineering_cad') {
+                    // Unpack embedded data
+                    result.metadata = {
+                        type: cadData.type,
+                        profile: cadData.profile,
+                        dimensions: cadData.dimensions,
+                        solver: cadData.solver
+                    };
+                    result.model3D = cadData.model3D;
+                    result.technicalDrawing = cadData.technical_drawing;
+                    result.constraintsInfo = cadData.constraints;
+                } else {
+                    // Regular CAD - just 3D model
+                    result.model3D = cadData;
+                }
             } catch (e) {
-                console.warn('Failed to parse 3D_MODEL:', e);
-            }
-        }
-
-        // Extract TECHNICAL_DRAWING (SVG)
-        const drawingMatch = content.match(/```TECHNICAL_DRAWING\s*\n([\s\S]*?)\n```/);
-        if (drawingMatch) {
-            result.technicalDrawing = drawingMatch[1].trim();
-        }
-
-        // Extract BOM
-        const bomMatch = content.match(/```BOM\s*\n([\s\S]*?)\n```/);
-        if (bomMatch) {
-            try {
-                result.bom = JSON.parse(bomMatch[1]);
-            } catch (e) {
-                console.warn('Failed to parse BOM:', e);
+                console.warn('Failed to parse CAD:', e);
             }
         }
 
@@ -106,7 +98,8 @@ class EngineeringCADRenderer {
         const tabs = [
             { id: '3d', label: '🎨 3D Model', hasContent: engineeringData.model3D },
             { id: 'drawing', label: '📐 Technical Drawing', hasContent: engineeringData.technicalDrawing },
-            { id: 'bom', label: '📋 Bill of Materials', hasContent: engineeringData.bom }
+            { id: 'bom', label: '📋 Bill of Materials', hasContent: engineeringData.bom },
+            { id: 'constraints', label: '✓ Constraints', hasContent: engineeringData.constraintsInfo }
         ];
 
         tabs.forEach(tab => {
@@ -205,6 +198,25 @@ class EngineeringCADRenderer {
             this.renderBOM(engineeringData.bom, bomContent);
 
             contentWrapper.appendChild(bomContent);
+        }
+
+        // Constraints Tab (new)
+        if (engineeringData.constraintsInfo) {
+            const constraintsContent = document.createElement('div');
+            constraintsContent.className = 'tab-content';
+            constraintsContent.dataset.tabContent = 'constraints';
+            constraintsContent.style.display = 'none';
+            constraintsContent.style.cssText = `
+                padding: 20px;
+                background: var(--bg-secondary, #2a2a3e);
+                color: var(--text-primary, #e0e0e0);
+                overflow: auto;
+                max-height: 600px;
+            `;
+
+            this.renderConstraintsInfo(engineeringData.constraintsInfo, constraintsContent);
+
+            contentWrapper.appendChild(constraintsContent);
         }
 
         container.appendChild(contentWrapper);
@@ -431,6 +443,145 @@ class EngineeringCADRenderer {
         bomWrapper.appendChild(table);
         container.appendChild(bomWrapper);
     }
+
+    /**
+     * Render constraints information panel
+     */
+    renderConstraintsInfo(constraintsData, container) {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+            background: var(--bg-tertiary, #1a1a2e);
+            border-radius: 8px;
+            padding: 24px;
+        `;
+
+        // Title with badge
+        const header = document.createElement('div');
+        header.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--accent-primary, #4a90e2);
+        `;
+
+        const title = document.createElement('h3');
+        title.textContent = 'Geometric Constraints';
+        title.style.cssText = `
+            color: var(--text-primary, #e0e0e0);
+            font-size: 20px;
+            margin: 0;
+        `;
+
+        const badge = document.createElement('span');
+        badge.textContent = constraintsData.accuracy;
+        badge.style.cssText = `
+            background: var(--success-color, #28a745);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        `;
+
+        header.appendChild(title);
+        header.appendChild(badge);
+        wrapper.appendChild(header);
+
+        // Validation status
+        const validationSection = document.createElement('div');
+        validationSection.style.marginBottom = '24px';
+
+        const validationTitle = document.createElement('h4');
+        validationTitle.textContent = '✓ Validation Results';
+        validationTitle.style.cssText = `
+            color: var(--text-primary, #e0e0e0);
+            font-size: 16px;
+            margin: 0 0 12px 0;
+        `;
+        validationSection.appendChild(validationTitle);
+
+        const validationGrid = document.createElement('div');
+        validationGrid.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        `;
+
+        Object.entries(constraintsData.validation || {}).forEach(([key, value]) => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+                background: ${value ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)'};
+                border: 1px solid ${value ? '#28a745' : '#dc3545'};
+                border-radius: 6px;
+                padding: 12px;
+            `;
+
+            const label = document.createElement('div');
+            label.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            label.style.cssText = `
+                color: var(--text-secondary, #b0b0b0);
+                font-size: 12px;
+                margin-bottom: 4px;
+            `;
+
+            const status = document.createElement('div');
+            status.textContent = value ? '✓ Passed' : '✗ Failed';
+            status.style.cssText = `
+                color: ${value ? '#28a745' : '#dc3545'};
+                font-weight: 600;
+                font-size: 14px;
+            `;
+
+            item.appendChild(label);
+            item.appendChild(status);
+            validationGrid.appendChild(item);
+        });
+
+        validationSection.appendChild(validationGrid);
+        wrapper.appendChild(validationSection);
+
+        // Constraints list
+        const constraintsSection = document.createElement('div');
+
+        const constraintsTitle = document.createElement('h4');
+        constraintsTitle.textContent = '📏 Applied Constraints';
+        constraintsTitle.style.cssText = `
+            color: var(--text-primary, #e0e0e0);
+            font-size: 16px;
+            margin: 0 0 12px 0;
+        `;
+        constraintsSection.appendChild(constraintsTitle);
+
+        const constraintsList = document.createElement('ul');
+        constraintsList.style.cssText = `
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        `;
+
+        (constraintsData.constraints || []).forEach(constraint => {
+            const item = document.createElement('li');
+            item.style.cssText = `
+                background: var(--bg-secondary, #2a2a3e);
+                border-left: 3px solid var(--accent-primary, #4a90e2);
+                padding: 12px 16px;
+                margin-bottom: 8px;
+                border-radius: 4px;
+                color: var(--text-primary, #e0e0e0);
+                font-size: 14px;
+                font-family: 'Courier New', monospace;
+            `;
+            item.textContent = constraint;
+            constraintsList.appendChild(item);
+        });
+
+        constraintsSection.appendChild(constraintsList);
+        wrapper.appendChild(constraintsSection);
+
+        container.appendChild(wrapper);
+    }
 }
 
 // Auto-integrate with existing CAD Renderer
@@ -438,15 +589,22 @@ if (typeof CADRenderer !== 'undefined') {
     const originalRender = CADRenderer.prototype.render;
 
     CADRenderer.prototype.render = async function (item, contentArea, chartId) {
-        // Check if content contains engineering delimiters
-        if (typeof item.content === 'string' &&
-            (item.content.includes('```ENGINEERING_CAD') ||
-                item.content.includes('```3D_MODEL') ||
-                item.content.includes('```TECHNICAL_DRAWING'))) {
-
-            console.log('✅ Engineering CAD content detected, using EngineeringCADRenderer');
-            const engRenderer = new EngineeringCADRenderer(this);
-            return await engRenderer.render(item, contentArea, chartId);
+        // Check if content is constrained engineering CAD
+        if (typeof item.content === 'string' && item.content.includes('<CAD>')) {
+            // Parse to check if it's engineering CAD
+            const cadMatch = item.content.match(/<CAD>([\s\S]*?)<\/CAD>/);
+            if (cadMatch) {
+                try {
+                    const cadData = JSON.parse(cadMatch[1]);
+                    if (cadData.type === 'constrained_engineering_cad') {
+                        console.log('✅ Constrained Engineering CAD detected, using EngineeringCADRenderer');
+                        const engRenderer = new EngineeringCADRenderer(this);
+                        return await engRenderer.render(item, contentArea, chartId);
+                    }
+                } catch (e) {
+                    console.warn('CAD parse failed, using standard renderer:', e);
+                }
+            }
         }
 
         // Fall back to original renderer for standard CAD content

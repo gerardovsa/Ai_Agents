@@ -13,6 +13,12 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 from pathlib import Path
+import sys
+
+# Import config manager
+config_dir = Path(__file__).parent.parent.parent / "config"
+sys.path.insert(0, str(config_dir))
+from config_manager import config_manager
 
 
 @dataclass
@@ -40,17 +46,17 @@ class CustomVinylStickersShopifyCalculator:
     - DOUBLE GST APPLICATION (Shopify-specific: Total * 1.1 * 1.1)
     """
     
-    CONFIG_FILE = r"c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_Custom_Vinyl_Stickers.json"
+    CONFIG_FILE = "Shopify_Custom_Vinyl_Stickers.json"
     
     def __init__(self, config_path: str = None):
         """Initialize Custom Vinyl Stickers Shopify calculator"""
         if config_path:
             self.config = self._load_config(config_path)
         else:
-            default_path = Path(__file__).parent.parent.parent / "In_House_SQL" / "G_Folder" / "Quote_Calculator" / "shopify" / self.CONFIG_FILE
-            if default_path.exists():
-                self.config = self._load_config(str(default_path))
-            else:
+            try:
+                self.config = config_manager.load_shopify_config(self.CONFIG_FILE)
+            except FileNotFoundError as e:
+                print(f"⚠️ Warning: {e}")
                 self.config = None
     
     def _load_config(self, config_path: str) -> Dict:

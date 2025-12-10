@@ -34,6 +34,13 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+import sys
+
+# Import config manager
+config_dir = Path(__file__).parent.parent.parent / "config"
+sys.path.insert(0, str(config_dir))
+from config_manager import config_manager
 
 
 # ============================================================================

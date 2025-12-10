@@ -49,7 +49,7 @@ class SynergySidebarRendererV2 {
         item.setAttribute('data-context', 'sidebar');
         if (isPinned) item.classList.add('pinned');
         if (isExpanded) item.classList.add('expanded');
-        
+
         // Fix #3: Restore width state from controller
         if (window.SynergySidebar && window.SynergySidebar.getWidthState) {
             const widthState = window.SynergySidebar.getWidthState(session.session_id);
@@ -61,7 +61,7 @@ class SynergySidebarRendererV2 {
         }
 
         item.innerHTML = this.renderSimpleListItem(session);
-        
+
         // Fix #3: Update icon to match restored width state
         if (window.SynergySidebar && window.SynergySidebar.getWidthState) {
             const widthState = window.SynergySidebar.getWidthState(session.session_id);
@@ -1123,7 +1123,7 @@ class SynergySidebarRendererV2 {
         // Copy session ID to clipboard
         navigator.clipboard.writeText(sessionId).then(() => {
             console.log('[SYNERGY] Session ID copied to clipboard');
-            
+
             // Show temporary toast notification
             const toast = document.createElement('div');
             toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--synergy-action); color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; font-size: 14px;';

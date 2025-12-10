@@ -1130,6 +1130,12 @@ class TwoRuleStreamProcessor {
             { type: 'blueprint', start: '<BLUEPRINT>', end: '</BLUEPRINT>' },
             { type: 'molecule', start: '<MOLECULE>', end: '</MOLECULE>' },
 
+            // ✨ Engineering CAD Metadata
+            { type: 'engineering_cad', start: '<ENGINEERING_CAD>', end: '</ENGINEERING_CAD>' },
+            { type: 'technical_drawing', start: '<TECHNICAL_DRAWING>', end: '</TECHNICAL_DRAWING>' },
+            { type: 'constraints_info', start: '<CONSTRAINTS_INFO>', end: '</CONSTRAINTS_INFO>' },
+            { type: 'bom', start: '<BOM>', end: '</BOM>' },
+
             // ✨ Math
             { type: 'latex', start: '<LATEX>', end: '</LATEX>' }
         ];
@@ -1194,6 +1200,7 @@ class TwoRuleStreamProcessor {
             '<THREEJS>', '<GSAP>', '<LOTTIE>',
             '<EXECUTE_HTML>',
             '<SVG_VISUAL>', '<CAD>', '<SCHEMATIC>', '<BLUEPRINT>', '<MOLECULE>',
+            '<ENGINEERING_CAD>', '<TECHNICAL_DRAWING>', '<CONSTRAINTS_INFO>', '<BOM>',
             '<LATEX>'
         ];
         let maxLen = 0;

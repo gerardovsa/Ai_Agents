@@ -121,7 +121,7 @@ from routes.thread_routes import thread_bp
 print("[DEBUG] Importing chat_routes...")
 from routes.chat_routes import chat_bp  # NEW: Chat with file uploads
 print("[DEBUG] Importing message_operations...")
-from routes.message_operations import message_ops_bp  # NEW: Message operations (fork, clone, copy, delete)
+from routes.message_operations import message_ops_bp  # NEW: Message operations (fork, clone, copy, delete) - ✅ IMPLEMENTED Dec 7, 2025
 print("[DEBUG] Importing export_routes...")
 from routes.export_routes import export_bp
 print("[DEBUG] Importing woocommerce_routes...")
@@ -130,6 +130,8 @@ print("[DEBUG] Importing auth_routes...")
 from routes.auth_routes import auth_bp  # NEW: User authentication
 print("[DEBUG] Importing oauth_routes...")
 from routes.oauth_routes import oauth_bp  # NEW: OAuth workspace integration (Google Workspace + M365)
+print("[DEBUG] Importing vsa_alerts_routes...")
+from routes.vsa_alerts_routes import vsa_alerts_bp  # NEW: VSA Veterinary Alerts (transcript + coaching generation)
 print("[DEBUG] Importing google_auth_routes_V2_FIXED...")
 from routes.google_auth_routes_V2_FIXED import google_auth_bp  # NEW: Google OAuth V2
 print("[DEBUG] Importing microsoft_auth_routes_V2_FIXED...")
@@ -340,7 +342,7 @@ app.register_blueprint(agent_bp, url_prefix='/api/agent')           # Working ag
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
 app.register_blueprint(chat_bp, url_prefix='/api/chat')             # NEW: Chat with file upload (2 endpoints: /upload, /message)
 app.register_blueprint(thread_sharing_bp)                            # NEW: Thread sharing (6 endpoints: share, accept, revoke, list)
-app.register_blueprint(message_ops_bp)                               # NEW: Message operations - fork, clone, copy, delete (5 endpoints)
+app.register_blueprint(message_ops_bp)                               # NEW: Message operations - fork, clone, copy, delete, export, merge (6 endpoints) - ✅ IMPLEMENTED Dec 7, 2025
 app.register_blueprint(file_bp)                                      # NEW: File storage (7 endpoints: serve, download, delete, usage)
 app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoints (export functionality)
 app.register_blueprint(woocommerce_bp)                               # 9 endpoints (WooCommerce direct API)
@@ -348,6 +350,7 @@ app.register_blueprint(auth_bp)                                      # NEW: 6 en
 app.register_blueprint(oauth_bp)                                     # NEW: OAuth workspace integration (/api/oauth/*)
 app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth V2 (/api/auth/google/*)
 app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)
+app.register_blueprint(vsa_alerts_bp)                                # NEW: VSA Veterinary Alerts (/api/vsa-alerts/*)
 app.register_blueprint(account_linking_bp)                           # NEW: Account linking (/api/account/*)
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
 app.register_blueprint(database_visualizer_bp)                       # ✅ ENABLED (Migrated to Supabase 2025-12-07)
@@ -369,6 +372,10 @@ app.register_blueprint(production_log_bp)                            # NEW: Prod
 app.register_blueprint(user_preferences_bp)                          # NEW: User preferences (2 endpoints: /api/user/preferences)
 app.register_blueprint(geolocation_bp)                               # NEW: Geolocation detection (2 endpoints: /api/geolocation/*)
 app.register_blueprint(thread_assignment_bp)                         # NEW: Thread assignments (7 endpoints: /api/thread-assignments/*)
+
+# Calculator Test Dashboard routes
+from routes.calculator_test_routes import calculator_test_bp
+app.register_blueprint(calculator_test_bp, url_prefix='/api/calculator-test')  # NEW: Calculator testing dashboard (5 endpoints: /api/calculator-test/*)
 
 # Vector Database Enhanced Routes
 try:

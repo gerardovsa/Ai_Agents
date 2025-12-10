@@ -1373,38 +1373,38 @@
           }
         },
         {
-          "description": "Add deployment phase with tasks and subtasks",
+          "description": "Add deployment phase with tasks and subtasks - using title+description format",
           "parameters": {
             "session_id": "sess_20251208_1400_customer_onboarding",
             "milestone_name": "Phase 4: Production Deployment",
-            "description": "Deploy system to production and monitor",
+            "description": "Deploy system to production and monitor\n\nThis phase includes environment setup, deployment, testing, and 24-hour monitoring to ensure stability.",
             "tasks": [
               {
-                "task": "Prepare production environment",
+                "task": "Prepare production environment\\n\\nSet up all production infrastructure including Google Workspace, domain configuration, and monitoring tools. Ensure all credentials are secured.",
                 "priority": "critical",
                 "subtasks": [
                   {
-                    "task": "Set up production Google Workspace",
+                    "task": "Set up production Google Workspace\\n\\nCreate production Workspace account, configure SSO, and set up admin users with MFA enabled.",
                     "priority": "critical"
                   },
                   {
-                    "task": "Configure domain settings",
+                    "task": "Configure domain settings\\n\\nUpdate DNS records, configure SPF/DKIM/DMARC for email, and verify domain ownership.",
                     "priority": "high"
                   },
                   {
-                    "task": "Set up monitoring",
+                    "task": "Set up monitoring\\n\\nInstall monitoring agents, configure alerts for CPU/memory/disk, and set up log aggregation.",
                     "priority": "medium"
                   }
                 ]
               },
               {
-                "task": "Deploy and test",
+                "task": "Deploy and test\\n\\nDeploy all components to production and run comprehensive end-to-end tests.",
                 "priority": "critical",
                 "subtasks": [
                   "Deploy form to production",
                   "Deploy sheet to production",
                   "Test end-to-end workflow",
-                  "Monitor for 24 hours"
+                  "Monitor for 24 hours\\n\\nWatch for errors, performance issues, or unexpected behavior during the first 24 hours."
                 ]
               },
               "Document deployment process"
@@ -1429,7 +1429,7 @@
           },
           "task": {
             "type": "string",
-            "description": "Task description (REQUIRED)"
+            "description": "Task text (REQUIRED). Can be simple title, or use format: 'Title\\n\\nDescription' where the UI will render title prominently and description below with line breaks preserved."
           },
           "subtasks": {
             "type": "array",
@@ -1482,7 +1482,53 @@
           "milestone_id",
           "task"
         ]
-      }
+      },
+      "examples": [
+        {
+          "description": "Simple task with title only",
+          "parameters": {
+            "milestone_id": "ms_1732728394_001",
+            "task": "Configure database backup system",
+            "priority": "high"
+          }
+        },
+        {
+          "description": "Task with title and description (recommended for complex tasks)",
+          "parameters": {
+            "milestone_id": "ms_1732728394_001",
+            "task": "Configure database backup system\\n\\nSet up automated daily backups to AWS S3 with 30-day retention. Configure backup verification scripts and monitoring alerts. Ensure encryption at rest and in transit.",
+            "priority": "high",
+            "subtasks": [
+              "Set up S3 bucket\\n\\nCreate dedicated S3 bucket with versioning enabled and lifecycle policies for 30-day retention",
+              "Configure backup scripts\\n\\nWrite and test pg_dump scripts with compression and encryption",
+              {
+                "task": "Set up monitoring\\n\\nConfigure CloudWatch alarms for failed backups and Slack notifications",
+                "priority": "critical"
+              }
+            ]
+          }
+        },
+        {
+          "description": "Task with mixed subtasks (some simple, some with priority and description)",
+          "parameters": {
+            "milestone_id": "ms_1732728394_002",
+            "task": "Deploy production environment",
+            "priority": "critical",
+            "subtasks": [
+              "Review deployment checklist",
+              {
+                "task": "Update DNS records\\n\\nPoint production domain to new load balancer. Update A records and verify propagation.",
+                "priority": "critical"
+              },
+              "Run smoke tests",
+              {
+                "task": "Monitor initial traffic\\n\\nWatch error rates, response times, and resource utilization for first hour",
+                "priority": "high"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "synergy_update_task",
@@ -2498,10 +2544,10 @@
           },
           "subtask": {
             "type": "string",
-            "description": "Subtask description (REQUIRED)",
+            "description": "Subtask text (REQUIRED). Can be simple title, or use format: 'Title\\n\\nDescription' where the UI will render title prominently and description below with line breaks preserved.",
             "examples": [
               "Define customer fields (name, email, phone)",
-              "Set up data validation rules",
+              "Set up data validation rules\\n\\nImplement regex patterns for email, phone. Add range checks for numeric fields.",
               "Create calculated columns"
             ]
           },
@@ -2539,11 +2585,27 @@
       },
       "examples": [
         {
-          "description": "Add subtask to design schema task",
+          "description": "Simple subtask with title only",
           "parameters": {
             "task_id": "task_1732728394_002",
             "subtask": "Add conditional formatting for status indicators",
             "priority": "medium"
+          }
+        },
+        {
+          "description": "Subtask with title and detailed description (recommended for complex steps)",
+          "parameters": {
+            "task_id": "task_1732728394_005",
+            "subtask": "Configure SSL certificate\\n\\nGenerate Let's Encrypt certificate for production domain. Set up auto-renewal cron job and configure nginx to use the certificate. Test HTTPS redirect and verify A+ rating on SSL Labs.",
+            "priority": "critical"
+          }
+        },
+        {
+          "description": "Subtask with technical implementation details",
+          "parameters": {
+            "task_id": "task_1732728394_008",
+            "subtask": "Implement rate limiting middleware\\n\\nAdd express-rate-limit middleware to API routes. Configure 100 requests per 15 minutes per IP. Set up Redis for distributed rate limiting across instances. Add custom error responses with Retry-After headers.",
+            "priority": "high"
           }
         }
       ]

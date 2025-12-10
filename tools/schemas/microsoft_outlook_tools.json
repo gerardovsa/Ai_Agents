@@ -5,6 +5,7 @@
   "tools": [
     {
       "name": "microsoft_outlook_send_email",
+      "short_description": "Send email via Microsoft Outlook with attachments, CC, BCC, and HTML content support",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ TEMPORARILY DISABLED: This tool now saves emails to DRAFTS instead of sending them.\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_send_email', ...) - DO NOT call directly!\n\nCURRENT BEHAVIOR: Creates a draft email in Outlook Drafts folder instead of sending. User must manually review and send from Outlook.\n\nOriginal purpose: Send an email via Microsoft 365 Outlook. Supports HTML content, attachments, CC, BCC, importance flags, and read receipts.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -206,6 +207,7 @@
     },
     {
       "name": "microsoft_outlook_smart_bulk_send_personalized",
+      "short_description": "SMART: Send personalized bulk emails via Outlook with template variable replacement",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_bulk_send_personalized', ...) - DO NOT call directly!\n\n🎯 SMART: Send personalized emails to multiple recipients with mail merge. Automatically handles rate limiting, personalization with merge fields, and tracks delivery status. Much more efficient than calling outlook_send_email in a loop.",
       "platform": "microsoft_outlook",
       "category": "smart_bundled",
@@ -370,6 +372,7 @@
     },
     {
       "name": "microsoft_outlook_list_messages",
+      "short_description": "List Microsoft Outlook messages from folder with filters for read status and date",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_messages', ...) - DO NOT call directly!\n\n🎯 PERFORMANCE TIP: ALWAYS use filtering parameters (max_results, unread_only, search, filter) to reduce data size and improve response time!\n\nList emails from inbox or specific folder. Returns message metadata including sender, subject, preview, and date.\n\nFILTERING EXAMPLES:\n• max_results=10 (limit to 10 emails)\n• unread_only=True (only unread)\n• search='project update' (keyword search)\n• filter='receivedDateTime ge 2025-11-15' (date filter)\n\nWithout filters, may return 500+ emails causing slow performance and truncated results!",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -639,6 +642,7 @@
     },
     {
       "name": "microsoft_outlook_get_message",
+      "short_description": "Get Microsoft Outlook email message details including body and attachments",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_get_message', ...) - DO NOT call directly!\n\nGet complete details of a specific email including full body content, attachments, and metadata.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -875,6 +879,7 @@
     },
     {
       "name": "microsoft_outlook_search_messages",
+      "short_description": "Search Microsoft Outlook emails by query across subject, sender, and content",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_search_messages', ...) - DO NOT call directly!\n\n🎯 BEST FOR: Date range searches and multi-criteria filtering!\n\nAdvanced search across all email folders with multiple criteria. Supports date ranges, sender filters, attachment checks, and keyword search.\n\nRECOMMENDED USAGE:\n• ALWAYS use date_from/date_to for time-based queries ('last week', 'this month')\n• Set max_results to reasonable limit (default: 50)\n• Combine filters for precision (date + sender + keywords)\n\nEXAMPLE: query='invoice', date_from='2025-11-01', date_to='2025-11-19', max_results=20",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -1144,6 +1149,7 @@
     },
     {
       "name": "microsoft_outlook_mark_as_read",
+      "short_description": "Mark Microsoft Outlook message as read or unread by message ID",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_mark_as_read', ...) - DO NOT call directly!\n\nMark one or multiple messages as read or unread.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -1274,6 +1280,7 @@
     },
     {
       "name": "microsoft_outlook_move_message",
+      "short_description": "Move Microsoft Outlook message to different folder by message and folder ID",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_move_message', ...) - DO NOT call directly!\n\nMove message(s) to a different folder.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -1406,6 +1413,7 @@
     },
     {
       "name": "microsoft_outlook_delete_message",
+      "short_description": "Delete Microsoft Outlook message by ID to move to Deleted Items folder",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_delete_message', ...) - DO NOT call directly!\n\nDelete message(s). Can soft delete (move to deleted items) or hard delete (permanent).",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -1537,6 +1545,7 @@
     },
     {
       "name": "microsoft_outlook_create_folder",
+      "short_description": "Create new folder in Microsoft Outlook for organizing emails",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_folder', ...) - DO NOT call directly!\n\nCreate a new mail folder.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -1664,6 +1673,7 @@
     },
     {
       "name": "microsoft_outlook_list_folders",
+      "short_description": "List Microsoft Outlook folders including inbox, sent, drafts, and custom folders",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_folders', ...) - DO NOT call directly!\n\nList all mail folders in the mailbox.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -1878,6 +1888,7 @@
     },
     {
       "name": "microsoft_outlook_create_draft",
+      "short_description": "Create draft email in Microsoft Outlook for later review and sending",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_draft', ...) - DO NOT call directly!\n\nCreate a draft email without sending it. Useful for preparing emails for later review/sending.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -2031,6 +2042,7 @@
     },
     {
       "name": "microsoft_outlook_reply_to_message",
+      "short_description": "Reply to Microsoft Outlook message with original threading and recipients",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_reply_to_message', ...) - DO NOT call directly!\n\nReply to an email. Can reply to sender only or reply-all to all recipients.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -2175,6 +2187,7 @@
     },
     {
       "name": "microsoft_outlook_forward_message",
+      "short_description": "Forward Microsoft Outlook message to new recipients with comments",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_forward_message', ...) - DO NOT call directly!\n\nForward an email to one or more recipients.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -2312,6 +2325,7 @@
     },
     {
       "name": "microsoft_outlook_add_category",
+      "short_description": "Add category tag to Microsoft Outlook message for color-coded organization",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_add_category', ...) - DO NOT call directly!\n\nAdd one or more categories (labels/tags) to message(s) for organization.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -2447,6 +2461,7 @@
     },
     {
       "name": "microsoft_outlook_flag_message",
+      "short_description": "Flag Microsoft Outlook message for follow-up with due date and reminder",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_flag_message', ...) - DO NOT call directly!\n\nFlag message(s) for follow-up with optional due date and reminder.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -2591,6 +2606,7 @@
     },
     {
       "name": "microsoft_outlook_smart_organize_inbox",
+      "short_description": "SMART: Auto-organize Microsoft Outlook inbox by sender, subject, or date into folders",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_organize_inbox', ...) - DO NOT call directly!\n\n🎯 SMART: Intelligently organize inbox using rules. Automatically moves emails to folders based on sender, subject keywords, or importance. Creates folders if they don't exist.",
       "platform": "microsoft_outlook",
       "category": "smart_bundled",
@@ -2756,6 +2772,7 @@
     },
     {
       "name": "microsoft_outlook_smart_email_summary",
+      "short_description": "SMART: Generate AI summary of Microsoft Outlook emails with key points and action items",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_email_summary', ...) - DO NOT call directly!\n\n🎯 SMART: Generate a summary of recent emails grouped by sender, importance, and topic. Perfect for catching up on inbox after being away.",
       "platform": "microsoft_outlook",
       "category": "smart_bundled",
@@ -3009,6 +3026,7 @@
     },
     {
       "name": "microsoft_outlook_smart_follow_up_reminder",
+      "short_description": "SMART: Set follow-up reminder for Microsoft Outlook emails requiring action",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_follow_up_reminder', ...) - DO NOT call directly!\n\n🎯 SMART: Find emails that need follow-up based on age, importance, and response status. Automatically flags them with reminders.",
       "platform": "microsoft_outlook",
       "category": "smart_bundled",
@@ -3271,6 +3289,7 @@
     },
     {
       "name": "microsoft_outlook_create_inbox_rule",
+      "short_description": "Create inbox rule in Microsoft Outlook for automatic email filtering and actions",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_inbox_rule', ...) - DO NOT call directly!\n\nCreate an automatic inbox rule that runs on incoming emails (server-side filtering).",
       "platform": "microsoft_outlook",
       "category": "advanced",
@@ -3407,6 +3426,7 @@
     },
     {
       "name": "microsoft_outlook_list_inbox_rules",
+      "short_description": "List inbox rules in Microsoft Outlook showing conditions and actions",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_inbox_rules', ...) - DO NOT call directly!\n\nList all inbox rules configured for the mailbox.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -3629,6 +3649,7 @@
     },
     {
       "name": "microsoft_outlook_get_attachments",
+      "short_description": "Get attachments list from Microsoft Outlook message with names and sizes",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_get_attachments', ...) - DO NOT call directly!\n\nGet all attachments from a message with download URLs or content.",
       "platform": "microsoft_outlook",
       "category": "basic",
@@ -3867,6 +3888,7 @@
     },
     {
       "name": "microsoft_outlook_download_attachment",
+      "short_description": "Download attachment from Microsoft Outlook message by attachment ID to local path",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_download_attachment', ...) - DO NOT call directly!\n\nDownload a specific attachment from a message.",
       "platform": "microsoft_outlook",
       "category": "basic",

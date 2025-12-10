@@ -24,6 +24,11 @@ from .cad_generator import (
     generate_bed_frame_cad,
     generate_kitchen_module_cad
 )
+from .constrained_cad_generator import (
+    ai_generate_constrained_beam,
+    ai_generate_constrained_assembly,
+    ConstrainedCADGenerator
+)
 from .parts_sourcing import (
     generate_bom,
     generate_bed_frame_bom,
@@ -451,12 +456,128 @@ def design_engineering_complete_workflow(
     }
 
 
+def design_engineering_generate_accurate_cad(
+    profile_id: str,
+    length_mm: float,
+    mounting_holes: Optional[List[Dict]] = None
+) -> str:
+    """
+    AI Tool: Generate CAD with geometric constraints for accurate dimensions.
+    
+    **USE THIS INSTEAD OF design_engineering_generate_cad_model FOR ACCURATE CAD**
+    
+    Use this when the user asks:
+    - "Generate accurate CAD..."
+    - "Create a beam with proper dimensions..."
+    - "Design with correct spacing..."
+    - "Make sure measurements are exact..."
+    
+    This uses CadQuery constraint solver to ensure:
+    - ✓ Exact dimensions (within 0.1mm tolerance)
+    - ✓ Proportionate geometry
+    - ✓ Correct spacing between features
+    - ✓ Proper hole placement (min 20mm apart, 10mm from edges)
+    
+    Args:
+        profile_id: T-slot profile (e.g., '40x40_standard', '20x20_lite')
+        length_mm: Beam length in millimeters
+        mounting_holes: Optional list of hole specifications:
+            [{"x": 50, "y": 20, "diameter": 5.0}, ...]
+    
+    Returns:
+        Delimiter-formatted CAD with verified dimensions
+    
+    Example AI conversation:
+        User: "Generate a 500mm beam with mounting holes"
+        AI: calls design_engineering_generate_accurate_cad(
+            profile_id='40x40_standard',
+            length_mm=500,
+            mounting_holes=[
+                {"x": 50, "y": 20, "diameter": 5.0},
+                {"x": 450, "y": 20, "diameter": 5.0}
+            ]
+        )
+    """
+    return ai_generate_constrained_beam(
+        profile_id=profile_id,
+        length_mm=length_mm,
+        mounting_holes=mounting_holes
+    )
+
+
+def design_engineering_generate_assembly(
+    parts: List[Dict],
+    constraints: List[Dict]
+) -> str:
+    """
+    AI Tool: Generate multi-part assembly with geometric constraints.
+    
+    Use this when the user asks:
+    - "Create a structure with multiple beams..."
+    - "Design a frame with proper connections..."
+    - "Make an assembly where parts align..."
+    - "Build something with parallel/perpendicular beams..."
+    
+    This ensures:
+    - ✓ Parts are properly aligned
+    - ✓ Distances between parts are maintained
+    - ✓ Parallel/perpendicular relationships are enforced
+    - ✓ No geometric conflicts
+    
+    Args:
+        parts: List of part specifications:
+            [{
+                "name": "base",
+                "type": "tslot_beam",
+                "profile_id": "40x40_standard",
+                "length": 500
+            }, ...]
+        
+        constraints: List of geometric constraints:
+            [{
+                "type": "coincident",
+                "part1": "base",
+                "face1": ">Z",
+                "part2": "upright",
+                "face2": "<Z"
+            }, ...]
+        
+        Constraint types:
+        - "coincident": Faces/edges touch
+        - "distance": Fixed distance between parts
+        - "parallel": Edges stay parallel
+        - "perpendicular": Edges stay perpendicular (90°)
+    
+    Returns:
+        Delimiter-formatted assembly CAD
+    
+    Example AI conversation:
+        User: "Build an L-shaped frame"
+        AI: calls design_engineering_generate_assembly(
+            parts=[
+                {"name": "horizontal", "type": "tslot_beam", "profile_id": "40x40_standard", "length": 500},
+                {"name": "vertical", "type": "tslot_beam", "profile_id": "40x40_standard", "length": 300}
+            ],
+            constraints=[
+                {"type": "coincident", "part1": "horizontal", "face1": ">Z", "part2": "vertical", "face2": "<Z"},
+                {"type": "perpendicular", "part1": "horizontal", "edge1": "|X", "part2": "vertical", "edge2": "|Z"}
+            ]
+        )
+    """
+    return ai_generate_constrained_assembly(
+        parts=parts,
+        constraints=constraints
+    )
+
+
 # Export all tool functions
 __all__ = [
     'design_engineering_calculate_beam',
     'design_engineering_compare_profiles',
     'design_engineering_recommend_profile',
     'design_engineering_generate_cad_model',
+    'design_engineering_generate_accurate_cad',
+    'design_engineering_generate_assembly',
     'design_engineering_create_bom',
     'design_engineering_get_specifications',
     'design_engineering_complete_workflow'

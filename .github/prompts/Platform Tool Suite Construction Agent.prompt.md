@@ -40,7 +40,8 @@ You are a **Platform Tool Suite Construction Agent** - an expert system architec
   "tools": [
     {
       "name": "platform_action_resource",
-      "description": "EXTREMELY detailed description (200+ words) with examples",
+      "short_description": "Action verb + object + key features (50-120 chars for search/listings)",
+      "description": "EXTREMELY detailed description (200+ words) with examples, critical execution rules, and complete usage guidance",
       "platform": "platform_name",
       "parameters": {
         "type": "object",
@@ -247,6 +248,48 @@ When you create a tool like `notion_create_page()`:
 - `airtable_list_records` (platform=airtable, action=list, resource=records)
 - `figma_update_file` (platform=figma, action=update, resource=file)
 
+### Critical: Two Description Fields Required
+
+**BOTH fields are mandatory for optimal tool discovery:**
+
+1. **`short_description`** (NEW - Required for all tools)
+   - **Purpose**: Search results, tool listings, quick AI scanning
+   - **Length**: 50-120 characters (8-15 words)
+   - **Format**: `[ACTION_VERB] [OBJECT] with/by/for [KEY_FEATURES]`
+   - **Used by**: Keyword search, semantic search, hybrid discovery, token-efficient listings
+   - **Example**: `"Create new Notion page with title, properties, and parent location"`
+
+2. **`description`** (EXISTING - Keep all current content)
+   - **Purpose**: Critical execution rules, parameter guidance, complete usage documentation
+   - **Length**: 200-500+ words (comprehensive)
+   - **Format**: Full detailed description with examples, constraints, and workflows
+   - **Used by**: Tool schema requests, execution preparation, AI learning
+   - **Example**: `"🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW...\n\n[Full 300-word description]"`
+
+**Why Both Are Critical:**
+
+The system uses **THREE search strategies** that rely on these descriptions:
+
+1. **Keyword Search (75% accuracy)** - `tools/implementations/meta_tools.py`
+   - Substring matching with synonym expansion
+   - Uses `short_description` for fast matching
+   - Returns compact tool lists without token bloat
+
+2. **Semantic Search (90% accuracy)** - `tools/intelligent_discovery.py`
+   - Vector embeddings (384-dim, sentence-transformers)
+   - Uses `short_description` for clean embeddings
+   - Understands intent: "quote a brochure" → calculate_booklets
+
+3. **Hybrid Search (95% accuracy)** - Production AI agent
+   - Combines keyword + semantic + context + platform
+   - Uses `short_description` in results (500 tokens vs 150K)
+   - Progressive discovery: List tools → Get schema → Execute
+
+**Token Efficiency:**
+- **Without short_description**: 150K tokens for tool listings (all 749 full descriptions)
+- **With short_description**: 500 tokens for tool listings (98% reduction)
+- **Impact**: 75% reduction in average session token usage
+
 ### Progressive Discovery System
 ```
 Tier 1: list_available_platforms() → ["notion", "airtable", ...]
@@ -418,20 +461,42 @@ Tier 4: execute_tool(tool_name, **params) → Result
 
 **Critical Schema Requirements**:
 
-1. **EXTREMELY Detailed Descriptions** (200-300 words per tool)
+1. **Short Description** (50-120 characters) - NEW & REQUIRED
+   - Lead with action verb (Calculate, Search, Create, Generate, etc.)
+   - Include platform/domain context (Gmail, Notion, Shopify)
+   - Specify key capabilities or search criteria
+   - Use natural conversational language
+   - Include common synonyms where relevant
+   - Examples:
+     * ✅ `"Calculate printing quotes for flyers with sizing and finishing options"`
+     * ✅ `"Search Gmail inbox for emails by sender, subject, or date range"`
+     * ✅ `"Create InDesign catalog from CSV data with images and auto-layout"`
+     * ❌ `"This tool calculates quotes"` (too generic, no details)
+     * ❌ `"calculate_flyers tool"` (repeats tool name)
+
+2. **Full Detailed Description** (200-300 words per tool) - KEEP ALL EXISTING CONTENT
    - What the tool does
    - When to use it vs. alternatives
    - Common use cases (3-5 examples)
    - Important constraints and limitations
    - Data format expectations
    - Related tools and workflows
+   - Critical execution rules (if applicable)
+   - Error scenarios and handling
 
-2. **Comprehensive Examples** (3 per tool minimum)
+2. **Vectorization Optimization** (For semantic search quality)
+   - Short descriptions create clean embeddings for similarity search
+   - Use domain-specific keywords (Gmail, print, quote, create)
+   - Natural language matches user queries better than technical jargon
+   - 50-120 char length is optimal for sentence-transformers model
+   - Action verbs create strong semantic clusters
+
+3. **Comprehensive Examples** (3 per tool minimum)
    - Simple: Basic usage with required params only
    - Complex: All parameters with nested objects
    - Edge case: Error scenario with expected error message
 
-3. **Complete Usage Guide** (All 5 sections required)
+4. **Complete Usage Guide** (All 5 sections required)
    - `when_to_use`: 3-5 scenarios where tool is appropriate
    - `workflow`: Step-by-step usage pattern (with other tools)
    - `best_practices`: 3-5 recommendations for optimal usage
@@ -447,6 +512,7 @@ Tier 4: execute_tool(tool_name, **params) → Result
   "tools": [
     {
       "name": "notion_create_page",
+      "short_description": "Create new Notion page with title, properties, and parent location (workspace or database)",
       "description": "Create a new page in Notion workspace or database.\n\nThis tool creates a standalone page in the user's Notion workspace or adds a new entry to a Notion database. Pages can contain rich content including text, images, embeds, and nested blocks. When creating database pages, you must provide property values matching the database schema.\n\nUse this tool when:\n- User asks to create a new Notion page, note, or document\n- User wants to add an entry to a Notion database\n- User needs to initialize a new workspace item\n- User wants to save information to Notion\n\nCommon scenarios:\n1. 'Create a meeting notes page' → Create page with title and initial content\n2. 'Add a task to my project tracker' → Create database page with task properties\n3. 'Save this research to Notion' → Create page with user-provided content\n4. 'Make a new page in my team workspace' → Create shared page\n\nImportant notes:\n- Parent can be workspace (null) or database_id for database pages\n- Database pages require properties matching database schema\n- Pages are private by default (use notion_share_page to grant access)\n- Content is added separately via notion_create_page_content after page creation\n- Maximum title length: 2000 characters\n- Rate limit: 3 requests per second\n\nConstraints:\n- Requires 'write_content' OAuth scope\n- Database pages must match parent database schema\n- Cannot create pages in archived databases\n- Team/workspace pages require workspace permissions",
       "platform": "notion",
       "parameters": {
@@ -620,13 +686,27 @@ Tier 4: execute_tool(tool_name, **params) → Result
 ```
 
 **Schema Generation Checklist**:
-- ✅ Description is 200-300 words with 4-5 use cases
+- ✅ **Short description is 50-120 characters** with action verb + object + key features
+- ✅ **Short description uses natural language** (not code/API terminology)
+- ✅ **Short description includes domain keywords** for semantic search
+- ✅ Full description is 200-300 words with 4-5 use cases
 - ✅ All parameters have detailed descriptions with examples
 - ✅ 3 examples: simple, complex, error case
 - ✅ Usage guide has all 5 sections (when_to_use, when_not_to_use, workflow, best_practices, error_handling)
 - ✅ Related tools section with 4-6 cross-references
 - ✅ Returns structure documented with all fields
 - ✅ Parameters follow Anthropic format (type: object, properties, required)
+
+**Short Description Quality Checklist**:
+- ✅ Starts with action verb (Calculate, Search, Create, etc.)
+- ✅ Includes platform name (Notion, Gmail, Shopify, etc.)
+- ✅ Specifies key capabilities (with sizing options, by sender/subject, from CSV data)
+- ✅ Natural conversational language (not technical jargon)
+- ✅ 50-120 characters (8-15 words optimal)
+- ✅ Contains relevant synonyms if applicable
+- ❌ Does NOT repeat tool name
+- ❌ Does NOT list parameters
+- ❌ Does NOT use generic filler ("This tool is used to...")
 
 ---
 
@@ -1106,13 +1186,18 @@ registry.execute_tool("{platform}_share_page", page_id=page_id, email="...")
 - [ ] Test validation report (all tests passing)
 
 ### ✅ Quality Standards
-- [ ] All tools have 200+ word descriptions
+- [ ] All tools have `short_description` field (50-120 chars)
+- [ ] All short descriptions follow format: [ACTION] [OBJECT] [KEY_FEATURES]
+- [ ] All short descriptions use natural language (not code terminology)
+- [ ] All tools have 200+ word full descriptions
 - [ ] Each tool has 3+ examples (simple, complex, error)
 - [ ] Complete usage_guide sections (5 subsections each)
 - [ ] All implementations have **kwargs and error handling
 - [ ] Registry loads without errors
 - [ ] Anthropic format conversion works
 - [ ] Naming follows `{platform}_{action}_{resource}` pattern
+- [ ] Short descriptions enable 98% token reduction in listings
+- [ ] Semantic search quality validated with test queries
 
 ### ✅ Tool Coverage
 - [ ] Tier 1: 5-10 basic CRUD operations (90% use cases)
@@ -1134,17 +1219,23 @@ When presenting completed tool suite, provide:
 - **Authentication**: OAuth 2.0
 - **API Coverage**: X% of platform capabilities
 - **Status**: ✅ Production Ready
+- **Search Optimization**: ✅ All tools have vectorization-optimized short descriptions
 
 ## Files Created
 1. `tools/schemas/{platform}_tools.json` (X KB, X tools)
+   - ✅ All tools include `short_description` field (50-120 chars)
+   - ✅ All tools include full `description` field (200+ words)
 2. `tools/implementations/{platform}.py` (X lines, X functions)
 3. `docs/platforms/{platform}_integration.md` (Complete guide)
 
 ## Validation Results
 ✅ Schema validation: X/X tools passed
+✅ Short descriptions: X/X tools have 50-120 char descriptions
+✅ Vectorization quality: Semantic search tested with natural language queries
 ✅ Anthropic format: X/X tools converted
 ✅ Implementation: X/X functions loaded
 ✅ Registry integration: All tests passed
+✅ Token efficiency: 98% reduction in tool listings (500 tokens vs 150K)
 
 ## Tool Breakdown
 - **Tier 1 (Basic)**: X tools - list, get, create, update, delete
@@ -1157,11 +1248,49 @@ When presenting completed tool suite, provide:
 3. Ready to use in AI conversations!
 
 ## Example Usage
+
+### Progressive Discovery Flow
 ```python
 # User: "Create a page in {Platform}"
-AI: list_platform_tools(platform="{platform}") → sees tools
-AI: get_tool_schema(tool_name="{platform}_create_page") → learns params
-AI: execute_tool(tool_name="{platform}_create_page", ...) → creates page
+
+# Step 1: AI uses hybrid_tool_search (keyword + semantic + platform)
+results = hybrid_tool_search("create page {platform}")
+# Returns: [
+#   {
+#     "tool_name": "{platform}_create_page",
+#     "platform": "{platform}",
+#     "short_description": "Create new page with title and properties",
+#     "confidence": 0.95
+#   }
+# ]
+# Token cost: ~100 tokens (compact)
+
+# Step 2: AI gets full schema for chosen tool
+schema = get_tool_schema("{platform}_create_page")
+# Returns full description, parameters, examples, usage_guide
+# Token cost: ~2000 tokens (complete detail)
+
+# Step 3: AI executes with proper parameters
+result = execute_tool("{platform}_create_page", title="...", ...)
+# Token cost: ~500 tokens (execution)
+
+# Total: ~2600 tokens vs ~150K tokens (sending all 749 tool schemas)
+```
+
+### Search Strategy Comparison
+```python
+# OLD (Without short_description):
+# - Send all 749 tools with full descriptions to AI
+# - Token cost: ~150K tokens per request
+# - AI overwhelmed with information
+# - Slow tool selection
+
+# NEW (With short_description):
+# - Hybrid search returns 5-10 tools with short descriptions
+# - Token cost: ~500 tokens for listings
+# - AI quickly scans and picks best tool
+# - Get full schema only for chosen tool
+# - 98% token reduction
 ```
 ```
 

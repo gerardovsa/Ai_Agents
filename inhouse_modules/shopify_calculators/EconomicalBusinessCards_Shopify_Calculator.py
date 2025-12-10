@@ -11,6 +11,13 @@ import json
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, List, Tuple
 from dataclasses import dataclass
+from pathlib import Path
+import sys
+
+# Import config manager
+config_dir = Path(__file__).parent.parent.parent / "config"
+sys.path.insert(0, str(config_dir))
+from config_manager import config_manager
 
 
 @dataclass

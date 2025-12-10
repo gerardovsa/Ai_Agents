@@ -9,10 +9,18 @@ Key Features: Tiered padding rates, profit margins, double GST application
 """
 
 import json
+import sys
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 from pathlib import Path
+
+# Add config directory to path
+config_dir = Path(__file__).parent.parent.parent / "config"
+if str(config_dir) not in sys.path:
+    sys.path.insert(0, str(config_dir))
+
+from config_manager import config_manager
 
 
 @dataclass
@@ -47,10 +55,11 @@ class SaddleStitchBooksShopifyCalculator:
         if config_path:
             self.config = self._load_config(config_path)
         else:
-            default_path = Path(__file__).parent.parent.parent / "In_House_SQL" / "G_Folder" / "Quote_Calculator" / "shopify" / self.CONFIG_FILE
-            if default_path.exists():
-                self.config = self._load_config(str(default_path))
-            else:
+            # Use unified config manager (searches multiple paths)
+            try:
+                self.config = config_manager.load_shopify_config(self.CONFIG_FILE)
+            except FileNotFoundError as e:
+                print(f"⚠️  Warning: {e}")
                 self.config = None
     
     def _load_config(self, config_path: str) -> Dict:

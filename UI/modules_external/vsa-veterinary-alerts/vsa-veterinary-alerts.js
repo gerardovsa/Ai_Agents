@@ -1034,6 +1034,51 @@ const VSAVeterinaryAlerts = {
             const followUpId = e.currentTarget.dataset.followupId;
             this.viewFollowUpDetails(followUpId);
         });
+
+        // Generate AI Coaching button
+        this.dom.on(this.container, 'click', '.vsa-generate-coaching-btn', (e) => {
+            e.stopPropagation();
+            const button = e.currentTarget;
+            const callId = button.getAttribute('data-call-id');
+            
+            if (!callId) {
+                this.log.error('No call ID found for coaching generation');
+                alert('Error: No call ID found');
+                return;
+            }
+            
+            this.generateCoaching(callId, button);
+        });
+
+        // View existing coaching (if button is added later)
+        this.dom.on(this.container, 'click', '.vsa-view-coaching-btn', (e) => {
+            e.stopPropagation();
+            const button = e.currentTarget;
+            const callId = button.getAttribute('data-call-id');
+            
+            if (!callId) {
+                this.log.error('No call ID found for coaching view');
+                return;
+            }
+            
+            this.viewCoaching(callId);
+        });
+
+        // Delete coaching button
+        this.dom.on(this.container, 'click', '.vsa-delete-coaching-btn', (e) => {
+            e.stopPropagation();
+            const button = e.currentTarget;
+            const callId = button.getAttribute('data-call-id');
+            
+            if (!callId) {
+                this.log.error('No call ID found for coaching deletion');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to delete this coaching document?')) {
+                this.deleteCoaching(callId);
+            }
+        });
     },
 
     setupSidebarListeners() {
@@ -1432,10 +1477,24 @@ const VSAVeterinaryAlerts = {
                         <p class="vsa-coming-soon">Status tracking, notes, and actions coming in Phase 2...</p>
                     </div>
 
-                    <!-- AI Coaching Section (placeholder - Phase 3) -->
-                    <div class="vsa-ai-coaching-placeholder">
-                        <h4><i class="fas fa-brain"></i> AI Coaching</h4>
-                        <p class="vsa-coming-soon">AI coaching display coming in Phase 3...</p>
+                    <!-- AI Coaching Section -->
+                    <div class="vsa-ai-coaching-section">
+                        <div class="vsa-coaching-header">
+                            <h4><i class="fas fa-brain"></i> AI Coaching Support</h4>
+                            <div class="vsa-coaching-actions">
+                                <button class="vsa-btn vsa-btn-primary vsa-generate-coaching-btn" 
+                                        data-call-id="${callId}"
+                                        aria-label="Generate AI coaching">
+                                    <i class="fas fa-magic"></i> Generate AI Coaching
+                                </button>
+                            </div>
+                        </div>
+                        <div class="vsa-coaching-content" id="coaching-content-${callId}">
+                            <div class="vsa-coaching-placeholder">
+                                <i class="fas fa-brain vsa-coaching-icon"></i>
+                                <p>Click "Generate AI Coaching" to create a personalized coaching document based on this call's transcript and analysis.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1546,6 +1605,222 @@ const VSAVeterinaryAlerts = {
                 </div>
             `;
         }
+    },
+
+    async generateCoaching(callId, button) {
+        const contentElement = document.getElementById(`coaching-content-${callId}`);
+        
+        if (!contentElement) {
+            this.log.error('Coaching content element not found');
+            return;
+        }
+
+        // Disable button and show loading state
+        const originalButtonHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        // Show loading in content area
+        contentElement.innerHTML = `
+            <div class="vsa-coaching-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Generating AI coaching document...</p>
+                <p class="vsa-coaching-loading-note">This may take 30-60 seconds</p>
+            </div>
+        `;
+
+        try {
+            // Call API to generate coaching
+            const response = await fetch('/api/vsa-alerts/generate-coaching', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ call_id: callId })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Failed to generate coaching');
+            }
+
+            // Display coaching document
+            this.displayCoaching(callId, result.coaching, result.generated_date);
+
+            // Update button to show view/regenerate options
+            button.innerHTML = '<i class="fas fa-sync"></i> Regenerate';
+            button.classList.remove('vsa-btn-primary');
+            button.classList.add('vsa-btn-secondary');
+
+            this.log.success(`Coaching generated for call ${callId}`);
+
+        } catch (error) {
+            this.log.error('Failed to generate coaching:', error);
+            
+            // Show error message
+            contentElement.innerHTML = `
+                <div class="vsa-coaching-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p class="vsa-error-text">Failed to generate coaching: ${error.message}</p>
+                    <button class="vsa-btn vsa-btn-secondary" onclick="this.closest('.vsa-ai-coaching-section').querySelector('.vsa-generate-coaching-btn').click()">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>
+            `;
+
+            // Reset button
+            button.disabled = false;
+            button.innerHTML = originalButtonHTML;
+        }
+    },
+
+    displayCoaching(callId, coachingContent, generatedDate) {
+        const contentElement = document.getElementById(`coaching-content-${callId}`);
+        
+        if (!contentElement) {
+            this.log.error('Coaching content element not found');
+            return;
+        }
+
+        // Format date
+        let dateStr = 'Just now';
+        if (generatedDate) {
+            try {
+                const date = new Date(generatedDate);
+                dateStr = date.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            } catch (e) {
+                // Use raw date string if parsing fails
+                dateStr = generatedDate;
+            }
+        }
+
+        // Convert markdown to HTML (basic formatting)
+        const htmlContent = this.markdownToHtml(coachingContent);
+
+        // Display coaching document
+        contentElement.innerHTML = `
+            <div class="vsa-coaching-document">
+                <div class="vsa-coaching-meta">
+                    <span class="vsa-coaching-date">
+                        <i class="fas fa-clock"></i> Generated: ${this.escapeHtml(dateStr)}
+                    </span>
+                    <button class="vsa-btn vsa-btn-sm vsa-btn-danger vsa-delete-coaching-btn" 
+                            data-call-id="${callId}"
+                            title="Delete coaching document">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+                <div class="vsa-coaching-body">
+                    ${htmlContent}
+                </div>
+            </div>
+        `;
+    },
+
+    async viewCoaching(callId) {
+        try {
+            const response = await fetch(`/api/vsa-alerts/coaching/${callId}`);
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Failed to load coaching');
+            }
+
+            this.displayCoaching(callId, result.coaching, result.generated_date);
+
+        } catch (error) {
+            this.log.error('Failed to load coaching:', error);
+            alert(`Failed to load coaching: ${error.message}`);
+        }
+    },
+
+    async deleteCoaching(callId) {
+        const contentElement = document.getElementById(`coaching-content-${callId}`);
+        const button = document.querySelector(`.vsa-generate-coaching-btn[data-call-id="${callId}"]`);
+
+        try {
+            const response = await fetch(`/api/vsa-alerts/coaching/${callId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Failed to delete coaching');
+            }
+
+            // Reset to placeholder state
+            if (contentElement) {
+                contentElement.innerHTML = `
+                    <div class="vsa-coaching-placeholder">
+                        <i class="fas fa-brain vsa-coaching-icon"></i>
+                        <p>Click "Generate AI Coaching" to create a personalized coaching document based on this call's transcript and analysis.</p>
+                    </div>
+                `;
+            }
+
+            // Reset button
+            if (button) {
+                button.innerHTML = '<i class="fas fa-magic"></i> Generate AI Coaching';
+                button.classList.add('vsa-btn-primary');
+                button.classList.remove('vsa-btn-secondary');
+                button.disabled = false;
+            }
+
+            this.log.success(`Coaching deleted for call ${callId}`);
+
+        } catch (error) {
+            this.log.error('Failed to delete coaching:', error);
+            alert(`Failed to delete coaching: ${error.message}`);
+        }
+    },
+
+    markdownToHtml(markdown) {
+        // Basic markdown to HTML conversion
+        let html = this.escapeHtml(markdown);
+
+        // Headers
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+
+        // Bold
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // Italic
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // Code
+        html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+
+        // Lists
+        html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
+
+        // Wrap consecutive <li> in <ul>
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+
+        // Horizontal rules
+        html = html.replace(/^---$/gm, '<hr>');
+
+        // Paragraphs (lines separated by double newlines)
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = '<p>' + html + '</p>';
+
+        // Clean up empty paragraphs
+        html = html.replace(/<p><\/p>/g, '');
+        html = html.replace(/<p>\s*<\/p>/g, '');
+
+        return html;
     },
 
     // ==================== TIER 4: INDIVIDUAL ALERTS ====================
