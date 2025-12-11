@@ -212,20 +212,20 @@ def calculate_business_cards(
                 print_type="Colour",
                 finish_size=shopify_size,
                 paper_stock="Satin 350GSM",
-                artworks=1,
-                celloglaze=celloglaze.replace("_", " ").title() if celloglaze != "none" else "1 Side Gloss"
+                celloglaze=celloglaze.replace("_", " ").title() if celloglaze != "none" else "1 Side Gloss",
+                artworks=1
             )
         else:
             calculator = EconomicalBusinessCardsShopifyCalculator()
-            # Economical uses 310GSM Satin by default
+            # Economical uses Satin 300GSM by default (NO celloglaze parameter)
+            # Note: Stock format is "Satin 300GSM" not "300GSM Satin"
             result = calculator.calculate(
                 quantity=quantity,
                 print_sides=print_sides,
                 print_type="Colour",
                 finish_size=shopify_size,
-                paper_stock="310GSM Satin",
-                artworks=1,
-                celloglaze=celloglaze.replace("_", " ").title() if celloglaze != "none" else "None"
+                paper_stock="Satin 300GSM",
+                artworks=1
             )
         
         return {
@@ -275,6 +275,12 @@ def calculate_flyers(
         Dict with success, total_price, per_unit_price, stock_details
     """
     try:
+        # Ensure types are correct (schema may pass strings)
+        quantity = int(quantity)
+        width = int(width)
+        height = int(height)
+        stock_gsm = int(stock_gsm)
+        
         # Use GOD calculator directly (like calculate_flyers_god)
         if not GOD_CALCULATORS_AVAILABLE:
             raise RuntimeError("GOD calculators not available")
@@ -369,6 +375,12 @@ def calculate_booklets(
         Dict with success, total_price, per_booklet_price, binding_cost
     """
     try:
+        # Ensure types are correct (schema may pass strings)
+        quantity = int(quantity)
+        total_pages = int(total_pages)
+        cover_stock_gsm = int(cover_stock_gsm)
+        internal_stock_gsm = int(internal_stock_gsm)
+        
         # Use Shopify Spiral Bound calculator directly (booklets = spiral bound)
         if not SHOPIFY_CALCULATORS_AVAILABLE:
             raise RuntimeError("Shopify calculators not available")
@@ -454,6 +466,12 @@ def calculate_perfect_bound_books(
         Dict with success, total_price, per_book_price, binding_cost
     """
     try:
+        # Ensure types are correct (schema may pass strings)
+        quantity = int(quantity)
+        total_pages = int(total_pages)
+        cover_stock_gsm = int(cover_stock_gsm)
+        internal_stock_gsm = int(internal_stock_gsm)
+        
         # Use Shopify Perfect Bound calculator directly
         if not SHOPIFY_CALCULATORS_AVAILABLE:
             raise RuntimeError("Shopify calculators not available")
@@ -534,6 +552,10 @@ def calculate_letterheads(
         Dict with success, total_price, per_sheet_price
     """
     try:
+        # Ensure quantity and colors are integers
+        quantity = int(quantity)
+        colors = int(colors)
+        
         # Use GOD Letterhead calculator directly
         if not GOD_CALCULATORS_AVAILABLE:
             raise RuntimeError("GOD calculators not available")
@@ -551,8 +573,11 @@ def calculate_letterheads(
                 "error_type": "database_connection"
             }
         
-        # Parse stock to get GSM
-        stock_gsm = int(''.join(filter(str.isdigit, stock)))
+        # Parse stock to get GSM (handle both string "100GSM Uncoated" and int 100)
+        if isinstance(stock, str):
+            stock_gsm = int(''.join(filter(str.isdigit, stock)))
+        else:
+            stock_gsm = int(stock)
         
         # Convert colors to print sides (1=B&W, 4=Color)
         # A4 letterheads are typically 210x297mm
@@ -1020,12 +1045,18 @@ def calculate_corflute_signs_god(
         
         calculator = CorflutePricingCalculator()  # No args needed
         
+        # Convert print_sides to string format if passed as int
+        if isinstance(print_sides, int):
+            print_sides_str = "double" if print_sides == 2 else "single"
+        else:
+            print_sides_str = print_sides.lower() if print_sides else "single"
+        
         result = calculator.calculate_base_quote(
             width_mm=width,
             height_mm=height,
             thickness_mm=thickness,
             quantity=quantity,
-            print_sides=print_sides
+            print_sides=print_sides_str
         )
         
         return {
