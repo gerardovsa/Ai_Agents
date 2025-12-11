@@ -179,14 +179,13 @@ class CADRenderer {
                 this.fitCameraToModel(camera, scene, controls);
             }
         }
-    }
 
-    // Store initial camera position for reset
-    const initialCameraPos = camera.position.clone();
-    const initialControlsTarget = controls ? controls.target.clone() : new THREE.Vector3(0, 0, 0);
+        // Store initial camera position for reset
+        const initialCameraPos = camera.position.clone();
+        const initialControlsTarget = controls ? controls.target.clone() : new THREE.Vector3(0, 0, 0);
 
-    // Handle container resize with ResizeObserver
-    const handleResize = () => {
+        // Handle container resize with ResizeObserver
+        const handleResize = () => {
         const newWidth = container.clientWidth;
         const newHeight = container.clientHeight;
         if (newWidth > 0 && newHeight > 0) {
@@ -197,24 +196,24 @@ class CADRenderer {
         }
     };
 
-    // Watch for container size changes (when chat expands/contracts)
-    const resizeObserver = new ResizeObserver(handleResize);
+        // Watch for container size changes (when chat expands/contracts)
+        const resizeObserver = new ResizeObserver(handleResize);
         resizeObserver.observe(container);
 
         // Also handle window resize
         window.addEventListener('resize', handleResize);
 
         return {
-    scene,
-    camera,
-    renderer,
-    controls,
-    container,
-    handleResize,
-    resizeObserver,
-    initialCameraPos,
-    initialControlsTarget
-};
+            scene,
+            camera,
+            renderer,
+            controls,
+            container,
+            handleResize,
+            resizeObserver,
+            initialCameraPos,
+            initialControlsTarget
+        };
     }
 
 /**
