@@ -1095,19 +1095,22 @@ def calculate_corflute_signs_god(
 
 def calculate_economical_business_cards_shopify(
     quantity: int,
-    print_sides: str,
+    double_sided: bool,
     print_type: str = "Colour",
     artworks: int = 1,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Economical Business Cards
+    Shopify calculator for Economical Business Cards (WRAPPER - Translation Layer)
     
-    Args:
+    Schema Parameters (User-facing):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
-        print_sides: "Single side print" or "Double side print"
+        double_sided: True for double-sided, False for single-sided
         print_type: "Colour" or "Black & White"
         artworks: Number of different designs (1-50, first free, $15 per extra)
+    
+    Backend Translation:
+        double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
     
     Returns:
         Dict with success, quote result, or error
@@ -1119,6 +1122,9 @@ def calculate_economical_business_cards_shopify(
         }
     
     try:
+        # TRANSLATION LAYER: Schema → Backend
+        print_sides = "Double side print" if double_sided else "Single side print"
+        
         calculator = EconomicalBusinessCardsShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
@@ -1148,21 +1154,24 @@ def calculate_economical_business_cards_shopify(
 
 def calculate_premium_business_cards_shopify(
     quantity: int,
-    print_sides: str,
+    double_sided: bool,
     print_type: str = "Colour",
     celloglaze: str = "No Cellophane",
     artworks: int = 1,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Premium Business Cards
+    Shopify calculator for Premium Business Cards (WRAPPER - Translation Layer)
     
-    Args:
+    Schema Parameters (User-facing):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
-        print_sides: "Single side print" or "Double side print"
+        double_sided: True for double-sided, False for single-sided
         print_type: "Colour" or "Black & White"
         celloglaze: "No Cellophane", "Gloss Cellophane", or "Matt Cellophane"
         artworks: Number of different designs (1-50)
+    
+    Backend Translation:
+        double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
     
     Returns:
         Dict with success, quote result, or error
@@ -1174,6 +1183,9 @@ def calculate_premium_business_cards_shopify(
         }
     
     try:
+        # TRANSLATION LAYER: Schema → Backend
+        print_sides = "Double side print" if double_sided else "Single side print"
+        
         calculator = PremiumBusinessCardsShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
@@ -1205,8 +1217,8 @@ def calculate_premium_business_cards_shopify(
 def calculate_folded_flyers_shopify(
     quantity: int,
     size: str,
-    paper_stock: str,
-    print_sides: str,
+    stock: str,
+    double_sided: bool,
     folding: str = "Single Fold",
     print_type: str = "Colour",
     artworks: int = 1,
@@ -1214,17 +1226,21 @@ def calculate_folded_flyers_shopify(
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Folded Flyers (WRAPPER - Translation Layer Only)
+    Shopify calculator for Folded Flyers (WRAPPER - Translation Layer)
     
-    Args:
+    Schema Parameters (User-facing):
         quantity: Number of flyers
         size: "A5", "A4", "A3", or "6pp A4"
-        paper_stock: Paper stock string (e.g., "Satin 150GSM", "Uncoated Bond 100GSM")
-        print_sides: "Single side print" or "Double side print"
+        stock: Paper stock string (e.g., "Satin 150GSM", "Uncoated Bond 100GSM")
+        double_sided: True for double-sided, False for single-sided
         folding: "Single Fold", "Double Fold", or "Triple Fold"
         print_type: "Colour" or "Black & White"
         artworks: Number of artwork designs (1-50)
         celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt"
+    
+    Backend Translation:
+        stock (str) → paper_stock (str): Same value
+        double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
     
     Returns:
         Dict with success, quote result, or error
@@ -1236,6 +1252,9 @@ def calculate_folded_flyers_shopify(
         }
     
     try:
+        # TRANSLATION LAYER: Schema → Backend
+        paper_stock = stock  # Rename for backend
+        print_sides = "Double side print" if double_sided else "Single side print"
         # Import backend enums
         from shopify_calculators.FoldedFlyers_Shopify_Calculator import (
             PrintSides, PrintType, FinishSize, PaperStock, FoldType, Celloglaze
