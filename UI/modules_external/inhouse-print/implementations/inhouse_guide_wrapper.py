@@ -252,17 +252,29 @@ def inhouse_calculator_guide(**kwargs) -> Dict[str, Any]:
         },
         
         "error_prevention": [
-            "Calling calculate_quote WITHOUT get_calculator_requirements = PARAMETER ERRORS",
+            "Calling calculator WITHOUT get_tool_schema = PARAMETER ERRORS",
             "Skipping calculator_guide = Don't know which calculator to use",
-            "Not reading natural_language_mapping = Wrong parameter extraction",
-            "Ignoring historical_patterns = Missing sensible defaults"
+            "Not checking enum values in schema = Invalid parameter values",
+            "Guessing parameters instead of reading schema = Wrong types or missing required fields"
         ],
         
         "next_steps": [
-            "1. Call inhouse_get_calculator_requirements(product_type) to get parameter requirements",
-            "2. Parse user input using natural_language_mapping from requirements",
-            "3. Call inhouse_calculate_quote(product_type, parameters) with validated parameters"
+            "1. Call get_tool_schema('calculate_business_cards') to get parameter requirements from schema",
+            "2. Parse user input using enum values and descriptions from schema",
+            "3. Call calculate_business_cards(quantity=1000, ...) with validated parameters"
         ],
+        
+        "available_calculators": {
+            "business_cards": "calculate_business_cards",
+            "flyers": "calculate_flyers",
+            "booklets": "calculate_booklets",
+            "perfect_bound_books": "calculate_perfect_bound_books",
+            "spiral_bound_books": "calculate_spiral_bound_books_shopify",
+            "wire_bound_books": "calculate_wire_bound_books_shopify",
+            "letterheads": "calculate_letterheads",
+            "corflute_signs": "calculate_corflute_signs",
+            "note": "Total of 37 calculators available - use list_platform_tools('quote_calculator') to see all"
+        },
         
         "follow_up_tool_chain": {
             "description": "MANDATORY workflow after reading this guide",
@@ -275,23 +287,23 @@ def inhouse_calculator_guide(**kwargs) -> Dict[str, Any]:
                 },
                 {
                     "step": 2,
-                    "tool": "inhouse_get_calculator_requirements(product_type)",
+                    "tool": "get_tool_schema('calculate_business_cards')",
                     "status": "NEXT (MANDATORY)",
-                    "action": "Get parameter requirements, natural language mappings, historical patterns"
+                    "action": "Get parameter requirements, enums, examples from calculator schema"
                 },
                 {
                     "step": 3,
-                    "tool": "inhouse_calculate_quote(product_type, parameters)",
+                    "tool": "calculate_business_cards(quantity, finish_size, stock_type, print_sides, celloglaze)",
                     "status": "FINAL",
-                    "action": "Calculate quote with validated parameters"
+                    "action": "Execute calculator with validated parameters from schema"
                 }
             ],
             "ascii_diagram": """
             1. inhouse_calculator_guide() ← YOU ARE HERE
                     ↓
-            2. inhouse_get_calculator_requirements(product_type) ← MANDATORY NEXT
+            2. get_tool_schema('calculate_business_cards') ← MANDATORY NEXT
                     ↓
-            3. inhouse_calculate_quote(product_type, parameters) ← FINAL
+            3. calculate_business_cards(...) ← FINAL EXECUTION
             """
         }
     }
