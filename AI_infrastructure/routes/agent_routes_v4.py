@@ -195,6 +195,81 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
                 pass
 
 
+def validate_and_fix_tool_pairs(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Validate tool_use/tool_result pairs and remove orphaned tool_results.
+    
+    Anthropic requires that every tool_result has a corresponding tool_use
+    in the PREVIOUS message. This function scans the conversation and removes
+    any tool_result blocks that don't have a matching tool_use.
+    
+    Returns: Cleaned messages list
+    """
+    print(f"[TOOL VALIDATION] Validating tool_use/tool_result pairs...")
+    
+    cleaned = []
+    tool_use_ids = set()  # Track tool_use IDs from previous assistant message
+    
+    for idx, msg in enumerate(messages):
+        role = msg.get('role')
+        content = msg.get('content', [])
+        
+        if role == 'assistant':
+            # Collect tool_use IDs from this assistant message
+            tool_use_ids.clear()
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and block.get('type') == 'tool_use':
+                        tool_use_ids.add(block.get('id'))
+            
+            cleaned.append(msg)
+        
+        elif role == 'user':
+            # Check if user message has tool_results that match previous tool_uses
+            if isinstance(content, list):
+                valid_blocks = []
+                removed_count = 0
+                
+                for block in content:
+                    if isinstance(block, dict) and block.get('type') == 'tool_result':
+                        tool_use_id = block.get('tool_use_id')
+                        if tool_use_id in tool_use_ids:
+                            # Valid - has matching tool_use
+                            valid_blocks.append(block)
+                        else:
+                            # Orphaned tool_result - remove it
+                            removed_count += 1
+                            print(f"[TOOL VALIDATION] ⚠️ Removing orphaned tool_result (ID: {tool_use_id}) at message {idx}")
+                    else:
+                        # Keep non-tool_result blocks (text, images, etc.)
+                        valid_blocks.append(block)
+                
+                if removed_count > 0:
+                    print(f"[TOOL VALIDATION] Removed {removed_count} orphaned tool_result(s) from message {idx}")
+                
+                # Only add message if it has content left
+                if valid_blocks:
+                    cleaned.append({
+                        'role': role,
+                        'content': valid_blocks
+                    })
+                else:
+                    print(f"[TOOL VALIDATION] ⚠️ Message {idx} empty after removing orphaned tool_results - skipping")
+            else:
+                # Simple text message - keep as is
+                cleaned.append(msg)
+            
+            # Clear tool_use_ids after processing user message
+            tool_use_ids.clear()
+    
+    if len(cleaned) != len(messages):
+        print(f"[TOOL VALIDATION] ✅ Cleaned {len(messages)} messages → {len(cleaned)} messages")
+    else:
+        print(f"[TOOL VALIDATION] ✅ All messages valid - no changes needed")
+    
+    return cleaned
+
+
 def save_message_to_database(thread_slug: str, role: str, content: Any, 
                              user_id: Optional[int] = None,
                              model: Optional[str] = None,
@@ -803,6 +878,12 @@ def stream_agent(agent_id):
     conversation = load_conversation_from_database(thread_slug)
     print(f"[STREAM] Loaded {len(conversation)} messages from database")
     
+    # ============================================
+    # VALIDATE TOOL PAIRS
+    # ============================================
+    # Fix orphaned tool_result blocks that cause API errors
+    conversation = validate_and_fix_tool_pairs(conversation)
+    
     # ✅ FIX: Allow empty conversation for new threads
     # The start endpoint saves the user message, but there might be a timing issue
     # or the thread might be brand new. Instead of failing, we should handle it gracefully.
@@ -878,7 +959,7 @@ def stream_agent(agent_id):
     tools = [all_tools_dict[name] for name in meta_tool_names if name in all_tools_dict]
     
     # ============================================
-    # USER PREFERENCES INJECTION (Retained)
+    # USER PREFERENCES (Load Early for Filtering)
     # ============================================
     from routes.user_preferences_routes import get_user_preferences
     user_prefs = get_user_preferences(user_id) if user_id else None
@@ -887,6 +968,105 @@ def stream_agent(agent_id):
     
     nickname = user_prefs.get('nickname', '') if user_prefs else ''
     auth_platform = user_prefs.get('auth_platform', 'auto') if user_prefs else 'auto'
+    
+    # ============================================
+    # 🚀 PROACTIVE SEMANTIC TOOL PRE-SEARCH
+    # ============================================
+    intelligent_tool_suggestions = ""
+    try:
+        from tools.intelligent_discovery import SemanticToolSearch
+        
+        # Initialize semantic search engine (uses pre-computed embeddings)
+        semantic_search = SemanticToolSearch(registry)
+        
+        # Pre-search tools using the user's actual message
+        print(f"[STREAM] 🔍 PRE-SEARCHING tools for: '{last_message[:100]}...'")
+        suggested_tools = semantic_search.search(last_message, top_k=15)  # Get more, then filter
+        
+        # ============================================
+        # 🔒 PLATFORM FILTERING (Based on Auth)
+        # ============================================
+        if suggested_tools and auth_platform in ['microsoft', 'google']:
+            original_count = len(suggested_tools)
+            
+            # Define platform exclusions
+            google_platforms = ['gmail', 'google_workspace', 'google_docs', 'google_sheets', 
+                              'google_drive', 'google_calendar', 'google_tasks', 'google_forms',
+                              'google_slides', 'google_meet', 'google_analytics', 'google_cloud_run']
+            
+            microsoft_platforms = ['microsoft_outlook', 'microsoft_excel', 'microsoft_word',
+                                 'microsoft_onedrive', 'microsoft_teams', 'microsoft_calendar',
+                                 'microsoft_todo', 'microsoft_onenote', 'microsoft_sharepoint',
+                                 'microsoft_forms', 'outlook', 'excel', 'word', 'onedrive']
+            
+            # Filter based on auth platform
+            if auth_platform == 'microsoft':
+                # User authenticated with Microsoft → exclude Google tools
+                suggested_tools = [
+                    tool for tool in suggested_tools 
+                    if tool.get('platform', '').lower() not in google_platforms
+                ]
+                print(f"[STREAM] 🔒 MICROSOFT user: Filtered out {original_count - len(suggested_tools)} Google tools")
+            
+            elif auth_platform == 'google':
+                # User authenticated with Google → exclude Microsoft tools
+                suggested_tools = [
+                    tool for tool in suggested_tools 
+                    if tool.get('platform', '').lower() not in microsoft_platforms
+                ]
+                print(f"[STREAM] 🔒 GOOGLE user: Filtered out {original_count - len(suggested_tools)} Microsoft tools")
+            
+            # Keep only top 8 after filtering
+            suggested_tools = suggested_tools[:8]
+        
+        if suggested_tools:
+            print(f"[STREAM] ✨ Found {len(suggested_tools)} semantically relevant tools (after platform filtering)")
+            
+            # Build intelligent suggestions block with IMPROVED FORMATTING
+            intelligent_tool_suggestions = "\n\n" + "="*80 + "\n"
+            intelligent_tool_suggestions += "🎯 INTELLIGENT TOOL SUGGESTIONS (Pre-searched for this query)\n"
+            intelligent_tool_suggestions += "="*80 + "\n\n"
+            intelligent_tool_suggestions += "Based on semantic analysis of the user's message, these tools are most relevant:\n\n"
+            
+            for idx, tool_result in enumerate(suggested_tools, 1):
+                tool_name = tool_result['tool_name']
+                short_desc = tool_result.get('short_description', 'No description')
+                similarity = tool_result.get('similarity', 0.0)
+                platform = tool_result.get('platform', 'unknown')
+                
+                # Add emoji based on similarity score
+                if similarity >= 0.7:
+                    relevance = "🔥"
+                elif similarity >= 0.5:
+                    relevance = "✅"
+                else:
+                    relevance = "💡"
+                
+                # NEW FORMAT: tool name, platform, emoji on one line
+                intelligent_tool_suggestions += f"{idx}. {tool_name} [{platform}] {relevance}\n"
+                intelligent_tool_suggestions += f"   {short_desc}\n"
+                intelligent_tool_suggestions += f"   Similarity: {similarity:.1%}\n\n"
+            
+            intelligent_tool_suggestions += "**How to Use These Suggestions:**\n"
+            intelligent_tool_suggestions += "- These tools were pre-selected based on the user's message\n"
+            intelligent_tool_suggestions += "- You can use them immediately if relevant (call get_tool_schema → execute_tool)\n"
+            intelligent_tool_suggestions += "- You still have autonomy: if these don't fit, use search_tools() manually\n"
+            intelligent_tool_suggestions += "- This saves you 1-2 discovery rounds for faster responses\n"
+            intelligent_tool_suggestions += "\n" + "="*80 + "\n"
+            
+            # LOG ALL SELECTED TOOLS (Not just top 3)
+            print(f"[STREAM] 🎯 INTELLIGENT TOOL SELECTION (Top {len(suggested_tools)}):")
+            for idx, tool_result in enumerate(suggested_tools, 1):
+                tool_name = tool_result['tool_name']
+                similarity = tool_result.get('similarity', 0.0)
+                platform = tool_result.get('platform', 'unknown')
+                print(f"[STREAM]   {idx}. {tool_name} [{platform}] - {similarity:.1%} match")
+        else:
+            print(f"[STREAM] ℹ️  No semantic matches found (threshold 0.3+)")
+    
+    except Exception as e:
+        print(f"[STREAM] ⚠️  Semantic pre-search failed: {e}")
+        # Continue without suggestions - not a critical failure
     communication_style = user_prefs.get('communication_style', 'professional') if user_prefs else 'professional'
     detail_level = user_prefs.get('detail_level', 'standard') if user_prefs else 'standard'
     
@@ -1456,6 +1636,14 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 conn2.close()
             except Exception as close_err:
                 print(f"[STREAM] ⚠️ Error closing connection2: {close_err}")
+    
+    # ============================================
+    # 🎯 INJECT INTELLIGENT TOOL SUGGESTIONS
+    # ============================================
+    if intelligent_tool_suggestions:
+        print(f"[STREAM] 📋 Injecting intelligent tool suggestions into system prompt")
+        system_prompt += intelligent_tool_suggestions
+        print(f"[STREAM] 🔍 DEBUG: System prompt after tool suggestions: {len(system_prompt):,} characters")
     
     # Append system prompt continuation
     system_prompt_continued = """
