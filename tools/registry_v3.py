@@ -717,11 +717,18 @@ class RegistryV3:
             # Detect which format we have
             if parameters and "type" in parameters and parameters.get("type") == "object":
                 # Format 2: Already in Anthropic format (has type: "object", properties, required)
-                # Copy only the fields Anthropic API supports (type, properties, required)
-                # DO NOT copy additionalProperties - Anthropic's validator rejects it as custom field
+                # Copy properties WITH enum arrays (critical for AI guidance!)
+                properties = {}
+                for prop_name, prop_def in parameters.get("properties", {}).items():
+                    # Deep copy property definition including enum, items, default, etc.
+                    properties[prop_name] = {}
+                    for key in ["type", "description", "enum", "items", "default", "minimum", "maximum"]:
+                        if key in prop_def:
+                            properties[prop_name][key] = prop_def[key]
+                
                 input_schema = {
                     "type": parameters.get("type", "object"),
-                    "properties": parameters.get("properties", {}),
+                    "properties": properties,
                     "required": parameters.get("required", [])
                 }
                 
@@ -735,43 +742,56 @@ class RegistryV3:
                 properties = {}
                 required = []
                 
+                # Handle parameters being a list (virtual tool bridge format) or dict
                 if parameters:
-                    for param_name, param_def in parameters.items():
-                        # Handle both string and dict parameter definitions
-                        if isinstance(param_def, str):
-                            # Simple string description - convert to full object
-                            prop = {
+                    # Special handling for list format (virtual/bridge tools)
+                    if isinstance(parameters, list):
+                        # Convert list of parameter names to proper dict format
+                        # e.g., ["months", "min_revenue"] -> {"months": {...}, "min_revenue": {...}}
+                        for param_name in parameters:
+                            properties[param_name] = {
                                 "type": "string",
-                                "description": param_def
+                                "description": f"Parameter: {param_name}"
                             }
-                        elif isinstance(param_def, dict):
-                            # Full parameter definition object
-                            prop = {
-                                "type": param_def.get("type", "string"),
-                                "description": param_def.get("description", "")
-                            }
+                            required.append(param_name)
+                    else:
+                        # Standard dict format
+                        for param_name, param_def in parameters.items():
+                            # Handle both string and dict parameter definitions
+                            if isinstance(param_def, str):
+                                # Simple string description - convert to full object
+                                prop = {
+                                    "type": "string",
+                                    "description": param_def
+                                }
+                            elif isinstance(param_def, dict):
+                                # Full parameter definition object
+                                prop = {
+                                    "type": param_def.get("type", "string"),
+                                    "description": param_def.get("description", "")
+                                }
+                                
+                                # Add enum if present
+                                if "enum" in param_def:
+                                    prop["enum"] = param_def["enum"]
+                                
+                                # Add default if present
+                                if "default" in param_def:
+                                    prop["default"] = param_def["default"]
+                                
+                                # Add items if present (for array types)
+                                if "items" in param_def:
+                                    prop["items"] = param_def["items"]
+                                
+                                # Track required parameters
+                                if param_def.get("required", False):
+                                    required.append(param_name)
+                            else:
+                                # Unknown format - skip
+                                logger.warning(f"Unknown parameter format for {tool_name}.{param_name}: {type(param_def)}")
+                                continue
                             
-                            # Add enum if present
-                            if "enum" in param_def:
-                                prop["enum"] = param_def["enum"]
-                            
-                            # Add default if present
-                            if "default" in param_def:
-                                prop["default"] = param_def["default"]
-                            
-                            # Add items if present (for array types)
-                            if "items" in param_def:
-                                prop["items"] = param_def["items"]
-                            
-                            # Track required parameters
-                            if param_def.get("required", False):
-                                required.append(param_name)
-                        else:
-                            # Unknown format - skip
-                            logger.warning(f"Unknown parameter format for {tool_name}.{param_name}: {type(param_def)}")
-                            continue
-                        
-                        properties[param_name] = prop
+                            properties[param_name] = prop
                 
                 # Add input_schema with converted parameters
                 anthropic_tool["input_schema"] = {
