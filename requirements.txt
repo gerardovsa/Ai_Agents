@@ -86,10 +86,10 @@ bcrypt==4.0.1
 PyJWT==2.8.0
 
 # Engineering & CAD Libraries (NEW Dec 10, 2025)
-# Note: Pin matplotlib first to avoid backtracking (PyNiteFEA depends on it)
-matplotlib>=3.8.0,<3.11   # Required by PyNiteFEA, pinned for Python 3.11 compatibility
+# Note: Pin matplotlib first to avoid backtracking (PyNiteFEA and sectionproperties depend on it)
+matplotlib>=3.9.2,<3.11   # Required by sectionproperties>=3.9.0, pinned for Python 3.11 compatibility
 PyNiteFEA>=1.6.2          # Structural engineering calculations (beam deflection, stress analysis)
-sectionproperties>=3.9.0  # Cross-section properties for structural members
+sectionproperties>=3.9.0  # Cross-section properties for structural members (requires matplotlib>=3.9.2)
 forallpeople>=2.7.1       # Unit conversion and dimensional analysis
 handcalcs>=1.10.0         # Beautiful engineering calculation documentation
 cadquery>=2.6.1           # Parametric 3D CAD model generation (STEP/STL export)
