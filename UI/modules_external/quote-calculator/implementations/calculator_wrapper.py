@@ -34,8 +34,10 @@ LAST MODIFIED: 2025-11-04 - Initial creation
 
 import sys
 import os
+import traceback
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+from decimal import Decimal
 
 # Add root directory to Python path to import inhouse_modules
 root_dir = Path(__file__).parent.parent.parent.parent.parent
@@ -83,6 +85,7 @@ try:
     from shopify_calculators.FoldedFlyers_Shopify_Calculator import FoldedFlyersShopifyCalculator
     from shopify_calculators.WireBound_Shopify_Calculator import WireBoundShopifyCalculator
     from shopify_calculators.SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
+    from shopify_calculators.PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator
     
     SHOPIFY_CALCULATORS_AVAILABLE = True
     print("✅ [Shopify Calculators] Loaded successfully")
@@ -168,40 +171,77 @@ def _handle_calculator_error(e: Exception, product_type: str) -> Dict[str, Any]:
 def calculate_business_cards(
     quantity: int,
     stock_type: str,
-    sides: int,
+    print_type: str,
+    finish_size: str = "90x55mm",
+    celloglaze: str = "none",
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Calculate quote for business cards
+    Calculate quote for business cards - MATCHES SCHEMA
     
     Args:
-        quantity: Number of cards (50-10000)
-        stock_type: "standard" (350GSM Satin) or "premium" (400GSM Satin)
-        sides: 1 or 2 (single/double-sided)
+        quantity: Number of cards (100, 250, 500, 1000, 2000, 5000, 10000)
+        stock_type: "standard", "premium", "satin", "uncoated"
+        print_type: "single_sided" or "double_sided"
+        finish_size: "90x55mm" (standard), "90x50mm", "85x55mm" (default: "90x55mm")
+        celloglaze: "none", "gloss", "matt", "1_side_gloss", "2_side_gloss", "1_side_matt", "2_side_matt" (default: "none")
         **kwargs: Additional parameters (ignored, for compatibility)
     
     Returns:
         Dict with success, total_price, per_unit_price, stock_details, turnaround_days
     """
     try:
-        calculator = _get_calculator()
-        result = calculator.calculate_business_cards(
-            quantity=quantity,
-            stock_type=stock_type,
-            sides=sides
-        )
+        # Use Shopify calculator directly (like GOD calculators)
+        if not SHOPIFY_CALCULATORS_AVAILABLE:
+            raise RuntimeError("Shopify calculators not available")
+        
+        # Convert print_type to Shopify format
+        print_sides = "Double side print" if print_type == "double_sided" else "Single side print"
+        
+        # Convert finish_size format: 90x55mm -> 90mm x 55mm
+        size_parts = finish_size.replace('mm', '').split('x')
+        shopify_size = f"{size_parts[0]}mm x {size_parts[1]}mm"
+        
+        # Choose calculator based on stock_type
+        if stock_type == "premium":
+            calculator = PremiumBusinessCardsShopifyCalculator()
+            # Premium uses Satin 350GSM by default
+            result = calculator.calculate(
+                quantity=quantity,
+                print_sides=print_sides,
+                print_type="Colour",
+                finish_size=shopify_size,
+                paper_stock="Satin 350GSM",
+                artworks=1,
+                celloglaze=celloglaze.replace("_", " ").title() if celloglaze != "none" else "1 Side Gloss"
+            )
+        else:
+            calculator = EconomicalBusinessCardsShopifyCalculator()
+            # Economical uses 310GSM Satin by default
+            result = calculator.calculate(
+                quantity=quantity,
+                print_sides=print_sides,
+                print_type="Colour",
+                finish_size=shopify_size,
+                paper_stock="310GSM Satin",
+                artworks=1,
+                celloglaze=celloglaze.replace("_", " ").title() if celloglaze != "none" else "None"
+            )
         
         return {
             "success": True,
             "product": "Business Cards",
             "quantity": quantity,
             "stock_type": stock_type,
-            "sides": sides,
-            "total_price": result.get("total_price"),
-            "per_unit_price": result.get("per_unit_price"),
-            "stock_details": result.get("stock_details"),
-            "turnaround_days": result.get("turnaround_days", 3),
-            "size": "90x55mm (standard)"
+            "print_type": print_type,
+            "finish_size": finish_size,
+            "celloglaze": celloglaze,
+            "total_price": float(result.total_price),
+            "per_unit_price": float(result.unit_price),
+            "stock_details": f"{finish_size}, {stock_type}",
+            "turnaround_days": 3,
+            "breakdown": {k: float(v) if hasattr(v, '__float__') else v 
+                         for k, v in result.breakdown.items()}
         }
         
     except Exception as e:
@@ -210,64 +250,94 @@ def calculate_business_cards(
 
 def calculate_flyers(
     quantity: int,
-    size: str,
-    stock: str,
-    sides: int,
+    width: int,
+    height: int,
+    stock_gsm: int,
+    print_mode: str = "single_sided",
+    cello_type: str = "none",
+    folded: bool = False,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Calculate quote for flyers/leaflets
+    Calculate quote for flyers/leaflets - MATCHES SCHEMA
     
     Args:
-        quantity: Number of flyers
-        size: "A6", "DL", "A5", or "A4"
-        stock: Paper stock (e.g. "150GSM Gloss")
-        sides: 1 or 2
+        quantity: Number of items to print (100-10000)
+        width: Width in millimeters (e.g., 210 for A4)
+        height: Height in millimeters (e.g., 297 for A4)
+        stock_gsm: Stock weight in GSM (128, 150, 170, 200, 250, 300, 350, 400)
+        print_mode: 'single_sided', 'double_sided', 'no_print' (default: 'single_sided')
+        cello_type: 'none', 'gloss_both_sides', 'matt_both_sides', 'gloss_front_only', 'matt_front_only' (default: 'none')
+        folded: Whether the flyer is folded (default: False)
         **kwargs: Additional parameters
     
     Returns:
         Dict with success, total_price, per_unit_price, stock_details
     """
     try:
-        # Convert size to dimensions (mm)
-        size_map = {
-            "A6": (105, 148),
-            "DL": (99, 210),
-            "A5": (148, 210),
-            "A4": (210, 297)
-        }
-        width, height = size_map.get(size.upper(), (210, 297))
+        # Use GOD calculator directly (like calculate_flyers_god)
+        if not GOD_CALCULATORS_AVAILABLE:
+            raise RuntimeError("GOD calculators not available")
         
-        # Extract GSM from stock string (e.g. "150GSM Gloss" -> 150)
-        import re
-        gsm_match = re.search(r'(\d+)GSM', stock, re.IGNORECASE)
-        gsm = int(gsm_match.group(1)) if gsm_match else 150
+        # Get database connector
+        from inhouse_modules.db_connector import InHousePrintDB
+        from decimal import Decimal
         
-        # Convert sides to print_side parameters
-        print_side1 = 1  # Always print side 1
-        print_side2 = 1 if sides == 2 else 0
+        try:
+            db = InHousePrintDB()
+        except (FileNotFoundError, ConnectionError) as db_error:
+            return {
+                "success": False,
+                "error": f"Database unavailable: {str(db_error)}",
+                "error_type": "database_connection"
+            }
         
-        calculator = _get_calculator()
-        result = calculator.calculate_flyers(
+        # Convert print_mode to print_side parameters
+        if print_mode == "double_sided":
+            print_side1 = 1
+            print_side2 = 1
+        elif print_mode == "no_print":
+            print_side1 = 0
+            print_side2 = 0
+        else:  # single_sided
+            print_side1 = 1
+            print_side2 = 0
+        
+        # Use GOD calculator directly (needs db connector)
+        calculator = FlyerCalculatorGOD(db)
+        result = calculator.calculate(
             quantity=quantity,
             width=width,
             height=height,
-            gsm=gsm,
+            gsm=stock_gsm,
             print_side1=print_side1,
-            print_side2=print_side2
+            print_side2=print_side2,
+            folding_required=folded,
+            folding_passes=1 if folded else 0,
+            cello_required=(cello_type != "none"),
+            cello_side1=1 if "gloss" in cello_type else (2 if "matt" in cello_type else 0),
+            cello_side2=1 if "both" in cello_type or "2" in cello_type else 0,
+            discount=Decimal("0")
         )
         
         return {
             "success": True,
-            "product": f"{size} Flyers",
+            "product": "Flyers",
             "quantity": quantity,
-            "size": size,
-            "stock": stock,
-            "sides": sides,
-            "total_cost_ex_gst": float(result.cost_to_business),
+            "width": width,
+            "height": height,
+            "stock_gsm": stock_gsm,
+            "print_mode": print_mode,
+            "cello_type": cello_type,
+            "folded": folded,
+            "total_price": float(result.total_cost_inc_gst),
+            "cost_to_business": float(result.cost_to_business),
+            "total_cost_ex_gst": float(result.total_cost_ex_gst),
             "total_cost_inc_gst": float(result.total_cost_inc_gst),
             "per_unit_price": float(result.total_cost_inc_gst / quantity),
-            "stock_details": f"{width}x{height}mm, {gsm}GSM"
+            "stock_details": f"{width}x{height}mm, {stock_gsm}GSM",
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v 
+                         for k, v in result.breakdown.items()}
         }
         
     except Exception as e:
@@ -276,111 +346,74 @@ def calculate_flyers(
 
 def calculate_booklets(
     quantity: int,
-    pages: int,
-    cover_stock: str,
-    inner_stock: str,
-    size: str,
-    binding_type: str = "saddle_stitch",
+    total_pages: int,
+    cover_stock_gsm: int,
+    internal_stock_gsm: int,
+    cover_print_mode: str = "double_sided",
+    internal_print_mode: str = "double_sided",
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Calculate quote for booklets using Shopify calculators (database-independent)
+    Calculate quote for saddle-stitched booklets - MATCHES SCHEMA
     
     Args:
-        quantity: Number of booklets
-        pages: Total pages (must be divisible by 4)
-        cover_stock: Cover paper stock (e.g., "350GSM Gloss", "300GSM Satin")
-        inner_stock: Inner pages paper stock (e.g., "150GSM Gloss", "Uncoated Bond 100GSM")
-        size: "A5" or "A4" (Portrait/Landscape)
-        binding_type: "saddle_stitch", "wire_bound", "spiral_bound" (default: saddle_stitch)
+        quantity: Number of booklets (100-10000)
+        total_pages: Total page count (must be divisible by 4, minimum 8)
+        cover_stock_gsm: Cover stock weight (250, 300, 350, 400)
+        internal_stock_gsm: Internal pages stock weight (80, 100, 128, 150, 170)
+        cover_print_mode: 'single_sided', 'double_sided' (default: 'double_sided')
+        internal_print_mode: 'single_sided', 'double_sided', 'black_white', 'mixed' (default: 'double_sided')
         **kwargs: Additional parameters
     
     Returns:
         Dict with success, total_price, per_booklet_price, binding_cost
     """
     try:
-        # Use Shopify calculators (no database dependency)
+        # Use Shopify Spiral Bound calculator directly (booklets = spiral bound)
         if not SHOPIFY_CALCULATORS_AVAILABLE:
             raise RuntimeError("Shopify calculators not available")
         
-        # Map stock names to Shopify format
-        cover_stock_mapped = cover_stock.replace("GSM", "GSM")  # Normalize GSM
-        inner_stock_mapped = inner_stock.replace("GSM", "GSM")
-        
-        # Map size to finish_size format
-        if size.upper() == "A5":
-            finish_size = "A5 Portrait"
-        elif size.upper() == "A4":
-            finish_size = "A4 Portrait"
+        # Convert print modes to Shopify format
+        if cover_print_mode == "double_sided":
+            front_cover_print = "2pp Colour"
         else:
-            finish_size = f"{size} Portrait"
+            front_cover_print = "1pp Colour"
         
-        # Determine cover print type based on stock
-        if "350" in cover_stock or "300" in cover_stock:
-            cover_print = "2pp Colour"  # Assume full color for heavier stocks
-        else:
-            cover_print = "1pp Colour"
-        
-        # Determine internal print type
-        if "Uncoated" in inner_stock or "Bond" in inner_stock:
+        if internal_print_mode == "double_sided":
+            internal_print = "Full Colour"
+        elif internal_print_mode == "black_white":
             internal_print = "Black & White"
         else:
-            internal_print = "Full Colour"
+            internal_print = "Full Colour"  # Default to color
         
-        # Choose calculator based on binding type
-        if binding_type == "wire_bound" or "wire" in binding_type.lower():
-            calculator = WireBoundShopifyCalculator()
-            result = calculator.calculate(
-                quantity=quantity,
-                artworks=1,  # Single artwork
-                finish_size=finish_size,
-                printed_front_cover=cover_stock_mapped,
-                front_cover_print=cover_print,
-                printed_back_cover=cover_stock_mapped,
-                back_cover_print=cover_print,
-                internal_pages=pages - 4,  # Subtract cover pages
-                internal_stock=inner_stock_mapped,
-                internal_print=internal_print
-            )
-        elif binding_type == "spiral_bound" or "spiral" in binding_type.lower():
-            calculator = SpiralBoundShopifyCalculator()
-            result = calculator.calculate(
-                quantity=quantity,
-                artworks=1,
-                finish_size=finish_size,
-                printed_front_cover=cover_stock_mapped,
-                front_cover_print=cover_print,
-                printed_back_cover=cover_stock_mapped,
-                back_cover_print=cover_print,
-                internal_pages=pages - 4,
-                internal_stock=inner_stock_mapped,
-                internal_print=internal_print
-            )
-        else:
-            # Default: Use wire bound for saddle stitch approximation
-            calculator = WireBoundShopifyCalculator()
-            result = calculator.calculate(
-                quantity=quantity,
-                artworks=1,
-                finish_size=finish_size,
-                printed_front_cover=cover_stock_mapped,
-                front_cover_print=cover_print,
-                printed_back_cover=cover_stock_mapped,
-                back_cover_print=cover_print,
-                internal_pages=pages - 4,
-                internal_stock=inner_stock_mapped,
-                internal_print=internal_print
-            )
+        calculator = SpiralBoundShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            artworks=1,
+            finish_size="A5 Portrait",
+            outer_front_cover="Not Required",
+            printed_front_cover=f"{cover_stock_gsm}GSM Satin",
+            front_cover_print=front_cover_print,
+            front_celloglaze="None",
+            outer_back_cover="None",
+            printed_back_cover=f"{cover_stock_gsm}GSM Satin",
+            back_cover_print=front_cover_print,
+            back_celloglaze="None",
+            internal_pages=total_pages - 4,  # Shopify counts internal only
+            internal_stock=f"Uncoated Bond {internal_stock_gsm}GSM",
+            internal_print=internal_print
+        )
         
         return {
             "success": True,
-            "product": f"{size} Booklet ({pages} pages, {binding_type})",
+            "product": f"Booklet ({total_pages} pages)",
             "quantity": quantity,
-            "pages": pages,
-            "cover_stock": cover_stock,
-            "inner_stock": inner_stock,
-            "size": size,
-            "binding_type": binding_type,
+            "total_pages": total_pages,
+            "cover_stock_gsm": cover_stock_gsm,
+            "internal_stock_gsm": internal_stock_gsm,
+            "cover_print_mode": cover_print_mode,
+            "internal_print_mode": internal_print_mode,
+            "binding_type": "Spiral Bound",
             "total_price": float(result.total_price),
             "per_booklet_price": float(result.unit_price),
             "unit_price": float(result.unit_price),
@@ -394,48 +427,88 @@ def calculate_booklets(
 
 def calculate_perfect_bound_books(
     quantity: int,
-    pages: int,
-    cover_stock: str,
-    inner_stock: str,
-    size: str,
+    total_pages: int,
+    cover_stock_gsm: int,
+    internal_stock_gsm: int,
+    cover_print_mode: str = "double_sided",
+    internal_print_mode: str = "double_sided",
+    cover_lamination: str = "none",
+    spot_uv: bool = False,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Calculate quote for perfect bound books (glued spine)
+    Calculate quote for perfect bound books (glued spine) - MATCHES SCHEMA
     
     Args:
-        quantity: Number of books
-        pages: Total pages (minimum 24)
-        cover_stock: Cover paper stock (typically heavier)
-        inner_stock: Inner pages paper stock
-        size: "A5" or "A4"
+        quantity: Number of books (100-10000)
+        total_pages: Total page count (minimum 40, divisible by 4)
+        cover_stock_gsm: Cover stock weight (250, 300, 350, 400)
+        internal_stock_gsm: Internal stock weight (80, 100, 128, 150, 170)
+        cover_print_mode: 'single_sided', 'double_sided' (default: 'double_sided')
+        internal_print_mode: 'single_sided', 'double_sided', 'black_white', 'mixed' (default: 'double_sided')
+        cover_lamination: 'none', 'gloss', 'matt' (default: 'none')
+        spot_uv: Add spot UV finish to cover (default: False)
         **kwargs: Additional parameters
     
     Returns:
         Dict with success, total_price, per_book_price, binding_cost
     """
     try:
-        calculator = _get_calculator()
-        result = calculator.calculate_perfect_bound_books(
+        # Use Shopify Perfect Bound calculator directly
+        if not SHOPIFY_CALCULATORS_AVAILABLE:
+            raise RuntimeError("Shopify calculators not available")
+        
+        # Convert print modes to Shopify format
+        if cover_print_mode == "double_sided":
+            cover_print_type = "2 side colour (4pp)"
+        else:
+            cover_print_type = "1 side colour (2pp)"
+        
+        if internal_print_mode == "double_sided" or internal_print_mode == "mixed":
+            content_print_type = "Full Colour"
+        elif internal_print_mode == "black_white":
+            content_print_type = "Black & White"
+        else:
+            content_print_type = "Full Colour"
+        
+        # Convert celloglaze
+        cello_map = {
+            "none": "None",
+            "gloss": "Gloss outside only",
+            "matt": "Matt outside only"
+        }
+        celloglaze = cello_map.get(cover_lamination, "None")
+        
+        calculator = PerfectBoundShopifyCalculator()
+        result = calculator.calculate(
             quantity=quantity,
-            pages=pages,
-            cover_stock=cover_stock,
-            inner_stock=inner_stock,
-            size=size
+            printed_pages=total_pages,
+            proof_requirements="Digital Emailed Proof",
+            cover_stock=f"Satin {cover_stock_gsm}GSM",
+            cover_print_type=cover_print_type,
+            celloglaze=celloglaze,
+            finish_size="A5 Portrait",
+            content_print_type=content_print_type,
+            content_stock_type=f"Uncoated Bond {internal_stock_gsm}GSM"
         )
         
         return {
             "success": True,
-            "product": f"{size} Perfect Bound Book ({pages} pages)",
+            "product": f"Perfect Bound Book ({total_pages} pages)",
             "quantity": quantity,
-            "pages": pages,
-            "cover_stock": cover_stock,
-            "inner_stock": inner_stock,
-            "size": size,
+            "total_pages": total_pages,
+            "cover_stock_gsm": cover_stock_gsm,
+            "internal_stock_gsm": internal_stock_gsm,
+            "cover_print_mode": cover_print_mode,
+            "internal_print_mode": internal_print_mode,
+            "cover_lamination": cover_lamination,
+            "spot_uv": spot_uv,
             "binding_type": "Perfect Bound (glued spine)",
-            "total_price": result.get("total_price"),
-            "per_book_price": result.get("per_book_price"),
-            "binding_cost": result.get("binding_cost")
+            "total_price": float(result.total_price),
+            "per_book_price": float(result.unit_price),
+            "binding_cost": float(result.breakdown.get('binding_cost', 0)),
+            "breakdown": {k: float(v) if hasattr(v, '__float__') else v 
+                         for k, v in result.breakdown.items()}
         }
         
     except Exception as e:
@@ -461,11 +534,44 @@ def calculate_letterheads(
         Dict with success, total_price, per_sheet_price
     """
     try:
-        calculator = _get_calculator()
-        result = calculator.calculate_letterheads(
+        # Use GOD Letterhead calculator directly
+        if not GOD_CALCULATORS_AVAILABLE:
+            raise RuntimeError("GOD calculators not available")
+        
+        # Get database connector
+        from inhouse_modules.db_connector import InHousePrintDB
+        from decimal import Decimal
+        
+        try:
+            db = InHousePrintDB()
+        except (FileNotFoundError, ConnectionError) as db_error:
+            return {
+                "success": False,
+                "error": f"Database unavailable: {str(db_error)}",
+                "error_type": "database_connection"
+            }
+        
+        # Parse stock to get GSM
+        stock_gsm = int(''.join(filter(str.isdigit, stock)))
+        
+        # Convert colors to print sides (1=B&W, 4=Color)
+        # A4 letterheads are typically 210x297mm
+        if colors == 4:
+            print_side1 = 1  # 1 = Colour
+            print_side2 = 0  # No printing on back
+        else:
+            print_side1 = 2  # 2 = B&W
+            print_side2 = 0
+        
+        calculator = LetterheadCalculatorGOD(db)
+        result = calculator.calculate(
             quantity=quantity,
-            stock=stock,
-            colors=colors
+            width=210,  # A4 width
+            height=297,  # A4 height
+            gsm=stock_gsm,
+            print_side1=print_side1,
+            print_side2=print_side2,
+            discount=Decimal("0")
         )
         
         return {
@@ -475,8 +581,12 @@ def calculate_letterheads(
             "stock": stock,
             "colors": colors,
             "size": "A4",
-            "total_price": result.get("total_price"),
-            "per_sheet_price": result.get("per_sheet_price")
+            "total_cost_ex_gst": float(result.total_cost_ex_gst),
+            "total_cost_inc_gst": float(result.total_cost_inc_gst),
+            "total_price": float(result.total_cost_inc_gst),
+            "per_sheet_price": float(result.total_cost_inc_gst / quantity),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v 
+                         for k, v in result.breakdown.items()}
         }
         
     except Exception as e:
@@ -485,43 +595,66 @@ def calculate_letterheads(
 
 def calculate_corflute_signs(
     quantity: int,
-    size: str,
-    thickness: str,
-    sides: int,
+    width: int,
+    height: int,
+    thickness: str = "5mm",
+    double_sided: bool = False,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Calculate quote for corflute signs (rigid plastic signage)
+    Calculate quote for corflute signs (rigid plastic signage) - MATCHES SCHEMA
     
     Args:
-        quantity: Number of signs
-        size: Size in "WIDTHxHEIGHT" format (e.g. "600x900")
-        thickness: "3mm" or "5mm"
-        sides: 1 or 2
+        quantity: Number of signs (100-10000)
+        width: Width in millimeters (e.g., 600, 900, 1200)
+        height: Height in millimeters (e.g., 600, 900, 1200)
+        thickness: '3mm' or '5mm' (default: '5mm')
+        double_sided: Print on both sides (default: False)
         **kwargs: Additional parameters
     
     Returns:
         Dict with success, total_price, per_sign_price, material_cost
     """
     try:
-        calculator = _get_calculator()
-        result = calculator.calculate_corflute_signs(
+        # Use GOD Corflute calculator directly (no database needed)
+        if not GOD_CALCULATORS_AVAILABLE:
+            raise RuntimeError("GOD calculators not available")
+        
+        # Convert thickness to integer (remove "mm")
+        thickness_mm = int(thickness.replace('mm', ''))
+        
+        # Convert double_sided to print_sides
+        print_sides = "double" if double_sided else "single"
+        
+        calculator = CorflutePricingCalculator()
+        result = calculator.calculate_base_quote(
+            width_mm=width,
+            height_mm=height,
+            thickness_mm=thickness_mm,
             quantity=quantity,
-            size=size,
-            thickness=thickness,
-            sides=sides
+            print_sides=print_sides,
+            print_mode="color",
+            artworks=1
         )
+        
+        # Extract prices from calculator result
+        total_inc_gst = result.get('total_inc_gst', 0)
+        material_cost = result.get('material_cost_per_unit', 0) * quantity
         
         return {
             "success": True,
-            "product": f"Corflute Sign ({size})",
+            "product": f"Corflute Sign ({width}x{height}mm)",
             "quantity": quantity,
-            "size": size,
+            "width": width,
+            "height": height,
             "thickness": thickness,
-            "sides": sides,
-            "total_price": result.get("total_price"),
-            "per_sign_price": result.get("per_sign_price"),
-            "material_cost": result.get("material_cost")
+            "double_sided": double_sided,
+            "sides": 2 if double_sided else 1,
+            "total_price": float(total_inc_gst),
+            "per_sign_price": float(total_inc_gst / quantity if quantity > 0 else 0),
+            "material_cost": float(material_cost),
+            "breakdown": {k: float(v) if isinstance(v, (int, float)) else v 
+                         for k, v in result.items()}
         }
         
     except Exception as e:
@@ -699,13 +832,12 @@ def calculate_letterheads_god(
     gsm: int,
     print_side1: int = 1,
     print_side2: int = 0,
-    cello_required: bool = False,
-    cello_side1: int = 0,
     discount: float = 0.0,
     **kwargs
 ) -> Dict[str, Any]:
     """
     GOD (database-driven) letterhead calculator - Database-accurate pricing
+    Note: Letterheads are simplified - no cellophane lamination options
     
     Args:
         quantity: Number of letterheads
@@ -714,8 +846,6 @@ def calculate_letterheads_god(
         gsm: Paper weight (e.g., 100, 120)
         print_side1: Print mode for side 1 (0=none, 1=colour, 2=b&w, 3=b&w on colour)
         print_side2: Print mode for side 2 (0=none, 1=colour, 2=b&w, 3=b&w on colour)
-        cello_required: Whether cellophane lamination required
-        cello_side1: Cello type for side 1 (0=none, 1=gloss, 2=matt)
         discount: Discount as decimal
     
     Returns:
@@ -741,8 +871,6 @@ def calculate_letterheads_god(
             gsm=gsm,
             print_side1=print_side1,
             print_side2=print_side2,
-            cello_required=cello_required,
-            cello_side1=cello_side1,
             discount=Decimal(str(discount))
         )
         
@@ -769,14 +897,15 @@ def calculate_letterheads_god(
 def calculate_perfect_bound_books_god(
     quantity: int,
     pages: int,
-    cover_width: int,
-    cover_height: int,
+    book_width: int,
+    book_height: int,
     cover_gsm: int,
     inner_gsm: int,
-    print_cover_outside: int = 1,
-    print_cover_inside: int = 0,
-    print_inner: int = 2,
-    cello_required: bool = False,
+    print_cover_mode: int = 1,
+    print_inner_mode: int = 1,
+    cello_type: int = 0,
+    stock_type_id: int = 29,        # Type 29 (Bond) has common GSMs
+    cover_stock_type_id: int = 20,  # Type 20 (Satin/Silk) has common cover GSMs
     discount: float = 0.0,
     **kwargs
 ) -> Dict[str, Any]:
@@ -785,15 +914,16 @@ def calculate_perfect_bound_books_god(
     
     Args:
         quantity: Number of books
-        pages: Total number of pages (minimum 24)
-        cover_width: Cover width in mm (210 for A4, 148 for A5)
-        cover_height: Cover height in mm (297 for A4, 210 for A5)
+        pages: Total number of internal pages (must be divisible by 4)
+        book_width: Book width in mm (210 for A4, 148 for A5)
+        book_height: Book height in mm (297 for A4, 210 for A5)
         cover_gsm: Cover paper weight (e.g., 250, 300)
-        inner_gsm: Inner pages paper weight (e.g., 100, 115, 120)
-        print_cover_outside: Print mode for cover outside (0=none, 1=colour, 2=b&w)
-        print_cover_inside: Print mode for cover inside (0=none, 1=colour, 2=b&w)
-        print_inner: Print mode for inner pages (0=none, 1=colour, 2=b&w)
-        cello_required: Cover cellophane lamination
+        inner_gsm: Inner pages paper weight (e.g., 80, 100, 120)
+        print_cover_mode: Cover print (0=2pp one side, 1=4pp both sides)
+        print_inner_mode: Inner print (0=colour, 1=b&w, 2=both scattered)
+        cello_type: Cellophane (0=none, 1=gloss, 2=matt)
+        stock_type_id: Internal paper type (29=Bond, 20=Satin/Silk)
+        cover_stock_type_id: Cover paper type (20=Satin/Silk, 29=Bond)
         discount: Discount as decimal
     
     Returns:
@@ -806,40 +936,52 @@ def calculate_perfect_bound_books_god(
         }
     
     try:
-        from inhouse_modules.db_connector import InHousePrintDB
         from decimal import Decimal
         
-        db = InHousePrintDB()
-        calculator = PerfectBoundBooksCalculator(db)
+        # PerfectBoundBooksCalculator creates its own DB connection
+        calculator = PerfectBoundBooksCalculator()
         
         result = calculator.calculate(
             quantity=quantity,
+            book_width=book_width,
+            book_height=book_height,
             pages=pages,
-            cover_width=cover_width,
-            cover_height=cover_height,
-            cover_gsm=cover_gsm,
-            inner_gsm=inner_gsm,
-            print_cover_outside=print_cover_outside,
-            print_cover_inside=print_cover_inside,
-            print_inner=print_inner,
-            cello_required=cello_required,
+            stock_type_id=stock_type_id,
+            internal_stock_gsm=inner_gsm,
+            internal_print_mode=print_inner_mode,
+            cover_stock_type_id=cover_stock_type_id,
+            cover_stock_gsm=cover_gsm,
+            cover_print_mode=print_cover_mode,
+            cello_type=cello_type,
             discount=Decimal(str(discount))
         )
         
         return {
             "success": True,
-            "product_type": result.product_type,
-            "quantity": result.quantity,
-            "cost_to_business": float(result.cost_to_business),
-            "profit_margin": float(result.profit_margin),
-            "total_cost_ex_gst": float(result.total_cost_ex_gst),
-            "total_cost_inc_gst": float(result.total_cost_inc_gst),
-            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "product_type": "Perfect Bound Books (GOD)",
+            "quantity": quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "total_cost_inc_gst": float(result.total_inc_gst),
+            "breakdown": {
+                "cover_cost": float(result.cover_cost),
+                "internal_cost": float(result.internal_cost),
+                "cello_cost": float(result.cello_cost),
+                "binding_cost": float(result.binding_cost),
+                "trimming_cost": float(result.trimming_cost),
+                "cutting_cost": float(result.cutting_cost),
+                "scoring_cost": float(result.scoring_cost),
+                "imposition_setup": float(result.imposition_setup),
+                "proof_cost": float(result.proof_cost),
+                "extra_books": float(result.extra_books)
+            },
             "specifications": result.specifications
         }
         
     except Exception as e:
         print(f"❌ [GOD Perfect Bound Books Calculator] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "success": False,
             "error": str(e)
@@ -850,8 +992,8 @@ def calculate_corflute_signs_god(
     quantity: int,
     width: int,
     height: int,
-    thickness: int = 3,
-    print_sides: int = 1,
+    thickness: int = 5,
+    print_sides: str = "single",
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -861,8 +1003,8 @@ def calculate_corflute_signs_god(
         quantity: Number of signs
         width: Sign width in mm (e.g., 600, 900, 1200)
         height: Sign height in mm (e.g., 600, 900, 1200)
-        thickness: Corflute thickness in mm (3 or 5)
-        print_sides: Number of printed sides (1 or 2)
+        thickness: Corflute thickness in mm (3, 5, or 10)
+        print_sides: "single" or "double"
     
     Returns:
         Dict with success, quote result, or error
@@ -874,45 +1016,44 @@ def calculate_corflute_signs_god(
         }
     
     try:
-        from inhouse_modules.db_connector import InHousePrintDB
         from decimal import Decimal
         
-        db = InHousePrintDB()
-        calculator = CorflutePricingCalculator(db)
+        calculator = CorflutePricingCalculator()  # No args needed
         
-        result = calculator.calculate_quote(
-            quantity=quantity,
+        result = calculator.calculate_base_quote(
             width_mm=width,
             height_mm=height,
             thickness_mm=thickness,
-            sides=print_sides
+            quantity=quantity,
+            print_sides=print_sides
         )
         
         return {
             "success": True,
-            "product_type": "Corflute Signs",
-            "quantity": result.quantity,
-            "cost_to_business": float(result.cost_to_business),
-            "profit_margin": float(result.profit_margin_percent),
-            "total_cost_ex_gst": float(result.total_ex_gst),
-            "total_cost_inc_gst": float(result.total_inc_gst),
+            "product_type": "Corflute Signs (GOD)",
+            "quantity": result['quantity'],
+            "cost_to_business": float(result['total_cost_ex_margin']),
+            "profit_margin": float(result['margin_percent']),
+            "total_cost_ex_gst": float(result['total_cost_inc_margin']),
+            "total_cost_inc_gst": float(result['total_inc_gst']),
             "breakdown": {
-                "material_cost": float(result.material_cost),
-                "printing_cost": float(result.printing_cost),
-                "setup_cost": float(result.setup_cost),
-                "unit_price_ex_gst": float(result.unit_price_ex_gst),
-                "unit_price_inc_gst": float(result.unit_price_inc_gst)
+                "material_cost_per_unit": result['material_cost_per_unit'],
+                "print_cost_per_unit": result['print_cost_per_unit'],
+                "cutting_cost_per_unit": result['cutting_cost_per_unit'],
+                "margin_multiplier": result['margin_multiplier']
             },
             "specifications": {
-                "size": f"{width}x{height}mm",
-                "thickness": f"{thickness}mm",
-                "sides": print_sides,
-                "area_sqm": float(result.area_sqm)
+                "dimensions": result['dimensions'],
+                "area_sqm": result['area_sqm'],
+                "thickness_mm": result['thickness_mm'],
+                "print_specification": result['print_specification']
             }
         }
         
     except Exception as e:
         print(f"❌ [GOD Corflute Signs Calculator] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "success": False,
             "error": str(e)
@@ -978,7 +1119,7 @@ def calculate_premium_business_cards_shopify(
     quantity: int,
     print_sides: str,
     print_type: str = "Colour",
-    cellophane: str = "No Cellophane",
+    celloglaze: str = "No Cellophane",
     artworks: int = 1,
     **kwargs
 ) -> Dict[str, Any]:
@@ -989,7 +1130,7 @@ def calculate_premium_business_cards_shopify(
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
         print_sides: "Single side print" or "Double side print"
         print_type: "Colour" or "Black & White"
-        cellophane: "No Cellophane", "Gloss Cellophane", or "Matt Cellophane"
+        celloglaze: "No Cellophane", "Gloss Cellophane", or "Matt Cellophane"
         artworks: Number of different designs (1-50)
     
     Returns:
@@ -1007,7 +1148,7 @@ def calculate_premium_business_cards_shopify(
             quantity=quantity,
             print_sides=print_sides,
             print_type=print_type,
-            cellophane=cellophane,
+            celloglaze=celloglaze,
             artworks=artworks
         )
         
@@ -1035,18 +1176,24 @@ def calculate_folded_flyers_shopify(
     size: str,
     paper_stock: str,
     print_sides: str,
-    folding: str = "No Folding",
+    folding: str = "Single Fold",
+    print_type: str = "Colour",
+    artworks: int = 1,
+    celloglaze: str = "None",
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Folded Flyers
+    Shopify calculator for Folded Flyers (WRAPPER - Translation Layer Only)
     
     Args:
         quantity: Number of flyers
-        size: "A4", "A5", or "DL"
-        paper_stock: Paper stock (e.g., "150GSM Gloss Art", "300GSM Gloss Art")
+        size: "A5", "A4", "A3", or "6pp A4"
+        paper_stock: Paper stock string (e.g., "Satin 150GSM", "Uncoated Bond 100GSM")
         print_sides: "Single side print" or "Double side print"
-        folding: "No Folding", "Half Fold", "Z Fold", or "Gate Fold"
+        folding: "Single Fold", "Double Fold", or "Triple Fold"
+        print_type: "Colour" or "Black & White"
+        artworks: Number of artwork designs (1-50)
+        celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt"
     
     Returns:
         Dict with success, quote result, or error
@@ -1058,27 +1205,79 @@ def calculate_folded_flyers_shopify(
         }
     
     try:
+        # Import backend enums
+        from shopify_calculators.FoldedFlyers_Shopify_Calculator import (
+            PrintSides, PrintType, FinishSize, PaperStock, FoldType, Celloglaze
+        )
+        
+        # Translation: Map schema strings to backend enums
+        size_map = {
+            "A5": FinishSize.A5,
+            "A4": FinishSize.A4,
+            "A3": FinishSize.A3,
+            "6pp A4": FinishSize.A4_6PP
+        }
+        
+        sides_map = {
+            "Single side print": PrintSides.SINGLE_SIDE,
+            "Double side print": PrintSides.DOUBLE_SIDE
+        }
+        
+        type_map = {
+            "Colour": PrintType.COLOUR,
+            "Black & White": PrintType.BLACK_WHITE
+        }
+        
+        stock_map = {
+            "Satin 128GSM": PaperStock.SATIN_128GSM,
+            "Satin 150GSM": PaperStock.SATIN_150GSM,
+            "Satin 250GSM": PaperStock.SATIN_250GSM,
+            "Satin 300GSM": PaperStock.SATIN_300GSM,
+            "Satin 350GSM": PaperStock.SATIN_350GSM,
+            "Uncoated Bond 80GSM": PaperStock.UNCOATED_80GSM,
+            "Uncoated Bond 90GSM": PaperStock.UNCOATED_90GSM,
+            "Uncoated Bond 100GSM": PaperStock.UNCOATED_100GSM
+        }
+        
+        fold_map = {
+            "Single Fold": FoldType.SINGLE_FOLD,
+            "Double Fold": FoldType.DOUBLE_FOLD,
+            "Triple Fold": FoldType.TRIPLE_FOLD
+        }
+        
+        cello_map = {
+            "None": Celloglaze.NONE,
+            "1 Side Gloss": Celloglaze.ONE_SIDE_GLOSS,
+            "2 Side Gloss": Celloglaze.TWO_SIDE_GLOSS,
+            "1 Side Matt": Celloglaze.ONE_SIDE_MATT,
+            "2 Side Matt": Celloglaze.TWO_SIDE_MATT
+        }
+        
         calculator = FoldedFlyersShopifyCalculator()
-        result = calculator.calculate(
+        result = calculator.calculate_quote(
             quantity=quantity,
-            size=size,
-            paper_stock=paper_stock,
-            print_sides=print_sides,
-            folding=folding
+            print_sides=sides_map.get(print_sides, PrintSides.SINGLE_SIDE),
+            print_type=type_map.get(print_type, PrintType.COLOUR),
+            finish_size=size_map.get(size, FinishSize.A5),
+            paper_stock=stock_map.get(paper_stock, PaperStock.SATIN_150GSM),
+            artworks=artworks,
+            fold_type=fold_map.get(folding, FoldType.SINGLE_FOLD),
+            celloglaze=cello_map.get(celloglaze, Celloglaze.NONE)
         )
         
         return {
             "success": True,
             "product_type": "Folded Flyers",
             "quantity": result.quantity,
-            "total_price": float(result.total_price),
-            "unit_price": float(result.unit_price),
-            "breakdown": {k: float(v) for k, v in result.breakdown.items()},
+            "total_price": float(result.final_price),
+            "unit_price": float(result.final_price / result.quantity),
             "specifications": result.specifications
         }
         
     except Exception as e:
         print(f"❌ [Shopify Folded Flyers] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "success": False,
             "error": str(e)
@@ -1118,12 +1317,20 @@ def calculate_wire_bound_books_shopify(
         calculator = WireBoundShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            pages=pages,
-            size=size,
-            cover_stock=cover_stock,
-            inner_stock=inner_stock,
-            cover_cellophane=cover_cellophane
+            internal_pages=pages,
+            finish_size=size,
+            printed_front_cover=cover_stock,
+            internal_stock=inner_stock,
+            front_celloglaze=cover_cellophane
         )
+        
+        # Convert breakdown values safely (handle strings like "percentage")
+        breakdown_converted = {}
+        for k, v in result.breakdown.items():
+            try:
+                breakdown_converted[k] = float(v)
+            except (ValueError, TypeError):
+                breakdown_converted[k] = str(v)  # Keep as string if not numeric
         
         return {
             "success": True,
@@ -1131,7 +1338,7 @@ def calculate_wire_bound_books_shopify(
             "quantity": result.quantity,
             "total_price": float(result.total_price),
             "unit_price": float(result.unit_price),
-            "breakdown": {k: float(v) for k, v in result.breakdown.items()},
+            "breakdown": breakdown_converted,
             "specifications": result.specifications
         }
         
@@ -1176,11 +1383,11 @@ def calculate_spiral_bound_books_shopify(
         calculator = SpiralBoundShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            pages=pages,
-            size=size,
-            cover_stock=cover_stock,
-            inner_stock=inner_stock,
-            cover_cellophane=cover_cellophane
+            internal_pages=pages,
+            finish_size=size,
+            printed_front_cover=cover_stock,
+            internal_stock=inner_stock,
+            front_celloglaze=cover_cellophane
         )
         
         return {
@@ -1353,9 +1560,8 @@ def calculate_corflute_insert_a_frame(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators import CorfluteInsertAFrameShopifyCalculator
-        CorfluteInsertAFrameShopifyCalculator = getattr(__import__('inhouse_modules.shopify_calculators.CorfluteInsertA-Frame_Shopify_Calculator', fromlist=['CorfluteInsertAFrameShopifyCalculator']), 'CorfluteInsertAFrameShopifyCalculator')
-        calculator = CorfluteInsertAFrameShopifyCalculator()
+        from inhouse_modules.shopify_calculators.CorfluteInsertA_Frame_Shopify_Calculator import CorfluteInsertA_FrameShopifyCalculator
+        calculator = CorfluteInsertA_FrameShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
             "success": True,
@@ -1378,8 +1584,8 @@ def calculate_metal_face_a_frame(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        MetalFaceAFrameShopifyCalculator = getattr(__import__('inhouse_modules.shopify_calculators.MetalFaceA-Frame_Shopify_Calculator', fromlist=['MetalFaceAFrameShopifyCalculator']), 'MetalFaceAFrameShopifyCalculator')
-        calculator = MetalFaceAFrameShopifyCalculator()
+        from inhouse_modules.shopify_calculators.MetalFaceA_Frame_Shopify_Calculator import MetalFaceA_FrameShopifyCalculator
+        calculator = MetalFaceA_FrameShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
             "success": True,
@@ -1715,15 +1921,44 @@ def calculate_spiral_bound_books(**kwargs) -> Dict[str, Any]:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
         from inhouse_modules.shopify_calculators.SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
+        
+        # Map schema parameters to backend parameters
+        # Handle pages parameter - convert "40pp" to 40
+        pages_value = kwargs.get('number_of_content_pages', kwargs.get('pages', 100))
+        if isinstance(pages_value, str):
+            pages_value = int(pages_value.replace('pp', ''))
+        
+        # Map print types - "Colour" -> "Black & White" or "Colour"
+        content_print = kwargs.get('content_print_type', 'Black & White')
+        if content_print == 'Colour':
+            content_print = '2pp Colour'  # Default to 2pp if just "Colour"
+        
+        mapped_kwargs = {
+            'quantity': kwargs.get('quantity'),
+            'artworks': kwargs.get('artworks', 1),
+            'finish_size': kwargs.get('finish_size', 'A5 Portrait'),
+            'outer_front_cover': kwargs.get('outer_front_cover', 'Not Required'),
+            'printed_front_cover': kwargs.get('printed_front_cover', '300GSM Satin'),
+            'front_cover_print': kwargs.get('cover_print_type', '2pp Colour'),  # Schema: cover_print_type -> Backend: front_cover_print
+            'front_celloglaze': kwargs.get('celloglaze', 'None'),  # Schema: celloglaze -> Backend: front_celloglaze
+            'outer_back_cover': kwargs.get('outer_back_cover', 'Not Required'),
+            'printed_back_cover': kwargs.get('printed_back_cover', 'None'),
+            'back_cover_print': kwargs.get('back_cover_print_type', '2pp Colour'),  # Schema: back_cover_print_type -> Backend: back_cover_print
+            'back_celloglaze': kwargs.get('back_celloglaze', 'None'),
+            'internal_pages': pages_value,  # Converted to int above
+            'internal_stock': kwargs.get('content_paper_stock', kwargs.get('content_stock', 'Uncoated Bond 100GSM')),  # Schema: content_paper_stock or content_stock -> Backend: internal_stock
+            'internal_print': content_print  # Converted above
+        }
+        
         calculator = SpiralBoundShopifyCalculator()
-        result = calculator.calculate(**kwargs)
+        result = calculator.calculate(**mapped_kwargs)
         return {
             "success": True,
             "product_type": "Spiral Bound Books",
             "quantity": result.quantity,
             "total_price": float(result.total_price),
             "unit_price": float(result.unit_price),
-            "cost_per_item": float(result.cost_per_item),
+            "cost_per_item": float(result.unit_price),  # Spiral Bound doesn't have separate cost_per_item, use unit_price
             "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
             "specifications": result.specifications
         }

@@ -524,7 +524,7 @@ def test_execution():
                         "quantity": 100,
                         "material": "3mm Corflute",
                         "size": "270mm W x 1000mm H - Three Sided",
-                        "artworks": 1
+                        "artworks": "1"
                     }
                 else:
                     return {
@@ -539,7 +539,7 @@ def test_execution():
                 if test_number == 1:
                     return {
                         "quantity": 250,
-                        "artworks": 1,
+                        "artworks": "1",
                         "material": "3mm Corflute",
                         "cube_size": "Medium 400mm x 400mm"
                     }
@@ -781,7 +781,7 @@ def test_execution():
                 if test_number == 1:
                     return {
                         "quantity": 100,
-                        "artworks": 1,
+                        "artworks": "1",
                         "base_colour": "Silver",
                         "size": "850mm W x 2000mm H"
                     }
