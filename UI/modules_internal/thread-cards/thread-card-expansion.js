@@ -211,9 +211,10 @@ window.ThreadCardExpansion = {
         // 3. Check if card is inside agent column (#thread-info-1, #thread-info-2, etc.)
         const parentAgentContainer = card.closest('[id^="thread-info-"]');
         if (parentAgentContainer && parentAgentContainer.contains(card)) {
-            // Card is in Agent column → expand the CONTAINER
-            console.log(`[ThreadCardExpansion] Expandable: ${parentAgentContainer.id} container`);
-            return parentAgentContainer;
+            // Card is in Agent column → expand the CARD ITSELF (not the container)
+            // The container is the entire agent column, we only want to expand this specific card
+            console.log(`[ThreadCardExpansion] Expandable: card itself (in ${parentAgentContainer.id})`);
+            return card;
         }
 
         // Fallback: expand the card itself

@@ -645,8 +645,16 @@ def calculate_corflute_signs(
         if not GOD_CALCULATORS_AVAILABLE:
             raise RuntimeError("GOD calculators not available")
         
-        # Convert thickness to integer (remove "mm")
-        thickness_mm = int(thickness.replace('mm', ''))
+        # Convert all parameters to correct types (ensure no string/int mismatch)
+        quantity = int(quantity)
+        width = int(width)
+        height = int(height)
+        
+        # Convert thickness to integer (remove "mm" if present)
+        if isinstance(thickness, str):
+            thickness_mm = int(thickness.replace('mm', ''))
+        else:
+            thickness_mm = int(thickness)
         
         # Convert double_sided to print_sides
         print_sides = "double" if double_sided else "single"

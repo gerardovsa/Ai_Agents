@@ -2404,8 +2404,20 @@ async function initializeApp() {
         setTimeout(() => {
             const errorDiv = document.getElementById('loginError');
             if (errorDiv) {
-                const message = urlParams.get('message') || error;
-                errorDiv.textContent = `OAuth login failed: ${decodeURIComponent(message)}`;
+                let message = urlParams.get('message') || error;
+                
+                // Provide user-friendly messages for common OAuth errors
+                if (error === 'invalid_state') {
+                    message = 'Session expired during login. Please try signing in again.';
+                } else if (error === 'access_denied') {
+                    message = 'Login was cancelled or access was denied.';
+                } else if (error === 'invalid_token') {
+                    message = 'Invalid authentication token. Please try signing in again.';
+                } else {
+                    message = `OAuth login failed: ${decodeURIComponent(message)}`;
+                }
+                
+                errorDiv.textContent = message;
                 errorDiv.classList.add('show');
             }
         }, 100);

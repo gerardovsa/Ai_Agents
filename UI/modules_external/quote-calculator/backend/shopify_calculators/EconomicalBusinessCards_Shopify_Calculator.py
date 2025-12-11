@@ -88,7 +88,8 @@ class EconomicalBusinessCardsShopifyCalculator:
             EconomicalBusinessCardsQuoteResult with total price, unit price, cost per card, and breakdown
         """
         
-        # Validate quantity
+        # Validate quantity (convert to int first in case it's a string)
+        quantity = int(quantity)
         valid_quantities = [250, 500, 1000, 2000, 5000, 10000]
         if quantity not in valid_quantities:
             raise ValueError(f"Quantity must be one of: {valid_quantities}. Got: {quantity}")
