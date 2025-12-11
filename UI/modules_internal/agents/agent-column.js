@@ -166,7 +166,7 @@ const AgentColumn = (function () {
 
                 <!-- Hamburger Menu Dropdown -->
                 <div class="agent-menu-dropdown" id="menu-${agentId}">
-                    <div class="agent-menu-item" onclick="event.stopPropagation(); AgentColumn.newThread(${agentId})">
+                    <div class="agent-menu-item" onclick="event.stopPropagation(); AgentColumn.newThread(${agentId}, event)">
                         <i class="fas fa-plus"></i> New Thread
                     </div>
                     <div class="agent-menu-divider"></div>
@@ -343,7 +343,7 @@ const AgentColumn = (function () {
                     </div>
                     <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
                         <button class="btn btn-primary" 
-                                onclick="event.stopPropagation(); AgentColumn.newThread(${agentId})" 
+                                onclick="event.stopPropagation(); AgentColumn.newThread(${agentId}, event)" 
                                 style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1; background-color: var(--accent-primary, #58a6ff); border-color: var(--accent-primary, #58a6ff);">
                             <i class="fas fa-plus" style="font-size: 14px; margin: 0;"></i>
                             Start New Chat
@@ -991,12 +991,19 @@ const AgentColumn = (function () {
     /**
      * Start new thread (delegates to ThreadManager)
      * @param {number} agentId - Agent ID
+     * @param {Event} event - Optional click event to get button position
      */
-    function newThread(agentId) {
+    function newThread(agentId, event = null) {
         toggleMenu(agentId); // Close menu
 
+        // Get button element for positioning
+        let buttonElement = null;
+        if (event && event.target) {
+            buttonElement = event.target.closest('button');
+        }
+
         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
-            ThreadManager.showNewChatModal(`agent-${agentId}`);
+            ThreadManager.showNewChatModal(`agent-${agentId}`, buttonElement);
         } else {
             console.warn('[AgentColumn] ThreadManager not available');
         }
@@ -1329,7 +1336,7 @@ const AgentColumn = (function () {
                         <div class="thread-selector-empty">
                             <i class="fas fa-inbox"></i>
                             <p>No available threads</p>
-                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
+                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}, event); AgentColumn.hideThreadSelector(${agentId});">
                                 <i class="fas fa-plus"></i> Create New Thread
                             </button>
                         </div>
@@ -1400,7 +1407,7 @@ const AgentColumn = (function () {
                             ${threadItems}
                         </div>
                         <div class="thread-selector-footer">
-                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
+                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}, event); AgentColumn.hideThreadSelector(${agentId});">
                                 <i class="fas fa-plus"></i> Create New Thread
                             </button>
                         </div>
@@ -1612,6 +1619,69 @@ const AgentColumn = (function () {
     }
 
     /**
+     * Apply view mode to a single message bubble (called when new message arrives)
+     * @param {number} agentId - Agent ID
+     * @param {HTMLElement} message - The message element to apply view mode to
+     */
+    function applyViewModeToMessage(agentId, message) {
+        const mode = viewModes[agentId] || 'all-expanded'; // Default to all-expanded
+
+        if (!message || !message.classList) return;
+
+        const isAI = message.classList.contains('assistant');
+        const isUser = message.classList.contains('user');
+        const isThinking = message.classList.contains('thinking-bubble');
+        const isTool = message.classList.contains('tool-bubble') || message.classList.contains('tool');
+
+        // Reset classes and visibility
+        message.classList.remove('expanded', 'collapsed');
+        message.style.display = '';
+
+        switch (mode) {
+            case 'all-collapsed':
+                // Show all - tools collapsed
+                message.classList.add('collapsed');
+                break;
+
+            case 'all-expanded':
+                // Show all - expand all
+                message.classList.add('expanded');
+                break;
+
+            case 'ai-collapsed':
+                // Show AI only - collapsed tools
+                if (isAI) {
+                    message.classList.add('expanded');
+                } else if (isTool) {
+                    message.classList.add('collapsed');
+                } else if (isUser || isThinking) {
+                    message.style.display = 'none';
+                }
+                break;
+
+            case 'ai-expanded':
+                // Show AI only - expanded tools
+                if (isAI || isTool) {
+                    message.classList.add('expanded');
+                } else if (isUser || isThinking) {
+                    message.style.display = 'none';
+                }
+                break;
+
+            case 'ai-user':
+                // Show AI and user - no tools/no tool results
+                if (isAI || isUser) {
+                    message.classList.add('expanded');
+                } else if (isTool || isThinking) {
+                    message.style.display = 'none';
+                }
+                break;
+        }
+
+        console.log(`📐 [AgentColumn] Applied view mode '${mode}' to new message`, message.className);
+    }
+
+    /**
      * Legacy function - now just calls cycleExpandMode
      * @param {number} agentId - Agent ID
      */
@@ -1719,7 +1789,8 @@ const AgentColumn = (function () {
         cycleExpandMode,
         toggleThinkingToolBubbles,
         toggleViewModeMenu,
-        setViewMode
+        setViewMode,
+        applyViewModeToMessage  // ✅ NEW: Apply view mode to single message
     };
 })();
 

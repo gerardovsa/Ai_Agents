@@ -32,14 +32,20 @@ class EngineeringCADRenderer {
             constraintsInfo: null
         };
 
+        console.log('[EngineeringCAD] Parsing content...');
+
         // Extract single <CAD> block
         const cadMatch = content.match(/<CAD>([\s\S]*?)<\/CAD>/);
         if (cadMatch) {
+            console.log('[EngineeringCAD] Found <CAD> delimiter');
             try {
                 const cadData = JSON.parse(cadMatch[1]);
+                console.log('[EngineeringCAD] JSON parsed successfully');
+                console.log('[EngineeringCAD] Type:', cadData.type);
 
                 // Check if it's constrained engineering CAD
                 if (cadData.type === 'constrained_engineering_cad') {
+                    console.log('✅ [EngineeringCAD] Detected constrained engineering CAD format');
                     // Unpack embedded data
                     result.metadata = {
                         type: cadData.type,
@@ -50,13 +56,23 @@ class EngineeringCADRenderer {
                     result.model3D = cadData.model3D;
                     result.technicalDrawing = cadData.technical_drawing;
                     result.constraintsInfo = cadData.constraints;
+
+                    console.log('[EngineeringCAD] Components found:', {
+                        hasModel3D: !!result.model3D,
+                        hasTechnicalDrawing: !!result.technicalDrawing,
+                        hasConstraints: !!result.constraintsInfo
+                    });
                 } else {
+                    console.log('⚠️ [EngineeringCAD] Regular CAD format (no type field)');
                     // Regular CAD - just 3D model
                     result.model3D = cadData;
                 }
             } catch (e) {
-                console.warn('Failed to parse CAD:', e);
+                console.error('❌ [EngineeringCAD] Failed to parse CAD JSON:', e);
+                console.error('[EngineeringCAD] Content preview:', cadMatch[1].substring(0, 200));
             }
+        } else {
+            console.warn('⚠️ [EngineeringCAD] No <CAD> delimiter found in content');
         }
 
         return result;

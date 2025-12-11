@@ -46,7 +46,7 @@
     },
     {
       "name": "microsoft_calendar_create_event",
-      "short_description": "Create new Outlook calendar event with attendees, location, and optional Teams meeting link",
+      "short_description": "Schedule and create Outlook calendar meeting/event with attendees, location, and optional Teams link",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_create_event', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new calendar event",
       "platform": "microsoft_calendar",
       "category": "basic",

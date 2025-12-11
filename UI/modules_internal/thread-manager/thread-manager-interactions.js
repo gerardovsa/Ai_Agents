@@ -323,6 +323,12 @@ Object.assign(window.ThreadManager, {
 
     /**
      * Handle double-click on thread
+     * 
+     * BEHAVIOR (Dec 12, 2025):
+     * - Thread History sidebar: Just expand/collapse card (do NOT auto-load into Prime)
+     * - Prime/Agent panels: Refresh/reload the thread in place
+     * 
+     * To load a thread from Thread History → Prime, use drag-and-drop instead
      */
     async handleThreadDoubleClick(threadId, currentLocation) {
         console.log(`🖱️ [Interactions] Double-clicked thread ${threadId} at ${currentLocation}`);
@@ -334,17 +340,33 @@ Object.assign(window.ThreadManager, {
             return;
         }
 
-        // Double-click ALWAYS loads in Prime (even from agents)
-        // This is the primary way to load threads when thread history covers Prime drop zone
-        console.log(`📖 [Interactions] Loading thread "${thread.title}" in Prime via double-click`);
-        await this.loadThreadInPrime(threadId);
-        this.closeThreadMenu();
+        // FIX (Dec 12, 2025): Thread History should NOT auto-load into Prime on double-click
+        // Only expand/collapse the card instead - prevents accidental replacements in Prime
+        if (currentLocation === 'thread-history') {
+            console.log(`📋 [Interactions] Thread History double-click - expanding card only (no auto-load)`);
 
-        if (typeof showNotification === 'function') {
-            if (currentLocation === 'prime' || currentLocation === 'prime-loaded') {
+            // Find the card element and expand it
+            const card = document.querySelector(`[data-thread-id="${threadId}"][data-location="thread-history"]`);
+            if (card && typeof ThreadCardExpansion !== 'undefined') {
+                // Create a fake event to pass to toggleCard
+                const fakeEvent = { stopPropagation: () => { }, preventDefault: () => { } };
+                ThreadCardExpansion.toggleCard(fakeEvent, threadId);
+            }
+            return; // Stop here - do NOT load into Prime
+        }
+
+        // For Prime or Agent panels: Refresh the thread
+        if (currentLocation === 'prime' || currentLocation === 'prime-loaded') {
+            console.log(`🔄 [Interactions] Refreshing thread "${thread.title}" in Prime`);
+            await this.loadThreadInPrime(threadId);
+            if (typeof showNotification === 'function') {
                 showNotification('Thread refreshed in Prime', 'success');
-            } else {
-                showNotification(`Thread "${thread.title}" loaded in Prime`, 'success');
+            }
+        } else if (currentLocation && currentLocation.startsWith('agent-')) {
+            console.log(`🔄 [Interactions] Refreshing thread "${thread.title}" in ${currentLocation}`);
+            // Agent threads refresh in their own column (not Prime)
+            if (typeof showNotification === 'function') {
+                showNotification('Thread refreshed', 'success');
             }
         }
     },
@@ -370,14 +392,34 @@ Object.assign(window.ThreadManager, {
                 'Unload Thread?',
                 `Move "${thread.title}" from ${currentLocation} back to Prime?`,
                 async () => {
-                    await this.assignThread(threadId, 'prime-loaded');
+                    // CRITICAL FIX (Dec 12, 2025): Unload to 'prime' NOT 'prime-loaded'
+                    // Unload means remove from agent and return to unassigned pool (prime)
+                    // 'prime-loaded' is reserved for the ONE thread actively loaded in Prime panel
+                    await this.assignThread(threadId, 'prime');
 
-                    // Clear from agent
+                    // Clear from agent - BOTH thread info AND messages
                     if (typeof MultiAgent !== 'undefined') {
                         [1, 2, 3, 4, 5].forEach(agentId => {
                             const loadedThread = MultiAgent.loadedThreads?.[agentId];
                             if (loadedThread && loadedThread.threadId === threadId) {
+                                // Clear thread tracking
                                 MultiAgent.clearAgentThread?.(agentId);
+
+                                // CRITICAL FIX (Dec 12, 2025): Also clear messages container
+                                const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+                                if (messagesContainer) {
+                                    messagesContainer.innerHTML = '';
+                                    console.log(`🧹 [unloadThread] Cleared messages for agent-${agentId}`);
+                                }
+
+                                // Show empty state
+                                if (typeof ThreadManager !== 'undefined' && ThreadManager.renderThreadInfoContainer) {
+                                    const threadInfo = document.getElementById(`thread-info-${agentId}`);
+                                    if (threadInfo) {
+                                        threadInfo.innerHTML = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, null, true);
+                                        console.log(`🧹 [unloadThread] Reset thread info for agent-${agentId}`);
+                                    }
+                                }
                             }
                         });
                     }
@@ -808,15 +850,32 @@ Object.assign(window.ThreadManager, {
     /**
      * Show new chat modal
      */
-    async showNewChatModal(location = 'prime') {
+    async showNewChatModal(location = 'prime', buttonElement = null) {
         console.log(`➕ [Interactions] Opening new chat modal for ${location}`);
 
         const locationName = location === 'prime' ? 'Prime Agent' :
             (location.startsWith('agent-') ? `Agent ${location.split('-')[1]}` : location);
 
+        // Calculate modal position if button element provided
+        let positionStyle = '';
+        let overlayClass = '';
+        if (buttonElement) {
+            const rect = buttonElement.getBoundingClientRect();
+            // Position modal below button with 8px gap
+            const top = rect.bottom + 8;
+            const left = rect.left;
+
+            // Ensure modal stays within viewport
+            const modalWidth = 450;
+            const adjustedLeft = Math.min(left, window.innerWidth - modalWidth - 20);
+
+            positionStyle = `style="top: ${top}px; left: ${adjustedLeft}px;"`;
+            overlayClass = 'positioned';
+        }
+
         const modalHTML = `
-            <div class="modal-overlay" id="newChatModalOverlay" onclick="if(event.target.id === 'newChatModalOverlay') { const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove(); }">
-                <div class="new-chat-modal" onclick="event.stopPropagation()">
+            <div class="modal-overlay ${overlayClass}" id="newChatModalOverlay" onclick="if(event.target.id === 'newChatModalOverlay') { const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove(); }">
+                <div class="new-chat-modal" ${positionStyle} onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h3><i class="fas fa-plus-circle"></i> Start New Chat in ${locationName}</h3>
                         <button class="modal-close" onclick="const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove();">
@@ -829,13 +888,38 @@ Object.assign(window.ThreadManager, {
                                 <label for="threadTitle">Thread Title <span style="color: var(--accent-error);">*</span></label>
                                 <input type="text" id="threadTitle" class="form-control" placeholder="Enter thread title..." required autofocus>
                             </div>
-                            <div class="form-group">
-                                <label for="threadTags">Tags (comma-separated)</label>
-                                <input type="text" id="threadTags" class="form-control" placeholder="e.g., urgent, research, client-work">
+                            <div class="platform-tags-section">
+                                <label>Platform Tags (Select one or more)</label>
+                                <div class="platform-tags-grid">
+                                    <button type="button" class="platform-tag-btn" data-tag="synergy">
+                                        <i class="fas fa-handshake"></i>
+                                        <span>Synergy</span>
+                                    </button>
+                                    <button type="button" class="platform-tag-btn" data-tag="synergy-docs">
+                                        <i class="fas fa-file-alt"></i>
+                                        <span>Synergy Docs</span>
+                                    </button>
+                                    <button type="button" class="platform-tag-btn" data-tag="emails">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>Emails</span>
+                                    </button>
+                                    <button type="button" class="platform-tag-btn" data-tag="automation">
+                                        <i class="fas fa-robot"></i>
+                                        <span>Automation</span>
+                                    </button>
+                                    <button type="button" class="platform-tag-btn" data-tag="workflow">
+                                        <i class="fas fa-project-diagram"></i>
+                                        <span>Workflow</span>
+                                    </button>
+                                    <button type="button" class="platform-tag-btn" data-tag="general">
+                                        <i class="fas fa-comments"></i>
+                                        <span>General</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label for="initialMessage">Initial Message (Optional)</label>
-                                <textarea id="initialMessage" class="form-control" rows="4" placeholder="Start the conversation..."></textarea>
+                                <label for="threadTags">Additional Tags (comma-separated)</label>
+                                <input type="text" id="threadTags" class="form-control" placeholder="e.g., urgent, research, client-work">
                             </div>
                             <div class="modal-actions">
                                 <button type="button" class="btn btn-secondary" onclick="const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove();">
@@ -857,6 +941,15 @@ Object.assign(window.ThreadManager, {
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+        // Setup platform tag button interactions
+        const platformTagBtns = document.querySelectorAll('.platform-tag-btn');
+        platformTagBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                btn.classList.toggle('selected');
+            });
+        });
+
         // Handle form submission
         const form = document.getElementById('newChatForm');
         form.addEventListener('submit', async (e) => {
@@ -864,8 +957,14 @@ Object.assign(window.ThreadManager, {
 
             const title = document.getElementById('threadTitle').value.trim();
             const tagsStr = document.getElementById('threadTags').value.trim();
-            const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
-            const initialMessage = document.getElementById('initialMessage').value.trim();
+
+            // Collect selected platform tags
+            const selectedPlatformTags = Array.from(document.querySelectorAll('.platform-tag-btn.selected'))
+                .map(btn => btn.dataset.tag);
+
+            // Combine platform tags with additional tags
+            const additionalTags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+            const allTags = [...selectedPlatformTags, ...additionalTags];
 
             if (!title) {
                 alert('Please enter a thread title');
@@ -874,18 +973,12 @@ Object.assign(window.ThreadManager, {
 
             try {
                 // Create thread with metadata
-                const newThreadId = await this.createThreadWithMetadata(title, tags, location);
+                const newThreadId = await this.createThreadWithMetadata(title, allTags, location);
 
                 // Close modal
                 const modalOverlay = document.getElementById('newChatModalOverlay');
                 if (modalOverlay) {
                     modalOverlay.remove();
-                }
-
-                // If initial message provided, add it
-                if (initialMessage && typeof this.addMessageToThread === 'function') {
-                    const message = this.createMessage('user', initialMessage);
-                    this.addMessageToThread(message, newThreadId);
                 }
 
                 // Load thread

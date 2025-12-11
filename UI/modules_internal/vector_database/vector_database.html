@@ -33,11 +33,32 @@
             <span class="vector-db-stat-label">Namespaces</span>
         </div>
     </div>
-</div><!-- CONTENT -->
+
+    <!-- TAB NAVIGATION -->
+    <div class="vector-db-tabs">
+        <button class="vector-db-tab active" data-tab="upload" onclick="window.vectorDbSidebar.switchTab('upload')">
+            <i class="fas fa-upload"></i> Upload
+        </button>
+        <button class="vector-db-tab" data-tab="folders" onclick="window.vectorDbSidebar.switchTab('folders')">
+            <i class="fas fa-folder"></i> Folders
+        </button>
+        <button class="vector-db-tab" data-tab="documents" onclick="window.vectorDbSidebar.switchTab('documents')">
+            <i class="fas fa-file-alt"></i> Documents
+        </button>
+        <button class="vector-db-tab" data-tab="search" onclick="window.vectorDbSidebar.switchTab('search')">
+            <i class="fas fa-search"></i> Search
+        </button>
+        <button class="vector-db-tab" data-tab="settings" onclick="window.vectorDbSidebar.switchTab('settings')">
+            <i class="fas fa-cog"></i> Settings
+        </button>
+    </div>
+</div>
+
+<!-- CONTENT -->
 <div class="universal-sidebar-content">
     <!-- CREDENTIAL STATUS BANNER -->
     <div id="credential-status-banner"
-        style="margin: 12px 16px; padding: 12px; background: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 6px; display: none;">
+        style="margin: 0 0 12px 0; padding: 12px; background: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 6px; display: none;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <i class="fas fa-exclamation-triangle" style="color: #F59E0B; font-size: 18px;"></i>
             <div style="flex: 1;">
@@ -45,79 +66,32 @@
                     Vector Database Not Configured
                 </div>
                 <div style="font-size: 12px; color: #92400E; line-height: 1.5;">
-                    Configure Pinecone and embedding provider credentials in Platform Connections to enable vector
-                    database features.
+                    Configure credentials in Settings tab below.
                 </div>
             </div>
         </div>
-        <button
-            onclick="window.parent.loadConnectionsModal ? window.parent.loadConnectionsModal() : (window.loadConnectionsModal ? window.loadConnectionsModal() : alert('Platform Connections not available'))"
+        <button onclick="window.vectorDbSidebar.switchTab('settings')"
             style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #F59E0B; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-            <i class="fas fa-cog"></i> Configure in Platform Connections
+            <i class="fas fa-cog"></i> Open Settings
         </button>
     </div>
 
     <div id="credential-connected-banner"
-        style="margin: 12px 16px; padding: 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 6px; display: none;">
+        style="margin: 0 0 12px 0; padding: 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 6px; display: none;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <i class="fas fa-check-circle" style="color: #059669; font-size: 18px;"></i>
             <div style="flex: 1;">
                 <div style="font-weight: 600; font-size: 13px; color: #065F46; margin-bottom: 4px;">
-                    Connected to Vector Database
+                    <span id="banner-provider-name">Pinecone</span> Connected
                 </div>
-                <div style="font-size: 12px; color: #065F46;">
-                    <div><strong>Pinecone:</strong> <span id="banner-index-name">-</span> (<span
-                            id="banner-environment">-</span>)</div>
-                    <div><strong>Embedding:</strong> <span id="banner-embedding-provider">-</span> - <span
-                            id="banner-embedding-model">-</span></div>
+                <div style="font-size: 11px; color: #065F46;">
+                    <span id="banner-embedding-provider">-</span> / <span id="banner-embedding-model">-</span>
                 </div>
             </div>
         </div>
-        <button
-            onclick="window.parent.loadConnectionsModal ? window.parent.loadConnectionsModal() : (window.loadConnectionsModal ? window.loadConnectionsModal() : alert('Platform Connections not available'))"
-            style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-            <i class="fas fa-cog"></i> Manage Credentials
-        </button>
     </div>
 
-    <!-- PROVIDER SELECTOR -->
-    <div class="vector-db-provider-section">
-        <label class="vector-db-label">
-            <i class="fas fa-database"></i> Vector Database Provider
-        </label>
-        <select id="provider-selector" class="vector-db-select">
-            <option value="pinecone">🌲 Pinecone (Cloud - $70/mo)</option>
-            <option value="voyager">🚀 Voyager (Cloud - Pay-per-use)</option>
-            <option value="pgvector">🐘 pgvector (Supabase - FREE)</option>
-            <option value="qdrant">⚡ Qdrant (Server-based - FREE)</option>
-        </select>
-        <div id="provider-info" class="vector-db-provider-info">
-            <strong>Pinecone:</strong> Cloud-managed, 150ms latency, enterprise-grade
-        </div>
-    </div> <!-- TAB NAVIGATION -->
-    <div class="vector-db-tabs">
-        <button class="vector-db-tab active" data-tab="upload" onclick="window.vectorDbSidebar.switchTab('upload')">
-            <i class="fas fa-upload"></i> Upload
-        </button>
-        <button class="vector-db-tab" data-tab="documents" onclick="window.vectorDbSidebar.switchTab('documents')">
-            <i class="fas fa-file-alt"></i> Documents
-        </button>
-        <button class="vector-db-tab" data-tab="qdrant" onclick="window.vectorDbSidebar.switchTab('qdrant')"
-            style="display: none;">
-            <i class="fas fa-server"></i> Qdrant
-        </button>
-        <button class="vector-db-tab" data-tab="namespaces" onclick="window.vectorDbSidebar.switchTab('namespaces')">
-            <i class="fas fa-folder"></i> Folders
-        </button>
-        <button class="vector-db-tab" data-tab="search" onclick="window.vectorDbSidebar.switchTab('search')">
-            <i class="fas fa-search"></i> Search
-        </button>
-    </div>
-</div>
-
-<!-- CONTENT AREA -->
-<div class="vector-db-sidebar-content">
-    <!-- CREDENTIALS TAB REMOVED - NOW MANAGED VIA PLATFORM CONNECTIONS -->
+    <!-- TAB CONTENT STARTS HERE (All tabs inside universal-sidebar-content) -->
 
     <!-- TAB 0: QDRANT CONFIGURATION (shown when Qdrant is selected) -->
     <div id="qdrant-tab" class="tab-content" style="display: none;">
@@ -298,11 +272,11 @@
                     Drop files here or click to browse
                 </div>
                 <div class="upload-hint">
-                    Supports PDF, TXT, MD, DOCX (Max 10MB per file)
+                    Supports 40+ formats: PDF, Word, Excel, PowerPoint, Markdown, HTML, JSON, CSV, XML, RTF, ODT, Pages, Keynote, EPUB, LaTeX, YAML, and more (Max 10MB per file)
                 </div>
             </div>
 
-            <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.txt,.md,.docx" />
+            <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.txt,.md,.docx,.doc,.rtf,.odt,.html,.htm,.xml,.json,.csv,.tsv,.xlsx,.xls,.pptx,.ppt,.pages,.key,.numbers,.epub,.tex,.latex,.rst,.adoc,.org,.fountain,.yml,.yaml,.toml,.ini,.cfg,.log,.eml,.msg" />
 
             <div id="uploaded-files" style="margin-top: 16px;"></div>
 
@@ -354,12 +328,12 @@
                     <i class="fas fa-folder"></i> Category
                 </label>
                 <select id="upload-category" class="form-input">
-                    <option value="general">📂 General</option>
-                    <option value="legal">⚖️ Legal</option>
-                    <option value="finance">💰 Finance</option>
-                    <option value="marketing">📢 Marketing</option>
-                    <option value="hr">👥 HR</option>
-                    <option value="engineering">⚙️ Engineering</option>
+                    <option value="general"><i class="fas fa-folder"></i> General</option>
+                    <option value="legal"><i class="fas fa-balance-scale"></i> Legal</option>
+                    <option value="finance"><i class="fas fa-dollar-sign"></i> Finance</option>
+                    <option value="marketing"><i class="fas fa-bullhorn"></i> Marketing</option>
+                    <option value="hr"><i class="fas fa-users"></i> HR</option>
+                    <option value="engineering"><i class="fas fa-cog"></i> Engineering</option>
                 </select>
             </div>
 
@@ -441,12 +415,12 @@
                 </label>
                 <select id="search-category" class="form-input">
                     <option value="">All Categories</option>
-                    <option value="legal">⚖️ Legal</option>
-                    <option value="finance">💰 Finance</option>
-                    <option value="marketing">📢 Marketing</option>
-                    <option value="hr">👥 HR</option>
-                    <option value="engineering">⚙️ Engineering</option>
-                    <option value="general">📂 General</option>
+                    <option value="legal"><i class="fas fa-balance-scale"></i> Legal</option>
+                    <option value="finance"><i class="fas fa-dollar-sign"></i> Finance</option>
+                    <option value="marketing"><i class="fas fa-bullhorn"></i> Marketing</option>
+                    <option value="hr"><i class="fas fa-users"></i> HR</option>
+                    <option value="engineering"><i class="fas fa-cog"></i> Engineering</option>
+                    <option value="general"><i class="fas fa-folder"></i> General</option>
                 </select>
             </div>
 
@@ -481,6 +455,136 @@
                     </div>
                     <div class="empty-text">No documents indexed yet</div>
                     <div class="empty-hint">Upload documents to get started</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 6: SETTINGS -->
+    <div id="settings-tab" class="tab-content" style="display: none;">
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-cog"></i>
+                    Vector Database Settings
+                </div>
+            </div>
+
+            <!-- PROVIDER SELECTOR -->
+            <div class="vector-db-provider-section" style="margin-bottom: 24px;">
+                <label class="vector-db-label">
+                    <i class="fas fa-database"></i> Vector Database Provider
+                </label>
+                <div class="provider-selector-wrapper">
+                    <select id="provider-selector" class="vector-db-select">
+                        <option value="pinecone">
+                            <i class="fas fa-cloud"></i> Pinecone
+                        </option>
+                        <option value="voyager">
+                            <i class="fas fa-rocket"></i> Voyager
+                        </option>
+                        <option value="pgvector">
+                            <i class="fas fa-elephant"></i> pgvector
+                        </option>
+                        <option value="qdrant">
+                            <i class="fas fa-bolt"></i> Qdrant
+                        </option>
+                    </select>
+                    <div class="provider-pricing-info">
+                        <i class="fas fa-info-circle provider-info-icon" data-provider="pinecone"></i>
+                        <div class="provider-pricing-tooltip" data-provider="pinecone">
+                            <strong>Pinecone Pricing:</strong><br>
+                            Cloud-managed: $70/mo<br>
+                            <span class="tooltip-details">150ms latency, enterprise-grade</span>
+                        </div>
+                        <div class="provider-pricing-tooltip" data-provider="voyager">
+                            <strong>Voyager Pricing:</strong><br>
+                            Cloud: Pay-per-use<br>
+                            <span class="tooltip-details">Flexible pricing model</span>
+                        </div>
+                        <div class="provider-pricing-tooltip" data-provider="pgvector">
+                            <strong>pgvector Pricing:</strong><br>
+                            Supabase: FREE<br>
+                            <span class="tooltip-details">PostgreSQL extension</span>
+                        </div>
+                        <div class="provider-pricing-tooltip" data-provider="qdrant">
+                            <strong>Qdrant Pricing:</strong><br>
+                            Server-based: FREE<br>
+                            <span class="tooltip-details">Self-hosted option</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="provider-info" class="vector-db-provider-info">
+                    <i class="fas fa-cloud"></i> <strong>Pinecone:</strong> Cloud-managed, 150ms latency,
+                    enterprise-grade
+                </div>
+            </div>
+
+            <!-- QDRANT CONFIGURATION (shown only when Qdrant is selected) -->
+            <div id="qdrant-settings-section" style="display: none; margin-bottom: 24px;">
+                <div class="section-header" style="margin-bottom: 16px;">
+                    <div class="section-title">
+                        <i class="fas fa-bolt"></i> Qdrant Configuration
+                    </div>
+                </div>
+
+                <button onclick="window.vectorDbSidebar.toggleQdrantAdvanced()" class="btn-secondary"
+                    style="width: 100%; margin-bottom: 12px;">
+                    <i class="fas fa-sliders-h"></i> Configure Qdrant Server
+                </button>
+
+                <div id="qdrant-advanced-config" style="display: none;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                        Configure Qdrant server connection. Default: localhost:6333
+                    </p>
+                </div>
+            </div>
+
+            <!-- EMBEDDING CONFIGURATION LINK -->
+            <div
+                style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 8px; margin-bottom: 16px;">
+                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); margin-bottom: 8px;">
+                    <i class="fas fa-key"></i> Credentials & API Keys
+                </div>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">
+                    Vector database and embedding provider credentials are managed through Platform Connections.
+                </p>
+                <button
+                    onclick="window.parent.loadConnectionsModal ? window.parent.loadConnectionsModal() : alert('Platform Connections not available')"
+                    class="btn-primary" style="width: 100%;">
+                    <i class="fas fa-external-link-alt"></i> Open Platform Connections
+                </button>
+            </div>
+
+            <!-- ADVANCED SETTINGS -->
+            <div
+                style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 8px;">
+                <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); margin-bottom: 12px;">
+                    <i class="fas fa-brain"></i> Advanced Features
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-default);">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Hybrid Search</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Dense + Sparse (BM25)</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="hybrid-search-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Multi-Modal
+                            Embeddings</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Image + Text + Audio</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="multi-modal-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
             </div>
         </div>

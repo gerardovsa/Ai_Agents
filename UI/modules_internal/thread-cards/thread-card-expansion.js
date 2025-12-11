@@ -167,9 +167,12 @@ window.ThreadCardExpansion = {
      * - Prime/Prime-Loaded: The #prime-thread-info container
      * - Agent columns: The #thread-info-N container
      * 
-     * CRITICAL FIX (Dec 9, 2025):
+     * CRITICAL FIX (Dec 12, 2025):
      * Check ACTUAL parent container in DOM, NOT data-location attribute!
-     * Thread History cards can have data-location="prime-loaded" but live in .thread-list
+     * Thread History cards can have data-location="prime-loaded" or "agent-1" but physically live in .thread-list
+     * 
+     * BUG FIXED: Previous logic used closest() which would traverse UP and find containers that
+     * the card isn't actually inside. Now we check if card is DIRECTLY CONTAINED within the container.
      * 
      * @param {HTMLElement} card - The thread card element
      * @returns {HTMLElement|null} Element to add .expanded class to
@@ -177,28 +180,40 @@ window.ThreadCardExpansion = {
     getExpandableElement(card) {
         if (!card) return null;
 
-        // Check ACTUAL parent container in DOM hierarchy
-        // Order matters: most specific first (agent/prime), then general (thread-list)
-        const parentThreadList = card.closest('.thread-list');  // Thread History container
-        const parentPrimeContainer = card.closest('#prime-thread-info');  // Prime container
-        const parentAgentContainer = card.closest('[id^="thread-info-"]');  // Agent container (#thread-info-1, etc.)
+        // CRITICAL: Check DIRECT containment, not just closest() match
+        // Order matters: check most specific containers first
 
-        // Agent columns: card is inside #thread-info-N → expand the CONTAINER
-        if (parentAgentContainer) {
-            console.log(`[ThreadCardExpansion] Expandable: ${parentAgentContainer.id} container`);
-            return parentAgentContainer;
-        }
-
-        // Prime: card is inside #prime-thread-info → expand the CONTAINER
-        if (parentPrimeContainer) {
-            console.log(`[ThreadCardExpansion] Expandable: #prime-thread-info container`);
-            return parentPrimeContainer;
-        }
-
-        // Thread History: card is inside .thread-list → expand the CARD ITSELF
-        if (parentThreadList) {
+        // 1. Check if card is inside .thread-list (Thread History sidebar)
+        const parentThreadList = card.closest('.thread-list');
+        if (parentThreadList && parentThreadList.contains(card)) {
+            // Card is in Thread History → expand the CARD ITSELF
             console.log(`[ThreadCardExpansion] Expandable: card itself (in .thread-list)`);
             return card;
+        }
+
+        // 2. Check if card is inside #prime-thread-info (Prime panel)
+        // CRITICAL FIX (Dec 12, 2025): Prime may not have #prime-thread-info container
+        // If card's data-location is 'prime' or 'prime-loaded', expand the card itself
+        const cardLocation = card.dataset.location;
+        if (cardLocation === 'prime' || cardLocation === 'prime-loaded') {
+            const parentPrimeContainer = card.closest('#prime-thread-info');
+            if (parentPrimeContainer && parentPrimeContainer.contains(card)) {
+                // Card is inside #prime-thread-info container → expand container
+                console.log(`[ThreadCardExpansion] Expandable: #prime-thread-info container`);
+                return parentPrimeContainer;
+            } else {
+                // Card has prime location but no container (direct in panel) → expand card itself
+                console.log(`[ThreadCardExpansion] Expandable: card itself (prime location, no container)`);
+                return card;
+            }
+        }
+
+        // 3. Check if card is inside agent column (#thread-info-1, #thread-info-2, etc.)
+        const parentAgentContainer = card.closest('[id^="thread-info-"]');
+        if (parentAgentContainer && parentAgentContainer.contains(card)) {
+            // Card is in Agent column → expand the CONTAINER
+            console.log(`[ThreadCardExpansion] Expandable: ${parentAgentContainer.id} container`);
+            return parentAgentContainer;
         }
 
         // Fallback: expand the card itself

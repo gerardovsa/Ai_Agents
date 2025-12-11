@@ -69,6 +69,30 @@ try:
 except ImportError:
     GOOGLE_DRIVE_AVAILABLE = False
 
+# Document extraction libraries
+try:
+    import PyPDF2
+    PYPDF_AVAILABLE = True
+except ImportError:
+    PYPDF_AVAILABLE = False
+    print("⚠️  PyPDF2 not installed. PDF extraction unavailable.")
+
+try:
+    from docx import Document as DocxDocument
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+    print("⚠️  python-docx not installed. DOCX extraction unavailable.")
+
+try:
+    import openpyxl
+    import csv
+    import pandas as pd
+    SPREADSHEET_AVAILABLE = True
+except ImportError:
+    SPREADSHEET_AVAILABLE = False
+    print("⚠️  openpyxl/pandas not installed. Spreadsheet extraction unavailable.")
+
 
 class VectorDatabaseError(Exception):
     """Custom exception for vector database errors"""
@@ -155,6 +179,127 @@ class VectorDatabaseManager:
             return response.data[0].embedding
         except Exception as e:
             raise VectorDatabaseError(f"Failed to generate embedding: {str(e)}")
+    
+    @staticmethod
+    def _extract_text_from_file(file_path: str) -> str:
+        """
+        Extract text from various file formats including spreadsheets
+        
+        Supported formats:
+        - PDF (.pdf)
+        - Word (.docx, .doc)
+        - Excel (.xlsx, .xls)
+        - CSV (.csv)
+        - TSV (.tsv)
+        - Text (.txt, .md, .json, .xml, .yml, .yaml, etc.)
+        
+        Returns:
+            Extracted text content
+        """
+        import io
+        ext = os.path.splitext(file_path)[1].lower()
+        
+        try:
+            # Text files
+            if ext in ['.txt', '.md', '.json', '.xml', '.html', '.htm', '.yml', '.yaml', 
+                       '.toml', '.ini', '.cfg', '.log', '.rst', '.adoc', '.tex', '.latex']:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read()
+            
+            # PDF files
+            elif ext == '.pdf':
+                if not PYPDF_AVAILABLE:
+                    raise VectorDatabaseError("PyPDF2 not installed. Install: pip install PyPDF2")
+                with open(file_path, 'rb') as f:
+                    reader = PyPDF2.PdfReader(f)
+                    text = []
+                    for page in reader.pages:
+                        text.append(page.extract_text())
+                    return '\n\n'.join(text)
+            
+            # Word documents
+            elif ext in ['.docx', '.doc']:
+                if not DOCX_AVAILABLE:
+                    raise VectorDatabaseError("python-docx not installed. Install: pip install python-docx")
+                doc = DocxDocument(file_path)
+                return '\n\n'.join([para.text for para in doc.paragraphs if para.text.strip()])
+            
+            # Excel files (.xlsx, .xls)
+            elif ext in ['.xlsx', '.xls']:
+                if not SPREADSHEET_AVAILABLE:
+                    raise VectorDatabaseError("openpyxl/pandas not installed. Install: pip install openpyxl pandas")
+                
+                # Use pandas for comprehensive extraction
+                excel_file = pd.ExcelFile(file_path)
+                sheets_text = []
+                
+                for sheet_name in excel_file.sheet_names:
+                    df = pd.read_excel(excel_file, sheet_name=sheet_name)
+                    
+                    # Convert dataframe to readable text format
+                    sheet_text = [f"# Sheet: {sheet_name}\n"]
+                    
+                    # Add column headers
+                    headers = ' | '.join(str(col) for col in df.columns)
+                    sheet_text.append(headers)
+                    sheet_text.append('-' * len(headers))
+                    
+                    # Add rows
+                    for _, row in df.iterrows():
+                        row_text = ' | '.join(str(val) if pd.notna(val) else '' for val in row)
+                        sheet_text.append(row_text)
+                    
+                    sheets_text.append('\n'.join(sheet_text))
+                
+                return '\n\n'.join(sheets_text)
+            
+            # CSV files
+            elif ext == '.csv':
+                if not SPREADSHEET_AVAILABLE:
+                    # Fallback to simple text reading
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        return f.read()
+                
+                # Use pandas for better handling
+                df = pd.read_csv(file_path, encoding='utf-8', errors='ignore')
+                text_lines = []
+                
+                # Add headers
+                headers = ' | '.join(str(col) for col in df.columns)
+                text_lines.append(headers)
+                text_lines.append('-' * len(headers))
+                
+                # Add rows
+                for _, row in df.iterrows():
+                    row_text = ' | '.join(str(val) if pd.notna(val) else '' for val in row)
+                    text_lines.append(row_text)
+                
+                return '\n'.join(text_lines)
+            
+            # TSV files
+            elif ext == '.tsv':
+                if not SPREADSHEET_AVAILABLE:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        return f.read()
+                
+                df = pd.read_csv(file_path, sep='\t', encoding='utf-8', errors='ignore')
+                text_lines = []
+                
+                headers = ' | '.join(str(col) for col in df.columns)
+                text_lines.append(headers)
+                text_lines.append('-' * len(headers))
+                
+                for _, row in df.iterrows():
+                    row_text = ' | '.join(str(val) if pd.notna(val) else '' for val in row)
+                    text_lines.append(row_text)
+                
+                return '\n'.join(text_lines)
+            
+            else:
+                raise VectorDatabaseError(f"Unsupported file format: {ext}")
+        
+        except Exception as e:
+            raise VectorDatabaseError(f"Text extraction failed for {ext}: {str(e)}")
     
     def search(
         self,

@@ -12,11 +12,12 @@
 class SynergyPopupModal {
     constructor() {
         this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
-        this.renderer = new window.SynergySidebarRenderer();
+        // Use V2 renderer for consistency with sidebar and dashboard
+        this.renderer = new window.SynergySidebarRendererV2();
         this.currentSessionId = null;
         this.isEditMode = false;
         this.init();
-        console.log('[SYNERGY POPUP] Module loaded');
+        console.log('[SYNERGY POPUP] Module loaded with V2 renderer');
     }
 
     /**
@@ -81,12 +82,12 @@ class SynergyPopupModal {
             if (e.target.closest('button')) return;
 
             isDragging = true;
-            
+
             // Calculate offset from mouse to container top-left
             const rect = container.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
-            
+
             header.style.cursor = 'grabbing';
             e.preventDefault();
         });
@@ -95,7 +96,7 @@ class SynergyPopupModal {
             if (!isDragging) return;
 
             e.preventDefault();
-            
+
             // Calculate new position (mouse position - offset)
             const newLeft = e.clientX - offsetX;
             const newTop = e.clientY - offsetY;
@@ -259,7 +260,7 @@ class SynergyPopupModal {
 
             // Render thread info cards using ThreadCardTemplates
             if (typeof ThreadCardTemplates !== 'undefined' && typeof ThreadCardTemplates.compactCard === 'function') {
-                container.innerHTML = fullThreads.map(thread => 
+                container.innerHTML = fullThreads.map(thread =>
                     ThreadCardTemplates.compactCard(thread, 'synergy')
                 ).join('');
             } else {

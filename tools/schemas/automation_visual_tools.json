@@ -4,6 +4,7 @@
   "tools": [
     {
       "name": "automation_parse_visual_flow",
+      "short_description": "Parse visual automation JSON to interpret workflow logic and suggest execution sequence",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nParse visual automation JSON and interpret user intent. Analyzes shapes, connections, colors, positions to understand workflow logic. Returns AI interpretation with suggested tools and execution sequence.",
       "platform": "automation_visual",
       "category": "smart",
@@ -65,6 +66,7 @@
     },
     {
       "name": "automation_create_refined_version",
+      "short_description": "AI-enhance workflow with visual improvements",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nGenerate refined visual automation with AI improvements. Takes user's rough workflow, adds proper shapes/colors/connections, fills in missing steps, and returns enhanced version ready for activation.",
       "platform": "automation_visual",
       "category": "smart",
@@ -132,6 +134,7 @@
     },
     {
       "name": "automation_create_refined_version",
+      "short_description": "AI-enhance workflow with visual improvements",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nGenerate refined visual automation with AI improvements. Takes user's rough workflow, adds proper shapes/colors/connections, fills in missing steps, and returns enhanced version ready for activation.",
       "platform": "automation_visual",
       "category": "smart",
@@ -190,6 +193,7 @@
     },
     {
       "name": "automation_save",
+      "short_description": "Save visual automation to database with flow JSON, execution prompt, tools sequence",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSave visual automation to database. Stores visual flow JSON, execution prompt, tools sequence, and metadata. Returns automation ID for later loading.",
       "platform": "automation_visual",
       "parameters": {
@@ -241,6 +245,7 @@
     },
     {
       "name": "automation_list",
+      "short_description": "List saved automations with filters for active/scheduled status, returns metadata",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList user's saved automations with optional filters. Returns metadata for all automations without full visual flow JSON.",
       "platform": "automation_visual",
       "parameters": {
@@ -269,6 +274,7 @@
     },
     {
       "name": "automation_load",
+      "short_description": "Load complete automation including visual flow JSON for canvas or AI analysis",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nLoad full automation details including visual flow JSON. Used to restore automation on canvas or for AI analysis.",
       "platform": "automation_visual",
       "parameters": {
@@ -290,6 +296,7 @@
     },
     {
       "name": "automation_activate_schedule",
+      "short_description": "Activate automation on scheduler with cron/datetime trigger for autonomous execution",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nActivate automation on scheduler with cron schedule or datetime trigger. Creates scheduled task that executes automation autonomously at specified times.",
       "platform": "automation_visual",
       "parameters": {
@@ -346,6 +353,7 @@
     },
     {
       "name": "automation_deactivate",
+      "short_description": "Deactivate scheduled automation, remove from scheduler, keep in database for reactivation",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDeactivate scheduled automation. Removes from scheduler but keeps in database for later reactivation.",
       "platform": "automation_visual",
       "parameters": {
@@ -367,6 +375,7 @@
     },
     {
       "name": "automation_get_execution_history",
+      "short_description": "Get automation execution history with results, errors, agent threads, tool usage",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet history of automation executions with results, errors, and agent conversation threads. Shows what happened during each autonomous execution.",
       "platform": "automation_visual",
       "parameters": {
@@ -393,6 +402,7 @@
     },
     {
       "name": "automation_delete",
+      "short_description": "Permanently delete automation from database, deactivate scheduled tasks (cannot undo)",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete automation from database. Also deactivates any scheduled tasks. This is permanent and cannot be undone.",
       "platform": "automation_visual",
       "parameters": {
@@ -414,6 +424,7 @@
     },
     {
       "name": "automation_export_to_canvas",
+      "short_description": "Export automation as visual JSON compatible with frontend canvas for drag-and-drop",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport automation as visual JSON for canvas rendering. Returns format compatible with frontend canvas for drag-and-drop display.",
       "platform": "automation_visual",
       "parameters": {

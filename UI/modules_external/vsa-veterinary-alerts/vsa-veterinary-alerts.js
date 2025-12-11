@@ -535,6 +535,17 @@ const VSAVeterinaryAlerts = {
                 // Get corresponding call data for client/staff info
                 const call = this.state.veterinaryCalls.find(c => c.call_id === alertData.call_id);
 
+                // Debug logging for first alert to check field names
+                if (this.state.alerts.length === 0 && call) {
+                    this.log.info('Sample call data fields:', {
+                        call_id: call.call_id,
+                        staffname_field: call.key_staffname,
+                        firstname_field: call.key_otherspeaker_firstname,
+                        lastname_field: call.key_otherspeaker_lastname,
+                        all_keys: Object.keys(call).filter(k => k.includes('staff') || k.includes('speaker') || k.includes('name'))
+                    });
+                }
+
                 // Process each slot (1-3) if it has an alert
                 for (let slot = 1; slot <= 3; slot++) {
                     const alertCode = alertData[`alert_${slot}_code`];
@@ -787,17 +798,56 @@ const VSAVeterinaryAlerts = {
     // ==================== AUTO REFRESH ====================
 
     startAutoRefresh() {
-        // Refresh every 60 seconds
+        // Refresh every 5 minutes (300 seconds) to avoid disrupting user
         this.state.refreshInterval = setInterval(() => {
             this.log.info('Auto-refreshing alerts...');
             this.refreshData();
-        }, 60000);
+        }, 300000); // 5 minutes instead of 60 seconds
     },
 
     async refreshData() {
         try {
+            // Save expanded state before refresh
+            const expandedCallIds = [];
+            const expandedTranscripts = [];
+
+            document.querySelectorAll('.vsa-expander-content[aria-hidden="false"]').forEach(el => {
+                const callId = el.getAttribute('data-call-id');
+                if (callId) expandedCallIds.push(callId);
+            });
+
+            document.querySelectorAll('.vsa-transcript-content[aria-hidden="false"]').forEach(el => {
+                const id = el.id;
+                if (id) expandedTranscripts.push(id);
+            });
+
             await this.loadAllData();
             this.renderDashboard();
+
+            // Restore expanded state after a short delay for DOM rendering
+            setTimeout(() => {
+                expandedCallIds.forEach(callId => {
+                    const expander = document.querySelector(`[data-call-id="${callId}"].vsa-expander-content`);
+                    const toggle = document.querySelector(`[data-expander][aria-controls="${expander?.id}"]`);
+                    if (expander && toggle) {
+                        expander.style.display = 'block';
+                        expander.setAttribute('aria-hidden', 'false');
+                        toggle.setAttribute('aria-expanded', 'true');
+                        toggle.querySelector('i').classList.replace('fa-chevron-down', 'fa-chevron-up');
+                    }
+                });
+
+                expandedTranscripts.forEach(transcriptId => {
+                    const transcript = document.getElementById(transcriptId);
+                    const toggle = document.querySelector(`[aria-controls="${transcriptId}"]`);
+                    if (transcript && toggle) {
+                        transcript.style.display = 'block';
+                        transcript.setAttribute('aria-hidden', 'false');
+                        toggle.setAttribute('aria-expanded', 'true');
+                        toggle.querySelector('.vsa-toggle-icon')?.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                    }
+                });
+            }, 100);
         } catch (error) {
             this.log.error('Failed to refresh data:', error);
         }
@@ -1040,13 +1090,13 @@ const VSAVeterinaryAlerts = {
             e.stopPropagation();
             const button = e.currentTarget;
             const callId = button.getAttribute('data-call-id');
-            
+
             if (!callId) {
                 this.log.error('No call ID found for coaching generation');
                 alert('Error: No call ID found');
                 return;
             }
-            
+
             this.generateCoaching(callId, button);
         });
 
@@ -1055,12 +1105,12 @@ const VSAVeterinaryAlerts = {
             e.stopPropagation();
             const button = e.currentTarget;
             const callId = button.getAttribute('data-call-id');
-            
+
             if (!callId) {
                 this.log.error('No call ID found for coaching view');
                 return;
             }
-            
+
             this.viewCoaching(callId);
         });
 
@@ -1069,12 +1119,12 @@ const VSAVeterinaryAlerts = {
             e.stopPropagation();
             const button = e.currentTarget;
             const callId = button.getAttribute('data-call-id');
-            
+
             if (!callId) {
                 this.log.error('No call ID found for coaching deletion');
                 return;
             }
-            
+
             if (confirm('Are you sure you want to delete this coaching document?')) {
                 this.deleteCoaching(callId);
             }
@@ -1609,7 +1659,7 @@ const VSAVeterinaryAlerts = {
 
     async generateCoaching(callId, button) {
         const contentElement = document.getElementById(`coaching-content-${callId}`);
-        
+
         if (!contentElement) {
             this.log.error('Coaching content element not found');
             return;
@@ -1657,7 +1707,7 @@ const VSAVeterinaryAlerts = {
 
         } catch (error) {
             this.log.error('Failed to generate coaching:', error);
-            
+
             // Show error message
             contentElement.innerHTML = `
                 <div class="vsa-coaching-error">
@@ -1677,7 +1727,7 @@ const VSAVeterinaryAlerts = {
 
     displayCoaching(callId, coachingContent, generatedDate) {
         const contentElement = document.getElementById(`coaching-content-${callId}`);
-        
+
         if (!contentElement) {
             this.log.error('Coaching content element not found');
             return;

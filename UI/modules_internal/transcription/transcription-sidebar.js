@@ -610,6 +610,174 @@ class TranscriptionSidebarController {
     }
 
     /**
+     * Switch between tabs
+     * @param {string} tabName - Tab name ('recording', 'upload', 'tts', 'transcripts', 'settings')
+     */
+    switchTab(tabName) {
+        console.log(`[TRANSCRIPTION SIDEBAR] Switching to tab: ${tabName}`);
+
+        // Remove active class from all tabs and tab contents
+        document.querySelectorAll('.transcription-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.transcription-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        // Add active class to clicked tab and corresponding content
+        const activeTab = document.querySelector(`.transcription-tab[data-tab="${tabName}"]`);
+        const activeContent = document.getElementById(`${tabName}-tab`);
+
+        if (activeTab) {
+            activeTab.classList.add('active');
+        } else {
+            console.warn(`[TRANSCRIPTION SIDEBAR] Tab button not found: ${tabName}`);
+        }
+
+        if (activeContent) {
+            activeContent.classList.add('active');
+        } else {
+            console.warn(`[TRANSCRIPTION SIDEBAR] Tab content not found: ${tabName}-tab`);
+        }
+    }
+
+    /**
+     * Toggle recording on/off
+     */
+    async toggleRecording() {
+        if (this.sharedState.isRecording) {
+            // Stop recording
+            await this.sharedState.stopRecording();
+        } else {
+            // Start recording
+            await this.sharedState.startRecording('sidebar');
+        }
+    }
+
+    /**
+     * Toggle pause/resume recording
+     */
+    togglePause() {
+        if (!this.sharedState.isRecording) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Not recording, cannot pause');
+            return;
+        }
+
+        this.isPaused = !this.isPaused;
+        const pauseBtn = document.getElementById('transcription-pause-btn');
+        
+        if (this.isPaused) {
+            // Pause audio recorder
+            if (this.sharedState.audioRecorder && this.sharedState.audioRecorder.state === 'recording') {
+                this.sharedState.audioRecorder.pause();
+            }
+            
+            // Update button
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                pauseBtn.title = 'Resume Recording';
+            }
+            
+            console.log('[TRANSCRIPTION SIDEBAR] Recording paused');
+        } else {
+            // Resume audio recorder
+            if (this.sharedState.audioRecorder && this.sharedState.audioRecorder.state === 'paused') {
+                this.sharedState.audioRecorder.resume();
+            }
+            
+            // Update button
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                pauseBtn.title = 'Pause Recording';
+            }
+            
+            console.log('[TRANSCRIPTION SIDEBAR] Recording resumed');
+        }
+    }
+
+    /**
+     * Delete current recording without saving
+     */
+    async deleteCurrent() {
+        if (!this.sharedState.isRecording) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Not recording, nothing to delete');
+            return;
+        }
+
+        if (confirm('Delete current recording without saving?')) {
+            this.shouldSaveOnStop = false;
+            await this.sharedState.stopRecording();
+            this.shouldSaveOnStop = true; // Reset for next recording
+            
+            // Clear live transcript display
+            const liveDisplay = document.getElementById('transcription-live-display');
+            if (liveDisplay) {
+                liveDisplay.innerHTML = `
+                    <div class="transcription-placeholder">
+                        <i class="fas fa-microphone-slash" style="font-size: 48px; color: #6e7681; margin-bottom: 12px;"></i>
+                        <p style="color: #8b949e; text-align: center;">Recording deleted. Click "Start Recording" to begin again.</p>
+                    </div>
+                `;
+            }
+            
+            console.log('[TRANSCRIPTION SIDEBAR] Recording deleted');
+        }
+    }
+
+    /**
+     * Toggle audio section collapse/expand
+     */
+    toggleAudioSection() {
+        const content = document.getElementById('audio-section-content');
+        const icon = document.getElementById('audio-section-toggle');
+        
+        if (content && icon) {
+            const isCollapsed = content.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                content.classList.remove('collapsed');
+                icon.classList.add('rotated');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('rotated');
+            }
+        }
+    }
+
+    /**
+     * Select audio source (system or microphone)
+     * @param {string} source - 'system' or 'microphone'
+     */
+    async selectAudioSource(source) {
+        console.log(`[TRANSCRIPTION SIDEBAR] Selecting audio source: ${source}`);
+        
+        // Update button states
+        const systemBtn = document.getElementById('system-audio-btn');
+        const micBtn = document.getElementById('microphone-btn');
+        
+        if (systemBtn && micBtn) {
+            systemBtn.classList.remove('active');
+            micBtn.classList.remove('active');
+            
+            if (source === 'system' && systemBtn) {
+                systemBtn.classList.add('active');
+            } else if (source === 'microphone' && micBtn) {
+                micBtn.classList.add('active');
+            }
+        }
+        
+        // If currently previewing or recording, restart with new source
+        if (this.sharedState.previewStream || this.sharedState.isRecording) {
+            // Stop current preview
+            this.sharedState.stopAudioPreview();
+            
+            // Restart preview with selected source
+            // Note: Browser may show permission dialog again
+            await this.sharedState.startAudioPreview();
+        }
+    }
+
+    /**
      * Setup drag-and-drop drop zones for AI Prime and agent columns
      */
     setupDropZones() {

@@ -123,7 +123,7 @@ window.VectorDatabaseModule = {
     async onOpen(utilities) {
         Object.assign(this, utilities);
         this.log.info('[VECTOR DB] Sidebar opened');
-        
+
         // Refresh data when sidebar opens
         await this.refresh();
     },
@@ -154,7 +154,12 @@ window.VectorDatabaseModule = {
         // File upload zone click
         this.dom.on(this.container, 'click', '#upload-zone', (e) => {
             if (e.target.id !== 'file-input') {
-                document.getElementById('file-input')?.click();
+                const fileInput = this.container.querySelector('#file-input');
+                if (fileInput) {
+                    fileInput.click();
+                } else {
+                    this.log.error('[VECTOR DB] File input not found');
+                }
             }
         });
 
@@ -296,7 +301,7 @@ window.VectorDatabaseModule = {
 
             if (response.success && response.credentials) {
                 const creds = response.credentials[provider];
-                
+
                 if (creds) {
                     const indexInput = this.container.querySelector('#index-name');
                     const envInput = this.container.querySelector('#environment');
@@ -335,27 +340,27 @@ window.VectorDatabaseModule = {
         try {
             const provider = this.state.selectedProvider;
             this.log.info(`[VECTOR DB] Testing ${provider} connection...`);
-            
+
             const response = await this.api.get(
                 `${this.state.API_BASE_URL}/api/vector-db/credentials/status?provider=${provider}`
             );
 
             if (response.success && response.connected) {
                 this.state.isConnected = true;
-                
+
                 // Update stats if provider returned them
                 if (response.stats) {
                     this.state.stats.vectors = response.stats.total_vectors || 0;
                     this.state.stats.namespaces = response.stats.namespaces || 0;
                     this.updateStatsUI();
                 }
-                
+
                 this.showConnectedBanner({
                     index_name: response.index_name,
                     environment: response.environment,
                     provider: provider
                 });
-                
+
                 this.log.info(`[VECTOR DB] ${provider} connected successfully`);
             } else {
                 this.state.isConnected = false;
@@ -576,7 +581,20 @@ window.VectorDatabaseModule = {
 
     handleFileSelect(files) {
         const maxSize = 10 * 1024 * 1024; // 10MB
-        const allowedTypes = ['.pdf', '.txt', '.md', '.docx'];
+        const allowedTypes = [
+            // Documents
+            '.pdf', '.txt', '.md', '.docx', '.doc', '.rtf', '.odt',
+            // Web & Markup
+            '.html', '.htm', '.xml', '.json', '.csv', '.tsv',
+            // Office
+            '.xlsx', '.xls', '.pptx', '.ppt', '.pages', '.key', '.numbers',
+            // Publishing
+            '.epub', '.tex', '.latex', '.rst', '.adoc', '.org', '.fountain',
+            // Config & Data
+            '.yml', '.yaml', '.toml', '.ini', '.cfg', '.log',
+            // Email
+            '.eml', '.msg'
+        ];
 
         files.forEach(file => {
             if (file.size > maxSize) {
@@ -805,7 +823,7 @@ window.VectorDatabaseModule = {
         card.style.cssText = 'padding: 12px; margin-bottom: 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px;';
         card.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="font-size: 24px;">📂</div>
+                <div style="font-size: 24px; color: var(--accent-primary);"><i class="fas fa-folder"></i></div>
                 <div style="flex: 1;">
                     <div style="font-weight: 600; font-size: 14px; color: #1F2937;">${this.escapeHtml(ns.display_name)}</div>
                     <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">
@@ -840,7 +858,7 @@ window.VectorDatabaseModule = {
         namespaces.forEach(ns => {
             const option = document.createElement('option');
             option.value = ns.name;
-            option.textContent = `📂 ${ns.display_name} (${ns.vector_count || 0})`;
+            option.innerHTML = `<i class="fas fa-folder"></i> ${ns.display_name} (${ns.vector_count || 0})`;
             select.appendChild(option);
         });
     },
@@ -956,7 +974,7 @@ window.VectorDatabaseModule = {
         matches.forEach((match, index) => {
             const resultCard = document.createElement('div');
             resultCard.style.cssText = 'padding: 12px; margin-bottom: 12px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px;';
-            
+
             const metadata = match.metadata || {};
             const score = (match.score * 100).toFixed(1);
             const text = metadata.text || 'No text available';
@@ -1082,7 +1100,9 @@ window.VectorDatabaseModule = {
             return;
         }
 
-        this.state.currentTab = tabName;
+        // Map folders to namespaces for compatibility
+        const actualTabName = tabName === 'folders' ? 'namespaces' : tabName;
+        this.state.currentTab = actualTabName;
 
         // Update tab buttons
         const tabs = container.querySelectorAll('.vector-db-tab');
@@ -1099,7 +1119,11 @@ window.VectorDatabaseModule = {
             content.style.display = 'none';
         });
 
-        const activeContent = container.querySelector(`#${tabName}-tab`);
+        // Find tab content (try both namespaces-tab and folders-tab)
+        let activeContent = container.querySelector(`#${tabName}-tab`);
+        if (!activeContent && tabName === 'folders') {
+            activeContent = container.querySelector(`#namespaces-tab`);
+        }
         if (activeContent) {
             activeContent.style.display = 'block';
         }
@@ -1107,14 +1131,41 @@ window.VectorDatabaseModule = {
         // Load data for specific tabs
         if (tabName === 'documents') {
             this.loadDocuments();
-        } else if (tabName === 'namespaces') {
+        } else if (tabName === 'namespaces' || tabName === 'folders') {
             this.loadNamespaces();
         } else if (tabName === 'search') {
             // Pre-load namespace options for search
             this.loadNamespaces();
+        } else if (tabName === 'settings') {
+            // Show/hide Qdrant settings based on selected provider
+            this.updateSettingsView();
         }
 
         this.log.info(`[VECTOR DB] Switched to ${tabName} tab`);
+    },
+
+    updateSettingsView() {
+        const provider = this.state.selectedProvider;
+        const qdrantSection = this.container.querySelector('#qdrant-settings-section');
+        if (qdrantSection) {
+            qdrantSection.style.display = provider === 'qdrant' ? 'block' : 'none';
+        }
+    },
+
+    toggleQdrantAdvanced() {
+        const advancedConfig = this.container.querySelector('#qdrant-advanced-config');
+        if (advancedConfig) {
+            const isHidden = advancedConfig.style.display === 'none' || !advancedConfig.style.display;
+            advancedConfig.style.display = isHidden ? 'block' : 'none';
+
+            // If showing, load the full Qdrant tab content into it
+            if (isHidden) {
+                const qdrantTab = this.container.querySelector('#qdrant-tab');
+                if (qdrantTab) {
+                    advancedConfig.innerHTML = qdrantTab.innerHTML;
+                }
+            }
+        }
     },
 
     // ==================== QDRANT PROVIDER ====================
@@ -1124,15 +1175,25 @@ window.VectorDatabaseModule = {
         this.state.selectedProvider = provider;
         this.storage.set('selectedProvider', provider);
 
-        // Update provider info
+        // Update provider info with Font Awesome icons
         const infoEl = this.container.querySelector('#provider-info');
         const providerInfoMap = {
-            'pinecone': '🌲 <strong>Pinecone</strong> - Cloud hosted, $70/mo, 150ms latency',
-            'qdrant': '⚡ <strong>Qdrant</strong> - FREE self-hosted, 1-5ms latency, unlimited storage',
-            'voyager': '🚀 <strong>Voyager</strong> - Pay-per-use, 120ms latency',
-            'pgvector': '🐘 <strong>pgvector</strong> - FREE Supabase, 20ms latency'
+            'pinecone': '<i class="fas fa-cloud"></i> <strong>Pinecone</strong> - Cloud hosted, $70/mo, 150ms latency',
+            'qdrant': '<i class="fas fa-bolt"></i> <strong>Qdrant</strong> - FREE self-hosted, 1-5ms latency, unlimited storage',
+            'voyager': '<i class="fas fa-rocket"></i> <strong>Voyager</strong> - Pay-per-use, 120ms latency',
+            'pgvector': '<i class="fas fa-elephant"></i> <strong>pgvector</strong> - FREE Supabase, 20ms latency'
         };
         if (infoEl) infoEl.innerHTML = providerInfoMap[provider] || '';
+
+        // Update tooltip visibility based on selected provider
+        const allTooltips = this.container.querySelectorAll('.provider-pricing-tooltip');
+        allTooltips.forEach(tooltip => {
+            if (tooltip.dataset.provider === provider) {
+                tooltip.classList.add('active-provider');
+            } else {
+                tooltip.classList.remove('active-provider');
+            }
+        });
 
         // Show/hide Qdrant configuration tab
         const qdrantTab = this.container.querySelector('.tab-btn[data-tab="qdrant-config"]');
@@ -1146,13 +1207,16 @@ window.VectorDatabaseModule = {
         }
 
         this.log.info(`[VECTOR DB] Provider changed to: ${provider}`);
-        
+
+        // Update settings view if on settings tab
+        if (this.state.currentTab === 'settings') {
+            this.updateSettingsView();
+        }
+
         // Reload credentials for new provider
         this.loadCredentials();
         this.checkConnectionStatus();
-    },
-
-    onQdrantDeploymentTypeChange(event) {
+    }, onQdrantDeploymentTypeChange(event) {
         const deploymentType = event.target.value;
         this.state.qdrantDeploymentType = deploymentType;
         this.storage.set('qdrantDeploymentType', deploymentType);

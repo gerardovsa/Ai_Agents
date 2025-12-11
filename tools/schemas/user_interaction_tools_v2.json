@@ -4,6 +4,7 @@
   "tools": [
     {
       "name": "request_user_interaction",
+      "short_description": "Unified interaction tool - confirmation/choice/input/control in one function",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nUNIFIED user interaction tool - handles all interaction types in ONE function.\n\nMODES:\n- 'confirmation': Yes/No with cost/risk transparency\n- 'choice': Multiple options (single or multi-select)\n- 'input': Free-form text/number input with optional suggestions\n- 'control': Pause/Stop/Explain/Continue buttons for long operations\n\nBUTTON BEHAVIORS:\n- 'submit': Click button → send immediately to AI\n- 'insert': Click button → populate input field (user can edit before sending)\n\nCONTROL BUTTONS (NEW!):\n- Pause: AI stops, shows options (Continue/Modify/Explain)\n- Stop: AI stops, shows progress with resource links\n- Explain: AI provides detailed update with links to files/URLs\n- Continue: AI resumes from pause\n\nUSE THIS INSTEAD OF:\n- request_user_confirmation() → mode='confirmation'\n- request_user_choice() → mode='choice'\n- request_user_input() → mode='input'\n\nEXAMPLE USAGE:\n- Confirmation: request_user_interaction(message='Read 3 PDFs?', mode='confirmation', level='high')\n- Choice: request_user_interaction(message='Which thread?', mode='choice', options=[...])\n- Control: request_user_interaction(message='Processing...', mode='control', control_type='pause')",
       "platform": "user_interaction",
       "category": "interaction",
@@ -323,6 +324,7 @@
     },
     {
       "name": "inform_user",
+      "short_description": "Show non-blocking status message - info/success/warning/error levels",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nInform user of something important WITHOUT pausing conversation (non-blocking).\n\nUSE THIS for:\n- Status updates ('Found 5 emails, analyzing most recent...')\n- Warnings ('API rate limit approaching')\n- Success messages ('Email sent successfully')\n- Progress updates ('Processing file 3 of 10...')\n\nConversation CONTINUES automatically.",
       "platform": "user_interaction",
       "category": "interaction",
@@ -371,6 +373,7 @@
     },
     {
       "name": "suggest_next_actions",
+      "short_description": "Suggest follow-up actions after task - helpful next steps for user",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSuggest follow-up actions after completing a task.\n\nUSE THIS at end of operations:\n- After analyzing email: [Reply] [Schedule Meeting] [Create Task]\n- After generating report: [Download] [Share] [Schedule Next]\n- After search: [Refine Search] [Export Results] [Save Query]\n\nProvides helpful next steps.",
       "platform": "user_interaction",
       "category": "interaction",

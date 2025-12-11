@@ -54,7 +54,7 @@
     },
     {
       "name": "microsoft_forms_create_form",
-      "short_description": "Create new Microsoft Form with title and description",
+      "short_description": "Create feedback form or survey: new Microsoft Form for collecting responses, surveys, questionnaires",
       "tier": 3,
       "category": "Form Management",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_forms_create_form', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate new form",

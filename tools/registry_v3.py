@@ -72,7 +72,7 @@ class RegistryV3:
         logger.info(f"[OK] Registry V3 initialized: {len(self.tools)} tools loaded")
 
     def _load_schemas(self) -> None:
-        """Load schemas from tools/schemas/ with UTF-8 encoding"""
+        """Load schemas from tools/schemas/ with UTF-8 encoding and dynamic value injection"""
         schemas_dir = self.tools_dir / "schemas"
         
         # CRITICAL SECURITY: Exclude email sending tools from loading
@@ -92,11 +92,24 @@ class RegistryV3:
         schema_files = list(schemas_dir.glob("*.json"))
         logger.info(f"[REGISTRY_V3] Loading {len(schema_files)} schemas from {schemas_dir}")
         
+        # Import schema processor for dynamic value injection
+        try:
+            from shared.schema_processor import process_schema
+            use_dynamic_injection = True
+            logger.info("[REGISTRY_V3] Dynamic schema injection enabled")
+        except ImportError:
+            logger.warning("[REGISTRY_V3] schema_processor not found - dynamic injection disabled")
+            use_dynamic_injection = False
+        
         for schema_file in schema_files:
             try:
                 # Use UTF-8 with error handling for problematic files
                 with open(schema_file, 'r', encoding='utf-8', errors='replace') as f:
                     schema_data = json.load(f)
+                
+                # Process schema to inject dynamic values ({{DYNAMIC:...}} placeholders)
+                if use_dynamic_injection:
+                    schema_data = process_schema(schema_data)
                 
                 # Get top-level platform field (if present)
                 schema_platform = schema_data.get("platform")
@@ -130,7 +143,8 @@ class RegistryV3:
             except Exception as e:
                 logger.warning(f"Failed to load schema {schema_file.name}: {e}")
         
-        logger.info(f"[SCHEMAS] Loaded {len(self.tools)} tool definitions")
+        logger.info(f"[SCHEMAS] Loaded {len(self.tools)} tool definitions with dynamic injection")
+
 
     def _load_implementations(self) -> None:
         """

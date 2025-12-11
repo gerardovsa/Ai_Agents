@@ -14,8 +14,7 @@ def test_semantic_search():
     print("INITIALIZING INTELLIGENT TOOL DISCOVERY")
     print("="*80)
     
-    registry = RegistryV3()
-    registry.load_all_schemas()
+    registry = RegistryV3()  # Auto-loads schemas in __init__
     suggester = IntelligentToolSuggestion(registry)
     
     # Test queries covering different categories
@@ -84,22 +83,23 @@ def test_semantic_search():
         expected_kw = test["expected_keywords"]
         
         print(f"\n{'='*80}")
+        print(f"\n{'='*80}")
         print(f"TEST {i}/{len(test_cases)}: {query}")
         print(f"Expected: {expected_cat} tools with keywords {expected_kw}")
         print('='*80)
         
-        # Get suggestions
-        results = suggester.suggest_tools(query, user_id='test_user', top_k=5)
+        # Get suggestions (returns tuple: results, overall_confidence)
+        results, overall_confidence = suggester.suggest_tools(query, user_id=None, top_k=5)
         
         # Display results
-        print("\nTop 5 Results:")
+        print(f"\nTop 5 Results (overall confidence: {overall_confidence:.3f}):")
         for j, tool in enumerate(results, 1):
             tool_name = tool["tool_name"]
-            score = tool["confidence_score"]
+            confidence = tool["confidence"]
             short_desc = tool.get("short_description", "")
             full_desc = tool.get("description", "")[:100]
             
-            print(f"\n{j}. {tool_name} (score: {score:.3f})")
+            print(f"\n{j}. {tool_name} (confidence: {confidence:.3f})")
             if short_desc:
                 print(f"   📝 Short: {short_desc}")
             print(f"   📄 Full:  {full_desc}...")
@@ -113,11 +113,11 @@ def test_semantic_search():
         if match:
             print(f"\n✅ PASS: Top result '{results[0]['tool_name']}' matches expected category")
             passed += 1
-            results_summary.append(("PASS", query, results[0]["tool_name"], results[0]["confidence_score"]))
+            results_summary.append(("PASS", query, results[0]["tool_name"], results[0]["confidence"]))
         else:
             print(f"\n❌ FAIL: Top result '{results[0]['tool_name'] if results else 'NONE'}' does not match expected category")
             failed += 1
-            results_summary.append(("FAIL", query, results[0]["tool_name"] if results else "NONE", results[0]["confidence_score"] if results else 0))
+            results_summary.append(("FAIL", query, results[0]["tool_name"] if results else "NONE", results[0]["confidence"] if results else 0))
     
     # Final summary
     print("\n" + "="*80)

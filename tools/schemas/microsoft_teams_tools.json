@@ -499,7 +499,7 @@
     },
     {
       "name": "microsoft_teams_create_meeting",
-      "short_description": "Create Microsoft Teams meeting with date, time, attendees, and join link",
+      "short_description": "Schedule video call: create Teams video meeting/conference with attendees, calendar invite, and join link",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_create_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Teams meeting",
       "platform": "microsoft_teams",
       "category": "basic",

@@ -35,6 +35,7 @@ from google_workspace.ai_personal_tasks import (
     ai_update_task,
     ai_complete_task
 )
+from shared.synergy_config import get_kanban_columns
 
 
 @dataclass
@@ -98,8 +99,8 @@ class SessionOrchestrator:
         self.sessions: Dict[str, ConversationSession] = {}
         self.user_sessions: Dict[str, List[str]] = defaultdict(list)  # user_id -> [session_ids]
         
-        # Kanban columns
-        self.kanban_columns = ['backlog', 'in_progress', 'review', 'done']
+        # Kanban columns - dynamically loaded from database config
+        self.kanban_columns = get_kanban_columns()
         
         # Event system for proactive notifications
         self.event_system = get_event_trigger_system()

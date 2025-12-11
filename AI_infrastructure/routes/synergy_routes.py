@@ -928,9 +928,7 @@ def create_session():
         
         # Handle permissions
         owner_user_id = data.get('owner_user_id')
-        permission_level = data.get('permission_level', 'private')
         shared_with_users = json.dumps(data.get('shared_with_users', []))
-        allow_public_view = data.get('allow_public_view', False)
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -955,8 +953,8 @@ def create_session():
                 priority, kanban_column, tags, documents, links, next_steps,
                 assignees, recent_activity, checklist, due_date, created_at, last_active,
                 thread_ids, assigned_agents, uses_milestones,
-                owner_user_id, permission_level, shared_with_users, allow_public_view
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                owner_user_id, shared_with_users, project_name
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             session_id,
             data.get('title', 'Untitled Session'),
@@ -979,9 +977,8 @@ def create_session():
             assigned_agents,
             data.get('uses_milestones', False),
             owner_user_id,
-            permission_level,
             shared_with_users,
-            allow_public_view
+            data.get('project_name', '')
         ))
         cursor.execute(insert_sql, insert_params)
         
@@ -1120,7 +1117,7 @@ def get_session(session_id):
         # If session uses milestones, fetch milestone data
         if session.get('uses_milestones'):
             milestone_sql, milestone_params = convert_sql_placeholders('''
-                SELECT milestone_id, milestone_number, milestone_name, description,
+                SELECT milestone_id, milestone_number, title, description,
                        completed, due_date, priority, estimated_hours, actual_hours,
                        created_at, completed_at, milestone_order, depends_on_milestone_id,
                        blocked, blocker_reason, blocked_since, updated_at, documents, links
@@ -2461,7 +2458,7 @@ def get_session_milestones(session_id):
         
         # Get all milestones
         sql, params = convert_sql_placeholders('''
-            SELECT milestone_id, milestone_number, milestone_name, description,
+            SELECT milestone_id, milestone_number, title, description,
                    completed, due_date, priority, estimated_hours, actual_hours,
                    created_at, completed_at, milestone_order, depends_on_milestone_id,
                    blocked, blocker_reason, blocked_since, updated_at, documents, links
@@ -2478,7 +2475,7 @@ def get_session_milestones(session_id):
             milestone = {
                 'milestone_id': m_row['milestone_id'],
                 'milestone_number': m_row['milestone_number'],
-                'milestone_name': m_row['milestone_name'],
+                'milestone_name': m_row['title'],
                 'description': m_row['description'],
                 'completed': m_row['completed'],
                 'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
@@ -3018,7 +3015,7 @@ def get_milestone(milestone_id):
         
         # Get milestone
         sql, params = convert_sql_placeholders('''
-            SELECT milestone_id, session_id, milestone_number, milestone_name, description,
+            SELECT milestone_id, session_id, milestone_number, title, description,
                    completed, due_date, priority, estimated_hours, actual_hours,
                    created_at, completed_at, milestone_order, depends_on_milestone_id,
                    blocked, blocker_reason, blocked_since, updated_at, documents, links
@@ -3040,7 +3037,7 @@ def get_milestone(milestone_id):
             'milestone_id': m_row['milestone_id'],
             'session_id': m_row['session_id'],
             'milestone_number': m_row['milestone_number'],
-            'milestone_name': m_row['milestone_name'],
+            'milestone_name': m_row['title'],
             'description': m_row['description'],
             'completed': m_row['completed'],
             'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
@@ -3165,7 +3162,11 @@ def update_milestone(milestone_id):
         updates = []
         update_params = []
         
-        for field in ['milestone_name', 'description', 'priority', 'due_date', 
+        # Map milestone_name to title for backward compatibility
+        if 'milestone_name' in data:
+            data['title'] = data.pop('milestone_name')
+        
+        for field in ['title', 'description', 'priority', 'due_date', 
                      'estimated_hours', 'actual_hours', 'blocked', 'blocker_reason']:
             if field in data:
                 updates.append(f"{field} = %s")
@@ -4969,11 +4970,14 @@ def create_milestone_complete():
     try:
         data = request.get_json()
         
-        # Validate required fields
+        # Validate required fields - title is now primary, milestone_name deprecated
         if not data.get('session_id'):
             return jsonify({'success': False, 'error': 'session_id required'}), 400
-        if not data.get('milestone_name'):
-            return jsonify({'success': False, 'error': 'milestone_name required'}), 400
+        
+        # Accept title (new) or milestone_name (deprecated) for backward compatibility
+        title = data.get('title') or data.get('milestone_name')
+        if not title:
+            return jsonify({'success': False, 'error': 'title required (milestone_name deprecated)'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -5007,19 +5011,20 @@ def create_milestone_complete():
         links_json = json.dumps(data.get('links', []))
         tags_json = json.dumps(data.get('tags', []))
         
-        # Insert milestone with ALL fields
+        # Insert milestone - title is now primary field
         sql, params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.milestones (
                 milestone_id, session_id, milestone_number, milestone_order, milestone_name,
-                description, completed, due_date, priority, estimated_hours,
-                created_at, updated_at, documents, links, blocked
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                title, description, completed, due_date, priority, estimated_hours,
+                created_at, updated_at, documents, links, blocked, tags
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             milestone_id,
             data['session_id'],
             milestone_number,
             milestone_number,  # milestone_order same as milestone_number
-            data['milestone_name'],
+            title,  # Populate milestone_name from title for backward compatibility (to be removed)
+            title,  # Primary field
             data.get('description', ''),
             False,
             data.get('due_date'),
@@ -5029,7 +5034,8 @@ def create_milestone_complete():
             datetime.now().isoformat(),
             documents_json,
             links_json,
-            False
+            False,
+            tags_json
         ))
         cursor.execute(sql, params)
         
@@ -5053,12 +5059,20 @@ def create_milestone_complete():
                 task_priority = task_item.get('priority', 'medium')
                 subtasks = task_item.get('subtasks', [])
             
-            # Insert task
+            # Insert task with new title/description fields
+            task_title = task_item.get('title', task_text) if isinstance(task_item, dict) else task_text
+            task_desc = task_item.get('description', '') if isinstance(task_item, dict) else ''
+            task_due = task_item.get('due_date') if isinstance(task_item, dict) else None
+            task_est_hours = task_item.get('estimated_hours') if isinstance(task_item, dict) else None
+            task_assigned = task_item.get('assigned_to', '') if isinstance(task_item, dict) else ''
+            
             sql, params = convert_sql_placeholders('''
                 INSERT INTO synergy_sessions.tasks (
-                    task_id, milestone_id, task, completed, task_order, priority, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (task_id, milestone_id, task_text, False, task_order, task_priority, datetime.now().isoformat()))
+                    task_id, milestone_id, task, title, description, completed, task_order, 
+                    priority, due_date, estimated_hours, assigned_to, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (task_id, milestone_id, task_text, task_title, task_desc, False, task_order, 
+                  task_priority, task_due, task_est_hours, task_assigned, datetime.now().isoformat()))
             cursor.execute(sql, params)
             tasks_created += 1
             
@@ -5075,11 +5089,18 @@ def create_milestone_complete():
                     subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
                     subtask_priority = subtask_item.get('priority', 'medium')
                 
+                # Handle subtask with new title/due_date fields
+                subtask_title = subtask_item.get('title', subtask_text) if isinstance(subtask_item, dict) else subtask_text
+                subtask_due = subtask_item.get('due_date') if isinstance(subtask_item, dict) else None
+                subtask_assigned = subtask_item.get('assigned_to', '') if isinstance(subtask_item, dict) else ''
+                
                 sql, params = convert_sql_placeholders('''
                     INSERT INTO synergy_sessions.subtasks (
-                        subtask_id, task_id, task, completed, subtask_order, priority, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
+                        subtask_id, task_id, task, title, completed, subtask_order, 
+                        priority, due_date, assigned_to, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (subtask_id, task_id, subtask_text, subtask_title, False, subtask_order, 
+                      subtask_priority, subtask_due, subtask_assigned, datetime.now().isoformat()))
                 cursor.execute(sql, params)
                 subtasks_created += 1
         
@@ -5103,7 +5124,7 @@ def create_milestone_complete():
             'milestone_number': milestone_number,
             'tasks_created': tasks_created,
             'subtasks_created': subtasks_created,
-            'message': f"Created milestone '{data['milestone_name']}' with {tasks_created} tasks and {subtasks_created} subtasks"
+            'message': f"Created milestone '{title}' with {tasks_created} tasks and {subtasks_created} subtasks"
         })
     
     except Exception as e:
@@ -5151,10 +5172,11 @@ def create_milestone(session_id):
     conn = None
     try:
         data = request.json
-        milestone_name = data.get('milestone_name')
+        # Support both title (new) and milestone_name (deprecated) for backward compatibility
+        title = data.get('title') or data.get('milestone_name')
         
-        if not milestone_name:
-            return jsonify({'success': False, 'error': 'milestone_name field required'}), 400
+        if not title:
+            return jsonify({'success': False, 'error': 'title (or milestone_name) field required'}), 400
         
         import time
         milestone_id = f"ms_{int(time.time() * 1000)}"
@@ -5183,12 +5205,12 @@ def create_milestone(session_id):
         # Insert milestone
         insert_sql, insert_params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.milestones 
-            (milestone_id, session_id, milestone_number, milestone_name, description, 
+            (milestone_id, session_id, milestone_number, title, description, 
              completed, priority, due_date, estimated_hours, milestone_order, 
              blocked, created_at, updated_at, documents, links)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
-            milestone_id, session_id, milestone_number, milestone_name,
+            milestone_id, session_id, milestone_number, title,
             data.get('description', ''), False, data.get('priority', 'medium'),
             data.get('due_date'), data.get('estimated_hours'),
             milestone_order, False, datetime.now().isoformat(), 
@@ -5732,15 +5754,25 @@ def create_session_milestone(session_id):
     
     Request Body:
     {
-        "milestone_name": "Phase 1: Setup",
-        "description": "Initial setup phase",
+        "title": "Phase 1: Setup",  # NEW: Preferred field name
+        "milestone_name": "Phase 1: Setup",  # DEPRECATED: For backward compatibility
+        "description": "Initial setup phase with database configuration and API integration",
         "priority": "high",
         "due_date": "2025-12-31",
         "tasks": [
             {
-                "task": "Setup database",
+                "title": "Setup database",  # NEW: Preferred
+                "task": "Setup database",  # DEPRECATED: For backward compatibility
+                "description": "Install and configure PostgreSQL 14 with initial schemas",
                 "priority": "critical",
-                "subtasks": ["Install PostgreSQL", "Create schemas"]
+                "subtasks": [
+                    {
+                        "title": "Install PostgreSQL",  # NEW: Preferred
+                        "task": "Install PostgreSQL",  # DEPRECATED
+                        "description": "Install PostgreSQL 14 on production server"
+                    },
+                    "Create schemas"  # Simple string format still supported
+                ]
             }
         ]
     }
@@ -5751,8 +5783,10 @@ def create_session_milestone(session_id):
     try:
         data = request.get_json()
         
-        if not data.get('milestone_name'):
-            return jsonify({'success': False, 'error': 'milestone_name required'}), 400
+        # Accept both 'title' (new) and 'milestone_name' (legacy) for backward compatibility
+        milestone_title = data.get('title') or data.get('milestone_name')
+        if not milestone_title:
+            return jsonify({'success': False, 'error': 'title or milestone_name required'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -5786,19 +5820,20 @@ def create_session_milestone(session_id):
         # Generate milestone ID
         milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
-        # Insert milestone
+        # Insert milestone with both title and milestone_name for backward compatibility
         cursor.execute('''
             INSERT INTO synergy_sessions.milestones (
-                milestone_id, session_id, milestone_number, milestone_order, milestone_name,
-                description, completed, due_date, priority, estimated_hours,
-                created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                milestone_id, session_id, milestone_number, milestone_order, 
+                title, milestone_name, description, completed, due_date, priority, 
+                estimated_hours, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             milestone_id,
             session_id,
             milestone_number,
             milestone_number,
-            data['milestone_name'],
+            milestone_title,  # NEW: title field
+            milestone_title,  # LEGACY: milestone_name kept in sync
             data.get('description'),
             False,
             data.get('due_date'),
@@ -5818,20 +5853,33 @@ def create_session_milestone(session_id):
             
             # Handle both string and object formats
             if isinstance(task_item, str):
-                task_text = task_item
+                task_title = task_item
+                task_description = None
                 task_priority = 'medium'
+                task_due_date = None
                 subtasks = []
             else:
-                task_text = task_item.get('task', '')
+                # Accept both 'title' (new) and 'task' (legacy)
+                task_title = task_item.get('title') or task_item.get('task', '')
+                task_description = task_item.get('description')
                 task_priority = task_item.get('priority', 'medium')
+                task_due_date = task_item.get('due_date')
                 subtasks = task_item.get('subtasks', [])
             
-            # Insert task
+            # Insert task with title and description
             cursor.execute('''
                 INSERT INTO synergy_sessions.tasks (
-                    task_id, milestone_id, task, completed, task_order, priority, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (task_id, milestone_id, task_text, False, task_order, task_priority, datetime.now().isoformat()))
+                    task_id, milestone_id, title, task, description, completed, 
+                    task_order, priority, due_date, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                task_id, milestone_id, 
+                task_title,  # NEW: title field
+                task_title,  # LEGACY: task field kept in sync
+                task_description,  # NEW: description field
+                False, task_order, task_priority, task_due_date, 
+                datetime.now().isoformat()
+            ))
             tasks_created += 1
             
             # Insert subtasks
@@ -5839,17 +5887,30 @@ def create_session_milestone(session_id):
                 subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}_{subtask_order}"
                 
                 if isinstance(subtask_item, str):
-                    subtask_text = subtask_item
+                    subtask_title = subtask_item
+                    subtask_description = None
                     subtask_priority = 'medium'
+                    subtask_due_date = None
                 else:
-                    subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                    # Accept both 'title' (new) and 'task' (legacy)
+                    subtask_title = subtask_item.get('title') or subtask_item.get('task', '') or subtask_item.get('text', '')
+                    subtask_description = subtask_item.get('description')
                     subtask_priority = subtask_item.get('priority', 'medium')
+                    subtask_due_date = subtask_item.get('due_date')
                 
                 cursor.execute('''
                     INSERT INTO synergy_sessions.subtasks (
-                        subtask_id, task_id, task, completed, subtask_order, priority, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
+                        subtask_id, task_id, title, task, description, completed, 
+                        subtask_order, priority, due_date, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    subtask_id, task_id, 
+                    subtask_title,  # NEW: title field
+                    subtask_title,  # LEGACY: task field kept in sync
+                    subtask_description,  # NEW: description field
+                    False, subtask_order, subtask_priority, subtask_due_date,
+                    datetime.now().isoformat()
+                ))
                 subtasks_created += 1
         
         # Mark session as using milestones
@@ -5913,9 +5974,18 @@ def create_milestone_task(milestone_id):
     
     Request Body:
     {
-        "task": "Configure backups",
+        "title": "Configure backups",  # NEW: Preferred field name
+        "task": "Configure backups",  # DEPRECATED: For backward compatibility
+        "description": "Set up automated daily backups to S3 with 30-day retention policy",
         "priority": "high",
-        "subtasks": ["Setup S3", "Test restore"]
+        "due_date": "2025-12-15",
+        "subtasks": [
+            {
+                "title": "Setup S3",
+                "description": "Configure S3 bucket with lifecycle policies"
+            },
+            "Test restore"  # Simple string format still supported
+        ]
     }
     """
     cursor = None  # Rule #1
@@ -5924,8 +5994,10 @@ def create_milestone_task(milestone_id):
     try:
         data = request.get_json()
         
-        if not data.get('task'):
-            return jsonify({'success': False, 'error': 'task text required'}), 400
+        # Accept both 'title' (new) and 'task' (legacy) for backward compatibility
+        task_title = data.get('title') or data.get('task')
+        if not task_title:
+            return jsonify({'success': False, 'error': 'title or task text required'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -5957,13 +6029,23 @@ def create_milestone_task(milestone_id):
         # Generate task ID
         task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         task_priority = data.get('priority', 'medium')
+        task_description = data.get('description')
+        task_due_date = data.get('due_date')
         
-        # Insert task
+        # Insert task with title and description
         cursor.execute('''
             INSERT INTO synergy_sessions.tasks (
-                task_id, milestone_id, task, completed, task_order, priority, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (task_id, milestone_id, data['task'], False, task_order, task_priority, datetime.now().isoformat()))
+                task_id, milestone_id, title, task, description, completed, 
+                task_order, priority, due_date, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            task_id, milestone_id, 
+            task_title,  # NEW: title field
+            task_title,  # LEGACY: task field kept in sync
+            task_description,  # NEW: description field
+            False, task_order, task_priority, task_due_date,
+            datetime.now().isoformat()
+        ))
         
         # Insert subtasks
         subtasks_created = 0
@@ -5972,17 +6054,30 @@ def create_milestone_task(milestone_id):
             subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{subtask_order}"
             
             if isinstance(subtask_item, str):
-                subtask_text = subtask_item
+                subtask_title = subtask_item
+                subtask_description = None
                 subtask_priority = 'medium'
+                subtask_due_date = None
             else:
-                subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                # Accept both 'title' (new) and 'task' (legacy)
+                subtask_title = subtask_item.get('title') or subtask_item.get('task', '') or subtask_item.get('text', '')
+                subtask_description = subtask_item.get('description')
                 subtask_priority = subtask_item.get('priority', 'medium')
+                subtask_due_date = subtask_item.get('due_date')
             
             cursor.execute('''
                 INSERT INTO synergy_sessions.subtasks (
-                    subtask_id, task_id, task, completed, subtask_order, priority, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (subtask_id, task_id, subtask_text, False, subtask_order, subtask_priority, datetime.now().isoformat()))
+                    subtask_id, task_id, title, task, description, completed, 
+                    subtask_order, priority, due_date, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                subtask_id, task_id, 
+                subtask_title,  # NEW: title field
+                subtask_title,  # LEGACY: task field kept in sync
+                subtask_description,  # NEW: description field
+                False, subtask_order, subtask_priority, subtask_due_date,
+                datetime.now().isoformat()
+            ))
             subtasks_created += 1
         
         conn.commit()
@@ -6034,8 +6129,11 @@ def create_task_subtask(task_id):
     
     Request Body:
     {
-        "subtask": "Validate backups",
-        "priority": "medium"
+        "title": "Validate backups",  # NEW: Preferred field name
+        "task": "Validate backups",  # DEPRECATED: For backward compatibility
+        "description": "Run validation tests on backup files and verify integrity",
+        "priority": "medium",
+        "due_date": "2025-12-20"
     }
     """
     cursor = None  # Rule #1
@@ -6044,8 +6142,10 @@ def create_task_subtask(task_id):
     try:
         data = request.get_json()
         
-        if not data.get('subtask'):
-            return jsonify({'success': False, 'error': 'subtask text required'}), 400
+        # Accept 'title' (new), 'task' (legacy), or 'subtask' (old legacy)
+        subtask_title = data.get('title') or data.get('task') or data.get('subtask')
+        if not subtask_title:
+            return jsonify({'success': False, 'error': 'title or task field required'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -6077,13 +6177,23 @@ def create_task_subtask(task_id):
         # Generate subtask ID
         subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         subtask_priority = data.get('priority', 'medium')
+        subtask_description = data.get('description')
+        subtask_due_date = data.get('due_date')
         
-        # Insert subtask
+        # Insert subtask with title and description
         cursor.execute('''
             INSERT INTO synergy_sessions.subtasks (
-                subtask_id, task_id, task, completed, subtask_order, priority, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (subtask_id, task_id, data['subtask'], False, subtask_order, subtask_priority, datetime.now().isoformat()))
+                subtask_id, task_id, title, task, description, completed, 
+                subtask_order, priority, due_date, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            subtask_id, task_id, 
+            subtask_title,  # NEW: title field
+            subtask_title,  # LEGACY: task field kept in sync
+            subtask_description,  # NEW: description field
+            False, subtask_order, subtask_priority, subtask_due_date,
+            datetime.now().isoformat()
+        ))
         
         conn.commit()
         

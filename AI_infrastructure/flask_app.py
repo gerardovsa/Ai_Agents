@@ -207,6 +207,53 @@ except Exception as e:
     logger.error(traceback.format_exc())
     raise
 
+
+# ============================================================================
+# 🚀 PRE-EMPTIVE SEMANTIC SEARCH INITIALIZATION
+# ============================================================================
+def initialize_semantic_search_on_startup():
+    """
+    Pre-emptively initialize semantic search embeddings during server startup.
+    
+    This runs in a background thread to avoid blocking server startup,
+    but ensures embeddings are ready before the first user message.
+    
+    Called after Flask app is created but before routes are registered.
+    """
+    try:
+        print("\n" + "=" * 80)
+        print("🔄 PRE-COMPUTING SEMANTIC SEARCH EMBEDDINGS...")
+        print("=" * 80)
+        
+        # Import registry and semantic search initializer
+        from tools.registry_v3 import RegistryV3
+        from AI_infrastructure.routes.agent_routes_v4 import get_semantic_search
+        
+        # Create registry
+        print("[STARTUP] Loading tool registry...")
+        registry = RegistryV3()
+        print(f"[STARTUP] ✅ Registry loaded with {len(registry.tools)} tools")
+        
+        # Initialize semantic search (this computes embeddings)
+        print("[STARTUP] Computing embeddings for semantic tool search...")
+        semantic_search = get_semantic_search(registry)
+        
+        if semantic_search and semantic_search.available:
+            print(f"[STARTUP] ✅ Semantic search initialized with {len(semantic_search.tool_embeddings)} embeddings")
+            print("=" * 80)
+            print("🎉 SEMANTIC SEARCH READY - All tool embeddings pre-computed!")
+            print("=" * 80 + "\n")
+        else:
+            print("[STARTUP] ⚠️  Semantic search not available (sentence-transformers not installed)")
+            print("=" * 80 + "\n")
+            
+    except Exception as e:
+        print(f"[STARTUP] ❌ Failed to initialize semantic search: {e}")
+        import traceback
+        print(traceback.format_exc())
+        print("=" * 80 + "\n")
+
+
 # Note: OAuth state tokens are stored in database (oauth_states table) instead of Flask sessions
 # This ensures cloud compatibility on Render (multi-instance, ephemeral filesystem)
 log_config(logger, "OAuth uses database-backed state storage (cloud-compatible)")
@@ -468,6 +515,123 @@ except Exception:
 # - woocommerce_routes.py (29 tools)
 # - stripe_routes.py (25 tools)
 # - ... and 12 more platform routes
+
+# ============================================================================
+# CALCULATOR API ENDPOINTS (Quote Calculator Tools)
+# ============================================================================
+
+@app.route('/api/calculator/test', methods=['POST'])
+def test_calculator():
+    """
+    Test a calculator using Registry V3 (exact AI usage pattern)
+    
+    POST /api/calculator/test
+    Body: {
+        "tool_name": "calculate_business_cards",
+        "params": {
+            "quantity": 1000,
+            "stock_type": "premium",
+            "sides": 2
+        }
+    }
+    
+    Returns: {
+        "success": true,
+        "result": {...calculator response...},
+        "execution_time_ms": 123
+    }
+    """
+    try:
+        import time
+        from tools.registry_v3 import RegistryV3
+        
+        data = request.json
+        tool_name = data.get('tool_name')
+        params = data.get('params', {})
+        
+        if not tool_name:
+            return jsonify({
+                "success": False,
+                "error": "tool_name is required"
+            }), 400
+        
+        # Initialize Registry V3 (same as AI uses)
+        registry = RegistryV3()
+        
+        # Execute calculator
+        start_time = time.time()
+        result = registry.execute_tool(tool_name=tool_name, **params)
+        execution_time = (time.time() - start_time) * 1000  # Convert to ms
+        
+        return jsonify({
+            "success": True,
+            "result": result,
+            "execution_time_ms": round(execution_time, 2),
+            "tool_name": tool_name,
+            "params": params
+        })
+        
+    except Exception as e:
+        log_error(logger, f"Calculator test error: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+@app.route('/api/calculator/list', methods=['GET'])
+def list_calculators():
+    """
+    List all available calculators from Registry V3
+    
+    GET /api/calculator/list
+    
+    Returns: {
+        "success": true,
+        "calculators": [
+            {
+                "name": "calculate_business_cards",
+                "platform": "quote_calculator",
+                "description": "...",
+                "parameters": {...}
+            },
+            ...
+        ],
+        "total": 37
+    }
+    """
+    try:
+        from tools.registry_v3 import RegistryV3
+        
+        registry = RegistryV3()
+        
+        # Get all calculator tools
+        calculators = []
+        for tool_name, tool_info in registry.tools.items():
+            if tool_name.startswith('calculate_'):
+                calculators.append({
+                    "name": tool_name,
+                    "platform": tool_info.get('platform', 'unknown'),
+                    "short_description": tool_info.get('short_description', ''),
+                    "description": tool_info.get('description', ''),
+                    "parameters": tool_info.get('parameters', {})
+                })
+        
+        # Sort by name
+        calculators.sort(key=lambda x: x['name'])
+        
+        return jsonify({
+            "success": True,
+            "calculators": calculators,
+            "total": len(calculators)
+        })
+        
+    except Exception as e:
+        log_error(logger, f"List calculators error: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 # Serve static UI files
 UI_DIR = os.path.join(os.path.dirname(__file__), '..', 'UI')
@@ -1884,6 +2048,17 @@ if __name__ == '__main__':
     print(f"WebSocket Support: ENABLED (using socketio.run)")
     print(f"Auto-reload: {not is_production}")
     print("=" * 80 + "\n")
+    
+    # 🚀 PRE-EMPTIVE SEMANTIC SEARCH INITIALIZATION
+    # Run in background thread to avoid blocking server startup
+    print("[STARTUP] Initializing semantic search in background thread...")
+    import threading
+    semantic_init_thread = threading.Thread(
+        target=initialize_semantic_search_on_startup,
+        daemon=True,
+        name="SemanticSearchInit"
+    )
+    semantic_init_thread.start()
     
     if USE_SOCKETIO:
         # Use SocketIO server (supports WebSockets + HTTP)

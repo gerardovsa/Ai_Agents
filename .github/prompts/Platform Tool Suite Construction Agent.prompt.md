@@ -28,9 +28,17 @@ You are a **Platform Tool Suite Construction Agent** - an expert system architec
 
 ### Registry System (tools/registry_v3.py)
 - Auto-discovers tools from `tools/schemas/*.json` and `tools/implementations/*.py`
+- Also loads Module Plugins from `UI/modules_external/**/schema/*.json` (see "Tool Framework Types" section)
+- ⚠️ **CRITICAL**: Module plugins load LAST and OVERWRITE core tools if names conflict!
 - Converts schemas to Anthropic-compatible format
 - Provides 594 tools across 20+ platforms
 - Supports progressive discovery via meta-tools
+
+**📖 See "Tool Framework Types & Schema Management" section below for complete guidance on:**
+- When to use Core Tools vs Module Plugins
+- How to prevent duplicate schema issues
+- Schema synchronization requirements
+- Enum preservation best practices
 
 ### Schema Format (Anthropic-Compatible with Intelligence Layers)
 ```json
@@ -1204,6 +1212,297 @@ registry.execute_tool("{platform}_share_page", page_id=page_id, email="...")
 - [ ] Tier 2: 8-12 advanced features (95% coverage)
 - [ ] Tier 3: 5-8 platform-specific operations (98% coverage)
 - [ ] Total: 18-30 tools recommended
+
+---
+
+## Tool Framework Types & Schema Management
+
+### 🎯 Critical: Understanding Tool Framework Types
+
+The AI_Agents platform supports **TWO distinct tool frameworks** with different loading mechanisms:
+
+#### Framework 1: Core Tools (tools/schemas/ + tools/implementations/)
+**Location**: 
+- Schemas: `tools/schemas/{platform}_tools.json`
+- Implementations: `tools/implementations/{platform}.py`
+
+**Loading**: Registry loads FIRST during initialization
+
+**Use For**:
+- Core platform integrations (Gmail, Notion, Slack, etc.)
+- Tools that need to be available system-wide
+- Standard OAuth/API key authentication
+- Most new platform integrations
+
+**Example**: Gmail tools, Microsoft tools, Google Workspace tools
+
+---
+
+#### Framework 2: Module Plugins (UI/modules_external/)
+**Location**:
+- Schemas: `UI/modules_external/{module-name}/schema/{tools}.json`
+- Implementations: `UI/modules_external/{module-name}/implementations/{wrappers}.py`
+
+**Loading**: Module plugin loader runs AFTER core tools (OVERWRITES if names match!)
+
+**Use For**:
+- Self-contained business modules (quote calculators, stock management)
+- Domain-specific tools with complex backends
+- Tools that need their own database tables
+- UI-integrated modules with dashboards
+
+**Example**: Quote calculator tools, stock management tools, veterinary alerts
+
+**Critical Architecture Note**:
+```python
+# Registry Loading Order (tools/registry_v3.py lines 67-70):
+1. _load_schemas()           # Load tools/schemas/*.json
+2. _load_implementations()   # Load tools/implementations/*.py
+3. _load_module_plugins()    # Load UI/modules_external/**/schema/*.json
+   └─ OVERWRITES self.tools[tool_name] if name conflicts!
+```
+
+---
+
+### 🚨 CRITICAL BUG: Duplicate Schema Syndrome
+
+**Problem Discovered**: December 11, 2025 - Calculator Tools Enum Loss
+
+When implementing module plugins, schemas can exist in BOTH locations:
+1. `tools/schemas/calculator_tools.json` (loaded first, has complete data)
+2. `UI/modules_external/quote-calculator/schema/calculator_tools.json` (loaded last, OVERWRITES!)
+
+**What Went Wrong**:
+```
+Step 1: Registry loads tools/schemas/calculator_tools.json
+  ✅ 32 tools with 119 enum arrays
+  ✅ registry.tools['calculate_bollard_signs'] = {...with enums...}
+
+Step 2: Module plugin loader runs
+  ❌ Loads UI/modules_external/.../calculator_tools.json (outdated copy)
+  ❌ Has 0 enum arrays (just text descriptions)
+  ❌ OVERWRITES registry.tools['calculate_bollard_signs'] = {...NO enums...}
+
+Step 3: AI calls get_tool_schema('calculate_bollard_signs')
+  ❌ Returns parameters WITHOUT enum guidance
+  ❌ AI can't see valid values: [100, 250, 500, 1000, ...]
+  ❌ Requirements test: "0/4 parameters with enums" (should be 4/4)
+  ❌ Execution test: Fails with "invalid parameter value"
+```
+
+**Impact on AI**:
+```
+❌ BEFORE FIX:
+User: "Quote me 150 bollard signs"
+AI: *calls calculate_bollard_signs(quantity=150)*
+Error: "Invalid quantity. Must be: [100,250,500,1000,2000,5000,10000]"
+AI: "I'm having technical difficulties..."
+User: 😡 No quote
+
+✅ AFTER FIX:
+User: "Quote me 150 bollard signs"
+AI: *sees enum: [100,250,500,1000,2000,5000,10000]*
+AI: "Quantities available: 100 or 250. Would 250 work?"
+User: "Yes, 250 please"
+AI: *calculates* "$847.50, 3-day turnaround"
+User: ✅ Happy, places order
+```
+
+---
+
+### 🔧 How to Prevent Duplicate Schema Issues
+
+#### Option 1: Core Tools Only (Recommended for Most Platforms)
+**Use When**: Standard platform integration (Notion, Airtable, HubSpot)
+
+**Structure**:
+```
+AI_agents/
+├── tools/
+│   ├── schemas/
+│   │   └── platform_tools.json      ← ONLY location
+│   └── implementations/
+│       └── platform.py               ← ONLY location
+```
+
+**Advantages**:
+- ✅ No duplicate schemas
+- ✅ Simple deployment
+- ✅ Standard pattern
+- ✅ No sync required
+
+---
+
+#### Option 2: Module Plugin (Use Only When Necessary)
+**Use When**: 
+- Tool needs dedicated UI dashboard
+- Complex backend with multiple databases
+- Self-contained business domain (e.g., print shop calculator)
+
+**Structure**:
+```
+AI_agents/
+├── UI/
+│   └── modules_external/
+│       └── module-name/
+│           ├── schema/
+│           │   └── module_tools.json     ← PRIMARY source
+│           ├── implementations/
+│           │   └── module_wrapper.py
+│           ├── module-name.html          ← Dashboard UI
+│           └── module-name.js            ← Frontend logic
+```
+
+**⚠️ CRITICAL: If schemas exist in BOTH locations:**
+
+**You MUST keep them synchronized!**
+
+Create a sync script:
+```python
+# sync_{module}_schemas.py
+"""
+Sync schemas from UI/modules_external to tools/schemas
+Ensures enum arrays and parameters stay consistent
+"""
+import json
+
+# Read module schema (PRIMARY)
+with open('UI/modules_external/{module}/schema/tools.json', 'r') as f:
+    module_schema = json.load(f)
+
+# Read core schema (SECONDARY)
+with open('tools/schemas/{module}_tools.json', 'r') as f:
+    core_schema = json.load(f)
+
+# Sync parameters (enums, descriptions, examples)
+# ...implementation...
+
+# Write updated core schema
+with open('tools/schemas/{module}_tools.json', 'w') as f:
+    json.dump(core_schema, f, indent=2)
+
+print("✅ Schemas synchronized")
+```
+
+**Run sync script**:
+- After every schema change
+- Before deployment
+- As part of CI/CD pipeline
+
+---
+
+### 📋 Schema Management Checklist
+
+**For Core Tools** (Most Platforms):
+- [ ] Create schema ONLY in `tools/schemas/{platform}_tools.json`
+- [ ] Create implementation ONLY in `tools/implementations/{platform}.py`
+- [ ] NO duplicate in `UI/modules_external/`
+- [ ] Test with: `python -c "from tools.registry_v3 import get_registry; r = get_registry(); print(r.tools['{platform}_tool_name'])"`
+
+**For Module Plugins** (Special Cases):
+- [ ] Create PRIMARY schema in `UI/modules_external/{module}/schema/tools.json`
+- [ ] Create PRIMARY implementation in `UI/modules_external/{module}/implementations/wrapper.py`
+- [ ] If legacy core schema exists in `tools/schemas/`, create sync script
+- [ ] Add enum arrays to ALL parameters that have limited valid values
+- [ ] Run sync script after ANY schema changes
+- [ ] Test enum preservation: `get_tool_schema('{tool_name}')` should show enums
+- [ ] Verify with test dashboard (if applicable)
+
+**Enum Quality Standards**:
+- [ ] All parameters with constrained values MUST have enum arrays
+- [ ] Enum values match backend validation exactly
+- [ ] No "just text descriptions" - use proper enum arrays
+- [ ] Test AI can see enums: `get_tool_schema()` returns enum fields
+
+**Deployment Checklist**:
+- [ ] Run schema sync script (if module plugin)
+- [ ] Restart server to reload schemas
+- [ ] Test tool discovery: `search_tools("{keyword}")`
+- [ ] Test schema retrieval: `get_tool_schema("{tool_name}")`
+- [ ] Test execution: `execute_tool("{tool_name}", ...)`
+- [ ] Verify AI can see enum guidance in parameters
+
+---
+
+### 🔍 Debugging Schema Issues
+
+**Symptom**: "Requirements test shows 0/X parameters with enums"
+
+**Diagnosis Steps**:
+```python
+# Step 1: Check if schema has enums in JSON
+import json
+with open('tools/schemas/{platform}_tools.json', 'r') as f:
+    data = json.load(f)
+tool = [t for t in data['tools'] if t['name'] == 'tool_name'][0]
+print('Has enum:', 'enum' in tool['parameters']['param_name'])
+
+# Step 2: Check if registry loaded enums
+from tools.registry_v3 import get_registry
+registry = get_registry()
+tool = registry.tools['tool_name']
+print('Registry has enum:', 'enum' in tool['parameters']['param_name'])
+
+# Step 3: Check if get_tool_schema preserves enums
+from tools.implementations.meta_tools import get_tool_schema
+result = get_tool_schema('tool_name')
+props = result['input_schema']['properties']
+print('Schema API has enum:', 'enum' in props['param_name'])
+
+# Step 4: Find where enums are lost
+# If Step 1 ✅ but Step 2 ❌: Module plugin overwriting
+# If Step 2 ✅ but Step 3 ❌: Anthropic conversion bug
+# If Step 1 ❌: Schema never had enums (fix JSON)
+```
+
+**Common Fixes**:
+1. **Module overwriting**: Create sync script, run it, restart server
+2. **Anthropic conversion bug**: Check `registry_v3.py` get_anthropic_tools() method
+3. **Missing enums in JSON**: Add enum arrays to schema file
+4. **Cached data**: Restart Python process / Flask server
+
+---
+
+### 🎓 When to Use Which Framework
+
+**Use Core Tools (`tools/schemas/`)** When:
+- ✅ Standard platform API integration (Notion, Gmail, Slack)
+- ✅ OAuth or API key authentication
+- ✅ No custom UI needed beyond chat interface
+- ✅ Tools are general-purpose and system-wide
+- ✅ Want simple deployment and maintenance
+- ✅ First-time platform integration
+
+**Use Module Plugins (`UI/modules_external/`)** When:
+- ✅ Need dedicated UI dashboard for complex operations
+- ✅ Self-contained business domain (print shop, inventory)
+- ✅ Multiple database tables specific to module
+- ✅ Complex backend calculations with caching
+- ✅ Team collaboration features in UI
+- ✅ Module can be enabled/disabled independently
+- ⚠️ Willing to manage schema synchronization
+
+**Real-World Examples**:
+
+| Platform | Framework | Why |
+|----------|-----------|-----|
+| Notion API | Core Tools | Standard API, OAuth, general-purpose |
+| Gmail API | Core Tools | Standard API, OAuth, system-wide |
+| Quote Calculator | Module Plugin | Custom UI, database, print industry domain |
+| Stock Management | Module Plugin | Dashboard UI, inventory tracking |
+| Airtable API | Core Tools | Standard API, OAuth, general-purpose |
+| Shopify API | Core Tools | Standard API, OAuth, e-commerce platform |
+| Veterinary Alerts | Module Plugin | Custom phone system, specialized workflow |
+
+**Decision Tree**:
+```
+Does tool need custom UI dashboard?
+├─ NO → Use Core Tools (tools/schemas/)
+└─ YES → Does it have complex backend/domain logic?
+         ├─ NO → Still use Core Tools (simpler)
+         └─ YES → Use Module Plugin (UI/modules_external/)
+                  └─ MUST create sync script if core schema exists
+```
 
 ---
 

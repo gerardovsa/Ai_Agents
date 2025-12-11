@@ -265,16 +265,26 @@ class SemanticToolSearch:
             self.tool_metadata = {}
             
             for tool_name, tool_data in registry.tools.items():
-                # Create rich text representation
-                text = f"{tool_name} {tool_data.get('description', '')} {tool_data.get('platform', '')}"
+                # Create rich text representation including short_description for better semantic search
+                short_desc = tool_data.get('short_description', '')
+                long_desc = tool_data.get('description', '')
+                platform = tool_data.get('platform', '')
+                category = tool_data.get('category', '')
+                
+                # Combine all text for embedding
+                text = f"{tool_name} {short_desc} {long_desc} {platform} {category}"
                 
                 # Compute embedding
                 embedding = self.model.encode(text, convert_to_numpy=True)
                 
                 self.tool_embeddings[tool_name] = embedding
                 self.tool_metadata[tool_name] = {
-                    'platform': tool_data.get('platform', 'unknown'),
-                    'description': tool_data.get('description', '')
+                    'platform': platform if platform else 'unknown',
+                    'description': long_desc,
+                    'short_description': short_desc,
+                    'category': category,
+                    'is_virtual_tool': tool_data.get('is_virtual_tool', False),
+                    'query_id': tool_data.get('query_id', None)  # For query library bridge
                 }
             
             print(f"[Semantic Search] Initialized with {len(self.tool_embeddings)} tool embeddings")
@@ -319,14 +329,23 @@ class SemanticToolSearch:
         results = []
         for tool_name, similarity in sorted_results:
             metadata = self.tool_metadata[tool_name]
-            results.append({
+            result = {
                 'tool_name': tool_name,
                 'similarity': round(similarity, 3),
                 'platform': metadata['platform'],
                 'description': metadata['description'][:100],
+                'short_description': metadata.get('short_description', '')[:150],
                 'confidence': round(similarity, 3),
                 'match_type': 'semantic'
-            })
+            }
+            
+            # Add virtual tool info if applicable
+            if metadata.get('is_virtual_tool'):
+                result['is_virtual_tool'] = True
+                result['query_id'] = metadata.get('query_id')
+                result['execution_hint'] = f"Use inhouse_get_query_library_catalog() to get query '{metadata.get('query_id')}', then execute it"
+            
+            results.append(result)
         
         return results
 

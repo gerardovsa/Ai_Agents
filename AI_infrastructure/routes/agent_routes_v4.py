@@ -63,6 +63,43 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================
+# 🚀 GLOBAL SEMANTIC SEARCH CACHE (Initialized Once Per Server Start)
+# ============================================================
+_semantic_search_cache = None
+_semantic_search_lock = None
+
+def get_semantic_search(registry):
+    """
+    Get or create cached SemanticToolSearch instance.
+    
+    This ensures embeddings are computed ONCE at server startup,
+    not on every message or new thread.
+    
+    Returns:
+        SemanticToolSearch instance or None if unavailable
+    """
+    global _semantic_search_cache, _semantic_search_lock
+    
+    # Thread-safe initialization
+    if _semantic_search_lock is None:
+        import threading
+        _semantic_search_lock = threading.Lock()
+    
+    with _semantic_search_lock:
+        if _semantic_search_cache is None:
+            try:
+                from tools.intelligent_discovery import SemanticToolSearch
+                print("[SEMANTIC CACHE] 🔄 Initializing semantic search (ONE-TIME OPERATION)...")
+                _semantic_search_cache = SemanticToolSearch(registry)
+                print(f"[SEMANTIC CACHE] ✅ Initialized with {len(_semantic_search_cache.tool_embeddings)} tool embeddings")
+            except Exception as e:
+                print(f"[SEMANTIC CACHE] ❌ Failed to initialize: {e}")
+                _semantic_search_cache = None
+        
+        return _semantic_search_cache
+
+
+# ============================================================
 # FIXED: DATABASE CONVERSATION LOADER (Source of Truth)
 # ============================================================
 
@@ -974,95 +1011,96 @@ def stream_agent(agent_id):
     # ============================================
     intelligent_tool_suggestions = ""
     try:
-        from tools.intelligent_discovery import SemanticToolSearch
+        # Get cached semantic search instance (embeddings computed once at startup)
+        semantic_search = get_semantic_search(registry)
         
-        # Initialize semantic search engine (uses pre-computed embeddings)
-        semantic_search = SemanticToolSearch(registry)
+        if semantic_search and semantic_search.available:
+            # Pre-search tools using the user's actual message
+            print(f"[STREAM] 🔍 PRE-SEARCHING tools for: '{last_message[:100]}...'")
+            suggested_tools = semantic_search.search(last_message, top_k=15)  # Get more, then filter
         
-        # Pre-search tools using the user's actual message
-        print(f"[STREAM] 🔍 PRE-SEARCHING tools for: '{last_message[:100]}...'")
-        suggested_tools = semantic_search.search(last_message, top_k=15)  # Get more, then filter
-        
-        # ============================================
-        # 🔒 PLATFORM FILTERING (Based on Auth)
-        # ============================================
-        if suggested_tools and auth_platform in ['microsoft', 'google']:
-            original_count = len(suggested_tools)
-            
-            # Define platform exclusions
-            google_platforms = ['gmail', 'google_workspace', 'google_docs', 'google_sheets', 
-                              'google_drive', 'google_calendar', 'google_tasks', 'google_forms',
-                              'google_slides', 'google_meet', 'google_analytics', 'google_cloud_run']
-            
-            microsoft_platforms = ['microsoft_outlook', 'microsoft_excel', 'microsoft_word',
-                                 'microsoft_onedrive', 'microsoft_teams', 'microsoft_calendar',
-                                 'microsoft_todo', 'microsoft_onenote', 'microsoft_sharepoint',
-                                 'microsoft_forms', 'outlook', 'excel', 'word', 'onedrive']
-            
-            # Filter based on auth platform
-            if auth_platform == 'microsoft':
-                # User authenticated with Microsoft → exclude Google tools
-                suggested_tools = [
-                    tool for tool in suggested_tools 
-                    if tool.get('platform', '').lower() not in google_platforms
-                ]
-                print(f"[STREAM] 🔒 MICROSOFT user: Filtered out {original_count - len(suggested_tools)} Google tools")
-            
-            elif auth_platform == 'google':
-                # User authenticated with Google → exclude Microsoft tools
-                suggested_tools = [
-                    tool for tool in suggested_tools 
-                    if tool.get('platform', '').lower() not in microsoft_platforms
-                ]
-                print(f"[STREAM] 🔒 GOOGLE user: Filtered out {original_count - len(suggested_tools)} Microsoft tools")
-            
-            # Keep only top 8 after filtering
-            suggested_tools = suggested_tools[:8]
-        
-        if suggested_tools:
-            print(f"[STREAM] ✨ Found {len(suggested_tools)} semantically relevant tools (after platform filtering)")
-            
-            # Build intelligent suggestions block with IMPROVED FORMATTING
-            intelligent_tool_suggestions = "\n\n" + "="*80 + "\n"
-            intelligent_tool_suggestions += "🎯 INTELLIGENT TOOL SUGGESTIONS (Pre-searched for this query)\n"
-            intelligent_tool_suggestions += "="*80 + "\n\n"
-            intelligent_tool_suggestions += "Based on semantic analysis of the user's message, these tools are most relevant:\n\n"
-            
-            for idx, tool_result in enumerate(suggested_tools, 1):
-                tool_name = tool_result['tool_name']
-                short_desc = tool_result.get('short_description', 'No description')
-                similarity = tool_result.get('similarity', 0.0)
-                platform = tool_result.get('platform', 'unknown')
+            # ============================================
+            # 🔒 PLATFORM FILTERING (Based on Auth)
+            # ============================================
+            if suggested_tools and auth_platform in ['microsoft', 'google']:
+                original_count = len(suggested_tools)
                 
-                # Add emoji based on similarity score
-                if similarity >= 0.7:
-                    relevance = "🔥"
-                elif similarity >= 0.5:
-                    relevance = "✅"
-                else:
-                    relevance = "💡"
+                # Define platform exclusions
+                google_platforms = ['gmail', 'google_workspace', 'google_docs', 'google_sheets', 
+                                  'google_drive', 'google_calendar', 'google_tasks', 'google_forms',
+                                  'google_slides', 'google_meet', 'google_analytics', 'google_cloud_run']
                 
-                # NEW FORMAT: tool name, platform, emoji on one line
-                intelligent_tool_suggestions += f"{idx}. {tool_name} [{platform}] {relevance}\n"
-                intelligent_tool_suggestions += f"   {short_desc}\n"
-                intelligent_tool_suggestions += f"   Similarity: {similarity:.1%}\n\n"
+                microsoft_platforms = ['microsoft_outlook', 'microsoft_excel', 'microsoft_word',
+                                     'microsoft_onedrive', 'microsoft_teams', 'microsoft_calendar',
+                                     'microsoft_todo', 'microsoft_onenote', 'microsoft_sharepoint',
+                                     'microsoft_forms', 'outlook', 'excel', 'word', 'onedrive']
+                
+                # Filter based on auth platform
+                if auth_platform == 'microsoft':
+                    # User authenticated with Microsoft → exclude Google tools
+                    suggested_tools = [
+                        tool for tool in suggested_tools 
+                        if tool.get('platform', '').lower() not in google_platforms
+                    ]
+                    print(f"[STREAM] 🔒 MICROSOFT user: Filtered out {original_count - len(suggested_tools)} Google tools")
+                
+                elif auth_platform == 'google':
+                    # User authenticated with Google → exclude Microsoft tools
+                    suggested_tools = [
+                        tool for tool in suggested_tools 
+                        if tool.get('platform', '').lower() not in microsoft_platforms
+                    ]
+                    print(f"[STREAM] 🔒 GOOGLE user: Filtered out {original_count - len(suggested_tools)} Microsoft tools")
+                
+                # Keep only top 8 after filtering
+                suggested_tools = suggested_tools[:8]
             
-            intelligent_tool_suggestions += "**How to Use These Suggestions:**\n"
-            intelligent_tool_suggestions += "- These tools were pre-selected based on the user's message\n"
-            intelligent_tool_suggestions += "- You can use them immediately if relevant (call get_tool_schema → execute_tool)\n"
-            intelligent_tool_suggestions += "- You still have autonomy: if these don't fit, use search_tools() manually\n"
-            intelligent_tool_suggestions += "- This saves you 1-2 discovery rounds for faster responses\n"
-            intelligent_tool_suggestions += "\n" + "="*80 + "\n"
-            
-            # LOG ALL SELECTED TOOLS (Not just top 3)
-            print(f"[STREAM] 🎯 INTELLIGENT TOOL SELECTION (Top {len(suggested_tools)}):")
-            for idx, tool_result in enumerate(suggested_tools, 1):
-                tool_name = tool_result['tool_name']
-                similarity = tool_result.get('similarity', 0.0)
-                platform = tool_result.get('platform', 'unknown')
-                print(f"[STREAM]   {idx}. {tool_name} [{platform}] - {similarity:.1%} match")
+            if suggested_tools:
+                print(f"[STREAM] ✨ Found {len(suggested_tools)} semantically relevant tools (after platform filtering)")
+                
+                # Build intelligent suggestions block with IMPROVED FORMATTING
+                intelligent_tool_suggestions = "\n\n" + "="*80 + "\n"
+                intelligent_tool_suggestions += "🎯 INTELLIGENT TOOL SUGGESTIONS (Pre-searched for this query)\n"
+                intelligent_tool_suggestions += "="*80 + "\n\n"
+                intelligent_tool_suggestions += "Based on semantic analysis of the user's message, these tools are most relevant:\n\n"
+                
+                for idx, tool_result in enumerate(suggested_tools, 1):
+                    tool_name = tool_result['tool_name']
+                    short_desc = tool_result.get('short_description', 'No description')
+                    similarity = tool_result.get('similarity', 0.0)
+                    platform = tool_result.get('platform', 'unknown')
+                    
+                    # Add emoji based on similarity score
+                    if similarity >= 0.7:
+                        relevance = "🔥"
+                    elif similarity >= 0.5:
+                        relevance = "✅"
+                    else:
+                        relevance = "💡"
+                    
+                    # NEW FORMAT: tool name, platform, emoji on one line
+                    intelligent_tool_suggestions += f"{idx}. {tool_name} [{platform}] {relevance}\n"
+                    intelligent_tool_suggestions += f"   {short_desc}\n"
+                    intelligent_tool_suggestions += f"   Similarity: {similarity:.1%}\n\n"
+                
+                intelligent_tool_suggestions += "**How to Use These Suggestions:**\n"
+                intelligent_tool_suggestions += "- These tools were pre-selected based on the user's message\n"
+                intelligent_tool_suggestions += "- You can use them immediately if relevant (call get_tool_schema → execute_tool)\n"
+                intelligent_tool_suggestions += "- You still have autonomy: if these don't fit, use search_tools() manually\n"
+                intelligent_tool_suggestions += "- This saves you 1-2 discovery rounds for faster responses\n"
+                intelligent_tool_suggestions += "\n" + "="*80 + "\n"
+                
+                # LOG ALL SELECTED TOOLS (Not just top 3)
+                print(f"[STREAM] 🎯 INTELLIGENT TOOL SELECTION (Top {len(suggested_tools)}):")
+                for idx, tool_result in enumerate(suggested_tools, 1):
+                    tool_name = tool_result['tool_name']
+                    similarity = tool_result.get('similarity', 0.0)
+                    platform = tool_result.get('platform', 'unknown')
+                    print(f"[STREAM]   {idx}. {tool_name} [{platform}] - {similarity:.1%} match")
+            else:
+                print(f"[STREAM] ℹ️  No semantic matches found (threshold 0.3+)")
         else:
-            print(f"[STREAM] ℹ️  No semantic matches found (threshold 0.3+)")
+            print(f"[STREAM] ⚠️  Semantic search not available")
     
     except Exception as e:
         print(f"[STREAM] ⚠️  Semantic pre-search failed: {e}")

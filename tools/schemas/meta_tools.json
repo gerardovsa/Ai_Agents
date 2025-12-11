@@ -4,6 +4,7 @@
   "tools": [
     {
       "name": "list_available_platforms",
+      "short_description": "List all platforms with available tools - Google, Microsoft, WooCommerce, etc.",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all platforms that have tools available (Google Workspace, Microsoft 365, WooCommerce, etc.)",
       "platform": "meta_tools",
       "parameters": {
@@ -38,6 +39,7 @@
     },
     {
       "name": "list_platform_tools",
+      "short_description": "List tool names for platform - simple list without parameter schemas",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tool NAMES for a platform - NO PARAMETER SCHEMAS! Returns simple list of tool names and what they do. If you need details, call get_tool_schema(tool_name) next.",
       "platform": "meta_tools",
       "parameters": {
@@ -59,6 +61,7 @@
     },
     {
       "name": "get_tool_schema",
+      "short_description": "Get full parameter schema for specific tool - detailed specs before execution",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet FULL parameter schema for ONE specific tool. Use this AFTER list_platform_tools() to learn how to use a tool before executing it.",
       "platform": "meta_tools",
       "parameters": {
@@ -80,6 +83,7 @@
     },
     {
       "name": "search_tools",
+      "short_description": "Search for tools by keyword or task - find email, document, sheet tools",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch for tools by keyword or task. Examples: search_tools('email') finds all email tools, search_tools('gmail') finds Gmail tools, search_tools('create document') finds document creation tools.",
       "platform": "meta_tools",
       "parameters": {
@@ -101,6 +105,7 @@
     },
     {
       "name": "get_platform_guide",
+      "short_description": "Get detailed platform usage guide - examples and common workflows",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet detailed usage guide for a platform's tools including examples and common workflows",
       "platform": "meta_tools",
       "parameters": {
@@ -130,6 +135,7 @@
     },
     {
       "name": "recommend_tools_for_task",
+      "short_description": "Get smart tool recommendations for task - AI suggests best tools for goal",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet smart recommendations for which tools to use for a specific task",
       "platform": "meta_tools",
       "parameters": {
@@ -169,6 +175,7 @@
     },
     {
       "name": "get_workflow_steps",
+      "short_description": "Get step-by-step workflow for common tasks - email, documents, quotes",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet step-by-step workflow for common tasks (send_email, generate_quote, create_document, etc.)",
       "platform": "meta_tools",
       "parameters": {
@@ -198,6 +205,7 @@
     },
     {
       "name": "execute_tool",
+      "short_description": "Execute any discovered tool by name - dynamic proxy for all 584 tools",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nPROXY FUNCTION: Execute ANY discovered tool by name. After discovering tools via list_platform_tools(), use this to execute them.\n\nWorkflow:\n1. Call list_platform_tools('google_workspace')\n2. See gmail_send_email with parameters: to, subject, body\n3. Call execute_tool('gmail_send_email', to='john@example.com', subject='Hello', body='Test')\n\nThis allows dynamic tool execution without sending all 603 tool schemas upfront.",
       "platform": "meta_tools",
       "parameters": {

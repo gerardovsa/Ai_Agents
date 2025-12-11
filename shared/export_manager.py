@@ -97,7 +97,7 @@ class ExportManager:
             
             # Create internal doc card
             card_result = registry.execute_tool(
-                'synergy_create_internal_doc',
+                'synergy_create_synergy_doc',
                 session_id=session_id,
                 title=title,
                 content=content,

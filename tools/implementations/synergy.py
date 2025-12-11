@@ -2432,7 +2432,7 @@ def synergy_export_internal_doc(
 
 def synergy_create_milestone(
     session_id: str,
-    milestone_name: str,
+    title: str,
     description: Optional[str] = None,
     tasks: Optional[List[Any]] = None,
     due_date: Optional[str] = None,
@@ -2444,12 +2444,14 @@ def synergy_create_milestone(
     start_date: Optional[str] = None,
     depends_on_milestone_id: Optional[str] = None,
     color_hex: Optional[str] = None,
+    milestone_name: Optional[str] = None,  # DEPRECATED: For backward compatibility
     **kwargs
 ) -> Dict[str, Any]:
     """
     Create a new milestone with tasks and subtasks in one call
     
     Milestones are major phases in a Synergy session. Each milestone can have:
+    - Title and detailed description (separate fields)
     - Multiple tasks (smaller units of work)
     - Each task can have subtasks (granular steps)
     - Documents specific to this milestone
@@ -2463,13 +2465,15 @@ def synergy_create_milestone(
     
     Args:
         session_id: Synergy session ID (required)
-        milestone_name: Milestone title (required) - Short name for the milestone
-        description: Detailed milestone description (optional) - Longer explanation
-                     The UI renders this with line breaks preserved
-        tasks: List of tasks - can be strings or objects with subtasks
+        title: Milestone title (required) - Short name for the milestone (e.g., "Database Setup")
+        description: Detailed milestone description (optional) - Longer explanation with context,
+                     requirements, and acceptance criteria. The UI renders this with line breaks preserved.
+                     Example: "Set up customer database infrastructure including:\n- PostgreSQL 14 server\n- Automated backups\n- Initial schema migration"
+        tasks: List of tasks - can be strings or objects with title, description, subtasks
                Examples:
                - ["Create database", "Import data"]
-               - [{"task": "Setup infrastructure", "subtasks": ["Create server", "Configure DNS"]}]
+               - [{"title": "Setup infrastructure", "description": "Configure server and network", "subtasks": ["Create server", "Configure DNS"]}]
+               - [{"title": "Import contacts", "subtasks": [{"title": "Export from CRM", "description": "Extract all customer records"}]}]
         due_date: Due date in ISO format (YYYY-MM-DD)
         priority: Priority level (low|medium|high|critical) - default: medium
         estimated_hours: Estimated hours to complete milestone
@@ -2481,6 +2485,7 @@ def synergy_create_milestone(
         start_date: Start date in ISO format (YYYY-MM-DD)
         depends_on_milestone_id: ID of milestone that must complete first
         color_hex: Color for visual identification (e.g., "#FF5733")
+        milestone_name: DEPRECATED - Use 'title' instead (kept for backward compatibility)
         
     Returns:
         Dict with:
@@ -2494,19 +2499,26 @@ def synergy_create_milestone(
     Example:
         result = synergy_create_milestone(
             session_id="sess_abc123",
-            milestone_name="Database Setup",
-            description="Set up customer database and import existing contacts",
+            title="Database Setup",
+            description="Set up customer database and import existing contacts from old CRM system",
             tasks=[
-                "Create Google Sheet for customer data",
                 {
-                    "task": "Import existing contacts",
+                    "title": "Create Google Sheet",
+                    "description": "Set up customer database sheet with proper columns and validation"
+                },
+                {
+                    "title": "Import existing contacts",
+                    "description": "Migrate all customer records from legacy system",
                     "subtasks": [
-                        "Export from old CRM",
-                        "Clean and format data",
-                        "Import to new sheet"
+                        {"title": "Export from old CRM", "description": "Extract CSV with all customer data"},
+                        {"title": "Clean and format data", "description": "Remove duplicates and standardize fields"},
+                        {"title": "Import to new sheet", "description": "Bulk upload cleaned data"}
                     ]
                 },
-                "Set up automated backups"
+                {
+                    "title": "Set up automated backups",
+                    "description": "Configure daily backups to S3 with 30-day retention"
+                }
             ],
             due_date="2025-12-01",
             priority="high",
@@ -2516,16 +2528,20 @@ def synergy_create_milestone(
         
         milestone_id = result["milestone_id"]  # Save this!
     """
+    # Handle backward compatibility
+    if not title and milestone_name:
+        title = milestone_name
+    
     # Validation
     if not session_id:
         raise SynergyError("session_id is required")
-    if not milestone_name or not milestone_name.strip():
-        raise SynergyError("milestone_name is required and cannot be empty")
+    if not title or not title.strip():
+        raise SynergyError("title is required and cannot be empty")
     
     try:
         payload = {
             "session_id": session_id,
-            "milestone_name": milestone_name.strip(),
+            "title": title.strip(),
             "description": description,
             "tasks": tasks or [],
             "due_date": due_date,
@@ -2563,7 +2579,7 @@ def synergy_create_milestone(
             "milestone_number": result.get("milestone_number"),
             "tasks_created": result.get("tasks_created", 0),
             "subtasks_created": result.get("subtasks_created", 0),
-            "message": f"✅ Created milestone: {milestone_name} (#{result.get('milestone_number')})"
+            "message": f"✅ Created milestone: {title} (#{result.get('milestone_number')})"
         }
         
     except requests.exceptions.RequestException as e:
@@ -2815,8 +2831,10 @@ def synergy_update_milestone(
 
 def synergy_create_task(
     milestone_id: str,
-    task: str,
-    subtasks: Optional[List[str]] = None,
+    title: str,
+    description: Optional[str] = None,
+    subtasks: Optional[List[Any]] = None,
+    due_date: Optional[str] = None,
     priority: str = "medium",
     estimated_hours: Optional[float] = None,
     assigned_to: Optional[str] = None,
@@ -2824,33 +2842,30 @@ def synergy_create_task(
     start_date: Optional[str] = None,
     depends_on_task_id: Optional[str] = None,
     links: Optional[List[Dict[str, str]]] = None,
+    task: Optional[str] = None,  # DEPRECATED: For backward compatibility
     **kwargs
 ) -> Dict[str, Any]:
     """
     Add a new task to an existing milestone
     
     Tasks are units of work within a milestone. Each task can have:
+    - Title and detailed description (separate fields)
     - Subtasks (smaller steps)
-    - Priority, time estimates, assignments
+    - Priority, time estimates, assignments, due dates
     - Dependencies on other tasks
     - Links and tags
     
-    **TITLE + DESCRIPTION FORMAT:**
-    The `task` field can contain both a title and description using this format:
-        "[Title]\\n\\n[Description]"
-    
-    The UI will render this with the title prominent and description below.
-    Line breaks in the description are preserved.
-    
-    Examples:
-        task="Setup database"  # Title only
-        task="Setup database\\n\\nInstall PostgreSQL 14 and create initial schema"  # Title + description
-    
     Args:
         milestone_id: Parent milestone ID (required)
-        task: Task text (required) - Can be title only, or "Title\\n\\nDescription" format
-        subtasks: List of subtask descriptions
-                  Example: ["Step 1", "Step 2", "Step 3"]
+        title: Task title (required) - Short name (e.g., "Setup database backups")
+        description: Detailed task description (optional) - Full context and requirements.
+                     Example: "Configure automated daily backups to S3 with 30-day retention policy and weekly restore testing"
+        subtasks: List of subtasks - can be strings or objects with title, description
+                  Examples:
+                  - ["Step 1", "Step 2", "Step 3"]
+                  - [{"title": "Configure S3", "description": "Set up bucket with lifecycle policies"}]
+                  - [{"title": "Test restore", "description": "Verify backup integrity"}]
+        due_date: Due date in ISO format (YYYY-MM-DD)
         priority: Priority level (low|medium|high|critical) - default: medium
         estimated_hours: Estimated time to complete
         assigned_to: Person assigned to this task
@@ -2859,6 +2874,7 @@ def synergy_create_task(
         depends_on_task_id: ID of task that must complete first
         links: Related links
                Format: [{"title": "Reference", "url": "https://..."}]
+        task: DEPRECATED - Use 'title' instead (kept for backward compatibility)
         
     Returns:
         Dict with:
@@ -2870,12 +2886,20 @@ def synergy_create_task(
     Example:
         result = synergy_create_task(
             milestone_id="ms_20251124120000",
-            task="Set up database backups",
+            title="Set up database backups",
+            description="Configure automated daily backups with monitoring and alerting",
             subtasks=[
-                "Configure automated daily backups",
-                "Test restore procedure",
-                "Document backup process"
+                {
+                    "title": "Configure automated backups",
+                    "description": "Set up cron job for daily PostgreSQL backups to S3"
+                },
+                {
+                    "title": "Test restore procedure",
+                    "description": "Verify backup files can be successfully restored"
+                },
+                "Document backup process"  # Simple string format
             ],
+            due_date="2025-12-15",
             priority="high",
             estimated_hours=2,
             assigned_to="DevOps Team"
@@ -2883,18 +2907,27 @@ def synergy_create_task(
         
         task_id = result["task_id"]  # Save this!
     """
+    # Handle backward compatibility
+    if not title and task:
+        title = task
+    
     # Validation
     if not milestone_id:
         raise SynergyError("milestone_id is required")
-    if not task or not task.strip():
-        raise SynergyError("task is required and cannot be empty")
+    if not title or not title.strip():
+        raise SynergyError("title is required and cannot be empty")
     
     try:
         payload = {
-            "task": task.strip(),
+            "title": title.strip(),
+            "description": description,
             "subtasks": subtasks or [],
             "priority": priority
         }
+        
+        # Add optional fields
+        if due_date:
+            payload["due_date"] = due_date
         
         # Add optional fields
         if estimated_hours is not None:
@@ -3071,11 +3104,14 @@ def synergy_update_task(
 
 def synergy_create_subtask(
     task_id: str,
-    task: str,
+    title: str,
+    description: Optional[str] = None,
+    due_date: Optional[str] = None,
     priority: str = "medium",
     estimated_hours: Optional[float] = None,
     assigned_to: Optional[str] = None,
     tags: Optional[List[str]] = None,
+    task: Optional[str] = None,  # DEPRECATED: For backward compatibility
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -3086,24 +3122,17 @@ def synergy_create_subtask(
     - Tracking detailed progress
     - Assigning specific steps to individuals
     
-    **TITLE + DESCRIPTION FORMAT:**
-    The `task` field can contain both a title and description using this format:
-        "[Title]\\n\\n[Description]"
-    
-    The UI will render this with the title prominent and description below.
-    Line breaks in the description are preserved.
-    
-    Examples:
-        task="Configure backup"  # Title only
-        task="Configure backup\\n\\nSet up daily automated backups to S3 with 30-day retention"  # Title + description
-    
     Args:
         task_id: Parent task ID (required)
-        task: Subtask text (required) - Can be title only, or "Title\\n\\nDescription" format
+        title: Subtask title (required) - Short name (e.g., "Configure backup")
+        description: Detailed subtask description (optional) - Full context and requirements.
+                     Example: "Set up daily automated backups to S3 with 30-day retention policy"
+        due_date: Due date in ISO format (YYYY-MM-DD)
         priority: Priority level (low|medium|high|critical) - default: medium
         estimated_hours: Estimated time
         assigned_to: Person assigned
         tags: Tags for categorization
+        task: DEPRECATED - Use 'title' instead (kept for backward compatibility)
         
     Returns:
         Dict with:
@@ -3114,24 +3143,34 @@ def synergy_create_subtask(
     Example:
         result = synergy_create_subtask(
             task_id="task_20251124120000",
-            task="Review and approve backup configuration",
+            title="Review backup configuration",
+            description="Review and approve the automated backup configuration before deployment",
+            due_date="2025-12-18",
             priority="high",
             assigned_to="Team Lead"
         )
         
         subtask_id = result["subtask_id"]
     """
+    # Handle backward compatibility
+    if not title and task:
+        title = task
+    
     # Validation
     if not task_id:
         raise SynergyError("task_id is required")
-    if not task or not task.strip():
-        raise SynergyError("task is required and cannot be empty")
+    if not title or not title.strip():
+        raise SynergyError("title is required and cannot be empty")
     
     try:
         payload = {
-            "task": task.strip(),
+            "title": title.strip(),
+            "description": description,
             "priority": priority
         }
+        
+        if due_date:
+            payload["due_date"] = due_date
         
         if estimated_hours is not None:
             payload["estimated_hours"] = estimated_hours

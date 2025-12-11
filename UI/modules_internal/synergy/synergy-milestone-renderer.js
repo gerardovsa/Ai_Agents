@@ -141,15 +141,43 @@ class SynergyMilestoneRenderer {
                     
                     <input type="checkbox" 
                            ${milestone.completed ? 'checked' : ''}
+                           ${milestone.blocked ? 'disabled' : ''}
                            onclick="event.stopPropagation(); SynergyMilestoneInteractions.completeMilestone('${sessionId}', '${milestone.milestone_id}')" />
                     
-                    <span class="milestone-name">${this.escapeHtml(milestone.milestone_name)}</span>
+                    <span class="milestone-name">${this.escapeHtml(milestone.title || milestone.milestone_name)}</span>
+                    
+                    ${this.getPriorityBadge(milestone.priority)}
+                    
+                    ${milestone.blocked ? `
+                        <span class="blocker-badge" title="${this.escapeHtml(milestone.blocker_reason || 'Blocked')}">
+                            <i class="fas fa-ban"></i> BLOCKED
+                            ${milestone.blocked_since ? ` (${new Date(milestone.blocked_since).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : ''}
+                        </span>
+                    ` : ''}
                     
                     <span class="milestone-progress">${milestone.completed ? '✅ ' : ''}${progress}%</span>
                     
+                    ${milestone.start_date && !milestone.completed ? `
+                        <span class="milestone-start">
+                            🚀 Started ${new Date(milestone.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                    ` : ''}
+                    
                     ${milestone.due_date ? `
                         <span class="milestone-due">
-                            📅 ${new Date(milestone.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            📅 Due ${new Date(milestone.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                    ` : ''}
+                    
+                    ${milestone.completed_at ? `
+                        <span class="milestone-completed-at">
+                            ✅ Completed ${new Date(milestone.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                    ` : ''}
+                    
+                    ${milestone.estimated_hours || milestone.actual_hours ? `
+                        <span class="milestone-hours">
+                            ⏱️ ${milestone.actual_hours ? `${milestone.actual_hours}h` : ''}${milestone.estimated_hours && milestone.actual_hours ? '/' : ''}${milestone.estimated_hours ? `${milestone.estimated_hours}h` : ''}
                         </span>
                     ` : ''}
                     
@@ -172,6 +200,12 @@ class SynergyMilestoneRenderer {
                     ${milestone.description ? `
                         <div class="milestone-description">
                             ${this.escapeHtml(milestone.description)}
+                        </div>
+                    ` : ''}
+                    
+                    ${milestone.tags ? `
+                        <div class="milestone-tags">
+                            ${JSON.parse(milestone.tags).map(tag => `<span class="milestone-tag">${this.escapeHtml(tag)}</span>`).join('')}
                         </div>
                     ` : ''}
                     
@@ -221,16 +255,47 @@ class SynergyMilestoneRenderer {
                        onclick="SynergyMilestoneInteractions.completeTask('${sessionId}', '${task.task_id}')" />
                 
                 <span class="task-name ${task.completed ? 'task-completed' : ''}">
-                    ${this.escapeHtml(task.task)}
+                    ${this.escapeHtml(task.title || task.task)}
                 </span>
                 
                 ${this.getPriorityBadge(task.priority)}
+                
+                ${task.assigned_to ? `
+                    <span class="task-assignee" title="Assigned to ${this.escapeHtml(task.assigned_to)}">
+                        <i class="fas fa-user"></i> ${this.escapeHtml(task.assigned_to)}
+                    </span>
+                ` : ''}
+                
+                ${task.due_date ? `
+                    <span class="task-due" title="Due date">
+                        📅 ${new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                ` : ''}
+                
+                ${task.estimated_hours || task.actual_hours ? `
+                    <span class="task-hours" title="${task.actual_hours ? 'Actual' : 'Estimated'} hours">
+                        ⏱️ ${task.actual_hours || task.estimated_hours}h
+                    </span>
+                ` : ''}
                 
                 ${task.blocked ? `
                     <span class="blocker-badge" title="${this.escapeHtml(task.blocker_reason)}">
                         <i class="fas fa-exclamation-triangle"></i> BLOCKED
                         ${task.blocker_type ? `<span class="blocker-type">${task.blocker_type}</span>` : ''}
+                        ${task.blocked_since ? ` (${new Date(task.blocked_since).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : ''}
                     </span>
+                ` : ''}
+                
+                ${task.description ? `
+                    <div class="task-description" style="grid-column: 3 / -1; padding-left: 40px; font-size: 12px; color: #666; margin-top: 4px;">
+                        ${this.escapeHtml(task.description)}
+                    </div>
+                ` : ''}
+                
+                ${task.tags ? `
+                    <div class="task-tags" style="grid-column: 3 / -1; padding-left: 40px; margin-top: 4px;">
+                        ${JSON.parse(task.tags).map(tag => `<span class="task-tag" style="font-size: 10px; padding: 2px 6px; background: #e5e7eb; border-radius: 3px; margin-right: 4px;">${this.escapeHtml(tag)}</span>`).join('')}
+                    </div>
                 ` : ''}
                 
                 <!-- Subtasks (collapsible) -->
@@ -260,10 +325,34 @@ class SynergyMilestoneRenderer {
                        onclick="SynergyMilestoneInteractions.completeSubtask('${sessionId}', '${subtask.subtask_id}')" />
                 
                 <span class="subtask-name ${subtask.completed ? 'subtask-completed' : ''}">
-                    ${this.escapeHtml(subtask.task)}
+                    ${this.escapeHtml(subtask.title || subtask.task)}
                 </span>
                 
                 ${this.getPriorityBadge(subtask.priority)}
+                
+                ${subtask.assigned_to ? `
+                    <span class="subtask-assignee" title="Assigned to ${this.escapeHtml(subtask.assigned_to)}">
+                        <i class="fas fa-user"></i> ${this.escapeHtml(subtask.assigned_to)}
+                    </span>
+                ` : ''}
+                
+                ${subtask.due_date ? `
+                    <span class="subtask-due" title="Due date">
+                        📅 ${new Date(subtask.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                ` : ''}
+                
+                ${subtask.estimated_hours || subtask.actual_hours ? `
+                    <span class="subtask-hours" title="${subtask.actual_hours ? 'Actual' : 'Estimated'} hours">
+                        ⏱️ ${subtask.actual_hours || subtask.estimated_hours}h
+                    </span>
+                ` : ''}
+                
+                ${subtask.description ? `
+                    <div class="subtask-description" style="grid-column: 3 / -1; padding-left: 60px; font-size: 11px; color: #666; margin-top: 2px;">
+                        ${this.escapeHtml(subtask.description)}
+                    </div>
+                ` : ''}
             </div>
         `;
     }

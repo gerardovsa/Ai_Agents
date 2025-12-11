@@ -3134,6 +3134,12 @@ async function sendAgentMessage(agentId) {
         }
     );
     console.log(`[Agent ${agentId}] User message rendered`);
+
+    // ✅ APPLY VIEW MODE TO USER MESSAGE
+    if (userMessageDiv && typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
+        AgentColumn.applyViewModeToMessage(agentId, userMessageDiv);
+    }
+
     scrollAgentToBottom(agentId);
 
     updateAgentStatus(agentId, 'thinking', 'Thinking...');
@@ -3507,6 +3513,11 @@ async function sendAgentMessage(agentId) {
                                     thinkingBubble.classList.add('collapsed'); // Start collapsed
                                     messagesContainer.appendChild(thinkingBubble);
 
+                                    // ✅ APPLY VIEW MODE TO NEW BUBBLE
+                                    if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
+                                        AgentColumn.applyViewModeToMessage(agentId, thinkingBubble);
+                                    }
+
                                     // Add fullscreen double-click handler
                                     if (typeof window.addMessageFullscreenHandler === 'function') {
                                         window.addMessageFullscreenHandler(thinkingBubble);
@@ -3634,6 +3645,11 @@ async function sendAgentMessage(agentId) {
                             toolBubble.appendChild(contentDiv);
                             toolBubble.classList.add('collapsed'); // Start collapsed
                             messagesContainer.appendChild(toolBubble);
+
+                            // ✅ APPLY VIEW MODE TO NEW BUBBLE
+                            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
+                                AgentColumn.applyViewModeToMessage(agentId, toolBubble);
+                            }
 
                             // Add fullscreen double-click handler
                             if (typeof window.addMessageFullscreenHandler === 'function') {
@@ -3774,6 +3790,11 @@ async function sendAgentMessage(agentId) {
                             toolResultBubble.classList.add('collapsed'); // Start collapsed
                             messagesContainer.appendChild(toolResultBubble);
 
+                            // ✅ APPLY VIEW MODE TO NEW BUBBLE
+                            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
+                                AgentColumn.applyViewModeToMessage(agentId, toolResultBubble);
+                            }
+
                             // Add fullscreen double-click handler
                             if (typeof window.addMessageFullscreenHandler === 'function') {
                                 window.addMessageFullscreenHandler(toolResultBubble);
@@ -3911,6 +3932,11 @@ async function sendAgentMessage(agentId) {
 
                                 messagesContainer.appendChild(textBubble);
                                 console.log(`[Agent ${agentId}] Text bubble created`);
+
+                                // ✅ APPLY VIEW MODE TO NEW BUBBLE
+                                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
+                                    AgentColumn.applyViewModeToMessage(agentId, textBubble);
+                                }
 
                                 // Add fullscreen double-click handler
                                 if (typeof window.addMessageFullscreenHandler === 'function') {

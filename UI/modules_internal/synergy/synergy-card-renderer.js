@@ -142,10 +142,22 @@ class SynergyCardRenderer {
 
                 <!-- ROW 3: Metadata Stats -->
                 <div class="synergy-row-3">
+                    ${session.created_at ? `
+                    <div class="synergy-stat" title="Created ${new Date(session.created_at).toLocaleDateString()}">
+                        <i class="fas fa-clock"></i>
+                        <span>Created ${this.getRelativeTime(session.created_at)}</span>
+                    </div>
+                    ` : ''}
                     ${session.due_date ? `
                     <div class="synergy-stat">
                         <i class="fas fa-calendar-alt"></i>
                         <span>${new Date(session.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    ` : ''}
+                    ${session.completed_at ? `
+                    <div class="synergy-stat" title="Completed">
+                        <i class="fas fa-check-circle"></i>
+                        <span>✅ ${new Date(session.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                     </div>
                     ` : ''}
                     <div class="synergy-stat">
@@ -176,9 +188,31 @@ class SynergyCardRenderer {
                             <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
                             <div class="synergy-updated">${relativeTime}</div>
                         </div>
+                        ${session.assignees ? `
+                            <div class="synergy-footer-row-2">
+                                <div class="synergy-assignees">
+                                    <i class="fas fa-users"></i>
+                                    ${this.parseJsonField(session.assignees, []).map(assignee => `<span class="synergy-assignee">${this.escapeHtml(assignee)}</span>`).join(', ')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${session.platforms_involved ? `
+                            <div class="synergy-footer-row-2">
+                                <div class="synergy-platforms">
+                                    <i class="fas fa-tools"></i> ${this.escapeHtml(session.platforms_involved)}
+                                </div>
+                            </div>
+                        ` : ''}
                         ${tagsHtml ? `
                             <div class="synergy-footer-row-2">
                                 <div class="synergy-tags">${tagsHtml}</div>
+                            </div>
+                        ` : ''}
+                        ${session.notes ? `
+                            <div class="synergy-footer-row-2">
+                                <div class="synergy-notes" style="font-size: 12px; color: #666; font-style: italic;">
+                                    <i class="fas fa-sticky-note"></i> ${this.escapeHtml(session.notes.length > 100 ? session.notes.substring(0, 100) + '...' : session.notes)}
+                                </div>
                             </div>
                         ` : ''}
                     </div>

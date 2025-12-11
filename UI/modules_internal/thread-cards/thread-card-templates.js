@@ -174,6 +174,11 @@ window.ThreadCardTemplates = {
         // Agent columns work correctly without ID (container has id="thread-info-1" etc.)
         // All cards use data-thread-id for identification - findCardElement() searches by this
 
+        // Set appropriate tooltip based on location
+        const doubleClickTooltip = isThreadHistory
+            ? 'Double-click to expand/collapse card'
+            : (isPrime ? 'Double-click to refresh thread' : 'Double-click to reload thread');
+
         return `
             <div class="ai-chat-header-info agent-thread-card" 
                  data-thread-id="${thread.id}" 
@@ -183,7 +188,7 @@ window.ThreadCardTemplates = {
                  ondragend="ThreadManager.handleDragEnd(event)"
                  ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${location}')"
                  style="cursor: pointer;" 
-                 title="Double-click to load in Prime">
+                 title="${doubleClickTooltip}">
                 
                 <!-- Row 1: Title + Agent Badge + Chevron -->
                 <div class="thread-item-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 0;">
@@ -894,11 +899,11 @@ window.ThreadCardTemplates = {
         const safeEscape = window.safeEscape || ((str) => String(str).replace(/[&<>"']/g, ''));
         const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
-        
+
         // File count badge (Gap #1 fix)
         const fileCount = synergyMeta?.internal_docs_count || 0;
         const fileList = synergyMeta?.internal_docs || [];
-        const fileTooltip = fileList.length > 0 
+        const fileTooltip = fileList.length > 0
             ? fileList.map(f => `📄 ${f.title} (${f.doc_type})`).join('\n')
             : 'No files attached';
 

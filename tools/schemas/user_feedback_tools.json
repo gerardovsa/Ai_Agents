@@ -4,6 +4,7 @@
   "tools": [
     {
       "name": "show_feedback_area",
+      "short_description": "Show non-blocking feedback icon - user sends mid-execution instructions to AI",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nShow the feedback icon for non-blocking user guidance. Call at start of long operations. User can optionally click icon to type instructions and click SEND. Instructions automatically injected into next tool execution via execute_tool(). AI doesn't need to fetch - injection is automatic.\n\nUSE CASE:\nUser: 'Analyze 50 emails'\n→ Call show_feedback_area('Processing emails...')\n→ Icon appears (small, bottom-right)\n→ User clicks, types: 'Focus on legal emails'\n→ User clicks SEND\n→ AI continues working...\n→ Next tool call: AI automatically sees 'USER SAYS: Focus on legal emails'\n→ AI adjusts behavior\n\nDIFFERENCE FROM request_user_interaction():\n- request_user_interaction: AI ASKS user (blocking, modal, required)\n- show_feedback_area: User TELLS AI (non-blocking, icon, optional)",
       "platform": "user_feedback",
       "category": "ui",
@@ -36,6 +37,7 @@
     },
     {
       "name": "hide_feedback_area",
+      "short_description": "Hide feedback icon when task complete - removes non-blocking input UI",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nHide the feedback icon. Call when task is complete.",
       "platform": "user_feedback",
       "category": "ui",
