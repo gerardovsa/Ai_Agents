@@ -35,7 +35,8 @@ class InHousePrintDB:
         
         Priority order:
         1. Try Supabase credentials (for Render deployment)
-        2. Fall back to config_path (for local development)
+        2. Try provided config_path
+        3. Try multiple fallback locations
         """
         import os
         
@@ -54,8 +55,31 @@ class InHousePrintDB:
         # Fall back to config file if Supabase not available
         if self.config is None:
             if config_path is None:
+                # Try multiple locations in order
                 current_dir = os.path.dirname(os.path.abspath(__file__))
-                config_path = os.path.join(current_dir, "..", "..", "config", "database-config.json")
+                search_paths = [
+                    # Location 1: Quote calculator config (for GOD calculators)
+                    os.path.join(current_dir, "..", "UI", "modules_external", "quote-calculator", "config", "database-config.json"),
+                    # Location 2: In_House_SQL project config
+                    os.path.join(current_dir, "..", "..", "In_House_SQL", "config", "database-config.json"),
+                    # Location 3: Legacy path (GIT/config)
+                    os.path.join(current_dir, "..", "..", "config", "database-config.json"),
+                ]
+                
+                config_path = None
+                for path in search_paths:
+                    abs_path = os.path.abspath(path)
+                    if os.path.exists(abs_path):
+                        config_path = abs_path
+                        print(f"✓ Found database config: {abs_path}")
+                        break
+                
+                if config_path is None:
+                    raise FileNotFoundError(
+                        f"Database config not found in any search location:\n" +
+                        "\n".join(f"  - {os.path.abspath(p)}" for p in search_paths)
+                    )
+            
             self.config = self._load_config(config_path)
         
         self.connection = None
