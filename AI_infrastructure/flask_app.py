@@ -1978,12 +1978,26 @@ def handle_internal_error(error):
         'user_message': 'Something went wrong on our end. Please try again later.'
     }), 500
 
+# Health check logging throttle
+_last_health_log_time = 0
+_HEALTH_LOG_INTERVAL = 30  # seconds
+
 @app.before_request
 def log_request_info():
-    """Log incoming requests for debugging"""
+    """Log incoming requests for debugging (throttled for /health endpoint)"""
+    global _last_health_log_time
+    
     # Only log non-static requests
     if not request.path.startswith('/static') and not request.path.startswith('/UI'):
-        logger.info(f'➡️  {request.method} {request.path}')
+        # Throttle /health endpoint logging to once every 30 seconds
+        if request.path == '/health':
+            import time
+            current_time = time.time()
+            if current_time - _last_health_log_time >= _HEALTH_LOG_INTERVAL:
+                logger.info(f'➡️  {request.method} {request.path} (health checks muted for {_HEALTH_LOG_INTERVAL}s)')
+                _last_health_log_time = current_time
+        else:
+            logger.info(f'➡️  {request.method} {request.path}')
 
 @app.after_request
 def log_response_info(response):
@@ -2025,6 +2039,10 @@ atexit.register(cleanup_resources)
 # ============================================================================
 
 if __name__ == '__main__':
+    # Reduce noise from geventwebsocket health check logs
+    import logging
+    logging.getLogger('geventwebsocket.handler').setLevel(logging.WARNING)
+    
     # Startup banner removed from logs (not sent to AI)
     
     # Get port from environment (Render sets PORT=10000, local uses 5001)
