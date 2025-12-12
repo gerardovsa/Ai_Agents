@@ -447,7 +447,7 @@ class CADRenderer {
      */
     addCADSpecificButtons(actionBar, sceneData, chartId) {
         const cadButtons = this.createCADButtons(sceneData, chartId);
-        
+
         // Insert CAD buttons before close button
         const closeBtn = actionBar.querySelector('.viz-action-btn:last-child');
         const insertPoint = closeBtn || actionBar.lastElementChild;
@@ -560,7 +560,7 @@ class CADRenderer {
      */
     toggleWireframe(sceneData) {
         const { scene } = sceneData;
-        
+
         scene.traverse((object) => {
             if (object.isMesh) {
                 object.material.wireframe = !object.material.wireframe;
@@ -579,13 +579,13 @@ class CADRenderer {
      */
     showViewPresets(button, sceneData) {
         const { camera, controls } = sceneData;
-        
+
         // Calculate bounding box for proper camera distance
         const box = new THREE.Box3();
         sceneData.scene.traverse(obj => {
             if (obj.isMesh) box.expandByObject(obj);
         });
-        
+
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
@@ -684,26 +684,26 @@ class CADRenderer {
      */
     exportSTL(scene) {
         let stl = 'solid model\n';
-        
+
         scene.traverse((object) => {
             if (object.isMesh) {
                 const geometry = object.geometry;
                 const matrix = object.matrixWorld;
-                
+
                 if (geometry.index) {
                     const indices = geometry.index.array;
                     const positions = geometry.attributes.position;
-                    
+
                     for (let i = 0; i < indices.length; i += 3) {
                         const v1 = new THREE.Vector3().fromBufferAttribute(positions, indices[i]).applyMatrix4(matrix);
                         const v2 = new THREE.Vector3().fromBufferAttribute(positions, indices[i + 1]).applyMatrix4(matrix);
                         const v3 = new THREE.Vector3().fromBufferAttribute(positions, indices[i + 2]).applyMatrix4(matrix);
-                        
+
                         const normal = new THREE.Vector3().crossVectors(
                             new THREE.Vector3().subVectors(v2, v1),
                             new THREE.Vector3().subVectors(v3, v1)
                         ).normalize();
-                        
+
                         stl += `  facet normal ${normal.x} ${normal.y} ${normal.z}\n`;
                         stl += `    outer loop\n`;
                         stl += `      vertex ${v1.x} ${v1.y} ${v1.z}\n`;
@@ -715,7 +715,7 @@ class CADRenderer {
                 }
             }
         });
-        
+
         stl += 'endsolid model\n';
         return stl;
     }
@@ -726,21 +726,21 @@ class CADRenderer {
     exportOBJ(scene) {
         let obj = '# CAD Model Export\n';
         let vertexOffset = 1;
-        
+
         scene.traverse((object) => {
             if (object.isMesh) {
                 obj += `o ${object.name || 'mesh'}\n`;
-                
+
                 const geometry = object.geometry;
                 const matrix = object.matrixWorld;
                 const positions = geometry.attributes.position;
-                
+
                 // Vertices
                 for (let i = 0; i < positions.count; i++) {
                     const v = new THREE.Vector3().fromBufferAttribute(positions, i).applyMatrix4(matrix);
                     obj += `v ${v.x} ${v.y} ${v.z}\n`;
                 }
-                
+
                 // Faces
                 if (geometry.index) {
                     const indices = geometry.index.array;
@@ -752,11 +752,11 @@ class CADRenderer {
                         obj += `f ${vertexOffset + i} ${vertexOffset + i + 1} ${vertexOffset + i + 2}\n`;
                     }
                 }
-                
+
                 vertexOffset += positions.count;
             }
         });
-        
+
         return obj;
     }
 
@@ -765,7 +765,7 @@ class CADRenderer {
      */
     exportCSV(scene) {
         let csv = 'Object,Vertex_X,Vertex_Y,Vertex_Z,Normal_X,Normal_Y,Normal_Z\n';
-        
+
         scene.traverse((object) => {
             if (object.isMesh) {
                 const objectName = object.name || 'unnamed';
@@ -773,16 +773,16 @@ class CADRenderer {
                 const matrix = object.matrixWorld;
                 const positions = geometry.attributes.position;
                 const normals = geometry.attributes.normal;
-                
+
                 for (let i = 0; i < positions.count; i++) {
                     const v = new THREE.Vector3().fromBufferAttribute(positions, i).applyMatrix4(matrix);
                     const n = normals ? new THREE.Vector3().fromBufferAttribute(normals, i) : new THREE.Vector3(0, 0, 0);
-                    
+
                     csv += `${objectName},${v.x.toFixed(6)},${v.y.toFixed(6)},${v.z.toFixed(6)},${n.x.toFixed(6)},${n.y.toFixed(6)},${n.z.toFixed(6)}\n`;
                 }
             }
         });
-        
+
         return csv;
     }
 
@@ -810,7 +810,7 @@ class CADRenderer {
 
         if (format === 'png') {
             renderer.render(sceneData.scene, sceneData.camera);
-            
+
             renderer.domElement.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -818,7 +818,7 @@ class CADRenderer {
                 a.download = `${filename}.png`;
                 a.click();
                 URL.revokeObjectURL(url);
-                
+
                 this.showNotification('✅ PNG saved', 'success');
             });
         } else if (format === 'svg') {
@@ -831,41 +831,41 @@ class CADRenderer {
      */
     exportTechnicalDrawingSVG(sceneData, filename) {
         const { scene } = sceneData;
-        
+
         const box = new THREE.Box3();
         scene.traverse(obj => {
             if (obj.isMesh) box.expandByObject(obj);
         });
-        
+
         const size = box.getSize(new THREE.Vector3());
-        
+
         let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
   <rect width="800" height="600" fill="#fff"/>
   <text x="400" y="30" text-anchor="middle" font-size="18" font-weight="bold">CAD Technical Drawing</text>
   <text x="20" y="580" font-size="12">Dimensions: ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}</text>
   <g transform="translate(400, 300)">`;
-        
+
         scene.traverse((object) => {
             if (object.isMesh) {
                 const geometry = object.geometry;
                 if (geometry.index) {
                     const positions = geometry.attributes.position;
                     const indices = geometry.index.array;
-                    
+
                     for (let i = 0; i < Math.min(indices.length, 300); i += 3) {
                         const v1 = new THREE.Vector3().fromBufferAttribute(positions, indices[i]);
                         const v2 = new THREE.Vector3().fromBufferAttribute(positions, indices[i + 1]);
-                        
+
                         const scale = 100;
                         svg += `    <line x1="${v1.x * scale}" y1="${-v1.z * scale}" x2="${v2.x * scale}" y2="${-v2.z * scale}" stroke="#333" stroke-width="1"/>\n`;
                     }
                 }
             }
         });
-        
+
         svg += `  </g>\n</svg>`;
-        
+
         const blob = new Blob([svg], { type: 'image/svg+xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -873,7 +873,7 @@ class CADRenderer {
         a.download = `${filename}.svg`;
         a.click();
         URL.revokeObjectURL(url);
-        
+
         this.showNotification('✅ SVG saved', 'success');
     }
 
@@ -882,20 +882,20 @@ class CADRenderer {
      */
     showModelInfo(sceneData) {
         const { scene } = sceneData;
-        
+
         const box = new THREE.Box3();
         let vertexCount = 0;
         let triangleCount = 0;
         let meshCount = 0;
-        
+
         scene.traverse((object) => {
             if (object.isMesh) {
                 box.expandByObject(object);
                 meshCount++;
-                
+
                 const geometry = object.geometry;
                 vertexCount += geometry.attributes.position.count;
-                
+
                 if (geometry.index) {
                     triangleCount += geometry.index.count / 3;
                 } else {
@@ -903,10 +903,10 @@ class CADRenderer {
                 }
             }
         });
-        
+
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
-        
+
         const info = `📐 Model Info
 
 Dimensions: ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}
@@ -915,7 +915,7 @@ Center: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})
 Meshes: ${meshCount}
 Vertices: ${vertexCount.toLocaleString()}
 Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
-        
+
         alert(info); // Simple alert for now
     }
 
@@ -924,7 +924,7 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
      */
     showPopupMenu(button, options) {
         document.querySelectorAll('.cad-popup-menu').forEach(m => m.remove());
-        
+
         const menu = document.createElement('div');
         menu.className = 'cad-popup-menu';
         menu.style.cssText = `
@@ -937,7 +937,7 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
             z-index: 10000;
             min-width: 200px;
         `;
-        
+
         options.forEach(option => {
             const item = document.createElement('div');
             item.textContent = option.label;
@@ -947,29 +947,29 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
                 color: var(--text-primary, #e0e0e0);
                 font-size: 14px;
             `;
-            
+
             item.addEventListener('mouseenter', () => {
                 item.style.background = 'var(--bg-tertiary, #3a3a4e)';
             });
-            
+
             item.addEventListener('mouseleave', () => {
                 item.style.background = 'transparent';
             });
-            
+
             item.addEventListener('click', () => {
                 option.action();
                 menu.remove();
             });
-            
+
             menu.appendChild(item);
         });
-        
+
         const rect = button.getBoundingClientRect();
         menu.style.top = `${rect.bottom + 5}px`;
         menu.style.left = `${rect.left}px`;
-        
+
         document.body.appendChild(menu);
-        
+
         setTimeout(() => {
             document.addEventListener('click', function closeMenu(e) {
                 if (!menu.contains(e.target) && e.target !== button) {
@@ -993,7 +993,7 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
 
     /**
      * Load Three.js library dynamically
-     * FIXED (Dec 11, 2025): Use UMD builds instead of ES6 modules to avoid import errors
+     * FIXED (Dec 12, 2025): Dynamic URL detection for deployment vs local
      */
     async loadLibrary() {
         return new Promise((resolve, reject) => {
@@ -1015,12 +1015,32 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
                 }
             }, 10000); // 10 seconds timeout
 
-            // Load Three.js core from relative path (works on any deployment)
+            // Detect if we're on Render deployment or localhost
+            const isRenderDeployment = window.location.hostname.includes('onrender.com');
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            let threeJsUrl;
+            if (isRenderDeployment) {
+                // On Render: Use CDN
+                threeJsUrl = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+                console.log('[CAD] 📍 Detected Render deployment, using CDN');
+            } else if (isLocalhost) {
+                // On localhost: Try local node_modules first, fallback to CDN
+                threeJsUrl = '/node_modules/three/build/three.min.js';
+                console.log('[CAD] 📍 Detected localhost, using local node_modules');
+            } else {
+                // Unknown environment: Use CDN as safe default
+                threeJsUrl = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+                console.log('[CAD] 📍 Unknown environment, using CDN');
+            }
+
+            // Load Three.js core (UMD build for global window.THREE)
             const threeScript = document.createElement('script');
-            threeScript.src = 'js/vendor/three.min.js'; // Relative to site root
+            threeScript.src = threeJsUrl;
+            threeScript.crossOrigin = 'anonymous';
 
             threeScript.onload = () => {
-                console.log('✅ [CAD] Three.js core loaded');
+                console.log(`✅ [CAD] Three.js core loaded from ${isLocalhost ? 'local' : 'CDN'}`);
 
                 if (window.THREE) {
                     // Initialize OrbitControls inline (simplified version)
@@ -1031,14 +1051,44 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
                     resolve();
                 } else {
                     clearTimeout(timeoutId);
-                    reject(new Error('Three.js loaded but not available'));
+                    reject(new Error('Three.js loaded but not available on window'));
                 }
             };
 
             threeScript.onerror = (e) => {
-                clearTimeout(timeoutId);
-                console.error('❌ [CAD] Failed to load Three.js:', e);
-                reject(new Error('Failed to load Three.js from CDN'));
+                // If localhost node_modules fails, try CDN fallback
+                if (isLocalhost && threeJsUrl.includes('node_modules')) {
+                    console.warn('⚠️ [CAD] Local Three.js failed, trying CDN fallback...');
+                    threeScript.remove();
+                    
+                    const fallbackScript = document.createElement('script');
+                    fallbackScript.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+                    fallbackScript.crossOrigin = 'anonymous';
+                    
+                    fallbackScript.onload = () => {
+                        if (window.THREE) {
+                            this.initOrbitControls();
+                            clearTimeout(timeoutId);
+                            resolved = true;
+                            console.log('✅ [CAD] Three.js loaded from CDN fallback');
+                            resolve();
+                        } else {
+                            clearTimeout(timeoutId);
+                            reject(new Error('Three.js CDN fallback failed'));
+                        }
+                    };
+                    
+                    fallbackScript.onerror = () => {
+                        clearTimeout(timeoutId);
+                        reject(new Error('Failed to load Three.js from both local and CDN'));
+                    };
+                    
+                    document.head.appendChild(fallbackScript);
+                } else {
+                    clearTimeout(timeoutId);
+                    console.error('❌ [CAD] Failed to load Three.js:', e);
+                    reject(new Error('Failed to load Three.js'));
+                }
             };
 
             document.head.appendChild(threeScript);
