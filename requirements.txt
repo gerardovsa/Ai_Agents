@@ -22,7 +22,7 @@ torch>=2.0.0
 torchaudio>=2.0.0
 
 # Data Processing
-pandas==2.1.4
+pandas==2.3.3
 numpy>=1.26.4
 
 # Environment
@@ -85,13 +85,14 @@ python-dateutil==2.8.2
 bcrypt==4.0.1
 PyJWT==2.8.0
 
-# Engineering & CAD Libraries (TEMPORARILY DISABLED - Dec 12, 2025)
-# Causing 79+ minute dependency resolution on Render deployment
-# TODO: Re-enable after fixing numpy/cytriangle conflicts
-# matplotlib>=3.9.2,<3.11   # Required by sectionproperties>=3.9.0, pinned for Python 3.11 compatibility
-# PyNiteFEA>=1.6.2          # Structural engineering calculations (beam deflection, stress analysis)
-# sectionproperties>=3.3.0,<3.9.0  # Cross-section properties (3.9.0 requires cytriangle>=2.0 which needs numpy>=2.1)
-# forallpeople>=2.7.1       # Unit conversion and dimensional analysis
-# handcalcs>=1.10.0         # Beautiful engineering calculation documentation
-# cadquery>=2.6.1           # Parametric 3D CAD model generation (STEP/STL export)
-# ezdxf>=1.4.3              # 2D CAD (DXF/DWG) file generation and editing
+# Engineering & CAD Libraries (Dec 12, 2025 - EXACT VERSIONS)
+# Using exact versions from working local environment to avoid pip backtracking
+matplotlib==3.10.5
+numpy==2.3.3
+cytriangle==2.0.0
+sectionproperties==3.9.0
+PyNiteFEA==1.6.2
+forallpeople==2.7.1
+handcalcs==1.10.0
+cadquery==2.6.1
+ezdxf==1.4.3
