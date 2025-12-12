@@ -1396,8 +1396,14 @@ const MultiAgent = {
                     thread.id,
                     true  // compact mode
                 );
-                threadInfoContainer.innerHTML = cardHtml;
-                console.log(`✅ [LOAD] Thread info card rendered (${cardHtml.length} chars)`);
+
+                if (cardHtml) {
+                    threadInfoContainer.innerHTML = cardHtml;
+                    console.log(`✅ [LOAD] Thread info card rendered (${cardHtml.length} chars)`);
+                } else {
+                    console.warn(`⚠️ [LOAD] Thread info card HTML is empty (ThreadManagerUI may not be loaded yet)`);
+                    threadInfoContainer.innerHTML = '<div class="empty-thread-info">Loading...</div>';
+                }
             } else {
                 console.error(`❌ [LOAD] ThreadManager.renderThreadInfoContainer not available!`);
                 console.log('   ThreadManager exists?', typeof ThreadManager !== 'undefined');
@@ -3528,6 +3534,14 @@ async function sendAgentMessage(agentId) {
 
                                 // Accumulate thinking text
                                 thinkingBubble._fullThinkingText = thinkingBubble._fullThinkingText || '';
+
+                                // AUTO SEPARATOR: Add visual break when new thinking block starts
+                                if (data.delta_type === 'start' && thinkingBubble._fullThinkingText.trim()) {
+                                    // New thinking block detected - add separator before it
+                                    thinkingBubble._fullThinkingText += '\n\n---\n\n';
+                                    console.log(`[Agent ${agentId}] 🔄 [THINKING] New thinking block detected, added visual separator`);
+                                }
+
                                 thinkingBubble._fullThinkingText += thinkingText;
                                 fullThinkingContent += thinkingText;
 
@@ -3778,12 +3792,22 @@ async function sendAgentMessage(agentId) {
                                 // Keep as-is if not JSON
                             }
 
-                            contentDiv.innerHTML = `
-                                <div style="margin-bottom: 8px; color: ${isError ? '#ef4444' : '#60A5FA'};">
-                                    <strong><i class="fas ${isError ? 'fa-times-circle' : 'fa-check-circle'}"></i> Tool Result: ${data.tool_name || 'Unknown'}</strong>
-                                </div>
-                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto;">${formattedResult}</pre>
-                            `;
+                            // Create elements separately to avoid escaping issues with .innerHTML
+                            const headerTextDiv = document.createElement('div');
+                            headerTextDiv.style.marginBottom = '8px';
+                            headerTextDiv.style.color = isError ? '#ef4444' : '#60A5FA';
+                            headerTextDiv.innerHTML = `<strong><i class="fas ${isError ? 'fa-times-circle' : 'fa-check-circle'}"></i> Tool Result: ${data.tool_name || 'Unknown'}</strong>`;
+
+                            const preElement = document.createElement('pre');
+                            preElement.style.background = 'rgba(0,0,0,0.3)';
+                            preElement.style.padding = '12px';
+                            preElement.style.borderRadius = '6px';
+                            preElement.style.maxHeight = '400px';
+                            preElement.style.overflowY = 'auto';
+                            preElement.textContent = formattedResult; // Use textContent to prevent escaping
+
+                            contentDiv.appendChild(headerTextDiv);
+                            contentDiv.appendChild(preElement);
 
                             toolResultBubble.appendChild(headerDiv);
                             toolResultBubble.appendChild(contentDiv);

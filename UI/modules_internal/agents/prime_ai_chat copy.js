@@ -977,6 +977,14 @@ async function sendChatMessage() {
                                         if (!thinkingBubble._fullThinkingText) {
                                             thinkingBubble._fullThinkingText = '';
                                         }
+                                        
+                                        // AUTO SEPARATOR: Add visual break when new thinking block starts
+                                        if (data.delta_type === 'start' && thinkingBubble._fullThinkingText.trim()) {
+                                            // New thinking block detected - add separator before it
+                                            thinkingBubble._fullThinkingText += '\n\n---\n\n';
+                                            console.log('[THINKING] New thinking block detected, added visual separator');
+                                        }
+                                        
                                         thinkingBubble._fullThinkingText += thinkingText;
 
                                         // ALSO accumulate for conversation history

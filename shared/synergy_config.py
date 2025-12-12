@@ -40,14 +40,23 @@ class SynergyConfig:
         self._db_connected = False
         
     def _get_db_connection(self):
-        """Get database connection (Supabase or local)."""
-        try:
-            from shared.supabase_utils import get_supabase_client
-            return get_supabase_client(), 'supabase'
-        except ImportError:
-            # Fallback to local database if Supabase not available
-            import sqlite3
-            return sqlite3.connect('data/synergy_sessions.db'), 'sqlite'
+        """Get database connection (PostgreSQL via Supabase)."""
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        import os
+        
+        # Get connection string from environment
+        db_url = os.environ.get('SUPABASE_DB_URL_POOLER')
+        if not db_url:
+            raise RuntimeError(
+                "❌ SUPABASE_DB_URL_POOLER not found in environment variables.\n"
+                "   This system requires PostgreSQL connection.\n"
+                "   Set SUPABASE_DB_URL_POOLER in your environment."
+            )
+        
+        # Connect to PostgreSQL
+        conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+        return conn, 'postgres'
     
     def _is_cache_valid(self, config_id: str) -> bool:
         """Check if cached value is still valid."""
@@ -85,28 +94,26 @@ class SynergyConfig:
         
         # Fetch from database
         try:
-            db, db_type = self._get_db_connection()
+            conn, db_type = self._get_db_connection()
+            cursor = conn.cursor()
             
-            if db_type == 'supabase':
-                response = db.table('synergy_config').select('config_value').eq('config_id', config_id).single().execute()
-                if response.data:
-                    value = response.data.get('config_value')
-                    # Supabase returns JSONB as Python objects
-                    self._set_cache(config_id, value)
-                    return value
-            else:  # sqlite
-                cursor = db.cursor()
-                cursor.execute(
-                    "SELECT config_value FROM synergy_config WHERE config_id = ?",
-                    (config_id,)
-                )
-                row = cursor.fetchone()
-                if row:
-                    value = json.loads(row[0])  # SQLite stores as JSON string
-                    self._set_cache(config_id, value)
-                    db.close()
-                    return value
-                db.close()
+            # Query PostgreSQL with schema qualification
+            cursor.execute(
+                "SELECT config_value FROM synergy_sessions.synergy_config WHERE config_id = %s",
+                (config_id,)
+            )
+            row = cursor.fetchone()
+            
+            if row:
+                # PostgreSQL with RealDictCursor returns dict
+                value = row['config_value'] if isinstance(row, dict) else row[0]
+                self._set_cache(config_id, value)
+                cursor.close()
+                conn.close()
+                return value
+            
+            cursor.close()
+            conn.close()
                 
         except Exception as e:
             print(f"⚠️ Warning: Could not load config '{config_id}' from database: {e}")
@@ -215,17 +222,23 @@ class SynergyConfig:
             Dictionary of all config_id -> config_value mappings
         """
         try:
-            db, db_type = self._get_db_connection()
+            conn, db_type = self._get_db_connection()
+            cursor = conn.cursor()
             
-            if db_type == 'supabase':
-                response = db.table('synergy_config').select('config_id, config_value').execute()
-                return {row['config_id']: row['config_value'] for row in response.data}
-            else:  # sqlite
-                cursor = db.cursor()
-                cursor.execute("SELECT config_id, config_value FROM synergy_config")
-                rows = cursor.fetchall()
-                db.close()
-                return {row[0]: json.loads(row[1]) for row in rows}
+            cursor.execute("SELECT config_id, config_value FROM synergy_sessions.synergy_config")
+            rows = cursor.fetchall()
+            
+            # Process rows from RealDictCursor
+            result = {}
+            for row in rows:
+                if isinstance(row, dict):
+                    result[row['config_id']] = row['config_value']
+                else:
+                    result[row[0]] = row[1]
+            
+            cursor.close()
+            conn.close()
+            return result
                 
         except Exception as e:
             print(f"⚠️ Warning: Could not load all configs from database: {e}")

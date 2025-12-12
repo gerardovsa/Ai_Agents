@@ -934,6 +934,14 @@ async function sendChatMessage() {
                                         if (!thinkingBubble._fullThinkingText) {
                                             thinkingBubble._fullThinkingText = '';
                                         }
+
+                                        // AUTO SEPARATOR: Add visual break when new thinking block starts
+                                        if (data.delta_type === 'start' && thinkingBubble._fullThinkingText.trim()) {
+                                            // New thinking block detected - add separator before it
+                                            thinkingBubble._fullThinkingText += '\n\n---\n\n';
+                                            console.log('🔄 [THINKING] New thinking block detected, added visual separator');
+                                        }
+
                                         thinkingBubble._fullThinkingText += thinkingText;
 
                                         fullThinkingContent += thinkingText;
@@ -2717,6 +2725,54 @@ function unloadThreadFromPrime() {
     console.log('[PrimeAI] ✅ Thread unloaded from Prime');
 }
 
+// ==================== PRIME CHAT SCROLL CONTROLS ====================
+
+const PrimeChat = {
+    /**
+     * Scroll to top of messages container
+     */
+    scrollToTop() {
+        const messagesContainer = document.querySelector('.ai-chat-messages');
+        if (!messagesContainer) return;
+
+        messagesContainer.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    },
+
+    /**
+     * Scroll to bottom of messages container
+     */
+    scrollToBottom() {
+        const messagesContainer = document.querySelector('.ai-chat-messages');
+        if (!messagesContainer) return;
+
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight + LAYOUT_CONSTANTS.SCROLL_CLEARANCE;
+        }, LAYOUT_CONSTANTS.AUTO_SCROLL_DELAY);
+    },
+
+    /**
+     * Toggle auto-scroll functionality for Prime chat
+     */
+    toggleAutoScroll() {
+        autoScrollEnabled = !autoScrollEnabled;
+        const btn = document.getElementById('prime-autoscroll-btn');
+
+        if (autoScrollEnabled) {
+            btn?.classList.add('active');
+            btn?.setAttribute('title', 'Auto-scroll enabled - Click to disable');
+            this.scrollToBottom();
+        } else {
+            btn?.classList.remove('active');
+            btn?.setAttribute('title', 'Auto-scroll disabled - Click to enable');
+        }
+
+        console.log(`[PrimeChat] Auto-scroll: ${autoScrollEnabled ? 'enabled' : 'disabled'}`);
+    }
+};
+
 // Create PrimeAI namespace object for cleaner API
 const PrimeAI = {
     cycleExpandMode: cycleExpandModePrime,
@@ -2729,6 +2785,7 @@ const PrimeAI = {
 window.initChatPanel = initChatPanel;
 window.initChatPanelResize = initChatPanelResize;
 window.initThemeToggle = initThemeToggle;
+window.PrimeChat = PrimeChat;
 window.PrimeAI = PrimeAI;
 
 // Close Prime dropdown when clicking outside

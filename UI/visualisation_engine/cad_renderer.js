@@ -111,8 +111,31 @@ class CADRenderer {
 
         // Add action bar with controls
         const vizContainer = contentArea.closest('.viz-container');
-        if (vizContainer && this.vizEngine?.addUnifiedActionBar) {
-            this.vizEngine.addUnifiedActionBar(vizContainer, item, chartId, 'cad');
+        if (vizContainer) {
+            // Hide Plotly-specific action bar if it exists (not applicable to CAD)
+            const plotlyActionBar = vizContainer.querySelector('.viz-action-bar');
+            if (plotlyActionBar) {
+                plotlyActionBar.style.display = 'none';
+            }
+
+            // Create CAD-specific action bar
+            let cadActionBar = vizContainer.querySelector('.viz-cad-action-bar');
+            if (!cadActionBar) {
+                cadActionBar = document.createElement('div');
+                cadActionBar.className = 'viz-cad-action-bar';
+                cadActionBar.style.cssText = `
+                    display: flex;
+                    gap: 8px;
+                    padding: 8px;
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 6px;
+                    margin-top: 8px;
+                    flex-wrap: wrap;
+                `;
+                vizContainer.appendChild(cadActionBar);
+            }
+            
+            // Add CAD-specific controls
             this.addViewControls(vizContainer, sceneData, chartId);
         }
 
@@ -432,11 +455,14 @@ class CADRenderer {
      * Add CAD-specific view controls to action bar
      */
     addViewControls(vizContainer, sceneData, chartId) {
-        const actionBar = vizContainer.querySelector('.viz-unified-action-bar');
+        const actionBar = vizContainer.querySelector('.viz-cad-action-bar');
         if (!actionBar) {
-            console.warn('⚠️ CAD: No action bar found');
+            console.warn('⚠️ CAD: No CAD action bar found');
             return;
         }
+
+        // Clear any existing buttons
+        actionBar.innerHTML = '';
 
         // Add comprehensive CAD controls
         this.addCADSpecificButtons(actionBar, sceneData, chartId);
@@ -552,7 +578,7 @@ class CADRenderer {
             sceneData.controls.update();
         }
 
-        this.showNotification('🏠 Camera reset', 'success');
+        this.showNotification('<i class="fas fa-home"></i> Camera reset', 'success');
     }
 
     /**
@@ -569,7 +595,7 @@ class CADRenderer {
 
         const isWireframe = scene.children.find(obj => obj.isMesh)?.material.wireframe;
         this.showNotification(
-            isWireframe ? '🔲 Wireframe ON' : '🟦 Solid ON',
+            isWireframe ? '<i class="fas fa-border-all"></i> Wireframe ON' : '<i class="fas fa-cube"></i> Solid ON',
             'success'
         );
     }
@@ -602,7 +628,7 @@ class CADRenderer {
         ];
 
         this.showPopupMenu(button, presets.map(preset => ({
-            label: `📐 ${preset.name}`,
+            label: `<i class="fas fa-cube"></i> ${preset.name}`,
             action: () => {
                 camera.position.set(
                     center.x + preset.pos.x,
@@ -613,7 +639,7 @@ class CADRenderer {
                     controls.target.copy(center);
                     controls.update();
                 }
-                this.showNotification(`📐 ${preset.name} view`, 'success');
+                this.showNotification(`<i class="fas fa-eye"></i> ${preset.name} view`, 'success');
             }
         })));
     }
@@ -791,8 +817,8 @@ class CADRenderer {
      */
     showScreenshotOptions(button, sceneData, chartId) {
         const formats = [
-            { name: 'PNG', ext: 'png', icon: '🖼️' },
-            { name: 'SVG', ext: 'svg', icon: '📐' }
+            { name: 'PNG', ext: 'png', icon: '<i class="fas fa-image"></i>' },
+            { name: 'SVG', ext: 'svg', icon: '<i class="fas fa-vector-square"></i>' }
         ];
 
         this.showPopupMenu(button, formats.map(format => ({
@@ -907,7 +933,7 @@ class CADRenderer {
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
 
-        const info = `📐 Model Info
+        const info = `Model Info
 
 Dimensions: ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}
 Center: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})
@@ -1018,7 +1044,7 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
             // Detect if we're on Render deployment or localhost
             const isRenderDeployment = window.location.hostname.includes('onrender.com');
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            
+
             let threeJsUrl;
             if (isRenderDeployment) {
                 // On Render: Use CDN
@@ -1060,11 +1086,11 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
                 if (isLocalhost && threeJsUrl.includes('node_modules')) {
                     console.warn('⚠️ [CAD] Local Three.js failed, trying CDN fallback...');
                     threeScript.remove();
-                    
+
                     const fallbackScript = document.createElement('script');
                     fallbackScript.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
                     fallbackScript.crossOrigin = 'anonymous';
-                    
+
                     fallbackScript.onload = () => {
                         if (window.THREE) {
                             this.initOrbitControls();
@@ -1077,12 +1103,12 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
                             reject(new Error('Three.js CDN fallback failed'));
                         }
                     };
-                    
+
                     fallbackScript.onerror = () => {
                         clearTimeout(timeoutId);
                         reject(new Error('Failed to load Three.js from both local and CDN'));
                     };
-                    
+
                     document.head.appendChild(fallbackScript);
                 } else {
                     clearTimeout(timeoutId);

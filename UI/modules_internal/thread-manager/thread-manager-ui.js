@@ -591,18 +591,48 @@ window.ThreadManagerUI = {
         const _originalRefreshCards = function (threadId) {
             console.log(`🔄 [refreshAllThreadInfoCards] Refreshing all cards for thread ${threadId}`);
 
+            // Safety check: ensure threads are loaded
+            if (!this.threads || !Array.isArray(this.threads)) {
+                console.warn('⚠️ [refreshAllThreadInfoCards] Threads not loaded yet, skipping refresh');
+                return;
+            }
+
+            // Get the thread's ACTUAL current location from memory
+            const thread = this.threads.find(t => t.id === threadId);
+            const actualLocation = thread ? (thread.location || 'prime') : null;
+
             // Find all thread-info cards with this thread ID
             const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
 
             threadCards.forEach(card => {
-                const location = card.getAttribute('data-location') || 'prime';
+                const cardLocation = card.getAttribute('data-location') || 'prime';
+
+                // CRITICAL FIX (Dec 12, 2025): Remove card if location doesn't match actual thread location
+                // This handles the case where thread was unloaded from agent but card still shows in agent column
+                if (actualLocation && cardLocation !== 'thread-history' && cardLocation !== actualLocation && cardLocation !== 'prime-loaded') {
+                    // Card is in wrong location (e.g., thread moved from agent-15 to prime, but card still in agent-15)
+                    console.log(`🧹 [refreshAllThreadInfoCards] Removing stale card at ${cardLocation} (thread now at ${actualLocation})`);
+
+                    // If this is an agent card, replace with empty state
+                    if (cardLocation.startsWith('agent-')) {
+                        const agentId = cardLocation.replace('agent-', '');
+                        const threadInfoEl = document.getElementById(`thread-info-${agentId}`);
+                        if (threadInfoEl && typeof this.renderThreadInfoContainer === 'function') {
+                            threadInfoEl.innerHTML = this.renderThreadInfoContainer(cardLocation, null, true);
+                            console.log(`✅ [refreshAllThreadInfoCards] Showed empty state for ${cardLocation}`);
+                        }
+                    } else {
+                        card.remove();
+                    }
+                    return; // Skip to next card
+                }
 
                 // CRITICAL (Dec 9, 2025): Check expansion state BEFORE replacing
                 // For Prime/Agents, check the CONTAINER; for Thread History, check the CARD
                 let wasExpanded = false;
-                if (location === 'thread-history') {
+                if (cardLocation === 'thread-history') {
                     wasExpanded = card.classList.contains('expanded');
-                } else if (location === 'prime' || location === 'prime-loaded') {
+                } else if (cardLocation === 'prime' || cardLocation === 'prime-loaded') {
                     const primeContainer = document.getElementById('prime-thread-info');
                     wasExpanded = primeContainer?.classList.contains('expanded') || false;
                 } else {
@@ -612,7 +642,7 @@ window.ThreadManagerUI = {
                 }
 
                 // Re-render the card with updated agent info AND UI pills
-                const newCardHTML = this.renderThreadInfoContainer(location, threadId, card.classList.contains('compact'));
+                const newCardHTML = this.renderThreadInfoContainer(cardLocation, threadId, card.classList.contains('compact'));
 
                 // Replace the card's outerHTML
                 card.outerHTML = newCardHTML;
@@ -636,12 +666,12 @@ window.ThreadManagerUI = {
 
             // Also update sidebar thread items (shows UI pills)
             const threads = window.ThreadManager.threads || [];
-            const thread = threads.find(t => t.id === threadId);
-            if (thread) {
+            const sidebarThread = threads.find(t => t.id === threadId);
+            if (sidebarThread) {
                 const sidebarItem = document.querySelector(`[data-thread-id="${threadId}"].thread-item`);
                 if (sidebarItem) {
                     // Re-render just the pills section
-                    this.updateThreadPills(sidebarItem, thread);
+                    this.updateThreadPills(sidebarItem, sidebarThread);
                 }
             }
 
