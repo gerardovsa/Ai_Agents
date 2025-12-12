@@ -21256,7 +21256,7 @@
             let threadManagerReady = false;
             const maxWaitTime = 5000; // 5 seconds max
             const startWaitTime = Date.now();
-            
+
             while (!threadManagerReady && (Date.now() - startWaitTime) < maxWaitTime) {
                 if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.init === 'function') {
                     threadManagerReady = true;
@@ -21264,7 +21264,7 @@
                 }
                 await new Promise(resolve => setTimeout(resolve, 50)); // Check every 50ms
             }
-            
+
             if (threadManagerReady) {
                 console.log('🔧 [INIT] Calling ThreadManager.init() (duplicate-safe)...');
                 await ThreadManager.init();
