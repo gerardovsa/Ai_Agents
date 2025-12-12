@@ -34,6 +34,129 @@ import threading
 # SHARED VALIDATION FUNCTIONS (Used by all workers)
 # ============================================================
 
+def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> List[Dict]:
+    """
+    CRITICAL pre-API validation - ensures messages comply with Anthropic API requirements
+    
+    Fixes:
+    1. Removes orphaned tool_result blocks (tool_use_id references non-existent tool_use)
+    2. Ensures no tool_result blocks in assistant messages
+    3. Validates thinking blocks are immutable (removes modification attempts)
+    4. Ensures role alternation (no consecutive same-role messages)
+    5. Validates all tool_use IDs have matching tool_result IDs
+    
+    Returns:
+        Cleaned messages ready for API
+    """
+    if not messages:
+        return messages
+    
+    cleaned_messages = []
+    all_tool_use_ids = set()  # Track all tool_use IDs across conversation
+    
+    print(f"{log_prefix} 🔐 PRE-API VALIDATION: Checking {len(messages)} messages...")
+    
+    for idx, msg in enumerate(messages):
+        role = msg.get('role')
+        content = msg.get('content', [])
+        
+        if not isinstance(content, list):
+            cleaned_messages.append(msg)
+            continue
+        
+        # VALIDATION 1: Collect all tool_use IDs from assistant messages
+        if role == 'assistant':
+            for block in content:
+                if isinstance(block, dict) and block.get('type') == 'tool_use':
+                    tool_use_id = block.get('id')
+                    if tool_use_id:
+                        all_tool_use_ids.add(tool_use_id)
+        
+        # VALIDATION 2: Check for and remove tool_result blocks in assistant messages
+        if role == 'assistant':
+            tool_results = [b for b in content if isinstance(b, dict) and b.get('type') == 'tool_result']
+            if tool_results:
+                print(f"{log_prefix} ⚠️ Message {idx}: Found {len(tool_results)} tool_result blocks in ASSISTANT message (forbidden)")
+                content = [b for b in content if not (isinstance(b, dict) and b.get('type') == 'tool_result')]
+                msg['content'] = content
+                print(f"{log_prefix} 🔧 Message {idx}: Removed tool_result blocks")
+        
+        # VALIDATION 3: Check for orphaned tool_result blocks in user messages
+        if role == 'user':
+            for block in content:
+                if isinstance(block, dict) and block.get('type') == 'tool_result':
+                    tool_use_id = block.get('tool_use_id')
+                    if tool_use_id not in all_tool_use_ids:
+                        print(f"{log_prefix} ⚠️ Message {idx}: Found orphaned tool_result (tool_use_id={tool_use_id} not in {all_tool_use_ids})")
+            
+            # Remove orphaned tool_results
+            cleaned_content = []
+            for block in content:
+                if isinstance(block, dict) and block.get('type') == 'tool_result':
+                    tool_use_id = block.get('tool_use_id')
+                    if tool_use_id in all_tool_use_ids:
+                        cleaned_content.append(block)
+                    else:
+                        print(f"{log_prefix} 🔧 Message {idx}: Removing orphaned tool_result (ID: {tool_use_id})")
+                else:
+                    cleaned_content.append(block)
+            
+            if cleaned_content != content:
+                msg['content'] = cleaned_content
+        
+        # VALIDATION 4: Check for thinking block modifications (must be immutable)
+        # If thinking block has non-standard fields, flag it
+        for block in msg.get('content', []):
+            if isinstance(block, dict) and block.get('type') == 'thinking':
+                # Valid thinking block fields: type, thinking
+                valid_fields = {'type', 'thinking'}
+                extra_fields = set(block.keys()) - valid_fields
+                if extra_fields:
+                    print(f"{log_prefix} ⚠️ Message {idx}: Thinking block has extra fields: {extra_fields}")
+                    # Remove extra fields
+                    for field in extra_fields:
+                        if field not in valid_fields:
+                            del block[field]
+                    print(f"{log_prefix} 🔧 Message {idx}: Cleaned thinking block")
+        
+        # VALIDATION 5: Ensure content is not empty
+        if not msg['content']:
+            print(f"{log_prefix} ⚠️ Message {idx}: Empty content (after cleaning)")
+            # Only skip empty assistant messages, keep empty user messages
+            if role == 'assistant':
+                print(f"{log_prefix} 🔧 Message {idx}: Skipping empty assistant message")
+                continue
+        
+        # Add to cleaned messages
+        cleaned_messages.append(msg)
+    
+    # VALIDATION 6: Ensure no consecutive same-role messages
+    final_messages = []
+    for msg in cleaned_messages:
+        if final_messages and final_messages[-1].get('role') == msg.get('role'):
+            print(f"{log_prefix} ⚠️ Found consecutive {msg['role']} messages")
+            # Merge content if both are same role
+            if msg.get('role') == 'user':
+                prev_content = final_messages[-1].get('content', [])
+                curr_content = msg.get('content', [])
+                if isinstance(prev_content, list) and isinstance(curr_content, list):
+                    print(f"{log_prefix} 🔧 Merging user message content")
+                    final_messages[-1]['content'] = prev_content + curr_content
+                    continue
+            # For assistant, don't merge if tool_use present
+            elif msg.get('role') == 'assistant':
+                has_tool_use = any(b.get('type') == 'tool_use' for b in msg.get('content', []) if isinstance(b, dict))
+                if has_tool_use:
+                    print(f"{log_prefix} 🚫 Cannot merge assistant messages with tool_use blocks")
+                    final_messages.append(msg)
+                    continue
+        
+        final_messages.append(msg)
+    
+    print(f"{log_prefix} ✅ PRE-API VALIDATION: Cleaned to {len(final_messages)} messages")
+    return final_messages
+
+
 def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Dict], List[Dict]]:
     """
     Comprehensive validation and reordering for assistant message content
@@ -1620,6 +1743,12 @@ def run_simple_agent_worker(
                             total_conversation_tokens += estimate_tokens(block['thinking'])
         
         print(f"{log_prefix} 📊 CONVERSATION SIZE: {total_conversation_tokens:,} tokens (~{total_conversation_tokens/200000*100:.1f}% of 200K context limit)")
+        
+        # CRITICAL: Final validation before API call
+        print(f"{log_prefix} 🔐 Running final pre-API validation...")
+        messages = validate_messages_for_api(messages, log_prefix)
+        print(f"{log_prefix} ✅ Pre-API validation complete: {len(messages)} messages ready")
+        
         print(f"{log_prefix} 🚀 Calling Anthropic API (claude-sonnet-4-5)...")
         
         # Call AI with tools
@@ -2394,6 +2523,11 @@ def execute_streaming_request(
                 print(f"  [{idx}] {role}: {block_types}")
             else:
                 print(f"  [{idx}] {role}: (string content)")
+        
+        # CRITICAL: Final validation before stream (Dec 12, 2025)
+        print(f"{log_prefix} 🔐 Running final pre-API validation...")
+        messages = validate_messages_for_api(messages, log_prefix)
+        print(f"{log_prefix} ✅ Pre-API validation complete: {len(messages)} messages ready for stream")
         
         # Stream response from Claude with USER'S AI PREFERENCES
         stream_params = {

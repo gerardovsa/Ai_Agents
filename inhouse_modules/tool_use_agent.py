@@ -4,11 +4,12 @@ TOOL USE API IMPLEMENTATION - Official Anthropic API
 from shared.database_utils import convert_sql_placeholders
 
 This implements the OFFICIAL Anthropic Tool Use API with:
-- Client tools (execute_sql, calculate_quote, get_calculator_requirements)
+- Client tools (execute_sql, calculate_quote)
 - Server tools (web_search with Brisbane location)
 - Extended Thinking with Interleaved Thinking beta
 - Comprehensive event capture and logging
 - Citation display for web search results
+- Schema introspection via get_tool_schema (internal meta-function)
 """
 
 import sys
@@ -234,7 +235,8 @@ class ToolUseAgent:
         return [
             # CLIENT TOOL 1: Get calculator requirements
             {
-                "name": "get_calculator_requirements",
+                # get_calculator_requirements removed - use get_tool_schema internally
+                # AI reads schemas directly without tool execution
                 "description": "Get the required parameters for a specific product type from the quote calculator. This tells you what information you need to collect before calculating a quote.",
                 "input_schema": {
                     "type": "object",
@@ -419,7 +421,7 @@ Date: 2025-10-03
 • Use TOP 20 or TOP 50 to limit results
 
 **WORKFLOW:**
-1. FIRST: Call get_calculator_requirements(product_type) for complete guidance
+1. FIRST: Read tool schema internally via get_tool_schema for complete guidance
 2. Query database with correct SQL structure (verified above)
 3. Extract specifications from TicketNotes (primary source!)
 4. Map to calculator parameters using guidance from step 1
@@ -476,7 +478,7 @@ CORFLUTE SIGNS (corflute_signs): size_preset (str: '450x600mm'|'600x900mm'|'900x
 
 CRITICAL: Use SEPARATE calculators for each binding type - wire_bound_books uses WireBoundShopifyCalculator, spiral_bound_books uses SpiralBoundShopifyCalculator, perfect_bound_books uses PerfectBoundShopifyCalculator. Do NOT use old unified calculate_perfect_bound_book() method.
 
-Get full parameter details from get_calculator_requirements first."""
+Get full parameter details from tool schema (get_tool_schema) first."""
                         }
                     },
                     "required": ["product_type", "parameters"]
@@ -933,46 +935,10 @@ Use this for:
         self._print_and_log("")
         
         try:
-            if tool_name == "get_calculator_requirements":
-                product_type = tool_input["product_type"]
-                result = self.calculator.get_calculator_requirements(product_type)
-                
-                # CRITICAL FIX: Convert Decimal types to JSON-serializable formats
-                # Calculator returns Decimal values for pricing that must be converted
-                def convert_to_json_serializable(obj):
-                    """Convert Decimal, datetime, and other types to JSON-serializable formats"""
-                    if isinstance(obj, list):
-                        return [convert_to_json_serializable(item) for item in obj]
-                    elif isinstance(obj, dict):
-                        return {key: convert_to_json_serializable(value) for key, value in obj.items()}
-                    elif isinstance(obj, (int, float, str, bool, type(None))):
-                        return obj
-                    else:
-                        # Convert Decimal, datetime, etc. to string
-                        return str(obj)
-                
-                json_safe_result = convert_to_json_serializable(result)
-                
-                self._print_and_log(f" RESULT:")
-                self._print_and_log(json.dumps(json_safe_result, indent=2))
-                
-                result_data = {
-                    "success": True,
-                    "product_type": product_type,
-                    "requirements": json_safe_result
-                }
-                
-                # Emit client_tool_execution event
-                self._log_event("client_tool_execution", {
-                    "tool_name": tool_name,
-                    "tool_input": tool_input,
-                    "result": result_data,
-                    "summary": f"Retrieved calculator requirements for {product_type}"
-                })
-                
-                return result_data
+            # get_calculator_requirements removed - schemas accessed via get_tool_schema internally
+            # AI reads parameter definitions without tool execution (faster, free, always in sync)
             
-            elif tool_name == "execute_sql":
+            if tool_name == "execute_sql":
                 query = tool_input["query"]
                 self._print_and_log(f"SQL QUERY:")
                 self._print_and_log(query)
@@ -2102,9 +2068,9 @@ Use this for:
 - Your thinking is internal - customers don't see it
 
 You have access to:
-1. get_calculator_requirements(product_type) - Find what parameters you need
-2. execute_sql(query) - Query database for historical orders
-3. calculate_quote(product_type, parameters) - Calculate a quote
+1. Tool schemas (via get_tool_schema internally) - Parameter definitions, types, validation rules
+2. execute_sql(query) - Query database for historical orders and specifications
+3. calculate_quote(product_type, parameters) - Calculate accurate quotes
 4. web_search (automatic) - Search web for current pricing/standards
 
 **SUPPORTED CALCULATORS:**
@@ -2563,9 +2529,9 @@ d) **Customize Your Response WITH SPECIFICATION AWARENESS:**
 
 🚨 **MANDATORY WORKFLOW - FOLLOW EXACTLY IN THIS ORDER:**
 
-**STEP 1: ALWAYS CALL get_calculator_requirements() FIRST** ⚠️ REQUIRED!
+**STEP 1: ALWAYS READ TOOL SCHEMA FIRST** ⚠️ REQUIRED!
 
-Before doing ANYTHING else, you MUST call get_calculator_requirements(product_type) to get:
+Before doing ANYTHING else, you MUST read the tool schema (via get_tool_schema internally) to get:
 - Complete parameter definitions with types and validation rules
 - Database extraction strategies with SQL templates
 - Natural language to parameter mapping rules (e.g., "spiral bound" → binding_type="Spiral Bound")
@@ -2582,7 +2548,7 @@ Before doing ANYTHING else, you MUST call get_calculator_requirements(product_ty
 - Pass invalid combinations to calculator causing errors
 
  **Example:** User says "Wire Bound manual". You MUST:
-1. Call get_calculator_requirements("perfect_bound_books") first
+1. Read tool schema for perfect_bound_books first (internal get_tool_schema)
 2. Guidance shows: binding_type options are "Perfect Bound", "Wire Bound", "Spiral Bound"
 3. Guidance shows: "wire bound" OR "lay flat" → binding_type="Wire Bound"
 4. Now you know the EXACT parameter value to use!
