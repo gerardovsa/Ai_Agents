@@ -1217,6 +1217,38 @@ def serve_static(filename):
     return send_from_directory(STATIC_DIR, filename)
 
 
+# Serve node_modules for CAD visualization libraries (manifold-3d, three.js)
+@app.route('/node_modules/<path:filename>')
+def serve_node_modules(filename):
+    """Serve JavaScript libraries from node_modules for frontend CAD renderer"""
+    print(f"📦 [NODE_MODULES] Requested: {filename}")
+    
+    # Get project root (parent of AI_infrastructure/)
+    project_root = Path(__file__).parent.parent
+    node_modules_path = project_root / 'node_modules'
+    full_path = node_modules_path / filename
+    
+    print(f"📦 [NODE_MODULES] Full path: {full_path}")
+    print(f"📦 [NODE_MODULES] File exists: {full_path.exists()}")
+    
+    if full_path.exists():
+        file_dir = full_path.parent
+        file_name = full_path.name
+        print(f"📦 [NODE_MODULES] ✓ Serving: {file_name}")
+        
+        # Set proper MIME type for JavaScript modules
+        mimetype = None
+        if filename.endswith('.js') or filename.endswith('.mjs'):
+            mimetype = 'application/javascript'
+        elif filename.endswith('.wasm'):
+            mimetype = 'application/wasm'
+        
+        return send_from_directory(file_dir, file_name, mimetype=mimetype)
+    else:
+        print(f"📦 [NODE_MODULES] ✗ File not found: {filename}")
+        return jsonify({'error': 'Module not found', 'path': filename}), 404
+
+
 # ============================================================================
 # CHAT ROUTES (CLEAN - 20 lines instead of 400!)
 # ============================================================================
