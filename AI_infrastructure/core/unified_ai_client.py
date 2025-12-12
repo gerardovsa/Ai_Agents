@@ -105,10 +105,62 @@ class UnifiedAIClient:
         print(f"  - DeepSeek: {self.deepseek_model}")
         print(f"  - OpenAI: {self.openai_model}")
     
+    def _get_api_key_from_supabase(self, platform='anthropic', user_id=1):
+        """
+        Fetch API key from Supabase user_platform_credentials table
+        
+        Args:
+            platform: 'anthropic', 'openai', 'deepseek', etc.
+            user_id: User ID (default 1 for system account)
+        
+        Returns:
+            API key string or None if not found
+        """
+        try:
+            # Only attempt Supabase query on Render deployment
+            supabase_url = os.environ.get('SUPABASE_DB_URL_POOLER')
+            if not supabase_url:
+                return None  # Local development - use environment variables
+            
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            
+            conn = psycopg2.connect(supabase_url, cursor_factory=RealDictCursor)
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT credential_value, credentials
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s AND platform = %s AND is_active = true
+                ORDER BY updated_at DESC
+                LIMIT 1
+            """
+            cursor.execute(query, (user_id, platform))
+            row = cursor.fetchone()
+            
+            cursor.close()
+            conn.close()
+            
+            if row:
+                print(f"[UnifiedAIClient] ✅ Fetched {platform} API key from Supabase for user {user_id}")
+                return row['credential_value']
+            else:
+                print(f"[UnifiedAIClient] ⚠️  No {platform} credentials found in Supabase for user {user_id}")
+                return None
+                
+        except Exception as e:
+            print(f"[UnifiedAIClient] ⚠️  Failed to fetch {platform} key from Supabase: {e}")
+            return None
+    
     def _init_anthropic(self):
         """Initialize Anthropic Claude client with increased timeout"""
-        # Try environment variable first, then config file
-        api_key = os.environ.get('ANTHROPIC_API_KEY') or self.config.get('AI', {}).get('AnthropicAPIKey', '')
+        # Priority: Supabase → Environment Variable → Config File
+        api_key = (
+            self._get_api_key_from_supabase('anthropic') or 
+            os.environ.get('ANTHROPIC_API_KEY') or 
+            self.config.get('AI', {}).get('AnthropicAPIKey', '')
+        )
+        
         if api_key:
             # Increase timeout to 120 seconds (from default 60s) to handle SSL handshake delays
             self.anthropic_client = Anthropic(
@@ -119,7 +171,7 @@ class UnifiedAIClient:
             print("[UnifiedAIClient] Anthropic client initialized with 120s timeout, 3 max retries")
         else:
             self.anthropic_client = None
-            print("⚠️  Warning: No Anthropic API key found. Set ANTHROPIC_API_KEY environment variable.")
+            print("⚠️  Warning: No Anthropic API key found. Check Supabase credentials or set ANTHROPIC_API_KEY.")
         self.anthropic_model = self.config.get('AI', {}).get('Model', 'claude-sonnet-4-5-20250929')
     
     def _init_deepseek(self):

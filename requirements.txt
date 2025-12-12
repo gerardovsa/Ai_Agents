@@ -88,9 +88,8 @@ PyJWT==2.8.0
 # Engineering & CAD Libraries (NEW Dec 10, 2025)
 # Note: Pin dependencies first to avoid backtracking during Docker builds
 matplotlib>=3.9.2,<3.11   # Required by sectionproperties>=3.9.0, pinned for Python 3.11 compatibility
-cytriangle>=1.0.2,<1.0.4  # Required by sectionproperties, pinned to prevent backtracking (1.0.4 requires numpy>=2.1.2)
 PyNiteFEA>=1.6.2          # Structural engineering calculations (beam deflection, stress analysis)
-sectionproperties>=3.9.0  # Cross-section properties for structural members (requires matplotlib>=3.9.2)
+sectionproperties>=3.3.0,<3.9.0  # Cross-section properties (3.9.0 requires cytriangle>=2.0 which needs numpy>=2.1)
 forallpeople>=2.7.1       # Unit conversion and dimensional analysis
 handcalcs>=1.10.0         # Beautiful engineering calculation documentation
 cadquery>=2.6.1           # Parametric 3D CAD model generation (STEP/STL export)
