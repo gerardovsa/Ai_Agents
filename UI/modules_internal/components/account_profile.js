@@ -2405,7 +2405,7 @@ async function initializeApp() {
             const errorDiv = document.getElementById('loginError');
             if (errorDiv) {
                 let message = urlParams.get('message') || error;
-                
+
                 // Provide user-friendly messages for common OAuth errors
                 if (error === 'invalid_state') {
                     message = 'Session expired during login. Please try signing in again.';
@@ -2416,7 +2416,7 @@ async function initializeApp() {
                 } else {
                     message = `OAuth login failed: ${decodeURIComponent(message)}`;
                 }
-                
+
                 errorDiv.textContent = message;
                 errorDiv.classList.add('show');
             }
@@ -2550,18 +2550,18 @@ async function initializeApp() {
 // ✅ LAZY LOAD: Setup Microsoft 365 profile loading on dropdown open (Dec 5, 2025)
 function setupMicrosoft365LazyLoad() {
     let loaded = false;
-    
+
     // Find the account dropdown trigger
     const profileButton = document.getElementById('profileButton');
     if (!profileButton) return;
-    
+
     // Load on first dropdown open
     profileButton.addEventListener('click', async () => {
         if (loaded) return; // Already loaded
-        
+
         const isMicrosoftUser = UserAuth?.authMethod === 'microsoft';
         const microsoftTokensExist = UserAuth?.microsoft?.tokens?.access_token;
-        
+
         if (isMicrosoftUser && microsoftTokensExist) {
             console.log('🔄 [LAZY LOAD] Loading Microsoft 365 profile on first dropdown open...');
             await loadMicrosoft365Profile();
