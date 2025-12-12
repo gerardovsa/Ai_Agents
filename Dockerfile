@@ -52,8 +52,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy package.json and install JavaScript dependencies for CAD visualization
 # manifold-3d: Advanced 3D CAD operations (boolean ops, fillets, curves)
 # three.js: 3D rendering engine
-COPY package.json package-lock.json ./
-RUN npm ci --only=production && npm cache clean --force
+COPY package.json ./
+RUN npm install --only=production && npm cache clean --force
 
 # Copy entire application
 COPY . .
