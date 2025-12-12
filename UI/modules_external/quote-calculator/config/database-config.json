@@ -1,0 +1,67 @@
+{
+  "DatabaseConnections": {
+    "Primary": {
+      "ConnectionString": "data source=3.25.76.138\\INHPSQLSERVER,1433;user id=sa;password=Jack2011;database=InHousePrint;min pool size=4;max pool size=25;packet size=1024",
+      "Provider": "SqlServer",
+      "DatabaseName": "InHousePrint",
+      "Server": "3.25.76.138\\INHPSQLSERVER",
+      "Port": 1433,
+      "Timeout": 30
+    },
+    "Supabase": {
+      "Provider": "PostgreSQL",
+      "Url": "SUPABASE_URL_HERE",
+      "AnonKey": "SUPABASE_ANON_KEY_HERE",
+      "ServiceRoleKey": "SUPABASE_SERVICE_ROLE_KEY_HERE",
+      "DatabaseUrl": "postgresql://postgres:[YOUR-PASSWORD]@[PROJECT-REF].supabase.co:5432/postgres"
+    },
+    "Render": {
+      "Provider": "PostgreSQL",
+      "DatabaseUrl": "postgres://inhouseprint_user:[PASSWORD]@dpg-xxxxx.oregon-postgres.render.com/inhouseprint"
+    }
+  },
+  "AI": {
+    "AnthropicAPIKey": "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",
+    "Model": "claude-sonnet-4-5-20250929",
+    "MaxTokens": 30000
+  },
+  "ExternalAPIs": {
+    "Xero": {
+      "Print": {
+        "ClientId": "02BB492DD4EC4A5DAEAB50088D3C8C0D",
+        "ClientSecret": "a70UA2sXzERadX-wWCSZoUFFkljAxA4gEuFSV1hKS_zKRPs2",
+        "BaseUrl": "https://api.xero.com"
+      },
+      "Publishing": {
+        "ClientId": "926A463987B749FB9F21950B3B4212E9",
+        "ClientSecret": "aBWKAnfBl17roRt3jgD_hGba7JM0di3YGj5WLHv0T89kyTyq",
+        "BaseUrl": "https://api.xero.com"
+      },
+      "Signs": {
+        "ClientId": "7D5CE8F957944A95878F5B1F1CEE6F3D",
+        "ClientSecret": "xykFPAGUy5mHfMvOqwtfmg7y5uqNjaxES4OPet6L9tVoDhS3",
+        "BaseUrl": "https://api.xero.com"
+      }
+    },
+    "Shopify": {
+      "BaseUrl": "https://inhouseprint.com.au",
+      "ApiEndpoint": "/wp-json/wc/v3/orders",
+      "ConsumerKey": "ck_ebeafe75184386efcf3355496f87542f08a627d5",
+      "ConsumerSecret": "cs_3713de23867f16fc34187f51e80b9c38357b5142"
+    }
+  },
+  "EmailSettings": {
+    "SmtpServer": "smtp.office365.com",
+    "Port": 587,
+    "Username": "printing@inhouseprint.com.au",
+    "Password": "J@ck20!!",
+    "Recipients": {
+      "CompletedOrders": "guy@inhouseprint.com.au"
+    }
+  },
+  "BusinessDivisions": {
+    "1": "InHouse Print",
+    "2": "InHouse Publishing", 
+    "3": "InHouse Signs"
+  }
+}

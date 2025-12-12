@@ -2909,6 +2909,12 @@ class VisualizationEngine {
                 scene: {
                     bgcolor: bgColor,
                     ...plotlyData.layout.scene,
+                    // Set default camera position to see models immediately
+                    camera: {
+                        eye: { x: 1.5, y: 1.5, z: 1.5 },
+                        center: { x: 0, y: 0, z: 0 },
+                        up: { x: 0, y: 0, z: 1 }
+                    },
                     xaxis: {
                         gridcolor: gridColor,
                         linecolor: gridColor,
@@ -3514,7 +3520,29 @@ class VisualizationEngine {
         if (!window.Plotly) return;
 
         const plotDiv = document.getElementById(chartId);
-        if (plotDiv) {
+        if (!plotDiv) return;
+
+        // Check if this is a 3D chart
+        const is3D = plotDiv.data && plotDiv.data.some(trace => 
+            ['scatter3d', 'surface', 'mesh3d', 'cone', 'streamtube', 'volume', 'isosurface'].includes(trace.type)
+        );
+
+        if (is3D) {
+            // Reset 3D camera to default view with proper distance
+            Plotly.relayout(chartId, {
+                'scene.camera': {
+                    eye: { x: 1.5, y: 1.5, z: 1.5 },
+                    center: { x: 0, y: 0, z: 0 },
+                    up: { x: 0, y: 0, z: 1 }
+                },
+                'scene.xaxis.autorange': true,
+                'scene.yaxis.autorange': true,
+                'scene.zaxis.autorange': true,
+                'dragmode': 'orbit'
+            });
+            this.showNotification('🏠 3D view reset to original', 'success');
+        } else {
+            // Reset 2D chart axes
             Plotly.relayout(chartId, {
                 'xaxis.autorange': true,
                 'yaxis.autorange': true,
