@@ -16,6 +16,7 @@ WORKDIR /app
 # - freetds-dev: For pymssql SQL Server connections
 # - tesseract-ocr: For pytesseract OCR text extraction
 # - gnupg: For adding Microsoft's GPG key
+# - nodejs npm: For frontend CAD visualization libraries (manifold-3d, three.js)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
@@ -29,6 +30,8 @@ RUN apt-get update && \
     tesseract-ocr \
     gnupg \
     apt-transport-https \
+    nodejs \
+    npm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -45,6 +48,12 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy package.json and install JavaScript dependencies for CAD visualization
+# manifold-3d: Advanced 3D CAD operations (boolean ops, fillets, curves)
+# three.js: 3D rendering engine
+COPY package.json package-lock.json ./
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy entire application
 COPY . .
