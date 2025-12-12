@@ -538,12 +538,49 @@ const ThreadManager = {
 
     // UI (from thread-manager-ui.js) - still uses separate global with proxies
     // NOTE: Don't use .call(this) for UI methods - they need their own context to access internal methods
-    renderThreadList(...args) { return window.ThreadManagerUI.renderThreadList(...args); },
-    renderThreadInfoContainer(...args) { return window.ThreadManagerUI.renderThreadInfoContainer(...args); },
-    updatePrimeHeader(...args) { return window.ThreadManagerUI.updatePrimeHeader(...args); },
-    refreshAllThreadInfoCards(...args) { return window.ThreadManagerUI.refreshAllThreadInfoCards(...args); },
-    updateThreadPills(...args) { return window.ThreadManagerUI.updateThreadPills(...args); },
-    showStartNewChatButton(...args) { return window.ThreadManagerUI.showStartNewChatButton(...args); },
+    // SAFETY: Check if ThreadManagerUI is loaded before calling (fixes race condition)
+    renderThreadList(...args) { 
+        if (!window.ThreadManagerUI) {
+            console.warn('⚠️ ThreadManagerUI not loaded yet, skipping renderThreadList');
+            return;
+        }
+        return window.ThreadManagerUI.renderThreadList(...args); 
+    },
+    renderThreadInfoContainer(...args) { 
+        if (!window.ThreadManagerUI) {
+            console.warn('⚠️ ThreadManagerUI not loaded yet, skipping renderThreadInfoContainer');
+            return;
+        }
+        return window.ThreadManagerUI.renderThreadInfoContainer(...args); 
+    },
+    updatePrimeHeader(...args) { 
+        if (!window.ThreadManagerUI) {
+            console.warn('⚠️ ThreadManagerUI not loaded yet, skipping updatePrimeHeader');
+            return;
+        }
+        return window.ThreadManagerUI.updatePrimeHeader(...args); 
+    },
+    refreshAllThreadInfoCards(...args) { 
+        if (!window.ThreadManagerUI) {
+            console.warn('⚠️ ThreadManagerUI not loaded yet, skipping refreshAllThreadInfoCards');
+            return;
+        }
+        return window.ThreadManagerUI.refreshAllThreadInfoCards(...args); 
+    },
+    updateThreadPills(...args) { 
+        if (!window.ThreadManagerUI) {
+            console.warn('⚠️ ThreadManagerUI not loaded yet, skipping updateThreadPills');
+            return;
+        }
+        return window.ThreadManagerUI.updateThreadPills(...args); 
+    },
+    showStartNewChatButton(...args) { 
+        if (!window.ThreadManagerUI) {
+            console.warn('⚠️ ThreadManagerUI not loaded yet, skipping showStartNewChatButton');
+            return;
+        }
+        return window.ThreadManagerUI.showStartNewChatButton(...args); 
+    },
 
     // NOTE: Messages and Interactions modules now use Object.assign(window.ThreadManager, {...})
     // so their methods are directly available - no proxies needed
