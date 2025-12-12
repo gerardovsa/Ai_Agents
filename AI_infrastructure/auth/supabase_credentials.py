@@ -139,6 +139,18 @@ class SupabaseCredentialsManager:
         if not anthropic_creds:
             raise ValueError("Anthropic API credentials not found in Supabase")
         
+        # Fetch Xero credentials (optional - may not exist for all users)
+        xero_print_creds = self.get_credentials('xero_print') or {}
+        xero_publishing_creds = self.get_credentials('xero_publishing') or {}
+        xero_signs_creds = self.get_credentials('xero_signs') or {}
+        
+        # Fetch Shopify credentials (optional)
+        shopify_creds = self.get_credentials('shopify') or {}
+        
+        # Fetch Email and Business Config (optional)
+        email_creds = self.get_credentials('email_smtp') or {}
+        business_config = self.get_credentials('business_config') or {}
+        
         # Build config matching database-config.json structure
         config = {
             'DatabaseConnections': {
@@ -157,6 +169,56 @@ class SupabaseCredentialsManager:
                 'MaxTokens': anthropic_creds.get('max_tokens', 30000)
             }
         }
+        
+        # Add Xero if available
+        if xero_print_creds or xero_publishing_creds or xero_signs_creds:
+            config['ExternalAPIs'] = {'Xero': {}}
+            
+            if xero_print_creds:
+                config['ExternalAPIs']['Xero']['Print'] = {
+                    'ClientId': xero_print_creds.get('client_id'),
+                    'ClientSecret': xero_print_creds.get('client_secret'),
+                    'BaseUrl': xero_print_creds.get('base_url', 'https://api.xero.com')
+                }
+            
+            if xero_publishing_creds:
+                config['ExternalAPIs']['Xero']['Publishing'] = {
+                    'ClientId': xero_publishing_creds.get('client_id'),
+                    'ClientSecret': xero_publishing_creds.get('client_secret'),
+                    'BaseUrl': xero_publishing_creds.get('base_url', 'https://api.xero.com')
+                }
+            
+            if xero_signs_creds:
+                config['ExternalAPIs']['Xero']['Signs'] = {
+                    'ClientId': xero_signs_creds.get('client_id'),
+                    'ClientSecret': xero_signs_creds.get('client_secret'),
+                    'BaseUrl': xero_signs_creds.get('base_url', 'https://api.xero.com')
+                }
+        
+        # Add Shopify if available
+        if shopify_creds:
+            if 'ExternalAPIs' not in config:
+                config['ExternalAPIs'] = {}
+            config['ExternalAPIs']['Shopify'] = {
+                'BaseUrl': shopify_creds.get('base_url'),
+                'ApiEndpoint': shopify_creds.get('api_endpoint'),
+                'ConsumerKey': shopify_creds.get('consumer_key'),
+                'ConsumerSecret': shopify_creds.get('consumer_secret')
+            }
+        
+        # Add Email Settings if available
+        if email_creds:
+            config['EmailSettings'] = {
+                'SmtpServer': email_creds.get('smtp_server'),
+                'Port': email_creds.get('port'),
+                'Username': email_creds.get('username'),
+                'Password': email_creds.get('password'),
+                'Recipients': email_creds.get('recipients', {})
+            }
+        
+        # Add Business Divisions if available
+        if business_config:
+            config['BusinessDivisions'] = business_config.get('divisions', {})
         
         return config
     
