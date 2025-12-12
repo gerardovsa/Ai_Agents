@@ -42,6 +42,7 @@ class InHousePrintDB:
         
         # Try Supabase credentials first (Render deployment)
         self.config = None
+        supabase_error = None
         try:
             # Check if we should use Supabase
             if os.environ.get('SUPABASE_DB_URL_POOLER'):
@@ -50,7 +51,10 @@ class InHousePrintDB:
                 self.config = get_database_config()
                 print("✅ Credentials loaded from Supabase")
         except Exception as e:
-            print(f"⚠️  Supabase credentials not available: {e}")
+            supabase_error = str(e)
+            print(f"⚠️  Supabase credentials failed: {e}")
+            import traceback
+            traceback.print_exc()
         
         # Fall back to config file if Supabase not available
         if self.config is None:
@@ -75,10 +79,20 @@ class InHousePrintDB:
                         break
                 
                 if config_path is None:
-                    raise FileNotFoundError(
-                        f"Database config not found in any search location:\n" +
-                        "\n".join(f"  - {os.path.abspath(p)}" for p in search_paths)
-                    )
+                    # On Render with Supabase env vars, this is a critical error
+                    if os.environ.get('SUPABASE_DB_URL_POOLER'):
+                        raise FileNotFoundError(
+                            f"RENDER DEPLOYMENT ERROR:\n"
+                            f"Supabase credentials failed: {supabase_error}\n"
+                            f"And config file not found in:\n" +
+                            "\n".join(f"  - {os.path.abspath(p)}" for p in search_paths) +
+                            f"\n\nDEBUG: Check if psycopg2-binary is installed"
+                        )
+                    else:
+                        raise FileNotFoundError(
+                            f"Database config not found in any search location:\n" +
+                            "\n".join(f"  - {os.path.abspath(p)}" for p in search_paths)
+                        )
             
             self.config = self._load_config(config_path)
         
