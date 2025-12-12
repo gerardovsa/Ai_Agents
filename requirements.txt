@@ -38,14 +38,14 @@ google-cloud-monitoring>=2.16.0
 
 # Database
 psycopg2-binary==2.9.9
-supabase>=2.0.0
+supabase>=2.0.0,<3.0  # Pin to avoid gotrue backtracking
 sqlalchemy==2.0.23
 pyodbc>=5.0.0
 pymssql>=2.2.0
 
 # Vector Database
 pinecone>=3.0.0
-qdrant-client>=1.7.0
+qdrant-client>=1.7.0,<2.0  # Pin to prevent excessive version backtracking
 
 # Scheduler
 apscheduler>=3.10.0
@@ -86,8 +86,9 @@ bcrypt==4.0.1
 PyJWT==2.8.0
 
 # Engineering & CAD Libraries (NEW Dec 10, 2025)
-# Note: Pin matplotlib first to avoid backtracking (PyNiteFEA and sectionproperties depend on it)
+# Note: Pin dependencies first to avoid backtracking during Docker builds
 matplotlib>=3.9.2,<3.11   # Required by sectionproperties>=3.9.0, pinned for Python 3.11 compatibility
+cytriangle>=1.0.4,<2.0    # Required by sectionproperties, pinned to prevent backtracking
 PyNiteFEA>=1.6.2          # Structural engineering calculations (beam deflection, stress analysis)
 sectionproperties>=3.9.0  # Cross-section properties for structural members (requires matplotlib>=3.9.2)
 forallpeople>=2.7.1       # Unit conversion and dimensional analysis
