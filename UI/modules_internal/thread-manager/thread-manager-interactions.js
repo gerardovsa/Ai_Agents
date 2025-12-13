@@ -405,19 +405,24 @@ Object.assign(window.ThreadManager, {
                                 // Clear thread tracking
                                 MultiAgent.clearAgentThread?.(agentId);
 
-                                // CRITICAL FIX (Dec 12, 2025): Also clear messages container
-                                const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
-                                if (messagesContainer) {
-                                    messagesContainer.innerHTML = '';
-                                    console.log(`🧹 [unloadThread] Cleared messages for agent-${agentId}`);
-                                }
+                                // ✅ FIX (Dec 13, 2025): Use AgentColumn.unloadThread() for proper empty state
+                                // This ensures both messages container AND thread info get reset correctly
+                                // with welcome screen, not just empty innerHTML
+                                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.unloadThread === 'function') {
+                                    AgentColumn.unloadThread(agentId);
+                                    console.log(`✅ [unloadThread] Called AgentColumn.unloadThread(${agentId}) for proper reset`);
+                                } else {
+                                    // Fallback if AgentColumn not available
+                                    const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+                                    if (messagesContainer) {
+                                        messagesContainer.innerHTML = '';
+                                        console.log(`🧹 [unloadThread] Cleared messages for agent-${agentId} (fallback)`);
+                                    }
 
-                                // Show empty state
-                                if (typeof ThreadManager !== 'undefined' && ThreadManager.renderThreadInfoContainer) {
-                                    const threadInfo = document.getElementById(`thread-info-${agentId}`);
-                                    if (threadInfo) {
-                                        threadInfo.innerHTML = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, null, true);
-                                        console.log(`🧹 [unloadThread] Reset thread info for agent-${agentId}`);
+                                    const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+                                    if (threadInfoContainer) {
+                                        threadInfoContainer.innerHTML = '';
+                                        console.log(`🧹 [unloadThread] Reset thread info for agent-${agentId} (fallback)`);
                                     }
                                 }
                             }
@@ -861,15 +866,29 @@ Object.assign(window.ThreadManager, {
         let overlayClass = '';
         if (buttonElement) {
             const rect = buttonElement.getBoundingClientRect();
-            // Position modal below button with 8px gap
-            const top = rect.bottom + 8;
-            const left = rect.left;
-
-            // Ensure modal stays within viewport
             const modalWidth = 450;
-            const adjustedLeft = Math.min(left, window.innerWidth - modalWidth - 20);
+            const modalHeight = 500;
 
-            positionStyle = `style="top: ${top}px; left: ${adjustedLeft}px;"`;
+            // Try to position to the right of button first
+            let top = Math.max(10, rect.top);  // Keep at least 10px from top
+            let left = rect.right + 12;  // Position to right with 12px gap
+
+            // If modal would go off-screen to the right, position to the left
+            if (left + modalWidth > window.innerWidth - 20) {
+                left = rect.left - modalWidth - 12;
+            }
+
+            // If still off-screen, use center positioning
+            if (left < 10) {
+                left = (window.innerWidth - modalWidth) / 2;
+            }
+
+            // Adjust top if modal would go below viewport
+            if (top + modalHeight > window.innerHeight - 20) {
+                top = Math.max(10, window.innerHeight - modalHeight - 20);
+            }
+
+            positionStyle = `style="top: ${top}px; left: ${left}px; position: fixed;"`;
             overlayClass = 'positioned';
         }
 
@@ -941,12 +960,35 @@ Object.assign(window.ThreadManager, {
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-        // Setup platform tag button interactions
+        // Setup platform tag button interactions with resource selection
         const platformTagBtns = document.querySelectorAll('.platform-tag-btn');
         platformTagBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                btn.classList.toggle('selected');
+                const tagType = btn.dataset.tag;
+
+                // If already selected, deselect and remove specific ID
+                if (btn.classList.contains('selected')) {
+                    btn.classList.remove('selected');
+                    delete btn.dataset.specificId;
+                    const tagLabel = btn.querySelector('.tag-specific-label');
+                    if (tagLabel) tagLabel.remove();
+                    return;
+                }
+
+                // Show resource selector for specific tag types
+                if (tagType === 'synergy') {
+                    await this.showSynergySessionSelector(btn);
+                } else if (tagType === 'automation' || tagType === 'workflow') {
+                    await this.showWorkflowSelector(btn, tagType);
+                } else if (tagType === 'synergy-docs') {
+                    await this.showInternalDocSelector(btn);
+                } else if (tagType === 'emails') {
+                    await this.showEmailSelector(btn);
+                } else {
+                    // General tag - just toggle
+                    btn.classList.add('selected');
+                }
             });
         });
 
@@ -958,9 +1000,13 @@ Object.assign(window.ThreadManager, {
             const title = document.getElementById('threadTitle').value.trim();
             const tagsStr = document.getElementById('threadTags').value.trim();
 
-            // Collect selected platform tags
+            // Collect selected platform tags (with specific IDs if available)
             const selectedPlatformTags = Array.from(document.querySelectorAll('.platform-tag-btn.selected'))
-                .map(btn => btn.dataset.tag);
+                .map(btn => {
+                    // If button has specificId (e.g., "synergy:session-123"), use that
+                    // Otherwise, use generic tag (e.g., "synergy")
+                    return btn.dataset.specificId || btn.dataset.tag;
+                });
 
             // Combine platform tags with additional tags
             const additionalTags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
@@ -1282,6 +1328,326 @@ Object.assign(window.ThreadManager, {
         });
 
         input.addEventListener('blur', saveRename);
+    },
+
+    /**
+     * Show Synergy Session selector dropdown
+     */
+    async showSynergySessionSelector(buttonElement) {
+        try {
+            // Fetch Synergy sessions
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy-sessions/list`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch Synergy sessions');
+
+            const data = await response.json();
+            const sessions = data.sessions || [];
+
+            if (sessions.length === 0) {
+                alert('No Synergy sessions found. Create a session first in the Synergy Dashboard.');
+                return;
+            }
+
+            // Create dropdown selector
+            const dropdownHTML = sessions.map(session => `
+                <div class="resource-selector-item" data-id="${session.session_id}">
+                    <div class="resource-title">${session.title || session.session_id}</div>
+                    <div class="resource-meta">${session.status || 'N/A'} • ${session.priority || 'Normal'}</div>
+                </div>
+            `).join('');
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'resource-selector-dropdown';
+            dropdown.innerHTML = `
+                <div class="resource-selector-header">Select Synergy Session</div>
+                <div class="resource-selector-list">${dropdownHTML}</div>
+            `;
+
+            // Position dropdown below button
+            const rect = buttonElement.getBoundingClientRect();
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = `${rect.bottom + 5}px`;
+            dropdown.style.left = `${rect.left}px`;
+            dropdown.style.zIndex = '10000';
+
+            document.body.appendChild(dropdown);
+
+            // Handle selection
+            dropdown.querySelectorAll('.resource-selector-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const sessionId = item.dataset.id;
+                    const sessionTitle = item.querySelector('.resource-title').textContent;
+
+                    // Mark button as selected with specific ID
+                    buttonElement.classList.add('selected');
+                    buttonElement.dataset.specificId = `synergy:${sessionId}`;
+
+                    // Add label to show selected session
+                    let label = buttonElement.querySelector('.tag-specific-label');
+                    if (!label) {
+                        label = document.createElement('div');
+                        label.className = 'tag-specific-label';
+                        buttonElement.appendChild(label);
+                    }
+                    label.textContent = sessionTitle.substring(0, 20);
+
+                    dropdown.remove();
+                });
+            });
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== buttonElement) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 100);
+
+        } catch (error) {
+            console.error('Failed to load Synergy sessions:', error);
+            alert('Error loading Synergy sessions');
+        }
+    },
+
+    /**
+     * Show Workflow/Automation selector dropdown
+     */
+    async showWorkflowSelector(buttonElement, tagType) {
+        try {
+            // Fetch workflows/automations
+            const response = await fetch(`${this.apiBaseUrl}/api/automation/workflows/list`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch workflows');
+
+            const workflows = await response.json();
+
+            if (!workflows || workflows.length === 0) {
+                alert(`No ${tagType}s found. Create one first in the Automation tab.`);
+                return;
+            }
+
+            // Create dropdown selector
+            const dropdownHTML = workflows.map(workflow => `
+                <div class="resource-selector-item" data-slug="${workflow.slug}">
+                    <div class="resource-title">${workflow.title || workflow.slug}</div>
+                    <div class="resource-meta">${workflow.status || 'Inactive'} • ${workflow.trigger_type || 'Manual'}</div>
+                </div>
+            `).join('');
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'resource-selector-dropdown';
+            dropdown.innerHTML = `
+                <div class="resource-selector-header">Select ${tagType === 'automation' ? 'Automation' : 'Workflow'}</div>
+                <div class="resource-selector-list">${dropdownHTML}</div>
+            `;
+
+            // Position dropdown
+            const rect = buttonElement.getBoundingClientRect();
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = `${rect.bottom + 5}px`;
+            dropdown.style.left = `${rect.left}px`;
+            dropdown.style.zIndex = '10000';
+
+            document.body.appendChild(dropdown);
+
+            // Handle selection
+            dropdown.querySelectorAll('.resource-selector-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const slug = item.dataset.slug;
+                    const title = item.querySelector('.resource-title').textContent;
+
+                    buttonElement.classList.add('selected');
+                    buttonElement.dataset.specificId = `${tagType}:${slug}`;
+
+                    let label = buttonElement.querySelector('.tag-specific-label');
+                    if (!label) {
+                        label = document.createElement('div');
+                        label.className = 'tag-specific-label';
+                        buttonElement.appendChild(label);
+                    }
+                    label.textContent = title.substring(0, 20);
+
+                    dropdown.remove();
+                });
+            });
+
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== buttonElement) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 100);
+
+        } catch (error) {
+            console.error('Failed to load workflows:', error);
+            alert('Error loading workflows');
+        }
+    },
+
+    /**
+     * Show Internal Doc selector dropdown
+     */
+    async showInternalDocSelector(buttonElement) {
+        try {
+            // Fetch internal docs from Synergy docs
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-docs/list`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch internal docs');
+
+            const docs = await response.json();
+
+            if (!docs || docs.length === 0) {
+                alert('No internal documents found. Create one first in Synergy Docs.');
+                return;
+            }
+
+            const dropdownHTML = docs.map(doc => `
+                <div class="resource-selector-item" data-slug="${doc.slug}">
+                    <div class="resource-title">${doc.title || doc.slug}</div>
+                    <div class="resource-meta">${doc.type || 'Document'}</div>
+                </div>
+            `).join('');
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'resource-selector-dropdown';
+            dropdown.innerHTML = `
+                <div class="resource-selector-header">Select Internal Document</div>
+                <div class="resource-selector-list">${dropdownHTML}</div>
+            `;
+
+            const rect = buttonElement.getBoundingClientRect();
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = `${rect.bottom + 5}px`;
+            dropdown.style.left = `${rect.left}px`;
+            dropdown.style.zIndex = '10000';
+
+            document.body.appendChild(dropdown);
+
+            dropdown.querySelectorAll('.resource-selector-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const slug = item.dataset.slug;
+                    const title = item.querySelector('.resource-title').textContent;
+
+                    buttonElement.classList.add('selected');
+                    buttonElement.dataset.specificId = `internal-doc:${slug}`;
+
+                    let label = buttonElement.querySelector('.tag-specific-label');
+                    if (!label) {
+                        label = document.createElement('div');
+                        label.className = 'tag-specific-label';
+                        buttonElement.appendChild(label);
+                    }
+                    label.textContent = title.substring(0, 20);
+
+                    dropdown.remove();
+                });
+            });
+
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== buttonElement) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 100);
+
+        } catch (error) {
+            console.error('Failed to load internal docs:', error);
+            alert('Error loading internal documents');
+        }
+    },
+
+    /**
+     * Show Email selector dropdown
+     */
+    async showEmailSelector(buttonElement) {
+        try {
+            // Fetch recent emails from Communication Hub
+            const response = await fetch(`${this.apiBaseUrl}/api/emails/recent?limit=20`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            // Check if endpoint exists (may not be implemented yet)
+            if (response.status === 404) {
+                alert('Email selector not yet implemented. Please use generic "emails" tag or link email manually.');
+                return;
+            }
+
+            if (!response.ok) throw new Error('Failed to fetch emails');
+
+            const emails = await response.json();
+
+            if (!emails || emails.length === 0) {
+                alert('No recent emails found. Check Communication Hub.');
+                return;
+            }
+
+            const dropdownHTML = emails.map(email => `
+                <div class="resource-selector-item" data-id="${email.id}">
+                    <div class="resource-title">${email.subject || 'No Subject'}</div>
+                    <div class="resource-meta">${email.from || 'Unknown'} • ${email.date || ''}</div>
+                </div>
+            `).join('');
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'resource-selector-dropdown';
+            dropdown.innerHTML = `
+                <div class="resource-selector-header">Select Email Thread</div>
+                <div class="resource-selector-list">${dropdownHTML}</div>
+            `;
+
+            const rect = buttonElement.getBoundingClientRect();
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = `${rect.bottom + 5}px`;
+            dropdown.style.left = `${rect.left}px`;
+            dropdown.style.zIndex = '10000';
+
+            document.body.appendChild(dropdown);
+
+            dropdown.querySelectorAll('.resource-selector-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const emailId = item.dataset.id;
+                    const subject = item.querySelector('.resource-title').textContent;
+
+                    buttonElement.classList.add('selected');
+                    buttonElement.dataset.specificId = `email:${emailId}`;
+
+                    let label = buttonElement.querySelector('.tag-specific-label');
+                    if (!label) {
+                        label = document.createElement('div');
+                        label.className = 'tag-specific-label';
+                        buttonElement.appendChild(label);
+                    }
+                    label.textContent = subject.substring(0, 20);
+
+                    dropdown.remove();
+                });
+            });
+
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== buttonElement) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 100);
+
+        } catch (error) {
+            console.error('Failed to load emails:', error);
+            alert('Error loading emails');
+        }
     }
 
 

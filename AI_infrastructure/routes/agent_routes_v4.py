@@ -1371,7 +1371,8 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 workflow_slug, workflow_title,
                 automation_slug, automation_title,
                 internal_doc_slug, internal_doc_title,
-                email_thread_id, email_subject, email_participants
+                email_thread_id, email_subject, email_participants,
+                tags
             FROM sessions.threads 
             WHERE thread_slug = %s
             LIMIT 1
@@ -1384,6 +1385,106 @@ Additional Preferences (YOU MUST FOLLOW THESE):
             context_parts = []
             context_token_count = 0
             MAX_CONTEXT_TOKENS = 180000  # Leave buffer for Claude 200k limit
+            
+            # ============================================
+            # 🏷️ TAG-BASED CONTEXT INJECTION SYSTEM
+            # ============================================
+            thread_tags = thread_row.get('tags', [])
+            if thread_tags:
+                try:
+                    # Parse tags (handle both JSON string and list)
+                    if isinstance(thread_tags, str):
+                        thread_tags = json.loads(thread_tags) if thread_tags else []
+                    elif not isinstance(thread_tags, list):
+                        thread_tags = []
+                    
+                    if thread_tags:
+                        print(f"[STREAM] 🏷️  TAGS DETECTED → {thread_tags}")
+                        
+                        tag_context = f"\n\n{'='*80}\n"
+                        tag_context += "🏷️  PLATFORM TAG INSTRUCTIONS\n"
+                        tag_context += f"{'='*80}\n\n"
+                        tag_context += f"This thread has been tagged with specific platform contexts:\n\n"
+                        
+                        # Parse each tag and build context
+                        for tag in thread_tags:
+                            tag_str = str(tag).strip().lower()
+                            
+                            # Synergy tags: synergy:session-id or just "synergy"
+                            if tag_str.startswith('synergy:'):
+                                session_id = tag_str.split(':', 1)[1]
+                                tag_context += f"**[SYNERGY SESSION]** Tag: `{tag_str}`\n"
+                                tag_context += f"→ You are assigned to work with Synergy Session `{session_id}`\n"
+                                tag_context += f"→ Use synergy_get_session('{session_id}') to access full session data\n"
+                                tag_context += f"→ You have access to all project details, next steps, documents, and notes\n"
+                                tag_context += f"→ Proactively reference session context in your responses\n\n"
+                            elif tag_str == 'synergy':
+                                tag_context += f"**[SYNERGY CONTEXT]** Generic synergy tag detected\n"
+                                tag_context += f"→ Use synergy_list_sessions() to see all available Synergy projects\n"
+                                tag_context += f"→ Help user manage Synergy sessions and projects\n\n"
+                            
+                            # Automation tags: automation:slug or just "automation"
+                            elif tag_str.startswith('automation:'):
+                                automation_slug = tag_str.split(':', 1)[1]
+                                tag_context += f"**[AUTOMATION EXECUTION]** Tag: `{tag_str}`\n"
+                                tag_context += f"→ You are assigned to execute automation `{automation_slug}`\n"
+                                tag_context += f"→ Use automation_get_workflow_by_slug('{automation_slug}') to load configuration\n"
+                                tag_context += f"→ Use automation_execute_workflow('{automation_slug}', input_data) to run it\n"
+                                tag_context += f"→ Follow automation rules and parameters exactly\n\n"
+                            elif tag_str == 'automation':
+                                tag_context += f"**[AUTOMATION CONTEXT]** Generic automation tag detected\n"
+                                tag_context += f"→ Help user manage and execute automations\n"
+                                tag_context += f"→ Use automation tools to list and control workflows\n\n"
+                            
+                            # Workflow tags: workflow:slug or just "workflow"
+                            elif tag_str.startswith('workflow:'):
+                                workflow_slug = tag_str.split(':', 1)[1]
+                                tag_context += f"**[WORKFLOW DESIGN]** Tag: `{tag_str}`\n"
+                                tag_context += f"→ You are assigned to help design workflow `{workflow_slug}`\n"
+                                tag_context += f"→ Guide user through workflow builder for this automation\n"
+                                tag_context += f"→ This will become an automation once designed\n"
+                                tag_context += f"→ Focus on logic, triggers, actions, and conditions\n\n"
+                            elif tag_str == 'workflow':
+                                tag_context += f"**[WORKFLOW CONTEXT]** Generic workflow tag detected\n"
+                                tag_context += f"→ Help user create and manage workflows\n"
+                                tag_context += f"→ Guide through workflow design process\n\n"
+                            
+                            # Internal doc tags: internal-doc:slug or synergy-docs
+                            elif tag_str.startswith('internal-doc:') or tag_str.startswith('synergy-doc:'):
+                                doc_slug = tag_str.split(':', 1)[1]
+                                tag_context += f"**[INTERNAL DOCUMENTATION]** Tag: `{tag_str}`\n"
+                                tag_context += f"→ You have access to internal document `{doc_slug}`\n"
+                                tag_context += f"→ Use internal_docs_get_by_slug('{doc_slug}') to load document content\n"
+                                tag_context += f"→ Reference this documentation for instructions, procedures, and guidelines\n"
+                                tag_context += f"→ Follow documented procedures exactly\n\n"
+                            elif tag_str == 'synergy-docs':
+                                tag_context += f"**[DOCUMENTATION CONTEXT]** Synergy docs tag detected\n"
+                                tag_context += f"→ Help user work with internal Synergy documentation\n"
+                                tag_context += f"→ Access and reference internal docs as needed\n\n"
+                            
+                            # Email tags: email:thread-id or just "emails"
+                            elif tag_str.startswith('email:'):
+                                email_id = tag_str.split(':', 1)[1]
+                                tag_context += f"**[EMAIL THREAD]** Tag: `{tag_str}`\n"
+                                tag_context += f"→ This thread is linked to email `{email_id}`\n"
+                                tag_context += f"→ Use gmail_get_message(message_id='{email_id}') to load full email\n"
+                                tag_context += f"→ You can help draft replies, summarize, extract action items\n"
+                                tag_context += f"→ Reference email content and context in your responses\n\n"
+                            elif tag_str == 'emails':
+                                tag_context += f"**[EMAIL CONTEXT]** Generic email tag detected\n"
+                                tag_context += f"→ Help user manage emails through Communication Hub\n"
+                                tag_context += f"→ Use gmail and outlook tools as needed\n\n"
+                        
+                        tag_context += f"{'='*80}\n"
+                        tag_context += f"**IMPORTANT:** These tags pre-configure your context. Use the specified tools\n"
+                        tag_context += f"to access the referenced data and incorporate it into your assistance.\n"
+                        tag_context += f"{'='*80}\n"
+                        
+                        context_sections.append(tag_context)
+                        print(f"[STREAM] ✅ Tag context injection: {len(thread_tags)} tags processed")
+                
+                except Exception as tag_error:
+                    print(f"[STREAM] ⚠️  Error parsing thread tags: {tag_error}")
             
             # Synergy Session Context
             if thread_row['synergy_card_id']:
