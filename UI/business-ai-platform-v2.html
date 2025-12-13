@@ -484,6 +484,17 @@
     <script src="modules_internal/components/thread_loader.js?v=20251213_0149"></script>
     <script src="modules_internal/components/account_profile.js?v=20251213_0149"></script>
 
+    <!-- ==================== ACCOUNT SIDEBAR EARLY INITIALIZATION ==================== -->
+    <!-- Define AccountSidebar object early so inline onclick handlers don't fail -->
+    <script>
+        window.AccountSidebar = {
+            toggleSidebar: function() { console.warn('[ACCOUNT SIDEBAR] toggleSidebar called before full initialization'); },
+            switchTab: function(tabName) { console.warn('[ACCOUNT SIDEBAR] switchTab called before full initialization:', tabName); },
+            toggleUserExpand: function() { console.warn('[ACCOUNT SIDEBAR] toggleUserExpand called before full initialization'); }
+        };
+        console.log('[ACCOUNT SIDEBAR] Placeholder object created early (will be replaced by full implementation)');
+    </script>
+
     <!-- ==================== AUTOMATION SETTINGS SYSTEM (Nov 28, 2025) ==================== -->
     <link rel="stylesheet" href="modules_internal/components/automation-settings.css">
     <script src="modules_internal/components/automation-settings-sync.js"></script>
@@ -4439,7 +4450,7 @@
             display: flex;
             flex-direction: row;
             gap: 4px;
-            padding: 8px 12px;
+            padding: 5px 5px;
             border-bottom: 1px solid var(--border-default);
             background: var(--bg-primary);
         }
@@ -4448,11 +4459,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
+            width: 80px;
             height: 40px;
             padding: 0;
             background: transparent;
-            border: none;
+            border: 1px solid var(--danger, #ef4444);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -4461,7 +4472,8 @@
         }
 
         .account-logout-btn i {
-            font-size: 18px;
+            font-size: 15px;
+            margin-right: 5px;
         }
 
         .account-logout-btn:hover {
@@ -18743,7 +18755,7 @@
                 </button>
 
                 <!-- Logout Button -->
-                <button class="account-logout-btn" onclick="logoutUser()" title="Log out">
+                <button class="account-logout-btn" onclick="handleLogout()" title="Log out">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Log Out</span>
                 </button>
@@ -18909,7 +18921,7 @@
             </div>
             <div class="modal-footer"
                 style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default); justify-content: space-between;">
-                <button class="btn btn-danger" onclick="logoutUser()"
+                <button class="btn btn-danger" onclick="handleLogout()"
                     style="background: var(--danger, #ef4444); color: white; border: none;">
                     <i class="fas fa-sign-out-alt"></i> Log Out
                 </button>
