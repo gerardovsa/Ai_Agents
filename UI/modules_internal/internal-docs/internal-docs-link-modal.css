@@ -1,0 +1,411 @@
+/**
+ * INTERNAL DOCS LINK MODAL STYLES
+ * Color theme: Amber (#f59e0b)
+ */
+
+/* Modal Overlay - shared with automation modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+/* Modal Container */
+.internal-docs-link-modal {
+    background: #1a1d24;
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(245, 158, 11, 0.2);
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Modal Header */
+.internal-docs-link-modal .modal-header {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    padding: 20px 24px;
+    border-bottom: 2px solid rgba(245, 158, 11, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.internal-docs-link-modal .modal-header h3 {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.internal-docs-link-modal .modal-header h3 i {
+    font-size: 20px;
+}
+
+.internal-docs-link-modal .modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.internal-docs-link-modal .modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+/* Modal Body */
+.internal-docs-link-modal .modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    color: #e5e7eb;
+}
+
+/* Thread Info */
+.internal-docs-link-thread-info {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    color: #fbbf24;
+    font-size: 14px;
+}
+
+.internal-docs-link-thread-info strong {
+    color: #f59e0b;
+}
+
+/* Tab Navigation */
+.internal-docs-link-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #374151;
+}
+
+.internal-docs-link-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #9ca3af;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.internal-docs-link-tab:hover {
+    color: #d1d5db;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.internal-docs-link-tab.active {
+    color: #f59e0b;
+    border-bottom-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+/* Tab Content */
+.internal-docs-link-tab-content {
+    display: none;
+}
+
+.internal-docs-link-tab-content.active {
+    display: block;
+}
+
+/* Search and Filter */
+.internal-docs-search-bar {
+    margin-bottom: 16px;
+}
+
+.internal-docs-search-bar input {
+    width: 100%;
+    background: #0f1419;
+    border: 2px solid #374151;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #e5e7eb;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.internal-docs-search-bar input:focus {
+    outline: none;
+    border-color: #f59e0b;
+    background: #161b22;
+}
+
+.internal-docs-search-bar input::placeholder {
+    color: #6b7280;
+}
+
+/* Internal Docs List */
+.internal-docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+/* Internal Doc Item */
+.internal-doc-item {
+    background: #0f1419;
+    border: 2px solid #374151;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.internal-doc-item:hover {
+    background: #161b22;
+    border-color: #f59e0b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.internal-doc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.internal-doc-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.internal-doc-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.internal-doc-type.type-doc {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.internal-doc-type.type-sheet {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.internal-doc-description {
+    color: #9ca3af;
+    font-size: 13px;
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+.internal-doc-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #374151;
+}
+
+.internal-doc-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.internal-doc-meta i {
+    margin-right: 4px;
+}
+
+/* Empty State */
+.internal-docs-link-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.internal-docs-link-empty i {
+    font-size: 64px;
+    color: #374151;
+    margin-bottom: 20px;
+}
+
+.internal-docs-link-empty p {
+    margin: 8px 0;
+}
+
+.internal-docs-link-empty strong {
+    color: #9ca3af;
+    font-size: 16px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #d1d5db;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    background: #0f1419;
+    border: 2px solid #374151;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #e5e7eb;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #f59e0b;
+    background: #161b22;
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-secondary {
+    background: #374151;
+    color: #d1d5db;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
+/* Quick/Full Create Sections */
+.internal-docs-quick-create,
+.internal-docs-full-create {
+    padding: 20px;
+    background: rgba(245, 158, 11, 0.05);
+    border: 2px dashed rgba(245, 158, 11, 0.3);
+    border-radius: 12px;
+}
+
+.internal-docs-full-create {
+    text-align: center;
+}
+
+.internal-docs-full-create p {
+    color: #9ca3af;
+    margin-bottom: 20px;
+}
+
+/* Scrollbar Styling */
+.internal-docs-list::-webkit-scrollbar,
+.internal-docs-link-modal .modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.internal-docs-list::-webkit-scrollbar-track,
+.internal-docs-link-modal .modal-body::-webkit-scrollbar-track {
+    background: #0f1419;
+    border-radius: 4px;
+}
+
+.internal-docs-list::-webkit-scrollbar-thumb,
+.internal-docs-link-modal .modal-body::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 4px;
+}
+
+.internal-docs-list::-webkit-scrollbar-thumb:hover,
+.internal-docs-link-modal .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
+}
