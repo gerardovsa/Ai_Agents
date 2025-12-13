@@ -3523,7 +3523,7 @@ class VisualizationEngine {
         if (!plotDiv) return;
 
         // Check if this is a 3D chart
-        const is3D = plotDiv.data && plotDiv.data.some(trace => 
+        const is3D = plotDiv.data && plotDiv.data.some(trace =>
             ['scatter3d', 'surface', 'mesh3d', 'cone', 'streamtube', 'volume', 'isosurface'].includes(trace.type)
         );
 

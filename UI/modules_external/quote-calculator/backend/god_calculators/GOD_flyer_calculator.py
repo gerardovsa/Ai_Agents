@@ -197,11 +197,11 @@ class FlyerCalculatorGOD:
             
             for row in stock_results.itertuples(index=False):
                 stock = StockInfo(
-                    stock_id=row[0],
-                    stock_type_id=row[1],
-                    width=row[3],
-                    height=row[2],
-                    gsm=row[5],
+                    stock_id=int(row[0]),
+                    stock_type_id=int(row[1]),
+                    width=int(row[3]),
+                    height=int(row[2]),
+                    gsm=int(row[5]),  # Convert to int to ensure type consistency
                     cost_per_thousand=Decimal(str(row[4])) if row[4] is not None else Decimal('0'),
                     markup=Decimal(str(row[6])) if row[6] is not None else Decimal('0'),
                     description=f"{row[3]}x{row[2]} {row[5]}gsm"
@@ -300,6 +300,18 @@ class FlyerCalculatorGOD:
             KeyError: If required configuration missing from database
             Exception: If no suitable stock found for dimensions
         """
+        
+        # Convert all parameters to proper types (defensive programming - handle string inputs)
+        quantity = int(quantity)
+        width = int(width)
+        height = int(height)
+        gsm = int(gsm)
+        print_side1 = int(print_side1)
+        print_side2 = int(print_side2)
+        folding_passes = int(folding_passes)
+        folding_extra_mins = int(folding_extra_mins)
+        cello_side1 = int(cello_side1)
+        cello_side2 = int(cello_side2)
         
         # 1. Load configuration from database (NO DEFAULTS - database only, VB.NET behavior)
         waste_percentage = (Decimal(str(self.get_config('MaterialWastePercentage'))) / Decimal('100')) + Decimal('1')
@@ -446,12 +458,18 @@ class FlyerCalculatorGOD:
         best_cost_per_unit = Decimal('999999')
         best_ups = 0
         
+        # Ensure types are correct for comparison
+        if gsm is not None:
+            gsm = int(gsm)
+        if stock_type_id is not None:
+            stock_type_id = int(stock_type_id)
+        
         # Filter stocks by requirements
         candidate_stocks = self.digital_stocks
         if gsm:
-            candidate_stocks = [s for s in candidate_stocks if s.gsm == gsm]
+            candidate_stocks = [s for s in candidate_stocks if int(s.gsm) == gsm]  # Ensure both sides are int
         if stock_type_id:
-            candidate_stocks = [s for s in candidate_stocks if s.stock_type_id == stock_type_id]
+            candidate_stocks = [s for s in candidate_stocks if int(s.stock_type_id) == stock_type_id]
         
         # Add bleed once per dimension (VB.NET behavior)
         required_width = Decimal(str(finish_width)) + bleed

@@ -80,6 +80,28 @@ const AgentColumn = (function () {
         column.id = `agent-column-${agentId}`;
         column.dataset.agentId = agentId;
 
+        // ✅ LOAD STORED WORKSPACE SETTINGS (localStorage)
+        if (typeof WorkspaceManager !== 'undefined') {
+            // Load column width
+            const storedWidth = WorkspaceManager.load(agentId, 'columnWidth', 400);
+            if (storedWidth && storedWidth !== 400) {
+                column.style.minWidth = `${storedWidth}px`;
+                column.style.maxWidth = `${storedWidth}px`;
+                column.dataset.customWidth = storedWidth;
+            }
+
+            // Load collapsed state
+            const isCollapsed = WorkspaceManager.load(agentId, 'columnCollapsed', false);
+            if (isCollapsed) {
+                column.classList.add('collapsed');
+            }
+
+            // Load view mode (will apply after DOM ready)
+            const storedViewMode = WorkspaceManager.load(agentId, 'viewMode', 'all-expanded');
+            viewModes[agentId] = storedViewMode;
+            console.log(`📂 [AgentColumn] Loaded settings for agent ${agentId}: width=${storedWidth}px, viewMode=${storedViewMode}`);
+        }
+
         // Get thread info if exists (assumes MultiAgent.getLoadedThread exists)
         // Keep thread-info-wrapper EMPTY when no thread is loaded
         let threadInfoHtml = `
@@ -109,22 +131,12 @@ const AgentColumn = (function () {
 
             <!-- Expanded Column Content -->
             <div class="agent-header">
-                <!-- Header Top Row: [Collapse] [Agent Title] [Width Toggle] [Hamburger] -->
+                <!-- Header Top Row: [Left: Collapse + View Mode] [Center: Agent Title] [Right: Popout + Width Toggle + Hamburger] -->
                 <div class="agent-header-top">
-                    <button class="collapse-btn" onclick="event.stopPropagation(); AgentColumn.collapse(${agentId})" title="Collapse column" aria-label="Collapse column">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    
-                    <div class="agent-title-wrapper">
-                        <h2><i class="fas ${icon}"></i> ${name}</h2>
-                    </div>
-                    
-                    <div class="agent-header-controls">
-                        <button class="agent-popout-btn" 
-                                onclick="event.stopPropagation(); AgentColumn.popOut(${agentId})" 
-                                title="Pop out agent window" 
-                                aria-label="Pop out agent">
-                            <i class="fas fa-external-link-alt"></i>
+                    <!-- Left Controls -->
+                    <div class="agent-header-left">
+                        <button class="collapse-btn" onclick="event.stopPropagation(); AgentColumn.collapse(${agentId})" title="Collapse column" aria-label="Collapse column">
+                            <i class="fas fa-chevron-down"></i>
                         </button>
                         <button class="view-mode-btn" 
                                 id="view-mode-btn-${agentId}"
@@ -155,6 +167,21 @@ const AgentColumn = (function () {
                                 <span>AI + User Only</span>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Center Title -->
+                    <div class="agent-title-wrapper">
+                        <h2><i class="fas ${icon}"></i> ${name}</h2>
+                    </div>
+                    
+                    <!-- Right Controls -->
+                    <div class="agent-header-controls">
+                        <button class="agent-popout-btn" 
+                                onclick="event.stopPropagation(); AgentColumn.popOut(${agentId})" 
+                                title="Pop out agent window" 
+                                aria-label="Pop out agent">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
                         <button class="width-toggle-btn" onclick="event.stopPropagation(); AgentColumn.toggleWidth(${agentId})" title="Toggle column width" aria-label="Toggle column width">
                             <i class="fas fa-chevron-right" id="width-icon-${agentId}"></i>
                         </button>
@@ -168,6 +195,9 @@ const AgentColumn = (function () {
                 <div class="agent-menu-dropdown" id="menu-${agentId}">
                     <div class="agent-menu-item" onclick="event.stopPropagation(); AgentColumn.newThread(${agentId}, event)">
                         <i class="fas fa-plus"></i> New Thread
+                    </div>
+                    <div class="agent-menu-item" onclick="event.stopPropagation(); AgentColumn.refreshThread(${agentId})">
+                        <i class="fas fa-sync-alt"></i> Refresh Thread
                     </div>
                     <div class="agent-menu-divider"></div>
                     <div class="agent-menu-item" onclick="event.stopPropagation(); AgentColumn.showHistory(${agentId})">
@@ -187,8 +217,36 @@ const AgentColumn = (function () {
             
             <!-- Messages Container -->
             <div class="agent-messages-container" id="agent-messages-${agentId}">
+                <!-- Scroll Controls (Fixed Top-Right - Visible only when messages exist) -->
+                <div class="agent-scroll-controls" id="scroll-controls-${agentId}">
+                    <button class="agent-scroll-top-btn" 
+                            onclick="event.stopPropagation(); AgentColumn.scrollToTop(${agentId})" 
+                            title="Scroll to top message" 
+                            aria-label="Scroll to top">
+                        <i class="fa fa-angle-double-up"></i>
+                    </button>
+                    <button class="agent-scroll-bottom-btn" 
+                            onclick="event.stopPropagation(); AgentColumn.scrollToBottom(${agentId}); AgentColumn.scrollColumnIntoView(${agentId})" 
+                            title="Scroll to bottom message and column" 
+                            aria-label="Scroll to bottom">
+                        <i class="fa fa-angle-double-down"></i>
+                    </button>
+                    <button class="agent-autoscroll-btn active" 
+                            id="agent-autoscroll-${agentId}" 
+                            onclick="event.stopPropagation(); AgentInput.toggleAutoScroll(${agentId})" 
+                            title="Toggle auto-scroll" 
+                            aria-label="Toggle auto-scroll">
+                        <i class="fas fa-step-forward" style="transform: rotate(90deg);"></i>
+                    </button>
+                </div>
                 ${renderEmptyState(agentId, name)}
             </div>
+            
+            <!-- Resize Handle (right edge) -->
+            <div class="agent-resize-handle" 
+                 data-agent-id="${agentId}"
+                 title="Drag to resize column"
+                 aria-label="Resize column"></div>
             
             <!-- Expandable Input Container (Prime-style, column-specific isolation) -->
             <div class="agent-input-container" 
@@ -264,13 +322,6 @@ const AgentColumn = (function () {
                                     aria-label="Prompt library">
                                 <i class="fas fa-bolt"></i>
                             </button>
-                            <button class="agent-autoscroll-btn active" 
-                                    id="agent-autoscroll-${agentId}"
-                                    onclick="event.stopPropagation(); AgentInput.toggleAutoScroll(${agentId})"
-                                    title="Toggle auto-scroll"
-                                    aria-label="Toggle auto-scroll">
-                                <i class="fas fa-angle-double-down"></i>
-                            </button>
                             <button class="agent-feedback-btn" 
                                     id="agent-feedback-btn-${agentId}"
                                     onclick="event.stopPropagation(); AgentInput.toggleFeedback(${agentId})"
@@ -311,6 +362,28 @@ const AgentColumn = (function () {
                 </div>
             </div>
         `;
+
+        // ✅ SETUP MUTATION OBSERVER TO TRACK MESSAGE CHANGES
+        // This allows us to show/hide scroll controls based on whether messages exist
+        setTimeout(() => {
+            const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+            if (messagesContainer) {
+                const observer = new MutationObserver(() => {
+                    // Check if messages were added or removed
+                    updateScrollControlsVisibility(agentId);
+                });
+
+                // Watch for changes to the messages container
+                observer.observe(messagesContainer, {
+                    childList: true,           // Watch for added/removed children
+                    subtree: true,             // Watch nested elements too
+                    characterData: false,      // Don't watch text changes
+                    attributes: false          // Don't watch attribute changes
+                });
+
+                console.log(`👁️ [AgentColumn] Setup scroll-controls visibility observer for agent ${agentId}`);
+            }
+        }, 100);
 
         return column;
     }
@@ -368,6 +441,12 @@ const AgentColumn = (function () {
         const column = document.getElementById(`agent-column-${agentId}`);
         if (column) {
             column.classList.add('collapsed');
+
+            // ✅ SAVE COLLAPSED STATE TO STORAGE
+            if (typeof WorkspaceManager !== 'undefined') {
+                WorkspaceManager.save(agentId, 'columnCollapsed', true);
+            }
+
             console.log(`[AgentColumn] Collapsed agent ${agentId}`);
         }
     }
@@ -380,6 +459,12 @@ const AgentColumn = (function () {
         const column = document.getElementById(`agent-column-${agentId}`);
         if (column) {
             column.classList.remove('collapsed');
+
+            // ✅ SAVE COLLAPSED STATE TO STORAGE
+            if (typeof WorkspaceManager !== 'undefined') {
+                WorkspaceManager.save(agentId, 'columnCollapsed', false);
+            }
+
             console.log(`[AgentColumn] Expanded agent ${agentId}`);
         }
     }
@@ -414,6 +499,13 @@ const AgentColumn = (function () {
         const name = AGENT_NAMES[agentId] || `Agent ${agentId}`;
         const icon = AGENT_ICONS[agentId] || 'fa-robot';
 
+        // 💾 SAVE CURRENT STATE (width & scroll position)
+        const currentWidth = column.offsetWidth;
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        const currentScrollTop = messagesContainer ? messagesContainer.scrollTop : 0;
+
+        console.log(`[AgentColumn] Saving state - Width: ${currentWidth}px, Scroll: ${currentScrollTop}px`);
+
         // Create floating window
         const floatingWindow = document.createElement('div');
         floatingWindow.className = 'agent-popout-window';
@@ -421,10 +513,16 @@ const AgentColumn = (function () {
         floatingWindow.style.zIndex = nextZIndex++;
         floatingWindow.dataset.agentId = agentId;
 
+        // 🔧 RESTORE WIDTH from column (preserve user's width preference)
+        floatingWindow.style.width = `${currentWidth}px`;
+
         // Position with cascade
         const offset = (popoutCount - 1) * 40;
         floatingWindow.style.left = `${100 + offset}px`;
         floatingWindow.style.top = `${80 + offset}px`;
+
+        // Store scroll position in dataset for restoration
+        floatingWindow.dataset.savedScrollTop = currentScrollTop;
 
         floatingWindow.innerHTML = `
             <div class="agent-popout-content"></div>
@@ -524,6 +622,16 @@ const AgentColumn = (function () {
                 }
             });
 
+            // 📜 RESTORE SCROLL POSITION after DOM settles
+            setTimeout(() => {
+                const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+                const savedScroll = floatingWindow.dataset.savedScrollTop;
+                if (messagesContainer && savedScroll) {
+                    messagesContainer.scrollTop = parseInt(savedScroll);
+                    console.log(`[AgentColumn] ✅ Restored scroll position to ${savedScroll}px`);
+                }
+            }, 100);
+
             // Dispatch custom event to notify other systems
             const popoutEvent = new CustomEvent('agent-popped-out', {
                 detail: { agentId, windowElement: floatingWindow }
@@ -537,6 +645,14 @@ const AgentColumn = (function () {
         // Return to main view
         const returnToMain = () => {
             console.log(`[AgentColumn] Returning agent ${agentId} to main view...`);
+
+            // 💾 SAVE CURRENT SCROLL POSITION before returning
+            const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+            if (messagesContainer) {
+                const currentScroll = messagesContainer.scrollTop;
+                floatingWindow.dataset.savedScrollTop = currentScroll;
+                console.log(`[AgentColumn] Saved scroll position: ${currentScroll}px`);
+            }
 
             // Find the placeholder in the dashboard
             const placeholder = document.getElementById(`agent-placeholder-${agentId}`);
@@ -591,6 +707,17 @@ const AgentColumn = (function () {
                     console.error(`[AgentColumn] Could not find parent container: ${parentId}`);
                 }
             }
+
+            // 📜 RESTORE SCROLL POSITION after returning to dashboard
+            setTimeout(() => {
+                if (messagesContainer) {
+                    const savedScroll = floatingWindow.dataset.savedScrollTop;
+                    if (savedScroll) {
+                        messagesContainer.scrollTop = parseInt(savedScroll);
+                        console.log(`[AgentColumn] ✅ Restored scroll position to ${savedScroll}px`);
+                    }
+                }
+            }, 100);
 
             // Remove window
             floatingWindow.classList.add('closing');
@@ -789,12 +916,14 @@ const AgentColumn = (function () {
         if (column && icon) {
             const hasWide = column.classList.contains('wide');
             const hasExtraWide = column.classList.contains('extra-wide');
+            let newWidth = 400;
 
             if (!hasWide && !hasExtraWide) {
                 // Stage 1 -> 2: 400px to 600px (icon: >)
                 column.classList.add('wide');
                 icon.className = 'fas fa-angle-double-right'; // >>
                 icon.style.transform = 'none';
+                newWidth = 600;
                 console.log(`[AgentColumn] Width for agent ${agentId}: 400px -> 600px`);
             } else if (hasWide && !hasExtraWide) {
                 // Stage 2 -> 3: 600px to 800px (icon: >>)
@@ -802,14 +931,92 @@ const AgentColumn = (function () {
                 column.classList.add('extra-wide');
                 icon.className = 'fas fa-chevron-left'; // <
                 icon.style.transform = 'none';
+                newWidth = 800;
                 console.log(`[AgentColumn] Width for agent ${agentId}: 600px -> 800px`);
             } else {
                 // Stage 3 -> 1: 800px back to 400px (icon: <)
                 column.classList.remove('extra-wide');
                 icon.className = 'fas fa-chevron-right'; // >
                 icon.style.transform = 'none';
+                newWidth = 400;
                 console.log(`[AgentColumn] Width for agent ${agentId}: 800px -> 400px`);
             }
+
+            // ✅ SAVE COLUMN WIDTH TO STORAGE (localStorage + database)
+            if (typeof WorkspaceManager !== 'undefined') {
+                WorkspaceManager.save(agentId, 'columnWidth', newWidth);
+            }
+        }
+    }
+
+    /**
+     * Scroll messages container to top
+     * @param {number} agentId - Agent ID
+     */
+    function scrollToTop(agentId) {
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (messagesContainer) {
+            messagesContainer.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+            console.log(`[AgentColumn] Scrolled agent ${agentId} to top`);
+        }
+    }
+
+    /**
+     * Scroll messages container to bottom
+     * @param {number} agentId - Agent ID
+     */
+    function scrollToBottom(agentId) {
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (messagesContainer) {
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+            console.log(`[AgentColumn] Scrolled agent ${agentId} to bottom`);
+        }
+    }
+
+    /**
+     * Scroll the UI viewport to bring this column into view
+     * @param {number} agentId - Agent ID
+     */
+    function scrollColumnIntoView(agentId) {
+        const column = document.getElementById(`agent-column-${agentId}`);
+        if (column) {
+            column.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+            console.log(`[AgentColumn] Scrolled UI to show agent ${agentId}`);
+        }
+    }
+
+    /**
+     * Update scroll controls visibility based on whether messages exist
+     * @param {number} agentId - Agent ID
+     */
+    function updateScrollControlsVisibility(agentId) {
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+
+        if (!messagesContainer) {
+            return;
+        }
+
+        // Check if any messages exist (ai-message class is used by UnifiedMessageRenderer)
+        const messageBubbles = messagesContainer.querySelectorAll('.ai-message');
+        const hasMessages = messageBubbles.length > 0;
+
+        // Toggle 'has-messages' class to show/hide scroll controls via CSS
+        if (hasMessages) {
+            messagesContainer.classList.add('has-messages');
+            console.log(`[AgentColumn] Showing scroll controls for agent ${agentId} (${messageBubbles.length} messages)`);
+        } else {
+            messagesContainer.classList.remove('has-messages');
+            console.log(`[AgentColumn] Hiding scroll controls for agent ${agentId} (no messages)`);
         }
     }
 
@@ -844,10 +1051,12 @@ const AgentColumn = (function () {
 
         console.log(`[AgentColumn] Removing agent ${agentId}...`);
 
-        // STEP 1: Clear the messages container
+        // STEP 1: Clear the messages container (preserve scroll controls)
         const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
         if (messagesContainer) {
-            messagesContainer.innerHTML = '';
+            // Remove only message elements, keep scroll controls
+            const messages = messagesContainer.querySelectorAll('.ai-message');
+            messages.forEach(msg => msg.remove());
             console.log(`[AgentColumn] Cleared messages for agent ${agentId}`);
         }
 
@@ -994,7 +1203,8 @@ const AgentColumn = (function () {
      * @param {Event} event - Optional click event to get button position
      */
     function newThread(agentId, event = null) {
-        toggleMenu(agentId); // Close menu
+        // Don't toggle menu - just open the new chat modal directly
+        // toggleMenu(agentId); // REMOVED - was causing menu to open unintentionally
 
         // Get button element for positioning
         let buttonElement = null;
@@ -1006,6 +1216,37 @@ const AgentColumn = (function () {
             ThreadManager.showNewChatModal(`agent-${agentId}`, buttonElement);
         } else {
             console.warn('[AgentColumn] ThreadManager not available');
+        }
+    }
+
+    /**
+     * Refresh current thread in agent column
+     * @param {number} agentId - Agent ID
+     */
+    function refreshThread(agentId) {
+        toggleMenu(agentId); // Close menu
+
+        // Find the thread currently loaded in this agent column
+        const threadInfo = document.querySelector(`#thread-info-${agentId} [data-thread-id]`);
+        if (!threadInfo) {
+            console.warn(`[AgentColumn] No thread loaded in agent-${agentId}`);
+            if (typeof showNotification === 'function') {
+                showNotification('No thread loaded to refresh', 'warning');
+            }
+            return;
+        }
+
+        const threadId = threadInfo.dataset.threadId;
+        console.log(`🔄 [AgentColumn] Refreshing thread ${threadId} in agent-${agentId}`);
+
+        // Reload the thread messages
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadInAgent === 'function') {
+            ThreadManager.loadThreadInAgent(threadId, agentId);
+            if (typeof showNotification === 'function') {
+                showNotification('Thread refreshed', 'success');
+            }
+        } else {
+            console.warn('[AgentColumn] ThreadManager.loadThreadInAgent not available');
         }
     }
 
@@ -1128,7 +1369,7 @@ const AgentColumn = (function () {
                                     <div class="thread-item-content">
                                         <div class="thread-item-title">
                                             <span>${thread.title || 'Untitled Thread'}</span>
-                                            <div class="thread-item-agent-badge" style="background: #238636;">
+                                            <div class="thread-item-agent-badge main" style="background: #238636; cursor: pointer;" ondblclick="event.stopPropagation(); AgentColumn.loadThreadIntoPrime('${thread.id}'); return false;" title="Double-click to load into Prime Chat">
                                                 <i class="fas fa-star"></i>
                                                 <span>Prime</span>
                                             </div>
@@ -1537,6 +1778,11 @@ const AgentColumn = (function () {
         // Apply view mode to all messages in this column
         applyViewModeToColumn(agentId, mode);
 
+        // ✅ SAVE VIEW MODE TO STORAGE (localStorage + database)
+        if (typeof WorkspaceManager !== 'undefined') {
+            WorkspaceManager.save(agentId, 'viewMode', mode);
+        }
+
         console.log(`📐 [AgentColumn] View mode for agent ${agentId}: ${mode}`);
     }
 
@@ -1703,6 +1949,9 @@ const AgentColumn = (function () {
             const agentName = getName(agentId);
             messagesContainer.innerHTML = renderEmptyState(agentId, agentName);
             console.log(`[AgentColumn] Cleared messages and showed empty state for agent ${agentId}`);
+
+            // Hide scroll controls when messages cleared
+            updateScrollControlsVisibility(agentId);
         }
 
         // STEP 2: Clear thread info and show "No thread loaded"
@@ -1770,11 +2019,16 @@ const AgentColumn = (function () {
         expand,
         popOut,
         toggleWidth,
+        scrollToTop,
+        scrollToBottom,
+        scrollColumnIntoView,
+        updateScrollControlsVisibility,
         toggleMenu,
         remove,
         unloadThread,
         updateThreadInfo,
         newThread,
+        refreshThread,
         showHistory,
         sendMessage,
         getIcon,

@@ -206,77 +206,29 @@ ThreadManager.openInternalDocsLinkModal = async function (threadId) {
 
 /**
  * Render list of internal doc items
+ * ✅ UPDATED: Now uses centralized SynergyDocCardRenderer
  * @param {Array} docs - Array of internal doc objects
  * @returns {string} HTML string
  */
 ThreadManager.renderInternalDocsList = function (docs) {
-    if (!docs || docs.length === 0) {
-        return `
-            <div class="internal-docs-link-empty">
-                <i class="fas fa-file-alt"></i>
-                <p><strong>No Internal Docs Found</strong></p>
-                <p>Create your first document using the Quick Create or Full Create tabs.</p>
-            </div>
-        `;
+    // Use centralized renderer
+    if (!window.SynergyDocCardRenderer) {
+        console.error('[INTERNAL DOCS LINK MODAL] SynergyDocCardRenderer not loaded!');
+        return '<div class="internal-docs-link-empty"><p>Card renderer not available</p></div>';
     }
 
-    return docs.map(doc => {
-        const typeClass = doc.doc_type === 'sheet' ? 'type-sheet' : 'type-doc';
-        const typeText = doc.doc_type === 'sheet' ? 'Sheet' : 'Doc';
-        const typeIcon = doc.doc_type === 'sheet' ? 'fa-table' : 'fa-file-alt';
-
-        const formattedDate = doc.created_at ?
-            new Date(doc.created_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            }) : 'Unknown';
-
-        const modifiedDate = doc.last_modified ?
-            new Date(doc.last_modified).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            }) : formattedDate;
-
-        return `
-            <div class="internal-doc-item" 
-                 onclick="ThreadManager.linkToExistingInternalDoc('${doc.doc_id}')"
-                 data-doc-id="${doc.doc_id}"
-                 data-doc-name="${doc.doc_name}"
-                 data-doc-type="${doc.doc_type}">
-                <div class="internal-doc-header">
-                    <div class="internal-doc-title">
-                        <i class="fas ${typeIcon}"></i> ${doc.doc_name}
-                    </div>
-                    <div class="internal-doc-type ${typeClass}">${typeText}</div>
-                </div>
-                
-                ${doc.description ? `
-                    <div class="internal-doc-desc">${doc.description}</div>
-                ` : ''}
-                
-                <div class="internal-doc-meta">
-                    <span>
-                        <i class="fas fa-calendar-alt"></i>
-                        Created ${formattedDate}
-                    </span>
-                    ${doc.last_modified ? `
-                        <span>
-                            <i class="fas fa-edit"></i>
-                            Modified ${modifiedDate}
-                        </span>
-                    ` : ''}
-                    ${doc.owner ? `
-                        <span>
-                            <i class="fas fa-user"></i>
-                            ${doc.owner}
-                        </span>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
+    return window.SynergyDocCardRenderer.renderList(docs, {
+        selectable: false,
+        onClick: 'ThreadManager.linkToExistingInternalDoc',
+        showDescription: true,
+        showType: true,
+        showCreated: true,
+        showModified: true,
+        showOwner: true,
+        showTags: false,
+        variant: 'detailed',
+        emptyMessage: 'No Internal Docs Found. Create your first document using the Quick Create or Full Create tabs.'
+    });
 };
 
 /**

@@ -134,7 +134,7 @@ class CADRenderer {
                 `;
                 vizContainer.appendChild(cadActionBar);
             }
-            
+
             // Add CAD-specific controls
             this.addViewControls(vizContainer, sceneData, chartId);
         }
@@ -169,7 +169,9 @@ class CADRenderer {
                 cameraConfig.position.z || 5
             );
         } else {
-            camera.position.z = config.cameraDistance || 5;
+            // Default to isometric "home" view (45 degrees, elevated)
+            const distance = config.cameraDistance || 5;
+            camera.position.set(distance * 0.7, distance * 0.7, distance * 0.7);
         }
 
         // Renderer setup
@@ -214,6 +216,22 @@ class CADRenderer {
             // Auto-fit camera to model after loading
             if (!cameraConfig?.position) {
                 this.fitCameraToModel(camera, scene, controls);
+                // After auto-fit, position at isometric "home" view
+                const box = new THREE.Box3();
+                scene.traverse(obj => { if (obj.isMesh) box.expandByObject(obj); });
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const distance = maxDim * 1.8;
+                const center = box.getCenter(new THREE.Vector3());
+                camera.position.set(
+                    center.x + distance * 0.7,
+                    center.y + distance * 0.7,
+                    center.z + distance * 0.7
+                );
+                if (controls) {
+                    controls.target.copy(center);
+                    controls.update();
+                }
             }
         }
 
@@ -966,7 +984,7 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
 
         options.forEach(option => {
             const item = document.createElement('div');
-            item.textContent = option.label;
+            item.innerHTML = option.label;  // Changed from textContent to innerHTML to render icons
             item.style.cssText = `
                 padding: 8px 16px;
                 cursor: pointer;

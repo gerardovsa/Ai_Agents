@@ -44,6 +44,7 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
     3. Validates thinking blocks are immutable (removes modification attempts)
     4. Ensures role alternation (no consecutive same-role messages)
     5. Validates all tool_use IDs have matching tool_result IDs
+    6. Strips frontend-only fields (created_at, etc.)
     
     Returns:
         Cleaned messages ready for API
@@ -61,7 +62,11 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
         content = msg.get('content', [])
         
         if not isinstance(content, list):
-            cleaned_messages.append(msg)
+            # Strip frontend-only fields before API call
+            cleaned_messages.append({
+                'role': role,
+                'content': content
+            })
             continue
         
         # VALIDATION 1: Collect all tool_use IDs from assistant messages
@@ -105,19 +110,21 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
                 msg['content'] = cleaned_content
         
         # VALIDATION 4: Check for thinking block modifications (must be immutable)
-        # If thinking block has non-standard fields, flag it
+        # Anthropic requires: type, thinking, and signature (when from database)
+        # DO NOT remove signature - it's required by Anthropic
         for block in msg.get('content', []):
             if isinstance(block, dict) and block.get('type') == 'thinking':
-                # Valid thinking block fields: type, thinking
-                valid_fields = {'type', 'thinking'}
+                # Valid thinking block fields when from database: type, thinking, signature
+                valid_fields = {'type', 'thinking', 'signature'}
                 extra_fields = set(block.keys()) - valid_fields
+                # Only warn if there are truly unexpected fields (not signature)
                 if extra_fields:
-                    print(f"{log_prefix} ⚠️ Message {idx}: Thinking block has extra fields: {extra_fields}")
-                    # Remove extra fields
-                    for field in extra_fields:
-                        if field not in valid_fields:
+                    print(f"{log_prefix} ⚠️ Message {idx}: Thinking block has unexpected fields: {extra_fields}")
+                    # Only remove truly unexpected fields, KEEP signature
+                    for field in list(extra_fields):
+                        if field != 'signature':  # Never remove signature!
                             del block[field]
-                    print(f"{log_prefix} 🔧 Message {idx}: Cleaned thinking block")
+                            print(f"{log_prefix} 🔧 Message {idx}: Removed field '{field}' from thinking block")
         
         # VALIDATION 5: Ensure content is not empty
         if not msg['content']:
@@ -127,8 +134,11 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
                 print(f"{log_prefix} 🔧 Message {idx}: Skipping empty assistant message")
                 continue
         
-        # Add to cleaned messages
-        cleaned_messages.append(msg)
+        # Add to cleaned messages (strip frontend-only fields)
+        cleaned_messages.append({
+            'role': msg.get('role'),
+            'content': msg.get('content')
+        })
     
     # VALIDATION 6: Ensure no consecutive same-role messages
     final_messages = []

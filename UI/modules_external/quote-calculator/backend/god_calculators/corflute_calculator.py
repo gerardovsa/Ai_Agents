@@ -138,6 +138,13 @@ class CorflutePricingCalculator:
             Dictionary with detailed cost breakdown
         """
         
+        # Convert all numeric parameters to proper types (defensive programming)
+        width_mm = int(width_mm)
+        height_mm = int(height_mm)
+        thickness_mm = int(thickness_mm)
+        quantity = int(quantity)
+        artworks = int(artworks)
+        
         # Input validation
         self._validate_inputs(width_mm, height_mm, thickness_mm, quantity, artworks)
         

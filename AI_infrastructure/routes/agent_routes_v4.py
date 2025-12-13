@@ -89,11 +89,11 @@ def get_semantic_search(registry):
         if _semantic_search_cache is None:
             try:
                 from tools.intelligent_discovery import SemanticToolSearch
-                print("[SEMANTIC CACHE] 🔄 Initializing semantic search (ONE-TIME OPERATION)...")
+                print("[SEMANTIC CACHE] Initializing semantic search (ONE-TIME OPERATION)...")
                 _semantic_search_cache = SemanticToolSearch(registry)
-                print(f"[SEMANTIC CACHE] ✅ Initialized with {len(_semantic_search_cache.tool_embeddings)} tool embeddings")
+                print(f"[SEMANTIC CACHE] [OK] Initialized with {len(_semantic_search_cache.tool_embeddings)} tool embeddings")
             except Exception as e:
-                print(f"[SEMANTIC CACHE] ❌ Failed to initialize: {e}")
+                print(f"[SEMANTIC CACHE] [ERROR] Failed to initialize: {e}")
                 _semantic_search_cache = None
         
         return _semantic_search_cache
@@ -195,7 +195,8 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
             
             messages.append({
                 'role': role,
-                'content': content
+                'content': content,
+                'created_at': created_at.isoformat() if created_at else None
             })
             
             content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"

@@ -20,6 +20,12 @@ CURSOR AUDIT: ✅ PASSED - All 25 functions verified, 149+ issues fixed
 import os
 from pathlib import Path
 from dotenv import dotenv_values
+import sys
+
+# Setup paths for imports
+ai_infrastructure_path = Path(__file__).parent.parent
+if str(ai_infrastructure_path) not in sys.path:
+    sys.path.insert(0, str(ai_infrastructure_path))
 
 # Setup logging
 from utils.logger_config import setup_logger, log_db

@@ -936,22 +936,39 @@ async function sendChatMessage() {
                                         }
 
                                         // AUTO SEPARATOR: Add visual break when new thinking block starts
-                                        if (data.delta_type === 'start' && thinkingBubble._fullThinkingText.trim()) {
-                                            // New thinking block detected - add separator before it
-                                            thinkingBubble._fullThinkingText += '\n\n---\n\n';
-                                            console.log('🔄 [THINKING] New thinking block detected, added visual separator');
+                                        if (data.delta_type === 'start') {
+                                            if (thinkingBubble._fullThinkingText.trim()) {
+                                                // New thinking block detected - add separator before it
+                                                const beforeLen = thinkingBubble._fullThinkingText.length;
+                                                thinkingBubble._fullThinkingText += '\n\n---\n\n';
+                                                console.log('🔄 [THINKING SEPARATOR] New thinking block detected', {
+                                                    beforeLength: beforeLen,
+                                                    afterLength: thinkingBubble._fullThinkingText.length,
+                                                    lastChars: thinkingBubble._fullThinkingText.slice(-30)
+                                                });
+                                            } else {
+                                                console.log('🔄 [THINKING START] First thinking block, no separator needed');
+                                            }
                                         }
 
+                                        const beforeAppend = thinkingBubble._fullThinkingText.length;
                                         thinkingBubble._fullThinkingText += thinkingText;
+                                        console.log('📝 [THINKING DELTA] Appended:', {
+                                            deltaLength: thinkingText.length,
+                                            totalLength: thinkingBubble._fullThinkingText.length,
+                                            preview: thinkingText.substring(0, 50)
+                                        });
 
                                         fullThinkingContent += thinkingText;
 
                                         if (window.marked) {
                                             try {
-                                                thinkingContent.innerHTML = marked.parse(thinkingBubble._fullThinkingText, {
+                                                const parsed = marked.parse(thinkingBubble._fullThinkingText, {
                                                     breaks: true,
                                                     gfm: true
                                                 });
+                                                thinkingContent.innerHTML = parsed;
+                                                console.log('✅ [THINKING RENDERED] Markdown parsed, HTML length:', parsed.length);
                                             } catch (e) {
                                                 console.error('[ERROR] Markdown parse error in thinking:', e);
                                                 thinkingContent.innerHTML = renderBasicMarkdown(thinkingBubble._fullThinkingText);
@@ -959,7 +976,7 @@ async function sendChatMessage() {
                                         } else {
                                             thinkingContent.innerHTML = renderBasicMarkdown(thinkingBubble._fullThinkingText);
                                         }
-                                        console.log('💭 Thinking content updated with markdown, length:', thinkingBubble._fullThinkingText.length);
+                                        console.log('💭 Thinking content updated, total text length:', thinkingBubble._fullThinkingText.length);
 
                                     } else if (data.type === 'tool_use') {
                                         if (window._twoRuleProcessors && window._twoRuleProcessors.size) {
@@ -1560,6 +1577,47 @@ async function sendChatMessage() {
                                             is_error: !data.success
                                         });
                                         console.log('[OK] Tracked tool_result for conversation history:', data.tool_id);
+
+                                        // Handle UI commands from tool results
+                                        if (parsedResult && typeof parsedResult === 'object') {
+                                            const uiCommand = parsedResult.ui_command || parsedResult.result?.ui_command;
+
+                                            if (uiCommand === 'open_workflow') {
+                                                const slug = parsedResult.slug || parsedResult.result?.slug;
+                                                const title = parsedResult.workflow_title || parsedResult.result?.workflow_title;
+
+                                                if (slug) {
+                                                    console.log(`🎨 [UI_COMMAND] Opening workflow in automation canvas: ${slug}`);
+
+                                                    // Switch to automation tab
+                                                    if (typeof window.switchToTab === 'function') {
+                                                        window.switchToTab('automation');
+                                                    }
+
+                                                    // Wait for tab to be visible and automation canvas to be ready
+                                                    setTimeout(async () => {
+                                                        if (!window.automationCanvas) {
+                                                            console.error('❌ [UI_COMMAND] AutomationCanvas not available');
+                                                            return;
+                                                        }
+
+                                                        try {
+                                                            // Ensure workflows are loaded
+                                                            if (!window.automationCanvas.workflows || window.automationCanvas.workflows.length === 0) {
+                                                                console.log('🔄 [UI_COMMAND] Loading workflows list first...');
+                                                                await window.automationCanvas.loadWorkflows();
+                                                            }
+
+                                                            // Load the workflow by slug
+                                                            await window.automationCanvas.loadWorkflowBySlug(slug);
+                                                            console.log(`✅ [UI_COMMAND] Workflow opened: ${title || slug}`);
+                                                        } catch (error) {
+                                                            console.error('❌ [UI_COMMAND] Failed to open workflow:', error);
+                                                        }
+                                                    }, 300);
+                                                }
+                                            }
+                                        }
 
                                     } else if (data.type === 'server_tool_use') {
                                         console.log('🌐 [SERVER_TOOL_USE EVENT] Server tool requested:', data.name);
@@ -2782,11 +2840,54 @@ const PrimeAI = {
     unloadThread: unloadThreadFromPrime
 };
 
+// ==================== SCROLL CONTROLS VISIBILITY ====================
+// Show scroll controls only when messages exist
+function updateScrollControlsVisibility() {
+    const messagesContainer = document.getElementById('ai-chat-messages');
+    if (!messagesContainer) return;
+
+    // Check if any messages exist (ai-message class is used by UnifiedMessageRenderer)
+    const messageCount = messagesContainer.querySelectorAll('.ai-message').length;
+
+    if (messageCount > 0) {
+        messagesContainer.classList.add('has-messages');
+    } else {
+        messagesContainer.classList.remove('has-messages');
+    }
+}
+
+// Observe messages container for changes
+function initScrollControlsObserver() {
+    const messagesContainer = document.getElementById('ai-chat-messages');
+    if (!messagesContainer) return;
+
+    // Initial check
+    updateScrollControlsVisibility();
+
+    // Watch for DOM changes (messages added/removed)
+    const observer = new MutationObserver(() => {
+        updateScrollControlsVisibility();
+    });
+
+    observer.observe(messagesContainer, {
+        childList: true,
+        subtree: true
+    });
+}
+
+// Initialize observer when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScrollControlsObserver);
+} else {
+    initScrollControlsObserver();
+}
+
 window.initChatPanel = initChatPanel;
 window.initChatPanelResize = initChatPanelResize;
 window.initThemeToggle = initThemeToggle;
 window.PrimeChat = PrimeChat;
 window.PrimeAI = PrimeAI;
+window.updateScrollControlsVisibility = updateScrollControlsVisibility;
 
 // Close Prime dropdown when clicking outside
 document.addEventListener('click', (e) => {

@@ -283,6 +283,7 @@ class SynergyDocPicker {
 
     /**
      * Render filtered documents
+     * ✅ UPDATED: Now uses centralized SynergyDocCardRenderer
      */
     renderDocuments() {
         const listEl = document.getElementById('synergy-doc-picker-list');
@@ -292,65 +293,40 @@ class SynergyDocPicker {
         const count = this.filteredDocs.length;
         countEl.textContent = `${count} document${count !== 1 ? 's' : ''}`;
 
-        if (count === 0) {
-            listEl.innerHTML = `
-                <div class="synergy-doc-picker-empty">
-                    <i class="fas fa-folder-open"></i>
-                    <div>No documents found</div>
-                    <small>Try adjusting your filters</small>
-                </div>
-            `;
+        // Use centralized renderer
+        if (!window.SynergyDocCardRenderer) {
+            console.error('[SYNERGY DOC PICKER] SynergyDocCardRenderer not loaded!');
+            listEl.innerHTML = '<div class="synergy-doc-picker-error">Card renderer not available</div>';
             return;
         }
 
-        // Render document items
-        const itemsHTML = this.filteredDocs.map(doc => {
-            const typeIcon = doc.doc_type === 'richtext' ? 'fa-file-alt' : 'fa-table';
-            const date = new Date(doc.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-
-            return `
-                <div class="synergy-doc-picker-item ${this.selectedDocId === doc.doc_id ? 'selected' : ''}" 
-                     onclick="window.SynergyDocPicker.selectItem('${doc.doc_id}')"
-                     data-doc-id="${doc.doc_id}">
-                    <div class="synergy-doc-item-icon">
-                        <i class="fas ${typeIcon}"></i>
-                    </div>
-                    <div class="synergy-doc-item-content">
-                        <div class="synergy-doc-item-title">${this.escapeHtml(doc.title)}</div>
-                        ${doc.description ? `<div class="synergy-doc-item-desc">${this.escapeHtml(doc.description)}</div>` : ''}
-                        <div class="synergy-doc-item-meta">
-                            <span class="synergy-doc-item-type">
-                                <i class="fas ${typeIcon}"></i>
-                                ${doc.doc_type === 'richtext' ? 'Rich Text' : 'Spreadsheet'}
-                            </span>
-                            <span class="synergy-doc-item-date">
-                                <i class="far fa-calendar"></i>
-                                ${date}
-                            </span>
-                            ${doc.tags ? `
-                                <span class="synergy-doc-item-tags">
-                                    <i class="fas fa-tags"></i>
-                                    ${doc.tags.split(',').slice(0, 2).join(', ')}
-                                </span>
-                            ` : ''}
-                        </div>
-                    </div>
-                    <div class="synergy-doc-item-select">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        const itemsHTML = window.SynergyDocCardRenderer.renderList(this.filteredDocs, {
+            selectable: true,
+            selected: false, // Will be applied per-item below
+            onClick: 'window.SynergyDocPicker.selectItem',
+            showDescription: true,
+            showType: true,
+            showCreated: true,
+            showTags: true,
+            maxTags: 2,
+            variant: 'default',
+            emptyMessage: 'No documents found. Try adjusting your filters.'
+        });
 
         listEl.innerHTML = itemsHTML;
+
+        // Apply selection state to individual cards
+        if (this.selectedDocId) {
+            const selectedCard = listEl.querySelector(`[data-doc-id="${this.selectedDocId}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+        }
     }
 
     /**
      * Handle item selection
+     * ✅ UPDATED: Works with centralized card renderer classes
      */
     selectItem(docId) {
         // Toggle selection
@@ -360,8 +336,8 @@ class SynergyDocPicker {
             this.selectedDocId = docId;
         }
 
-        // Update UI
-        document.querySelectorAll('.synergy-doc-picker-item').forEach(item => {
+        // Update UI - works with both old and new class names
+        document.querySelectorAll('.synergy-doc-picker-item, .synergy-doc-card').forEach(item => {
             if (item.getAttribute('data-doc-id') === docId) {
                 item.classList.toggle('selected');
             } else {

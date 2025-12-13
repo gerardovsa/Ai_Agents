@@ -361,6 +361,11 @@
     <!-- REQUIRED: Popup modal styling -->
     <link rel="stylesheet" href="modules_internal/synergy/synergy-doc-picker.css?v=20251213_0149">
     <!-- NEW: Document picker -->
+
+    <!-- ✅ CENTRALIZED CARD RENDERER (must load before doc-picker and modals) -->
+    <link rel="stylesheet" href="modules_internal/internal_docs/card-renderer.css?v=20251213_0149">
+    <script src="modules_internal/internal_docs/card-renderer.js?v=20251213_0149"></script>
+
     <script src="modules_internal/synergy/synergy-doc-picker.js?v=20251213_0149"></script> <!-- NEW: Document picker -->
     <script src="modules_internal/synergy/synergy-thread-integration.js?v=20251213_0149"></script>
     <script src="modules_internal/synergy/synergy-manager.js?v=20251213_0149"></script> <!-- NEW: Manager class -->
@@ -382,6 +387,7 @@
     <script src="modules_internal/workflow/workflow-link-modal.js?v=20251213_0149"></script>
     <script src="modules_internal/automation/automation-link-modal.js?v=20251213_0149"></script>
     <script src="modules_internal/internal-docs/internal-docs-link-modal.js?v=20251213_0149"></script>
+    <!-- ✅ UPDATED: Using internal-docs-link-modal.js (uses centralized card renderer) -->
 
     <script src="modules_internal/workflow/workflow-thread-integration.js?v=20251213_0149"></script>
     <script src="modules_internal/automation-workflows/automation-thread-integration.js?v=20251213_0149"></script>
@@ -488,9 +494,9 @@
     <!-- Define AccountSidebar object early so inline onclick handlers don't fail -->
     <script>
         window.AccountSidebar = {
-            toggleSidebar: function() { console.warn('[ACCOUNT SIDEBAR] toggleSidebar called before full initialization'); },
-            switchTab: function(tabName) { console.warn('[ACCOUNT SIDEBAR] switchTab called before full initialization:', tabName); },
-            toggleUserExpand: function() { console.warn('[ACCOUNT SIDEBAR] toggleUserExpand called before full initialization'); }
+            toggleSidebar: function () { console.warn('[ACCOUNT SIDEBAR] toggleSidebar called before full initialization'); },
+            switchTab: function (tabName) { console.warn('[ACCOUNT SIDEBAR] switchTab called before full initialization:', tabName); },
+            toggleUserExpand: function () { console.warn('[ACCOUNT SIDEBAR] toggleUserExpand called before full initialization'); }
         };
         console.log('[ACCOUNT SIDEBAR] Placeholder object created early (will be replaced by full implementation)');
     </script>
@@ -7499,13 +7505,21 @@
         }
 
         .prime-scroll-controls {
-            position: absolute;
+            position: sticky;
             top: 10px;
             right: 10px;
-            display: flex;
+            display: none;
             gap: 8px;
-            z-index: 100;
+            z-index: 1000;
             pointer-events: none;
+            float: right;
+            margin-bottom: -46px;
+            /* Negative margin to prevent layout shift */
+        }
+
+        /* Show scroll controls only when messages exist */
+        #ai-chat-messages.has-messages .prime-scroll-controls {
+            display: flex;
         }
 
         .prime-scroll-controls button {
@@ -7538,6 +7552,58 @@
 
         .prime-autoscroll-btn {
             position: relative;
+        }
+
+        /* ==================== AGENT SCROLL CONTROLS (SAME STYLING) ==================== */
+
+        .agent-messages-container {
+            position: relative;
+        }
+
+        .agent-scroll-controls {
+            position: sticky;
+            top: 10px;
+            display: none;
+            flex-direction: row;
+            gap: 8px;
+            z-index: 1000;
+            float: right;
+            margin-bottom: -46px;
+            /* Negative margin to prevent layout shift */
+            pointer-events: none;
+        }
+
+        /* Show scroll controls only when messages exist */
+        .agent-messages-container.has-messages .agent-scroll-controls {
+            display: flex;
+        }
+
+        .agent-scroll-controls button {
+            pointer-events: auto;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            background: transparent;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .agent-scroll-controls button:hover {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.2);
+        }
+
+        .agent-scroll-controls button:active {
+            transform: scale(0.95);
         }
 
         .prime-autoscroll-btn::after {
@@ -7751,7 +7817,32 @@
         .ai-message-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: var(--space-2);
+        }
+
+        .ai-message-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-message-header-right {
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        /* User messages: swap positions so timestamp left, icon+buttons right */
+        .ai-message.user .ai-message-header-left {
+            order: 2;
+            /* Move icon+buttons to right */
+        }
+
+        .ai-message.user .ai-message-header-right {
+            order: 1;
+            /* Move timestamp to left */
+            margin-left: 0;
+            margin-right: auto;
         }
 
         .ai-message-avatar {
@@ -7784,6 +7875,11 @@
             border-radius: 4px;
             transition: all 0.2s ease;
             font-size: 12px;
+            opacity: 0;
+        }
+
+        .ai-message:hover .ai-message-toggle {
+            opacity: 1;
         }
 
         .ai-message-toggle:hover {
@@ -7794,7 +7890,25 @@
         .ai-message-actions {
             display: flex;
             gap: 4px;
-            margin-left: auto;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .ai-message:hover .ai-message-actions {
+            opacity: 1;
+        }
+
+        .ai-message-timestamp {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+            user-select: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .ai-message:hover .ai-message-timestamp {
+            opacity: 1;
         }
 
         .ai-message-branch-btn {
@@ -8290,6 +8404,65 @@
         .ai-message.tool .ai-message-avatar {
             background: #22c55e;
             color: white;
+        }
+
+        /* Tool Request Block Styling */
+        .tool-request-block {
+            background: rgba(88, 166, 255, 0.05);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-left: 3px solid #58a6ff;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .tool-request-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+
+        .tool-request-header i {
+            font-size: 14px;
+        }
+
+        .tool-name {
+            font-size: 13px;
+            flex: 1;
+        }
+
+        .tool-id {
+            font-size: 11px;
+            opacity: 0.7;
+            font-family: monospace;
+        }
+
+        .tool-request-input {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        .tool-request-input pre {
+            margin: 0;
+            background: transparent !important;
+        }
+
+        .tool-request-input code {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .content-block-text {
+            margin-bottom: 8px;
+        }
+
+        .content-block-text:last-child {
+            margin-bottom: 0;
         }
 
         .tool-usage-header {
@@ -14520,6 +14693,249 @@
             margin: 8px 0;
         }
 
+        /* ===================================================
+           SYNERGY DOC/SHEET LINK MODAL STYLES
+           ================================================== */
+        .synergy-docs-link-modal {
+            background: var(--bg-secondary, #161b22);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 12px;
+            width: 650px;
+            max-width: 90%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .synergy-docs-link-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-default, #30363d);
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .synergy-docs-link-modal .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .synergy-docs-link-modal .modal-header .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .synergy-docs-link-modal .modal-header .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .synergy-docs-link-modal .modal-body {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .synergy-docs-link-thread-info {
+            padding: 12px 16px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--text-secondary, #9ca3af);
+        }
+
+        .synergy-docs-link-thread-info strong {
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        /* Tab Navigation */
+        .synergy-docs-link-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-default, #30363d);
+        }
+
+        .synergy-docs-link-tab {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary, #9ca3af);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: -2px;
+        }
+
+        .synergy-docs-link-tab:hover {
+            color: #f59e0b;
+        }
+
+        .synergy-docs-link-tab.active {
+            color: #f59e0b;
+            border-bottom-color: #f59e0b;
+        }
+
+        /* Tab Content */
+        .synergy-docs-link-tab-content {
+            display: none;
+        }
+
+        .synergy-docs-link-tab-content.active {
+            display: block;
+        }
+
+        /* Search and Sort Controls */
+        .synergy-docs-link-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .synergy-docs-link-search {
+            flex: 1;
+            position: relative;
+        }
+
+        .synergy-docs-link-search i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted, #9ca3af);
+        }
+
+        .synergy-docs-link-search input {
+            width: 100%;
+            padding: 10px 12px 10px 38px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .synergy-docs-link-search input:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .synergy-docs-link-controls select {
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Docs List */
+        .synergy-docs-link-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Quick Create Form */
+        .synergy-docs-quick-create .form-group {
+            margin-bottom: 20px;
+        }
+
+        .synergy-docs-quick-create .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary, #f3f4f6);
+        }
+
+        .synergy-docs-quick-create input,
+        .synergy-docs-quick-create textarea,
+        .synergy-docs-quick-create select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #1c2128);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-primary, #f3f4f6);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .synergy-docs-quick-create input:focus,
+        .synergy-docs-quick-create textarea:focus,
+        .synergy-docs-quick-create select:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .synergy-docs-quick-create textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .synergy-docs-quick-create .btn-primary {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        /* Full Create */
+        .synergy-docs-full-create {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .synergy-docs-full-create p {
+            margin-bottom: 20px;
+        }
+
+        .synergy-docs-full-create .btn-primary {
+            min-width: 200px;
+        }
+
+        /* Empty State */
+        .synergy-docs-link-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted, #9ca3af);
+        }
+
+        .synergy-docs-link-empty i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .synergy-docs-link-empty p {
+            margin: 8px 0;
+        }
+
         /* Thread Picker Modal (for Resume Session) */
         .thread-picker-modal {
             background: var(--bg-secondary, #161b22);
@@ -18218,7 +18634,7 @@
                 </div>
 
                 <div class="ai-chat-messages" id="ai-chat-messages">
-                    <!-- Scroll Controls (Fixed Top-Right) -->
+                    <!-- Scroll Controls (Fixed Top-Right - Visible only when messages exist) -->
                     <div class="prime-scroll-controls">
                         <button class="prime-scroll-top-btn" onclick="event.stopPropagation(); PrimeChat.scrollToTop()"
                             title="Scroll to top message" aria-label="Scroll to top">
@@ -24987,7 +25403,6 @@
                 // Don't log full error as sessions are optional feature
             }
         }
-        }
 
         /**
          * Display sessions in the dropdown
@@ -25301,11 +25716,13 @@
         // ==================== ACCOUNT SETTINGS SIDEBAR ====================
         const AccountSidebar = {
             currentTab: 'profile',
+            realtimeChannel: null, // ✅ NEW: Realtime subscription channel
+            connections: [], // ✅ NEW: Cached connections for realtime updates
 
             /**
              * Toggle sidebar visibility
              */
-            toggleSidebar() {
+            async toggleSidebar() {
                 console.log('[ACCOUNT SIDEBAR] Toggling sidebar');
                 const sidebar = document.getElementById('account-sidebar');
                 if (sidebar) {
@@ -25313,11 +25730,35 @@
 
                     // Load user info and OAuth connections when opening
                     if (!sidebar.classList.contains('collapsed')) {
-                        console.log('[ACCOUNT SIDEBAR] Sidebar opened - loading user info and OAuth connections');
-                        this.loadUserInfo();
-                        this.loadOAuthConnections(); // ✅ Auto-load connections when sidebar opens
-                        this.loadTabContent(this.currentTab);
+                        console.log('[ACCOUNT SIDEBAR] Sidebar opened - initializing...');
+                        await this.initSidebar(); // ✅ CHANGED: Use async init
+                    } else {
+                        // ✅ NEW: Cleanup realtime subscription when closing
+                        this.unsubscribeFromConnectionChanges();
                     }
+                }
+            },
+
+            /**
+             * ✅ NEW: Initialize sidebar with sequential loading and realtime subscription
+             */
+            async initSidebar() {
+                try {
+                    // Step 1: Load user info first (needed for user_id)
+                    await this.loadUserInfo();
+
+                    // Step 2: Load OAuth connections
+                    await this.loadOAuthConnections();
+
+                    // Step 3: Load current tab content
+                    this.loadTabContent(this.currentTab);
+
+                    // Step 4: Subscribe to realtime connection changes
+                    await this.subscribeToConnectionChanges();
+
+                    console.log('✅ [ACCOUNT SIDEBAR] Initialization complete');
+                } catch (error) {
+                    console.error('❌ [ACCOUNT SIDEBAR] Initialization failed:', error);
                 }
             },
 
@@ -25713,7 +26154,7 @@
                 try {
                     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
                     if (!token) {
-                        console.error('[PREFERENCES] No auth token found');
+                        console.warn('[PREFERENCES] No auth token found - user may not be logged in yet');
                         return;
                     }
 
@@ -25887,6 +26328,233 @@
                         setTimeout(() => loadConnectionsModal(), 100);
                     }
                 }
+            },
+
+            /**
+             * ✅ NEW: Subscribe to Supabase Realtime connection changes
+             * Database pushes INSERT/UPDATE/DELETE events for user_platform_credentials
+             */
+            async subscribeToConnectionChanges() {
+                const userId = window.UserAuth?.user?.user_id;
+                if (!userId) {
+                    console.warn('[REALTIME] Cannot subscribe - no user_id found');
+                    return;
+                }
+
+                try {
+                    // Get Supabase client from connection manager
+                    const supabaseClient = await window.SupabaseConnectionManager?.getClient();
+                    if (!supabaseClient) {
+                        console.warn('[REALTIME] Supabase client not available');
+                        return;
+                    }
+
+                    // Unsubscribe from previous channel if exists
+                    if (this.realtimeChannel) {
+                        await supabaseClient.removeChannel(this.realtimeChannel);
+                    }
+
+                    // ✅ Create channel and subscribe to user's credential changes
+                    this.realtimeChannel = supabaseClient
+                        .channel(`user_${userId}_credentials`)
+                        .on(
+                            'postgres_changes',
+                            {
+                                event: '*', // Listen for INSERT, UPDATE, DELETE
+                                schema: 'ai_infrastructure',
+                                table: 'user_platform_credentials',
+                                filter: `user_id=eq.${userId}` // Only this user's changes
+                            },
+                            (payload) => {
+                                console.log('🔔 [REALTIME] Connection change detected:', payload);
+                                this.handleConnectionChange(payload);
+                            }
+                        )
+                        .subscribe((status) => {
+                            console.log(`📡 [REALTIME] Subscription status: ${status}`);
+                        });
+
+                    console.log('✅ [REALTIME] Subscribed to connection changes for user', userId);
+
+                } catch (error) {
+                    console.error('❌ [REALTIME] Subscription failed:', error);
+                }
+            },
+
+            /**
+             * ✅ NEW: Unsubscribe from realtime connection changes
+             */
+            async unsubscribeFromConnectionChanges() {
+                if (this.realtimeChannel) {
+                    try {
+                        const supabaseClient = await window.SupabaseConnectionManager?.getClient();
+                        if (supabaseClient) {
+                            await supabaseClient.removeChannel(this.realtimeChannel);
+                            console.log('🔌 [REALTIME] Unsubscribed from connection changes');
+                        }
+                        this.realtimeChannel = null;
+                    } catch (error) {
+                        console.error('❌ [REALTIME] Unsubscribe failed:', error);
+                    }
+                }
+            },
+
+            /**
+             * ✅ NEW: Handle real-time connection change events from database
+             */
+            handleConnectionChange(payload) {
+                const { eventType, new: newRecord, old: oldRecord } = payload;
+                console.log(`🔄 [REALTIME] ${eventType} event:`, { newRecord, oldRecord });
+
+                switch (eventType) {
+                    case 'INSERT':
+                        // New connection added (user connected a platform)
+                        this.handleConnectionInsert(newRecord);
+                        break;
+
+                    case 'UPDATE':
+                        // Connection updated (token refreshed, expired, or re-authenticated)
+                        this.handleConnectionUpdate(newRecord, oldRecord);
+                        break;
+
+                    case 'DELETE':
+                        // Connection removed (user disconnected platform)
+                        this.handleConnectionDelete(oldRecord);
+                        break;
+                }
+
+                // Refresh connections list in UI
+                this.loadOAuthConnections();
+            },
+
+            /**
+             * ✅ NEW: Handle new connection INSERT event
+             */
+            handleConnectionInsert(connection) {
+                console.log('➕ [REALTIME] New connection added:', connection.platform);
+
+                this.showNotification(
+                    `${this.formatPlatformName(connection.platform)} connected successfully!`,
+                    'success'
+                );
+
+                // Update status dot to green
+                this.updateStatusDot(connection.platform, 'active');
+            },
+
+            /**
+             * ✅ NEW: Handle connection UPDATE event
+             */
+            handleConnectionUpdate(newRecord, oldRecord) {
+                console.log('🔄 [REALTIME] Connection updated:', newRecord.platform);
+
+                // Check if status changed
+                if (oldRecord.is_active && !newRecord.is_active) {
+                    // Connection just expired
+                    console.warn('⚠️ [REALTIME] Connection expired:', newRecord.platform);
+
+                    this.showNotification(
+                        `${this.formatPlatformName(newRecord.platform)} connection expired - please re-authenticate`,
+                        'warning'
+                    );
+
+                    // Update status dot to red
+                    this.updateStatusDot(newRecord.platform, 'expired');
+
+                } else if (!oldRecord.is_active && newRecord.is_active) {
+                    // Connection just re-activated
+                    console.log('✅ [REALTIME] Connection re-activated:', newRecord.platform);
+
+                    this.showNotification(
+                        `${this.formatPlatformName(newRecord.platform)} re-connected successfully!`,
+                        'success'
+                    );
+
+                    // Update status dot to green
+                    this.updateStatusDot(newRecord.platform, 'active');
+                }
+            },
+
+            /**
+             * ✅ NEW: Handle connection DELETE event
+             */
+            handleConnectionDelete(connection) {
+                console.log('❌ [REALTIME] Connection removed:', connection.platform);
+
+                this.showNotification(
+                    `${this.formatPlatformName(connection.platform)} disconnected`,
+                    'info'
+                );
+
+                // Remove status dot
+                this.updateStatusDot(connection.platform, 'disconnected');
+            },
+
+            /**
+             * ✅ NEW: Update connection status dot in UI
+             */
+            updateStatusDot(platform, status) {
+                // Update main auth status dot
+                const authStatusDot = document.querySelector('.auth-status-dot');
+                if (authStatusDot) {
+                    if (status === 'active') {
+                        authStatusDot.classList.add('auth-status-active');
+                        authStatusDot.classList.remove('auth-status-expired');
+                    } else if (status === 'expired' || status === 'disconnected') {
+                        authStatusDot.classList.remove('auth-status-active');
+                        authStatusDot.classList.add('auth-status-expired');
+                    }
+                }
+
+                // Update platform-specific status (if visible)
+                const platformDot = document.querySelector(`[data-platform="${platform}"] .status-dot`);
+                if (platformDot) {
+                    platformDot.classList.toggle('active', status === 'active');
+                    platformDot.classList.toggle('expired', status === 'expired' || status === 'disconnected');
+                }
+            },
+
+            /**
+             * ✅ NEW: Show notification to user
+             */
+            showNotification(message, type = 'info') {
+                console.log(`[NOTIFICATION] ${type.toUpperCase()}: ${message}`);
+
+                // Use existing notification system if available
+                if (window.NotificationSystem && typeof window.NotificationSystem.show === 'function') {
+                    window.NotificationSystem.show({
+                        title: 'Platform Connection',
+                        message: message,
+                        type: type // 'success', 'warning', 'error', 'info'
+                    });
+                } else {
+                    // Fallback: Browser notification (if permission granted)
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('ValorAI Platform', {
+                            body: message,
+                            icon: '/static/favicon.ico',
+                            tag: 'connection-status'
+                        });
+                    } else {
+                        // Last resort: console log (already done above)
+                    }
+                }
+            },
+
+            /**
+             * ✅ NEW: Format platform name for display
+             */
+            formatPlatformName(platform) {
+                const names = {
+                    'google': 'Google Workspace',
+                    'microsoft': 'Microsoft 365',
+                    'microsoft_365': 'Microsoft 365',
+                    'supabase': 'Supabase',
+                    'openai': 'OpenAI',
+                    'anthropic': 'Anthropic',
+                    'github': 'GitHub'
+                };
+                return names[platform] || platform.charAt(0).toUpperCase() + platform.slice(1);
             },
 
             /**
@@ -26585,7 +27253,7 @@
             try {
                 const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
                 if (!token) {
-                    console.error('[CONNECTIONS MODAL] No auth token found');
+                    console.warn('[CONNECTIONS MODAL] No auth token found - user may not be logged in yet');
                     return;
                 }
 

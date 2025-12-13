@@ -380,10 +380,11 @@ const MultiAgent = {
             AgentColumn.unloadThread(agentId);
             console.log(`[CLEAR] Called AgentColumn.unloadThread for agent ${agentId}`);
         } else {
-            // Fallback: Clear UI manually
+            // Fallback: Clear UI manually (preserve scroll controls)
             const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
             if (messagesContainer) {
-                messagesContainer.innerHTML = '';
+                const messages = messagesContainer.querySelectorAll('.ai-message');
+                messages.forEach(msg => msg.remove());
             }
 
             // Update thread info header - Keep EMPTY when no thread loaded
@@ -519,6 +520,9 @@ const MultiAgent = {
                 // Add tooltip data
                 this.addBadgeTooltipData(badge, i, fullThreadInfo, messageCount);
             }
+
+            // Initialize message count tracking (for new message detection)
+            badge.dataset.messageCount = messageCount.toString();
 
             badge.innerHTML = `
                         <i class="fas ${agentIcon}"></i>
@@ -681,6 +685,9 @@ const MultiAgent = {
         // Check if agent has loaded thread
         const threadInfo = this.loadedThreads[agentId];
 
+        // Get previous message count (for change detection)
+        const prevMessageCount = parseInt(badge.dataset.messageCount || '0');
+
         // Get actual message count from thread data
         let messageCount = 0;
         if (threadInfo?.threadId && typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
@@ -690,9 +697,24 @@ const MultiAgent = {
             }
         }
 
+        // Detect NEW message (count increased)
+        const hasNewMessage = messageCount > prevMessageCount && prevMessageCount > 0;
+        badge.dataset.messageCount = messageCount.toString();
+
         // Highlight badge if has thread or messages
         if (threadInfo || messageCount > 0) {
             badge.classList.add('has-thread');
+
+            // Add pulse glow if new message (unless already viewed)
+            if (hasNewMessage && !badge.dataset.viewed) {
+                badge.classList.add('has-new-message');
+
+                // Show toast notification
+                const agentName = this.getAgentName(agentId);
+                if (typeof showToast === 'function') {
+                    showToast(`New message in ${agentName}`, 'info');
+                }
+            }
 
             // Update tooltip data
             this.addBadgeTooltipData(badge, agentId, threadInfo, messageCount);
@@ -707,6 +729,9 @@ const MultiAgent = {
             indicator.textContent = messageCount.toString();
         } else {
             badge.classList.remove('has-thread');
+            badge.classList.remove('has-new-message');
+            delete badge.dataset.messageCount;
+            delete badge.dataset.viewed;
             // Remove thread indicator and tooltip
             const indicator = badge.querySelector('.thread-indicator');
             if (indicator) {
@@ -719,10 +744,17 @@ const MultiAgent = {
         this.updateDashboardStats();
     },            // Scroll to agent and expand if collapsed
     scrollToAgent(agentId, options = {}) {
-        const column = document.getElementById(`agent-${agentId}`);
+        const column = document.getElementById(`agent-column-${agentId}`);
         if (!column) {
-            console.warn(`[MultiAgent] Column agent-${agentId} not found`);
+            console.warn(`[MultiAgent] Column agent-column-${agentId} not found`);
             return;
+        }
+
+        // Mark badge as viewed (remove pulse glow)
+        const badge = document.getElementById(`quick-nav-badge-${agentId}`);
+        if (badge) {
+            badge.classList.remove('has-new-message');
+            badge.dataset.viewed = 'true';
         }
 
         // Expand if collapsed
@@ -800,7 +832,9 @@ const MultiAgent = {
                     bubble.processor.cleanup();
                 }
             });
-            messagesContainer.innerHTML = '';
+            // Remove only messages, preserve scroll controls
+            const messages = messagesContainer.querySelectorAll('.ai-message');
+            messages.forEach(msg => msg.remove());
         }
 
         // 2. Unassign thread from database (removes agent assignment)
@@ -1434,8 +1468,9 @@ const MultiAgent = {
             return;
         }
 
-        // Clear contents (preserve the container element itself)
-        messagesContainer.innerHTML = '';
+        // Clear messages only (preserve scroll controls)
+        const messages = messagesContainer.querySelectorAll('.ai-message');
+        messages.forEach(msg => msg.remove());
 
         // Remove any empty-state node if present (keeps outer container)
         const emptyState = messagesContainer.querySelector('.empty-state');
@@ -1529,7 +1564,8 @@ const MultiAgent = {
                                         {
                                             threadId: thread.id,
                                             syncToBackend: false,
-                                            scrollToBottom: false  // Manual scroll at end
+                                            scrollToBottom: false,  // Manual scroll at end
+                                            createdAt: msg.created_at  // Pass timestamp
                                         }
                                     );
                                 } else {
@@ -1897,7 +1933,9 @@ const MultiAgent = {
                     console.log(`[NEW][EMPTY STATE] Showing "Start New Chat" button in agent-${agentId} `);
 
                     // Clear existing content
-                    messagesContainer.innerHTML = '';
+                    // Clear only messages, preserve scroll controls
+                    const messages = messagesContainer.querySelectorAll('.ai-message');
+                    messages.forEach(msg => msg.remove());
 
                     // Create inner div for button
                     const innerDiv = document.createElement('div');
@@ -2434,6 +2472,15 @@ function createAgentColumn(agentId) {
         container.appendChild(column);
     }
 
+    // Add click handler to column to mark badge as viewed (deactivate pulse)
+    column.addEventListener('click', () => {
+        const badge = document.getElementById(`quick-nav-badge-${agentId}`);
+        if (badge) {
+            badge.classList.remove('has-new-message');
+            badge.dataset.viewed = 'true';
+        }
+    });
+
     // Enable workflow slug drag-and-drop on NEW textarea ID (agent-input-{agentId})
     const textarea = document.getElementById(`agent-input-${agentId}`);
     if (textarea) {
@@ -2754,7 +2801,9 @@ function loadThreadIntoAgent(agentId, sessionId) {
     // Load messages into agent - READ FROM MESSAGESTORE
     const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
     if (messagesContainer) {
-        messagesContainer.innerHTML = '';
+        // Clear only messages, preserve scroll controls
+        const oldMessages = messagesContainer.querySelectorAll('.ai-message');
+        oldMessages.forEach(msg => msg.remove());
 
         // Get messages from MessageStore (centralized storage)
         const messages = window.MessageStore.getMessages(thread.id);
@@ -5092,6 +5141,8 @@ document.addEventListener('click', (e) => {
 // This prevents user confusion and ensures complete conversation history is always visible
 
 // ==================== EXPOSE TO GLOBAL SCOPE ====================
+// NOTE: initMultiAgent is defined at line 1928 (comprehensive implementation)
+// DO NOT add duplicate definition here - it will overwrite the original!
 // Required for main app initialization
 window.initMultiAgent = initMultiAgent;
 window.MultiAgent = MultiAgent;

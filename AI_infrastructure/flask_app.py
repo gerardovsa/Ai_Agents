@@ -215,14 +215,12 @@ def initialize_semantic_search_on_startup():
     """
     Pre-emptively initialize semantic search embeddings during server startup.
     
-    This runs in a background thread to avoid blocking server startup,
-    but ensures embeddings are ready before the first user message.
-    
+    This runs BEFORE server starts to ensure embeddings are ready for first request.
     Called after Flask app is created but before routes are registered.
     """
     try:
         print("\n" + "=" * 80)
-        print("🔄 PRE-COMPUTING SEMANTIC SEARCH EMBEDDINGS...")
+        print("[STARTUP] PRE-COMPUTING SEMANTIC SEARCH EMBEDDINGS...")
         print("=" * 80)
         
         # Import registry and semantic search initializer
@@ -232,23 +230,23 @@ def initialize_semantic_search_on_startup():
         # Create registry
         print("[STARTUP] Loading tool registry...")
         registry = RegistryV3()
-        print(f"[STARTUP] ✅ Registry loaded with {len(registry.tools)} tools")
+        print(f"[STARTUP] [OK] Registry loaded with {len(registry.tools)} tools")
         
         # Initialize semantic search (this computes embeddings)
-        print("[STARTUP] Computing embeddings for semantic tool search...")
+        print("[STARTUP] Computing embeddings for semantic tool search (this takes ~30 seconds)...")
         semantic_search = get_semantic_search(registry)
         
         if semantic_search and semantic_search.available:
-            print(f"[STARTUP] ✅ Semantic search initialized with {len(semantic_search.tool_embeddings)} embeddings")
+            print(f"[STARTUP] [OK] Semantic search initialized with {len(semantic_search.tool_embeddings)} embeddings")
             print("=" * 80)
-            print("🎉 SEMANTIC SEARCH READY - All tool embeddings pre-computed!")
+            print("[STARTUP] SEMANTIC SEARCH READY - All tool embeddings pre-computed!")
             print("=" * 80 + "\n")
         else:
-            print("[STARTUP] ⚠️  Semantic search not available (sentence-transformers not installed)")
+            print("[STARTUP] [WARNING] Semantic search not available (sentence-transformers not installed)")
             print("=" * 80 + "\n")
             
     except Exception as e:
-        print(f"[STARTUP] ❌ Failed to initialize semantic search: {e}")
+        print(f"[STARTUP] [ERROR] Failed to initialize semantic search: {e}")
         import traceback
         print(traceback.format_exc())
         print("=" * 80 + "\n")
@@ -2100,15 +2098,10 @@ if __name__ == '__main__':
     print("=" * 80 + "\n")
     
     # 🚀 PRE-EMPTIVE SEMANTIC SEARCH INITIALIZATION
-    # Run in background thread to avoid blocking server startup
-    print("[STARTUP] Initializing semantic search in background thread...")
-    import threading
-    semantic_init_thread = threading.Thread(
-        target=initialize_semantic_search_on_startup,
-        daemon=True,
-        name="SemanticSearchInit"
-    )
-    semantic_init_thread.start()
+    # Initialize BEFORE server starts to ensure embeddings are ready for first request
+    print("[STARTUP] Initializing semantic search (this will take ~30 seconds)...")
+    print("[STARTUP] Server will start accepting requests after initialization completes.\n")
+    initialize_semantic_search_on_startup()
     
     if USE_SOCKETIO:
         # Use SocketIO server (supports WebSockets + HTTP)

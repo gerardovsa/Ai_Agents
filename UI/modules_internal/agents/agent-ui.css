@@ -58,6 +58,32 @@
     flex: 2;
 }
 
+/* ==================== RESIZE HANDLES (Dec 12, 2025) ==================== */
+
+.agent-column .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 10px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 100;
+    transition: background 0.2s ease;
+}
+
+.agent-column .resize-handle:hover {
+    background: rgba(103, 126, 234, 0.2);
+}
+
+.agent-column.resizing {
+    user-select: none;
+    pointer-events: none;
+}
+
+.agent-column.resizing * {
+    cursor: ew-resize !important;
+}
+
 /* ==================== COLLAPSED STATE ==================== */
 
 .collapsed-column-bar {
@@ -124,16 +150,26 @@
 .agent-header-top {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--space-2);
     margin-bottom: var(--space-2);
     overflow: visible;
     /* Allow ring animation to show */
 }
 
+.agent-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-left: 10px;
+    position: relative;
+}
+
 .agent-title-wrapper {
     flex: 1;
     min-width: 0;
     overflow: visible;
+    text-align: center;
     /* Allow ring animation to show */
 }
 
@@ -144,6 +180,7 @@
     margin: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-2);
     white-space: nowrap;
     overflow: visible;
@@ -156,6 +193,7 @@
     width: 32px;
     height: 32px;
     font-size: 18px;
+    color: var(--text-primary);
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
@@ -196,24 +234,23 @@
     justify-content: center;
     transition: all 0.2s ease;
     font-size: 12px;
-    margin-left: 10px;
 }
 
 .width-toggle-btn,
 .agent-hamburger-button {
-    width: 32px;
-    height: 32px;
-    padding: 8px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     border: 1px solid var(--border-default);
-    background: var(--bg-secondary);
+    background: transparent;
     color: var(--text-secondary);
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .view-mode-btn {
@@ -230,14 +267,16 @@
     justify-content: center;
     transition: all 0.2s ease;
     font-size: 12px;
+    line-height: 1;
 }
 
 .collapse-btn:hover,
 .width-toggle-btn:hover,
 .agent-hamburger-button:hover {
-    background: var(--bg-hover);
+    background: rgba(88, 166, 255, 0.1);
     color: var(--accent-primary);
     border-color: var(--accent-primary);
+    transform: scale(1.05);
 }
 
 .view-mode-btn:hover {
@@ -310,7 +349,7 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     min-width: 180px;
-    margin-top: 4px;
+    margin-top: 10px;
 }
 
 .agent-menu-dropdown.show {
@@ -1198,4 +1237,88 @@
     background: var(--accent-secondary) !important;
     transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+}
+
+/* ==================== AGENT SCROLL CONTROLS (TOP-RIGHT) ==================== */
+
+.agent-messages-container {
+    position: relative;
+}
+
+.agent-scroll-controls {
+    position: sticky;
+    top: 10px;
+    display: none;
+    flex-direction: row;
+    gap: 8px;
+    z-index: 1000;
+    float: right;
+    margin-bottom: -46px;
+    /* Negative margin to prevent layout shift */
+    pointer-events: none;
+}
+
+.agent-messages-container.has-messages .agent-scroll-controls {
+    display: flex;
+}
+
+.agent-scroll-controls button {
+    pointer-events: auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.agent-scroll-controls button:hover {
+    background: rgba(88, 166, 255, 0.1);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.2);
+}
+
+.agent-scroll-controls button:active {
+    transform: scale(0.95);
+}
+
+.agent-autoscroll-btn {
+    position: relative;
+}
+
+.agent-autoscroll-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: -35px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.agent-autoscroll-btn:hover::after {
+    opacity: 1;
+}
+
+.agent-autoscroll-btn.active::after {
+    content: 'Toggle auto-scroll off';
+}
+
+.agent-autoscroll-btn:not(.active)::after {
+    content: 'Toggle auto-scroll on';
 }

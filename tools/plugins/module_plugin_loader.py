@@ -99,7 +99,7 @@ class ModulePluginLoader:
         
         for schema_file in schema_dir.glob("*.json"):
             try:
-                with open(schema_file, 'r', encoding='utf-8') as f:
+                with open(schema_file, 'r', encoding='utf-8-sig') as f:
                     schema_data = json.load(f)
                     
                     if "tools" in schema_data:

@@ -35,6 +35,11 @@ window.ThreadCardExpansion = {
      * Toggle expansion state of a thread card
      * Called by chevron button click
      * 
+     * CRITICAL FIX (Dec 13, 2025):
+     * - Uses event.target.closest() to find the ACTUAL clicked card
+     * - Prevents querySelector() from returning wrong card when same thread in multiple locations
+     * - Ensures expansion happens in correct location (History vs Agent vs Prime)
+     * 
      * @param {Event} event - Click event (for stopPropagation)
      * @param {string} threadId - Thread ID to toggle
      */
@@ -46,7 +51,18 @@ window.ThreadCardExpansion = {
             event.stopImmediatePropagation(); // Stop ALL handlers on this element
         }
 
-        const card = this.findCardElement(threadId);
+        // ✅ FIX: Use event.target to find the ACTUAL clicked card (location-aware)
+        // This prevents querySelector() from finding the wrong card when same thread is in multiple locations
+        let card = null;
+        if (event && event.target) {
+            card = event.target.closest('.ai-chat-header-info, .agent-thread-card');
+        }
+
+        // Fallback to old method if event.target didn't work
+        if (!card) {
+            card = this.findCardElement(threadId);
+        }
+
         if (!card) {
             console.warn(`[ThreadCardExpansion] Card not found for ID: ${threadId}`);
             return;
@@ -60,12 +76,13 @@ window.ThreadCardExpansion = {
         }
 
         const isExpanded = expandableElement.classList.contains('expanded');
-        console.log(`[ThreadCardExpansion] Toggling ${threadId}: ${isExpanded ? 'collapse' : 'expand'}`);
+        const location = card.dataset.location || 'unknown';
+        console.log(`[ThreadCardExpansion] Toggling ${threadId} at ${location}: ${isExpanded ? 'collapse' : 'expand'}`);
 
         if (isExpanded) {
-            this.collapseCard(threadId);
+            this.collapseCard(threadId, card);
         } else {
-            this.expandCard(threadId);
+            this.expandCard(threadId, card);
         }
     },
 
@@ -73,9 +90,13 @@ window.ThreadCardExpansion = {
      * Expand a specific thread card
      * 
      * @param {string} threadId - Thread ID to expand
+     * @param {HTMLElement} card - Optional: Card element (for location-aware expansion)
      */
-    expandCard(threadId) {
-        const card = this.findCardElement(threadId);
+    expandCard(threadId, card = null) {
+        // Use provided card or find it
+        if (!card) {
+            card = this.findCardElement(threadId);
+        }
         if (!card) return;
 
         // Get the element that should receive the .expanded class
@@ -96,9 +117,13 @@ window.ThreadCardExpansion = {
      * Collapse a specific thread card
      * 
      * @param {string} threadId - Thread ID to collapse
+     * @param {HTMLElement} card - Optional: Card element (for location-aware collapse)
      */
-    collapseCard(threadId) {
-        const card = this.findCardElement(threadId);
+    collapseCard(threadId, card = null) {
+        // Use provided card or find it
+        if (!card) {
+            card = this.findCardElement(threadId);
+        }
         if (!card) return;
 
         // Get the element that has the .expanded class
@@ -192,15 +217,17 @@ window.ThreadCardExpansion = {
         }
 
         // 2. Check if card is inside #prime-thread-info (Prime panel)
-        // CRITICAL FIX (Dec 12, 2025): Prime may not have #prime-thread-info container
-        // If card's data-location is 'prime' or 'prime-loaded', expand the card itself
+        // CRITICAL FIX (Dec 13, 2025): For Prime, expand the CARD ITSELF not the container
+        // CSS selectors expect: #prime-thread-info .ai-chat-header-info.expanded
+        // This means the .expanded class must be on the card, not the container
         const cardLocation = card.dataset.location;
         if (cardLocation === 'prime' || cardLocation === 'prime-loaded') {
             const parentPrimeContainer = card.closest('#prime-thread-info');
             if (parentPrimeContainer && parentPrimeContainer.contains(card)) {
-                // Card is inside #prime-thread-info container → expand container
-                console.log(`[ThreadCardExpansion] Expandable: #prime-thread-info container`);
-                return parentPrimeContainer;
+                // Card is inside #prime-thread-info container → expand the CARD ITSELF
+                // (NOT the container - the CSS selector requires .expanded on the card)
+                console.log(`[ThreadCardExpansion] Expandable: card itself (in #prime-thread-info)`);
+                return card;
             } else {
                 // Card has prime location but no container (direct in panel) → expand card itself
                 console.log(`[ThreadCardExpansion] Expandable: card itself (prime location, no container)`);

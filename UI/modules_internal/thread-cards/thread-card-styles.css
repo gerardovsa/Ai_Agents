@@ -296,18 +296,20 @@
     transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
-/* Show expanded content ONLY when clicked (.expanded class) */
+/* Show expanded content ONLY when clicked (.expanded class) - Container or Card */
 /* #prime-thread-info:hover .thread-expand-on-hover, */
-#prime-thread-info.expanded .thread-expand-on-hover {
+#prime-thread-info.expanded .thread-expand-on-hover,
+#prime-thread-info .ai-chat-header-info.expanded .thread-expand-on-hover {
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
     transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
-/* Chevron rotation ONLY when clicked (.expanded class) */
+/* Chevron rotation ONLY when clicked (.expanded class) - Container or Card */
 /* #prime-thread-info:hover .chevron-icon, */
-#prime-thread-info.expanded .chevron-icon {
+#prime-thread-info.expanded .chevron-icon,
+#prime-thread-info .ai-chat-header-info.expanded .chevron-icon {
     transform: rotate(180deg);
     transition: transform 0.5s ease;
 }

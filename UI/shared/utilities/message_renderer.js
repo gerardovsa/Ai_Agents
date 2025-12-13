@@ -57,7 +57,8 @@ const UnifiedMessageRenderer = (function () {
             isThinking = false,
             scrollToBottom = true,
             threadId = null,
-            syncToBackend = false
+            syncToBackend = false,
+            createdAt = null
         } = options;
 
         // CRITICAL FIX: Skip rendering user messages that ONLY contain tool_result blocks
@@ -91,8 +92,8 @@ const UnifiedMessageRenderer = (function () {
         messageDiv.className = `ai-message ${role}${isThinking ? ' thinking' : ''}`;
         messageDiv.setAttribute('data-raw-content', typeof content === 'string' ? content : JSON.stringify(content));
 
-        // Create message header (avatar + toggle + actions)
-        const headerDiv = createMessageHeader(role, messageDiv);
+        // Create message header (avatar + toggle + actions + timestamp)
+        const headerDiv = createMessageHeader(role, messageDiv, createdAt || new Date().toISOString());
 
         // Create message content bubble
         const contentDiv = document.createElement('div');
@@ -140,11 +141,16 @@ const UnifiedMessageRenderer = (function () {
      * Create message header with avatar, toggle, and action buttons
      * @param {string} role - Message role
      * @param {HTMLElement} messageDiv - Parent message div for toggle functionality
+     * @param {string} createdAt - ISO timestamp string (optional)
      * @returns {HTMLElement} Header div element
      */
-    function createMessageHeader(role, messageDiv) {
+    function createMessageHeader(role, messageDiv, createdAt = null) {
         const headerDiv = document.createElement('div');
         headerDiv.className = 'ai-message-header';
+
+        // Left group: Avatar + Toggle + Actions
+        const leftGroup = document.createElement('div');
+        leftGroup.className = 'ai-message-header-left';
 
         // Avatar icon
         const avatar = document.createElement('div');
@@ -207,12 +213,55 @@ const UnifiedMessageRenderer = (function () {
         actionsDiv.appendChild(copyRawBtn);
         actionsDiv.appendChild(popOutBtn);
 
+        // Assemble left group
+        leftGroup.appendChild(avatar);
+        leftGroup.appendChild(toggleBtn);
+        leftGroup.appendChild(actionsDiv);
+
+        // Right group: Timestamp
+        const rightGroup = document.createElement('div');
+        rightGroup.className = 'ai-message-header-right';
+
+        const timestamp = document.createElement('div');
+        timestamp.className = 'ai-message-timestamp';
+        timestamp.textContent = formatMessageTimestamp(createdAt);
+        timestamp.title = createdAt || ''; // ISO string on hover
+
+        rightGroup.appendChild(timestamp);
+
         // Assemble header
-        headerDiv.appendChild(avatar);
-        headerDiv.appendChild(toggleBtn);
-        headerDiv.appendChild(actionsDiv);
+        headerDiv.appendChild(leftGroup);
+        headerDiv.appendChild(rightGroup);
 
         return headerDiv;
+    }
+
+    /**
+     * Format timestamp for display
+     * @param {string} createdAt - ISO timestamp string
+     * @returns {string} Formatted timestamp: Mon 13 Dec 14:35
+     */
+    function formatMessageTimestamp(createdAt) {
+        if (!createdAt) return '';
+
+        try {
+            const date = new Date(createdAt);
+
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            const day = days[date.getDay()];
+            const dateNum = date.getDate();
+            const month = months[date.getMonth()];
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const time = `${hours}:${minutes}`;
+
+            // ALWAYS return full format: Mon 13 Dec 14:35
+            return `${day} ${dateNum} ${month} ${time}`;
+        } catch (e) {
+            return '';
+        }
     }
 
     /**
@@ -221,7 +270,74 @@ const UnifiedMessageRenderer = (function () {
      * @param {string|object} content - Content to render
      */
     function renderAssistantContent(contentDiv, content) {
-        // Extract text content from various formats
+        // Handle array of content blocks (Claude API format with tool_use)
+        if (Array.isArray(content)) {
+            let hasRenderedContent = false;
+
+            content.forEach((block, index) => {
+                if (block.type === 'text' && block.text) {
+                    // Render text block
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'content-block-text';
+
+                    const textContent = block.text;
+                    const startTime = performance.now();
+
+                    // Try visualization engine first
+                    if (!window.USE_BASIC_RENDERER && typeof TwoRuleStreamProcessor !== 'undefined') {
+                        try {
+                            const processor = new TwoRuleStreamProcessor(textDiv);
+                            processor.processChunk(textContent);
+                            if (!textDiv.innerHTML || textDiv.innerHTML.trim() === '') {
+                                renderMarkdown(textDiv, textContent);
+                            }
+                        } catch (error) {
+                            console.error('[UnifiedMessageRenderer] Visualization engine error:', error);
+                            renderMarkdown(textDiv, textContent);
+                        }
+                    } else {
+                        renderMarkdown(textDiv, textContent);
+                    }
+
+                    contentDiv.appendChild(textDiv);
+                    hasRenderedContent = true;
+
+                } else if (block.type === 'tool_use' && block.name) {
+                    // Render tool_use block
+                    const toolDiv = document.createElement('div');
+                    toolDiv.className = 'tool-request-block';
+                    toolDiv.innerHTML = `
+                        <div class="tool-request-header">
+                            <i class="fas fa-wrench"></i>
+                            <span class="tool-name">Using Tool: ${block.name}</span>
+                            <span class="tool-id">#${block.id || 'unknown'}</span>
+                        </div>
+                        <div class="tool-request-input">
+                            <pre><code class="language-json">${JSON.stringify(block.input || {}, null, 2)}</code></pre>
+                        </div>
+                    `;
+                    contentDiv.appendChild(toolDiv);
+
+                    // Apply syntax highlighting
+                    if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
+                        window.codeBlockEnhancer.enhanceContainer(toolDiv);
+                    } else if (typeof Prism !== 'undefined') {
+                        toolDiv.querySelectorAll('pre code').forEach(block => {
+                            Prism.highlightElement(block);
+                        });
+                    }
+
+                    hasRenderedContent = true;
+                }
+            });
+
+            if (!hasRenderedContent) {
+                console.warn('[UnifiedMessageRenderer] No renderable content blocks found');
+            }
+            return;
+        }
+
+        // Extract text content from various formats (fallback for non-array content)
         const contentStr = extractTextContent(content);
 
         if (!contentStr || contentStr.trim() === '') {

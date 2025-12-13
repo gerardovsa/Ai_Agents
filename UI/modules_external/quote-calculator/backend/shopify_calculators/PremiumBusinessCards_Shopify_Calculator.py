@@ -106,7 +106,8 @@ class PremiumBusinessCardsShopifyCalculator:
         if quantity not in valid_quantities:
             raise ValueError(f"Quantity must be one of: {valid_quantities}. Got: {quantity}")
         
-        # Validate artworks
+        # Validate artworks (convert to int first in case it's a string)
+        artworks = int(artworks)
         if artworks < 1 or artworks > 50:
             raise ValueError(f"Artworks must be between 1 and 50. Got: {artworks}")
         

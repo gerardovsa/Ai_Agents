@@ -175,9 +175,11 @@ window.ThreadCardTemplates = {
         // All cards use data-thread-id for identification - findCardElement() searches by this
 
         // Set appropriate tooltip based on location
+        // Thread History: Double-click loads into Prime
+        // Prime/Agents: Double-click expands card (no reload action)
         const doubleClickTooltip = isThreadHistory
-            ? 'Double-click to expand/collapse card'
-            : (isPrime ? 'Double-click to refresh thread' : 'Double-click to reload thread');
+            ? 'Double-click to load into AI Prime'
+            : 'Double-click to expand/collapse card';
 
         return `
             <div class="ai-chat-header-info agent-thread-card" 

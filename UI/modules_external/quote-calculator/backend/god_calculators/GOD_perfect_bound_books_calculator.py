@@ -98,12 +98,12 @@ class PerfectBoundBooksCalculator:
         self.digital_stocks = []
         for row in stocks_df.itertuples(index=False):
             self.digital_stocks.append({
-                'stock_id': row.StockID,
-                'stock_type_id': row.StockTypeID,
-                'width': row.Length,  # Note: Length is width in database
-                'height': row.Width,  # Note: Width is height in database
+                'stock_id': int(row.StockID),
+                'stock_type_id': int(row.StockTypeID),
+                'width': int(row.Length),  # Note: Length is width in database
+                'height': int(row.Width),  # Note: Width is height in database
                 'cost_per_thousand': Decimal(str(row.CostPerThousand)),
-                'gsm': row.GSM,
+                'gsm': int(row.GSM),  # Convert to int for type consistency
                 'markup': Decimal(str(row.Markup))
             })
         
@@ -290,6 +290,21 @@ class PerfectBoundBooksCalculator:
         --------
         QuoteResult with pricing and cost breakdown
         """
+        # Convert all numeric parameters to proper types (defensive programming)
+        quantity = int(quantity)
+        book_width = int(book_width)
+        book_height = int(book_height)
+        pages = int(pages)
+        stock_type_id = int(stock_type_id)
+        internal_stock_gsm = int(internal_stock_gsm)
+        internal_print_mode = int(internal_print_mode)
+        cover_stock_type_id = int(cover_stock_type_id)
+        cover_stock_gsm = int(cover_stock_gsm)
+        cover_print_mode = int(cover_print_mode)
+        cello_type = int(cello_type)
+        colour_pages = int(colour_pages)
+        artworks = int(artworks)
+        
         # Validate pages (must be divisible by 4)
         if pages % 4 != 0:
             raise ValueError("Pages must be divisible by 4 for proper imposition")

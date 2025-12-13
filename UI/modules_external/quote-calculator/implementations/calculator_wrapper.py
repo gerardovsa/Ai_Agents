@@ -1103,7 +1103,7 @@ def calculate_corflute_signs_god(
 
 def calculate_economical_business_cards_shopify(
     quantity: int,
-    double_sided: bool,
+    double_sided: bool = True,
     print_type: str = "Colour",
     artworks: int = 1,
     **kwargs
@@ -1113,9 +1113,9 @@ def calculate_economical_business_cards_shopify(
     
     Schema Parameters (User-facing):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
-        double_sided: True for double-sided, False for single-sided
-        print_type: "Colour" or "Black & White"
-        artworks: Number of different designs (1-50, first free, $15 per extra)
+        double_sided: True for double-sided, False for single-sided (default: True)
+        print_type: "Colour" or "Black & White" (default: "Colour")
+        artworks: Number of different designs (1-50, default: 1, first free, $15 per extra)
     
     Backend Translation:
         double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
@@ -1162,9 +1162,11 @@ def calculate_economical_business_cards_shopify(
 
 def calculate_premium_business_cards_shopify(
     quantity: int,
-    double_sided: bool,
+    double_sided: bool = True,
     print_type: str = "Colour",
-    celloglaze: str = "No Cellophane",
+    finish_size: str = "90mm x 55mm",
+    paper_stock: str = "Satin 350GSM",
+    celloglaze: str = "1 Side Gloss",
     artworks: int = 1,
     **kwargs
 ) -> Dict[str, Any]:
@@ -1173,10 +1175,13 @@ def calculate_premium_business_cards_shopify(
     
     Schema Parameters (User-facing):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
-        double_sided: True for double-sided, False for single-sided
-        print_type: "Colour" or "Black & White"
-        celloglaze: "No Cellophane", "Gloss Cellophane", or "Matt Cellophane"
-        artworks: Number of different designs (1-50)
+        double_sided: True for double-sided, False for single-sided (default: True)
+        print_type: "Colour" or "Black & White" (default: "Colour")
+        finish_size: "90mm x 55mm" (standard) or "90mm x 45mm" (slim) (default: "90mm x 55mm")
+        paper_stock: "Satin 350GSM", "King Kong High Bulk", "EcoStar 350GSM Uncoated" (default: "Satin 350GSM")
+        celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt", 
+                    "1 Side SILK FEEL Matt", "2 Side SILK FEEL Matt" (default: "1 Side Gloss")
+        artworks: Number of different designs (1-50, default: 1)
     
     Backend Translation:
         double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
@@ -1199,6 +1204,8 @@ def calculate_premium_business_cards_shopify(
             quantity=quantity,
             print_sides=print_sides,
             print_type=print_type,
+            finish_size=finish_size,
+            paper_stock=paper_stock,
             celloglaze=celloglaze,
             artworks=artworks
         )
@@ -1226,7 +1233,7 @@ def calculate_folded_flyers_shopify(
     quantity: int,
     size: str,
     stock: str,
-    double_sided: bool,
+    double_sided: bool = True,
     folding: str = "Single Fold",
     print_type: str = "Colour",
     artworks: int = 1,
@@ -1239,12 +1246,12 @@ def calculate_folded_flyers_shopify(
     Schema Parameters (User-facing):
         quantity: Number of flyers
         size: "A5", "A4", "A3", or "6pp A4"
-        stock: Paper stock string (e.g., "Satin 150GSM", "Uncoated Bond 100GSM")
-        double_sided: True for double-sided, False for single-sided
-        folding: "Single Fold", "Double Fold", or "Triple Fold"
-        print_type: "Colour" or "Black & White"
-        artworks: Number of artwork designs (1-50)
-        celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt"
+        stock: Paper stock string (e.g., "Satin 128GSM", "Satin 150GSM", "Uncoated Bond 100GSM")
+        double_sided: True for double-sided, False for single-sided (default: True)
+        folding: "Single Fold", "Double Fold", or "Triple Fold" (default: "Single Fold")
+        print_type: "Colour" or "Black & White" (default: "Colour")
+        artworks: Number of artwork designs (1-50, default: 1)
+        celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt" (default: "None")
     
     Backend Translation:
         stock (str) → paper_stock (str): Same value

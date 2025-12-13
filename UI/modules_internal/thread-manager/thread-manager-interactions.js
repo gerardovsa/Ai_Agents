@@ -112,10 +112,12 @@ Object.assign(window.ThreadManager, {
             window.clearChatAttachedFiles();
         }
 
-        // Clear messages container
+        // Clear messages container (preserve scroll controls)
         const messagesContainer = document.getElementById('ai-chat-messages');
         if (messagesContainer) {
-            messagesContainer.innerHTML = '';
+            // Remove only message elements, keep scroll controls and other UI
+            const messages = messagesContainer.querySelectorAll('.ai-message');
+            messages.forEach(msg => msg.remove());
         }
 
         // Hide welcome container
@@ -340,34 +342,22 @@ Object.assign(window.ThreadManager, {
             return;
         }
 
-        // FIX (Dec 12, 2025): Thread History should NOT auto-load into Prime on double-click
-        // Only expand/collapse the card instead - prevents accidental replacements in Prime
+        // Thread History: Load into Prime on double-click
         if (currentLocation === 'thread-history') {
-            console.log(`📋 [Interactions] Thread History double-click - expanding card only (no auto-load)`);
-
-            // Find the card element and expand it
-            const card = document.querySelector(`[data-thread-id="${threadId}"][data-location="thread-history"]`);
-            if (card && typeof ThreadCardExpansion !== 'undefined') {
-                // Create a fake event to pass to toggleCard
-                const fakeEvent = { stopPropagation: () => { }, preventDefault: () => { } };
-                ThreadCardExpansion.toggleCard(fakeEvent, threadId);
-            }
-            return; // Stop here - do NOT load into Prime
-        }
-
-        // For Prime or Agent panels: Refresh the thread
-        if (currentLocation === 'prime' || currentLocation === 'prime-loaded') {
-            console.log(`🔄 [Interactions] Refreshing thread "${thread.title}" in Prime`);
+            console.log(`📋 [Interactions] Thread History double-click - loading into Prime`);
             await this.loadThreadInPrime(threadId);
             if (typeof showNotification === 'function') {
-                showNotification('Thread refreshed in Prime', 'success');
+                showNotification('Thread loaded in Prime', 'success');
             }
-        } else if (currentLocation && currentLocation.startsWith('agent-')) {
-            console.log(`🔄 [Interactions] Refreshing thread "${thread.title}" in ${currentLocation}`);
-            // Agent threads refresh in their own column (not Prime)
-            if (typeof showNotification === 'function') {
-                showNotification('Thread refreshed', 'success');
-            }
+            return;
+        }
+
+        // For Prime or Agent panels: Just expand the card (refresh moved to menu)
+        console.log(`🎴 [Interactions] Expanding card for ${currentLocation}`);
+        const card = document.querySelector(`[data-thread-id="${threadId}"][data-location="${currentLocation}"]`);
+        if (card && typeof ThreadCardExpansion !== 'undefined') {
+            const fakeEvent = { stopPropagation: () => { }, preventDefault: () => { } };
+            ThreadCardExpansion.toggleCard(fakeEvent, threadId);
         }
     },
 

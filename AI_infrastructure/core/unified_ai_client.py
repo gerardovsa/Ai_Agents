@@ -155,13 +155,22 @@ class UnifiedAIClient:
     def _init_anthropic(self):
         """Initialize Anthropic Claude client with increased timeout"""
         # Priority: Supabase → Environment Variable → Config File
-        api_key = (
-            self._get_api_key_from_supabase('anthropic') or 
-            os.environ.get('ANTHROPIC_API_KEY') or 
-            self.config.get('AI', {}).get('AnthropicAPIKey', '')
-        )
+        api_key_supabase = self._get_api_key_from_supabase('anthropic')
+        api_key_env = os.environ.get('ANTHROPIC_API_KEY')
+        api_key_config = self.config.get('AI', {}).get('AnthropicAPIKey', '')
         
+        # Use first available key
+        api_key = api_key_supabase or api_key_env or api_key_config
+        
+        # Log which source was used
         if api_key:
+            if api_key == api_key_supabase:
+                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from SUPABASE (key: {api_key[:20]}...)")
+            elif api_key == api_key_env:
+                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from ENVIRONMENT (key: {api_key[:20]}...)")
+            else:
+                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from CONFIG FILE (key: {api_key[:20]}...)")
+            
             # Increase timeout to 120 seconds (from default 60s) to handle SSL handshake delays
             self.anthropic_client = Anthropic(
                 api_key=api_key,

@@ -445,6 +445,30 @@ const UserAuth = {
             // PHASE 2B: Initialize main app (45-50% progress)
             this.setLoadingProgress(47, 'Initializing application...');
             console.log('🔵 [AUTH] Starting initializeMainApp()...');
+
+            // ✅ CRITICAL FIX (Dec 13, 2025): Wait for deferred scripts to load
+            // Scripts with `defer` attribute execute AFTER DOMContentLoaded fires
+            // This creates a race condition where initializeMainApp() runs before agent-js.js loads
+            console.log('⏳ [AUTH] Waiting for deferred agent scripts to load...');
+            let agentScriptsReady = false;
+            const maxWaitTime = 10000; // 10 seconds max
+            const startWaitTime = Date.now();
+
+            while (!agentScriptsReady && (Date.now() - startWaitTime) < maxWaitTime) {
+                if (typeof window.initMultiAgent === 'function') {
+                    agentScriptsReady = true;
+                    console.log('✅ [AUTH] Agent scripts loaded successfully');
+                    break;
+                }
+                await new Promise(resolve => setTimeout(resolve, 50)); // Check every 50ms
+            }
+
+            if (!agentScriptsReady) {
+                console.error('❌ [AUTH] Agent scripts did not load within timeout!');
+                console.error('   window.initMultiAgent type:', typeof window.initMultiAgent);
+                throw new Error('Agent scripts failed to load - cannot initialize app');
+            }
+
             await window.initializeMainApp();
             console.log('✅ [AUTH] initializeMainApp() complete');
             this.setLoadingProgress(50, 'Application initialized');

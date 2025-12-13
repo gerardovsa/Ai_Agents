@@ -595,6 +595,13 @@ Object.assign(window.ThreadManager, {
             thread.agent = newLocation === 'prime' ? null : newLocation;
         }
 
+        // CRITICAL (Dec 12, 2025): Clear old location UI when realtime update arrives
+        // This handles cross-tab/window updates where another session moved the thread
+        if (oldLocation && oldLocation !== newLocation) {
+            console.log(`🧹 [Assignment] Realtime: Clearing old location ${oldLocation}`);
+            this._clearLocationUI(oldLocation, threadId);
+        }
+
         // Refresh UI
         // ✅ FIX #3: Functions now auto-debounced by wrapper (300ms)
         if (typeof this.renderThreadList === 'function') {

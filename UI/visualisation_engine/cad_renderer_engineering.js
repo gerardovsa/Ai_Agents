@@ -262,11 +262,17 @@ class EngineeringCADRenderer {
         scene.background = new THREE.Color(0x1a1a2e);
 
         const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-        camera.position.set(
-            modelConfig.camera?.position?.x || 0,
-            modelConfig.camera?.position?.y || 0,
-            modelConfig.camera?.position?.z || 5
-        );
+        // Default to isometric \"home\" view if no custom position specified
+        if (modelConfig.camera?.position) {
+            camera.position.set(
+                modelConfig.camera.position.x,
+                modelConfig.camera.position.y,
+                modelConfig.camera.position.z
+            );
+        } else {
+            const distance = 5;
+            camera.position.set(distance * 0.7, distance * 0.7, distance * 0.7);
+        }
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(width, height);
