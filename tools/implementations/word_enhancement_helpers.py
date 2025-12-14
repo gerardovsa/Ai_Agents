@@ -460,3 +460,15 @@ def set_document_formatting(doc: Document, formatting_options: Dict) -> None:
         style = doc.styles['Normal']
         paragraph_format = style.paragraph_format
         paragraph_format.line_spacing = formatting_options['line_spacing']
+    
+    # Paragraph spacing (before/after)
+    if 'paragraph_spacing_before' in formatting_options or 'paragraph_spacing_after' in formatting_options:
+        style = doc.styles['Normal']
+        paragraph_format = style.paragraph_format
+        
+        if 'paragraph_spacing_before' in formatting_options:
+            paragraph_format.space_before = Pt(formatting_options['paragraph_spacing_before'])
+        
+        if 'paragraph_spacing_after' in formatting_options:
+            paragraph_format.space_after = Pt(formatting_options['paragraph_spacing_after'])
+

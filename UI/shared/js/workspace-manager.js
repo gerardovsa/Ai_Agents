@@ -217,22 +217,21 @@ const WorkspaceManager = (function () {
 
             console.log(`☁️ [WorkspaceManager] Syncing to database for user ${userId}...`);
 
-            // Upsert to database (insert or update)
+            // CRITICAL FIX (Dec 14, 2025): Use RPC to access sessions schema
+            // PostgREST API doesn't allow .schema() for custom schemas (only public/graphql_public)
+            // We use an RPC function to upsert into sessions.user_command_center
             const { data, error } = await supabase
-                .schema('sessions')
-                .from('user_command_center')
-                .upsert({
-                    user_id: userId,
-                    workspace_data: workspace
-                }, {
-                    onConflict: 'user_id'
+                .rpc('upsert_workspace_settings', {
+                    p_user_id: userId,
+                    p_workspace_data: workspace
                 });
 
             if (error) {
-                // Silently skip if table doesn't exist (PGRST205 = table not found, or 404 status)
-                if (error.code === 'PGRST205' || error.code === '404' || error.message?.includes('404') || error.message?.includes('not found')) {
+                // Check for missing RPC function (PGRST202 = function not found)
+                if (error.code === 'PGRST202' || error.code === '42883' || error.message?.includes('not found') || error.message?.includes('does not exist')) {
                     if (!tableMissingWarningShown) {
-                        console.warn(`⚠️ [WorkspaceManager] Table 'user_command_center' not found - workspace will only persist in localStorage`);
+                        console.warn(`⚠️ [WorkspaceManager] RPC function 'upsert_workspace_settings' not found - workspace will only persist in localStorage`);
+                        console.warn(`ℹ️ [WorkspaceManager] To enable database sync, run: SQL migration to create the RPC function`);
                         tableMissingWarningShown = true;
                     }
                     return;
@@ -332,38 +331,37 @@ const WorkspaceManager = (function () {
 
             console.log(`☁️ [WorkspaceManager] Loading from database for user ${userId}...`);
 
-            // Fetch from database
+            // CRITICAL FIX (Dec 14, 2025): Use RPC to access sessions schema
+            // PostgREST API doesn't allow .schema() for custom schemas
             const { data, error } = await supabase
-                .schema('sessions')
-                .from('user_command_center')
-                .select('workspace_data')
-                .eq('user_id', userId)
-                .single();
+                .rpc('get_workspace_settings', {
+                    p_user_id: userId
+                });
 
             if (error) {
-                if (error.code === 'PGRST116') {
-                    // No workspace found - this is OK (new user)
-                    console.log(`ℹ️ [WorkspaceManager] No workspace found in database (new user)`);
-                    return null;
-                }
-                if (error.code === 'PGRST205') {
-                    // Table doesn't exist - silently skip
+                // Check for missing RPC function
+                if (error.code === 'PGRST202' || error.code === '42883' || error.message?.includes('not found')) {
                     if (!tableMissingWarningShown) {
-                        console.warn(`⚠️ [WorkspaceManager] Table 'user_command_center' not found - workspace will only persist in localStorage`);
+                        console.warn(`⚠️ [WorkspaceManager] RPC function 'get_workspace_settings' not found - workspace will only persist in localStorage`);
                         tableMissingWarningShown = true;
                     }
+                    return null;
+                }
+                // No data found is OK (new user)
+                if (error.message?.includes('No rows') || error.code === 'PGRST116') {
+                    console.log(`ℹ️ [WorkspaceManager] No workspace found in database (new user)`);
                     return null;
                 }
                 console.error(`❌ [WorkspaceManager] Database load failed:`, error);
                 return null;
             }
 
-            if (!data || !data.workspace_data) {
+            if (!data) {
                 console.log(`ℹ️ [WorkspaceManager] No workspace data in database`);
                 return null;
             }
 
-            const workspace = data.workspace_data;
+            const workspace = data;
             console.log(`📥 [WorkspaceManager] Loaded from database:`, workspace);
 
             // Apply conflict resolution strategy

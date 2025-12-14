@@ -56,6 +56,8 @@ class XeroModule extends BaseModule {
         };
         this.tables = {};
         this.charts = {};
+        this.subTabs = new Map(); // Initialize Map for sub-tabs
+        this.container = null; // Will be set when module is loaded
     }
 
     /**

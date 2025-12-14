@@ -1574,15 +1574,15 @@ const VSAVeterinaryAlerts = {
         try {
             const { data, error } = await this.state.supabaseClient
                 .from('call_manager_alerts')
-                .select('manager_alerts_tags, manager_alerts_summary, manager_alerts_reasoning')
+                .select('manager_alerts_tags, manager_summary, manager_alerts_reasoning_analysis')
                 .eq('call_id', callId)
                 .single();
 
             if (error) throw error;
 
             const tags = data?.manager_alerts_tags || 'N/A';
-            const summary = data?.manager_alerts_summary || 'No summary available';
-            const reasoning = data?.manager_alerts_reasoning || 'No reasoning available';
+            const summary = data?.manager_summary || 'No summary available';
+            const reasoning = data?.manager_alerts_reasoning_analysis || 'No reasoning available';
 
             // Update placeholder with actual content
             placeholderElement.innerHTML = `

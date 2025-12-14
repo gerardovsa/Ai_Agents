@@ -42,11 +42,117 @@ window.RealtimeSubscriptionsInit = (function () {
     const activeSubscriptions = new Set();
 
     /**
+     * Update real-time status indicator
+     * @param {string} status - 'disconnected' | 'connecting' | 'connected' | 'error'
+     * @param {number} count - Number of active subscriptions
+     */
+    function updateStatusIndicator(status, count = 0) {
+        let indicator = document.getElementById('realtime-status');
+
+        // Create indicator if it doesn't exist
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'realtime-status';
+            indicator.className = 'realtime-status-dot';
+            indicator.innerHTML = '<span class="realtime-dot"></span><span class="realtime-label">RT</span>';
+            indicator.style.cssText = `
+                position: fixed;
+                top: 15px;
+                right: 20px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 12px;
+                background: rgba(0, 0, 0, 0.7);
+                border-radius: 20px;
+                z-index: 10000;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            `;
+
+            // Add styles for dot and label
+            const style = document.createElement('style');
+            style.textContent = `
+                .realtime-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: #6c757d;
+                    animation: pulse-gray 2s infinite;
+                }
+                .realtime-label {
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: #6c757d;
+                    letter-spacing: 0.5px;
+                }
+                .realtime-status-dot.connecting .realtime-dot {
+                    background: #ffc107;
+                    animation: pulse-yellow 1s infinite;
+                }
+                .realtime-status-dot.connecting .realtime-label {
+                    color: #ffc107;
+                }
+                .realtime-status-dot.connected .realtime-dot {
+                    background: #28a745;
+                    animation: pulse-green 2s infinite;
+                }
+                .realtime-status-dot.connected .realtime-label {
+                    color: #28a745;
+                }
+                .realtime-status-dot.error .realtime-dot {
+                    background: #dc3545;
+                    animation: pulse-red 1s infinite;
+                }
+                .realtime-status-dot.error .realtime-label {
+                    color: #dc3545;
+                }
+                @keyframes pulse-gray {
+                    0%, 100% { opacity: 0.5; }
+                    50% { opacity: 0.8; }
+                }
+                @keyframes pulse-yellow {
+                    0%, 100% { opacity: 0.6; box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+                    50% { opacity: 1; box-shadow: 0 0 0 4px rgba(255, 193, 7, 0); }
+                }
+                @keyframes pulse-green {
+                    0%, 100% { opacity: 0.8; box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+                    50% { opacity: 1; box-shadow: 0 0 0 4px rgba(40, 167, 69, 0); }
+                }
+                @keyframes pulse-red {
+                    0%, 100% { opacity: 0.7; box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+                    50% { opacity: 1; box-shadow: 0 0 0 4px rgba(220, 53, 69, 0); }
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(indicator);
+        }
+
+        // Remove all status classes
+        indicator.classList.remove('connecting', 'connected', 'error');
+
+        // Add current status class
+        if (status !== 'disconnected') {
+            indicator.classList.add(status);
+        }
+
+        // Update tooltip
+        const statusText = {
+            'disconnected': 'Real-time: Disconnected',
+            'connecting': 'Real-time: Connecting...',
+            'connected': `Real-time: Connected (${count} active)`,
+            'error': 'Real-time: Connection Error'
+        };
+        indicator.title = statusText[status] || 'Real-time: Unknown';
+    }
+
+    /**
      * Initialize all real-time subscriptions
      * Called after user authentication completes
      */
     async function initializeAllSubscriptions() {
         console.log('🔄 [Realtime Init] Initializing all subscriptions...');
+        updateStatusIndicator('connecting', 0);
 
         // Check dependencies
         if (typeof SupabaseRealtimeManager === 'undefined') {
@@ -88,11 +194,13 @@ window.RealtimeSubscriptionsInit = (function () {
 
             console.log('✅ [Realtime Init] All subscriptions initialized successfully');
             console.log(`📊 [Realtime Init] Active subscriptions: ${activeSubscriptions.size}`);
+            updateStatusIndicator('connected', activeSubscriptions.size);
 
             return true;
 
         } catch (error) {
             console.error('❌ [Realtime Init] Failed to initialize subscriptions:', error);
+            updateStatusIndicator('error', 0);
             return false;
         }
     }
@@ -125,13 +233,14 @@ window.RealtimeSubscriptionsInit = (function () {
                 event: '*',
                 schema: 'sessions',
                 table: 'user_command_center',
-                filter: `user_id=eq.${userId}`
-            }, (payload) => {
-                console.log('🔔 [Workspace] Update received:', payload);
+                filter: `user_id=eq.${userId}`,
+                onChange: (eventType, payload) => {
+                    console.log('🔔 [Workspace] Update received:', eventType, payload);
 
-                // Notify WorkspaceManager if available
-                if (window.WorkspaceManager && window.WorkspaceManager.handleRealtimeUpdate) {
-                    window.WorkspaceManager.handleRealtimeUpdate(payload);
+                    // Notify WorkspaceManager if available
+                    if (window.WorkspaceManager && window.WorkspaceManager.handleRealtimeUpdate) {
+                        window.WorkspaceManager.handleRealtimeUpdate(payload);
+                    }
                 }
             });
 
@@ -154,15 +263,16 @@ window.RealtimeSubscriptionsInit = (function () {
                 event: '*',
                 schema: 'sessions',
                 table: 'saved_threads',
-                filter: `user_id=eq.${userId}`
-            }, (payload) => {
-                console.log('🔔 [Threads] Update received:', payload);
+                filter: `user_id=eq.${userId}`,
+                onChange: (eventType, payload) => {
+                    console.log('🔔 [Threads] Update received:', eventType, payload);
 
-                // Notify ThreadManager if available
-                if (window.ThreadManager && window.ThreadManager.handleRealtimeUpdate) {
-                    window.ThreadManager.handleRealtimeUpdate(payload);
-                } else {
-                    console.log('📝 [Threads] ThreadManager not loaded yet - queuing update');
+                    // Notify ThreadManager if available
+                    if (window.ThreadManager && window.ThreadManager.handleRealtimeUpdate) {
+                        window.ThreadManager.handleRealtimeUpdate(payload);
+                    } else {
+                        console.log('📝 [Threads] ThreadManager not loaded yet - queuing update');
+                    }
                 }
             });
 
@@ -189,18 +299,19 @@ window.RealtimeSubscriptionsInit = (function () {
                     event: '*',
                     schema: 'synergy_sessions',
                     table: table,
-                    filter: `user_id=eq.${userId}`
-                }, (payload) => {
-                    console.log(`🔔 [Synergy:${table}] Update received:`, payload);
+                    filter: `user_id=eq.${userId}`,
+                    onChange: (eventType, payload) => {
+                        console.log(`🔔 [Synergy:${table}] Update received:`, eventType, payload);
 
-                    // Notify SynergyManager if available
-                    if (window.SynergyManager && window.SynergyManager.handleRealtimeUpdate) {
-                        window.SynergyManager.handleRealtimeUpdate(table, payload);
-                    }
+                        // Notify SynergyManager if available
+                        if (window.SynergyManager && window.SynergyManager.handleRealtimeUpdate) {
+                            window.SynergyManager.handleRealtimeUpdate(table, payload);
+                        }
 
-                    // Also notify SynergySessionRenderer (for live board updates)
-                    if (window.SynergySessionRenderer && window.SynergySessionRenderer.handleRealtimeUpdate) {
-                        window.SynergySessionRenderer.handleRealtimeUpdate(table, payload);
+                        // Also notify SynergySessionRenderer (for live board updates)
+                        if (window.SynergySessionRenderer && window.SynergySessionRenderer.handleRealtimeUpdate) {
+                            window.SynergySessionRenderer.handleRealtimeUpdate(table, payload);
+                        }
                     }
                 });
 
@@ -302,6 +413,7 @@ window.RealtimeSubscriptionsInit = (function () {
 
         activeSubscriptions.clear();
         console.log('✅ [Realtime Init] All subscriptions cleared');
+        updateStatusIndicator('disconnected', 0);
     }
 
     // Public API

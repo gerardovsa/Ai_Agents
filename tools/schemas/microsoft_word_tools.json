@@ -3438,14 +3438,26 @@
               "position": {
                 "type": "string",
                 "description": "Page number position",
-                "enum": ["footer-center", "footer-right", "footer-left", "header-center", "header-right", "header-left"],
+                "enum": [
+                  "footer-center",
+                  "footer-right",
+                  "footer-left",
+                  "header-center",
+                  "header-right",
+                  "header-left"
+                ],
                 "default": "footer-center",
                 "required": false
               },
               "format": {
                 "type": "string",
                 "description": "Page number format",
-                "enum": ["Page X", "Page X of Y", "X", "X/Y"],
+                "enum": [
+                  "Page X",
+                  "Page X of Y",
+                  "X",
+                  "X/Y"
+                ],
                 "default": "Page X",
                 "required": false
               },
@@ -3476,14 +3488,22 @@
           "header_alignment": {
             "type": "string",
             "description": "Header text alignment",
-            "enum": ["left", "center", "right"],
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
             "default": "left",
             "required": false
           },
           "footer_alignment": {
             "type": "string",
             "description": "Footer text alignment",
-            "enum": ["left", "center", "right"],
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
             "default": "center",
             "required": false
           },
@@ -3501,7 +3521,15 @@
               "default_font": {
                 "type": "string",
                 "description": "Default font family for ALL text (body AND headings). Calibri is the modern Word default.",
-                "enum": ["Arial", "Calibri", "Times New Roman", "Georgia", "Verdana", "Cambria", "Tahoma"],
+                "enum": [
+                  "Arial",
+                  "Calibri",
+                  "Times New Roman",
+                  "Georgia",
+                  "Verdana",
+                  "Cambria",
+                  "Tahoma"
+                ],
                 "default": "Calibri",
                 "required": false
               },
@@ -3519,6 +3547,22 @@
                 "default": 1.15,
                 "minimum": 1.0,
                 "maximum": 3.0,
+                "required": false
+              },
+              "paragraph_spacing_before": {
+                "type": "number",
+                "description": "Space before paragraphs in points (0-72). Standard is 0.",
+                "default": 0,
+                "minimum": 0,
+                "maximum": 72,
+                "required": false
+              },
+              "paragraph_spacing_after": {
+                "type": "number",
+                "description": "Space after paragraphs in points (0-72). Standard is 8.",
+                "default": 8,
+                "minimum": 0,
+                "maximum": 72,
                 "required": false
               },
               "margin_inches": {
@@ -3549,6 +3593,12 @@
                 }
               }
             }
+          },
+          "export_pdf": {
+            "type": "boolean",
+            "description": "Also export document as PDF after creation. Returns both document_id and pdf_id.",
+            "default": false,
+            "required": false
           },
           "metadata": {
             "type": "object",

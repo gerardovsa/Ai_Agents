@@ -198,6 +198,23 @@ function toggleNotificationPanel(event) {
         event.stopPropagation();
     }
 
+    // Use unified NotificationCenter if available (new system)
+    if (typeof NotificationCenter !== 'undefined' && NotificationCenter.togglePanel) {
+        NotificationCenter.togglePanel();
+
+        // Toggle active state on button
+        const notifBtn = document.getElementById('notificationBellBtn-sidebar');
+        if (notifBtn) {
+            const panel = document.getElementById('unified-notification-panel');
+            const isOpen = panel && panel.classList.contains('show');
+            notifBtn.classList.toggle('active', isOpen);
+        }
+
+        console.log('[Notifications] Toggled unified notification panel');
+        return;
+    }
+
+    // FALLBACK: Legacy Synergy notification panel
     let panel = document.getElementById('synergy-notifications');
 
     // Create panel if it doesn't exist
@@ -218,7 +235,7 @@ function toggleNotificationPanel(event) {
     if (notifBtn) {
         notifBtn.classList.toggle('active', isOpen);
     }
-    console.log('Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
+    console.log('Notification panel toggled (legacy):', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
 }
 
 // Initialize right sidebar buttons

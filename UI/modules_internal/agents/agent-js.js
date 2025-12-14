@@ -4207,6 +4207,32 @@ async function sendAgentMessage(agentId) {
                 console.log(`[Agent ${agentId}] Updated quick-nav badge`);
             }
 
+            // 🔔 NEW: Add notification for message completion
+            if (typeof NotificationCenter !== 'undefined' && NotificationCenter.add) {
+                const agentName = MultiAgent.getAgentName ? MultiAgent.getAgentName(agentId) : `Agent ${agentId}`;
+                const thread = ThreadManager.getThreadByAgent ? ThreadManager.getThreadByAgent(agentName) : null;
+                const threadName = thread?.name || 'Unknown Thread';
+                const messageCount = thread?.messages?.length || 0;
+
+                NotificationCenter.add({
+                    type: 'MESSAGE_COMPLETE',
+                    message: `${agentName} completed response in "${threadName}"`,
+                    metadata: {
+                        agentId: agentId,
+                        threadId: thread?.id,
+                        threadName: threadName,
+                        messageCount: messageCount,
+                        responseLength: fullResponse.length
+                    },
+                    action: {
+                        type: 'navigate_to_agent',
+                        target: { agentId: agentId }
+                    }
+                });
+
+                console.log(`[Agent ${agentId}] 🔔 Notification added for message completion`);
+            }
+
             // CRITICAL: Save thread to backend using backend's synced conversation
             // Use thread.messages (synced from conversation_sync) instead of MessageStore.getMessages()
             // This ensures we save backend's authoritative data, not frontend-accumulated data

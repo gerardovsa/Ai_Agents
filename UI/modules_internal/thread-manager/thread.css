@@ -610,6 +610,70 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* ===== AGENT STATUS INDICATORS ON QUICK-NAV-BADGES ===== */
+/* Show processing status (thinking/writing/tooling) on navigation badges */
+
+.agent-quick-nav-badge.status-thinking,
+.agent-quick-nav-badge.status-writing,
+.agent-quick-nav-badge.status-tool-running {
+    position: relative;
+}
+
+/* Status ring animations */
+.agent-quick-nav-badge.status-thinking::before,
+.agent-quick-nav-badge.status-writing::before,
+.agent-quick-nav-badge.status-tool-running::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 2px solid;
+    border-radius: 8px;
+    /* Match badge border-radius */
+    animation: pulse-ring-badge 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Color coding */
+.agent-quick-nav-badge.status-thinking::before {
+    border-color: #3b82f6;
+    /* Blue - Thinking */
+}
+
+.agent-quick-nav-badge.status-writing::before {
+    border-color: #10b981;
+    /* Green - Writing */
+}
+
+.agent-quick-nav-badge.status-tool-running::before {
+    border-color: #f59e0b;
+    /* Orange - Tool running */
+}
+
+/* Pulse animation for badges */
+@keyframes pulse-ring-badge {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.05);
+    }
+}
+
+/* Ensure badge content stays above the ring */
+.agent-quick-nav-badge>* {
+    position: relative;
+    z-index: 1;
+}
+
 .agent-tooltip-content {
     line-height: 1.6;
 }

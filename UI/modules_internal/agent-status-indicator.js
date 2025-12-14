@@ -79,7 +79,13 @@ const AgentStatusIndicator = {
             icon.classList.remove(...this.ALL_STATUS_CLASSES);
         });
 
-        console.log('[STATUS] All indicators cleared');
+        // ✨ NEW: Clear all quick-nav-badge status classes
+        const badges = document.querySelectorAll('.agent-quick-nav-badge');
+        badges.forEach(badge => {
+            badge.classList.remove(...this.ALL_STATUS_CLASSES);
+        });
+
+        console.log('[STATUS] All indicators cleared (icons + badges)');
     },
 
     /**
@@ -120,7 +126,7 @@ const AgentStatusIndicator = {
                 agentIcon = agentColumn.querySelector('.agent-title-wrapper i');
             }
         }
-        
+
         if (!agentIcon) {
             // Fallback: old structure (h2 i)
             agentIcon = document.querySelector(`#agent-${agentId} .agent-header h2 i`);
@@ -131,15 +137,40 @@ const AgentStatusIndicator = {
             return;
         }
 
-        // Remove all status classes
+        // Remove all status classes from icon
         agentIcon.classList.remove(...this.ALL_STATUS_CLASSES);
 
-        // Add new status class if provided
+        // Add new status class to icon if provided
         if (status) {
             agentIcon.classList.add(`status-${status}`);
             console.log(`[STATUS] Agent ${agentId}: ${status}`);
         } else {
             console.log(`[STATUS] Agent ${agentId}: idle`);
+        }
+
+        // ✨ NEW: Also update the quick-nav-badge with the same status
+        this._updateQuickNavBadge(agentId, status);
+    },
+
+    /**
+     * Update quick-nav-badge status indicator
+     * @private
+     */
+    _updateQuickNavBadge(agentId, status) {
+        const badge = document.querySelector(`.agent-quick-nav-badge[data-agent-id="${agentId}"]`);
+
+        if (!badge) {
+            // Badge might not exist yet (agent just created)
+            return;
+        }
+
+        // Remove all status classes from badge
+        badge.classList.remove(...this.ALL_STATUS_CLASSES);
+
+        // Add new status class to badge if provided
+        if (status) {
+            badge.classList.add(`status-${status}`);
+            console.log(`[STATUS] Quick-nav badge ${agentId}: ${status}`);
         }
     },
 

@@ -208,6 +208,31 @@ Object.assign(window.ThreadManager, {
         thread.updated = new Date().toISOString();
         console.log(`✅ [CASCADE] Updated thread object: location=${newLocation}`);
 
+        // 🔔 NEW: Add notification for thread assignment
+        if (typeof NotificationCenter !== 'undefined' && NotificationCenter.add) {
+            const locationName = newLocation === 'prime' ? 'Prime' :
+                newLocation === 'prime-loaded' ? 'Prime (Active)' :
+                    newLocation.startsWith('agent-') ? this.getAgentName(newLocation.replace('agent-', '')) : newLocation;
+
+            NotificationCenter.add({
+                type: 'THREAD_ASSIGNED',
+                message: `Thread "${thread.title || 'Untitled'}" assigned to ${locationName}`,
+                metadata: {
+                    threadId: threadId,
+                    threadName: thread.title || 'Untitled',
+                    location: newLocation,
+                    agentId: newLocation.startsWith('agent-') ? parseInt(newLocation.replace('agent-', '')) : null
+                },
+                action: {
+                    type: newLocation.startsWith('agent-') ? 'navigate_to_agent' : 'open_thread',
+                    target: newLocation.startsWith('agent-') ?
+                        { agentId: parseInt(newLocation.replace('agent-', '')) } :
+                        { threadId: threadId }
+                }
+            });
+            console.log(`[CASCADE] 🔔 Notification added for thread assignment: ${threadId} → ${newLocation}`);
+        }
+
         // STEP 2: Clear OLD location UI (only if location ACTUALLY CHANGED)
         // CRITICAL FIX (Nov 21): Don't clear if previous_location === newLocation
         // This prevents threads from being cleared when re-assigned to same location
@@ -717,6 +742,19 @@ Object.assign(window.ThreadManager, {
             fixed: fixed,
             assignments: assignments
         };
+    },
+
+    /**
+     * Helper: Get agent name from ID
+     * @param {string|number} agentId - Agent ID
+     * @returns {string} Agent name
+     */
+    getAgentName(agentId) {
+        const names = {
+            1: 'Alpha', 2: 'Bravo', 3: 'Charlie', 4: 'Delta',
+            5: 'Echo', 6: 'Foxtrot', 7: 'Golf', 8: 'Hotel'
+        };
+        return names[parseInt(agentId)] || `Agent ${agentId}`;
     }
 });
 

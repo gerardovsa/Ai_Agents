@@ -130,6 +130,25 @@ Object.assign(window.ThreadManager, {
             this.threads.unshift(threadForUI);
             console.log('✅ [CRUD] Thread created with metadata:', newThreadId);
 
+            // 🔔 NEW: Add notification for thread creation
+            if (typeof NotificationCenter !== 'undefined' && NotificationCenter.add) {
+                NotificationCenter.add({
+                    type: 'THREAD_CREATED',
+                    message: `Thread "${title || 'Untitled'}" created successfully`,
+                    metadata: {
+                        threadId: newThreadId,
+                        threadName: title || 'Untitled Thread',
+                        location: location,
+                        tags: tags || []
+                    },
+                    action: {
+                        type: 'open_thread',
+                        target: { threadId: newThreadId }
+                    }
+                });
+                console.log(`[CRUD] 🔔 Notification added for thread creation: ${newThreadId}`);
+            }
+
             // Assign to location (force 'prime-loaded' instead of 'prime')
             if (typeof this.assignThread === 'function') {
                 await this.assignThread(newThreadId, location === 'prime' ? 'prime-loaded' : location);

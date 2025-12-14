@@ -508,7 +508,7 @@ const UserAuth = {
                 console.log('📦 [AUTH] Loading real-time subscriptions script...');
                 try {
                     const script = document.createElement('script');
-                    script.src = '/UI/shared/js/realtime-subscriptions-init.js';
+                    script.src = '/shared/js/realtime-subscriptions-init.js';
                     script.type = 'module';
 
                     await new Promise((resolve, reject) => {

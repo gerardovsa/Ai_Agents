@@ -2056,11 +2056,23 @@ const AgentColumn = (function () {
         // STEP 2: Clear thread info and show "No thread loaded"
         const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
         if (threadInfoContainer) {
-            threadInfoContainer.innerHTML = `
-                <div class="thread-info-wrapper">
-                </div>
-            `;
-            console.log(`[AgentColumn] Reset thread info for agent ${agentId}`);
+            // Use ThreadManager to render proper empty state
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                const emptyStateHtml = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, null, true);
+                threadInfoContainer.innerHTML = emptyStateHtml;
+                console.log(`[AgentColumn] Rendered empty state thread info for agent ${agentId}`);
+            } else {
+                // Fallback if ThreadManager not available
+                threadInfoContainer.innerHTML = `
+                    <div class="thread-info-wrapper">
+                        <div class="no-thread-message">
+                            <i class="fas fa-comment-slash"></i>
+                            <span>No thread loaded</span>
+                        </div>
+                    </div>
+                `;
+                console.log(`[AgentColumn] Reset thread info for agent ${agentId} (fallback)`);
+            }
         }
 
         // STEP 3: Clear collapsed thread info

@@ -457,7 +457,7 @@ except Exception as e:
 if STOCK_DB_AVAILABLE:  # Shopify uses same database as Stock Management
     try:
         # Add shopify module to path
-        shopify_module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'external', 'modules', 'shopify')
+        shopify_module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'modules_external', 'shopify')
         if os.path.exists(shopify_module_path):
             sys.path.insert(0, shopify_module_path)
             from shopify_routes import init_shopify_routes
@@ -475,7 +475,7 @@ else:
 # Xero Accounting: ENABLED (load routes from module folder)
 try:
     # Add xero module to path
-    xero_module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'external', 'modules', 'xero')
+    xero_module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'modules_external', 'xero')
     if os.path.exists(xero_module_path):
         sys.path.insert(0, xero_module_path)
         from xero_routes import init_xero_routes

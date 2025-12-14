@@ -141,6 +141,11 @@ class CodeBlockEnhancer {
 
             const pre = block.parentElement;
 
+            // Skip code blocks inside tool-request-block (they have their own copy button)
+            if (pre.closest('.tool-request-block')) {
+                return;
+            }
+
             // Detect language
             const language = this.detectLanguage(block, pre);
 

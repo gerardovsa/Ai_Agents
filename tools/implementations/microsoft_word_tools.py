@@ -1540,6 +1540,7 @@ class MicrosoftWordTools:
         header_alignment: str = 'left',
         footer_alignment: str = 'center',
         formatting_options: Optional[Dict] = None,
+        export_pdf: bool = False,
         metadata: Optional[Dict] = None,
         **kwargs
     ) -> Dict[str, Any]:
@@ -1701,7 +1702,7 @@ class MicrosoftWordTools:
             document_id = doc_data['id']
             share_result = self._make_document_shareable(document_id, **kwargs)
             
-            return {
+            result = {
                 "success": True,
                 "document_id": document_id,
                 "name": doc_data['name'],
@@ -1720,6 +1721,21 @@ class MicrosoftWordTools:
                     "metadata": bool(metadata)
                 }
             }
+            
+            # Step 14: Export to PDF if requested
+            if export_pdf:
+                # Give OneDrive time to process the document
+                import time
+                time.sleep(2)
+                
+                pdf_result = self.word_export_pdf(document_id, **kwargs)
+                if "error" not in pdf_result:
+                    result["pdf_id"] = pdf_result.get('pdf_id')
+                    result["pdf_name"] = pdf_result.get('pdf_name')
+                    result["pdf_url"] = pdf_result.get('web_url')
+                    result["message"] = "Document created successfully (PDF exported)"
+            
+            return result
             
         except Exception as e:
             return {"error": f"Failed to create document from markdown: {str(e)}"}
