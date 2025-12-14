@@ -796,7 +796,6 @@
             { name: "calculate_printed_letterheads", keywords: ["letterhead", "stationery", "printed", "quote"] },
             { name: "calculate_saddle_stitch_books", keywords: ["booklet", "saddle stitch", "stapled", "book"] },
             { name: "calculate_selfie_frames", keywords: ["selfie", "frame", "photo", "instagram"] },
-            { name: "calculate_spiral_bound_books", keywords: ["spiral", "book", "bound", "quote"] },
             { name: "calculate_spiral_bound_books_shopify", keywords: ["spiral", "book", "bound", "shopify"] },
             { name: "calculate_stackable_cubes", keywords: ["cube", "stackable", "display", "quote"] },
             { name: "calculate_strut_cards_a3", keywords: ["strut", "card", "a3", "easel"] },
@@ -806,9 +805,10 @@
         ];
 
         const GOD_CALCULATORS = [
-            { name: "calculate_god_flyers", keywords: ["flyer", "god", "database", "digital", "quote"] },
-            { name: "calculate_god_letterheads", keywords: ["letterhead", "god", "database", "stationery", "quote"] },
-            { name: "calculate_god_perfect_bound_books", keywords: ["perfect bound", "book", "god", "database", "quote"] }
+            { name: "calculate_flyers_god", keywords: ["flyer", "god", "database", "digital", "quote"] },
+            { name: "calculate_letterheads_god", keywords: ["letterhead", "god", "database", "stationery", "quote"] },
+            { name: "calculate_perfect_bound_books_god", keywords: ["perfect bound", "book", "god", "database", "quote"] },
+            { name: "calculate_corflute_signs_god", keywords: ["corflute", "sign", "god", "database", "quote"] }
         ];
 
         // State
@@ -1393,7 +1393,7 @@
                 // Shopify calculators
                 'calculate_economical_business_cards_shopify': { quantity: 1000, print_sides: 'Double side print', print_type: 'Colour', artworks: 1 },
                 'calculate_premium_business_cards_shopify': { quantity: 1000, print_sides: 'Double side print', print_type: 'Colour', celloglaze: 'No Cellophane', artworks: 1 },
-                'calculate_folded_flyers_shopify': { quantity: 1000, size: 'A5', paper_stock: '150GSM Gloss Art', print_sides: 'Double side print', folding: 'No Folding' },
+                'calculate_folded_flyers_shopify': { quantity: 1000, size: 'A5', stock: 'Satin 150GSM', double_sided: true, colour: true, fold_type: 'Single Fold', cellophane: 'None' },
                 'calculate_wire_bound_books_shopify': { quantity: 100, pages: 40, size: 'A5', cover_stock: '300GSM Gloss Art', inner_stock: '100GSM Uncoated', cover_cellophane: 'No Cellophane' },
                 'calculate_spiral_bound_books_shopify': { quantity: 100, pages: 40, size: 'A5', cover_stock: '300GSM Gloss Art', inner_stock: '100GSM Uncoated', cover_cellophane: 'No Cellophane' },
 
@@ -1422,8 +1422,7 @@
                 'calculate_metal_face_a_frame': { quantity: 100, artworks: 1, size: '600mm W x 900mm H' },
                 'calculate_with_compliments_slips': { quantity: '100', print_sides: 'Single side print', print_type: 'Colour', finish_size: 'DL - 99mm x 210mm', paper_stock_type: 'Uncoated Bond 80GSM' },
                 'calculate_corflute_insert_a_frame': { quantity: 100, size: '600mm(W) x 900mm(H)', artworks: 1 },
-                'calculate_printed_letterheads': { quantity: '100', print_sides: 'Single side print', print_type: 'Colour', finish_size: 'A4 - 210mm x 297mm', paper_stock_type: 'Uncoated Bond 80GSM' },
-                'calculate_spiral_bound_books': { quantity: 100, artworks: 1, outer_front_cover: 'Clear PVC', printed_front_cover: '300GSM Satin', cover_print_type: '2pp Colour', celloglaze: 'None', outer_back_cover: 'Not Required', printed_back_cover: 'None', pages: '40pp', finish_size: 'A4 Portrait', content_stock: 'Satin 150GSM', content_print_type: 'Colour' }
+                'calculate_printed_letterheads': { quantity: '100', print_sides: 'Single side print', print_type: 'Colour', finish_size: 'A4 - 210mm x 297mm', paper_stock_type: 'Uncoated Bond 80GSM' }
             };
 
             return samples[calcName] || { quantity: 100 };
