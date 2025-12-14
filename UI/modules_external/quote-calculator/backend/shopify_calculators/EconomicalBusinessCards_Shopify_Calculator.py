@@ -93,6 +93,10 @@ class EconomicalBusinessCardsShopifyCalculator:
             EconomicalBusinessCardsQuoteResult with total price, unit price, cost per card, and breakdown
         """
         
+        # DEFENSIVE TYPE CONVERSION - Handle string inputs from JSON/AI agents
+        quantity = int(quantity) if not isinstance(quantity, int) else quantity
+        artworks = int(artworks) if not isinstance(artworks, int) else artworks
+        
         # Validate quantity
         valid_quantities = [250, 500, 1000, 2000, 5000, 10000]
         if quantity not in valid_quantities:

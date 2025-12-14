@@ -503,6 +503,33 @@ const UserAuth = {
             }
             this.setLoadingProgress(60, 'Modules loaded');
 
+            // Load real-time subscriptions script dynamically (if not already loaded)
+            if (!window.RealtimeSubscriptionsInit) {
+                console.log('📦 [AUTH] Loading real-time subscriptions script...');
+                try {
+                    const script = document.createElement('script');
+                    script.src = '/UI/shared/js/realtime-subscriptions-init.js';
+                    script.type = 'module';
+
+                    await new Promise((resolve, reject) => {
+                        script.onload = () => {
+                            console.log('✅ [AUTH] Realtime subscriptions script loaded');
+                            resolve();
+                        };
+                        script.onerror = (error) => {
+                            console.error('❌ [AUTH] Failed to load realtime subscriptions script:', error);
+                            reject(error);
+                        };
+                        document.head.appendChild(script);
+                    });
+
+                    // Wait a brief moment for the script to initialize
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.warn('⚠️ [AUTH] Could not load realtime subscriptions script (non-critical):', error);
+                }
+            }
+
             // Initialize ALL real-time subscriptions (workspace, threads, synergy, credentials, sessions)
             if (window.RealtimeSubscriptionsInit) {
                 console.log('🔄 [AUTH] Initializing real-time subscriptions...');

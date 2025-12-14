@@ -370,6 +370,10 @@ class FoldedFlyersShopifyCalculator:
             FoldedFlyerResult with complete pricing breakdown
         """
         
+        # DEFENSIVE TYPE CONVERSION - Handle string inputs from JSON/AI agents
+        quantity = int(quantity) if not isinstance(quantity, int) else quantity
+        artworks = int(artworks) if not isinstance(artworks, int) else artworks
+        
         # Validate celloglaze is only for Satin stocks
         if celloglaze != Celloglaze.NONE and paper_stock.stock_type != "Satin":
             raise ValueError("Celloglaze is only available for Satin paper stocks")

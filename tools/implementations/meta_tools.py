@@ -117,7 +117,7 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
         if tool_platform == platform_lower:
             tool_list.append({
                 "name": tool_name,
-                "description": tool.get("description", "")
+                "short_description": tool.get("short_description", tool.get("description", ""))
             })
     if tool_list:
         matched_platform = platform_lower
@@ -131,7 +131,7 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
             if tool_name.lower().startswith(prefix):
                 tool_list.append({
                     "name": tool_name,
-                    "description": tool.get("description", "")
+                    "short_description": tool.get("short_description", tool.get("description", ""))
                 })
         if tool_list:
             matched_platform = platform_lower
@@ -148,7 +148,7 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
                     if tool_name.lower().startswith(prefix):
                         tool_list.append({
                             "name": tool_name,
-                            "description": tool.get("description", "")
+                            "short_description": tool.get("short_description", tool.get("description", ""))
                         })
                         break  # Don't add tool twice
     

@@ -9,16 +9,22 @@ Architecture:
         ↓
     Registry V3
         ↓
-    calculator_wrapper.py (THIS FILE)
+    calculator_wrapper.py (THIS FILE) ← WITH TYPE ENFORCEMENT
         ↓
     inhouse_modules/complete_calculator_implementation.py
         ↓
     G_Folder database
 
+TYPE SAFETY:
+All wrapper functions use @enforce_schema_types decorator to automatically
+convert parameter types (e.g., "500" string → 500 integer). This prevents
+type mismatch errors between AI agents and backend calculators.
+
 FILE: UI/external/modules/quote-calculator/implementations/calculator_wrapper.py
 PURPOSE: Wrapper functions for quote calculator tools
 DEPENDENCIES:
 - inhouse_modules.complete_calculator_implementation
+- schema_validator (type enforcement)
 
 EXPORTS:
 - calculate_business_cards(quantity, stock_type, sides)
@@ -29,7 +35,7 @@ EXPORTS:
 - calculate_corflute_signs(quantity, size, thickness, sides)
 - get_stock_list(category="all")
 
-LAST MODIFIED: 2025-11-04 - Initial creation
+LAST MODIFIED: 2025-12-14 - Added comprehensive type enforcement system
 """
 
 import sys
@@ -38,6 +44,9 @@ import traceback
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from decimal import Decimal
+
+# Import type enforcement system
+from schema_validator import enforce_schema_types, calculator_wrapper
 
 # Setup paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -96,6 +105,7 @@ def _handle_calculator_error(e: Exception, product_type: str) -> Dict[str, Any]:
 
 # ==================== CALCULATOR TOOL FUNCTIONS ====================
 
+@calculator_wrapper(quantity_enum=[100, 250, 500, 1000, 2000, 5000, 10000])
 def calculate_business_cards(
     quantity: int,
     stock_type: str,
@@ -106,6 +116,8 @@ def calculate_business_cards(
 ) -> Dict[str, Any]:
     """
     Calculate quote for business cards - MATCHES SCHEMA
+    
+    TYPE SAFE: @calculator_wrapper decorator ensures all types are correct
     
     Args:
         quantity: Number of cards (100, 250, 500, 1000, 2000, 5000, 10000)
@@ -123,8 +135,7 @@ def calculate_business_cards(
         if not SHOPIFY_CALCULATORS_AVAILABLE:
             raise RuntimeError("Shopify calculators not available")
         
-        # Ensure quantity is integer (may come as string from schema)
-        quantity = int(quantity)
+        # NOTE: No need for int(quantity) - decorator already converted it!
         
         # Convert print_type to Shopify format
         print_sides = "Double side print" if print_type == "double_sided" else "Single side print"
@@ -179,6 +190,7 @@ def calculate_business_cards(
         return _handle_calculator_error(e, "business cards")
 
 
+@enforce_schema_types
 def calculate_flyers(
     quantity: int,
     width: int,
@@ -694,6 +706,7 @@ def get_stock_list(category: str = "all", **kwargs) -> Dict[str, Any]:
 
 # ==================== GOD CALCULATOR WRAPPERS ====================
 
+@enforce_schema_types
 def calculate_flyers_god(
     quantity: int,
     width: int,
@@ -712,6 +725,8 @@ def calculate_flyers_god(
 ) -> Dict[str, Any]:
     """
     GOD (database-driven) flyer calculator - Most accurate pricing
+    
+    TYPE SAFE: @enforce_schema_types decorator ensures all numeric types are correct
     
     Args:
         quantity: Number of flyers
@@ -803,6 +818,7 @@ def calculate_flyers_god(
         }
 
 
+@enforce_schema_types
 def calculate_letterheads_god(
     quantity: int,
     width: int,
@@ -815,6 +831,8 @@ def calculate_letterheads_god(
 ) -> Dict[str, Any]:
     """
     GOD (database-driven) letterhead calculator - Database-accurate pricing
+    
+    TYPE SAFE: @enforce_schema_types decorator ensures all numeric types are correct
     Note: Letterheads are simplified - no cellophane lamination options
     
     Args:
@@ -872,6 +890,7 @@ def calculate_letterheads_god(
         }
 
 
+@enforce_schema_types
 def calculate_perfect_bound_books_god(
     quantity: int,
     pages: int,
@@ -1046,6 +1065,7 @@ def calculate_corflute_signs_god(
 
 # ==================== SHOPIFY CALCULATOR WRAPPERS ====================
 
+@calculator_wrapper(quantity_enum=[250, 500, 1000, 2000, 5000, 10000])
 def calculate_economical_business_cards_shopify(
     quantity: int,
     double_sided: bool = True,
@@ -1055,6 +1075,11 @@ def calculate_economical_business_cards_shopify(
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Economical Business Cards (WRAPPER - Translation Layer)
+    
+    TYPE SAFE: @calculator_wrapper decorator ensures:
+    - quantity is converted from string to int if needed
+    - quantity is validated against [250, 500, 1000, 2000, 5000, 10000]
+    - double_sided is converted to bool if needed
     
     Schema Parameters (User-facing):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
@@ -1078,8 +1103,7 @@ def calculate_economical_business_cards_shopify(
         # TRANSLATION LAYER: Schema → Backend
         print_sides = "Double side print" if double_sided else "Single side print"
         
-        # Ensure quantity is integer (may come as string from schema)
-        quantity = int(quantity)
+        # NOTE: No need for int(quantity) - decorator already converted it!
         
         calculator = EconomicalBusinessCardsShopifyCalculator()
         result = calculator.calculate(
@@ -1108,6 +1132,7 @@ def calculate_economical_business_cards_shopify(
         }
 
 
+@calculator_wrapper(quantity_enum=[250, 500, 1000, 2000, 5000, 10000])
 def calculate_premium_business_cards_shopify(
     quantity: int,
     double_sided: bool = True,
@@ -1120,6 +1145,8 @@ def calculate_premium_business_cards_shopify(
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Premium Business Cards (WRAPPER - Translation Layer)
+    
+    TYPE SAFE: @calculator_wrapper decorator ensures all types are correct
     
     Schema Parameters (User-facing):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
@@ -1147,8 +1174,7 @@ def calculate_premium_business_cards_shopify(
         # TRANSLATION LAYER: Schema → Backend
         print_sides = "Double side print" if double_sided else "Single side print"
         
-        # Ensure quantity is integer (may come as string from schema)
-        quantity = int(quantity)
+        # NOTE: No need for int(quantity) - decorator already converted it!
         
         calculator = PremiumBusinessCardsShopifyCalculator()
         result = calculator.calculate(
@@ -1180,6 +1206,7 @@ def calculate_premium_business_cards_shopify(
         }
 
 
+@calculator_wrapper(quantity_enum=[100, 250, 500, 1000, 2000, 5000, 10000])
 def calculate_folded_flyers_shopify(
     quantity: int,
     size: str,
@@ -1193,6 +1220,8 @@ def calculate_folded_flyers_shopify(
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Folded Flyers (WRAPPER - Translation Layer)
+    
+    TYPE SAFE: @calculator_wrapper decorator ensures all types are correct
     
     Schema Parameters (User-facing):
         quantity: Number of flyers
@@ -1222,8 +1251,7 @@ def calculate_folded_flyers_shopify(
         paper_stock = stock  # Rename for backend
         print_sides = "Double side print" if double_sided else "Single side print"
         
-        # Ensure quantity is integer (may come as string from schema)
-        quantity = int(quantity)
+        # NOTE: No need for int(quantity) - decorator already converted it!
         
         # Import backend enums
         from shopify_calculators.FoldedFlyers_Shopify_Calculator import (

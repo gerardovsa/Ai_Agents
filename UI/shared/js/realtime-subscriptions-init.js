@@ -88,7 +88,7 @@ window.RealtimeSubscriptionsInit = (function () {
 
             console.log('✅ [Realtime Init] All subscriptions initialized successfully');
             console.log(`📊 [Realtime Init] Active subscriptions: ${activeSubscriptions.size}`);
-            
+
             return true;
 
         } catch (error) {
@@ -103,11 +103,11 @@ window.RealtimeSubscriptionsInit = (function () {
     async function subscribeToHeartbeat() {
         try {
             console.log('💓 [Realtime Init] Subscribing to heartbeat...');
-            
+
             // SupabaseRealtimeManager handles heartbeat internally
             // Just mark as active
             activeSubscriptions.add('heartbeat');
-            
+
             console.log('✅ [Realtime Init] Heartbeat subscription active');
         } catch (error) {
             console.error('❌ [Realtime Init] Heartbeat subscription failed:', error);
