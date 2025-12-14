@@ -754,7 +754,9 @@ const MultiAgent = {
         const badge = document.getElementById(`quick-nav-badge-${agentId}`);
         if (badge) {
             badge.classList.remove('has-new-message');
+            badge.classList.remove('message-complete');  // ✨ Remove green completion indicator
             badge.dataset.viewed = 'true';
+            console.log(`[Agent ${agentId}] Badge viewed - removed completion indicator`);
         }
 
         // Expand if collapsed
@@ -2477,7 +2479,9 @@ function createAgentColumn(agentId) {
         const badge = document.getElementById(`quick-nav-badge-${agentId}`);
         if (badge) {
             badge.classList.remove('has-new-message');
+            badge.classList.remove('message-complete');  // ✨ Remove green completion indicator
             badge.dataset.viewed = 'true';
+            console.log(`[Agent ${agentId}] Column clicked - removed completion indicator`);
         }
     });
 
@@ -4205,6 +4209,13 @@ async function sendAgentMessage(agentId) {
             if (typeof MultiAgent !== 'undefined' && MultiAgent.updateQuickNavBadge) {
                 MultiAgent.updateQuickNavBadge(agentId);
                 console.log(`[Agent ${agentId}] Updated quick-nav badge`);
+
+                // ✨ NEW: Add green completion indicator
+                const badge = document.getElementById(`quick-nav-badge-${agentId}`);
+                if (badge) {
+                    badge.classList.add('message-complete');
+                    console.log(`[Agent ${agentId}] ✅ Badge marked as message-complete (green)`);
+                }
             }
 
             // 🔔 NEW: Add notification for message completion

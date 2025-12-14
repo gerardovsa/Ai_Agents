@@ -221,8 +221,9 @@ const NotificationCenter = {
             }
         }
 
-        // Get selected sound type
+        // Get selected sound type and volume
         const soundType = localStorage.getItem('notificationSoundType') || 'soft';
+        const volume = (parseInt(localStorage.getItem('notificationVolume')) || 50) / 100;
 
         // Sound frequencies for different severities
         const frequencies = {
@@ -245,24 +246,99 @@ const NotificationCenter = {
             // Set sound type characteristics
             if (soundType === 'soft') {
                 oscillator.type = 'sine';
-                gainNode.gain.value = 0.1;
+                gainNode.gain.value = 0.1 * volume;
             } else if (soundType === 'classic') {
                 oscillator.type = 'square';
-                gainNode.gain.value = 0.05;
+                gainNode.gain.value = 0.05 * volume;
             } else if (soundType === 'alert') {
                 oscillator.type = 'triangle';
-                gainNode.gain.value = 0.15;
+                gainNode.gain.value = 0.15 * volume;
             } else if (soundType === 'chime') {
                 oscillator.type = 'sine';
-                gainNode.gain.value = 0.12;
+                gainNode.gain.value = 0.12 * volume;
                 // Higher frequency for chime
                 freq.primary = freq.primary * 1.5;
                 freq.secondary = freq.secondary * 1.5;
             } else if (soundType === 'ping') {
                 oscillator.type = 'sine';
-                gainNode.gain.value = 0.08;
+                gainNode.gain.value = 0.08 * volume;
                 // Very short, high pitch
                 freq.primary = 1200;
+            } else if (soundType === 'bell') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.13 * volume;
+                // Bell-like frequency pattern
+                freq.primary = 880;
+                freq.secondary = 1320;
+            } else if (soundType === 'bubble') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.09 * volume;
+                // Ascending bubble sound
+                freq.primary = 400;
+                freq.secondary = 800;
+            } else if (soundType === 'chirp') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.11 * volume;
+                // Quick ascending chirp
+                freq.primary = 800;
+                freq.secondary = 1200;
+            } else if (soundType === 'pluck') {
+                oscillator.type = 'triangle';
+                gainNode.gain.value = 0.14 * volume;
+                // Sharp pluck sound
+                freq.primary = 1000;
+                freq.secondary = 200;
+            } else if (soundType === 'drop') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.12 * volume;
+                // Descending drop
+                freq.primary = 900;
+                freq.secondary = 300;
+            } else if (soundType === 'rise') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.10 * volume;
+                // Ascending rise
+                freq.primary = 300;
+                freq.secondary = 1100;
+            } else if (soundType === 'wobble') {
+                oscillator.type = 'sawtooth';
+                gainNode.gain.value = 0.07 * volume;
+                // Wobble effect
+                freq.primary = 600;
+                freq.secondary = 750;
+            } else if (soundType === 'beep') {
+                oscillator.type = 'square';
+                gainNode.gain.value = 0.09 * volume;
+                // Classic beep
+                freq.primary = 800;
+            } else if (soundType === 'boop') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.11 * volume;
+                // Lower boop
+                freq.primary = 350;
+            } else if (soundType === 'click') {
+                oscillator.type = 'square';
+                gainNode.gain.value = 0.06 * volume;
+                // Very short click
+                freq.primary = 1500;
+            } else if (soundType === 'pop') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.15 * volume;
+                // Quick pop
+                freq.primary = 150;
+                freq.secondary = 100;
+            } else if (soundType === 'whoosh') {
+                oscillator.type = 'sawtooth';
+                gainNode.gain.value = 0.08 * volume;
+                // Swoosh effect
+                freq.primary = 200;
+                freq.secondary = 1400;
+            } else if (soundType === 'ding') {
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.13 * volume;
+                // High ding
+                freq.primary = 1568;
+                freq.secondary = 2093;
             }
 
             oscillator.frequency.value = freq.primary;

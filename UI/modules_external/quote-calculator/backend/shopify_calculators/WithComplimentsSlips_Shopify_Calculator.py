@@ -134,7 +134,7 @@ class WithComplimentsSlipsShopifyCalculator:
             'click_cost': click_cost,
             'cutting_cost': cutting_cost,
             'biz_cost': biz_cost,
-            'profit_margin_rate': Decimal(profit_margin_rate),
+            'profit_margin_rate': profit_margin_rate,
             'profit_amount': profit_amount,
             'subtotal': sub_total,
             'subtotal_with_increase': subtotal_with_increase,
@@ -146,7 +146,7 @@ class WithComplimentsSlipsShopifyCalculator:
 
         specifications = {
             'quantity': quantity,
-            'items_per_sheet': items_per_sheet,
+            'items_per_sheet': int(items_per_sheet),
             'print_sides': print_sides,
             'print_type': print_type,
             'paper_stock': paper_stock,

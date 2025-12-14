@@ -24,7 +24,7 @@
  */
 
 class InternalDocsManager {
-    constructor(apiBaseUrl = 'http://localhost:5001') {
+    constructor(apiBaseUrl = window.API_BASE_URL || window.location.origin) {
         this.apiBaseUrl = apiBaseUrl;
         this.popupWindows = {};
         this.popupZIndex = 9000;
@@ -36,7 +36,7 @@ class InternalDocsManager {
         // Inject CSS styles
         this.injectStyles();
 
-        console.log('📄 InternalDocsManager initialized');
+        console.log('📄 InternalDocsManager initialized with API:', this.apiBaseUrl);
     }
 
     /**

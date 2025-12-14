@@ -116,11 +116,35 @@ const NotificationUI = {
                                 <option value="alert">Alert</option>
                                 <option value="chime">Chime</option>
                                 <option value="ping">Ping</option>
+                                <option value="bell">Bell</option>
+                                <option value="bubble">Bubble</option>
+                                <option value="chirp">Chirp</option>
+                                <option value="pluck">Pluck</option>
+                                <option value="drop">Drop</option>
+                                <option value="rise">Rise</option>
+                                <option value="wobble">Wobble</option>
+                                <option value="beep">Beep</option>
+                                <option value="boop">Boop</option>
+                                <option value="click">Click</option>
+                                <option value="pop">Pop</option>
+                                <option value="whoosh">Whoosh</option>
+                                <option value="ding">Ding</option>
                             </select>
                             <button class="preview-sound-btn" onclick="NotificationUI.previewSound()" title="Preview sound">
                                 <i class="fas fa-play"></i>
                             </button>
                         </div>
+                    </label>
+                    
+                    <label class="setting-item">
+                        <div class="setting-label">
+                            <i class="fas fa-volume-down"></i>
+                            <span>Volume</span>
+                            <span class="volume-value" id="volume-value">50%</span>
+                        </div>
+                        <input type="range" id="notif-volume" min="0" max="100" value="50" 
+                               oninput="NotificationUI.updateVolume(this.value)" 
+                               onchange="NotificationUI.saveSetting('notificationVolume', this.value)">
                     </label>
                     
                     <label class="setting-item">
@@ -448,9 +472,11 @@ const NotificationUI = {
                     <i class="fas ${notif.icon}"></i>
                 </div>
                 <div class="notif-content">
-                    <div class="notif-title">${this.escapeHtml(notif.title)}</div>
+                    <div class="notif-header-row">
+                        <div class="notif-title">${this.escapeHtml(notif.title)}</div>
+                        <div class="notif-time">${timeAgo}</div>
+                    </div>
                     <div class="notif-message">${this.escapeHtml(notif.message)}</div>
-                    <div class="notif-time">${timeAgo}</div>
                     ${tags ? `<div class="notif-tags">${tags}</div>` : ''}
                 </div>
                 <div class="notif-actions">
@@ -528,6 +554,13 @@ const NotificationUI = {
         const soundTypeSelect = document.getElementById('notif-sound-type');
         if (soundTypeSelect) soundTypeSelect.value = soundType;
 
+        // Volume
+        const volume = localStorage.getItem('notificationVolume') || '50';
+        const volumeSlider = document.getElementById('notif-volume');
+        const volumeDisplay = document.getElementById('volume-value');
+        if (volumeSlider) volumeSlider.value = volume;
+        if (volumeDisplay) volumeDisplay.textContent = `${volume}%`;
+
         // Desktop notifications
         const desktopEnabled = localStorage.getItem('notificationDesktopEnabled') === 'true';
         const desktopToggle = document.getElementById('notif-desktop-toggle');
@@ -598,6 +631,18 @@ const NotificationUI = {
         if (typeof showToast === 'function') {
             showToast('Setting saved', 'success');
         }
+    },
+
+    /**
+     * Update volume display
+     * @param {number} value - Volume value (0-100)
+     */
+    updateVolume(value) {
+        const volumeDisplay = document.getElementById('volume-value');
+        if (volumeDisplay) {
+            volumeDisplay.textContent = `${value}%`;
+        }
+        console.log(`[NotificationUI] Volume updated: ${value}%`);
     },
 
     /**

@@ -65,20 +65,20 @@ class XeroModule extends BaseModule {
      */
     async initialize() {
         console.log('Initializing Xero module...');
-        
+
         try {
             // Call parent initialization
             await super.initialize();
-            
+
             // Create business selector in header
             this.createBusinessSelector();
-            
+
             // Initialize sub-tabs
             this.initializeSubTabs();
-            
+
             // Load initial data
             await this.loadDashboard();
-            
+
             console.log(' Xero module initialized successfully');
         } catch (error) {
             console.error('Failed to initialize Xero module:', error);
@@ -90,8 +90,16 @@ class XeroModule extends BaseModule {
      * Create business selector dropdown
      */
     createBusinessSelector() {
+        if (!this.container) {
+            console.warn('[Xero] Container not set, skipping business selector');
+            return;
+        }
+
         const header = this.container.querySelector('.module-header-right');
-        if (!header) return;
+        if (!header) {
+            console.warn('[Xero] Module header not found');
+            return;
+        }
 
         const businesses = [
             { id: 1, name: 'InHouse Print', color: '#00509E' },
@@ -131,7 +139,7 @@ class XeroModule extends BaseModule {
      */
     async onBusinessChange() {
         console.log(`Business changed to: ${this.currentBusiness}`);
-        
+
         // Reload current tab data
         const activeTab = this.activeSubTab || 'dashboard';
         switch (activeTab) {
@@ -202,7 +210,7 @@ class XeroModule extends BaseModule {
      */
     switchSubTab(tabId) {
         console.log(`Switching to Xero tab: ${tabId}`);
-        
+
         // Update active button
         const buttons = this.container.querySelectorAll('.module-subtab-btn');
         buttons.forEach(btn => {
@@ -237,8 +245,16 @@ class XeroModule extends BaseModule {
     // ========================================================================
 
     renderDashboard() {
+        if (!this.container) {
+            console.warn('[Xero] Container not set, cannot render dashboard');
+            return;
+        }
+
         const container = this.container.querySelector('#xero-tab-dashboard');
-        if (!container) return;
+        if (!container) {
+            console.warn('[Xero] Dashboard container not found');
+            return;
+        }
 
         container.innerHTML = `
             <div class="xero-dashboard">
@@ -326,7 +342,7 @@ class XeroModule extends BaseModule {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load dashboard');
             }
@@ -334,7 +350,7 @@ class XeroModule extends BaseModule {
             this.data.stats = data;
             this.updateDashboardStats(data);
             this.createDashboardCharts(data);
-            
+
             this.hideLoading();
         } catch (error) {
             console.error('Error loading dashboard:', error);
@@ -345,7 +361,7 @@ class XeroModule extends BaseModule {
     updateDashboardStats(data) {
         // Update stat cards
         const stats = data.stats || {};
-        
+
         this.updateStatCard('revenue', {
             value: this.formatCurrency(stats.total_revenue || 0),
             change: stats.revenue_change || 'N/A'
@@ -525,14 +541,14 @@ class XeroModule extends BaseModule {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load invoices');
             }
 
             this.data.invoices = data.invoices || [];
             this.createInvoicesTable();
-            
+
             this.hideLoading();
         } catch (error) {
             console.error('Error loading invoices:', error);
@@ -551,8 +567,8 @@ class XeroModule extends BaseModule {
             pagination: 'local',
             paginationSize: 50,
             columns: [
-                { 
-                    title: 'Invoice #', 
+                {
+                    title: 'Invoice #',
                     field: 'invoice_number',
                     width: 120,
                     formatter: (cell) => {
@@ -561,34 +577,34 @@ class XeroModule extends BaseModule {
                     }
                 },
                 { title: 'Contact', field: 'contact_name', width: 200 },
-                { 
-                    title: 'Date', 
+                {
+                    title: 'Date',
                     field: 'date',
                     width: 120,
                     formatter: (cell) => this.formatDate(cell.getValue())
                 },
-                { 
-                    title: 'Due Date', 
+                {
+                    title: 'Due Date',
                     field: 'due_date',
                     width: 120,
                     formatter: (cell) => this.formatDate(cell.getValue())
                 },
-                { 
-                    title: 'Total', 
+                {
+                    title: 'Total',
                     field: 'total',
                     width: 120,
                     hozAlign: 'right',
                     formatter: (cell) => this.formatCurrency(cell.getValue())
                 },
-                { 
-                    title: 'Amount Due', 
+                {
+                    title: 'Amount Due',
                     field: 'amount_due',
                     width: 120,
                     hozAlign: 'right',
                     formatter: (cell) => this.formatCurrency(cell.getValue())
                 },
-                { 
-                    title: 'Status', 
+                {
+                    title: 'Status',
                     field: 'status',
                     width: 120,
                     formatter: (cell) => {
@@ -663,14 +679,14 @@ class XeroModule extends BaseModule {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load contacts');
             }
 
             this.data.contacts = data.contacts || [];
             this.createContactsTable();
-            
+
             this.hideLoading();
         } catch (error) {
             console.error('Error loading contacts:', error);
@@ -692,8 +708,8 @@ class XeroModule extends BaseModule {
                 { title: 'Name', field: 'name', width: 250 },
                 { title: 'Email', field: 'email', width: 200 },
                 { title: 'Phone', field: 'phone', width: 150 },
-                { 
-                    title: 'Type', 
+                {
+                    title: 'Type',
                     field: 'is_customer',
                     width: 120,
                     formatter: (cell) => {
@@ -766,14 +782,14 @@ class XeroModule extends BaseModule {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load payments');
             }
 
             this.data.payments = data.payments || [];
             this.createPaymentsTable();
-            
+
             this.hideLoading();
         } catch (error) {
             console.error('Error loading payments:', error);
@@ -792,22 +808,22 @@ class XeroModule extends BaseModule {
             pagination: 'local',
             paginationSize: 50,
             columns: [
-                { 
-                    title: 'Date', 
+                {
+                    title: 'Date',
                     field: 'date',
                     width: 150,
                     formatter: (cell) => this.formatDate(cell.getValue())
                 },
                 { title: 'Invoice #', field: 'invoice_number', width: 150 },
-                { 
-                    title: 'Amount', 
+                {
+                    title: 'Amount',
                     field: 'amount',
                     width: 150,
                     hozAlign: 'right',
                     formatter: (cell) => this.formatCurrency(cell.getValue())
                 },
-                { 
-                    title: 'Status', 
+                {
+                    title: 'Status',
                     field: 'status',
                     width: 120,
                     formatter: (cell) => {
@@ -863,14 +879,14 @@ class XeroModule extends BaseModule {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load accounts');
             }
 
             this.data.accounts = data.accounts || [];
             this.createAccountsTable();
-            
+
             this.hideLoading();
         } catch (error) {
             console.error('Error loading accounts:', error);

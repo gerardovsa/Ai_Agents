@@ -892,12 +892,12 @@ def calculate_letterheads_god(
 
 @enforce_schema_types
 def calculate_perfect_bound_books_god(
-    quantity: int,
-    pages: int,
-    book_width: int,
-    book_height: int,
-    cover_gsm: int,
-    inner_gsm: int,
+    quantity: int = 100,
+    pages: int = 100,
+    book_width: int = 210,
+    book_height: int = 297,
+    cover_gsm: int = 300,
+    inner_gsm: int = 80,
     print_cover_mode: int = 1,
     print_inner_mode: int = 1,
     cello_type: int = 0,
@@ -987,8 +987,8 @@ def calculate_perfect_bound_books_god(
 
 def calculate_corflute_signs_god(
     quantity: int,
-    width: int,
-    height: int,
+    width: int = 600,
+    height: int = 900,
     thickness: int = 5,
     print_sides: str = "single",
     **kwargs

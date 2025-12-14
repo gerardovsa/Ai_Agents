@@ -145,7 +145,7 @@ class NotepadsA6ShopifyCalculator:
 
         specifications = {
             'quantity': quantity,
-            'items_per_sheet': items_per_sheet,
+            'items_per_sheet': int(items_per_sheet),
             'print_sides': print_sides,
             'print_type': print_type,
             'paper_stock': paper_stock,

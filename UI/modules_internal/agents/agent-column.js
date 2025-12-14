@@ -140,29 +140,29 @@ const AgentColumn = (function () {
                         </button>
                         <button class="view-mode-btn" 
                                 id="view-mode-btn-${agentId}"
-                                onclick="event.stopPropagation(); AgentColumn.toggleViewModeMenu(${agentId})" 
+                                onclick="AgentColumn.toggleViewModeMenu(${agentId}, event)" 
                                 title="Change view mode" 
                                 aria-label="Change view mode">
                             <i class="fas fa-expand-alt" id="view-mode-icon-${agentId}"></i>
                         </button>
                         <div class="view-mode-dropdown" id="view-mode-menu-${agentId}">
-                            <div class="view-mode-item active" data-mode="all-expanded" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'all-expanded')">
+                            <div class="view-mode-item active" data-mode="all-expanded" onclick="AgentColumn.setViewMode(${agentId}, 'all-expanded', event)">
                                 <i class="fas fa-expand-alt"></i>
                                 <span>All Expanded</span>
                             </div>
-                            <div class="view-mode-item" data-mode="all-collapsed" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'all-collapsed')">
+                            <div class="view-mode-item" data-mode="all-collapsed" onclick="AgentColumn.setViewMode(${agentId}, 'all-collapsed', event)">
                                 <i class="fas fa-list"></i>
                                 <span>All Collapsed</span>
                             </div>
-                            <div class="view-mode-item" data-mode="ai-expanded" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'ai-expanded')">
+                            <div class="view-mode-item" data-mode="ai-expanded" onclick="AgentColumn.setViewMode(${agentId}, 'ai-expanded', event)">
                                 <i class="fas fa-bolt"></i>
                                 <span>AI + Tools Expanded</span>
                             </div>
-                            <div class="view-mode-item" data-mode="ai-collapsed" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'ai-collapsed')">
+                            <div class="view-mode-item" data-mode="ai-collapsed" onclick="AgentColumn.setViewMode(${agentId}, 'ai-collapsed', event)">
                                 <i class="fas fa-robot"></i>
                                 <span>AI + Tools Collapsed</span>
                             </div>
-                            <div class="view-mode-item" data-mode="ai-user" onclick="event.stopPropagation(); AgentColumn.setViewMode(${agentId}, 'ai-user')">
+                            <div class="view-mode-item" data-mode="ai-user" onclick="AgentColumn.setViewMode(${agentId}, 'ai-user', event)">
                                 <i class="fas fa-users"></i>
                                 <span>AI + User Only</span>
                             </div>
@@ -217,29 +217,33 @@ const AgentColumn = (function () {
             
             <!-- Messages Container -->
             <div class="agent-messages-container" id="agent-messages-${agentId}">
+                ${renderEmptyState(agentId, name)}
+                
                 <!-- Scroll Controls (Fixed Top-Right - Visible only when messages exist) -->
-                <div class="agent-scroll-controls" id="scroll-controls-${agentId}">
+                <div class="agent-scroll-controls" id="scroll-controls-${agentId}" style="position: absolute; top: 8px; right: 8px; z-index: 100; display: flex; gap: 4px;">
                     <button class="agent-scroll-top-btn" 
                             onclick="event.stopPropagation(); AgentColumn.scrollToTop(${agentId})" 
                             title="Scroll to top message" 
-                            aria-label="Scroll to top">
+                            aria-label="Scroll to top"
+                            style="width: 28px; height: 28px; border-radius: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary, #e5e7eb); cursor: pointer; display: flex; align-items: center; justify-content: center;">
                         <i class="fa fa-angle-double-up"></i>
                     </button>
                     <button class="agent-scroll-bottom-btn" 
                             onclick="event.stopPropagation(); AgentColumn.scrollToBottom(${agentId}); AgentColumn.scrollColumnIntoView(${agentId})" 
                             title="Scroll to bottom message and column" 
-                            aria-label="Scroll to bottom">
+                            aria-label="Scroll to bottom"
+                            style="width: 28px; height: 28px; border-radius: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary, #e5e7eb); cursor: pointer; display: flex; align-items: center; justify-content: center;">
                         <i class="fa fa-angle-double-down"></i>
                     </button>
                     <button class="agent-autoscroll-btn active" 
                             id="agent-autoscroll-${agentId}" 
                             onclick="event.stopPropagation(); AgentColumn.toggleAutoScroll(${agentId})" 
                             title="Toggle auto-scroll" 
-                            aria-label="Toggle auto-scroll">
+                            aria-label="Toggle auto-scroll"
+                            style="width: 28px; height: 28px; border-radius: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary, #e5e7eb); cursor: pointer; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-step-forward" style="transform: rotate(90deg);"></i>
                     </button>
                 </div>
-                ${renderEmptyState(agentId, name)}
             </div>
             
             <!-- Resize Handle (right edge) -->
@@ -1808,9 +1812,17 @@ const AgentColumn = (function () {
      * Toggle view mode dropdown menu
      * @param {number} agentId - Agent ID
      */
-    function toggleViewModeMenu(agentId) {
+    function toggleViewModeMenu(agentId, event) {
+        // CRITICAL: Stop event from bubbling to document click handler
+        if (event) {
+            event.stopPropagation();
+        }
+
         const menu = document.getElementById(`view-mode-menu-${agentId}`);
-        if (!menu) return;
+        if (!menu) {
+            console.warn(`[AgentColumn] View mode menu not found for agent ${agentId}`);
+            return;
+        }
 
         // Close any other open dropdowns
         document.querySelectorAll('.view-mode-dropdown.show').forEach(dropdown => {
@@ -1820,15 +1832,22 @@ const AgentColumn = (function () {
         });
 
         // Toggle this dropdown
-        menu.classList.toggle('show');
+        const isShowing = menu.classList.toggle('show');
+        console.log(`[AgentColumn] View mode menu for agent ${agentId}: ${isShowing ? 'OPENED' : 'CLOSED'}`);
     }
 
     /**
      * Set view mode (called from dropdown menu)
      * @param {number} agentId - Agent ID
      * @param {string} mode - View mode to set
+     * @param {Event} event - Optional event to stop propagation
      */
-    function setViewMode(agentId, mode) {
+    function setViewMode(agentId, mode, event) {
+        // CRITICAL: Stop event from bubbling
+        if (event) {
+            event.stopPropagation();
+        }
+
         viewModes[agentId] = mode;
 
         // Update button icon and title

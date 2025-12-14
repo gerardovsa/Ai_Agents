@@ -424,9 +424,5 @@ window.RealtimeSubscriptionsInit = (function () {
     };
 })();
 
-// Auto-initialize if SupabaseConnectionManager is ready
-if (typeof SupabaseConnectionManager !== 'undefined') {
-    SupabaseConnectionManager.onReady(() => {
-        console.log('🔄 [Realtime Init] SupabaseConnectionManager ready - waiting for user login...');
-    });
-}
+// Note: Auto-initialization happens via user_auth.js after login
+// No need to wait for SupabaseConnectionManager - it auto-initializes on page load
