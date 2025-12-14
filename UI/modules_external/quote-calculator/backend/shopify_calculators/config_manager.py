@@ -1,19 +1,26 @@
 """
-Config Manager - Dummy module for Shopify calculators compatibility
-=====================================================================
+Config Manager - Shopify calculators configuration loader
+==========================================================
 
-This module is imported by Shopify calculators but not actually used.
-It's a legacy import from the original Shopify WooCommerce implementation.
-
-The calculators have all pricing hardcoded and don't need configuration.
+Loads Shopify calculator configuration files from G_Folder.
+Some calculators (like Saddle Stitch) need config, others have hardcoded pricing.
 """
+
+import json
+from pathlib import Path
 
 
 class ConfigManager:
-    """Dummy config manager for compatibility"""
+    """Config manager for Shopify calculators"""
+    
+    # Config file locations to search
+    CONFIG_PATHS = [
+        r"c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify",
+        Path(__file__).parent.parent.parent.parent.parent.parent / "In_House_SQL" / "G_Folder" / "Quote_Calculator" / "shopify"
+    ]
     
     def __init__(self):
-        """Initialize empty config manager"""
+        """Initialize config manager"""
         self.config = {}
     
     def get(self, key, default=None):
@@ -26,11 +33,26 @@ class ConfigManager:
     
     def load_shopify_config(self, config_file):
         """
-        Load Shopify config file (dummy implementation)
+        Load Shopify config file from G_Folder
         
-        Returns empty dict - calculators have all pricing hardcoded.
-        This method exists for compatibility with calculator __init__ calls.
+        Args:
+            config_file: Filename (e.g., "Shopify_Saddle_Stitch_Books.json")
+            
+        Returns:
+            Dict with config data, or empty dict if file not found
         """
+        # Try each config path
+        for base_path in self.CONFIG_PATHS:
+            try:
+                config_path = Path(base_path) / config_file
+                if config_path.exists():
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+            except Exception as e:
+                continue
+        
+        # File not found in any location - return empty dict
+        # (Most calculators have hardcoded pricing and don't need config)
         return {}
 
 

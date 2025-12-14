@@ -15,9 +15,7 @@ from typing import Dict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 from pathlib import Path
 
-# Add config directory to path
-if str(config_dir) not in sys.path:
-
+# Import config manager
 from config_manager import config_manager
 
 

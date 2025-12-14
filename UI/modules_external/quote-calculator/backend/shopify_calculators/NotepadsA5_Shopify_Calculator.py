@@ -135,7 +135,7 @@ class NotepadsA5ShopifyCalculator:
             'cutting_cost': cutting_cost,
             'binding_cost': binding_cost,
             'biz_cost': biz_cost,
-            'profit_margin_rate': Decimal(profit_margin_rate),
+            'profit_margin_rate': profit_margin_rate,
             'profit_amount': profit_amount,
             'subtotal': sub_total,
             'subtotal_with_increase': subtotal_with_increase,
