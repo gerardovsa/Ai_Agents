@@ -332,12 +332,12 @@ class LetterheadCalculatorGOD:
                 'size': f"{width}x{height}mm",
                 'stock': best_stock.description,
                 'stock_size': f"{best_stock.width}x{best_stock.height}mm",
-                'gsm': gsm,
-                'sheets_needed': sheets_with_waste,
-                'ups_per_sheet': best_ups,
+                'gsm': str(gsm),
+                'sheets_needed': str(sheets_with_waste),
+                'ups_per_sheet': str(best_ups),
                 'print_side1': self._print_mode_name(print_side1),
                 'print_side2': self._print_mode_name(print_side2),
-                'a4_multiplier': a4_multiplier,
+                'a4_multiplier': str(a4_multiplier),
                 'profit_margin_pct': float(profit_margin * 100)
             }
         )

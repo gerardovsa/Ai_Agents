@@ -43,12 +43,11 @@ from decimal import Decimal
 current_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.abspath(os.path.join(current_dir, '..', 'backend'))
 god_calc_dir = os.path.join(backend_dir, 'god_calculators')
+shopify_calc_dir = os.path.join(backend_dir, 'shopify_calculators')  # NEW: Correct path
 inhouse_print_module = os.path.abspath(os.path.join(current_dir, '..', '..', 'inhouse-print'))
-in_house_sql_root = 'C:/Users/gpoli/GIT/In_House_SQL'
-shopify_calc_path = os.path.join(in_house_sql_root, 'G_Folder', 'Quote_Calculator', 'shopify_calculators')
 
 # Add necessary paths
-for path in [current_dir, backend_dir, god_calc_dir, inhouse_print_module, shopify_calc_path]:
+for path in [current_dir, backend_dir, god_calc_dir, shopify_calc_dir, inhouse_print_module]:
     abs_path = os.path.abspath(path)
     if abs_path not in sys.path:
         sys.path.insert(0, abs_path)
@@ -123,6 +122,9 @@ def calculate_business_cards(
         # Use Shopify calculator directly (like GOD calculators)
         if not SHOPIFY_CALCULATORS_AVAILABLE:
             raise RuntimeError("Shopify calculators not available")
+        
+        # Ensure quantity is integer (may come as string from schema)
+        quantity = int(quantity)
         
         # Convert print_type to Shopify format
         print_sides = "Double side print" if print_type == "double_sided" else "Single side print"
@@ -1076,6 +1078,9 @@ def calculate_economical_business_cards_shopify(
         # TRANSLATION LAYER: Schema → Backend
         print_sides = "Double side print" if double_sided else "Single side print"
         
+        # Ensure quantity is integer (may come as string from schema)
+        quantity = int(quantity)
+        
         calculator = EconomicalBusinessCardsShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
@@ -1141,6 +1146,9 @@ def calculate_premium_business_cards_shopify(
     try:
         # TRANSLATION LAYER: Schema → Backend
         print_sides = "Double side print" if double_sided else "Single side print"
+        
+        # Ensure quantity is integer (may come as string from schema)
+        quantity = int(quantity)
         
         calculator = PremiumBusinessCardsShopifyCalculator()
         result = calculator.calculate(
@@ -1213,6 +1221,10 @@ def calculate_folded_flyers_shopify(
         # TRANSLATION LAYER: Schema → Backend
         paper_stock = stock  # Rename for backend
         print_sides = "Double side print" if double_sided else "Single side print"
+        
+        # Ensure quantity is integer (may come as string from schema)
+        quantity = int(quantity)
+        
         # Import backend enums
         from shopify_calculators.FoldedFlyers_Shopify_Calculator import (
             PrintSides, PrintType, FinishSize, PaperStock, FoldType, Celloglaze
