@@ -1,4 +1,4 @@
-﻿"""
+"""
 Enhanced Thread Manager API
 Implements AnythingLLM-style thread/message management with database persistence
 
@@ -7,7 +7,6 @@ When thinking is enabled, Anthropic API REQUIRES assistant messages to start wit
 Stripping them causes 400 errors on subsequent turns.
 """
 
-import sqlite3
 import json
 from datetime import datetime
 from typing import List, Dict, Optional, Any
@@ -80,7 +79,7 @@ class ThreadManager:
         """Get database connection to sessions database"""
         conn = get_database_connection('sessions')  # CRITICAL FIX: Use 'sessions' database, not default 'ai_infrastructure'
         if hasattr(conn, 'row_factory'):  # SQLite only
-            conn.row_factory = sqlite3.Row  # Enable dictionary-like access
+            conn.row_factory = psycopg2.extras.RealDictRow  # Enable dictionary-like access
         return conn
     
     def _generate_slug(self, text: str) -> str:
@@ -99,15 +98,14 @@ class ThreadManager:
         Returns:
             Dict with workspace details including id (INTEGER) or None if not found
         """
-        import sqlite3
-        from pathlib import Path
+                from pathlib import Path
         
         from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
         db_path = get_ai_infrastructure_db_path()
         
         conn = get_database_connection('ai_infrastructure')  # Workspaces are in ai_infrastructure.db
         if hasattr(conn, 'row_factory'):
-            conn.row_factory = sqlite3.Row
+            conn.row_factory = psycopg2.extras.RealDictRow
         cursor = conn.cursor()
         
         try:
@@ -393,7 +391,7 @@ class ThreadManager:
             
             # AUTO-CREATE THREAD if it doesn't exist (FIX: Backend should create threads, not frontend)
             if not thread_row:
-                print(f"⚠️ [ThreadManager] Thread '{thread_slug}' not found, auto-creating...")
+                print(f"?? [ThreadManager] Thread '{thread_slug}' not found, auto-creating...")
                 
                 # Create thread in database
                 timestamp = datetime.now().isoformat()
@@ -422,14 +420,14 @@ class ThreadManager:
                 """, (thread_slug,))
                 
                 thread_row = cursor.fetchone()
-                print(f"✅ [ThreadManager] Thread '{thread_slug}' created (ID: {thread_row[0]})")
+                print(f"? [ThreadManager] Thread '{thread_slug}' created (ID: {thread_row[0]})")
             
             thread_id = thread_row[0]
             workspace_id = thread_row[3]  # Get workspace_id from thread (INTEGER)
             
             timestamp = datetime.now().isoformat()
             
-            # ✅ BEST PRACTICE: Prepare content for storage
+            # ? BEST PRACTICE: Prepare content for storage
             # Keep only text + tool_use blocks (ChatGPT/Claude.ai pattern)
             if role == 'assistant':
                 content = prepare_content_for_storage(content)
@@ -804,3 +802,4 @@ if __name__ == '__main__':
             print(f" Created workspace: {workspace}")
     except Exception as e:
         print(f" Error: {e}")
+

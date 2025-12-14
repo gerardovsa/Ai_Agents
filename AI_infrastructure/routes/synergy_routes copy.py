@@ -25,7 +25,6 @@ Endpoints:
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
 import json
 import os
 from datetime import datetime
@@ -285,7 +284,7 @@ def init_database():
             else:
                 # SQLite syntax
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
-        except (sqlite3.OperationalError, Exception):
+        except (psycopg2.OperationalError, Exception):
             pass  # Column already exists
         
         try:
@@ -293,7 +292,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS assigned_agents TEXT')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
-        except (sqlite3.OperationalError, Exception):
+        except (psycopg2.OperationalError, Exception):
             pass  # Column already exists
         
         try:
@@ -301,7 +300,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS column_position INTEGER DEFAULT 0')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
-        except (sqlite3.OperationalError, Exception):
+        except (psycopg2.OperationalError, Exception):
             pass  # Column already exists
         
         # Add permission columns
@@ -310,7 +309,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS owner_user_id INTEGER')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN owner_user_id INTEGER')
-        except (sqlite3.OperationalError, Exception):
+        except (psycopg2.OperationalError, Exception):
             pass
         
         try:
@@ -318,7 +317,7 @@ def init_database():
                 cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS permission_level TEXT DEFAULT 'private'")
             else:
                 cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN permission_level TEXT DEFAULT 'private'")
-        except (sqlite3.OperationalError, Exception):
+        except (psycopg2.OperationalError, Exception):
             pass
         
         try:
@@ -326,7 +325,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS shared_with_users TEXT')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN shared_with_users TEXT')
-        except (sqlite3.OperationalError, Exception):
+        except (psycopg2.OperationalError, Exception):
             pass
         
         try:
@@ -334,7 +333,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS allow_public_view BOOLEAN DEFAULT FALSE')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN allow_public_view INTEGER DEFAULT 0')
-        except (sqlite3.OperationalError, Exception):
+        except (psycopg2.OperationalError, Exception):
             pass
         
         conn.commit()
@@ -4245,3 +4244,4 @@ def get_milestone(milestone_id):
     except Exception as e:
         print(f"[MILESTONE ERROR] Failed to get milestone: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+

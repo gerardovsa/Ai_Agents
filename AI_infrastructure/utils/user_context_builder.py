@@ -104,8 +104,7 @@ def build_user_context(user_id: int, ip_address: Optional[str] = None) -> Dict:
         # 1. Load user personal data
         try:
             from pathlib import Path
-            import sqlite3
-            import sys
+                        import sys
             
             # Add parent directory for imports
             sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -113,7 +112,7 @@ def build_user_context(user_id: int, ip_address: Optional[str] = None) -> Dict:
             
             conn = get_database_connection('ai_infrastructure')
             if hasattr(conn, 'row_factory'):  # SQLite
-                conn.row_factory = sqlite3.Row
+                conn.row_factory = psycopg2.extras.RealDictRow
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -328,3 +327,4 @@ if __name__ == '__main__':
     
     print("\n\nFormatted for System Prompt:")
     print(format_context_for_system_prompt(context))
+

@@ -42,7 +42,7 @@ def get_connection_with_path(db_path: Union[str, Path]):
         db_path: Path to SQLite database file
     
     Returns:
-        sqlite3.Connection
+        psycopg2.connection
     
     Note: This function is for backward compatibility only.
           New code should use get_connection() instead.
@@ -63,9 +63,8 @@ def get_connection_with_path(db_path: Union[str, Path]):
     
     # Local: Use provided path
     else:
-        import sqlite3
-        conn = sqlite3.connect(str(db_path))
-        conn.row_factory = sqlite3.Row
+                conn = psycopg2.connect(str(db_path))
+        conn.row_factory = psycopg2.extras.RealDictRow
         return conn
 
 
@@ -73,3 +72,4 @@ def get_connection_with_path(db_path: Union[str, Path]):
 get_ai_infrastructure_connection = lambda: get_connection('ai_infrastructure')
 get_sessions_connection = lambda: get_connection('sessions')
 get_synergy_connection = lambda: get_connection('synergy_sessions')
+

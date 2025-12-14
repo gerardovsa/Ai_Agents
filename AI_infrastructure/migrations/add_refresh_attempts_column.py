@@ -38,9 +38,14 @@ def add_refresh_attempts_column():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check if column already exists
-        cursor.execute("PRAGMA table_info(oauth_tokens)")
-        columns = [row[1] for row in cursor.fetchall()]
+        # Check if column already exists (PostgreSQL-compatible)
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_schema = 'ai_infrastructure' 
+            AND table_name = 'oauth_tokens'
+        """)
+        columns = [row[0] for row in cursor.fetchall()]
         
         if 'refresh_attempts' in columns:
             logger.info("✅ refresh_attempts column already exists")

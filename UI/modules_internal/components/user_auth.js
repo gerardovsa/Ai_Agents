@@ -503,6 +503,31 @@ const UserAuth = {
             }
             this.setLoadingProgress(60, 'Modules loaded');
 
+            // Initialize ALL real-time subscriptions (workspace, threads, synergy, credentials, sessions)
+            if (window.RealtimeSubscriptionsInit) {
+                console.log('🔄 [AUTH] Initializing real-time subscriptions...');
+                try {
+                    await window.RealtimeSubscriptionsInit.initialize();
+                    const activeSubs = window.RealtimeSubscriptionsInit.getActiveSubscriptions();
+                    console.log(`✅ [AUTH] Real-time subscriptions initialized (${activeSubs.length} active):`, activeSubs);
+                } catch (error) {
+                    console.warn('⚠️ [AUTH] Real-time initialization error (non-critical):', error);
+                }
+            } else {
+                console.warn('⚠️ [AUTH] RealtimeSubscriptionsInit not loaded - skipping real-time subscriptions');
+            }
+
+            // Load workspace settings
+            if (window.WorkspaceManager && window.WorkspaceManager.loadAll) {
+                console.log('🔄 [AUTH] Loading workspace settings...');
+                try {
+                    await window.WorkspaceManager.loadAll();
+                    console.log('✅ [AUTH] Workspace settings loaded');
+                } catch (error) {
+                    console.warn('⚠️ [AUTH] Workspace load error (non-critical):', error);
+                }
+            }
+
             // PHASE 3: Pre-fetch background modules (non-blocking)
             this.setLoadingProgress(65, 'Pre-fetching features...');
             console.log('🔮 [AUTH] Pre-fetching commonly-used features in background...');

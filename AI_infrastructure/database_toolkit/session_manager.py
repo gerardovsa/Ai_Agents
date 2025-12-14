@@ -5,7 +5,6 @@ Session Manager
 Manage user sessions and cleanup expired sessions.
 """
 
-import sqlite3
 import secrets
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -19,9 +18,9 @@ class SessionManager:
         self.db_path = db_path
         self.default_expiry_hours = 24
     
-    def get_connection(self) -> sqlite3.Connection:
+    def get_connection(self) -> psycopg2.connection:
         """Get database connection"""
-        return sqlite3.connect(self.db_path)
+        return psycopg2.connect(self.db_path)
     
     def create_session(self, user_id: int, 
                       ip_address: Optional[str] = None,
@@ -233,3 +232,4 @@ if __name__ == "__main__":
     stats = manager.get_session_stats()
     print(f"Session Stats: {stats}")
     manager.print_active_sessions()
+

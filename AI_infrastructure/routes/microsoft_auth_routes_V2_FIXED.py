@@ -41,7 +41,6 @@ from Microsoft_365_Connection.microsoft365_oauth_manager import (
 )
 import secrets
 import logging
-import sqlite3
 from datetime import datetime, timedelta
 import jwt as pyjwt
 import json
@@ -105,7 +104,7 @@ def get_db_connection():
     # CRITICAL: Use centralized utility (auto-detects SQLite vs Supabase)
     conn = get_database_connection('ai_infrastructure')
     if hasattr(conn, 'row_factory'):  # SQLite
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = psycopg2.extras.RealDictRow
     logger.info(f'🔷 [DB CONNECTION] Using: ai_infrastructure schema')
     return conn
 
@@ -373,7 +372,7 @@ def create_user(email: str, username: str, role: str = 'user'):
         logger.info(f"Created new user: {email} (ID: {user_id})")
         return get_user_by_email(email)
         
-    except sqlite3.IntegrityError as e:
+    except IntegrityError as e:
         logger.error(f"Integrity constraint violation: {e}")
         # Try to get existing user
         try:
@@ -1312,16 +1311,8 @@ def get_microsoft_config():
 # ======================================================================
 # STARTUP LOGGING
 # ======================================================================
-logger.info("="*80)
-logger.info("Microsoft OAuth routes loaded (V3 COMPLETE - CURSOR MANAGEMENT FIXED)")
-logger.info("   - Writes to: oauth_tokens table (24 columns)")
-logger.info("   - All cursor management issues resolved ✅")
 client_id_check = os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', 'NOT SET')
-redirect_uri_check = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI') or 'http://localhost:5001/api/auth/microsoft/callback'
-tenant_check = os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
-logger.info(f"   - Client ID: {client_id_check[:20]}...")
-logger.info(f"   - Redirect URI: {redirect_uri_check}")
-logger.info(f"   - Scopes: {len(MICROSOFT_SCOPES)} requested")
-logger.info(f"   - Tenant: {tenant_check}")
-logger.info(f"   - Date: December 7, 2024")
-logger.info("="*80)
+if client_id_check != 'NOT SET':
+    logger.info("✅ Microsoft OAuth routes loaded")
+else:
+    logger.warning("⚠️ Microsoft OAuth routes loaded (Client ID not configured)")

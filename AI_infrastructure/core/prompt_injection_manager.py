@@ -25,7 +25,6 @@ Usage:
 """
 
 import json
-import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -662,3 +661,4 @@ def get_prompt_manager() -> PromptInjectionManager:
     if _prompt_manager is None:
         _prompt_manager = PromptInjectionManager()
     return _prompt_manager
+

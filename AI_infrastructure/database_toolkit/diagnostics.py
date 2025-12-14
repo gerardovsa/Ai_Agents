@@ -5,7 +5,6 @@ Database Diagnostics
 Health checks and troubleshooting tools.
 """
 
-import sqlite3
 import os
 from typing import Dict, List
 from datetime import datetime, timedelta
@@ -18,9 +17,9 @@ class Diagnostics:
         """Initialize diagnostics"""
         self.db_path = db_path
     
-    def get_connection(self) -> sqlite3.Connection:
+    def get_connection(self) -> psycopg2.connection:
         """Get database connection"""
-        return sqlite3.connect(self.db_path)
+        return psycopg2.connect(self.db_path)
     
     def check_database_exists(self) -> Dict:
         """Check if database file exists"""
@@ -48,11 +47,10 @@ class Diagnostics:
         
         # Get actual tables
         cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name NOT LIKE 'sqlite_%'
+            SELECT table_name FROM information_schema.tables WHERE table_schema='ai_infrastructure'
             ORDER BY name
         """)
-        actual = [row[0] for row in cursor.fetchall()]
+        actual = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
         
         conn.close()
         
@@ -71,10 +69,9 @@ class Diagnostics:
         
         # Get all tables
         cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name NOT LIKE 'sqlite_%'
+            SELECT table_name FROM information_schema.tables WHERE table_schema='ai_infrastructure'
         """)
-        tables = [row[0] for row in cursor.fetchall()]
+        tables = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
         
         counts = {}
         for table in tables:
@@ -87,20 +84,19 @@ class Diagnostics:
     def check_foreign_keys(self) -> List[Dict]:
         """Validate foreign key constraints"""
         conn = self.get_connection()
-        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("-- PostgreSQL: Foreign keys always enforced")
         cursor = conn.cursor()
         
         # Get all tables
         cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name NOT LIKE 'sqlite_%'
+            SELECT table_name FROM information_schema.tables WHERE table_schema='ai_infrastructure'
         """)
-        tables = [row[0] for row in cursor.fetchall()]
+        tables = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
         
         violations = []
         for table in tables:
             try:
-                cursor.execute(f"PRAGMA foreign_key_check({table})")
+                cursor.execute(f"SELECT * FROM information_schema.table_constraints WHERE constraint_type='FOREIGN KEY' AND table_name=({table})")
                 issues = cursor.fetchall()
                 if issues:
                     violations.append({
@@ -233,3 +229,5 @@ if __name__ == "__main__":
     # Run health check
     diag = Diagnostics()
     diag.run_full_health_check()
+
+

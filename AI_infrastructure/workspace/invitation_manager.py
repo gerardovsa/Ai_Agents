@@ -3,6 +3,9 @@ Invitation Manager - Workspace Invitation System
 
 Handles sending, accepting, declining, and managing workspace invitations.
 Uses Supabase PostgreSQL via get_database_connection('ai_infrastructure')
+
+File: AI_infrastructure/workspace/invitation_manager.py
+Last Updated: 14/12/2025
 """
 
 import sys
@@ -30,7 +33,8 @@ from .exceptions import (
     InvitationNotFoundError,
     InvitationExpiredError,
     InvitationAlreadyProcessedError,
-    WorkspaceMemberAlreadyExistsError
+    WorkspaceMemberAlreadyExistsError,
+    DatabaseError
 )
 
 
@@ -92,14 +96,24 @@ class InvitationManager:
         Raises:
             WorkspaceNotFoundError: If workspace doesn't exist
             WorkspaceMemberAlreadyExistsError: If invited user is already member
-        """
-        conn = self._get_connection()
-        cursor = conn.cursor()
         
+        ✅ FIXED: Added proper cursor management with multiple queries
+        """
+        cursor = None
+        conn = None
+        cursor2 = None  # For fetching created invitation
+        cursor3 = None  # For checking existing invitation
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             # Verify workspace exists
             cursor.execute("SELECT id FROM workspaces WHERE id = %s", (invitation_data.workspace_id,))
             if not cursor.fetchone():
+                cursor.close()
+                cursor = None
+                conn.close()
+                conn = None
                 raise WorkspaceNotFoundError(workspace_id=invitation_data.workspace_id)
             
             # Check if user already invited or member
@@ -111,6 +125,10 @@ class InvitationManager:
                 """, (invitation_data.workspace_id, invitation_data.invited_user_id))
                 
                 if cursor.fetchone():
+                    cursor.close()
+                    cursor = None
+                    conn.close()
+                    conn = None
                     raise WorkspaceMemberAlreadyExistsError(
                         invitation_data.workspace_id,
                         invitation_data.invited_user_id
@@ -132,10 +150,20 @@ class InvitationManager:
                 
                 existing = cursor.fetchone()
                 if existing:
+                    # Close first cursor before second query
+                    cursor.close()
+                    cursor = None
+                    
                     # Return existing invitation instead of creating duplicate
-                    cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (existing['id'],))
-                    row = cursor.fetchone()
+                    cursor3 = conn.cursor()
+                    cursor3.execute("SELECT * FROM workspace_invitations WHERE id = %s", (existing['id'],))
+                    row = cursor3.fetchone()
+                    
+                    cursor3.close()
+                    cursor3 = None
                     conn.close()
+                    conn = None
+                    
                     return WorkspaceInvitation(**dict(row))
             
             # Generate invitation token
@@ -166,17 +194,57 @@ class InvitationManager:
             invitation_id = cursor.lastrowid
             conn.commit()
             
-            # Fetch created invitation
-            cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
-            row = cursor.fetchone()
+            # Close first cursor before fetching
+            cursor.close()
+            cursor = None
+            
+            # Fetch created invitation with new cursor
+            cursor2 = conn.cursor()
+            cursor2.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
+            row = cursor2.fetchone()
+            
+            cursor2.close()
+            cursor2 = None
             conn.close()
+            conn = None
             
             return WorkspaceInvitation(**dict(row))
         
-        except Exception as e:
-            conn.rollback()
-            conn.close()
+        except (WorkspaceNotFoundError, WorkspaceMemberAlreadyExistsError):
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise
+        except Exception as e:
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            raise DatabaseError("create_invitation", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if cursor2:
+                try:
+                    cursor2.close()
+                except:
+                    pass
+            if cursor3:
+                try:
+                    cursor3.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def get_invitation(
         self,
@@ -196,25 +264,50 @@ class InvitationManager:
         Raises:
             InvitationNotFoundError: If invitation not found
             ValueError: If neither ID nor token provided
+        
+        ✅ FIXED: Added proper cursor management
         """
         if not invitation_id and not token:
             raise ValueError("Either invitation_id or token must be provided")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        if invitation_id:
-            cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
-        else:
-            cursor.execute("SELECT * FROM workspace_invitations WHERE token = %s", (token,))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if not row:
-            raise InvitationNotFoundError(invitation_id=invitation_id, token=token)
-        
-        return WorkspaceInvitation(**dict(row))
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            if invitation_id:
+                cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
+            else:
+                cursor.execute("SELECT * FROM workspace_invitations WHERE token = %s", (token,))
+            
+            row = cursor.fetchone()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            if not row:
+                raise InvitationNotFoundError(invitation_id=invitation_id, token=token)
+            
+            return WorkspaceInvitation(**dict(row))
+            
+        except InvitationNotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError("get_invitation", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def accept_invitation(
         self,
@@ -235,7 +328,10 @@ class InvitationManager:
             InvitationNotFoundError: If invitation not found
             InvitationExpiredError: If invitation expired
             InvitationAlreadyProcessedError: If already accepted/declined
+        
+        ✅ FIXED: Added proper cursor management with multiple queries
         """
+        # Get invitation (opens its own connection)
         invitation = self.get_invitation(token=token)
         
         # Validate invitation status
@@ -250,10 +346,13 @@ class InvitationManager:
         if invitation.invited_user_id and invitation.invited_user_id != user_id:
             raise ValueError("Invitation not for this user")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
+        cursor = None
+        conn = None
+        cursor2 = None  # For fetching workspace
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             # Add user to workspace
             cursor.execute("""
                 INSERT INTO workspace_users (
@@ -276,10 +375,19 @@ class InvitationManager:
             
             conn.commit()
             
-            # Get workspace details
-            cursor.execute("SELECT * FROM workspaces WHERE id = %s", (invitation.workspace_id,))
-            workspace_row = cursor.fetchone()
+            # Close first cursor before second query
+            cursor.close()
+            cursor = None
+            
+            # Get workspace details with new cursor
+            cursor2 = conn.cursor()
+            cursor2.execute("SELECT * FROM workspaces WHERE id = %s", (invitation.workspace_id,))
+            workspace_row = cursor2.fetchone()
+            
+            cursor2.close()
+            cursor2 = None
             conn.close()
+            conn = None
             
             return WorkspaceInvitationResponse(
                 success=True,
@@ -289,9 +397,28 @@ class InvitationManager:
             )
         
         except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            raise DatabaseError("accept_invitation", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if cursor2:
+                try:
+                    cursor2.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def decline_invitation(self, token: str, user_id: int) -> WorkspaceInvitationResponse:
         """
@@ -307,7 +434,10 @@ class InvitationManager:
         Raises:
             InvitationNotFoundError: If invitation not found
             InvitationAlreadyProcessedError: If already processed
+        
+        ✅ FIXED: Added proper cursor management
         """
+        # Get invitation (opens its own connection)
         invitation = self.get_invitation(token=token)
         
         # Validate invitation status
@@ -318,23 +448,49 @@ class InvitationManager:
         if invitation.invited_user_id and invitation.invited_user_id != user_id:
             raise ValueError("Invitation not for this user")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            UPDATE workspace_invitations
-            SET status = %s, responded_at = %s
-            WHERE id = %s
-        """, (InvitationStatus.DECLINED, datetime.now(), invitation.id))
-        
-        conn.commit()
-        conn.close()
-        
-        return WorkspaceInvitationResponse(
-            success=True,
-            message="Invitation declined",
-            workspace_id=invitation.workspace_id
-        )
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE workspace_invitations
+                SET status = %s, responded_at = %s
+                WHERE id = %s
+            """, (InvitationStatus.DECLINED, datetime.now(), invitation.id))
+            
+            conn.commit()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return WorkspaceInvitationResponse(
+                success=True,
+                message="Invitation declined",
+                workspace_id=invitation.workspace_id
+            )
+            
+        except Exception as e:
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            raise DatabaseError("decline_invitation", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def cancel_invitation(self, invitation_id: int, user_id: int) -> bool:
         """
@@ -350,26 +506,55 @@ class InvitationManager:
         Raises:
             InvitationNotFoundError: If invitation not found
             InvitationAlreadyProcessedError: If already processed
+        
+        ✅ FIXED: Added proper cursor management
         """
+        # Get invitation (opens its own connection)
         invitation = self.get_invitation(invitation_id=invitation_id)
         
         # Validate can cancel
         if invitation.status != InvitationStatus.PENDING:
             raise InvitationAlreadyProcessedError(invitation.id, invitation.status)
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            UPDATE workspace_invitations
-            SET status = %s, responded_at = %s
-            WHERE id = %s
-        """, (InvitationStatus.CANCELLED, datetime.now(), invitation_id))
-        
-        conn.commit()
-        conn.close()
-        
-        return True
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE workspace_invitations
+                SET status = %s, responded_at = %s
+                WHERE id = %s
+            """, (InvitationStatus.CANCELLED, datetime.now(), invitation_id))
+            
+            conn.commit()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return True
+            
+        except Exception as e:
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            raise DatabaseError("cancel_invitation", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def list_workspace_invitations(
         self,
@@ -389,25 +574,48 @@ class InvitationManager:
         
         Returns:
             List[WorkspaceInvitation]: Invitations
+        
+        ✅ FIXED: Added proper cursor management
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        query = "SELECT * FROM workspace_invitations WHERE workspace_id = %s"
-        params = [workspace_id]
-        
-        if status:
-            query += " AND status = %s"
-            params.append(status)
-        
-        query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
-        params.extend([limit, offset])
-        
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        conn.close()
-        
-        return [WorkspaceInvitation(**dict(row)) for row in rows]
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            query = "SELECT * FROM workspace_invitations WHERE workspace_id = %s"
+            params = [workspace_id]
+            
+            if status:
+                query += " AND status = %s"
+                params.append(status)
+            
+            query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+            params.extend([limit, offset])
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return [WorkspaceInvitation(**dict(row)) for row in rows]
+            
+        except Exception as e:
+            raise DatabaseError("list_workspace_invitations", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def list_user_invitations(
         self,
@@ -427,25 +635,48 @@ class InvitationManager:
         
         Returns:
             List[WorkspaceInvitation]: User's invitations
+        
+        ✅ FIXED: Added proper cursor management
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        query = "SELECT * FROM workspace_invitations WHERE invited_user_id = %s"
-        params = [user_id]
-        
-        if status:
-            query += " AND status = %s"
-            params.append(status)
-        
-        query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
-        params.extend([limit, offset])
-        
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        conn.close()
-        
-        return [WorkspaceInvitation(**dict(row)) for row in rows]
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            query = "SELECT * FROM workspace_invitations WHERE invited_user_id = %s"
+            params = [user_id]
+            
+            if status:
+                query += " AND status = %s"
+                params.append(status)
+            
+            query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+            params.extend([limit, offset])
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return [WorkspaceInvitation(**dict(row)) for row in rows]
+            
+        except Exception as e:
+            raise DatabaseError("list_user_invitations", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def expire_old_invitations(self) -> int:
         """
@@ -453,22 +684,50 @@ class InvitationManager:
         
         Returns:
             int: Number of invitations expired
+        
+        ✅ FIXED: Added proper cursor management
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            UPDATE workspace_invitations
-            SET status = %s
-            WHERE status = %s
-              AND expires_at < %s
-        """, (InvitationStatus.EXPIRED, InvitationStatus.PENDING, datetime.now()))
-        
-        count = cursor.rowcount
-        conn.commit()
-        conn.close()
-        
-        return count
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE workspace_invitations
+                SET status = %s
+                WHERE status = %s
+                  AND expires_at < %s
+            """, (InvitationStatus.EXPIRED, InvitationStatus.PENDING, datetime.now()))
+            
+            count = cursor.rowcount
+            conn.commit()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return count
+            
+        except Exception as e:
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            raise DatabaseError("expire_old_invitations", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def resend_invitation(self, invitation_id: int) -> WorkspaceInvitation:
         """
@@ -483,7 +742,10 @@ class InvitationManager:
         Raises:
             InvitationNotFoundError: If invitation not found
             InvitationAlreadyProcessedError: If not pending
+        
+        ✅ FIXED: Added proper cursor management with multiple queries
         """
+        # Get invitation (opens its own connection)
         invitation = self.get_invitation(invitation_id=invitation_id)
         
         if invitation.status != InvitationStatus.PENDING:
@@ -492,20 +754,57 @@ class InvitationManager:
         # Extend expiry
         new_expiry = datetime.now() + timedelta(days=self.default_expiry_days)
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            UPDATE workspace_invitations
-            SET expires_at = %s
-            WHERE id = %s
-        """, (new_expiry, invitation_id))
-        
-        conn.commit()
-        
-        # Fetch updated invitation
-        cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
-        row = cursor.fetchone()
-        conn.close()
-        
-        return WorkspaceInvitation(**dict(row))
+        cursor = None
+        conn = None
+        cursor2 = None  # For fetching updated invitation
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE workspace_invitations
+                SET expires_at = %s
+                WHERE id = %s
+            """, (new_expiry, invitation_id))
+            
+            conn.commit()
+            
+            # Close first cursor before second query
+            cursor.close()
+            cursor = None
+            
+            # Fetch updated invitation with new cursor
+            cursor2 = conn.cursor()
+            cursor2.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
+            row = cursor2.fetchone()
+            
+            cursor2.close()
+            cursor2 = None
+            conn.close()
+            conn = None
+            
+            return WorkspaceInvitation(**dict(row))
+            
+        except Exception as e:
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            raise DatabaseError("resend_invitation", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if cursor2:
+                try:
+                    cursor2.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass

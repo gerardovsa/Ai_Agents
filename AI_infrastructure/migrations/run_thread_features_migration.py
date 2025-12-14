@@ -4,13 +4,12 @@ Purpose: Add columns for tags, synergy integration, and branching support
 Date: November 7, 2025
 """
 
-import sqlite3
 import os
 from pathlib import Path
 
 # Database path
 ROOT_DIR = Path(__file__).parent.parent.parent
-DB_PATH = ROOT_DIR / 'data' / 'sessions.db'
+DB_PATH = ROOT_DIR / 'data' / 'sessions.db - DEPRECATED (now PostgreSQL)'
 
 def run_migration():
     """Run database migration to add new thread features"""
@@ -22,15 +21,14 @@ def run_migration():
         return False
     
     try:
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = psycopg2.connect(str(DB_PATH))
         cursor = conn.cursor()
         
         print("\nStarting migration...")
         
         # Check if saved_threads table exists
         cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name='saved_threads'
+            SELECT table_name FROM information_schema.tables WHERE table_schema='ai_infrastructure' AND table_name='saved_threads'
         """)
         if not cursor.fetchone():
             print("saved_threads table not found!")
@@ -38,7 +36,7 @@ def run_migration():
             return False
         
         # Get current schema
-        cursor.execute("PRAGMA table_info(saved_threads)")
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='saved_threads'")
         columns = [row[1] for row in cursor.fetchall()]
         print(f"\nCurrent columns: {columns}")
         
@@ -60,7 +58,7 @@ def run_migration():
                     cursor.execute(f"ALTER TABLE saved_threads ADD COLUMN {col_name} {col_def}")
                     print(f"  Added column: {col_name}")
                     added_count += 1
-                except sqlite3.OperationalError as e:
+                except psycopg2.OperationalError as e:
                     print(f"  Column {col_name} already exists or error: {e}")
             else:
                 print(f"  Column {col_name} already exists")
@@ -82,22 +80,21 @@ def run_migration():
                     ON saved_threads({col_name})
                 """)
                 print(f"  Created index: {idx_name}")
-            except sqlite3.OperationalError as e:
+            except psycopg2.OperationalError as e:
                 print(f"  Index {idx_name} error: {e}")
         
         conn.commit()
         
         # Verify changes
-        cursor.execute("PRAGMA table_info(saved_threads)")
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='saved_threads'")
         new_columns_list = [row[1] for row in cursor.fetchall()]
         print(f"\nFinal columns: {new_columns_list}")
         
         # Get indexes
         cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='index' AND tbl_name='saved_threads'
+            SELECT indexname FROM pg_indexes WHERE schemaname='ai_infrastructure' AND tbl_name='saved_threads'
         """)
-        indexes_list = [row[0] for row in cursor.fetchall()]
+        indexes_list = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
         print(f"Indexes: {indexes_list}")
         
         conn.close()
@@ -125,3 +122,5 @@ if __name__ == '__main__':
         print("\n SUCCESS - Migration completed")
     else:
         print("\n FAILED - Migration failed")
+
+

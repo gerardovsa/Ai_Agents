@@ -15,12 +15,9 @@ from typing import Any, Dict, List, Optional
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-try:
-    from config import get_api_key_enhanced
-    CONFIG_AVAILABLE = True
-except (ImportError, AttributeError):
-    CONFIG_AVAILABLE = False
-    print("WARNING: config.py not available - using environment variables only")
+# Config.py exists but doesn't have get_api_key_enhanced function
+# System uses environment variables from .env.master instead
+CONFIG_AVAILABLE = False
 
 
 class ToolRegistry:

@@ -7,7 +7,6 @@ PROBLEM: Render has old oauth_tokens schema missing columns:
 SOLUTION: Add all missing columns with ALTER TABLE
 """
 
-import sqlite3
 import os
 from pathlib import Path
 
@@ -24,11 +23,11 @@ def add_missing_oauth_columns():
     
     print(f'🔷 [MIGRATION] Checking oauth_tokens schema at: {db_path}')
     
-    conn = sqlite3.connect(str(db_path))
+    conn = psycopg2.connect(str(db_path))
     cursor = conn.cursor()
     
     # Get current columns
-    cursor.execute('PRAGMA table_info(oauth_tokens)')
+    cursor.execute('SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='oauth_tokens'')
     existing_columns = {row[1] for row in cursor.fetchall()}
     
     print(f'   Existing columns ({len(existing_columns)}): {", ".join(sorted(existing_columns))}')
@@ -64,7 +63,7 @@ def add_missing_oauth_columns():
                 conn.commit()
                 added_count += 1
                 print(f'   ✅ Added: {column_name}')
-            except sqlite3.OperationalError as e:
+            except psycopg2.OperationalError as e:
                 if 'duplicate column name' in str(e).lower():
                     print(f'   ⚠️  Column {column_name} already exists (race condition)')
                 else:
@@ -83,3 +82,4 @@ def add_missing_oauth_columns():
 
 if __name__ == '__main__':
     add_missing_oauth_columns()
+

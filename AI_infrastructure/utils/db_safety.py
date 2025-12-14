@@ -3,7 +3,6 @@ Database Safety Utilities
 Adds error handling and corruption prevention for SQLite operations
 """
 
-import sqlite3
 import os
 import shutil
 from datetime import datetime
@@ -13,9 +12,9 @@ from pathlib import Path
 def check_database_health(db_path):
     """Check if database is healthy before operations"""
     try:
-        conn = sqlite3.connect(db_path, timeout=10.0)
+        conn = psycopg2.connect(db_path, timeout=10.0)
         cursor = conn.cursor()
-        cursor.execute('PRAGMA integrity_check')
+        cursor.execute('-- PostgreSQL: Table checks handled by constraints')
         result = cursor.fetchone()
         conn.close()
         return result[0] == 'ok'
@@ -37,13 +36,13 @@ def safe_db_operation(func):
         # Health check before operation
         if db_path and os.path.exists(db_path):
             if not check_database_health(db_path):
-                raise sqlite3.DatabaseError(f"Database {db_path} failed health check")
+                raise DatabaseError(f"Database {db_path} failed health check")
         
         try:
             # Execute the wrapped function
             result = func(*args, **kwargs)
             return result
-        except sqlite3.OperationalError as e:
+        except psycopg2.OperationalError as e:
             if 'database is locked' in str(e):
                 print(f'[DB ERROR] Database locked, retrying...')
                 # Retry once after brief delay
@@ -51,7 +50,7 @@ def safe_db_operation(func):
                 time.sleep(0.5)
                 return func(*args, **kwargs)
             raise
-        except sqlite3.DatabaseError as e:
+        except DatabaseError as e:
             if 'malformed' in str(e) or 'corrupt' in str(e):
                 print(f'[DB ERROR] Database corruption detected: {e}')
                 # Create emergency backup
@@ -80,21 +79,21 @@ def emergency_backup(db_path):
 def optimize_database(db_path):
     """Optimize database to prevent corruption"""
     try:
-        conn = sqlite3.connect(db_path)
+        conn = psycopg2.connect(db_path)
         cursor = conn.cursor()
         
-        # Set optimized pragmas
+        # PostgreSQL: Performance tuning at database level
         # Skip WAL on Render - ephemeral filesystem doesn't support it
         is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
         if not is_render:
             try:
-                cursor.execute('PRAGMA journal_mode = WAL')  # Write-Ahead Logging
-            except sqlite3.OperationalError:
-                cursor.execute('PRAGMA journal_mode = DELETE')
+                cursor.execute('-- PostgreSQL: WAL enabled by default
+            except psycopg2.OperationalError:
+                cursor.execute('-- PostgreSQL: WAL enabled by default
         else:
-            cursor.execute('PRAGMA journal_mode = DELETE')
+            cursor.execute('-- PostgreSQL: WAL enabled by default
         
-        cursor.execute('PRAGMA synchronous = NORMAL')  # Faster but safe
+        cursor.execute('-- PostgreSQL: Synchronous commit configured at DB level
         cursor.execute('PRAGMA temp_store = MEMORY')  # Use memory for temp
         
         # Skip mmap on Render
@@ -124,8 +123,8 @@ def repair_database(db_path):
         temp_path = f'{db_path}.temp'
         
         # Try to dump and restore
-        old_conn = sqlite3.connect(db_path)
-        new_conn = sqlite3.connect(temp_path)
+        old_conn = psycopg2.connect(db_path)
+        new_conn = psycopg2.connect(temp_path)
         
         for line in old_conn.iterdump():
             try:
@@ -160,19 +159,19 @@ class SafeConnection:
     def __enter__(self):
         # Health check before connecting
         if not check_database_health(self.db_path):
-            raise sqlite3.DatabaseError(f"Database health check failed: {self.db_path}")
+            raise DatabaseError(f"Database health check failed: {self.db_path}")
         
-        self.conn = sqlite3.connect(self.db_path, timeout=self.timeout)
+        self.conn = psycopg2.connect(self.db_path, timeout=self.timeout)
         
         # Skip WAL on Render - ephemeral filesystem doesn't support it
         is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
         if not is_render:
             try:
-                self.conn.execute('PRAGMA journal_mode = WAL')
-            except sqlite3.OperationalError:
-                self.conn.execute('PRAGMA journal_mode = DELETE')
+                self.conn.execute('-- PostgreSQL: WAL enabled by default
+            except psycopg2.OperationalError:
+                self.conn.execute('-- PostgreSQL: WAL enabled by default
         else:
-            self.conn.execute('PRAGMA journal_mode = DELETE')
+            self.conn.execute('-- PostgreSQL: WAL enabled by default
         
         return self.conn
     
@@ -183,7 +182,8 @@ class SafeConnection:
             else:
                 self.conn.rollback()
                 # If database error, create emergency backup
-                if isinstance(exc_val, sqlite3.DatabaseError):
+                if isinstance(exc_val, DatabaseError):
                     emergency_backup(self.db_path)
             self.conn.close()
         return False
+

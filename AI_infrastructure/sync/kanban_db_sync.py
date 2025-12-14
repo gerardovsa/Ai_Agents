@@ -1,4 +1,4 @@
-﻿"""
+"""
 FILE: AI_infrastructure/sync/kanban_db_sync.py
 PURPOSE: Sync InHouse Kanban data from SQL Server to local SQLite database
 
@@ -28,7 +28,6 @@ USAGE:
 LAST MODIFIED: 2025-11-06 - Initial creation
 """
 
-import sqlite3
 import pymssql
 import logging
 import json
@@ -142,8 +141,8 @@ class KanbanDatabaseSync:
         """Establish database connections"""
         try:
             # Connect to SQLite
-            self.sqlite_conn = sqlite3.connect(str(self.sqlite_path))
-            self.sqlite_conn.row_factory = sqlite3.Row
+            self.sqlite_conn = psycopg2.connect(str(self.sqlite_path))
+            self.sqlite_conn.row_factory = psycopg2.extras.RealDictRow
             logger.info(f"Connected to SQLite: {self.sqlite_path}")
             
             # Connect to SQL Server
@@ -820,8 +819,8 @@ def get_sync_history(sqlite_path: Optional[str] = None, limit: int = 10) -> List
         project_root = Path(__file__).parent.parent.parent
         sqlite_path = project_root / 'data' / 'kanban_analytics.db'
     
-    conn = sqlite3.connect(str(sqlite_path))
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(str(sqlite_path))
+    conn.row_factory = psycopg2.extras.RealDictRow
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -857,3 +856,4 @@ if __name__ == '__main__':
     
     if 'records_synced' in result:
         print(f"Records synced: {result['records_synced']}")
+

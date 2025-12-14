@@ -1,4 +1,4 @@
-﻿"""
+"""
 Thread Manager - Thread CRUD Operations
 
 Handles all thread lifecycle operations including:
@@ -13,7 +13,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.database_utils import get_database_connection, convert_sql_placeholders
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import secrets
 import string
 from typing import List, Optional, Dict, Any
@@ -92,11 +93,9 @@ class ThreadManager:
         
         self.db_path = str(db_path)
     
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection with Row factory"""
-        conn = get_database_connection('sessions')
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _get_connection(self) -> psycopg2.extensions.connection:
+        """Get database connection (RealDictCursor already configured by get_database_connection)"""
+        return get_database_connection('sessions')
     
     def _generate_thread_slug(self) -> str:
         """Generate unique thread slug"""
@@ -176,7 +175,7 @@ class ThreadManager:
             
             return thread
             
-        except sqlite3.IntegrityError as e:
+        except IntegrityError as e:
             conn.rollback()
             conn.close()
             raise DuplicateThreadError(thread_slug)
@@ -661,3 +660,4 @@ class ThreadManager:
         required_level = permission_levels.get(required_permission, 0)
         
         return user_level >= required_level
+

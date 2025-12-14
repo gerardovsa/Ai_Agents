@@ -455,4 +455,4 @@ def get_multiple_lock_status():
 # MODULE INITIALIZATION
 # ============================================================================
 
-print('[DEVICE LOCK] Routes loaded: 5 endpoints (cursor management fixed - 2025-12-07)')
+print('✅ Device Lock routes loaded')

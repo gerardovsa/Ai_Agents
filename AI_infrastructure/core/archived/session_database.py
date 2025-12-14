@@ -16,7 +16,6 @@ CRITICAL FIX (Nov 12, 2025): KEEP thinking blocks in saved messages
 When thinking is enabled, Anthropic API REQUIRES assistant messages to start with thinking blocks.
 """
 
-import sqlite3
 import json
 from datetime import datetime
 from pathlib import Path
@@ -111,8 +110,8 @@ class SessionDatabase:
     @contextmanager
     def get_connection(self):
         """Context manager for database connections"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row  # Access columns by name
+        conn = psycopg2.connect(self.db_path)
+        conn.row_factory = psycopg2.extras.RealDictRow  # Access columns by name
         try:
             yield conn
         finally:
@@ -610,3 +609,4 @@ def get_session_db() -> SessionDatabase:
     if _db_instance is None:
         _db_instance = SessionDatabase()
     return _db_instance
+

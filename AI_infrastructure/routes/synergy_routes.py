@@ -38,7 +38,6 @@ Endpoints:
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
 import json
 import os
 from datetime import datetime
@@ -301,7 +300,7 @@ def init_database():
             else:
                 # SQLite syntax
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
-        except (sqlite3.OperationalError, Exception):
+        except (Exception):
             pass  # Column already exists
         
         try:
@@ -309,7 +308,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS assigned_agents TEXT')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
-        except (sqlite3.OperationalError, Exception):
+        except (Exception):
             pass  # Column already exists
         
         try:
@@ -317,7 +316,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS column_position INTEGER DEFAULT 0')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
-        except (sqlite3.OperationalError, Exception):
+        except (Exception):
             pass  # Column already exists
         
         # Add permission columns
@@ -326,7 +325,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS owner_user_id INTEGER')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN owner_user_id INTEGER')
-        except (sqlite3.OperationalError, Exception):
+        except (Exception):
             pass
         
         try:
@@ -334,7 +333,7 @@ def init_database():
                 cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS permission_level TEXT DEFAULT 'private'")
             else:
                 cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN permission_level TEXT DEFAULT 'private'")
-        except (sqlite3.OperationalError, Exception):
+        except (Exception):
             pass
         
         try:
@@ -342,7 +341,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS shared_with_users TEXT')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN shared_with_users TEXT')
-        except (sqlite3.OperationalError, Exception):
+        except (Exception):
             pass
         
         try:
@@ -350,7 +349,7 @@ def init_database():
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS allow_public_view BOOLEAN DEFAULT FALSE')
             else:
                 cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN allow_public_view INTEGER DEFAULT 0')
-        except (sqlite3.OperationalError, Exception):
+        except (Exception):
             pass
         
         cursor.close()
@@ -450,7 +449,7 @@ def list_sessions():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        query = 'SELECT * FROM synergy_sessions.synergy_sessions WHERE 1=1'
+        query = 'SELECT * FROM synergy_sessions WHERE 1=1'
         params = []
         
         if status:
@@ -539,7 +538,7 @@ def get_sessions_simple():
         
         sql, params = convert_sql_placeholders("""
             SELECT session_id, title, status, kanban_column, priority
-            FROM synergy_sessions.synergy_sessions 
+            FROM synergy_sessions 
             WHERE status != 'archived'
             ORDER BY last_active DESC
         """, ())
@@ -609,7 +608,7 @@ def get_sessions_with_internal_docs():
         
         # Step 1: Load all active sessions
         sql, params = convert_sql_placeholders("""
-            SELECT * FROM synergy_sessions.synergy_sessions 
+            SELECT * FROM synergy_sessions 
             WHERE status != 'archived'
             ORDER BY last_active DESC
         """, ())
@@ -711,7 +710,7 @@ def get_sessions_with_internal_docs():
                 # Get milestone counts
                 milestone_sql = f"""
                     SELECT session_id, COUNT(*) as count
-                    FROM synergy_sessions.milestones
+                    FROM milestones
                     WHERE session_id IN ({placeholders})
                     GROUP BY session_id
                 """
@@ -723,8 +722,8 @@ def get_sessions_with_internal_docs():
                     SELECT 
                         m.session_id,
                         COUNT(t.task_id) as total_tasks
-                    FROM synergy_sessions.milestones m
-                    LEFT JOIN synergy_sessions.tasks t ON m.milestone_id = t.milestone_id
+                    FROM milestones m
+                    LEFT JOIN tasks t ON m.milestone_id = t.milestone_id
                     WHERE m.session_id IN ({placeholders})
                     GROUP BY m.session_id
                 """
@@ -739,9 +738,9 @@ def get_sessions_with_internal_docs():
                     SELECT 
                         m.session_id,
                         COUNT(st.subtask_id) as total_subtasks
-                    FROM synergy_sessions.milestones m
-                    LEFT JOIN synergy_sessions.tasks t ON m.milestone_id = t.milestone_id
-                    LEFT JOIN synergy_sessions.subtasks st ON t.task_id = st.task_id
+                    FROM milestones m
+                    LEFT JOIN tasks t ON m.milestone_id = t.milestone_id
+                    LEFT JOIN subtasks st ON t.task_id = st.task_id
                     WHERE m.session_id IN ({placeholders})
                     GROUP BY m.session_id
                 """
@@ -827,7 +826,7 @@ def get_sessions_bulk():
 
         # Build a parameterized query with the right number of placeholders
         placeholders = ','.join('%s' for _ in ids)
-        query = f"SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id IN ({placeholders})"
+        query = f"SELECT * FROM synergy_sessions WHERE session_id IN ({placeholders})"
         cursor.execute(query, ids)
         rows = cursor.fetchall()
         
@@ -935,7 +934,7 @@ def create_session():
         
         # Check if session_id already exists (duplicate prevention)
         check_sql, check_params = convert_sql_placeholders(
-            'SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(check_sql, check_params)
@@ -948,7 +947,7 @@ def create_session():
             print(f"[SYNERGY] Session ID collision detected - regenerated: {session_id}")
         
         insert_sql, insert_params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.synergy_sessions (
+            INSERT INTO synergy_sessions (
                 session_id, title, description, platforms_involved, status,
                 priority, kanban_column, tags, documents, links, next_steps,
                 assignees, recent_activity, checklist, due_date, created_at, last_active,
@@ -1071,7 +1070,7 @@ def get_session(session_id):
         
         # Use convert_sql_placeholders for proper database compatibility
         sql, params = convert_sql_placeholders(
-            'SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT * FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -1121,7 +1120,7 @@ def get_session(session_id):
                        completed, due_date, priority, estimated_hours, actual_hours,
                        created_at, completed_at, milestone_order, depends_on_milestone_id,
                        blocked, blocker_reason, blocked_since, updated_at, documents, links
-                FROM synergy_sessions.milestones 
+                FROM milestones 
                 WHERE session_id = %s
                 ORDER BY milestone_number
             ''', (session_id,))
@@ -1158,7 +1157,7 @@ def get_session(session_id):
                     SELECT task_id, task, completed, blocked, blocker_reason, 
                            blocker_type, task_order, created_at, completed_at, blocked_since,
                            estimated_hours, actual_hours, assigned_to, updated_at, priority
-                    FROM synergy_sessions.tasks 
+                    FROM tasks 
                     WHERE milestone_id = %s
                     ORDER BY task_order
                 ''', (milestone['milestone_id'],))
@@ -1189,7 +1188,7 @@ def get_session(session_id):
                     subtask_sql, subtask_params = convert_sql_placeholders('''
                         SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
                                estimated_hours, actual_hours, updated_at, priority
-                        FROM synergy_sessions.subtasks 
+                        FROM subtasks 
                         WHERE task_id = %s
                         ORDER BY subtask_order
                     ''', (task['task_id'],))
@@ -1265,7 +1264,7 @@ def update_session_permissions(session_id):
         
         # Get current session
         sql, params = convert_sql_placeholders(
-            'SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT * FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -1328,7 +1327,7 @@ def update_session_permissions(session_id):
         # Add session_id to params
         update_params.append(session_id)
         
-        query = f"UPDATE synergy_sessions.synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
+        query = f"UPDATE synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
         final_sql, final_params = convert_sql_placeholders(query, tuple(update_params))
         cursor.execute(final_sql, final_params)
         
@@ -1381,7 +1380,7 @@ def update_session(session_id):
         
         # Check write permission
         sql, params = convert_sql_placeholders(
-            'SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT * FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -1489,7 +1488,7 @@ def update_session(session_id):
         update_params.append(session_id)
         
         if updates:
-            query = f"UPDATE synergy_sessions.synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
+            query = f"UPDATE synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
             print(f"[DEBUG] Executing query: {query}")  # DEBUG
             print(f"[DEBUG] With params: {update_params}")  # DEBUG
             
@@ -1567,7 +1566,7 @@ def update_column(session_id):
         
         # Add activity log
         sql, params = convert_sql_placeholders(
-            'SELECT recent_activity FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT recent_activity FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -1583,7 +1582,7 @@ def update_column(session_id):
             })
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET kanban_column = %s, recent_activity = %s, last_active = %s
                 WHERE session_id = %s
             ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
@@ -1692,7 +1691,7 @@ def search_sessions():
         
         # Build final query
         base_sql = f"""
-            SELECT * FROM synergy_sessions.synergy_sessions 
+            SELECT * FROM synergy_sessions 
             WHERE {' AND '.join(conditions)}
             ORDER BY last_active DESC
             LIMIT 50
@@ -1776,7 +1775,7 @@ def delete_session(session_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'DELETE FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'DELETE FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -1846,7 +1845,7 @@ def link_thread_to_synergy(session_id):
         
         # Get current thread_ids array
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -1873,9 +1872,9 @@ def link_thread_to_synergy(session_id):
         if thread_id not in thread_ids:
             thread_ids.append(thread_id)
             
-            # UPDATE synergy_sessions.synergy_sessions
+            # UPDATE synergy_sessions
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
@@ -1934,7 +1933,7 @@ def update_card_position(session_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.synergy_sessions 
+            UPDATE synergy_sessions 
             SET column_position = %s
             WHERE session_id = %s
         ''', (position, session_id))
@@ -1991,7 +1990,7 @@ def update_multiple_positions():
             position = card.get('position')
             if session_id and position is not None:
                 sql, params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions.synergy_sessions 
+                    UPDATE synergy_sessions 
                     SET column_position = %s
                     WHERE session_id = %s
                 ''', (position, session_id))
@@ -2044,7 +2043,7 @@ def unlink_thread_from_synergy(session_id):
         
         # Get current thread_ids array
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -2071,9 +2070,9 @@ def unlink_thread_from_synergy(session_id):
         if thread_id in thread_ids:
             thread_ids.remove(thread_id)
             
-            # UPDATE synergy_sessions.synergy_sessions
+            # UPDATE synergy_sessions
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
@@ -2156,7 +2155,7 @@ def create_internal_doc():
         counter = 1
         while True:
             sql, params = convert_sql_placeholders(
-                'SELECT doc_id FROM synergy_sessions.synergy_internal_docs WHERE slug = %s',
+                'SELECT doc_id FROM synergy_internal_docs WHERE slug = %s',
                 (slug,)
             )
             cursor.execute(sql, params)
@@ -2170,7 +2169,7 @@ def create_internal_doc():
         
         # Verify session exists
         verify_sql, verify_params = convert_sql_placeholders(
-            'SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(verify_sql, verify_params)
@@ -2184,7 +2183,7 @@ def create_internal_doc():
         # Insert document with slug and share_url
         now = datetime.now().isoformat()
         insert_sql, insert_params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.synergy_internal_docs 
+            INSERT INTO synergy_internal_docs 
             (doc_id, session_id, title, content, content_json, format, doc_type, 
              created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -2245,7 +2244,7 @@ def get_internal_doc(doc_id):
             SELECT doc_id, session_id, title, content, content_json, format, doc_type,
                    created_at, updated_at, created_by, version, linked_to_ai,
                    slug, share_url, description, tags
-            FROM synergy_sessions.synergy_internal_docs
+            FROM synergy_internal_docs
             WHERE doc_id = %s
         ''', (doc_id,))
         cursor.execute(sql, params)
@@ -2320,7 +2319,7 @@ def update_internal_doc(doc_id):
         
         # Get current version
         sql, params = convert_sql_placeholders(
-            'SELECT version FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s',
+            'SELECT version FROM synergy_internal_docs WHERE doc_id = %s',
             (doc_id,)
         )
         cursor.execute(sql, params)
@@ -2357,7 +2356,7 @@ def update_internal_doc(doc_id):
         
         update_params.append(doc_id)
         
-        query = f"UPDATE synergy_sessions.synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = %s"
+        query = f"UPDATE synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = %s"
         sql, final_params = convert_sql_placeholders(query, tuple(update_params))
         cursor.execute(sql, final_params)
         
@@ -2427,7 +2426,7 @@ def get_session_milestones(session_id):
             SELECT session_id, title, description, status, priority, 
                    due_date, assignees, documents, links, tags, project_name,
                    created_at, updated_at, message_count
-            FROM synergy_sessions.synergy_sessions 
+            FROM synergy_sessions 
             WHERE session_id = %s
         ''', (session_id,))
         
@@ -2462,7 +2461,7 @@ def get_session_milestones(session_id):
                    completed, due_date, priority, estimated_hours, actual_hours,
                    created_at, completed_at, milestone_order, depends_on_milestone_id,
                    blocked, blocker_reason, blocked_since, updated_at, documents, links
-            FROM synergy_sessions.milestones 
+            FROM milestones 
             WHERE session_id = %s
             ORDER BY milestone_number
         ''', (session_id,))
@@ -2500,7 +2499,7 @@ def get_session_milestones(session_id):
                 SELECT task_id, task, completed, blocked, blocker_reason, 
                        blocker_type, task_order, created_at, completed_at,
                        blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
-                FROM synergy_sessions.tasks 
+                FROM tasks 
                 WHERE milestone_id = %s
                 ORDER BY task_order
             ''', (milestone['milestone_id'],))
@@ -2531,7 +2530,7 @@ def get_session_milestones(session_id):
                 sql, params = convert_sql_placeholders('''
                     SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
                            estimated_hours, actual_hours, updated_at, priority
-                    FROM synergy_sessions.subtasks 
+                    FROM subtasks 
                     WHERE task_id = %s
                     ORDER BY subtask_order
                 ''', (task['task_id'],))
@@ -2645,7 +2644,7 @@ def add_tag(session_id):
         
         # Get current tags
         sql, params = convert_sql_placeholders(
-            'SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT tags FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -2671,7 +2670,7 @@ def add_tag(session_id):
             tags.append(tag)
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET tags = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
@@ -2718,7 +2717,7 @@ def remove_tag(session_id, tag_name):
         
         # Get current tags
         sql, params = convert_sql_placeholders(
-            'SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT tags FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -2744,7 +2743,7 @@ def remove_tag(session_id, tag_name):
             tags.remove(tag_name)
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET tags = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
@@ -2794,7 +2793,7 @@ def get_session_links(session_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT links FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -2860,7 +2859,7 @@ def add_link(session_id):
         
         # Get current links
         sql, params = convert_sql_placeholders(
-            'SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT links FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -2891,7 +2890,7 @@ def add_link(session_id):
         links.append(new_link)
         
         update_sql, update_params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.synergy_sessions 
+            UPDATE synergy_sessions 
             SET links = %s, last_active = %s
             WHERE session_id = %s
         ''', (json.dumps(links), datetime.now().isoformat(), session_id))
@@ -2938,7 +2937,7 @@ def remove_link(session_id, link_index):
         
         # Get current links
         sql, params = convert_sql_placeholders(
-            'SELECT links FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT links FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -2964,7 +2963,7 @@ def remove_link(session_id, link_index):
             links.pop(link_index)
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET links = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(links), datetime.now().isoformat(), session_id))
@@ -3019,7 +3018,7 @@ def get_milestone(milestone_id):
                    completed, due_date, priority, estimated_hours, actual_hours,
                    created_at, completed_at, milestone_order, depends_on_milestone_id,
                    blocked, blocker_reason, blocked_since, updated_at, documents, links
-            FROM synergy_sessions.milestones 
+            FROM milestones 
             WHERE milestone_id = %s
         ''', (milestone_id,))
         cursor.execute(sql, params)
@@ -3062,7 +3061,7 @@ def get_milestone(milestone_id):
             SELECT task_id, task, completed, blocked, blocker_reason, 
                    blocker_type, task_order, created_at, completed_at,
                    blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
-            FROM synergy_sessions.tasks 
+            FROM tasks 
             WHERE milestone_id = %s
             ORDER BY task_order
         ''', (milestone_id,))
@@ -3092,7 +3091,7 @@ def get_milestone(milestone_id):
             subtask_sql, subtask_params = convert_sql_placeholders('''
                 SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
                        estimated_hours, actual_hours, updated_at, priority
-                FROM synergy_sessions.subtasks 
+                FROM subtasks 
                 WHERE task_id = %s
                 ORDER BY subtask_order
             ''', (task['task_id'],))
@@ -3191,7 +3190,7 @@ def update_milestone(milestone_id):
         update_params.append(datetime.now().isoformat())
         update_params.append(milestone_id)
         
-        query = f"UPDATE synergy_sessions.milestones SET {', '.join(updates)} WHERE milestone_id = %s"
+        query = f"UPDATE milestones SET {', '.join(updates)} WHERE milestone_id = %s"
         sql, final_params = convert_sql_placeholders(query, tuple(update_params))
         cursor.execute(sql, final_params)
         
@@ -3235,7 +3234,7 @@ def delete_milestone(milestone_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'DELETE FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'DELETE FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -3288,7 +3287,7 @@ def toggle_milestone(session_id, milestone_id):
         
         # Get current status
         sql, params = convert_sql_placeholders(
-            'SELECT completed FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'SELECT completed FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -3305,7 +3304,7 @@ def toggle_milestone(session_id, milestone_id):
         completed_at = datetime.now().isoformat() if new_status else None
         
         update_sql, update_params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.milestones 
+            UPDATE milestones 
             SET completed = %s, completed_at = %s, updated_at = %s
             WHERE milestone_id = %s
         ''', (new_status, completed_at, datetime.now().isoformat(), milestone_id))
@@ -3363,7 +3362,7 @@ def complete_milestone(milestone_id):
         
         params.append(milestone_id)
         
-        query = f"UPDATE synergy_sessions.milestones SET {', '.join(updates)} WHERE milestone_id = %s"
+        query = f"UPDATE milestones SET {', '.join(updates)} WHERE milestone_id = %s"
         sql, final_params = convert_sql_placeholders(query, tuple(params))
         cursor.execute(sql, final_params)
         
@@ -3428,7 +3427,7 @@ def add_single_milestone_document(milestone_id):
         
         # Get current documents
         sql, params = convert_sql_placeholders(
-            'SELECT documents FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'SELECT documents FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -3457,7 +3456,7 @@ def add_single_milestone_document(milestone_id):
         
         # Update
         sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.milestones 
+            UPDATE milestones 
             SET documents = %s, updated_at = %s
             WHERE milestone_id = %s
         ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
@@ -3511,7 +3510,7 @@ def add_single_milestone_link(milestone_id):
         
         # Get current links
         sql, params = convert_sql_placeholders(
-            'SELECT links FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'SELECT links FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -3539,7 +3538,7 @@ def add_single_milestone_link(milestone_id):
         
         # Update
         sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.milestones 
+            UPDATE milestones 
             SET links = %s, updated_at = %s
             WHERE milestone_id = %s
         ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
@@ -3598,7 +3597,7 @@ def update_single_task_field(task_id):
         
         # Update the field
         sql, params = convert_sql_placeholders(
-            f'UPDATE synergy_sessions.tasks SET {field} = %s, updated_at = %s WHERE task_id = %s',
+            f'UPDATE tasks SET {field} = %s, updated_at = %s WHERE task_id = %s',
             (value, datetime.now().isoformat(), task_id)
         )
         cursor.execute(sql, params)
@@ -3662,7 +3661,7 @@ def update_single_subtask_field(subtask_id):
         
         # Update the field
         sql, params = convert_sql_placeholders(
-            f'UPDATE synergy_sessions.subtasks SET {field} = %s, updated_at = %s WHERE subtask_id = %s',
+            f'UPDATE subtasks SET {field} = %s, updated_at = %s WHERE subtask_id = %s',
             (value, datetime.now().isoformat(), subtask_id)
         )
         cursor.execute(sql, params)
@@ -3769,7 +3768,7 @@ def get_milestone_documents(milestone_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'SELECT documents FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'SELECT documents FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -3824,7 +3823,7 @@ def get_milestone_links(milestone_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'SELECT links FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'SELECT links FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -3893,7 +3892,7 @@ def create_task(milestone_id):
         
         # Get max task_order
         sql, params = convert_sql_placeholders(
-            'SELECT COALESCE(MAX(task_order), 0) as max_order FROM synergy_sessions.tasks WHERE milestone_id = %s',
+            'SELECT COALESCE(MAX(task_order), 0) as max_order FROM tasks WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -3902,7 +3901,7 @@ def create_task(milestone_id):
         
         # Insert task
         insert_sql, insert_params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.tasks 
+            INSERT INTO tasks 
             (task_id, milestone_id, task, task_order, completed, priority, estimated_hours, assigned_to)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ''', (task_id, milestone_id, task_text, task_order, False, 
@@ -3970,7 +3969,7 @@ def update_task(task_id):
         update_params.append(datetime.now().isoformat())
         update_params.append(task_id)
         
-        query = f"UPDATE synergy_sessions.tasks SET {', '.join(updates)} WHERE task_id = %s"
+        query = f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = %s"
         sql, final_params = convert_sql_placeholders(query, tuple(update_params))
         cursor.execute(sql, final_params)
         
@@ -4014,7 +4013,7 @@ def delete_task(task_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'DELETE FROM synergy_sessions.tasks WHERE task_id = %s',
+            'DELETE FROM tasks WHERE task_id = %s',
             (task_id,)
         )
         cursor.execute(sql, params)
@@ -4067,7 +4066,7 @@ def toggle_task(session_id, task_id):
         
         # Get current status
         sql, params = convert_sql_placeholders(
-            'SELECT completed FROM synergy_sessions.tasks WHERE task_id = %s',
+            'SELECT completed FROM tasks WHERE task_id = %s',
             (task_id,)
         )
         cursor.execute(sql, params)
@@ -4084,7 +4083,7 @@ def toggle_task(session_id, task_id):
         completed_at = datetime.now().isoformat() if new_status else None
         
         update_sql, update_params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.tasks 
+            UPDATE tasks 
             SET completed = %s, completed_at = %s, updated_at = %s
             WHERE task_id = %s
         ''', (new_status, completed_at, datetime.now().isoformat(), task_id))
@@ -4142,7 +4141,7 @@ def complete_task(task_id):
         
         params.append(task_id)
         
-        query = f"UPDATE synergy_sessions.tasks SET {', '.join(updates)} WHERE task_id = %s"
+        query = f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = %s"
         sql, final_params = convert_sql_placeholders(query, tuple(params))
         cursor.execute(sql, final_params)
         
@@ -4194,7 +4193,7 @@ def block_task(task_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.tasks 
+            UPDATE tasks 
             SET blocked = %s, blocker_reason = %s, blocker_type = %s, 
                 blocked_since = %s, updated_at = %s
             WHERE task_id = %s
@@ -4257,7 +4256,7 @@ def create_subtask(task_id):
         
         # Get max subtask_order
         sql, params = convert_sql_placeholders(
-            'SELECT COALESCE(MAX(subtask_order), 0) as max_order FROM synergy_sessions.subtasks WHERE task_id = %s',
+            'SELECT COALESCE(MAX(subtask_order), 0) as max_order FROM subtasks WHERE task_id = %s',
             (task_id,)
         )
         cursor.execute(sql, params)
@@ -4266,7 +4265,7 @@ def create_subtask(task_id):
         
         # Insert subtask
         insert_sql, insert_params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.subtasks 
+            INSERT INTO subtasks 
             (subtask_id, task_id, task, subtask_order, completed, priority, estimated_hours, assigned_to)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ''', (subtask_id, task_id, subtask_text, subtask_order, False, 
@@ -4334,7 +4333,7 @@ def update_subtask(subtask_id):
         update_params.append(datetime.now().isoformat())
         update_params.append(subtask_id)
         
-        query = f"UPDATE synergy_sessions.subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
+        query = f"UPDATE subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
         sql, final_params = convert_sql_placeholders(query, tuple(update_params))
         cursor.execute(sql, final_params)
         
@@ -4378,7 +4377,7 @@ def delete_subtask(subtask_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'DELETE FROM synergy_sessions.subtasks WHERE subtask_id = %s',
+            'DELETE FROM subtasks WHERE subtask_id = %s',
             (subtask_id,)
         )
         cursor.execute(sql, params)
@@ -4431,7 +4430,7 @@ def toggle_subtask(session_id, subtask_id):
         
         # Get current status
         sql, params = convert_sql_placeholders(
-            'SELECT completed FROM synergy_sessions.subtasks WHERE subtask_id = %s',
+            'SELECT completed FROM subtasks WHERE subtask_id = %s',
             (subtask_id,)
         )
         cursor.execute(sql, params)
@@ -4448,7 +4447,7 @@ def toggle_subtask(session_id, subtask_id):
         completed_at = datetime.now().isoformat() if new_status else None
         
         update_sql, update_params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.subtasks 
+            UPDATE subtasks 
             SET completed = %s, completed_at = %s, updated_at = %s
             WHERE subtask_id = %s
         ''', (new_status, completed_at, datetime.now().isoformat(), subtask_id))
@@ -4506,7 +4505,7 @@ def complete_subtask(subtask_id):
         
         params.append(subtask_id)
         
-        query = f"UPDATE synergy_sessions.subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
+        query = f"UPDATE subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
         sql, final_params = convert_sql_placeholders(query, tuple(params))
         cursor.execute(sql, final_params)
         
@@ -4557,7 +4556,7 @@ def get_session_threads(session_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -4614,7 +4613,7 @@ def get_linked_threads_detailed(session_id):
         
         # Get thread_ids from synergy session
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -4700,7 +4699,7 @@ def link_thread_generic():
         
         # Get current thread_ids
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -4724,7 +4723,7 @@ def link_thread_generic():
             thread_ids.append(thread_id)
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
@@ -4782,7 +4781,7 @@ def unlink_thread_generic():
         
         # Get current thread_ids
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -4806,7 +4805,7 @@ def unlink_thread_generic():
             thread_ids.remove(thread_id)
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
@@ -4864,14 +4863,14 @@ def list_internal_docs():
         if session_id:
             sql, params = convert_sql_placeholders('''
                 SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
-                FROM synergy_sessions.synergy_internal_docs
+                FROM synergy_internal_docs
                 WHERE session_id = %s
                 ORDER BY updated_at DESC
             ''', (session_id,))
         else:
             sql, params = convert_sql_placeholders('''
                 SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
-                FROM synergy_sessions.synergy_internal_docs
+                FROM synergy_internal_docs
                 ORDER BY updated_at DESC
             ''', ())
         
@@ -4984,7 +4983,7 @@ def create_milestone_complete():
         
         # Check if session exists
         sql, params = convert_sql_placeholders(
-            'SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
             (data['session_id'],)
         )
         cursor.execute(sql, params)
@@ -4996,7 +4995,7 @@ def create_milestone_complete():
         # Get next milestone number
         sql, params = convert_sql_placeholders('''
             SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
-            FROM synergy_sessions.milestones 
+            FROM milestones 
             WHERE session_id = %s
         ''', (data['session_id'],))
         cursor.execute(sql, params)
@@ -5013,7 +5012,7 @@ def create_milestone_complete():
         
         # Insert milestone - title is now primary field
         sql, params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.milestones (
+            INSERT INTO milestones (
                 milestone_id, session_id, milestone_number, milestone_order, milestone_name,
                 title, description, completed, due_date, priority, estimated_hours,
                 created_at, updated_at, documents, links, blocked, tags
@@ -5067,7 +5066,7 @@ def create_milestone_complete():
             task_assigned = task_item.get('assigned_to', '') if isinstance(task_item, dict) else ''
             
             sql, params = convert_sql_placeholders('''
-                INSERT INTO synergy_sessions.tasks (
+                INSERT INTO tasks (
                     task_id, milestone_id, task, title, description, completed, task_order, 
                     priority, due_date, estimated_hours, assigned_to, created_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -5095,7 +5094,7 @@ def create_milestone_complete():
                 subtask_assigned = subtask_item.get('assigned_to', '') if isinstance(subtask_item, dict) else ''
                 
                 sql, params = convert_sql_placeholders('''
-                    INSERT INTO synergy_sessions.subtasks (
+                    INSERT INTO subtasks (
                         subtask_id, task_id, task, title, completed, subtask_order, 
                         priority, due_date, assigned_to, created_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -5106,7 +5105,7 @@ def create_milestone_complete():
         
         # Mark session as using milestones
         sql, params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.synergy_sessions 
+            UPDATE synergy_sessions 
             SET uses_milestones = %s, last_active = %s
             WHERE session_id = %s
         ''', (True, datetime.now().isoformat(), data['session_id']))
@@ -5186,7 +5185,7 @@ def create_milestone(session_id):
         
         # Get max milestone_number for this session
         sql, params = convert_sql_placeholders(
-            'SELECT COALESCE(MAX(milestone_number), 0) as max_num FROM synergy_sessions.milestones WHERE session_id = %s',
+            'SELECT COALESCE(MAX(milestone_number), 0) as max_num FROM milestones WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -5195,7 +5194,7 @@ def create_milestone(session_id):
         
         # Get max milestone_order
         sql2, params2 = convert_sql_placeholders(
-            'SELECT COALESCE(MAX(milestone_order), 0) as max_order FROM synergy_sessions.milestones WHERE session_id = %s',
+            'SELECT COALESCE(MAX(milestone_order), 0) as max_order FROM milestones WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql2, params2)
@@ -5204,7 +5203,7 @@ def create_milestone(session_id):
         
         # Insert milestone
         insert_sql, insert_params = convert_sql_placeholders('''
-            INSERT INTO synergy_sessions.milestones 
+            INSERT INTO milestones 
             (milestone_id, session_id, milestone_number, title, description, 
              completed, priority, due_date, estimated_hours, milestone_order, 
              blocked, created_at, updated_at, documents, links)
@@ -5220,7 +5219,7 @@ def create_milestone(session_id):
         
         # Update session to use milestones
         update_sql, update_params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.synergy_sessions 
+            UPDATE synergy_sessions 
             SET uses_milestones = %s, last_active = %s
             WHERE session_id = %s
         ''', (True, datetime.now().isoformat(), session_id))
@@ -5289,7 +5288,7 @@ def add_milestone_documents(milestone_id):
         
         # Get current documents
         sql, params = convert_sql_placeholders(
-            'SELECT documents FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'SELECT documents FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -5314,7 +5313,7 @@ def add_milestone_documents(milestone_id):
         documents.extend(new_docs)
         
         update_sql, update_params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.milestones 
+            UPDATE milestones 
             SET documents = %s, updated_at = %s
             WHERE milestone_id = %s
         ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
@@ -5374,7 +5373,7 @@ def add_milestone_links(milestone_id):
         
         # Get current links
         sql, params = convert_sql_placeholders(
-            'SELECT links FROM synergy_sessions.milestones WHERE milestone_id = %s',
+            'SELECT links FROM milestones WHERE milestone_id = %s',
             (milestone_id,)
         )
         cursor.execute(sql, params)
@@ -5399,7 +5398,7 @@ def add_milestone_links(milestone_id):
         links.extend(new_links)
         
         update_sql, update_params = convert_sql_placeholders('''
-            UPDATE synergy_sessions.milestones 
+            UPDATE milestones 
             SET links = %s, updated_at = %s
             WHERE milestone_id = %s
         ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
@@ -5450,7 +5449,7 @@ def get_session_tags(session_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'SELECT tags FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT tags FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -5521,7 +5520,7 @@ def link_to_thread():
         
         # Get current thread_ids
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -5545,7 +5544,7 @@ def link_to_thread():
             thread_ids.append(thread_id)
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
@@ -5609,7 +5608,7 @@ def update_column_post(session_id):
         
         # Add activity log
         sql, params = convert_sql_placeholders(
-            'SELECT recent_activity FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
+            'SELECT recent_activity FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -5625,7 +5624,7 @@ def update_column_post(session_id):
             })
             
             update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions.synergy_sessions 
+                UPDATE synergy_sessions 
                 SET kanban_column = %s, recent_activity = %s, last_active = %s
                 WHERE session_id = %s
             ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
@@ -5701,7 +5700,7 @@ def delete_internal_doc(doc_id):
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders(
-            'DELETE FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s',
+            'DELETE FROM synergy_internal_docs WHERE doc_id = %s',
             (doc_id,)
         )
         cursor.execute(sql, params)
@@ -5792,7 +5791,7 @@ def create_session_milestone(session_id):
         cursor = conn.cursor()
         
         # Check session exists
-        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        cursor.execute('SELECT session_id FROM synergy_sessions WHERE session_id = %s', (session_id,))
         if not cursor.fetchone():
             # Rule #3, #4, #5
             try:
@@ -5811,7 +5810,7 @@ def create_session_milestone(session_id):
         # Get next milestone number
         cursor.execute('''
             SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
-            FROM synergy_sessions.milestones 
+            FROM milestones 
             WHERE session_id = %s
         ''', (session_id,))
         result = cursor.fetchone()
@@ -5822,7 +5821,7 @@ def create_session_milestone(session_id):
         
         # Insert milestone with both title and milestone_name for backward compatibility
         cursor.execute('''
-            INSERT INTO synergy_sessions.milestones (
+            INSERT INTO milestones (
                 milestone_id, session_id, milestone_number, milestone_order, 
                 title, milestone_name, description, completed, due_date, priority, 
                 estimated_hours, created_at, updated_at
@@ -5868,7 +5867,7 @@ def create_session_milestone(session_id):
             
             # Insert task with title and description
             cursor.execute('''
-                INSERT INTO synergy_sessions.tasks (
+                INSERT INTO tasks (
                     task_id, milestone_id, title, task, description, completed, 
                     task_order, priority, due_date, created_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -5899,7 +5898,7 @@ def create_session_milestone(session_id):
                     subtask_due_date = subtask_item.get('due_date')
                 
                 cursor.execute('''
-                    INSERT INTO synergy_sessions.subtasks (
+                    INSERT INTO subtasks (
                         subtask_id, task_id, title, task, description, completed, 
                         subtask_order, priority, due_date, created_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -5915,7 +5914,7 @@ def create_session_milestone(session_id):
         
         # Mark session as using milestones
         cursor.execute('''
-            UPDATE synergy_sessions.synergy_sessions 
+            UPDATE synergy_sessions 
             SET uses_milestones = TRUE, last_active = %s
             WHERE session_id = %s
         ''', (datetime.now().isoformat(), session_id))
@@ -6003,7 +6002,7 @@ def create_milestone_task(milestone_id):
         cursor = conn.cursor()
         
         # Check milestone exists
-        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        cursor.execute('SELECT milestone_id FROM milestones WHERE milestone_id = %s', (milestone_id,))
         if not cursor.fetchone():
             # Rule #3, #4, #5, #6, #7
             try:
@@ -6021,7 +6020,7 @@ def create_milestone_task(milestone_id):
         # Get next task order
         cursor.execute('''
             SELECT COALESCE(MAX(task_order), 0) + 1 
-            FROM synergy_sessions.tasks 
+            FROM tasks 
             WHERE milestone_id = %s
         ''', (milestone_id,))
         task_order = cursor.fetchone()[0]
@@ -6034,7 +6033,7 @@ def create_milestone_task(milestone_id):
         
         # Insert task with title and description
         cursor.execute('''
-            INSERT INTO synergy_sessions.tasks (
+            INSERT INTO tasks (
                 task_id, milestone_id, title, task, description, completed, 
                 task_order, priority, due_date, created_at
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -6066,7 +6065,7 @@ def create_milestone_task(milestone_id):
                 subtask_due_date = subtask_item.get('due_date')
             
             cursor.execute('''
-                INSERT INTO synergy_sessions.subtasks (
+                INSERT INTO subtasks (
                     subtask_id, task_id, title, task, description, completed, 
                     subtask_order, priority, due_date, created_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -6151,7 +6150,7 @@ def create_task_subtask(task_id):
         cursor = conn.cursor()
         
         # Check task exists
-        cursor.execute('SELECT task_id FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
+        cursor.execute('SELECT task_id FROM tasks WHERE task_id = %s', (task_id,))
         if not cursor.fetchone():
             # Rule #3, #4, #5, #6, #7
             try:
@@ -6169,7 +6168,7 @@ def create_task_subtask(task_id):
         # Get next subtask order
         cursor.execute('''
             SELECT COALESCE(MAX(subtask_order), 0) + 1 
-            FROM synergy_sessions.subtasks 
+            FROM subtasks 
             WHERE task_id = %s
         ''', (task_id,))
         subtask_order = cursor.fetchone()[0]
@@ -6182,7 +6181,7 @@ def create_task_subtask(task_id):
         
         # Insert subtask with title and description
         cursor.execute('''
-            INSERT INTO synergy_sessions.subtasks (
+            INSERT INTO subtasks (
                 subtask_id, task_id, title, task, description, completed, 
                 subtask_order, priority, due_date, created_at
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -6234,4 +6233,5 @@ def create_task_subtask(task_id):
                 conn.close()
             except:
                 pass
+
 

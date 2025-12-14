@@ -744,4 +744,4 @@ def delete_folder_link(folder_id):
 # EXPORT BLUEPRINT
 # ============================================================================
 
-print('[CLOUD SYNC] Routes loaded: 5 endpoints (✅ All cursor leaks fixed)')
+print('✅ Cloud Sync routes loaded')

@@ -219,6 +219,7 @@ const WorkspaceManager = (function () {
 
             // Upsert to database (insert or update)
             const { data, error } = await supabase
+                .schema('sessions')
                 .from('user_command_center')
                 .upsert({
                     user_id: userId,
@@ -248,6 +249,61 @@ const WorkspaceManager = (function () {
     }
 
     /**
+     * Subscribe to real-time workspace updates (cross-tab/device sync)
+     */
+    function subscribeToRealtime(userId) {
+        if (typeof SupabaseRealtimeManager === 'undefined') {
+            console.warn(`⚠️ [WorkspaceManager] RealtimeManager not available - no live sync`);
+            return;
+        }
+
+        console.log(`🔄 [WorkspaceManager] Subscribing to real-time updates for user ${userId}...`);
+
+        SupabaseRealtimeManager.subscribeToWorkspace(userId, (remoteWorkspace) => {
+            console.log(`📥 [WorkspaceManager] Received remote workspace update:`, remoteWorkspace);
+
+            // Apply remote changes to localStorage (if different)
+            applyRemoteWorkspace(remoteWorkspace);
+        });
+
+        console.log(`✅ [WorkspaceManager] Subscribed to real-time workspace updates`);
+    }
+
+    /**
+     * Apply remote workspace changes to localStorage
+     */
+    function applyRemoteWorkspace(remoteWorkspace) {
+        if (!remoteWorkspace) return;
+
+        console.log(`🔄 [WorkspaceManager] Applying remote workspace changes...`);
+
+        // Apply agent settings
+        for (const [agentId, settings] of Object.entries(remoteWorkspace.agents || {})) {
+            if (settings.viewMode !== undefined) {
+                localStorage.setItem(`viewMode_agent${agentId}`, JSON.stringify(settings.viewMode));
+            }
+            if (settings.columnWidth !== undefined) {
+                localStorage.setItem(`columnWidth_agent${agentId}`, JSON.stringify(settings.columnWidth));
+            }
+            if (settings.columnCollapsed !== undefined) {
+                localStorage.setItem(`columnCollapsed_agent${agentId}`, JSON.stringify(settings.columnCollapsed));
+            }
+        }
+
+        // Apply prime settings
+        if (remoteWorkspace.prime && remoteWorkspace.prime.viewMode !== undefined) {
+            localStorage.setItem('viewMode_prime', JSON.stringify(remoteWorkspace.prime.viewMode));
+        }
+
+        console.log(`✅ [WorkspaceManager] Remote workspace applied - reloading UI...`);
+
+        // Emit event to trigger UI reload
+        window.dispatchEvent(new CustomEvent('workspace:updated', {
+            detail: { source: 'remote', workspace: remoteWorkspace }
+        }));
+    }
+
+    /**
      * Sync database settings to localStorage (on page load)
      */
     async function syncFromDatabase() {
@@ -258,6 +314,9 @@ const WorkspaceManager = (function () {
                 console.warn(`⚠️ [WorkspaceManager] No user ID - skipping database load`);
                 return null;
             }
+
+            // Subscribe to real-time updates
+            subscribeToRealtime(userId);
 
             // Get Supabase client
             if (typeof SupabaseConnectionManager === 'undefined') {
@@ -275,6 +334,7 @@ const WorkspaceManager = (function () {
 
             // Fetch from database
             const { data, error } = await supabase
+                .schema('sessions')
                 .from('user_command_center')
                 .select('workspace_data')
                 .eq('user_id', userId)

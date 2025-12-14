@@ -717,7 +717,7 @@ def test_credentials():
     """
     try:
         data = request.get_json()
-        user_id = request.user_id  # From @require_auth decorator
+        user_id = request.user.get('user_id')  # From @require_auth decorator
         
         platform = data.get('platform')
         credentials = data.get('credentials', {})

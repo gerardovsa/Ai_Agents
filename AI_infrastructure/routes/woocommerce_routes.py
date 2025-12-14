@@ -508,12 +508,7 @@ def health_check():
 # ======================================================================
 # STARTUP LOGGING
 # ======================================================================
-logger.info("="*80)
-logger.info("WooCommerce API Routes loaded (Enhanced Version)")
-logger.info("   - ✅ NO CURSOR MANAGEMENT ISSUES (no direct DB operations)")
-logger.info("   - ✅ All operations delegated to WooCommerce tools")
-logger.info("   - 📅 LAST UPDATED: 2025-12-07")
-logger.info(f"   - WooCommerce tools available: {WOOCOMMERCE_AVAILABLE}")
-logger.info("   - Endpoints: 8 routes registered")
-logger.info(f"   - Default limit: {DEFAULT_LIMIT}, Max limit: {MAX_LIMIT}")
-logger.info("="*80)
+if WOOCOMMERCE_AVAILABLE:
+    logger.info("✅ WooCommerce routes loaded")
+else:
+    logger.warning("⚠️ WooCommerce tools not available")

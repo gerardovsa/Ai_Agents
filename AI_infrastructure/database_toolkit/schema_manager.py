@@ -9,7 +9,6 @@ Handles all database schema operations:
 - Export/Import schemas
 """
 
-import sqlite3
 import json
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -245,15 +244,15 @@ class SchemaManager:
         """Initialize schema manager"""
         self.db_path = db_path
     
-    def get_connection(self) -> sqlite3.Connection:
+    def get_connection(self) -> psycopg2.connection:
         """Get database connection"""
-        return sqlite3.connect(self.db_path)
+        return psycopg2.connect(self.db_path)
     
     def get_existing_tables(self) -> List[str]:
         """Get list of existing tables"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure' AND name NOT LIKE 'sqlite_%'")
         tables = [row[0] for row in cursor.fetchall()]
         conn.close()
         return tables
@@ -262,7 +261,7 @@ class SchemaManager:
         """Get schema for specific table"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute(f"PRAGMA table_info({table_name})")
+        cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='{table_name}'")
         schema = cursor.fetchall()
         conn.close()
         return schema
@@ -404,3 +403,4 @@ if __name__ == "__main__":
     # Test schema manager
     manager = SchemaManager()
     manager.print_schema_summary()
+

@@ -177,7 +177,7 @@ class SlugGenerator:
             exists = cursor.fetchone() is not None
             conn.close()
             return not exists
-        except sqlite3.OperationalError:
+        except psycopg2.OperationalError:
             # Slug column doesn't exist yet
             conn.close()
             return True
@@ -383,7 +383,8 @@ class SlugGenerator:
             row = cursor.fetchone()
             conn.close()
             return row['id'] if row else None
-        except sqlite3.OperationalError:
+        except psycopg2.OperationalError:
             # Slug column doesn't exist yet
             conn.close()
             return None
+

@@ -917,11 +917,4 @@ def refresh_folder(folder_id):
 # MODULE INITIALIZATION
 # ============================================================================
 
-print('[CLOUD SYNC] Routes loaded: 6 endpoints (cursor management fixed - 2025-12-07)')
-print('[CLOUD SYNC] ✅ All cursors properly managed:')
-print('[CLOUD SYNC]    - sync_folders: 3 early returns, 1 cursor')
-print('[CLOUD SYNC]    - list_folders: 1 early return, 1 cursor')
-print('[CLOUD SYNC]    - list_folder_files: 2 early returns, 1 cursor')
-print('[CLOUD SYNC]    - update_folder: 3 early returns, 1 cursor')
-print('[CLOUD SYNC]    - delete_folder: 2 early returns, 2 cursors')
-print('[CLOUD SYNC]    - refresh_folder: 4 early returns, 3 cursors')
+print('✅ Session Management routes loaded')

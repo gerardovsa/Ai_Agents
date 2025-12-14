@@ -43,7 +43,6 @@ PREVIOUS: 2025-11-10 - Initial implementation for user hierarchy
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
 import json
 import logging
 from pathlib import Path
@@ -89,7 +88,7 @@ def get_db_connection():
     """
     conn = get_database_connection('ai_infrastructure')
     if hasattr(conn, 'row_factory'):  # SQLite
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = psycopg2.extras.RealDictRow
     return conn
 
 
@@ -251,7 +250,7 @@ def create_sub_user():
             "message": "Sub-user created. User must change password on first login."
         }), 201
         
-    except sqlite3.IntegrityError as e:
+    except IntegrityError as e:
         logger.error(f"Database constraint violation: {e}")
         return jsonify({
             "error": f"Database constraint violation: {str(e)}"
@@ -818,15 +817,7 @@ def reset_sub_user_password(sub_user_id: int):
 # ======================================================================
 # STARTUP LOGGING
 # ======================================================================
-logger.info("="*80)
-logger.info("User Management Routes loaded (Fixed Version)")
-logger.info("   - ✅ CURSOR MANAGEMENT FIXED (24 issues resolved)")
-logger.info("   - 📅 LAST UPDATED: 2025-12-07")
-logger.info("   - Endpoints: 5 routes registered")
-logger.info(f"   - Default password: {DEFAULT_PASSWORD}")
-logger.info(f"   - Valid data scopes: {', '.join(VALID_DATA_SCOPES)}")
-logger.info(f"   - Default usage limit: {DEFAULT_USAGE_LIMIT_DAILY}/day")
-logger.info("="*80)
+logger.info("✅ User Management routes loaded")
 
 # Export blueprint
 __all__ = ['user_management_bp']

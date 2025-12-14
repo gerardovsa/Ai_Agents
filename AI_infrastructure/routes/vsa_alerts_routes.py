@@ -27,13 +27,12 @@ DEEPSEEK_API_KEYS = [
 DEEPSEEK_MODEL = "deepseek-chat"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
-# Import database connector
+# Import VSA Supabase connector
 try:
-    from tools.Database_Data.unified_database_connector import get_unified_connector
-    connector = get_unified_connector()
-    supabase_client = connector.supabase_client
+    from shared.vsa_supabase_connector import get_vsa_supabase_client
+    supabase_client = get_vsa_supabase_client()
 except Exception as e:
-    print(f"Warning: Could not initialize Supabase connector: {e}", file=sys.stderr)
+    print(f"Warning: Could not initialize VSA Supabase connector: {e}", file=sys.stderr)
     supabase_client = None
 
 

@@ -28,7 +28,6 @@ LAST MODIFIED: 2025-11-15 - Initial creation with multi-environment support
 """
 
 import os
-import sqlite3
 from pathlib import Path
 from typing import Union, Tuple
 import threading
@@ -213,7 +212,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                  Examples: 'ai_infrastructure', 'sessions', 'synergy_sessions'
     
     Returns:
-        Connection object (sqlite3.Connection or psycopg2.Connection)
+        Connection object (psycopg2.connection or psycopg2.Connection)
         
     Environment Detection:
         Local Dev: Returns SQLite connection to data/{db_name}.db
@@ -226,7 +225,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
     Examples:
         # Local development (USE_SUPABASE not set)
         conn = get_database_connection('ai_infrastructure')
-        # -> sqlite3.Connection to data/ai_infrastructure.db
+        # -> psycopg2.connection to data/ai_infrastructure.db
         
         # Render deployment (USE_SUPABASE=true)
         conn = get_database_connection('ai_infrastructure')
@@ -402,8 +401,8 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
     db_path.parent.mkdir(parents=True, exist_ok=True)
     
     try:
-        conn = sqlite3.connect(str(db_path))
-        conn.row_factory = sqlite3.Row
+        conn = psycopg2.connect(str(db_path))
+        conn.row_factory = psycopg2.extras.RealDictRow
         
         print(f" [DB] Connected to SQLite (LOCAL DEV): {db_path}")
         print(f" [DB] USE_SQLITE=true - Production should use Supabase!")
@@ -655,8 +654,7 @@ class DatabaseCursor:
         self.connection = connection
         if is_using_supabase():
             # PostgreSQL cursor - but check if connection is actually PostgreSQL
-            import sqlite3
-            if isinstance(connection._wrapped_conn, sqlite3.Connection):
+                        if isinstance(connection._wrapped_conn, psycopg2.connection):
                 # Supabase failed, fell back to SQLite - don't use cursor_factory
                 self._cursor = connection._wrapped_conn.cursor()
             else:
@@ -710,7 +708,7 @@ class DatabaseConnection:
     """
     Connection wrapper that provides automatic SQL placeholder conversion
     
-    Wraps sqlite3.Connection or psycopg2.Connection and returns DatabaseCursor
+    Wraps psycopg2.connection or psycopg2.Connection and returns DatabaseCursor
     when cursor() is called, which automatically converts ? to %s for PostgreSQL.
     """
     def __init__(self, connection):
@@ -721,8 +719,7 @@ class DatabaseConnection:
         if args or kwargs:
             # If specific cursor factory requested, check if it's supported
             # SQLite doesn't support cursor_factory parameter
-            import sqlite3
-            if isinstance(self._wrapped_conn, sqlite3.Connection):
+                        if isinstance(self._wrapped_conn, psycopg2.connection):
                 # SQLite: Remove unsupported parameters, return DatabaseCursor
                 # (row_factory is set at connection level, not cursor level)
                 return DatabaseCursor(self)
@@ -787,3 +784,4 @@ if __name__ == '__main__':
             print(f"   Failed: {e}")
     
     print("\n" + "=" * 60)
+

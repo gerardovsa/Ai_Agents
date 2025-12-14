@@ -10,7 +10,6 @@ Responsibilities:
 """
 
 from typing import Dict, Any, Optional
-import sqlite3  # Keep for type hints
 from shared.db_connection_wrapper import get_connection
 import sys
 from pathlib import Path
@@ -61,10 +60,10 @@ class UserProfileBuilder:
         self.db_path = db_path or DB_PATH
         logger.info(f"👤 UserProfileBuilder initialized (db: {Path(self.db_path).name})")
 
-    def _get_db_connection(self) -> sqlite3.Connection:
+    def _get_db_connection(self) -> psycopg2.extensions.connection:
         """Get database connection with row factory."""
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = psycopg2.extras.RealDictRow
         return conn
 
     def get_user_profile(self, user_id: int) -> Dict[str, Any]:
@@ -120,7 +119,7 @@ class UserProfileBuilder:
             
             return profile
             
-        except sqlite3.Error as e:
+        except Error as e:
             logger.error(f" Database error: {e}")
             raise
 
@@ -178,7 +177,7 @@ class UserProfileBuilder:
             
             return status
             
-        except sqlite3.Error as e:
+        except Error as e:
             logger.warning(f"⚠️ Could not fetch OAuth status: {e}")
             return {'google': False, 'microsoft': False, 'has_any_oauth': False}
 
@@ -301,3 +300,4 @@ class UserProfileBuilder:
 
 # Export
 __all__ = ['UserProfileBuilder']
+

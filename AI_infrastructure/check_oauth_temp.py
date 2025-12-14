@@ -1,4 +1,3 @@
-import sqlite3
 from pathlib import Path
 
 # Use correct database location in data/ folder (not AI_infrastructure/)
@@ -6,8 +5,8 @@ root_dir = Path(__file__).parent.parent
 db_path = root_dir / 'data' / 'ai_infrastructure.db'
 print(f'🔷 Database path: {db_path}')
 
-conn = sqlite3.connect(str(db_path))
-conn.row_factory = sqlite3.Row
+conn = psycopg2.connect(str(db_path))
+conn.row_factory = psycopg2.extras.RealDictRow
 cursor = conn.cursor()
 
 # Check user 4's credentials
@@ -39,3 +38,4 @@ else:
     print("User 4 not found!")
 
 conn.close()
+

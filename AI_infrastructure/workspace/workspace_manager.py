@@ -9,6 +9,9 @@ Handles all workspace lifecycle operations including:
 - Integration with thread system
 
 Uses Supabase PostgreSQL via get_database_connection('ai_infrastructure')
+
+File: AI_infrastructure/workspace/workspace_manager.py
+Last Updated: 14/12/2025
 """
 
 import sys
@@ -107,20 +110,49 @@ class WorkspaceManager:
         return ''.join(secrets.choice(WORKSPACE_SLUG_CHARSET) for _ in range(WORKSPACE_SLUG_LENGTH))
     
     def _ensure_unique_slug(self, slug: str) -> str:
-        """Ensure workspace slug is unique, regenerate if collision"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        """
+        Ensure workspace slug is unique, regenerate if collision
         
-        max_attempts = 10
-        for attempt in range(max_attempts):
-            cursor.execute("SELECT id FROM workspaces WHERE slug = %s", (slug,))
-            if cursor.fetchone() is None:
-                conn.close()
-                return slug
-            slug = self._generate_workspace_slug()
-        
-        conn.close()
-        raise DuplicateWorkspaceError(slug)
+        ✅ FIXED: Added proper cursor management
+        """
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            max_attempts = 10
+            for attempt in range(max_attempts):
+                cursor.execute("SELECT id FROM workspaces WHERE slug = %s", (slug,))
+                if cursor.fetchone() is None:
+                    cursor.close()
+                    cursor = None
+                    conn.close()
+                    conn = None
+                    return slug
+                slug = self._generate_workspace_slug()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            raise DuplicateWorkspaceError(slug)
+            
+        except DuplicateWorkspaceError:
+            raise
+        except Exception as e:
+            raise DatabaseError("_ensure_unique_slug", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def create_workspace(self, workspace_data: WorkspaceCreate) -> Workspace:
         """
@@ -136,11 +168,15 @@ class WorkspaceManager:
             DuplicateWorkspaceError: If slug collision occurs
             UserNotFoundError: If owner doesn't exist
             DatabaseError: If database operation fails
-        """
-        conn = self._get_connection()
-        cursor = conn.cursor()
         
+        ✅ FIXED: Added proper cursor management with cleanup
+        """
+        cursor = None
+        conn = None
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             # Generate unique slug from workspace name
             from .slug_generator import SlugGenerator
             slug_gen = SlugGenerator(self.db_path)
@@ -149,7 +185,10 @@ class WorkspaceManager:
             # Verify owner exists
             cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (workspace_data.owner_id,))
             if not cursor.fetchone():
+                cursor.close()
+                cursor = None
                 conn.close()
+                conn = None
                 raise UserNotFoundError(workspace_data.owner_id)
             
             # Insert workspace
@@ -185,20 +224,42 @@ class WorkspaceManager:
             
             conn.commit()
             
-            # Fetch created workspace
-            workspace = self.get_workspace(workspace_id=workspace_id)
+            # Close cursor before calling get_workspace
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
+            
+            # Fetch created workspace (opens new connection internally)
+            workspace = self.get_workspace(workspace_id=workspace_id)
             
             return workspace
             
         except (UserNotFoundError, DuplicateWorkspaceError):
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise
         except Exception as e:
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise DatabaseError("create_workspace", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def get_workspace(
         self,
@@ -224,6 +285,8 @@ class WorkspaceManager:
         Raises:
             WorkspaceNotFoundError: If workspace doesn't exist
             WorkspacePermissionError: If user lacks access
+        
+        ✅ FIXED: Added proper cursor management
         """
         # Support both slug and workspace_slug parameter names
         effective_slug = slug or workspace_slug
@@ -231,50 +294,78 @@ class WorkspaceManager:
         if not workspace_id and not effective_slug:
             raise ValueError("Must provide either workspace_id or slug")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Query workspace
-        if workspace_id:
-            cursor.execute("SELECT * FROM workspaces WHERE id = %s", (workspace_id,))
-        else:
-            cursor.execute("SELECT * FROM workspaces WHERE slug = %s", (effective_slug,))
-        
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            raise WorkspaceNotFoundError(workspace_id=workspace_id, workspace_slug=effective_slug)
-        
-        # Check access if requested
-        if check_access and user_id:
-            if not self.check_membership(row['id'], user_id):
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Query workspace
+            if workspace_id:
+                cursor.execute("SELECT * FROM workspaces WHERE id = %s", (workspace_id,))
+            else:
+                cursor.execute("SELECT * FROM workspaces WHERE slug = %s", (effective_slug,))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                cursor.close()
+                cursor = None
                 conn.close()
-                raise WorkspacePermissionError(user_id, row['id'], "access workspace")
-        
-        # Get member count
-        cursor.execute("""
-            SELECT COUNT(*) FROM workspace_users 
-            WHERE workspace_id = %s AND removed_at IS NULL
-        """, (row['id'],))
-        member_count = cursor.fetchone()[0]
-        
-        conn.close()
-        
-        # Build Workspace object
-        return Workspace(
-            id=row['id'],
-            slug=row['slug'],
-            name=row['name'],
-            description=row['description'],
-            owner_id=row['owner_id'],
-            status=WorkspaceStatus(row['status']),
-            visibility=WorkspaceVisibility(row['visibility']),
-            member_count=member_count,
-            created_at=datetime.fromisoformat(row['created_at']),
-            updated_at=datetime.fromisoformat(row['updated_at']),
-            archived_at=datetime.fromisoformat(row['archived_at']) if row['archived_at'] else None
-        )
+                conn = None
+                raise WorkspaceNotFoundError(workspace_id=workspace_id, workspace_slug=effective_slug)
+            
+            # Check access if requested
+            if check_access and user_id:
+                if not self.check_membership(row['id'], user_id):
+                    cursor.close()
+                    cursor = None
+                    conn.close()
+                    conn = None
+                    raise WorkspacePermissionError(user_id, row['id'], "access workspace")
+            
+            # Get member count
+            cursor.execute("""
+                SELECT COUNT(*) FROM workspace_users 
+                WHERE workspace_id = %s AND removed_at IS NULL
+            """, (row['id'],))
+            member_count = cursor.fetchone()[0]
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            # Build Workspace object
+            return Workspace(
+                id=row['id'],
+                slug=row['slug'],
+                name=row['name'],
+                description=row['description'],
+                owner_id=row['owner_id'],
+                status=WorkspaceStatus(row['status']),
+                visibility=WorkspaceVisibility(row['visibility']),
+                member_count=member_count,
+                created_at=datetime.fromisoformat(row['created_at']),
+                updated_at=datetime.fromisoformat(row['updated_at']),
+                archived_at=datetime.fromisoformat(row['archived_at']) if row['archived_at'] else None
+            )
+            
+        except (WorkspaceNotFoundError, WorkspacePermissionError):
+            raise
+        except Exception as e:
+            raise DatabaseError("get_workspace", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def update_workspace(
         self,
@@ -296,6 +387,8 @@ class WorkspaceManager:
         Raises:
             WorkspaceNotFoundError: If workspace doesn't exist
             WorkspacePermissionError: If user lacks permission
+        
+        ✅ FIXED: Added proper cursor management
         """
         # Check permissions (must be owner or admin)
         workspace = self.get_workspace(workspace_id=workspace_id)
@@ -304,10 +397,12 @@ class WorkspaceManager:
         if member.role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
             raise WorkspacePermissionError(user_id, workspace_id, "update workspace")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
+        cursor = None
+        conn = None
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             updates = []
             params = []
             
@@ -343,14 +438,32 @@ class WorkspaceManager:
             """, params)
             
             conn.commit()
+            
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             
             return self.get_workspace(workspace_id=workspace_id)
             
         except Exception as e:
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise DatabaseError("update_workspace", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def delete_workspace(self, workspace_id: int, user_id: int, hard_delete: bool = False) -> dict:
         """
@@ -367,16 +480,20 @@ class WorkspaceManager:
         Raises:
             WorkspaceNotFoundError: If workspace doesn't exist
             WorkspacePermissionError: If user is not owner
+        
+        ✅ FIXED: Added proper cursor management
         """
         workspace = self.get_workspace(workspace_id=workspace_id)
         
         if workspace.owner_id != user_id:
             raise WorkspacePermissionError(user_id, workspace_id, "delete workspace")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
+        cursor = None
+        conn = None
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             if hard_delete:
                 # TODO: Delete all related data (threads, messages, etc.)
                 cursor.execute("DELETE FROM workspace_users WHERE workspace_id = %s", (workspace_id,))
@@ -391,14 +508,32 @@ class WorkspaceManager:
                 """, (WorkspaceStatus.ARCHIVED.value, now, now, workspace_id))
             
             conn.commit()
+            
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             
             return {"success": True, "message": "Workspace deleted successfully"}
             
         except Exception as e:
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise DatabaseError("delete_workspace", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def list_workspaces(self, params: WorkspaceListParams) -> WorkspaceListResponse:
         """
@@ -409,74 +544,97 @@ class WorkspaceManager:
         
         Returns:
             WorkspaceListResponse: Paginated workspace list
+        
+        ✅ FIXED: Added proper cursor management
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        where_clauses = []
-        query_params = []
-        
-        if params.owner_id:
-            where_clauses.append("owner_id  = %s")
-            query_params.append(params.owner_id)
-        
-        if params.user_id:
-            # User is member
-            where_clauses.append("""
-                id IN (
-                    SELECT workspace_id FROM workspace_users 
-                    WHERE user_id = %s AND removed_at IS NULL
-                )
-            """)
-            query_params.append(params.user_id)
-        
-        if params.status:
-            where_clauses.append("status  = %s")
-            query_params.append(params.status.value)
-        
-        if params.visibility:
-            where_clauses.append("visibility  = %s")
-            query_params.append(params.visibility.value)
-        
-        if params.search:
-            where_clauses.append("(name LIKE %s OR description LIKE %s)")
-            search_term = f"%{params.search}%"
-            query_params.extend([search_term, search_term])
-        
-        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
-        
-        # Get total count
-        cursor.execute(f"SELECT COUNT(*) FROM workspaces WHERE {where_sql}", query_params)
-        total = cursor.fetchone()[0]
-        
-        # Get paginated results
-        offset = (params.page - 1) * params.page_size
-        sort_order = "ASC" if params.sort_order.lower() == "asc" else "DESC"
-        
-        cursor.execute(f"""
-            SELECT * FROM workspaces 
-            WHERE {where_sql}
-            ORDER BY {params.sort_by} {sort_order}
-            LIMIT %s OFFSET %s
-        """, query_params + [params.page_size, offset])
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        workspaces = []
-        for row in rows:
-            workspace = self.get_workspace(workspace_id=row['id'])
-            workspaces.append(workspace)
-        
-        has_more = (params.page * params.page_size) < total
-        
-        return WorkspaceListResponse(
-            workspaces=workspaces,
-            total=total,
-            page=params.page,
-            page_size=params.page_size,
-            has_more=has_more
-        )
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            where_clauses = []
+            query_params = []
+            
+            if params.owner_id:
+                where_clauses.append("owner_id = %s")
+                query_params.append(params.owner_id)
+            
+            if params.user_id:
+                # User is member
+                where_clauses.append("""
+                    id IN (
+                        SELECT workspace_id FROM workspace_users 
+                        WHERE user_id = %s AND removed_at IS NULL
+                    )
+                """)
+                query_params.append(params.user_id)
+            
+            if params.status:
+                where_clauses.append("status = %s")
+                query_params.append(params.status.value)
+            
+            if params.visibility:
+                where_clauses.append("visibility = %s")
+                query_params.append(params.visibility.value)
+            
+            if params.search:
+                where_clauses.append("(name LIKE %s OR description LIKE %s)")
+                search_term = f"%{params.search}%"
+                query_params.extend([search_term, search_term])
+            
+            where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+            
+            # Get total count
+            cursor.execute(f"SELECT COUNT(*) FROM workspaces WHERE {where_sql}", query_params)
+            total = cursor.fetchone()[0]
+            
+            # Get paginated results
+            offset = (params.page - 1) * params.page_size
+            sort_order = "ASC" if params.sort_order.lower() == "asc" else "DESC"
+            
+            cursor.execute(f"""
+                SELECT * FROM workspaces 
+                WHERE {where_sql}
+                ORDER BY {params.sort_by} {sort_order}
+                LIMIT %s OFFSET %s
+            """, query_params + [params.page_size, offset])
+            
+            rows = cursor.fetchall()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            workspaces = []
+            for row in rows:
+                workspace = self.get_workspace(workspace_id=row['id'])
+                workspaces.append(workspace)
+            
+            has_more = (params.page * params.page_size) < total
+            
+            return WorkspaceListResponse(
+                workspaces=workspaces,
+                total=total,
+                page=params.page,
+                page_size=params.page_size,
+                has_more=has_more
+            )
+            
+        except Exception as e:
+            raise DatabaseError("list_workspaces", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def add_member(self, member_data: WorkspaceMemberCreate, added_by_user_id: int) -> WorkspaceMember:
         """
@@ -494,6 +652,8 @@ class WorkspaceManager:
             UserNotFoundError: If user doesn't exist
             DuplicateMemberError: If user is already member
             MaxMembersReachedError: If workspace at capacity
+        
+        ✅ FIXED: Added proper cursor management with multiple queries
         """
         # Verify workspace exists
         workspace = self.get_workspace(workspace_id=member_data.workspace_id)
@@ -506,14 +666,20 @@ class WorkspaceManager:
         if workspace.member_count >= MAX_MEMBERS_PER_WORKSPACE:
             raise MaxMembersReachedError(member_data.workspace_id, MAX_MEMBERS_PER_WORKSPACE)
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
+        cursor = None
+        conn = None
+        cursor2 = None  # For second query
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             # Verify user exists
             cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (member_data.user_id,))
             if not cursor.fetchone():
+                cursor.close()
+                cursor = None
                 conn.close()
+                conn = None
                 raise UserNotFoundError(member_data.user_id)
             
             now = datetime.utcnow().isoformat()
@@ -533,10 +699,19 @@ class WorkspaceManager:
             member_id = cursor.lastrowid
             conn.commit()
             
-            # Fetch created member
-            cursor.execute("SELECT * FROM workspace_users WHERE id = %s", (member_id,))
-            row = cursor.fetchone()
+            # Close first cursor before second query
+            cursor.close()
+            cursor = None
+            
+            # Fetch created member with new cursor
+            cursor2 = conn.cursor()
+            cursor2.execute("SELECT * FROM workspace_users WHERE id = %s", (member_id,))
+            row = cursor2.fetchone()
+            
+            cursor2.close()
+            cursor2 = None
             conn.close()
+            conn = None
             
             return WorkspaceMember(
                 id=row['id'],
@@ -549,13 +724,35 @@ class WorkspaceManager:
             )
             
         except (UserNotFoundError, DuplicateMemberError):
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise
         except Exception as e:
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise DatabaseError("add_member", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if cursor2:
+                try:
+                    cursor2.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def remove_member(self, workspace_id: int, user_id: int, removed_by: int) -> dict:
         """
@@ -573,6 +770,8 @@ class WorkspaceManager:
             MemberNotFoundError: If user is not member
             CannotRemoveSelfError: If trying to remove self
             WorkspacePermissionError: If lacks permission
+        
+        ✅ FIXED: Added proper cursor management
         """
         if user_id == removed_by:
             raise CannotRemoveSelfError(user_id)
@@ -585,10 +784,12 @@ class WorkspaceManager:
         if remover.role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
             raise WorkspacePermissionError(removed_by, workspace_id, "remove members")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
+        cursor = None
+        conn = None
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             now = datetime.utcnow().isoformat()
             cursor.execute("""
                 UPDATE workspace_users 
@@ -597,14 +798,32 @@ class WorkspaceManager:
             """, (now, workspace_id, user_id))
             
             conn.commit()
+            
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             
             return {"success": True, "message": SUCCESS_MEMBER_REMOVED}
             
         except Exception as e:
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise DatabaseError("remove_member", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def update_member_role(
         self,
@@ -624,16 +843,20 @@ class WorkspaceManager:
         
         Returns:
             WorkspaceMember: Updated member
+        
+        ✅ FIXED: Added proper cursor management
         """
         # Check permissions
         updater = self.get_member(workspace_id, updated_by)
         if updater.role not in [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]:
             raise WorkspacePermissionError(updated_by, workspace_id, "update member roles")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
+        cursor = None
+        conn = None
         try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
             cursor.execute("""
                 UPDATE workspace_users 
                 SET role = %s
@@ -641,58 +864,61 @@ class WorkspaceManager:
             """, (new_role.value, workspace_id, user_id))
             
             conn.commit()
+            
+            cursor.close()
+            cursor = None
             conn.close()
+            conn = None
             
             return self.get_member(workspace_id, user_id)
             
         except Exception as e:
-            conn.rollback()
-            conn.close()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
             raise DatabaseError("update_member_role", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def get_member(self, workspace_id: int, user_id: int) -> WorkspaceMember:
-        """Get workspace member record"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        """
+        Get workspace member record
         
-        cursor.execute("""
-            SELECT * FROM workspace_users 
-            WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
-        """, (workspace_id, user_id))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if not row:
-            raise MemberNotFoundError(user_id, workspace_id)
-        
-        return WorkspaceMember(
-            id=row['id'],
-            workspace_id=row['workspace_id'],
-            user_id=row['user_id'],
-            role=WorkspaceRole(row['role']),
-            added_by_user_id=row['added_by_user_id'],
-            added_at=datetime.fromisoformat(row['added_at']),
-            removed_at=datetime.fromisoformat(row['removed_at']) if row['removed_at'] else None
-        )
-    
-    def get_members(self, workspace_id: int) -> List[WorkspaceMember]:
-        """List all workspace members"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT * FROM workspace_users 
-            WHERE workspace_id = %s AND removed_at IS NULL
-            ORDER BY added_at ASC
-        """, (workspace_id,))
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        members = []
-        for row in rows:
-            members.append(WorkspaceMember(
+        ✅ FIXED: Added proper cursor management
+        """
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT * FROM workspace_users 
+                WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
+            """, (workspace_id, user_id))
+            
+            row = cursor.fetchone()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            if not row:
+                raise MemberNotFoundError(user_id, workspace_id)
+            
+            return WorkspaceMember(
                 id=row['id'],
                 workspace_id=row['workspace_id'],
                 user_id=row['user_id'],
@@ -700,72 +926,213 @@ class WorkspaceManager:
                 added_by_user_id=row['added_by_user_id'],
                 added_at=datetime.fromisoformat(row['added_at']),
                 removed_at=datetime.fromisoformat(row['removed_at']) if row['removed_at'] else None
-            ))
+            )
+            
+        except MemberNotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError("get_member", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
+    
+    def get_members(self, workspace_id: int) -> List[WorkspaceMember]:
+        """
+        List all workspace members
         
-        return members
+        ✅ FIXED: Added proper cursor management
+        """
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT * FROM workspace_users 
+                WHERE workspace_id = %s AND removed_at IS NULL
+                ORDER BY added_at ASC
+            """, (workspace_id,))
+            
+            rows = cursor.fetchall()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            members = []
+            for row in rows:
+                members.append(WorkspaceMember(
+                    id=row['id'],
+                    workspace_id=row['workspace_id'],
+                    user_id=row['user_id'],
+                    role=WorkspaceRole(row['role']),
+                    added_by_user_id=row['added_by_user_id'],
+                    added_at=datetime.fromisoformat(row['added_at']),
+                    removed_at=datetime.fromisoformat(row['removed_at']) if row['removed_at'] else None
+                ))
+            
+            return members
+            
+        except Exception as e:
+            raise DatabaseError("get_members", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def check_membership(self, workspace_id: int, user_id: int) -> bool:
-        """Check if user is workspace member"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        """
+        Check if user is workspace member
         
-        cursor.execute("""
-            SELECT id FROM workspace_users 
-            WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
-        """, (workspace_id, user_id))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        return result is not None
+        ✅ FIXED: Added proper cursor management
+        """
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT id FROM workspace_users 
+                WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
+            """, (workspace_id, user_id))
+            
+            result = cursor.fetchone()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return result is not None
+            
+        except Exception as e:
+            raise DatabaseError("check_membership", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def get_user_workspaces(self, user_id: int) -> List[Workspace]:
-        """Get all workspaces user is member of"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        """
+        Get all workspaces user is member of
         
-        cursor.execute("""
-            SELECT workspace_id FROM workspace_users 
-            WHERE user_id = %s AND removed_at IS NULL
-        """, (user_id,))
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        workspaces = []
-        for row in rows:
-            workspace = self.get_workspace(workspace_id=row['workspace_id'])
-            workspaces.append(workspace)
-        
-        return workspaces
+        ✅ FIXED: Added proper cursor management
+        """
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT workspace_id FROM workspace_users 
+                WHERE user_id = %s AND removed_at IS NULL
+            """, (user_id,))
+            
+            rows = cursor.fetchall()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            workspaces = []
+            for row in rows:
+                workspace = self.get_workspace(workspace_id=row['workspace_id'])
+                workspaces.append(workspace)
+            
+            return workspaces
+            
+        except Exception as e:
+            raise DatabaseError("get_user_workspaces", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     def get_workspace_stats(self, workspace_id: int) -> WorkspaceStats:
-        """Get workspace statistics"""
+        """
+        Get workspace statistics
+        
+        ✅ FIXED: Added proper cursor management
+        """
         workspace = self.get_workspace(workspace_id=workspace_id)
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Get thread count (from sessions.db - will need to query separately)
-        # For now, return placeholder
-        thread_count = 0
-        
-        # Get message count
-        message_count = 0
-        
-        # Get active members
-        cursor.execute("""
-            SELECT COUNT(*) FROM workspace_users 
-            WHERE workspace_id = %s AND removed_at IS NULL
-        """, (workspace_id,))
-        active_members = cursor.fetchone()[0]
-        
-        conn.close()
-        
-        return WorkspaceStats(
-            workspace_id=workspace_id,
-            member_count=active_members,
-            thread_count=thread_count,
-            message_count=message_count,
-            created_at=workspace.created_at
-        )
+        cursor = None
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Get thread count (from sessions.db - will need to query separately)
+            # For now, return placeholder
+            thread_count = 0
+            
+            # Get message count
+            message_count = 0
+            
+            # Get active members
+            cursor.execute("""
+                SELECT COUNT(*) FROM workspace_users 
+                WHERE workspace_id = %s AND removed_at IS NULL
+            """, (workspace_id,))
+            active_members = cursor.fetchone()[0]
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            return WorkspaceStats(
+                workspace_id=workspace_id,
+                member_count=active_members,
+                thread_count=thread_count,
+                message_count=message_count,
+                created_at=workspace.created_at
+            )
+            
+        except Exception as e:
+            raise DatabaseError("get_workspace_stats", str(e))
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass

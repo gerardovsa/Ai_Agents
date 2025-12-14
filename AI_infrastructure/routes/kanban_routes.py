@@ -32,7 +32,6 @@ Endpoints:
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
 import json
 import os
 from datetime import datetime

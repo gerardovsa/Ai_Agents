@@ -500,10 +500,4 @@ def list_my_shared_threads():
 # ======================================================================
 # STARTUP LOGGING
 # ======================================================================
-logger.info("="*80)
-logger.info("Thread Sharing Routes loaded (Enhanced Version)")
-logger.info("   - ✅ NO CURSOR MANAGEMENT ISSUES (no direct DB operations)")
-logger.info("   - ✅ All database operations handled by ThreadSharingManager")
-logger.info("   - ✅ Enhanced logging, validation, and error handling")
-logger.info(f"   - Endpoints: 6 routes registered")
-logger.info("="*80)
+logger.info("✅ Thread Sharing routes loaded")

@@ -29,7 +29,6 @@ PREVIOUS: 2025-11-14 - Initial implementation
 """
 
 from flask import Blueprint, jsonify, request
-import sqlite3
 import logging
 from pathlib import Path
 from shared.database_utils import get_database_connection
@@ -68,7 +67,7 @@ def get_db_connection():
     """
     conn = get_database_connection('ai_infrastructure')
     if hasattr(conn, 'row_factory'):  # SQLite
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = psycopg2.extras.RealDictRow
     return conn
 
 
@@ -323,10 +322,4 @@ def get_token_count_by_session(session_id):
 # ======================================================================
 # STARTUP LOGGING
 # ======================================================================
-logger.info("="*80)
-logger.info("Token Tracking Routes loaded (Fixed Version)")
-logger.info("   - ✅ CURSOR MANAGEMENT FIXED (7 issues resolved)")
-logger.info("   - Endpoints: 3 routes registered")
-logger.info(f"   - Default token limit: {DEFAULT_TOKEN_LIMIT:,}")
-logger.info(f"   - Status thresholds: {STATUS_THRESHOLDS}")
-logger.info("="*80)
+logger.info("✅ Token Tracking routes loaded")

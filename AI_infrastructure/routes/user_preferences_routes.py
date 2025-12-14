@@ -42,7 +42,6 @@ PREVIOUS: 2025-11-05 - Added ip_location import for automatic location detection
 
 from flask import Blueprint, request, jsonify
 import os
-import sqlite3
 from datetime import datetime
 import logging
 import jwt
@@ -83,7 +82,7 @@ def get_db_connection():
     conn = get_database_connection('ai_infrastructure')
     # Set row_factory only for SQLite (PostgreSQL doesn't support this attribute)
     if hasattr(conn, 'row_factory'):
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = psycopg2.extras.RealDictRow
     return conn
 
 
@@ -912,13 +911,4 @@ def save_user_preferences(user_id, preferences_dict):
 # ======================================================================
 # STARTUP LOGGING
 # ======================================================================
-logger.info("="*80)
-logger.info("User Preferences Routes loaded (Fixed Version)")
-logger.info("   - ✅ CURSOR MANAGEMENT FIXED (17 issues resolved)")
-logger.info("   - 📅 LAST UPDATED: 2025-12-07")
-logger.info("   - Endpoints: 2 routes registered (GET, POST)")
-logger.info("   - Helper functions: 2 (get_user_preferences, save_user_preferences)")
-logger.info(f"   - Valid styles: {', '.join(VALID_COMMUNICATION_STYLES)}")
-logger.info(f"   - Valid detail levels: {', '.join(VALID_DETAIL_LEVELS)}")
-logger.info(f"   - Valid auth platforms: {', '.join(VALID_AUTH_PLATFORMS)}")
-logger.info("="*80)
+logger.info("✅ User Preferences routes loaded")

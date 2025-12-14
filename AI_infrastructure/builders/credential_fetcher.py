@@ -10,7 +10,6 @@ Responsibilities:
 """
 
 from typing import Dict, Any, Optional
-import sqlite3  # Keep for type hints
 from shared.db_connection_wrapper import get_connection
 from datetime import datetime
 import sys
@@ -64,10 +63,10 @@ class CredentialFetcher:
         self.db_path = db_path or DB_PATH
         logger.info(f"🔐 CredentialFetcher initialized (db: {Path(self.db_path).name})")
 
-    def _get_db_connection(self) -> sqlite3.Connection:
+    def _get_db_connection(self) -> psycopg2.extensions.connection:
         """Get database connection with row factory."""
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = psycopg2.extras.RealDictRow
         return conn
 
     def get_credentials(self, user_id: int, platform: str) -> Optional[Dict[str, Any]]:
@@ -158,7 +157,7 @@ class CredentialFetcher:
             
             return creds
             
-        except sqlite3.Error as e:
+        except Error as e:
             logger.error(f" Database error: {e}")
             return None
 
@@ -302,3 +301,4 @@ class CredentialFetcher:
 
 # Export
 __all__ = ['CredentialFetcher']
+

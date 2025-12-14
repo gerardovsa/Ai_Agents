@@ -3,24 +3,23 @@ CRITICAL MIGRATION: Add ALL missing OAuth columns
 Generated from OAuth code analysis
 """
 
-import sqlite3
 from pathlib import Path
 
 def run_migration():
     """Add all missing columns identified from OAuth code analysis"""
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
+    db_path = root_dir / 'data' / 'ai_infrastructure.db - DEPRECATED (now PostgreSQL)'
     
-    conn = sqlite3.connect(str(db_path))
+    conn = psycopg2.connect(str(db_path))
     cursor = conn.cursor()
     
     print(f"Running OAuth columns migration on {db_path}")
     
     # Get current schema
-    cursor.execute("PRAGMA table_info(users)")
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='users'")
     users_cols = {col[1] for col in cursor.fetchall()}
     
-    cursor.execute("PRAGMA table_info(oauth_tokens)")
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='oauth_tokens'")
     oauth_cols = {col[1] for col in cursor.fetchall()}
     
 
@@ -89,3 +88,4 @@ def run_migration():
 
 if __name__ == '__main__':
     run_migration()
+

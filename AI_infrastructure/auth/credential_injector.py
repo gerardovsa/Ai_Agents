@@ -56,7 +56,6 @@ LAST MODIFIED: 2025-11-02 - Added OAuth token auto-refresh for Google and Micros
 import os
 import sys
 import requests
-import sqlite3  # Keep for type hints
 from shared.db_connection_wrapper import get_connection
 from pathlib import Path
 from typing import Callable, Dict, Any, Optional
@@ -1248,3 +1247,4 @@ __all__ = [
     'get_xero_credentials',
     'get_github_credentials'
 ]
+

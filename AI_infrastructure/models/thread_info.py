@@ -117,7 +117,7 @@ class ThreadInfo:
         Create ThreadInfo from database row
         
         Args:
-            row: Database row as dict (from sqlite3.Row or psycopg2 DictCursor)
+            row: Database row as dict (from psycopg2.extras.RealDictRow or psycopg2 DictCursor)
         
         Returns:
             ThreadInfo instance
@@ -312,7 +312,7 @@ def get_thread_by_slug(cursor, thread_slug: str) -> Optional[ThreadInfo]:
     if not row:
         return None
     
-    # Convert row to dict (handles both sqlite3.Row and psycopg2)
+    # Convert row to dict (handles both psycopg2.extras.RealDictRow and psycopg2)
     if hasattr(row, 'keys'):
         row_dict = dict(row)
     else:
@@ -521,3 +521,4 @@ async loadThreads() {
     });
 }
 """
+

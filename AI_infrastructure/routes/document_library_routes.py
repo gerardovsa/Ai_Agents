@@ -987,4 +987,4 @@ def get_stats():
 # MODULE INITIALIZATION
 # ============================================================================
 
-print('[DOCUMENT LIBRARY] Routes loaded: 11 endpoints (cursor management fixed - 2025-12-07)')
+print('✅ Document Library routes loaded')

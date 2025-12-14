@@ -63,28 +63,20 @@ log_config(logger, f"SUPABASE_DB_URL: {'SET' if os.getenv('SUPABASE_DB_URL') els
 log_config(logger, f"SUPABASE_KEY: {'SET' if os.getenv('SUPABASE_KEY') else 'NOT SET'}")
 
 print("[DEBUG] About to import db_path_helper...")
-# Stock Management - ENABLED (Supabase + local fallback)
+# Stock Management - ENABLED (Supabase stock_data schema)
 from AI_infrastructure.utils.db_path_helper import get_stock_db_path
-print("[DEBUG] Calling get_stock_db_path()...")
-STOCK_DB_PATH = get_stock_db_path()
-print(f"[DEBUG] STOCK_DB_PATH={STOCK_DB_PATH}")
 
-# Check if using Supabase stock database
-if STOCK_DB_PATH == 'supabase://stock_data':
-    STOCK_DB_AVAILABLE = bool(os.getenv('SUPABASE_URL'))
-    STOCK_DB_CONFIG = {'db_type': 'supabase', 'schema': 'stock_data'} if STOCK_DB_AVAILABLE else None
-    if STOCK_DB_AVAILABLE:
-        log_config(logger, f"Stock management enabled - using Supabase (schema: stock_data)")
-    else:
-        log_warning(logger, f"Stock management disabled - SUPABASE_URL not set")
+STOCK_DB_SCHEMA = get_stock_db_path()  # Returns 'stock_data'
+print(f"[DEBUG] STOCK_DB_SCHEMA={STOCK_DB_SCHEMA}")
+
+# Check if using Supabase (always true for stock_data schema)
+STOCK_DB_AVAILABLE = bool(os.getenv('SUPABASE_URL'))
+STOCK_DB_CONFIG = {'db_type': 'supabase', 'schema': STOCK_DB_SCHEMA} if STOCK_DB_AVAILABLE else None
+
+if STOCK_DB_AVAILABLE:
+    log_config(logger, f"Stock management enabled - using Supabase (schema: {STOCK_DB_SCHEMA})")
 else:
-    # Local file fallback
-    STOCK_DB_AVAILABLE = os.path.exists(STOCK_DB_PATH)
-    STOCK_DB_CONFIG = {'db_type': 'sqlite', 'db_path': STOCK_DB_PATH} if STOCK_DB_AVAILABLE else None
-    if STOCK_DB_AVAILABLE:
-        log_config(logger, f"Stock management enabled - database found at {STOCK_DB_PATH}")
-    else:
-        log_warning(logger, f"Stock management disabled - database not found at {STOCK_DB_PATH}")
+    log_warning(logger, f"Stock management disabled - SUPABASE_URL not set")
 
 # Flask Configuration (inline - no external config.py needed)
 class Config:
@@ -160,7 +152,7 @@ except ImportError as e:
     INHOUSE_KANBAN_AVAILABLE = False
 
 from routes.kanban_supabase_routes import kanban_supabase_bp  # NEW: Kanban Supabase integration (time tracking & analytics)
-from routes.kanban_analytics_routes import kanban_analytics_bp  # NEW: Kanban Analytics (SQLite database with custom metrics)
+from routes.kanban_analytics_routes import kanban_analytics_bp  # NEW: Kanban Analytics (PostgreSQL database with custom metrics)
 from routes.universal_search_routes import universal_search_bp  # NEW: Universal search (5 endpoints: search, facets, sources, index)
 from routes.cloud_folder_sync_routes import cloud_sync_bp  # NEW: Cloud folder sync (5 endpoints: add, list, sync, schedule, delete)
 from routes.qdrant_routes import qdrant_bp  # NEW: Qdrant vector database (8 endpoints: connect, create-collection, upsert, search, hybrid-search, stats, delete, snapshot)
@@ -224,12 +216,12 @@ def initialize_semantic_search_on_startup():
         print("=" * 80)
         
         # Import registry and semantic search initializer
-        from tools.registry_v3 import RegistryV3
+        from tools.registry_v3 import get_registry
         from AI_infrastructure.routes.agent_routes_v4 import get_semantic_search
         
-        # Create registry
+        # Get singleton registry (NOT a new instance)
         print("[STARTUP] Loading tool registry...")
-        registry = RegistryV3()
+        registry = get_registry()
         print(f"[STARTUP] [OK] Registry loaded with {len(registry.tools)} tools")
         
         # Initialize semantic search (this computes embeddings)
@@ -285,9 +277,9 @@ try:
     if is_using_supabase():
         cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
     else:
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
     rows = cursor.fetchall()
-    # Handle both SQLite (tuples) and PostgreSQL (tuples or DictRow)
+    # Handle PostgreSQL rows
     if rows and len(rows) > 0:
         # Try to access first element - works for both tuples and postgres rows
         try:
@@ -342,7 +334,7 @@ if not os.getenv('USE_SUPABASE') == 'true' and not os.getenv('RENDER') == 'true'
     except Exception as e:
         log_error(logger, f"Failed to add refresh_attempts column: {e}")
 else:
-    log_success(logger, "Skipping SQLite migrations (using Supabase - tables already exist)")
+    log_success(logger, "Skipping migrations (using Supabase - tables already exist)")
 
 # Initialize automation tables
 try:
@@ -408,7 +400,7 @@ app.register_blueprint(automation_bp)                                # NEW: Visu
 if INHOUSE_KANBAN_AVAILABLE:
     app.register_blueprint(inhouse_kanban_bp)                        # NEW: InHousePrint production workflow (5 endpoints)
 app.register_blueprint(kanban_supabase_bp)                           # NEW: Kanban Supabase integration (10 endpoints: /api/kanban/supabase/*)
-app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics SQLite (15 endpoints: /api/kanban-analytics/*)
+app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics (15 endpoints: /api/kanban-analytics/*)
 app.register_blueprint(universal_search_bp)                          # NEW: Universal search (5 endpoints: /api/universal-search/*)
 app.register_blueprint(qdrant_bp, url_prefix='/api/qdrant')         # NEW: Qdrant vector database (8 endpoints: /api/qdrant/*)
 app.register_blueprint(cloud_sync_bp)                                # NEW: Cloud folder sync (5 endpoints: /api/cloud-sync/*)

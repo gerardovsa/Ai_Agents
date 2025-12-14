@@ -1,4 +1,4 @@
-﻿"""
+"""
 FILE: AI_infrastructure/routes/kanban_analytics_routes.py
 PURPOSE: REST API endpoints for Kanban Analytics SQLite database
 FULLY FIXED VERSION - Production Ready
@@ -30,7 +30,6 @@ LAST MODIFIED: 2024 - Fixed all cursor leaks
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
 import json
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -61,8 +60,7 @@ def get_db_connection():
     """Get Supabase database connection to kanban_analytics schema"""
     conn = get_database_connection('kanban_analytics')
     if hasattr(conn, 'row_factory'):  # SQLite compatibility
-        import sqlite3
-        conn.row_factory = sqlite3.Row
+                conn.row_factory = psycopg2.extras.RealDictRow
     return conn
 
 

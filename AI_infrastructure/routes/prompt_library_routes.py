@@ -383,7 +383,6 @@ def list_categories():
 
 # ==================== DATABASE-BACKED ROUTES (FIXED) ====================
 
-import sqlite3
 from pathlib import Path
 from shared.database_utils import get_database_connection, is_using_supabase, convert_sql_placeholders
 from datetime import datetime
@@ -401,7 +400,7 @@ def get_db_connection():
         pass  # Handled per-query
     else:
         # SQLite: use Row factory
-        conn.row_factory = sqlite3.Row
+        conn.row_factory = psycopg2.extras.RealDictRow
     
     return conn
 

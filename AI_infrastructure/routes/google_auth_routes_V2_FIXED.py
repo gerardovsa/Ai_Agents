@@ -36,7 +36,6 @@ import json
 from functools import wraps
 from pathlib import Path
 from dotenv import dotenv_values
-import sqlite3
 import random
 import sys
 
@@ -121,7 +120,7 @@ def get_db_connection():
     """Get database connection using centralized utility (supports Supabase + SQLite)"""
     from shared.database_utils import get_database_connection
     conn = get_database_connection('ai_infrastructure')
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = psycopg2.extras.RealDictRow
     return conn
 
 def init_db():
@@ -278,7 +277,7 @@ def create_user(email, username=None):
         
         print(f'✅ Created new user: {username} (ID: {user_id}) with active=TRUE, permissions=user')
         return user_id
-    except sqlite3.IntegrityError as e:
+    except IntegrityError as e:
         print(f'❌ [DB ERROR] Integrity constraint violation: {e}')
         # Try to get existing user
         try:
@@ -1262,10 +1261,9 @@ def google_config():
 # MODULE INITIALIZATION
 # ============================================================================
 
-print('✅ Google OAuth routes loaded (V2 Fixed Version - CURSOR MANAGEMENT COMPLETE)')
-print(f'   - Writes to: oauth_tokens table (24 columns)')
-print(f'   - Client ID: {GOOGLE_CLIENT_ID[:20]}...' if GOOGLE_CLIENT_ID else '   - Client ID: NOT SET')
-print(f'   - Redirect URI: {GOOGLE_REDIRECT_URI}')
-print(f'   - Scopes: {len(GOOGLE_SCOPES)} requested')
-print(f'   - All cursor leaks fixed ✅')
+if GOOGLE_CLIENT_ID:
+    print('✅ Google OAuth routes loaded')
+else:
+    print('⚠️ Google OAuth routes loaded (Client ID not configured)')
+
 

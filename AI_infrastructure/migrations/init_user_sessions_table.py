@@ -4,7 +4,6 @@ Created: November 14, 2025
 Purpose: Fix Google/Microsoft OAuth 401 errors by ensuring user_sessions table exists
 """
 
-import sqlite3
 from pathlib import Path
 import logging
 
@@ -16,11 +15,11 @@ def init_user_sessions_table():
     
     # Get database path
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
+    db_path = root_dir / 'data' / 'ai_infrastructure.db - DEPRECATED (now PostgreSQL)'
     
     logger.info(f"🔧 Connecting to: {db_path}")
     
-    conn = sqlite3.connect(str(db_path))
+    conn = psycopg2.connect(str(db_path))
     cursor = conn.cursor()
     
     try:
@@ -53,7 +52,7 @@ def init_user_sessions_table():
         logger.info("✅ Successfully created/verified user_sessions table")
         
         # Verify the table structure
-        cursor.execute("PRAGMA table_info(user_sessions)")
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='user_sessions'")
         columns = [(row[1], row[2]) for row in cursor.fetchall()]
         logger.info(f"📋 user_sessions columns: {columns}")
         
@@ -71,3 +70,4 @@ def init_user_sessions_table():
 
 if __name__ == "__main__":
     init_user_sessions_table()
+

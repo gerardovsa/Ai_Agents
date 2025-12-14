@@ -5,7 +5,6 @@ User Manager
 Manage users and their credentials in the AI Agents system.
 """
 
-import sqlite3
 import hashlib
 import secrets
 from datetime import datetime, timedelta
@@ -19,9 +18,9 @@ class UserManager:
         """Initialize user manager"""
         self.db_path = db_path
     
-    def get_connection(self) -> sqlite3.Connection:
+    def get_connection(self) -> psycopg2.connection:
         """Get database connection"""
-        return sqlite3.connect(self.db_path)
+        return psycopg2.connect(self.db_path)
     
     def create_user(self, username: str, email: str, 
                    role: str = "user", password: Optional[str] = None) -> int:
@@ -55,7 +54,7 @@ class UserManager:
             conn.commit()
             return user_id
         
-        except sqlite3.IntegrityError as e:
+        except IntegrityError as e:
             print(f" Error: {e}")
             return -1
         finally:
@@ -279,3 +278,4 @@ if __name__ == "__main__":
     # Test user manager
     manager = UserManager()
     manager.print_user_list()
+

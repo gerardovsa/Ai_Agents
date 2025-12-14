@@ -6,7 +6,6 @@ Final OAuth Consolidation Migration
 Date: October 30, 2025
 """
 
-import sqlite3
 import os
 import shutil
 from datetime import datetime
@@ -28,7 +27,7 @@ def create_backup():
 def add_oauth_enhancement_columns():
     """Add 12 essential OAuth management columns"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     columns_to_add = [
@@ -61,7 +60,7 @@ def add_oauth_enhancement_columns():
             cursor.execute(f"ALTER TABLE oauth_tokens ADD COLUMN {column_name} {column_def}")
             print(f"  Added: {column_name}")
             added_count += 1
-        except sqlite3.OperationalError as e:
+        except psycopg2.OperationalError as e:
             if "duplicate column name" in str(e):
                 print(f"  ⏭️  Already exists: {column_name}")
             else:
@@ -77,7 +76,7 @@ def add_oauth_enhancement_columns():
 def migrate_gmail_addresses():
     """Migrate gmail addresses from user_gmail_accounts to oauth_tokens"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n📧 Migrating Gmail addresses to oauth_tokens...")
@@ -121,7 +120,7 @@ def migrate_gmail_addresses():
 def initialize_new_columns():
     """Set default values for existing oauth_tokens records"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n🔄 Initializing new columns for existing tokens...")
@@ -160,7 +159,7 @@ def initialize_new_columns():
 def archive_old_tables():
     """Rename old tables with _ARCHIVED_ prefix"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n🗄️  Archiving old redundant tables...")
@@ -175,11 +174,11 @@ def archive_old_tables():
     for table_name, reason in tables_to_archive:
         try:
             # Check if table exists
-            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+            cursor.execute(f"SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure' AND table_name='{table_name}'")
             if cursor.fetchone():
                 # Check if already archived
                 archived_name = f"_ARCHIVED_{table_name}"
-                cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{archived_name}'")
+                cursor.execute(f"SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure' AND table_name='{archived_name}'")
                 if cursor.fetchone():
                     # Already archived, drop old one
                     cursor.execute(f"DROP TABLE {archived_name}")
@@ -191,7 +190,7 @@ def archive_old_tables():
                 archived_count += 1
             else:
                 print(f"  ⏭️  Table doesn't exist: {table_name}")
-        except sqlite3.OperationalError as e:
+        except psycopg2.OperationalError as e:
             print(f"  ⚠️  Error archiving {table_name}: {e}")
     
     conn.commit()
@@ -203,13 +202,13 @@ def archive_old_tables():
 def verify_consolidation():
     """Verify the consolidated oauth_tokens table"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n🔍 Verifying OAuth consolidation...")
     
     # Check schema
-    cursor.execute("PRAGMA table_info(oauth_tokens)")
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='oauth_tokens'")
     columns = cursor.fetchall()
     column_names = [col[1] for col in columns]
     
@@ -286,9 +285,7 @@ def verify_consolidation():
     # Check archived tables
     cursor.execute("""
         SELECT name 
-        FROM sqlite_master 
-        WHERE type='table' 
-        AND name LIKE '_ARCHIVED_%'
+        FROM information_schema.tables WHERE table_schema='ai_infrastructure' AND table_name LIKE '_ARCHIVED_%'
     """)
     
     archived_tables = cursor.fetchall()
@@ -444,3 +441,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+

@@ -5,7 +5,6 @@ Query Tool
 Interactive SQL query interface for the database.
 """
 
-import sqlite3
 import csv
 from typing import List, Optional, Tuple
 from datetime import datetime
@@ -18,10 +17,10 @@ class QueryTool:
         """Initialize query tool"""
         self.db_path = db_path
     
-    def get_connection(self) -> sqlite3.Connection:
+    def get_connection(self) -> psycopg2.connection:
         """Get database connection"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = psycopg2.connect(self.db_path)
+        conn.row_factory = psycopg2.extras.RealDictRow
         return conn
     
     def execute_query(self, query: str, params: Optional[Tuple] = None) -> List[dict]:
@@ -128,3 +127,4 @@ if __name__ == "__main__":
     tool = QueryTool()
     results = tool.execute_query("SELECT * FROM users LIMIT 5")
     print(tool.format_results(results))
+

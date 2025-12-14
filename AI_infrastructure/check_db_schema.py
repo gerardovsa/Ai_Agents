@@ -1,7 +1,6 @@
 """
 Check database schema and create missing tables
 """
-import sqlite3
 import os
 
 db_path = 'ai_infrastructure.db'
@@ -16,10 +15,10 @@ if os.path.exists(db_path):
     print(f"Database exists: {db_path}")
     
     # Connect and check tables
-    conn = sqlite3.connect(db_path)
+    conn = psycopg2.connect(db_path)
     cursor = conn.cursor()
     
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
     tables = cursor.fetchall()
     
     print(f"\n📋 Existing Tables ({len(tables)}):")
@@ -27,7 +26,7 @@ if os.path.exists(db_path):
         print(f"  - {table[0]}")
         
         # Get schema for each table
-        cursor.execute(f"PRAGMA table_info({table[0]})")
+        cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='{table[0]}'")
         columns = cursor.fetchall()
         print(f"    Columns: {len(columns)}")
         for col in columns:
@@ -40,3 +39,4 @@ else:
 
 print()
 print("=" * 70)
+

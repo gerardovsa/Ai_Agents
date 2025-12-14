@@ -68,7 +68,7 @@ def get_user_id_by_email(email: str) -> Optional[int]:
         # Not found
         return None
         
-    except sqlite3.Error as e:
+    except Error as e:
         print(f" Database error in get_user_id_by_email: {e}")
         return None
         
@@ -148,7 +148,7 @@ def add_email_alias(
         conn.commit()
         return True, f"Successfully linked {alias_email} to user {user_id}"
         
-    except sqlite3.Error as e:
+    except Error as e:
         conn.rollback()
         return False, f"Database error: {e}"
         
@@ -208,7 +208,7 @@ def get_user_emails(user_id: int) -> Dict[str, List[str]]:
             'aliases': aliases
         }
         
-    except sqlite3.Error as e:
+    except Error as e:
         print(f" Database error in get_user_emails: {e}")
         return {'primary': None, 'aliases': []}
         
@@ -256,7 +256,7 @@ def remove_email_alias(alias_email: str, user_id: int) -> Tuple[bool, str]:
         conn.commit()
         return True, f"Successfully unlinked {alias_email}"
         
-    except sqlite3.Error as e:
+    except Error as e:
         conn.rollback()
         return False, f"Database error: {e}"
         
@@ -318,7 +318,7 @@ def get_alias_info(alias_email: str) -> Optional[Dict]:
             'metadata': json.loads(result[7]) if result[7] else None
         }
         
-    except sqlite3.Error as e:
+    except Error as e:
         print(f" Database error in get_alias_info: {e}")
         return None
         
@@ -350,7 +350,7 @@ def count_user_aliases(user_id: int) -> int:
         result = cursor.fetchone()
         return result[0] if result else 0
         
-    except sqlite3.Error as e:
+    except Error as e:
         print(f" Database error in count_user_aliases: {e}")
         return 0
         
@@ -375,3 +375,4 @@ if __name__ == '__main__':
     print()
     
     print(" Basic tests completed!")
+

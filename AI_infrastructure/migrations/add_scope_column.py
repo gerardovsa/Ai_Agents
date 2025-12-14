@@ -4,7 +4,6 @@ Created: November 14, 2025
 Purpose: Fix "table oauth_tokens has no column named scope" error
 """
 
-import sqlite3
 from pathlib import Path
 import logging
 
@@ -16,16 +15,16 @@ def add_scope_column():
     
     # Get database path
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
+    db_path = root_dir / 'data' / 'ai_infrastructure.db - DEPRECATED (now PostgreSQL)'
     
     logger.info(f"🔧 Connecting to: {db_path}")
     
-    conn = sqlite3.connect(str(db_path))
+    conn = psycopg2.connect(str(db_path))
     cursor = conn.cursor()
     
     try:
         # Check if column exists
-        cursor.execute("PRAGMA table_info(oauth_tokens)")
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='oauth_tokens'")
         columns = [row[1] for row in cursor.fetchall()]
         
         if 'scope' in columns:
@@ -40,7 +39,7 @@ def add_scope_column():
             logger.info("✅ Successfully added 'scope' column")
         
         # Verify the change
-        cursor.execute("PRAGMA table_info(oauth_tokens)")
+        cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='oauth_tokens'")
         columns = [row[1] for row in cursor.fetchall()]
         logger.info(f"📋 Current oauth_tokens columns: {', '.join(columns)}")
         
@@ -53,3 +52,4 @@ def add_scope_column():
 
 if __name__ == "__main__":
     add_scope_column()
+

@@ -1289,4 +1289,4 @@ def index_synergy_for_search():
 # EXPORT BLUEPRINT
 # ============================================================================
 
-print('[UNIVERSAL SEARCH] Routes loaded: 5 endpoints (cursor management fixed)')
+print('✅ Universal Search routes loaded')

@@ -62,7 +62,7 @@ def query_namespaces():
         }
     """
     try:
-        user_id = request.user_id
+        user_id = request.user.get('user_id')
         data = request.json
         
         query_text = data.get('query_text')
@@ -193,7 +193,7 @@ def fetch_by_metadata():
         }
     """
     try:
-        user_id = request.user_id
+        user_id = request.user.get('user_id')
         data = request.json
         
         filter_dict = data.get('filter', {})
@@ -278,7 +278,7 @@ def list_namespaces():
         }
     """
     try:
-        user_id = request.user_id
+        user_id = request.user.get('user_id')
         include_stats = request.args.get('include_stats', 'true').lower() == 'true'
         prefix = request.args.get('prefix', f"user_{user_id}_")
         
@@ -360,7 +360,7 @@ def describe_namespace(namespace: str):
         }
     """
     try:
-        user_id = request.user_id
+        user_id = request.user.get('user_id')
         
         # Validate user owns namespace
         expected_prefix = f"user_{user_id}_"
@@ -458,7 +458,7 @@ def delete_namespace(namespace: str):
         }
     """
     try:
-        user_id = request.user_id
+        user_id = request.user.get('user_id')
         confirm = request.args.get('confirm', '')
         
         # Validate user owns namespace

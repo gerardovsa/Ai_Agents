@@ -38,7 +38,6 @@ LAST MODIFIED: 2025-11-17 - Removed SQLite remnants for Supabase migration
 """
 
 import json
-import sqlite3  # Keep for type hints
 from shared.db_connection_wrapper import get_connection
 from datetime import datetime, time
 from pathlib import Path
@@ -483,3 +482,4 @@ def get_permission_checker() -> PermissionChecker:
     if _permission_checker is None:
         _permission_checker = PermissionChecker()
     return _permission_checker
+

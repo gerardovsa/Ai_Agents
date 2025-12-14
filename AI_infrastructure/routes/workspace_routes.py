@@ -612,6 +612,4 @@ def health_check():
 # MODULE INITIALIZATION
 # ============================================================================
 
-print('[WORKSPACE ROUTES] Routes loaded: 15 endpoints (architecture verified - 2025-12-07)')
-print('[WORKSPACE ROUTES] ✅ No cursor management needed - delegates to manager classes')
-print('[WORKSPACE ROUTES] ⚠️  TO AUDIT: workspace/workspace_manager.py, workspace/invitation_manager.py')
+print('✅ Workspace routes loaded')

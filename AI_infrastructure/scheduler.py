@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI Automation Scheduler
 ========================
 Flexible task scheduler for AI agent automation pipeline.
@@ -20,7 +20,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from datetime import datetime, timedelta
-import sqlite3  # Keep for type hints
 from shared.db_connection_wrapper import get_connection
 import json
 import logging
@@ -712,3 +711,4 @@ def stop_scheduler():
     if _scheduler_instance:
         _scheduler_instance.stop()
         _scheduler_instance = None
+

@@ -19,7 +19,6 @@ CURSOR MANAGEMENT: Fixed December 7, 2025
 
 from flask import Blueprint, request, jsonify, session, redirect
 import os
-import sqlite3
 import secrets
 from datetime import datetime, timedelta
 import logging
@@ -131,7 +130,7 @@ def init_account_linking_tables():
             else:
                 # SQLite syntax
                 cursor.execute('ALTER TABLE users ADD COLUMN is_primary BOOLEAN DEFAULT 1')
-        except (sqlite3.OperationalError, Exception) as e:
+        except (psycopg2.OperationalError, Exception) as e:
             # Column already exists or other error - safe to ignore
             pass
         
@@ -644,7 +643,7 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
 
             cursor.execute(sql, params)
             logger.info(f"📦 Migrated {cursor.rowcount} threads")
-        except sqlite3.OperationalError:
+        except psycopg2.OperationalError:
             logger.warning("⚠️ Threads table doesn't exist")
         
         # Migrate platform credentials (keep both)

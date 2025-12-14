@@ -23,7 +23,6 @@ FILE PATH: C:/Users/gpoli/GIT/AI_agents/AI_infrastructure/routes/production_log_
 """
 
 from flask import Blueprint, request, jsonify
-import sqlite3
 from pathlib import Path
 from shared.database_utils import get_database_connection
 from datetime import datetime
@@ -37,7 +36,7 @@ production_log_bp = Blueprint('production_log', __name__, url_prefix='/api/produ
 def get_db_connection():
     """Get database connection to kanban analytics"""
     conn = get_database_connection('kanban_analytics')
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = psycopg2.extras.RealDictRow
     return conn
 
 # ============================================

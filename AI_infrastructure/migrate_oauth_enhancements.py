@@ -4,7 +4,6 @@ Adds essential columns for token management, refresh, multi-account support
 Date: October 30, 2025
 """
 
-import sqlite3
 import os
 from datetime import datetime
 from pathlib import Path
@@ -26,7 +25,7 @@ def create_backup():
 def add_oauth_columns():
     """Add essential OAuth management columns to oauth_tokens table"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     columns_to_add = [
@@ -57,7 +56,7 @@ def add_oauth_columns():
         try:
             cursor.execute(f"ALTER TABLE oauth_tokens ADD COLUMN {column_name} {column_def}")
             print(f"  Added column: {column_name}")
-        except sqlite3.OperationalError as e:
+        except psycopg2.OperationalError as e:
             if "duplicate column name" in str(e):
                 print(f"  ⏭️  Column already exists: {column_name}")
             else:
@@ -71,7 +70,7 @@ def add_oauth_columns():
 def initialize_new_columns():
     """Set default values for existing records"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n🔄 Initializing new columns for existing records...")
@@ -110,12 +109,12 @@ def initialize_new_columns():
 def verify_schema():
     """Verify new columns were added correctly"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n🔍 Verifying oauth_tokens schema...")
     
-    cursor.execute("PRAGMA table_info(oauth_tokens)")
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='oauth_tokens'")
     columns = cursor.fetchall()
     
     expected_new_columns = [
@@ -157,7 +156,7 @@ def verify_schema():
 def show_sample_tokens():
     """Show sample of enhanced token records"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n📋 Sample Token Records (Enhanced):")
@@ -225,3 +224,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

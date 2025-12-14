@@ -4,7 +4,6 @@ Enhances the sessions.db structure to support comprehensive thread/message manag
 Based on AnythingLLM message management patterns
 """
 
-import sqlite3
 import json
 from datetime import datetime
 import os
@@ -17,7 +16,7 @@ DB_PATH = str(root_dir / 'data' / 'sessions.db')
 def upgrade_database():
     """Upgrade database schema to support enhanced thread/message management"""
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("🔧 Starting database upgrade...")
@@ -255,7 +254,7 @@ def upgrade_database():
 
 def verify_upgrade():
     """Verify the upgrade was successful"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DB_PATH)
     cursor = conn.cursor()
     
     print("\n🔍 Verifying upgrade...")
@@ -285,3 +284,4 @@ if __name__ == '__main__':
         print(f"\n Upgrade failed: {e}")
         import traceback
         traceback.print_exc()
+
