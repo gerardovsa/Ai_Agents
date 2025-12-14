@@ -1494,7 +1494,7 @@ def calculate_saddle_stitch_books(
         }
     
     try:
-        from inhouse_modules.shopify_calculators.SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalculator
+        from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalculator
         
         calculator = SaddleStitchBooksShopifyCalculator()
         result = calculator.calculate(
@@ -1536,7 +1536,7 @@ def calculate_bollard_signs(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.BollardSigns_Shopify_Calculator import BollardSignsShopifyCalculator
+        from BollardSigns_Shopify_Calculator import BollardSignsShopifyCalculator
         calculator = BollardSignsShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1560,7 +1560,7 @@ def calculate_construction_signs(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.ConstructionSigns_Shopify_Calculator import ConstructionSignsShopifyCalculator
+        from ConstructionSigns_Shopify_Calculator import ConstructionSignsShopifyCalculator
         calculator = ConstructionSignsShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1584,7 +1584,7 @@ def calculate_election_signs(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.ElectionSigns_Shopify_Calculator import ElectionSignsShopifyCalculator
+        from ElectionSigns_Shopify_Calculator import ElectionSignsShopifyCalculator
         calculator = ElectionSignsShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1608,7 +1608,7 @@ def calculate_corflute_insert_a_frame(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.CorfluteInsertA_Frame_Shopify_Calculator import CorfluteInsertA_FrameShopifyCalculator
+        from CorfluteInsertA_Frame_Shopify_Calculator import CorfluteInsertA_FrameShopifyCalculator
         calculator = CorfluteInsertA_FrameShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1632,7 +1632,7 @@ def calculate_metal_face_a_frame(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.MetalFaceA_Frame_Shopify_Calculator import MetalFaceA_FrameShopifyCalculator
+        from MetalFaceA_Frame_Shopify_Calculator import MetalFaceA_FrameShopifyCalculator
         calculator = MetalFaceA_FrameShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1656,7 +1656,7 @@ def calculate_luxury_classic_pull_up_banners(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.LuxuryClassicPullUpBanners_Shopify_Calculator import LuxuryClassicPullUpBannersShopifyCalculator
+        from LuxuryClassicPullUpBanners_Shopify_Calculator import LuxuryClassicPullUpBannersShopifyCalculator
         calculator = LuxuryClassicPullUpBannersShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1680,7 +1680,7 @@ def calculate_selfie_frames(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.SelfieFrames_Shopify_Calculator import SelfieFramesShopifyCalculator
+        from SelfieFrames_Shopify_Calculator import SelfieFramesShopifyCalculator
         calculator = SelfieFramesShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1704,7 +1704,7 @@ def calculate_stackable_cubes(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.StackableCubes_Shopify_Calculator import StackableCubesShopifyCalculator
+        from StackableCubes_Shopify_Calculator import StackableCubesShopifyCalculator
         calculator = StackableCubesShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1728,7 +1728,7 @@ def calculate_strut_cards_a3(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.StrutCardsA3_Shopify_Calculator import StrutCardsA3ShopifyCalculator
+        from StrutCardsA3_Shopify_Calculator import StrutCardsA3ShopifyCalculator
         calculator = StrutCardsA3ShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1752,7 +1752,7 @@ def calculate_strut_cards_a4(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.StrutCardsA4_Shopify_Calculator import StrutCardsA4ShopifyCalculator
+        from StrutCardsA4_Shopify_Calculator import StrutCardsA4ShopifyCalculator
         calculator = StrutCardsA4ShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1776,7 +1776,7 @@ def calculate_custom_poster_printing(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.CustomPosterPrinting_Shopify_Calculator import CustomPosterPrintingShopifyCalculator
+        from CustomPosterPrinting_Shopify_Calculator import CustomPosterPrintingShopifyCalculator
         calculator = CustomPosterPrintingShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1800,7 +1800,7 @@ def calculate_custom_vinyl_stickers(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.CustomVinylStickers_Shopify_Calculator import CustomVinylStickersShopifyCalculator
+        from CustomVinylStickers_Shopify_Calculator import CustomVinylStickersShopifyCalculator
         calculator = CustomVinylStickersShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1824,7 +1824,7 @@ def calculate_premium_bookmarks(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.PremiumBookmarks_Shopify_Calculator import PremiumBookmarksShopifyCalculator
+        from PremiumBookmarks_Shopify_Calculator import PremiumBookmarksShopifyCalculator
         calculator = PremiumBookmarksShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1848,7 +1848,7 @@ def calculate_printed_letterheads(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.PrintedLetterheads_Shopify_Calculator import PrintedLetterheadsShopifyCalculator
+        from PrintedLetterheads_Shopify_Calculator import PrintedLetterheadsShopifyCalculator
         calculator = PrintedLetterheadsShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1872,7 +1872,7 @@ def calculate_with_compliments_slips(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.WithComplimentsSlips_Shopify_Calculator import WithComplimentsSlipsShopifyCalculator
+        from WithComplimentsSlips_Shopify_Calculator import WithComplimentsSlipsShopifyCalculator
         calculator = WithComplimentsSlipsShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1896,7 +1896,7 @@ def calculate_notepads_a4(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.NotepadsA4_Shopify_Calculator import NotepadsA4ShopifyCalculator
+        from NotepadsA4_Shopify_Calculator import NotepadsA4ShopifyCalculator
         calculator = NotepadsA4ShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1920,7 +1920,7 @@ def calculate_notepads_a5(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.NotepadsA5_Shopify_Calculator import NotepadsA5ShopifyCalculator
+        from NotepadsA5_Shopify_Calculator import NotepadsA5ShopifyCalculator
         calculator = NotepadsA5ShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1944,7 +1944,7 @@ def calculate_notepads_a6(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.NotepadsA6_Shopify_Calculator import NotepadsA6ShopifyCalculator
+        from NotepadsA6_Shopify_Calculator import NotepadsA6ShopifyCalculator
         calculator = NotepadsA6ShopifyCalculator()
         result = calculator.calculate(**kwargs)
         return {
@@ -1968,7 +1968,7 @@ def calculate_spiral_bound_books(**kwargs) -> Dict[str, Any]:
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     try:
-        from inhouse_modules.shopify_calculators.SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
+        from SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
         
         # Map schema parameters to backend parameters
         # Handle pages parameter - convert "40pp" to 40

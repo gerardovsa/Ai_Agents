@@ -341,9 +341,33 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     # STEP 4: Check if first block is already thinking
     first_block_type = validated_blocks[0].get('type')
     if first_block_type in ('thinking', 'redacted_thinking'):
-        return validated_blocks, extracted_tool_results  # Already correct order
+        # CRITICAL FIX (Dec 14, 2025): Even if thinking is first, ensure text block exists
+        # This prevents "all messages must have non-empty content" API errors
+        pass  # Continue to Step 4.5 to check for text block
     
-    # STEP 5: Reorder: thinking blocks first, then others
+    # STEP 4.5: CRITICAL FIX (Dec 14, 2025) - Ensure at least one text block exists
+    # Anthropic API requirement: "all messages must have non-empty content"
+    # Root cause: When Claude returns [thinking, tool_use] with NO text block, the validation
+    #             removes empty text blocks (line 272-277) but never adds one if none exist.
+    # Result: Messages with ONLY thinking+tool_use are considered "empty" and rejected with:
+    #         "messages.0: all messages must have non-empty content"
+    # Fix: Always ensure at least one text block exists (even if empty)
+    has_text = any(b.get('type') == 'text' for b in validated_blocks)
+    if not has_text:
+        print(f"[Combined Worker] ⚠️ No text block found in assistant message")
+        print(f"[Combined Worker] 🔧 Adding empty text block (Anthropic API requirement)")
+        print(f"[Combined Worker] ℹ️  Messages with ONLY thinking+tool_use are considered 'empty' by Anthropic")
+        
+        # Find correct position: after thinking blocks, before tool_use blocks
+        thinking_count = sum(1 for b in validated_blocks if b.get('type') in ('thinking', 'redacted_thinking'))
+        
+        # Insert empty text block at correct position
+        validated_blocks.insert(thinking_count, {'type': 'text', 'text': ''})
+        
+        print(f"[Combined Worker] ✅ Inserted empty text block at position {thinking_count}")
+        print(f"[Combined Worker] 📋 New structure: {[b.get('type') for b in validated_blocks]}")
+    
+    # STEP 5: Reorder: thinking blocks first, then others (only if thinking not already first)
     thinking_blocks = [
         b for b in validated_blocks 
         if b.get('type') in ('thinking', 'redacted_thinking')

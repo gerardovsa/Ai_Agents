@@ -312,11 +312,27 @@ const UnifiedMessageRenderer = (function () {
                             <span class="tool-name">Using Tool: ${block.name}</span>
                             <span class="tool-id">#${block.id || 'unknown'}</span>
                         </div>
-                        <div class="tool-request-input">
-                            <pre><code class="language-json">${JSON.stringify(block.input || {}, null, 2)}</code></pre>
-                        </div>
+                        <div class="tool-json-label">JSON</div>
+                        <button class="tool-copy-btn" aria-label="Copy code to clipboard" title="Copy to clipboard" type="button"><i class="fas fa-copy"></i></button>
+                        <pre><code class="language-json">${JSON.stringify(block.input || {}, null, 2)}</code></pre>
                     `;
                     contentDiv.appendChild(toolDiv);
+
+                    // Add copy functionality
+                    const copyBtn = toolDiv.querySelector('.tool-copy-btn');
+                    const codeElement = toolDiv.querySelector('code');
+                    if (copyBtn && codeElement) {
+                        copyBtn.addEventListener('click', () => {
+                            const code = codeElement.textContent;
+                            navigator.clipboard.writeText(code).then(() => {
+                                const icon = copyBtn.querySelector('i');
+                                icon.className = 'fas fa-check';
+                                setTimeout(() => {
+                                    icon.className = 'fas fa-copy';
+                                }, 2000);
+                            });
+                        });
+                    }
 
                     // Apply syntax highlighting
                     if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {

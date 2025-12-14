@@ -23,6 +23,15 @@ class ConfigManager:
     def set(self, key, value):
         """Set config value"""
         self.config[key] = value
+    
+    def load_shopify_config(self, config_file):
+        """
+        Load Shopify config file (dummy implementation)
+        
+        Returns empty dict - calculators have all pricing hardcoded.
+        This method exists for compatibility with calculator __init__ calls.
+        """
+        return {}
 
 
 # Global singleton instance

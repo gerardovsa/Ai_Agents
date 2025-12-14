@@ -651,6 +651,9 @@ class MicrosoftWordTools:
             
             # Step 4: Populate table if data provided
             if data:
+                from docx.oxml.ns import qn
+                from docx.oxml import OxmlElement
+                
                 for i, row_data in enumerate(data):
                     if i < rows:
                         for j, cell_value in enumerate(row_data):
@@ -658,10 +661,26 @@ class MicrosoftWordTools:
                                 cell = table.rows[i].cells[j]
                                 cell.text = str(cell_value)
                                 
-                                # Bold first row (headers)
+                                # Add cell padding
+                                tc = cell._element
+                                tcPr = tc.get_or_add_tcPr()
+                                tcMar = OxmlElement('w:tcMar')
+                                for margin_name in ['top', 'bottom', 'left', 'right']:
+                                    node = OxmlElement(f'w:{margin_name}')
+                                    node.set(qn('w:w'), '100' if margin_name in ['left', 'right'] else '75')
+                                    node.set(qn('w:type'), 'dxa')
+                                    tcMar.append(node)
+                                tcPr.append(tcMar)
+                                
+                                # Bold first row (headers) with light gray background
                                 if i == 0 and cell.paragraphs:
                                     for run in cell.paragraphs[0].runs:
                                         run.font.bold = True
+                                    
+                                    # Light gray background for header (professional)
+                                    shading_elm = OxmlElement('w:shd')
+                                    shading_elm.set(qn('w:fill'), 'F2F2F2')  # Light gray
+                                    tcPr.append(shading_elm)
             
             # Step 5: Save to bytes
             doc_bytes = io.BytesIO()
@@ -1152,6 +1171,9 @@ class MicrosoftWordTools:
                         cols = len(table_data[0]) if table_data[0] else 0
                         
                         if rows > 0 and cols > 0:
+                            from docx.oxml.ns import qn
+                            from docx.oxml import OxmlElement
+                            
                             table = doc.add_table(rows=rows, cols=cols)
                             # Use Table Grid style for visible borders
                             table.style = 'Table Grid'
@@ -1163,10 +1185,26 @@ class MicrosoftWordTools:
                                         cell = table.rows[i].cells[j]
                                         cell.text = str(cell_value)
                                         
-                                        # Bold first row (headers)
+                                        # Add cell padding
+                                        tc = cell._element
+                                        tcPr = tc.get_or_add_tcPr()
+                                        tcMar = OxmlElement('w:tcMar')
+                                        for margin_name in ['top', 'bottom', 'left', 'right']:
+                                            node = OxmlElement(f'w:{margin_name}')
+                                            node.set(qn('w:w'), '100' if margin_name in ['left', 'right'] else '75')
+                                            node.set(qn('w:type'), 'dxa')
+                                            tcMar.append(node)
+                                        tcPr.append(tcMar)
+                                        
+                                        # Bold first row (headers) with light gray background
                                         if i == 0 and cell.paragraphs:
                                             for run in cell.paragraphs[0].runs:
                                                 run.font.bold = True
+                                            
+                                            # Light gray background for header
+                                            shading_elm = OxmlElement('w:shd')
+                                            shading_elm.set(qn('w:fill'), 'F2F2F2')  # Light gray
+                                            tcPr.append(shading_elm)
                             
                             doc.add_paragraph()  # Spacing after table
                             stats["tables"] += 1
@@ -1491,70 +1529,160 @@ class MicrosoftWordTools:
         title: str,
         markdown_content: str,
         folder_id: Optional[str] = None,
+        include_title_page: bool = False,
+        title_page_options: Optional[Dict] = None,
+        include_toc: bool = False,
+        toc_options: Optional[Dict] = None,
+        include_page_numbers: bool = False,
+        page_number_options: Optional[Dict] = None,
+        header_text: Optional[str] = None,
+        footer_text: Optional[str] = None,
+        header_alignment: str = 'left',
+        footer_alignment: str = 'center',
+        formatting_options: Optional[Dict] = None,
+        metadata: Optional[Dict] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
-        SMART TOOL: Create formatted Word document from markdown
+        SMART TOOL: Create professionally formatted Word document from markdown
+        
+        ENHANCED v3.0 with Priority 1 Features:
+        - Professional title pages with logo support
+        - Auto-generated Table of Contents with field codes
+        - Page numbers (multiple formats and positions)
+        - Custom headers and footers
+        - Centered horizontal rules
+        - Document metadata
+        - Custom fonts, spacing, and margins
         
         Converts markdown syntax to native Word formatting using python-docx.
-        Similar to google_docs_smart_create_from_markdown but for Word.
         
-        Supported Features:
+        Supported Markdown Features:
         - # Headings (H1-H6) -> Word heading styles
         - **bold** -> Bold text
-        - *italic* -> Italic text
+        - *italic* -> Italic text  
+        - ~~strikethrough~~ -> Strikethrough text
+        - ==highlight== -> Yellow highlight
+        - `inline code` -> Monospace
+        - H~2~O -> Subscript
+        - x^2^ -> Superscript
         - [Link](url) -> Hyperlinks
         - - Bullets -> Bullet lists
         - 1. Numbers -> Numbered lists
         - | Tables | -> Word tables
-        - ```code``` -> Code blocks (monospace)
-        - --- -> Horizontal line
+        - ```code``` -> Code blocks
+        - --- -> Horizontal line (centered if center_horizontal_rules=True)
         - > Blockquotes -> Indented paragraphs
+        - <<PAGE-BREAK>> -> Page break
         
         Args:
             title: Document name (will add .docx if missing)
             markdown_content: Markdown-formatted text
             folder_id: OneDrive folder ID (optional)
+            include_title_page: Add professional title page
+            title_page_options: Dict with subtitle, author, company, department, version, date, logo_url
+            include_toc: Add auto-generated Table of Contents
+            toc_options: Dict with title, depth, page_break_after, strip_manual_numbers
+            include_page_numbers: Add page numbers
+            page_number_options: Dict with position, format, start_number, exclude_title_page
+            header_text: Custom header text
+            footer_text: Custom footer text
+            header_alignment: Header alignment (left/center/right)
+            footer_alignment: Footer alignment (left/center/right)
+            formatting_options: Dict with center_horizontal_rules, default_font, body_font_size, line_spacing, margin_inches
+            metadata: Dict with author, subject, keywords, comments
             
         Returns:
             Dict with document_id, web_url, formatted_content_length
             
         Example:
             result = word_smart_create_from_markdown(
-                title="Project Report",
-                markdown_content='''
-# Executive Summary
-
-This is **important** and this is *emphasized*.
-
-## Key Points
-- Point 1
-- Point 2
-
-| Metric | Value |
-|--------|-------|
-| Revenue | $1M |
-                '''
+                title="Q4 Report",
+                markdown_content="# Executive Summary\\n\\nOur revenue...",
+                include_title_page=True,
+                title_page_options={
+                    "subtitle": "Annual Performance Review",
+                    "author": "John Smith",
+                    "company": "InHouse Print",
+                    "date": "auto"
+                },
+                include_toc=True,
+                include_page_numbers=True,
+                page_number_options={
+                    "format": "Page X of Y"
+                }
             )
         """
         try:
+            # Import helper functions
+            import sys
+            from pathlib import Path
+            helper_path = Path(__file__).parent / 'word_enhancement_helpers.py'
+            if helper_path.exists():
+                sys.path.insert(0, str(helper_path.parent))
+                from word_enhancement_helpers import (
+                    add_title_page,
+                    add_table_of_contents,
+                    add_page_numbers,
+                    add_document_metadata,
+                    add_headers_footers,
+                    strip_manual_numbering,
+                    set_document_formatting
+                )
+            
             # Step 1: Create DOCX in memory using python-docx
             doc = Document()
             
-            # Step 2: Parse markdown and build document
-            self._parse_markdown_to_docx(doc, markdown_content)
+            # Step 2: Apply global formatting settings first
+            if formatting_options:
+                set_document_formatting(doc, formatting_options)
             
-            # Step 3: Save to bytes buffer
+            # Step 3: Add document metadata
+            if metadata:
+                add_document_metadata(doc, metadata)
+            
+            # Step 4: Add title page (if requested)
+            if include_title_page:
+                title_opts = title_page_options or {}
+                title_opts['title'] = title  # Use document title
+                add_title_page(doc, title_opts)
+            
+            # Step 5: Add Table of Contents (if requested)
+            if include_toc:
+                toc_opts = toc_options or {}
+                add_table_of_contents(doc, toc_opts)
+            
+            # Step 6: Strip manual numbering from markdown if TOC enabled
+            processed_markdown = markdown_content
+            if include_toc and toc_options and toc_options.get('strip_manual_numbers', True):
+                processed_markdown = strip_manual_numbering(markdown_content, True)
+            
+            # Step 7: Parse markdown and build document content
+            # Pass formatting_options to control HR centering
+            format_opts = formatting_options or {}
+            self._parse_markdown_to_docx(doc, processed_markdown, format_opts.get('center_horizontal_rules', True))
+            
+            # Step 8: Add headers and footers (if requested)
+            if header_text or footer_text:
+                add_headers_footers(doc, header_text, footer_text, header_alignment, footer_alignment)
+            
+            # Step 9: Add page numbers (if requested)
+            if include_page_numbers:
+                page_opts = page_number_options or {}
+                exclude_first = include_title_page or page_opts.get('exclude_title_page', True)
+                add_page_numbers(doc, page_opts, exclude_first)
+            
+            # Step 10: Save to bytes buffer
             docx_buffer = io.BytesIO()
             doc.save(docx_buffer)
             docx_buffer.seek(0)
             docx_bytes = docx_buffer.read()
             
-            # Step 4: Ensure .docx extension
+            # Step 11: Ensure .docx extension
             if not title.endswith('.docx'):
                 title = f"{title}.docx"
             
-            # Step 5: Upload to OneDrive
+            # Step 12: Upload to OneDrive
             if folder_id:
                 upload_url = f"{self.base_url}/me/drive/items/{folder_id}:/{title}:/content"
             else:
@@ -1569,7 +1697,7 @@ This is **important** and this is *emphasized*.
             response.raise_for_status()
             doc_data = response.json()
             
-            # Step 6: Make document shareable and editable by default
+            # Step 13: Make document shareable and editable by default
             document_id = doc_data['id']
             share_result = self._make_document_shareable(document_id, **kwargs)
             
@@ -1583,13 +1711,20 @@ This is **important** and this is *emphasized*.
                 "formatted": True,
                 "markdown_length": len(markdown_content),
                 "shareable": share_result.get('success', False),
-                "share_link": share_result.get('share_link', '')
+                "share_link": share_result.get('share_link', ''),
+                "features_enabled": {
+                    "title_page": include_title_page,
+                    "table_of_contents": include_toc,
+                    "page_numbers": include_page_numbers,
+                    "custom_headers_footers": bool(header_text or footer_text),
+                    "metadata": bool(metadata)
+                }
             }
             
         except Exception as e:
             return {"error": f"Failed to create document from markdown: {str(e)}"}
     
-    def _parse_markdown_to_docx(self, doc: Document, markdown: str):
+    def _parse_markdown_to_docx(self, doc: Document, markdown: str, center_hr: bool = True):
         """
         Parse markdown and add formatted content to Document
         
@@ -1610,10 +1745,15 @@ This is **important** and this is *emphasized*.
         - Inline code (`code`)
         - Hyperlinks ([text](url))
         - Blockquotes (>)
-        - Horizontal lines (---)
+        - Horizontal lines (--- centered if center_hr=True)
         - Page breaks (<<PAGE-BREAK>> or <<<)
         - Images (![alt](url))
         - Alignment (->center<-, <-left, right->)
+        
+        Args:
+            doc: python-docx Document object
+            markdown: Markdown text to parse
+            center_hr: Center horizontal rules (default True)
         """
         import re
         from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
@@ -1640,9 +1780,11 @@ This is **important** and this is *emphasized*.
                 i += 1
                 continue
             
-            # Horizontal line (---)
+            # Horizontal line (--- centered if center_hr=True)
             if line.strip() in ['---', '___', '***']:
                 para = doc.add_paragraph()
+                if center_hr:
+                    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 para.add_run('_' * 50)
                 i += 1
                 continue
@@ -2079,6 +2221,9 @@ def microsoft_word_smart_template_fill(**kwargs):
 
 def microsoft_word_smart_extract_data(**kwargs):
     return microsoft_word_tools.word_smart_extract_data(**kwargs)
+
+def microsoft_word_update_content(**kwargs):
+    return microsoft_word_tools.word_update_content(**kwargs)
 
 def microsoft_word_smart_create_from_markdown(**kwargs):
     # Handle parameter name mismatch

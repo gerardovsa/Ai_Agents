@@ -256,28 +256,23 @@ class CodeBlockEnhancer {
      */
     createCodeBlockHeader(pre, block, language) {
         try {
-            // Check if header already exists
-            if (pre.querySelector('.code-block-header')) {
+            // Check if elements already exist
+            if (pre.querySelector('.code-language-label') || pre.querySelector('.code-copy-btn')) {
                 return;
             }
 
-            // Create header container
-            const header = document.createElement('div');
-            header.className = 'code-block-header';
+            // Add extra padding to pre for the controls
+            pre.style.paddingTop = '32px';
 
-            // Create language label (left side)
+            // Create language label (positioned absolutely top-right)
             if (language) {
                 const label = document.createElement('div');
                 label.className = 'code-language-label';
                 label.textContent = language.toUpperCase();
-                header.appendChild(label);
-            } else {
-                // Empty div for spacing if no language
-                const spacer = document.createElement('div');
-                header.appendChild(spacer);
+                pre.appendChild(label);
             }
 
-            // Create copy button (right side)
+            // Create copy button (positioned absolutely top-right)
             const copyBtn = document.createElement('button');
             copyBtn.className = 'code-copy-btn';
             copyBtn.setAttribute('aria-label', 'Copy code to clipboard');
@@ -320,10 +315,7 @@ class CodeBlockEnhancer {
                 });
             });
 
-            header.appendChild(copyBtn);
-
-            // Insert header at the beginning of pre element
-            pre.insertBefore(header, pre.firstChild);
+            pre.appendChild(copyBtn);
         } catch (error) {
             console.error('❌ CodeBlockEnhancer.createCodeBlockHeader failed:', error);
         }

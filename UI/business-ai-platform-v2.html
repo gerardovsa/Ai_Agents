@@ -8418,13 +8418,14 @@
             border-radius: 6px;
             padding: 12px;
             margin: 8px 0;
+            position: relative;
         }
 
         .tool-request-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             font-weight: 600;
             color: #58a6ff;
         }
@@ -8444,21 +8445,54 @@
             font-family: monospace;
         }
 
-        .tool-request-input {
+        .tool-request-block pre {
+            margin: 0;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 4px;
             padding: 8px;
+            padding-top: 32px;
             font-size: 12px;
         }
 
-        .tool-request-input pre {
-            margin: 0;
-            background: transparent !important;
-        }
-
-        .tool-request-input code {
+        .tool-request-block code {
             font-size: 11px;
             line-height: 1.4;
+        }
+
+        .tool-json-label {
+            position: absolute;
+            top: 62px;
+            right: 60px;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+
+        .tool-copy-btn {
+            position: absolute;
+            top: 62px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .tool-copy-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .tool-copy-btn i {
+            font-size: 11px;
         }
 
         .content-block-text {

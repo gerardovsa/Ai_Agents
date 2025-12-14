@@ -1264,8 +1264,8 @@
 
 .agent-scroll-controls button {
     pointer-events: auto;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     background: transparent;
     border: 1px solid var(--border-default);

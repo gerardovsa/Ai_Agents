@@ -7,7 +7,7 @@
   "tools": [
     {
       "name": "microsoft_word_create_document",
-      "short_description": "Create new document: Word doc in OneDrive for notes, meeting minutes, reports with initial content",
+      "short_description": "Create new document: Word doc in OneDrive with PLAIN TEXT only (no markdown, no formatting)",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_create_document', ...) - DO NOT call directly!\n\nCreate a new Word document in OneDrive",
       "category": "content_management",
       "parameters": {
@@ -19,7 +19,7 @@
           },
           "content": {
             "type": "string",
-            "description": "Initial text content (plain text)"
+            "description": "Initial text content (PLAIN TEXT ONLY - no markdown, no formatting, no JSON). For formatted documents use microsoft_word_smart_create_from_markdown instead."
           },
           "folder_id": {
             "type": "string",
@@ -3317,57 +3317,300 @@
     },
     {
       "name": "microsoft_word_smart_create_from_markdown",
-      "short_description": "SMART: Create Microsoft Word document from markdown text with automatic formatting conversion",
+      "short_description": "SMART: Create professional Word document from markdown with title page, auto-TOC, page numbers, headers/footers, and custom formatting",
       "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_create_from_markdown', ...) - DO NOT call directly!\n\n🤖 SMART TOOL v2.0: Create professionally formatted Word document from markdown with FULL FORMATTING support. Converts AI-generated markdown into native Word formatting using python-docx library.\n\n✨ COMPLETE MARKDOWN SUPPORT (30+ Features):\n\n📝 TEXT FORMATTING:\n- **bold** or __bold__ → Bold text\n- *italic* or _italic_ → Italic text\n- __underline__ → Underlined text (double underscore)\n- ~~strikethrough~~ → Strikethrough text\n- ==highlight== → Yellow highlighted text\n- `inline code` → Monospace code\n- H~2~O → Subscript (H₂O)\n- x^2^ → Superscript (x²)\n\n📊 STRUCTURE:\n- # to ###### → 6 heading levels (H1-H6)\n- - or * → Bullet lists\n- 1. 2. 3. → Numbered lists\n-   - (2 spaces) → Nested lists (unlimited levels)\n- | Tables | → Professional tables with styling\n- ```code blocks``` → Monospace code blocks\n- > Blockquotes → Indented quotes\n\n🎨 SPECIAL ELEMENTS:\n- --- or *** → Horizontal line\n- <<PAGE-BREAK>> or <<PAGE_BREAK>> → Force a page break in the document\n\n",
       "category": "smart_automation",
       "tier": 1,
       "parameters": {
         "type": "object",
         "properties": {
-          "markdown": {
+          "title": {
             "type": "string",
-            "description": "Markdown source to convert into a Word document (supports full markdown features listed above)"
+            "description": "Document title/name (will append .docx if not present). Used in title page if include_title_page=true."
           },
-          "name": {
+          "markdown_content": {
             "type": "string",
-            "description": "Desired document name (will append .docx if not present)",
-            "required": false
+            "description": "Markdown source to convert into a Word document. Supports 30+ markdown features including headings, bold, italic, tables, lists, code blocks, highlights, subscripts, superscripts, and more. Do NOT manually number headings if using TOC - let TOC auto-number them."
           },
           "folder_id": {
             "type": "string",
             "description": "OneDrive folder ID where the document will be saved (default: root)",
             "required": false
           },
-          "options": {
+          "include_title_page": {
+            "type": "boolean",
+            "description": "Add professional title page with centered layout, logo support, and metadata fields. Recommended for formal reports and client deliverables.",
+            "default": false,
+            "required": false
+          },
+          "title_page_options": {
             "type": "object",
-            "description": "Optional generation flags",
+            "description": "Title page configuration (only used if include_title_page=true)",
+            "required": false,
             "properties": {
-              "include_toc": {
-                "type": "boolean",
-                "description": "Include generated Table of Contents",
-                "default": true
-              },
-              "style_template": {
+              "subtitle": {
                 "type": "string",
-                "description": "Optional style template or theme to apply"
+                "description": "Document subtitle (appears below title in italic, 14-16pt)",
+                "required": false
               },
-              "export_pdf": {
+              "author": {
+                "type": "string",
+                "description": "Document author name",
+                "required": false
+              },
+              "company": {
+                "type": "string",
+                "description": "Company/organization name",
+                "required": false
+              },
+              "department": {
+                "type": "string",
+                "description": "Department or team name",
+                "required": false
+              },
+              "version": {
+                "type": "string",
+                "description": "Document version (e.g., '1.0', 'Draft', 'Final')",
+                "required": false
+              },
+              "date": {
+                "type": "string",
+                "description": "Date string. Use 'auto' for current date (formatted as 'December 14, 2025'), or provide custom date string.",
+                "required": false
+              },
+              "logo_url": {
+                "type": "string",
+                "description": "URL or file path to company logo image (appears at top of title page, 2.5 inches wide)",
+                "required": false
+              }
+            }
+          },
+          "include_toc": {
+            "type": "boolean",
+            "description": "Add auto-generated Table of Contents with Word TOC field (auto-updates when right-clicked). DO NOT manually number headings in markdown if using TOC - the TOC will auto-number all headings hierarchically (1, 1.1, 1.1.1, 2, 2.1, etc.).",
+            "default": false,
+            "required": false
+          },
+          "toc_options": {
+            "type": "object",
+            "description": "Table of Contents configuration (only used if include_toc=true)",
+            "required": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "TOC heading title",
+                "default": "Table of Contents",
+                "required": false
+              },
+              "depth": {
+                "type": "integer",
+                "description": "Heading depth to include (1-6). Default 3 means H1, H2, H3 appear in TOC. Use 2 for just H1 and H2, or 6 for all heading levels.",
+                "default": 3,
+                "minimum": 1,
+                "maximum": 6,
+                "required": false
+              },
+              "page_break_after": {
                 "type": "boolean",
-                "description": "Also export generated doc to PDF",
-                "default": false
+                "description": "Insert page break after TOC",
+                "default": true,
+                "required": false
+              },
+              "strip_manual_numbers": {
+                "type": "boolean",
+                "description": "Automatically strip manual numbering from markdown headings (e.g., '# 1. Introduction' becomes '# Introduction') to prevent double-numbering. TOC will auto-number all headings hierarchically.",
+                "default": true,
+                "required": false
+              }
+            }
+          },
+          "include_page_numbers": {
+            "type": "boolean",
+            "description": "Add page numbers to document footer/header",
+            "default": false,
+            "required": false
+          },
+          "page_number_options": {
+            "type": "object",
+            "description": "Page number configuration (only used if include_page_numbers=true)",
+            "required": false,
+            "properties": {
+              "position": {
+                "type": "string",
+                "description": "Page number position",
+                "enum": ["footer-center", "footer-right", "footer-left", "header-center", "header-right", "header-left"],
+                "default": "footer-center",
+                "required": false
+              },
+              "format": {
+                "type": "string",
+                "description": "Page number format",
+                "enum": ["Page X", "Page X of Y", "X", "X/Y"],
+                "default": "Page X",
+                "required": false
+              },
+              "start_number": {
+                "type": "integer",
+                "description": "Starting page number",
+                "default": 1,
+                "required": false
+              },
+              "exclude_title_page": {
+                "type": "boolean",
+                "description": "Skip page numbering on first page (title page)",
+                "default": true,
+                "required": false
+              }
+            }
+          },
+          "header_text": {
+            "type": "string",
+            "description": "Custom text for document header (appears at top of every page). Example: 'CONFIDENTIAL - InHouse Print'",
+            "required": false
+          },
+          "footer_text": {
+            "type": "string",
+            "description": "Custom text for document footer (appears at bottom of every page). Example: '© 2025 InHouse Print'",
+            "required": false
+          },
+          "header_alignment": {
+            "type": "string",
+            "description": "Header text alignment",
+            "enum": ["left", "center", "right"],
+            "default": "left",
+            "required": false
+          },
+          "footer_alignment": {
+            "type": "string",
+            "description": "Footer text alignment",
+            "enum": ["left", "center", "right"],
+            "default": "center",
+            "required": false
+          },
+          "formatting_options": {
+            "type": "object",
+            "description": "Global document formatting preferences",
+            "required": false,
+            "properties": {
+              "center_horizontal_rules": {
+                "type": "boolean",
+                "description": "Center horizontal rule lines (--- in markdown) instead of left-aligning them. Recommended for professional appearance.",
+                "default": true,
+                "required": false
+              },
+              "default_font": {
+                "type": "string",
+                "description": "Default font family for ALL text (body AND headings). Calibri is the modern Word default.",
+                "enum": ["Arial", "Calibri", "Times New Roman", "Georgia", "Verdana", "Cambria", "Tahoma"],
+                "default": "Calibri",
+                "required": false
+              },
+              "body_font_size": {
+                "type": "integer",
+                "description": "Font size for body text (points). Headings will auto-scale larger.",
+                "default": 11,
+                "minimum": 8,
+                "maximum": 24,
+                "required": false
+              },
+              "line_spacing": {
+                "type": "number",
+                "description": "Line spacing multiplier (1.0 = single, 1.5 = 1.5x, 2.0 = double)",
+                "default": 1.15,
+                "minimum": 1.0,
+                "maximum": 3.0,
+                "required": false
+              },
+              "margin_inches": {
+                "type": "object",
+                "description": "Page margins in inches",
+                "required": false,
+                "properties": {
+                  "top": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  },
+                  "bottom": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  },
+                  "left": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  },
+                  "right": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  }
+                }
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Document metadata (appears in file properties, searchable in file explorer)",
+            "required": false,
+            "properties": {
+              "author": {
+                "type": "string",
+                "description": "Document author (file property)",
+                "required": false
+              },
+              "subject": {
+                "type": "string",
+                "description": "Document subject/category",
+                "required": false
+              },
+              "keywords": {
+                "type": "array",
+                "description": "Search keywords for document discovery",
+                "items": {
+                  "type": "string"
+                },
+                "required": false
+              },
+              "comments": {
+                "type": "string",
+                "description": "Document comments/notes",
+                "required": false
               }
             }
           }
         },
         "required": [
-          "markdown"
+          "title",
+          "markdown_content"
         ]
       },
-      "returns": "Dict with document_id, name, web_url, created_datetime, and optional pdf_url",
+      "returns": "Dict with document_id, name, web_url, created_datetime, size, shareable, share_link. Professional document with optional title page, TOC, page numbers, headers/footers, and custom formatting.",
       "use_cases": [
-        "Convert AI-generated markdown into a polished Word report",
-        "Convert README or technical markdown into a shareable Word doc",
-        "Generate client-facing deliverables from markdown templates"
+        "Professional Reports: Create formal business reports with title page, TOC, and page numbers",
+        "Client Deliverables: Generate polished documents with company branding (logo, headers, footers)",
+        "Technical Documentation: Convert README or markdown docs into formatted Word documents",
+        "Academic Papers: Create structured documents with auto-numbered sections and TOC",
+        "Marketing Materials: Generate branded documents with custom fonts and formatting",
+        "Executive Summaries: Quick professional documents with metadata for easy discovery"
+      ],
+      "examples": [
+        {
+          "name": "Simple Markdown Conversion",
+          "description": "Basic markdown to Word conversion without extras",
+          "code": "microsoft_word_smart_create_from_markdown(\n    title='Meeting Notes',\n    markdown_content='# Discussion Points\\n\\n- Budget approval\\n- Timeline review\\n- Next steps'\n)"
+        },
+        {
+          "name": "Professional Report with All Features",
+          "description": "Complete professional document with title page, TOC, page numbers, headers/footers",
+          "code": "microsoft_word_smart_create_from_markdown(\n    title='Q4 Financial Report',\n    markdown_content='# Executive Summary\\n\\nOur Q4 performance...\\n\\n## Revenue Analysis\\n\\nRevenue increased by...\\n\\n### Regional Breakdown\\n\\nNorth America...\\n\\n## Expenses\\n\\n### Operating Costs\\n\\n### Capital Expenditures',\n    include_title_page=True,\n    title_page_options={\n        'subtitle': 'Annual Performance Review',\n        'author': 'John Smith',\n        'company': 'InHouse Print',\n        'department': 'Finance',\n        'version': '1.0',\n        'date': 'auto'\n    },\n    include_toc=True,\n    toc_options={\n        'depth': 3,\n        'page_break_after': True,\n        'strip_manual_numbers': True\n    },\n    include_page_numbers=True,\n    page_number_options={\n        'position': 'footer-center',\n        'format': 'Page X of Y',\n        'exclude_title_page': True\n    },\n    header_text='CONFIDENTIAL - InHouse Print',\n    footer_text='© 2025 InHouse Print',\n    formatting_options={\n        'center_horizontal_rules': True,\n        'default_font': 'Arial',\n        'body_font_size': 11,\n        'line_spacing': 1.5\n    },\n    metadata={\n        'author': 'John Smith',\n        'subject': 'Q4 Financial Report',\n        'keywords': ['finance', 'Q4', '2025', 'report']\n    }\n)"
+        },
+        {
+          "name": "Quick Report with TOC",
+          "description": "Simple report with auto-generated table of contents",
+          "code": "microsoft_word_smart_create_from_markdown(\n    title='Technical Specification',\n    markdown_content='# Overview\\n\\nThis document...\\n\\n## System Architecture\\n\\n### Frontend\\n\\n### Backend\\n\\n## API Design\\n\\n### REST Endpoints\\n\\n### Authentication',\n    include_toc=True,\n    include_page_numbers=True\n)"
+        }
       ],
       "user_facing_language": {
         "action_verb": "create",

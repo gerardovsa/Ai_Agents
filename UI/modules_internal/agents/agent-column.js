@@ -233,7 +233,7 @@ const AgentColumn = (function () {
                     </button>
                     <button class="agent-autoscroll-btn active" 
                             id="agent-autoscroll-${agentId}" 
-                            onclick="event.stopPropagation(); AgentInput.toggleAutoScroll(${agentId})" 
+                            onclick="event.stopPropagation(); AgentColumn.toggleAutoScroll(${agentId})" 
                             title="Toggle auto-scroll" 
                             aria-label="Toggle auto-scroll">
                         <i class="fas fa-step-forward" style="transform: rotate(90deg);"></i>
@@ -383,6 +383,9 @@ const AgentColumn = (function () {
 
                 console.log(`👁️ [AgentColumn] Setup scroll-controls visibility observer for agent ${agentId}`);
             }
+
+            // Setup auto-scroll observer
+            setupAutoScrollObserver(agentId);
         }, 100);
 
         return column;
@@ -396,8 +399,8 @@ const AgentColumn = (function () {
      */
     function renderEmptyState(agentId, agentName) {
         return `
-            <div class="empty-state" style="padding-top: 60%; text-align: center;">
-                <div style="line-height: 1.8; padding: 0 20px; max-width: 500px; margin: 0 auto;">
+            <div class="empty-state" style="display: flex; align-items: center; justify-content: center; min-height: 50vh; text-align: center;">
+                <div style="line-height: 1.8; max-width: 500px;">
                     <div style="font-size: 2em; margin-bottom: 15px;">
                         👋
                     </div>
@@ -972,11 +975,107 @@ const AgentColumn = (function () {
         const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
         if (messagesContainer) {
             messagesContainer.scrollTo({
-                top: messagesContainer.scrollHeight,
+                top: messagesContainer.scrollHeight + 50,
                 behavior: 'smooth'
             });
             console.log(`[AgentColumn] Scrolled agent ${agentId} to bottom`);
         }
+    }
+
+    // Auto-scroll state tracking (per agent)
+    const autoScrollState = {};
+
+    /**
+     * Initialize auto-scroll state for an agent
+     * @param {number} agentId - Agent ID
+     */
+    function initAutoScrollState(agentId) {
+        if (!autoScrollState[agentId]) {
+            autoScrollState[agentId] = {
+                enabled: true,  // Default: auto-scroll enabled
+                observer: null
+            };
+        }
+    }
+
+    /**
+     * Toggle auto-scroll functionality
+     * @param {number} agentId - Agent ID
+     */
+    function toggleAutoScroll(agentId) {
+        initAutoScrollState(agentId);
+
+        const state = autoScrollState[agentId];
+        state.enabled = !state.enabled;
+
+        const btn = document.getElementById(`agent-autoscroll-${agentId}`);
+        if (btn) {
+            if (state.enabled) {
+                btn.classList.add('active');
+                btn.setAttribute('title', 'Auto-scroll enabled - Click to disable');
+                scrollToBottom(agentId);
+                console.log(`[AgentColumn] Agent ${agentId} auto-scroll: ENABLED`);
+            } else {
+                btn.classList.remove('active');
+                btn.setAttribute('title', 'Auto-scroll disabled - Click to enable');
+                console.log(`[AgentColumn] Agent ${agentId} auto-scroll: DISABLED`);
+            }
+        }
+    }
+
+    /**
+     * Perform auto-scroll if enabled (called when messages are added)
+     * @param {number} agentId - Agent ID
+     */
+    function performAutoScroll(agentId) {
+        initAutoScrollState(agentId);
+
+        if (!autoScrollState[agentId].enabled) {
+            return;
+        }
+
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (messagesContainer) {
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight + 50;
+            }, 50);
+        }
+    }
+
+    /**
+     * Setup auto-scroll observer for message additions
+     * @param {number} agentId - Agent ID
+     */
+    function setupAutoScrollObserver(agentId) {
+        initAutoScrollState(agentId);
+
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (!messagesContainer) return;
+
+        // Clean up existing observer
+        if (autoScrollState[agentId].observer) {
+            autoScrollState[agentId].observer.disconnect();
+        }
+
+        // Create new observer to watch for message additions
+        const observer = new MutationObserver((mutations) => {
+            // Check if messages were added
+            const messagesAdded = mutations.some(mutation =>
+                mutation.type === 'childList' && mutation.addedNodes.length > 0
+            );
+
+            if (messagesAdded && autoScrollState[agentId].enabled) {
+                performAutoScroll(agentId);
+            }
+        });
+
+        observer.observe(messagesContainer, {
+            childList: true,
+            subtree: true
+        });
+
+        autoScrollState[agentId].observer = observer;
+        console.log(`👁️ [AgentColumn] Auto-scroll observer setup for agent ${agentId}`);
     }
 
     /**
@@ -1006,8 +1105,8 @@ const AgentColumn = (function () {
             return;
         }
 
-        // Check if any messages exist (ai-message class is used by UnifiedMessageRenderer)
-        const messageBubbles = messagesContainer.querySelectorAll('.ai-message');
+        // Check if any messages exist - check multiple selectors for compatibility with different renderers
+        const messageBubbles = messagesContainer.querySelectorAll('.ai-message, .message-bubble, .message-row');
         const hasMessages = messageBubbles.length > 0;
 
         // Toggle 'has-messages' class to show/hide scroll controls via CSS
@@ -2023,6 +2122,8 @@ const AgentColumn = (function () {
         scrollToBottom,
         scrollColumnIntoView,
         updateScrollControlsVisibility,
+        toggleAutoScroll,
+        performAutoScroll,
         toggleMenu,
         remove,
         unloadThread,
