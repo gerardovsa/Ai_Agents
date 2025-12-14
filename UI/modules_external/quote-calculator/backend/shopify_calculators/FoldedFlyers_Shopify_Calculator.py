@@ -34,6 +34,11 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+import sys
+
+# Import config manager
+from config_manager import config_manager
 
 
 # ============================================================================
@@ -307,9 +312,6 @@ class FoldedFlyersShopifyCalculator:
         3. Find tier based on BizCost value
         """
         
-        # Ensure quantity is int (in case it's passed as string)
-        quantity = int(quantity)
-        
         # Determine which tier list to use
         if quantity >= 4000:
             # High quantity tiers
@@ -388,13 +390,13 @@ class FoldedFlyersShopifyCalculator:
         setup_total = impos_setup + guilo_setup + folder_setup + cello_setup + artwork_setup
         
         # Step 2: Calculate Sheets Needed
-        sheets_needed = (Decimal(str(quantity)) / Decimal(str(finish_size.items_per_sheet))) * self.STOCK_WASTE
+        sheets_needed = (Decimal(str(quantity)) / finish_size.items_per_sheet) * self.STOCK_WASTE
         
         # Step 3: Calculate Stock Cost
-        stock_cost = (sheets_needed / Decimal('1000')) * Decimal(str(paper_stock.cost_per_1000))
+        stock_cost = (sheets_needed / Decimal('1000')) * paper_stock.cost_per_1000
         
         # Step 4: Calculate Click Cost
-        click_cost = sheets_needed * Decimal(str(print_sides.multiplier)) * Decimal(str(print_type.cost_per_sheet))
+        click_cost = sheets_needed * Decimal(str(print_sides.multiplier)) * print_type.cost_per_sheet
         
         # Step 5: Calculate Cutting Cost
         cutting_cost = (sheets_needed / self.CUTTING_BLOCK) * self.CUT_COST
@@ -405,7 +407,7 @@ class FoldedFlyersShopifyCalculator:
         # Step 7: Calculate Cello Cost
         cello_cost = Decimal('0')
         if celloglaze != Celloglaze.NONE:
-            cello_cost = sheets_needed * Decimal(str(celloglaze.cost_per_sheet))
+            cello_cost = sheets_needed * celloglaze.cost_per_sheet
         
         # Step 8: Calculate BizCost
         biz_cost = setup_total + stock_cost + click_cost + cutting_cost + folding_cost + cello_cost

@@ -38,19 +38,20 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 # Add paths for imports
-module_dir = Path(__file__).parent.parent
-backend_path = module_dir / "backend"
-root_dir = module_dir.parent.parent.parent
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_path = os.path.abspath(os.path.join(current_dir, '..', 'backend'))
+inhouse_print_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'inhouse-print'))
 
 # Add to sys.path
-for path in [backend_path, root_dir]:
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+for path in [backend_path, inhouse_print_path]:
+    abs_path = os.path.abspath(path)
+    if abs_path not in sys.path:
+        sys.path.insert(0, abs_path)
 
 # Import QueryLibrary and database connector
 try:
     from query_library import QueryLibrary
-    from inhouse_modules.db_connector import InHousePrintDB
+    from db_connector import InHousePrintDB
     
     QUERY_LIBRARY_AVAILABLE = True
     print("✅ [Query Library Wrapper] QueryLibrary imported successfully")

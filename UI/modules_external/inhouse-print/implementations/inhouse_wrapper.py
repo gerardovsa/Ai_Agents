@@ -25,21 +25,20 @@ import os
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-# Add inhouse_modules to path (contains ToolUseAgent)
-current_dir = Path(__file__).parent
-project_root = current_dir.parent.parent.parent.parent  # Up to AI_agents root
-inhouse_modules_path = project_root / 'inhouse_modules'
+# Add paths for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# From: inhouse-print/implementations/ -> inhouse-print/ -> modules_external/ -> quote-calculator/backend/
+quote_calc_backend = os.path.abspath(os.path.join(current_dir, '..', '..', 'quote-calculator', 'backend'))
 
-# Add inhouse_modules to Python path
-inhouse_modules_str = str(inhouse_modules_path.resolve())
-if inhouse_modules_str not in sys.path:
-    sys.path.insert(0, inhouse_modules_str)
+# Add quote-calculator backend to Python path (contains tool_use_agent.py)
+if quote_calc_backend not in sys.path:
+    sys.path.insert(0, quote_calc_backend)
 
 try:
     from tool_use_agent import ToolUseAgent
 except ImportError as e:
     print(f"[InHouse Wrapper] WARNING: Could not import ToolUseAgent: {e}")
-    print(f"[InHouse Wrapper] Inhouse modules path: {inhouse_modules_path}")
+    print(f"[InHouse Wrapper] Quote calc backend path: {quote_calc_backend}")
     # Don't raise - let module load without implementations
     ToolUseAgent = None
 

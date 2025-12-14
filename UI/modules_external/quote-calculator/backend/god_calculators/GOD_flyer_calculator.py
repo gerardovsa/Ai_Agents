@@ -672,7 +672,11 @@ def calculate_flyer_quote(
         Dictionary with quote result
     
     Example:
-        from inhouse_modules.db_connector import InHousePrintDB
+        # From: backend/god_calculators/ -> backend/ -> modules_external/ -> inhouse-print/
+        inhouse_print_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'inhouse-print'))
+        if inhouse_print_path not in sys.path:
+            sys.path.insert(0, inhouse_print_path)
+        from db_connector import InHousePrintDB
         
         db = InHousePrintDB("config/database-config.json")
         result = calculate_flyer_quote(

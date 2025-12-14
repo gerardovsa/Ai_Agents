@@ -100,14 +100,12 @@ class PremiumBusinessCardsShopifyCalculator:
             PremiumBusinessCardsShopifyQuoteResult with total price, unit price, cost per card, and breakdown
         """
         
-        # Validate quantity (convert to int first in case it's a string)
-        quantity = int(quantity)
+        # Validate quantity
         valid_quantities = [250, 500, 1000, 2000, 5000, 10000]
         if quantity not in valid_quantities:
             raise ValueError(f"Quantity must be one of: {valid_quantities}. Got: {quantity}")
         
-        # Validate artworks (convert to int first in case it's a string)
-        artworks = int(artworks)
+        # Validate artworks
         if artworks < 1 or artworks > 50:
             raise ValueError(f"Artworks must be between 1 and 50. Got: {artworks}")
         

@@ -35,8 +35,11 @@ import sys
 import os
 
 # Database connector path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from inhouse_modules.db_connector import InHousePrintDB
+# From: backend/god_calculators/ -> backend/ -> modules_external/ -> inhouse-print/
+inhouse_print_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'inhouse-print'))
+if inhouse_print_path not in sys.path:
+    sys.path.insert(0, inhouse_print_path)
+from db_connector import InHousePrintDB
 
 
 @dataclass

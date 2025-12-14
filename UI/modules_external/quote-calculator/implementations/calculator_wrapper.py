@@ -39,37 +39,26 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from decimal import Decimal
 
-# Add root directory to Python path to import inhouse_modules
-root_dir = Path(__file__).parent.parent.parent.parent.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
+# Setup paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.abspath(os.path.join(current_dir, '..', 'backend'))
+god_calc_dir = os.path.join(backend_dir, 'god_calculators')
+inhouse_print_module = os.path.abspath(os.path.join(current_dir, '..', '..', 'inhouse-print'))
+in_house_sql_root = 'C:/Users/gpoli/GIT/In_House_SQL'
+shopify_calc_path = os.path.join(in_house_sql_root, 'G_Folder', 'Quote_Calculator', 'shopify_calculators')
 
-try:
-    from inhouse_modules.complete_calculator_implementation import ComprehensiveQuoteCalculator
-    
-    CALCULATOR_AVAILABLE = True
-    print("✅ [Quote Calculator Wrapper] Initialized successfully")
-    
-except ImportError as e:
-    CALCULATOR_AVAILABLE = False
-    print(f"⚠️  [Quote Calculator Wrapper] Failed to import calculator: {e}")
-    print("   Quote calculator tools will not be available")
-
-# Import GOD calculators
+# Add necessary paths
+for path in [current_dir, backend_dir, god_calc_dir, inhouse_print_module, shopify_calc_path]:
+    abs_path = os.path.abspath(path)
+    if abs_path not in sys.path:
+        sys.path.insert(0, abs_path)
+# Import GOD calculators from backend/god_calculators
 GOD_CALCULATORS_AVAILABLE = False
 try:
-    backend_dir = Path(__file__).parent.parent / 'backend'
-    god_calc_dir = backend_dir / 'god_calculators'
-    shopify_calc_dir = backend_dir / 'shopify_calculators'
-    
-    # Add backend to path for relative imports
-    if str(backend_dir) not in sys.path:
-        sys.path.insert(0, str(backend_dir))
-    
-    from god_calculators.GOD_flyer_calculator import FlyerCalculatorGOD
-    from god_calculators.GOD_letterhead_calculator import LetterheadCalculatorGOD
-    from god_calculators.GOD_perfect_bound_books_calculator import PerfectBoundBooksCalculator
-    from god_calculators.corflute_calculator import CorflutePricingCalculator
+    from GOD_flyer_calculator import FlyerCalculatorGOD
+    from GOD_letterhead_calculator import LetterheadCalculatorGOD
+    from GOD_perfect_bound_books_calculator import PerfectBoundBooksCalculator
+    from corflute_calculator import CorflutePricingCalculator
     
     GOD_CALCULATORS_AVAILABLE = True
     print("✅ [GOD Calculators] Loaded successfully")
@@ -77,15 +66,15 @@ except ImportError as e:
     print(f"⚠️  [GOD Calculators] Failed to import: {e}")
     print("   GOD calculator tools will not be available")
 
-# Import Shopify calculators
+# Import Shopify calculators from In_House_SQL (source of truth)
 SHOPIFY_CALCULATORS_AVAILABLE = False
 try:
-    from shopify_calculators.EconomicalBusinessCards_Shopify_Calculator import EconomicalBusinessCardsShopifyCalculator
-    from shopify_calculators.PremiumBusinessCards_Shopify_Calculator import PremiumBusinessCardsShopifyCalculator
-    from shopify_calculators.FoldedFlyers_Shopify_Calculator import FoldedFlyersShopifyCalculator
-    from shopify_calculators.WireBound_Shopify_Calculator import WireBoundShopifyCalculator
-    from shopify_calculators.SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
-    from shopify_calculators.PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator
+    from EconomicalBusinessCards_Shopify_Calculator import EconomicalBusinessCardsShopifyCalculator
+    from PremiumBusinessCards_Shopify_Calculator import PremiumBusinessCardsShopifyCalculator
+    from FoldedFlyers_Shopify_Calculator import FoldedFlyersShopifyCalculator
+    from WireBound_Shopify_Calculator import WireBoundShopifyCalculator
+    from SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
+    from PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator
     
     SHOPIFY_CALCULATORS_AVAILABLE = True
     print("✅ [Shopify Calculators] Loaded successfully")
@@ -95,66 +84,6 @@ except ImportError as e:
 
 
 # ==================== HELPER FUNCTIONS ====================
-
-def _ensure_calculator():
-    """Ensure calculator is available, raise error if not"""
-    if not CALCULATOR_AVAILABLE:
-        raise RuntimeError(
-            "Quote calculator not available. "
-            "Ensure inhouse_modules/calculators is properly configured."
-        )
-
-
-def _get_calculator():
-    """Get calculator instance"""
-    _ensure_calculator()
-    
-    try:
-        # Import credentials manager
-        import sys
-        import json
-        
-        # From: UI/modules_external/quote-calculator/implementations/calculator_wrapper.py
-        # To: AI_infrastructure/auth (need to go up 5 levels to project root)
-        # Levels: implementations -> quote-calculator -> modules_external -> UI -> AI_agents (root)
-        project_root = Path(__file__).parent.parent.parent.parent.parent
-        credentials_path = project_root / 'AI_infrastructure' / 'auth'
-        
-        if str(credentials_path) not in sys.path:
-            sys.path.insert(0, str(credentials_path))
-        
-        from supabase_credentials import get_database_config
-        
-        # Get config (auto-detects Render vs Local)
-        config = get_database_config()
-        
-        # Write config to fixed location in project root
-        config_dir = project_root / 'config'
-        config_dir.mkdir(exist_ok=True)
-        config_file = config_dir / 'database-config-runtime.json'
-        
-        with open(config_file, 'w') as f:
-            json.dump(config, f, indent=2)
-        
-        # Import InHousePrintDB to create db_connector
-        # ComprehensiveQuoteCalculator expects a db_connector, NOT a config_path
-        if str(root_dir) not in sys.path:
-            sys.path.insert(0, str(root_dir))
-        
-        from inhouse_modules.db_connector import InHousePrintDB
-        
-        # Create database connector
-        db_connector = InHousePrintDB(str(config_file))
-        
-        # Initialize calculator with db_connector
-        return ComprehensiveQuoteCalculator(db_connector)
-        
-    except Exception as e:
-        print(f"⚠️  [Calculator] Failed to initialize: {e}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        raise RuntimeError(f"Calculator initialization failed: {e}")
-
 
 def _handle_calculator_error(e: Exception, product_type: str) -> Dict[str, Any]:
     """Format calculator errors consistently"""
@@ -286,7 +215,7 @@ def calculate_flyers(
             raise RuntimeError("GOD calculators not available")
         
         # Get database connector
-        from inhouse_modules.db_connector import InHousePrintDB
+        from db_connector import InHousePrintDB
         from decimal import Decimal
         
         try:
@@ -561,7 +490,7 @@ def calculate_letterheads(
             raise RuntimeError("GOD calculators not available")
         
         # Get database connector
-        from inhouse_modules.db_connector import InHousePrintDB
+        from db_connector import InHousePrintDB
         from decimal import Decimal
         
         try:
@@ -807,8 +736,22 @@ def calculate_flyers_god(
         }
     
     try:
-        from inhouse_modules.db_connector import InHousePrintDB
+        from db_connector import InHousePrintDB
         from decimal import Decimal
+        
+        # Convert string print modes to integers if needed
+        print_mode_map = {'none': 0, 'colour': 1, 'color': 1, 'b&w': 2, 'bw': 2, 'black_white': 2, 'bw_on_colour': 3}
+        if isinstance(print_side1, str):
+            print_side1 = print_mode_map.get(print_side1.lower(), 1)
+        if isinstance(print_side2, str):
+            print_side2 = print_mode_map.get(print_side2.lower(), 0)
+        
+        # Convert cello string values to integers if needed
+        cello_map = {'none': 0, 'gloss': 1, 'matt': 2, 'mat': 2, 'matte': 2}
+        if isinstance(cello_side1, str):
+            cello_side1 = cello_map.get(cello_side1.lower(), 0)
+        if isinstance(cello_side2, str):
+            cello_side2 = cello_map.get(cello_side2.lower(), 0)
         
         try:
             db = InHousePrintDB()
@@ -891,7 +834,7 @@ def calculate_letterheads_god(
         }
     
     try:
-        from inhouse_modules.db_connector import InHousePrintDB
+        from db_connector import InHousePrintDB
         from decimal import Decimal
         
         db = InHousePrintDB()

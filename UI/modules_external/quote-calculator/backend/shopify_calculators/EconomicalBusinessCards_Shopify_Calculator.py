@@ -11,6 +11,11 @@ import json
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, List, Tuple
 from dataclasses import dataclass
+from pathlib import Path
+import sys
+
+# Import config manager
+from config_manager import config_manager
 
 
 @dataclass
@@ -88,9 +93,7 @@ class EconomicalBusinessCardsShopifyCalculator:
             EconomicalBusinessCardsQuoteResult with total price, unit price, cost per card, and breakdown
         """
         
-        # Validate quantity (convert to int first in case it's a string)
-        quantity = int(quantity)
-        artworks = int(artworks)
+        # Validate quantity
         valid_quantities = [250, 500, 1000, 2000, 5000, 10000]
         if quantity not in valid_quantities:
             raise ValueError(f"Quantity must be one of: {valid_quantities}. Got: {quantity}")
