@@ -93,16 +93,23 @@ self.addEventListener('install', (event) => {
             return cacheBatches(cache, HEAVY_LIBRARIES, 10)
                 .then(() => {
                     console.log('[Service Worker] Heavy libraries cached successfully');
-                    // Also cache app files (smaller, faster)
-                    return cache.addAll(APP_FILES.map(file => new Request(file, { cache: 'reload' })));
+                    // Also cache app files (smaller, faster) - use Promise.allSettled to not fail on 404s
+                    return Promise.allSettled(
+                        APP_FILES.map(file =>
+                            cache.add(new Request(file, { cache: 'reload' }))
+                                .catch(err => console.warn(`[Service Worker] App file failed: ${file}`, err.message))
+                        )
+                    );
                 })
                 .then(() => {
-                    console.log('[Service Worker] App files cached successfully');
+                    console.log('[Service Worker] App files cached (some may have failed - check warnings above)');
                     // Force activation immediately
                     return self.skipWaiting();
                 })
                 .catch((error) => {
                     console.error('[Service Worker] Cache error:', error);
+                    // Still skip waiting even if caching failed
+                    return self.skipWaiting();
                 });
         })
     );
@@ -112,16 +119,32 @@ self.addEventListener('install', (event) => {
  * Helper: Cache URLs in batches to prevent overload
  */
 async function cacheBatches(cache, urls, batchSize) {
+    let successCount = 0;
+    let failCount = 0;
+
     for (let i = 0; i < urls.length; i += batchSize) {
         const batch = urls.slice(i, i + batchSize);
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
             batch.map(url =>
-                cache.add(url).catch(err => {
-                    console.warn(`[Service Worker] Failed to cache: ${url}`, err);
+                cache.add(url).then(() => {
+                    successCount++;
+                    return { success: true, url };
+                }).catch(err => {
+                    failCount++;
+                    console.warn(`[Service Worker] Failed to cache: ${url}`, err.message);
+                    return { success: false, url, error: err.message };
                 })
             )
         );
-        console.log(`[Service Worker] Cached batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(urls.length / batchSize)}`);
+
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(urls.length / batchSize);
+        console.log(`[Service Worker] Batch ${batchNum}/${totalBatches} complete (${successCount} cached, ${failCount} failed)`);
+    }
+
+    console.log(`[Service Worker] Final: ${successCount}/${urls.length} URLs cached successfully`);
+    if (failCount > 0) {
+        console.warn(`[Service Worker] ${failCount} URLs failed to cache (app will still work, but may be slower)`);
     }
 }
 

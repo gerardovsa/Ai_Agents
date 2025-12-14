@@ -220,27 +220,24 @@ const AgentColumn = (function () {
                 ${renderEmptyState(agentId, name)}
                 
                 <!-- Scroll Controls (Fixed Top-Right - Visible only when messages exist) -->
-                <div class="agent-scroll-controls" id="scroll-controls-${agentId}" style="position: absolute; top: 8px; right: 8px; z-index: 100; display: flex; gap: 4px;">
+                <div class="agent-scroll-controls" id="scroll-controls-${agentId}">
                     <button class="agent-scroll-top-btn" 
                             onclick="event.stopPropagation(); AgentColumn.scrollToTop(${agentId})" 
                             title="Scroll to top message" 
-                            aria-label="Scroll to top"
-                            style="width: 28px; height: 28px; border-radius: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary, #e5e7eb); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            aria-label="Scroll to top">
                         <i class="fa fa-angle-double-up"></i>
                     </button>
                     <button class="agent-scroll-bottom-btn" 
                             onclick="event.stopPropagation(); AgentColumn.scrollToBottom(${agentId}); AgentColumn.scrollColumnIntoView(${agentId})" 
                             title="Scroll to bottom message and column" 
-                            aria-label="Scroll to bottom"
-                            style="width: 28px; height: 28px; border-radius: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary, #e5e7eb); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            aria-label="Scroll to bottom">
                         <i class="fa fa-angle-double-down"></i>
                     </button>
                     <button class="agent-autoscroll-btn active" 
                             id="agent-autoscroll-${agentId}" 
                             onclick="event.stopPropagation(); AgentColumn.toggleAutoScroll(${agentId})" 
                             title="Toggle auto-scroll" 
-                            aria-label="Toggle auto-scroll"
-                            style="width: 28px; height: 28px; border-radius: 4px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary, #e5e7eb); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            aria-label="Toggle auto-scroll">
                         <i class="fas fa-step-forward" style="transform: rotate(90deg);"></i>
                     </button>
                 </div>
@@ -386,6 +383,9 @@ const AgentColumn = (function () {
                 });
 
                 console.log(`👁️ [AgentColumn] Setup scroll-controls visibility observer for agent ${agentId}`);
+
+                // ✅ IMMEDIATE CHECK: Update visibility on initial load
+                updateScrollControlsVisibility(agentId);
             }
 
             // Setup auto-scroll observer
@@ -1110,8 +1110,11 @@ const AgentColumn = (function () {
         }
 
         // Check if any messages exist - check multiple selectors for compatibility with different renderers
-        const messageBubbles = messagesContainer.querySelectorAll('.ai-message, .message-bubble, .message-row');
-        const hasMessages = messageBubbles.length > 0;
+        const messageBubbles = messagesContainer.querySelectorAll('.ai-message, .message-bubble, .message-row, .user-message, .agent-message');
+        const emptyState = messagesContainer.querySelector('.empty-state');
+
+        // Has messages if: bubbles exist AND no empty state (or empty state is hidden)
+        const hasMessages = messageBubbles.length > 0 && (!emptyState || emptyState.style.display === 'none');
 
         // Toggle 'has-messages' class to show/hide scroll controls via CSS
         if (hasMessages) {

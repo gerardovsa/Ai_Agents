@@ -591,15 +591,27 @@ window.ThreadManagerUI = {
         const _originalRefreshCards = function (threadId) {
             console.log(`🔄 [refreshAllThreadInfoCards] Refreshing all cards for thread ${threadId}`);
 
-            // Safety check: ensure threads are loaded
-            if (!this.threads || !Array.isArray(this.threads)) {
-                console.warn('⚠️ [refreshAllThreadInfoCards] Threads not loaded yet, skipping refresh');
+            // CRITICAL FIX (Dec 15, 2025): Use window.ThreadManager.threads instead of this.threads
+            // The 'this' context can be lost during debounced calls, causing threads array to be undefined
+            const allThreads = window.ThreadManager && window.ThreadManager.threads ? window.ThreadManager.threads : [];
+            const thread = allThreads.find(t => t.id === threadId);
+
+            // If thread doesn't exist in memory, CLEAR all UI cards for it
+            if (!thread) {
+                console.warn('⚠️ [refreshAllThreadInfoCards] Thread not found in memory - clearing UI cards for', threadId);
+
+                // Find and remove all cards for this thread (it's been unloaded)
+                const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
+                threadCards.forEach(card => {
+                    console.log(`🗑️ [refreshAllThreadInfoCards] Removing card for unloaded thread ${threadId}`);
+                    card.remove();
+                });
+
                 return;
             }
 
             // Get the thread's ACTUAL current location from memory
-            const thread = this.threads.find(t => t.id === threadId);
-            const actualLocation = thread ? (thread.location || 'prime') : null;
+            const actualLocation = thread.location || 'prime';
 
             // Find all thread-info cards with this thread ID
             const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
@@ -607,9 +619,14 @@ window.ThreadManagerUI = {
             threadCards.forEach(card => {
                 const cardLocation = card.getAttribute('data-location') || 'prime';
 
+                // CRITICAL FIX (Dec 15, 2025): Treat 'prime' and 'prime-loaded' as equivalent locations
+                // Normalize both to 'prime' for comparison to prevent removing valid cards
+                const normalizedActualLocation = actualLocation === 'prime-loaded' ? 'prime' : actualLocation;
+                const normalizedCardLocation = cardLocation === 'prime-loaded' ? 'prime' : cardLocation;
+
                 // CRITICAL FIX (Dec 12, 2025): Remove card if location doesn't match actual thread location
                 // This handles the case where thread was unloaded from agent but card still shows in agent column
-                if (actualLocation && cardLocation !== 'thread-history' && cardLocation !== actualLocation && cardLocation !== 'prime-loaded') {
+                if (normalizedActualLocation && normalizedCardLocation !== 'thread-history' && normalizedCardLocation !== normalizedActualLocation) {
                     // Card is in wrong location (e.g., thread moved from agent-15 to prime, but card still in agent-15)
                     console.log(`🧹 [refreshAllThreadInfoCards] Removing stale card at ${cardLocation} (thread now at ${actualLocation})`);
 

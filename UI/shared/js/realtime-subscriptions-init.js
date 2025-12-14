@@ -160,14 +160,17 @@ window.RealtimeSubscriptionsInit = (function () {
             return false;
         }
 
-        if (typeof UserAuth === 'undefined' || !UserAuth.getUserId) {
-            console.error('❌ [Realtime Init] UserAuth not available');
+        // Check UserAuth availability and user data
+        if (typeof window.UserAuth === 'undefined') {
+            console.error('❌ [Realtime Init] window.UserAuth not available');
             return false;
         }
 
-        const userId = UserAuth.getUserId();
+        // Get user ID from UserAuth.user object (supports both .id and .user_id)
+        const userId = window.UserAuth.user?.id || window.UserAuth.user?.user_id || null;
         if (!userId) {
-            console.warn('⚠️ [Realtime Init] No user ID - skipping subscriptions');
+            console.warn('⚠️ [Realtime Init] No user ID in UserAuth.user - skipping subscriptions');
+            console.log('🔍 [Realtime Init] UserAuth.user:', window.UserAuth.user);
             return false;
         }
 

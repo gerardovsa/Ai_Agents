@@ -946,45 +946,6 @@ const ThreadManager = {
         });
 
         console.log('✅ [ThreadManager] Menu handlers initialized');
-    },
-
-    /**
-     * Load threads from backend API
-     * @returns {Promise<void>}
-     */
-    async loadThreadsFromBackend() {
-        try {
-            console.log('📡 [ThreadManager] Fetching threads from API...');
-
-            const apiUrl = window.API_BASE_URL || window.location.origin;
-            const response = await fetch(`${apiUrl}/api/threads/list`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(window.UserAuth?.getAuthHeaders?.() || {})
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-
-            if (data.success && Array.isArray(data.threads)) {
-                this.threads = data.threads;
-                this.threadsLoaded = true;
-                console.log(`✅ [ThreadManager] Loaded ${this.threads.length} threads from API`);
-            } else {
-                console.warn('⚠️ [ThreadManager] API returned unexpected format:', data);
-                this.threads = [];
-                this.threadsLoaded = false;
-            }
-        } catch (error) {
-            console.error('❌ [ThreadManager] Failed to load threads:', error);
-            this.threads = [];
-            this.threadsLoaded = false;
-        }
     }
 };
 
