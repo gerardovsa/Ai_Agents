@@ -967,6 +967,89 @@ def health_check():
     return response
 
 
+@app.route('/api/connections', methods=['GET', 'OPTIONS'])
+def get_connections():
+    """Get OAuth connections for current user"""
+    # Handle OPTIONS request for CORS
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response
+    
+    try:
+        # Get user_id from request (from auth token or default to 1)
+        user_id = request.headers.get('X-User-ID') or request.args.get('user_id') or '1'
+        
+        # Fetch OAuth connections from Supabase
+        connections = []
+        supabase_db_url = os.environ.get('SUPABASE_DB_URL_POOLER')
+        
+        if supabase_db_url:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            
+            conn = psycopg2.connect(supabase_db_url, cursor_factory=RealDictCursor)
+            cursor = conn.cursor()
+            
+            try:
+                # Fetch active OAuth credentials
+                cursor.execute("""
+                    SELECT 
+                        platform,
+                        credential_type,
+                        credentials,
+                        metadata,
+                        updated_at
+                    FROM ai_infrastructure.user_platform_credentials
+                    WHERE user_id = %s 
+                      AND is_active = true
+                      AND platform IN ('microsoft', 'microsoft_365', 'google', 'google_workspace', 'shopify', 'xero', 'kajabi')
+                    ORDER BY platform
+                """, (int(user_id),))
+                
+                rows = cursor.fetchall()
+                
+                for row in rows:
+                    connection = {
+                        'platform': row['platform'],
+                        'type': row['credential_type'],
+                        'scopes': row.get('metadata', {}).get('scopes', []) if row.get('metadata') else [],
+                        'connected_at': row['updated_at'].isoformat() if row.get('updated_at') else None
+                    }
+                    connections.append(connection)
+                    
+            finally:
+                cursor.close()
+                conn.close()
+        
+        response = jsonify({
+            'success': True,
+            'connections': connections
+        })
+        
+        # Add CORS headers
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-User-ID')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        
+        return response
+        
+    except Exception as e:
+        print(f"❌ [CONNECTIONS] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        response = jsonify({
+            'success': False,
+            'error': 'Failed to load connections',
+            'details': str(e),
+            'connections': []  # Return empty array on error
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200  # Return 200 with empty connections instead of 500
+
+
 @app.route('/api/config/supabase', methods=['GET', 'OPTIONS'])
 def get_supabase_config():
     """Get Supabase configuration for frontend"""
@@ -1060,9 +1143,15 @@ def serve_external_module_file(module_id, filename):
         ui_path = Path(UI_DIR)
         module_dir = ui_path / 'modules_external' / module_id
         
+        # Fallback: Try underscore version if hyphenated version doesn't exist
         if not module_dir.exists():
-            log_error(logger, f"Module directory not found: {module_dir}")
-            return jsonify({'error': f'Module directory not found: {module_id}'}), 404
+            module_dir_underscore = ui_path / 'modules_external' / module_id.replace('-', '_')
+            if module_dir_underscore.exists():
+                module_dir = module_dir_underscore
+                log_success(logger, f"Using underscore folder for module: {module_id}")
+            else:
+                log_error(logger, f"Module directory not found: {module_dir}")
+                return jsonify({'error': f'Module directory not found: {module_id}'}), 404
         
         file_path = module_dir / filename
         
@@ -1086,9 +1175,15 @@ def serve_ui_module_file(module_id, filename):
         ui_path = Path(UI_DIR)
         module_dir = ui_path / 'modules_external' / module_id
         
+        # Fallback: Try underscore version if hyphenated version doesn't exist
         if not module_dir.exists():
-            log_error(logger, f"Module directory not found: {module_dir}")
-            return jsonify({'error': f'Module directory not found: {module_id}'}), 404
+            module_dir_underscore = ui_path / 'modules_external' / module_id.replace('-', '_')
+            if module_dir_underscore.exists():
+                module_dir = module_dir_underscore
+                log_success(logger, f"Using underscore folder for UI module: {module_id}")
+            else:
+                log_error(logger, f"Module directory not found: {module_dir}")
+                return jsonify({'error': f'Module directory not found: {module_id}'}), 404
         
         file_path = module_dir / filename
         
