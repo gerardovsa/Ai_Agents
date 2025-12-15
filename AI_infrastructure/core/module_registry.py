@@ -46,6 +46,9 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Any
 from pathlib import Path
 
+# ✅ NEW: Import deployment configuration for environment-based module filtering
+from AI_infrastructure.config.deployment_config import is_module_enabled
+
 logger = logging.getLogger(__name__)
 
 
@@ -301,6 +304,12 @@ class ModuleRegistry:
                     loading=manifest_data.get('loading'),  # ✅ Loading config for Modern Framework V4 detection
                     module_path=str(module_dir)
                 )
+                
+                # ✅ NEW: Environment-based module filtering (Dec 16, 2025)
+                # Check if module should be enabled in current deployment environment
+                if not is_module_enabled(manifest.id):
+                    logger.info(f"⏸️  Skipping module '{manifest.id}' (disabled for this environment)")
+                    continue  # Skip registration - module will not be available
                 
                 # Register module
                 self.modules[manifest.id] = manifest
