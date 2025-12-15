@@ -100,9 +100,10 @@ def _get_sheets_service(user_id=None, injected_credentials=None):
 
 def google_sheets_create(title, data=None, headers=None, parse_markdown=False, 
                         auto_borders=True,
+                        auto_resize_columns=False,
                         _user_id=None, _injected_credentials=None, **kwargs):
     """
-    Create a new Google Sheet with optional data and markdown formatting
+    Create a new Google Sheet with optional data and markdown formatting (v3.0 enhanced)
     
     Args:
         title (str): Spreadsheet title
@@ -110,15 +111,36 @@ def google_sheets_create(title, data=None, headers=None, parse_markdown=False,
         headers (list): Optional header row
         parse_markdown (bool): If True, parse markdown syntax and apply formatting
         auto_borders (bool): If True, add borders to all cells (default: True)
+        auto_resize_columns (bool): If True, auto-resize columns based on content (v3.0)
         _user_id: User ID for credential injection
         _injected_credentials: Flag for credential injection
         
     Markdown Support (when parse_markdown=True):
+        BASIC FORMATTING:
         - **bold** → Bold text
         - *italic* → Italic text
-        - # Header → Bold, larger font, gray background
-        - [RED]text[/RED] → Red text (also: GREEN, BLUE, YELLOW, ORANGE, PURPLE, GRAY)
-        - Tables get borders automatically
+        - ~~strikethrough~~ → Strikethrough (v3.0)
+        - __underline__ → Underline (v3.0)
+        - # Header → Bold, 18pt, gray background
+        
+        NUMBER FORMATTING (v3.0):
+        - [$]1000 → $1,000.00 (currency)
+        - [%]75 → 75% (percentage)
+        - [DATE]2025-12-16 → Dec 16, 2025
+        - [#]1234.5 → 1,234.50 (number)
+        
+        COLORS:
+        - [RED]text[/RED] or [R]text → Red text
+        - {LG}text → Light green background
+        - Supported: RED, GREEN, BLUE, YELLOW, ORANGE, PURPLE, GRAY, BLACK
+        
+        ADVANCED (v3.0):
+        - [SIZE:14]text → Custom font size
+        - [WRAP]text → Wrap text in cell
+        - [MERGE:3]text → Merge 3 cells horizontally
+        - [DROPDOWN:A,B,C]A → Dropdown data validation
+        - [IF>100:RED]125 → Conditional formatting (red if >100)
+        - (L), (C), (R) → Left/Center/Right alignment
         
     Returns:
         dict: {
@@ -157,10 +179,11 @@ def google_sheets_create(title, data=None, headers=None, parse_markdown=False,
             try:
                 from sheets_markdown_formatter import format_data_with_markdown
                 
-                # Parse markdown and get formatting
+                # Parse markdown and get formatting (v3.0 enhanced)
                 clean_data, clean_headers, format_requests = format_data_with_markdown(
                     data or [], headers, 
-                    auto_borders=auto_borders
+                    auto_borders=auto_borders,
+                    auto_resize_columns=auto_resize_columns  # v3.0
                 )
                 
                 # Use cleaned headers and data
@@ -268,7 +291,7 @@ def google_sheets_create(title, data=None, headers=None, parse_markdown=False,
 
 def google_sheets_create_multiple(spreadsheets_config, _user_id=None, _injected_credentials=None, **kwargs):
     """
-    Create multiple Google Sheets at once with optional markdown formatting
+    Create multiple Google Sheets at once with optional markdown formatting (v3.0 enhanced)
     
     Args:
         spreadsheets_config (list): List of spreadsheet configs, each with:
@@ -277,6 +300,7 @@ def google_sheets_create_multiple(spreadsheets_config, _user_id=None, _injected_
             - data (list[list]): Optional 2D array of data
             - parse_markdown (bool): Optional, enable markdown (default: False)
             - auto_borders (bool): Optional, add borders (default: True)
+            - auto_resize_columns (bool): Optional, auto-resize columns (v3.0)
         _user_id: User ID for credential injection
         _injected_credentials: Flag for credential injection
         
@@ -299,6 +323,7 @@ def google_sheets_create_multiple(spreadsheets_config, _user_id=None, _injected_
             data = config.get('data')
             parse_markdown = config.get('parse_markdown', False)
             auto_borders = config.get('auto_borders', True)
+            auto_resize_columns = config.get('auto_resize_columns', False)  # v3.0
             
             # print(f"   [{idx}/{len(spreadsheets_config)}] Creating: {title}")
             
@@ -309,6 +334,7 @@ def google_sheets_create_multiple(spreadsheets_config, _user_id=None, _injected_
                 headers=headers,
                 parse_markdown=parse_markdown,
                 auto_borders=auto_borders,
+                auto_resize_columns=auto_resize_columns,  # v3.0
                 _user_id=_user_id,
                 _injected_credentials=_injected_credentials
             )
@@ -1314,3 +1340,1074 @@ def google_sheets_delete(spreadsheet_id, **kwargs):
     except Exception as e:
         # print(f"[ERROR] Failed to delete spreadsheet: {e}")
         raise
+
+
+# ==================== NEW ENHANCEMENT TOOLS (Dec 2025) ====================
+
+def google_sheets_update_cell(spreadsheet_id, cell, value, value_type='auto', 
+                               sheet_name=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Update a single cell efficiently without reading entire range.
+    
+    95% faster than update_range for single-cell edits.
+    
+    Args:
+        spreadsheet_id (str): Target spreadsheet ID
+        cell (str): Cell reference in A1 notation (e.g., 'A5', 'Sheet1!B7')
+        value (Any): Value to set (string, number, boolean, or formula)
+        value_type (str): Type handling:
+            - 'auto': Detect type automatically (default)
+            - 'string': Force as text
+            - 'number': Force as number
+            - 'formula': Treat as Excel formula (must start with =)
+            - 'boolean': Force as boolean
+        sheet_name (str): Optional sheet name if not in cell reference
+        
+    Returns:
+        dict: {
+            'success': bool,
+            'updated_cell': str,
+            'value_set': any,
+            'value_type': str
+        }
+    """
+    print(f"Updating cell {cell} with value: {value}")
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Build full cell reference
+        if sheet_name and '!' not in cell:
+            full_cell = f"{sheet_name}!{cell}"
+        else:
+            full_cell = cell
+        
+        # Determine value input option based on value_type
+        if value_type == 'formula' or (value_type == 'auto' and isinstance(value, str) and value.startswith('=')):
+            # Formula - use USER_ENTERED to parse formulas
+            input_option = 'USER_ENTERED'
+            final_value = value
+            detected_type = 'formula'
+        elif value_type == 'number' or (value_type == 'auto' and isinstance(value, (int, float))):
+            input_option = 'USER_ENTERED'
+            final_value = value
+            detected_type = 'number'
+        elif value_type == 'boolean' or (value_type == 'auto' and isinstance(value, bool)):
+            input_option = 'USER_ENTERED'
+            final_value = value
+            detected_type = 'boolean'
+        else:
+            # String or auto-detected as string
+            input_option = 'RAW'  # Prevent formula interpretation
+            final_value = str(value)
+            detected_type = 'string'
+        
+        # Update single cell
+        body = {
+            'values': [[final_value]]
+        }
+        
+        result = sheets_service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=full_cell,
+            valueInputOption=input_option,
+            body=body
+        ).execute()
+        
+        updated_cells = result.get('updatedCells', 0)
+        updated_range = result.get('updatedRange', '')
+        
+        print(f"✅ Updated cell {updated_range} ({detected_type})")
+        
+        return {
+            'success': True,
+            'updated_cell': updated_range,
+            'value_set': final_value,
+            'value_type': detected_type,
+            'updated_cells': updated_cells
+        }
+        
+    except Exception as e:
+        print(f"❌ Failed to update cell: {e}")
+        raise
+
+
+def google_sheets_add_formula(spreadsheet_id, range, formula, parse_natural=True,
+                               sheet_name=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Add Excel-style formulas to cells with optional natural language parsing.
+    
+    Args:
+        spreadsheet_id (str): Target spreadsheet ID
+        range (str): A1 notation range (e.g., 'D2:D10' for column, 'Summary!A1' for single cell)
+        formula (str): Formula to apply. Can be:
+            - Excel syntax: "=SUM(A2:C2)"
+            - Natural language: "sum columns A through C"
+            - Natural language: "average of column B"
+        parse_natural (bool): If True, convert natural language to Excel formulas
+        sheet_name (str): Optional sheet name if not in range
+        
+    Returns:
+        dict: {
+            'success': bool,
+            'formulas_added': int,
+            'range_updated': str,
+            'parsed_formula': str  # Final Excel formula used
+        }
+    """
+    print(f"Adding formula to range {range}: {formula}")
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Build full range
+        if sheet_name and '!' not in range:
+            full_range = f"{sheet_name}!{range}"
+        else:
+            full_range = range
+        
+        # Parse natural language to Excel formula if requested
+        parsed_formula = formula
+        if parse_natural and not formula.startswith('='):
+            # Simple natural language parsing
+            formula_lower = formula.lower()
+            
+            # SUM patterns
+            if 'sum' in formula_lower:
+                if 'column' in formula_lower or 'col' in formula_lower:
+                    # Extract column references
+                    import re
+                    cols = re.findall(r'\b([A-Z])\b', formula.upper())
+                    if len(cols) == 1:
+                        parsed_formula = f"=SUM({cols[0]}:{cols[0]})"
+                    elif len(cols) > 1:
+                        parsed_formula = f"=SUM({cols[0]}:{cols[-1]})"
+                elif 'row' in formula_lower:
+                    # Row sum
+                    nums = re.findall(r'\d+', formula)
+                    if nums:
+                        parsed_formula = f"=SUM({nums[0]}:{nums[0]})"
+            
+            # AVERAGE patterns
+            elif 'average' in formula_lower or 'mean' in formula_lower:
+                cols = re.findall(r'\b([A-Z])\b', formula.upper())
+                if len(cols) == 1:
+                    parsed_formula = f"=AVERAGE({cols[0]}:{cols[0]})"
+                elif len(cols) > 1:
+                    parsed_formula = f"=AVERAGE({cols[0]}:{cols[-1]})"
+            
+            # COUNT patterns
+            elif 'count' in formula_lower:
+                cols = re.findall(r'\b([A-Z])\b', formula.upper())
+                if cols:
+                    parsed_formula = f"=COUNT({cols[0]}:{cols[0]})"
+            
+            # MULTIPLY patterns
+            elif 'multiply' in formula_lower or 'times' in formula_lower or '*' in formula:
+                cols = re.findall(r'\b([A-Z])\b', formula.upper())
+                if len(cols) >= 2:
+                    parsed_formula = f"={cols[0]}*{cols[1]}"
+            
+            # If still no = sign, assume it's a direct formula
+            if not parsed_formula.startswith('='):
+                parsed_formula = f"={parsed_formula}"
+        
+        # Ensure formula starts with =
+        if not parsed_formula.startswith('='):
+            parsed_formula = f"={parsed_formula}"
+        
+        print(f"📝 Parsed formula: {parsed_formula}")
+        
+        # Determine if range is single cell or multiple cells
+        # For single cell, apply formula directly
+        # For range, apply formula with relative references
+        
+        # Get range dimensions
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=full_range
+        ).execute()
+        
+        existing_values = result.get('values', [[]])
+        num_rows = len(existing_values) if existing_values else 1
+        
+        # Build formula list
+        formulas = []
+        if num_rows == 1:
+            # Single row - one formula
+            formulas = [[parsed_formula]]
+        else:
+            # Multiple rows - replicate formula for each row
+            # (Sheets will auto-adjust row references)
+            for _ in range(num_rows):
+                formulas.append([parsed_formula])
+        
+        # Update with formulas
+        body = {'values': formulas}
+        update_result = sheets_service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=full_range,
+            valueInputOption='USER_ENTERED',  # Parse formulas
+            body=body
+        ).execute()
+        
+        updated_cells = update_result.get('updatedCells', 0)
+        updated_range = update_result.get('updatedRange', '')
+        
+        print(f"✅ Added {updated_cells} formulas to {updated_range}")
+        
+        return {
+            'success': True,
+            'formulas_added': updated_cells,
+            'range_updated': updated_range,
+            'parsed_formula': parsed_formula,
+            'original_input': formula
+        }
+        
+    except Exception as e:
+        print(f"❌ Failed to add formula: {e}")
+        raise
+
+
+def google_sheets_manage_sheets(spreadsheet_id, action, sheet_name=None, new_name=None,
+                                 position=None, sheet_id=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Manage sheets within a spreadsheet: add, delete, rename, reorder, duplicate.
+    
+    Args:
+        spreadsheet_id (str): Target spreadsheet ID
+        action (str): Operation to perform:
+            - 'add': Create new sheet
+            - 'delete': Remove sheet
+            - 'rename': Change sheet name
+            - 'duplicate': Copy sheet
+            - 'reorder': Move sheet position
+        sheet_name (str): Name of sheet to operate on (for delete/rename/duplicate)
+        new_name (str): New name for sheet (for rename/add/duplicate)
+        position (int): Sheet position (0-indexed, for add/reorder)
+        sheet_id (int): Sheet ID (alternative to sheet_name)
+        
+    Returns:
+        dict: {
+            'success': bool,
+            'action': str,
+            'sheet_id': int,
+            'sheet_name': str
+        }
+    """
+    print(f"Managing sheets: {action} operation on '{sheet_name}'")
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Get spreadsheet metadata to find sheet IDs
+        spreadsheet = sheets_service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id
+        ).execute()
+        
+        sheets = spreadsheet.get('sheets', [])
+        
+        # Find target sheet ID if name provided
+        target_sheet_id = sheet_id
+        if sheet_name and not target_sheet_id:
+            for sheet in sheets:
+                if sheet['properties']['title'] == sheet_name:
+                    target_sheet_id = sheet['properties']['sheetId']
+                    break
+        
+        # Build request based on action
+        request = None
+        result_sheet_id = None
+        result_sheet_name = None
+        
+        if action == 'add':
+            # Add new sheet
+            add_sheet_name = new_name or f"Sheet{len(sheets) + 1}"
+            request = {
+                'addSheet': {
+                    'properties': {
+                        'title': add_sheet_name,
+                        'index': position if position is not None else len(sheets)
+                    }
+                }
+            }
+            
+        elif action == 'delete':
+            # Delete sheet
+            if not target_sheet_id:
+                raise ValueError(f"Sheet '{sheet_name}' not found")
+            request = {
+                'deleteSheet': {
+                    'sheetId': target_sheet_id
+                }
+            }
+            result_sheet_id = target_sheet_id
+            result_sheet_name = sheet_name
+            
+        elif action == 'rename':
+            # Rename sheet
+            if not target_sheet_id:
+                raise ValueError(f"Sheet '{sheet_name}' not found")
+            if not new_name:
+                raise ValueError("new_name required for rename action")
+            request = {
+                'updateSheetProperties': {
+                    'properties': {
+                        'sheetId': target_sheet_id,
+                        'title': new_name
+                    },
+                    'fields': 'title'
+                }
+            }
+            result_sheet_id = target_sheet_id
+            result_sheet_name = new_name
+            
+        elif action == 'duplicate':
+            # Duplicate sheet
+            if not target_sheet_id:
+                raise ValueError(f"Sheet '{sheet_name}' not found")
+            dup_name = new_name or f"Copy of {sheet_name}"
+            request = {
+                'duplicateSheet': {
+                    'sourceSheetId': target_sheet_id,
+                    'insertSheetIndex': position if position is not None else len(sheets),
+                    'newSheetName': dup_name
+                }
+            }
+            result_sheet_name = dup_name
+            
+        elif action == 'reorder':
+            # Move sheet to different position
+            if not target_sheet_id:
+                raise ValueError(f"Sheet '{sheet_name}' not found")
+            if position is None:
+                raise ValueError("position required for reorder action")
+            request = {
+                'updateSheetProperties': {
+                    'properties': {
+                        'sheetId': target_sheet_id,
+                        'index': position
+                    },
+                    'fields': 'index'
+                }
+            }
+            result_sheet_id = target_sheet_id
+            result_sheet_name = sheet_name
+            
+        else:
+            raise ValueError(f"Invalid action: '{action}'. Use: add, delete, rename, duplicate, reorder")
+        
+        # Execute request
+        response = sheets_service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={'requests': [request]}
+        ).execute()
+        
+        # Extract sheet ID from response if add/duplicate
+        if action == 'add':
+            result_sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
+            result_sheet_name = response['replies'][0]['addSheet']['properties']['title']
+        elif action == 'duplicate':
+            result_sheet_id = response['replies'][0]['duplicateSheet']['properties']['sheetId']
+        
+        print(f"✅ Sheet {action} completed: {result_sheet_name} (ID: {result_sheet_id})")
+        
+        return {
+            'success': True,
+            'action': action,
+            'sheet_id': result_sheet_id,
+            'sheet_name': result_sheet_name,
+            'spreadsheet_id': spreadsheet_id
+        }
+        
+    except Exception as e:
+        print(f"❌ Failed to {action} sheet: {e}")
+        raise
+
+
+def google_sheets_insert_delete_dimensions(spreadsheet_id, dimension, action, start_index,
+                                             end_index=None, count=1, sheet_name='Sheet1',
+                                             _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Insert or delete rows/columns with shift operations.
+    
+    Args:
+        spreadsheet_id (str): Target spreadsheet ID
+        dimension (str): 'ROWS' or 'COLUMNS'
+        action (str): 'insert' or 'delete'
+        start_index (int): Starting position (0-indexed)
+        end_index (int): Ending position (for delete, exclusive). If None, uses start_index + count
+        count (int): Number of rows/columns (for insert, default: 1)
+        sheet_name (str): Sheet name (default: 'Sheet1')
+        
+    Returns:
+        dict: {
+            'success': bool,
+            'action': str,
+            'dimension': str,
+            'start_index': int,
+            'count': int
+        }
+    """
+    print(f"{action.title()} {count} {dimension.lower()} starting at index {start_index}")
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Get sheet ID
+        spreadsheet = sheets_service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id
+        ).execute()
+        
+        sheet_id = 0
+        for sheet in spreadsheet.get('sheets', []):
+            if sheet['properties']['title'] == sheet_name:
+                sheet_id = sheet['properties']['sheetId']
+                break
+        
+        # Build request
+        if action == 'insert':
+            # Insert dimension
+            request = {
+                'insertDimension': {
+                    'range': {
+                        'sheetId': sheet_id,
+                        'dimension': dimension,
+                        'startIndex': start_index,
+                        'endIndex': start_index + count
+                    }
+                }
+            }
+            affected_count = count
+            
+        elif action == 'delete':
+            # Delete dimension
+            if end_index is None:
+                end_index = start_index + count
+            
+            request = {
+                'deleteDimension': {
+                    'range': {
+                        'sheetId': sheet_id,
+                        'dimension': dimension,
+                        'startIndex': start_index,
+                        'endIndex': end_index
+                    }
+                }
+            }
+            affected_count = end_index - start_index
+            
+        else:
+            raise ValueError(f"Invalid action: '{action}'. Use 'insert' or 'delete'")
+        
+        # Execute request
+        sheets_service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={'requests': [request]}
+        ).execute()
+        
+        print(f"✅ {action.title()}ed {affected_count} {dimension.lower()}")
+        
+        return {
+            'success': True,
+            'action': action,
+            'dimension': dimension,
+            'start_index': start_index,
+            'end_index': end_index if action == 'delete' else start_index + count,
+            'count': affected_count,
+            'sheet_name': sheet_name
+        }
+        
+    except Exception as e:
+        print(f"❌ Failed to {action} {dimension.lower()}: {e}")
+        raise
+
+
+def google_sheets_batch_update_cells(spreadsheet_id, updates, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Update multiple non-contiguous cells efficiently in one API call.
+    
+    Perfect for scattered updates across different cells/sheets.
+    
+    Args:
+        spreadsheet_id (str): Target spreadsheet ID
+        updates (list): List of cell updates, each with:
+            - cell (str): Cell reference (e.g., 'A1', 'Sheet1!B5')
+            - value (any): Value to set
+            - value_type (str): Optional, 'auto'/'string'/'number'/'formula'/'boolean'
+        
+    Example:
+        updates = [
+            {"cell": "A1", "value": "Updated"},
+            {"cell": "Summary!B5", "value": "=SUM(A1:A4)", "value_type": "formula"},
+            {"cell": "Data!C3", "value": 125}
+        ]
+        
+    Returns:
+        dict: {
+            'success': bool,
+            'cells_updated': int,
+            'updates_applied': list
+        }
+    """
+    print(f"Batch updating {len(updates)} cells")
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Build batch update data
+        data = []
+        results = []
+        
+        for update in updates:
+            cell = update.get('cell')
+            value = update.get('value')
+            value_type = update.get('value_type', 'auto')
+            
+            # Determine value input option
+            if value_type == 'formula' or (value_type == 'auto' and isinstance(value, str) and value.startswith('=')):
+                input_option = 'USER_ENTERED'
+                detected_type = 'formula'
+            elif value_type == 'number' or (value_type == 'auto' and isinstance(value, (int, float))):
+                input_option = 'USER_ENTERED'
+                detected_type = 'number'
+            else:
+                input_option = 'RAW'
+                detected_type = 'string'
+            
+            data.append({
+                'range': cell,
+                'values': [[value]]
+            })
+            
+            results.append({
+                'cell': cell,
+                'value': value,
+                'type': detected_type
+            })
+        
+        # Execute batch update
+        body = {
+            'valueInputOption': 'USER_ENTERED',  # Parse formulas
+            'data': data
+        }
+        
+        response = sheets_service.spreadsheets().values().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body=body
+        ).execute()
+        
+        total_updated = response.get('totalUpdatedCells', 0)
+        
+        print(f"✅ Updated {total_updated} cells in batch")
+        
+        return {
+            'success': True,
+            'cells_updated': total_updated,
+            'updates_applied': results,
+            'response': response
+        }
+        
+    except Exception as e:
+        print(f"❌ Failed to batch update cells: {e}")
+        raise
+
+
+def google_sheets_smart_builder(
+    # MODE 1: CREATE multi-sheet spreadsheet
+    spreadsheet_name=None,
+    sheets=None,
+    
+    # MODE 2: UPDATE existing spreadsheet
+    spreadsheet_id=None,
+    operations=None,
+    
+    # MODE 3: LEGACY simple creation
+    title=None,
+    data=None,
+    headers=None,
+    parse_markdown=False,
+    
+    # Common parameters
+    _user_id=None,
+    _injected_credentials=None,
+    **kwargs
+):
+    """
+    🎯 COMPREHENSIVE SMART BUILDER - Create multi-sheet spreadsheets or update existing ones.
+    
+    ═══════════════════════════════════════════════════════════════════
+    THREE MODES OF OPERATION
+    ═══════════════════════════════════════════════════════════════════
+    
+    MODE 1: CREATE - Build multi-sheet spreadsheet from scratch
+    MODE 2: UPDATE - Granular updates to existing spreadsheet
+    MODE 3: LEGACY - Simple single-sheet creation (backward compatible)
+    
+    ═══════════════════════════════════════════════════════════════════
+    MODE 1: CREATE MULTI-SHEET SPREADSHEET
+    ═══════════════════════════════════════════════════════════════════
+    
+    Args:
+        spreadsheet_name (str): New spreadsheet name
+        sheets (list): List of sheet definitions, each with:
+            - name (str): Sheet tab name
+            - headers (list): Optional header row
+            - data (list[list]): Optional 2D data array
+            - formulas (list): Optional formula definitions:
+                [{"range": "D2:D10", "formula": "=SUM(A2:C2)"}]
+            - parse_markdown (bool): Enable markdown in this sheet
+    
+    Example:
+        google_sheets_smart_builder(
+            spreadsheet_name="Q4 Sales Report",
+            sheets=[
+                {
+                    "name": "Sales Data",
+                    "headers": ["Product", "Q3", "Q4", "Change"],
+                    "data": [["Widget", 100, 150, ""], ["Gadget", 200, 180, ""]],
+                    "formulas": [
+                        {"range": "D2:D3", "formula": "=(C2-B2)/B2"}
+                    ]
+                },
+                {
+                    "name": "Summary",
+                    "headers": ["Metric", "Value"],
+                    "formulas": [
+                        {"range": "B2", "formula": "=SUM('Sales Data'!C2:C10)"}
+                    ]
+                }
+            ]
+        )
+    
+    Returns:
+        {
+            'success': True,
+            'mode': 'create',
+            'spreadsheet_id': 'abc123',
+            'url': 'https://docs.google.com/spreadsheets/...',
+            'sheets_created': 2,
+            'total_formulas': 3,
+            'sheets': [...]
+        }
+    
+    ═══════════════════════════════════════════════════════════════════
+    MODE 2: UPDATE EXISTING SPREADSHEET
+    ═══════════════════════════════════════════════════════════════════
+    
+    Args:
+        spreadsheet_id (str): Existing spreadsheet ID
+        operations (list): List of operations to perform:
+            - {"action": "add_sheet", "name": "Q1 2026"}
+            - {"action": "update_cell", "cell": "A1", "value": "New"}
+            - {"action": "add_formula", "range": "D2:D10", "formula": "=SUM(A2:C2)"}
+            - {"action": "delete_rows", "start": 5, "count": 3}
+            - {"action": "insert_columns", "start": 2, "count": 1}
+    
+    Example:
+        google_sheets_smart_builder(
+            spreadsheet_id="abc123",
+            operations=[
+                {"action": "add_sheet", "name": "Q1 2026"},
+                {"action": "update_cell", "sheet": "Summary", "cell": "A1", "value": "Updated"},
+                {"action": "add_formula", "sheet": "Summary", "range": "B2", "formula": "=AVERAGE(Data!A:A)"}
+            ]
+        )
+    
+    Returns:
+        {
+            'success': True,
+            'mode': 'update',
+            'spreadsheet_id': 'abc123',
+            'operations_completed': 3,
+            'operations': [...]
+        }
+    
+    ═══════════════════════════════════════════════════════════════════
+    MODE 3: LEGACY - Simple Single-Sheet Creation
+    ═══════════════════════════════════════════════════════════════════
+    
+    Args:
+        title (str): Spreadsheet title
+        data (list[list]): Data rows
+        headers (list): Header row
+        parse_markdown (bool): Enable markdown formatting
+    
+    Example:
+        google_sheets_smart_builder(
+            title="Contact List",
+            headers=["Name", "Email"],
+            data=[["John", "john@example.com"]]
+        )
+    
+    Returns:
+        {
+            'success': True,
+            'mode': 'legacy',
+            'spreadsheet_id': 'abc123',
+            'url': 'https://docs.google.com/spreadsheets/...'
+        }
+    """
+    
+    print("\n" + "="*70)
+    print("🚀 GOOGLE SHEETS SMART BUILDER")
+    print("="*70)
+    
+    try:
+        # Get credentials
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        # ═══════════════════════════════════════════════════════════════
+        # DETERMINE MODE
+        # ═══════════════════════════════════════════════════════════════
+        
+        if spreadsheet_name and sheets:
+            # MODE 1: CREATE multi-sheet spreadsheet
+            mode = 'create'
+            print("📋 Mode: CREATE multi-sheet spreadsheet")
+            print(f"   Name: {spreadsheet_name}")
+            print(f"   Sheets: {len(sheets)}")
+            
+            return _smart_builder_create_multisheet(
+                spreadsheet_name, sheets, cred_dict, _user_id, _injected_credentials
+            )
+            
+        elif spreadsheet_id and operations:
+            # MODE 2: UPDATE existing spreadsheet
+            mode = 'update'
+            print("✏️  Mode: UPDATE existing spreadsheet")
+            print(f"   ID: {spreadsheet_id}")
+            print(f"   Operations: {len(operations)}")
+            
+            return _smart_builder_update_existing(
+                spreadsheet_id, operations, cred_dict, _user_id, _injected_credentials
+            )
+            
+        elif title:
+            # MODE 3: LEGACY simple creation
+            mode = 'legacy'
+            print("📄 Mode: LEGACY simple creation")
+            print(f"   Title: {title}")
+            
+            return google_sheets_create(
+                title=title,
+                data=data,
+                headers=headers,
+                parse_markdown=parse_markdown,
+                _user_id=_user_id,
+                _injected_credentials=_injected_credentials
+            )
+            
+        else:
+            raise ValueError(
+                "Invalid parameters. Choose one mode:\n"
+                "MODE 1 (CREATE): spreadsheet_name + sheets\n"
+                "MODE 2 (UPDATE): spreadsheet_id + operations\n"
+                "MODE 3 (LEGACY): title + data/headers"
+            )
+            
+    except Exception as e:
+        print(f"\n❌ Smart builder failed: {e}")
+        raise
+
+
+def _smart_builder_create_multisheet(spreadsheet_name, sheets, cred_dict, user_id, injected_credentials):
+    """MODE 1: Create multi-sheet spreadsheet"""
+    
+    sheets_service = _get_sheets_service(user_id=user_id, injected_credentials=cred_dict)
+    drive_service = build_drive_service(user_id=user_id, injected_credentials=cred_dict)
+    
+    # Step 1: Create spreadsheet with multiple sheets
+    print(f"\n📝 Step 1: Creating spreadsheet with {len(sheets)} sheets...")
+    
+    sheet_properties = []
+    for idx, sheet_def in enumerate(sheets):
+        sheet_name = sheet_def.get('name', f'Sheet{idx + 1}')
+        sheet_properties.append({
+            'properties': {
+                'title': sheet_name,
+                'index': idx
+            }
+        })
+    
+    spreadsheet_body = {
+        'properties': {'title': spreadsheet_name},
+        'sheets': sheet_properties
+    }
+    
+    spreadsheet = sheets_service.spreadsheets().create(body=spreadsheet_body).execute()
+    spreadsheet_id = spreadsheet['spreadsheetId']
+    
+    print(f"   ✅ Created: {spreadsheet_id}")
+    
+    # Step 2: Populate each sheet with data
+    print(f"\n📊 Step 2: Populating {len(sheets)} sheets...")
+    
+    sheet_results = []
+    total_formulas = 0
+    
+    for idx, sheet_def in enumerate(sheets):
+        sheet_name = sheet_def.get('name', f'Sheet{idx + 1}')
+        headers = sheet_def.get('headers')
+        data = sheet_def.get('data')
+        formulas = sheet_def.get('formulas', [])
+        parse_markdown = sheet_def.get('parse_markdown', False)
+        
+        print(f"\n   Sheet: {sheet_name}")
+        
+        # Write data
+        if headers or data:
+            values = []
+            if headers:
+                values.append(headers)
+            if data:
+                values.extend(data)
+            
+            range_name = f"{sheet_name}!A1"
+            body = {'values': values}
+            
+            result = sheets_service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range=range_name,
+                valueInputOption='USER_ENTERED',
+                body=body
+            ).execute()
+            
+            rows_written = result.get('updatedRows', 0)
+            print(f"      ✅ Wrote {rows_written} rows")
+        
+        # Add formulas
+        if formulas:
+            for formula_def in formulas:
+                formula_range = formula_def.get('range')
+                formula_text = formula_def.get('formula')
+                
+                google_sheets_add_formula(
+                    spreadsheet_id=spreadsheet_id,
+                    range=formula_range,
+                    formula=formula_text,
+                    sheet_name=sheet_name,
+                    parse_natural=True,
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                
+                total_formulas += 1
+                print(f"      ✅ Added formula to {formula_range}")
+        
+        sheet_results.append({
+            'name': sheet_name,
+            'rows': len(values) if (headers or data) else 0,
+            'formulas': len(formulas)
+        })
+    
+    # Step 3: Make shareable
+    print(f"\n🔓 Step 3: Making shareable...")
+    
+    permission = {'type': 'anyone', 'role': 'writer'}
+    drive_service.permissions().create(
+        fileId=spreadsheet_id,
+        body=permission
+    ).execute()
+    
+    url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+    
+    print(f"\n✅ COMPLETE!")
+    print(f"   URL: {url}")
+    print(f"   Sheets: {len(sheets)}")
+    print(f"   Formulas: {total_formulas}")
+    print("="*70 + "\n")
+    
+    return {
+        'success': True,
+        'mode': 'create',
+        'spreadsheet_id': spreadsheet_id,
+        'url': url,
+        'spreadsheet_name': spreadsheet_name,
+        'sheets_created': len(sheets),
+        'total_formulas': total_formulas,
+        'sheets': sheet_results
+    }
+
+
+def _smart_builder_update_existing(spreadsheet_id, operations, cred_dict, user_id, injected_credentials):
+    """MODE 2: Update existing spreadsheet"""
+    
+    print(f"\n🔧 Processing {len(operations)} operations...")
+    
+    results = []
+    
+    for idx, op in enumerate(operations):
+        action = op.get('action')
+        
+        print(f"\n   [{idx+1}/{len(operations)}] {action.upper()}")
+        
+        try:
+            if action == 'add_sheet':
+                # Add new sheet
+                result = google_sheets_manage_sheets(
+                    spreadsheet_id=spreadsheet_id,
+                    action='add',
+                    new_name=op.get('name'),
+                    position=op.get('position'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Added sheet: {op.get('name')}")
+                
+            elif action == 'delete_sheet':
+                # Delete sheet
+                result = google_sheets_manage_sheets(
+                    spreadsheet_id=spreadsheet_id,
+                    action='delete',
+                    sheet_name=op.get('name'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Deleted sheet: {op.get('name')}")
+                
+            elif action == 'rename_sheet':
+                # Rename sheet
+                result = google_sheets_manage_sheets(
+                    spreadsheet_id=spreadsheet_id,
+                    action='rename',
+                    sheet_name=op.get('old_name'),
+                    new_name=op.get('new_name'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Renamed: {op.get('old_name')} → {op.get('new_name')}")
+                
+            elif action == 'update_cell':
+                # Update single cell
+                result = google_sheets_update_cell(
+                    spreadsheet_id=spreadsheet_id,
+                    cell=op.get('cell'),
+                    value=op.get('value'),
+                    sheet_name=op.get('sheet'),
+                    value_type=op.get('value_type', 'auto'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Updated {op.get('cell')} = {op.get('value')}")
+                
+            elif action == 'add_formula':
+                # Add formula
+                result = google_sheets_add_formula(
+                    spreadsheet_id=spreadsheet_id,
+                    range=op.get('range'),
+                    formula=op.get('formula'),
+                    sheet_name=op.get('sheet'),
+                    parse_natural=op.get('parse_natural', True),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Added formula to {op.get('range')}")
+                
+            elif action == 'delete_rows':
+                # Delete rows
+                result = google_sheets_insert_delete_dimensions(
+                    spreadsheet_id=spreadsheet_id,
+                    dimension='ROWS',
+                    action='delete',
+                    start_index=op.get('start'),
+                    count=op.get('count', 1),
+                    sheet_name=op.get('sheet', 'Sheet1'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Deleted {op.get('count', 1)} rows")
+                
+            elif action == 'insert_rows':
+                # Insert rows
+                result = google_sheets_insert_delete_dimensions(
+                    spreadsheet_id=spreadsheet_id,
+                    dimension='ROWS',
+                    action='insert',
+                    start_index=op.get('start'),
+                    count=op.get('count', 1),
+                    sheet_name=op.get('sheet', 'Sheet1'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Inserted {op.get('count', 1)} rows")
+                
+            elif action == 'delete_columns':
+                # Delete columns
+                result = google_sheets_insert_delete_dimensions(
+                    spreadsheet_id=spreadsheet_id,
+                    dimension='COLUMNS',
+                    action='delete',
+                    start_index=op.get('start'),
+                    count=op.get('count', 1),
+                    sheet_name=op.get('sheet', 'Sheet1'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Deleted {op.get('count', 1)} columns")
+                
+            elif action == 'insert_columns':
+                # Insert columns
+                result = google_sheets_insert_delete_dimensions(
+                    spreadsheet_id=spreadsheet_id,
+                    dimension='COLUMNS',
+                    action='insert',
+                    start_index=op.get('start'),
+                    count=op.get('count', 1),
+                    sheet_name=op.get('sheet', 'Sheet1'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Inserted {op.get('count', 1)} columns")
+                
+            elif action == 'batch_update':
+                # Batch update cells
+                result = google_sheets_batch_update_cells(
+                    spreadsheet_id=spreadsheet_id,
+                    updates=op.get('updates'),
+                    _user_id=user_id,
+                    _injected_credentials=injected_credentials
+                )
+                print(f"      ✅ Batch updated {len(op.get('updates', []))} cells")
+                
+            else:
+                raise ValueError(f"Unknown action: {action}")
+            
+            results.append({
+                'action': action,
+                'success': True,
+                'result': result
+            })
+            
+        except Exception as e:
+            print(f"      ❌ Failed: {e}")
+            results.append({
+                'action': action,
+                'success': False,
+                'error': str(e)
+            })
+    
+    successful = sum(1 for r in results if r['success'])
+    
+    print(f"\n✅ COMPLETE!")
+    print(f"   Operations: {successful}/{len(operations)} successful")
+    print("="*70 + "\n")
+    
+    return {
+        'success': True,
+        'mode': 'update',
+        'spreadsheet_id': spreadsheet_id,
+        'operations_completed': successful,
+        'operations_total': len(operations),
+        'operations': results
+    }

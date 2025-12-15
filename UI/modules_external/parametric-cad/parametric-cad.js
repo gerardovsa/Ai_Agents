@@ -62,15 +62,8 @@ class ParametricCAD {
         console.log('⏳ [ParametricCAD] Loading OpenCascade.js WASM module...');
 
         try {
-            // Load OpenCascade.js (WebAssembly)
-            this.oc = await opencascade({
-                locateFile: (path) => {
-                    if (path.endsWith('.wasm')) {
-                        return 'https://cdn.jsdelivr.net/npm/opencascade.js@2.0.0-beta.2/dist/' + path;
-                    }
-                    return path;
-                }
-            });
+            // Wait for OpenCascade.js WASM to initialize
+            this.oc = await window.opencascadeReady;
 
             this.ocLoaded = true;
             console.log('✅ [ParametricCAD] OpenCascade.js loaded successfully');
@@ -112,8 +105,8 @@ class ParametricCAD {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.container.appendChild(this.renderer.domElement);
 
-        // Controls (OrbitControls)
-        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        // Controls (OrbitControls) - now available as window.OrbitControls
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 

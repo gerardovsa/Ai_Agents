@@ -149,13 +149,49 @@
     </div>
 
     <!-- Libraries -->
+    <!-- Three.js (r160) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/opencascade.js@2.0.0-beta.2/dist/opencascade.wasm.js"></script>
+    
+    <!-- OrbitControls - Using importmap for ES modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        window.OrbitControls = OrbitControls;
+        console.log('✅ OrbitControls loaded:', typeof OrbitControls);
+    </script>
+    
+    <!-- OpenCascade.js (WASM CAD kernel) - Stable version -->
+    <script src="https://cdn.jsdelivr.net/npm/opencascade.js@1.1.1/dist/opencascade.wasm.js"></script>
+    <script>
+        // Wait for OpenCascade to be ready
+        window.opencascadeReady = (async () => {
+            if (typeof opencascade === 'undefined') {
+                throw new Error('OpenCascade.js not loaded');
+            }
+            console.log('✅ OpenCascade.js loaded, initializing WASM...');
+            const oc = await opencascade({
+                locateFile: (path) => {
+                    if (path.endsWith('.wasm') || path.endsWith('.data')) {
+                        return 'https://cdn.jsdelivr.net/npm/opencascade.js@1.1.1/dist/' + path;
+                    }
+                    return path;
+                }
+            });
+            console.log('✅ OpenCascade.js WASM initialized');
+            return oc;
+        })();
+    </script>
 
     <!-- Supabase for collaboration (if available) -->
-    <script src="../../../shared/js/supabase-connection-manager.js"></script>
-    <script src="../../../shared/js/supabase-realtime-manager.js"></script>
+    <script src="../../../shared/js/supabase-connection-manager.js" onerror="console.warn('Supabase not available')"></script>
+    <script src="../../../shared/js/supabase-realtime-manager.js" onerror="console.warn('Supabase Realtime not available')"></script>
 
     <!-- Main module -->
     <script src="parametric-cad.js"></script>

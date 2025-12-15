@@ -1229,196 +1229,400 @@ class MicrosoftExcelTools:
     
     def excel_smart_sheet_builder(
         self,
-        workbook_name: str,
-        sheet_description: str,
+        workbook_name: Optional[str] = None,
+        workbook_id: Optional[str] = None,
+        worksheets: Optional[List[Dict[str, Any]]] = None,
+        sheet_description: Optional[str] = None,
         data_structure: Optional[Dict[str, Any]] = None,
+        formulas: Optional[List[Dict[str, Any]]] = None,
+        charts: Optional[List[Dict[str, Any]]] = None,
         include_formulas: bool = True,
         include_charts: bool = True,
-        include_formatting: bool = True,
         **kwargs
     ) -> Dict[str, Any]:
         """
-        SMART: Build complete Excel workbook from natural language description
+        SMART: Comprehensive Excel builder - create/update workbooks, sheets, formulas, charts
         
-        Creates professional workbooks with:
-        - Auto-detected column structure
-        - Natural language formulas
-        - Auto-generated charts
-        - Professional formatting
-        - Summary statistics
+        ONE TOOL TO DO IT ALL:
+        - Create new workbooks from scratch OR update existing ones
+        - Add multiple worksheets with different structures
+        - Natural language formulas with cross-sheet references
+        - Multiple chart types and positioning
+        - Granular updates to specific ranges/cells
         
         Args:
-            workbook_name: Name for workbook
-            sheet_description: Natural language description of what the sheet should contain
-                Examples: "sales tracker with monthly totals", 
-                         "expense report with categories",
-                         "project timeline with milestones"
-            data_structure: Optional dict specifying:
-                {
-                    "columns": ["Name", "Date", "Amount"],  # Column headers
-                    "sample_data": [["John", "2025-01-01", 1000]],  # Optional sample rows
-                    "formulas": ["sum totals", "average amounts"],  # Natural language
-                    "chart_type": "column"  # Optional chart preference
-                }
-            include_formulas: Auto-add calculation formulas
-            include_charts: Auto-generate visualization
-            include_formatting: Apply professional formatting
+            workbook_name: Name for NEW workbook (creates new if no workbook_id)
+            workbook_id: ID of EXISTING workbook to update (updates existing)
+            
+            worksheets: List of worksheet definitions:
+                [
+                    {
+                        "name": "Sales Data",
+                        "description": "sales tracker with monthly totals",  # OR
+                        "columns": ["Rep", "Month", "Amount"],  # explicit columns
+                        "data": [[...], [...]],  # optional data rows
+                        "formulas": [
+                            {"cell": "D2", "formula": "sum column C"},
+                            {"range": "E2:E10", "formula": "multiply B2 by C2"}
+                        ],
+                        "chart": {
+                            "type": "column",
+                            "range": "A1:C10",
+                            "title": "Monthly Sales"
+                        }
+                    },
+                    {
+                        "name": "Summary",
+                        "columns": ["Metric", "Value"],
+                        "formulas": [
+                            {"cell": "B2", "formula": "=SUM('Sales Data'!C:C)"}  # cross-sheet
+                        ]
+                    }
+                ]
+            
+            sheet_description: LEGACY - Single sheet description (backward compatible)
+            data_structure: LEGACY - Single sheet structure (backward compatible)
+            
+            formulas: Global formulas to add across sheets:
+                [
+                    {"workbook": "workbook_id", "sheet": "Data", "cell": "A1", "formula": "sum column B"},
+                    {"workbook": "workbook_id", "sheet": "Summary", "range": "C1:C10", "formula": "=A1*2"}
+                ]
+            
+            charts: Global charts to add:
+                [
+                    {"sheet": "Data", "type": "column", "range": "A1:C10", "title": "Sales"},
+                    {"sheet": "Summary", "type": "pie", "range": "A1:B5"}
+                ]
+            
+            include_formulas: Auto-add smart formulas if not specified
+            include_charts: Auto-generate charts if not specified
             
         Returns:
-            Dict with workbook_id, web_url, structure created
+            Dict with workbook_id, web_url, worksheets created/updated, formulas added, charts created
             
-        Example:
+        Examples:
+            # CREATE FROM SCRATCH (comprehensive)
             result = excel_smart_sheet_builder(
-                workbook_name="Q1 Sales Tracker",
-                sheet_description="sales tracker with rep names, monthly sales, and quarterly totals",
-                include_formulas=True,
-                include_charts=True
+                workbook_name="Q1 Report",
+                worksheets=[
+                    {
+                        "name": "Sales Data",
+                        "columns": ["Rep", "Month", "Amount", "Region"],
+                        "data": [["Alice", "Jan", 1000, "West"], ["Bob", "Jan", 1200, "East"]],
+                        "formulas": [
+                            {"cell": "C10", "formula": "sum column C"}
+                        ]
+                    },
+                    {
+                        "name": "Summary",
+                        "columns": ["Metric", "Value"],
+                        "formulas": [
+                            {"cell": "B1", "formula": "=SUM('Sales Data'!C:C)"},
+                            {"cell": "B2", "formula": "=AVERAGE('Sales Data'!C:C)"}
+                        ]
+                    }
+                ]
+            )
+            
+            # UPDATE EXISTING (granular)
+            result = excel_smart_sheet_builder(
+                workbook_id="existing_id",
+                formulas=[
+                    {"sheet": "Data", "cell": "D1", "formula": "multiply column B by column C"}
+                ],
+                charts=[
+                    {"sheet": "Data", "type": "line", "range": "A1:C10", "title": "Trends"}
+                ]
+            )
+            
+            # SIMPLE (backward compatible)
+            result = excel_smart_sheet_builder(
+                workbook_name="Sales Tracker",
+                sheet_description="sales tracker with totals"
             )
         """
         try:
-            # Parse description to extract structure
-            description_lower = sheet_description.lower()
-            
-            # Auto-detect columns from description
-            if data_structure and "columns" in data_structure:
-                columns = data_structure["columns"]
+            # STEP 1: Determine if creating new or updating existing
+            if workbook_id:
+                # UPDATE EXISTING workbook
+                wb_id = workbook_id
+                wb_url = None
+                mode = "update"
+            elif workbook_name:
+                # CREATE NEW workbook
+                wb_result = self.excel_create_workbook(workbook_name, **kwargs)
+                if "error" in wb_result:
+                    return wb_result
+                wb_id = wb_result['workbook_id']
+                wb_url = wb_result['web_url']
+                mode = "create"
             else:
-                # Smart column detection from description keywords
-                columns = self._detect_columns_from_description(description_lower)
+                return {"error": "Must provide either workbook_name (create) or workbook_id (update)"}
             
-            # Create workbook
-            wb_result = self.excel_create_workbook(workbook_name, **kwargs)
-            if "error" in wb_result:
-                return wb_result
-            
-            workbook_id = wb_result['workbook_id']
-            
-            # Create main data sheet
-            sheet_name = "Data"
-            sheet_result = self.excel_add_worksheet(workbook_id, sheet_name, **kwargs)
-            
-            # Write headers
-            header_range = f"A1:{chr(65 + len(columns) - 1)}1"
-            self.excel_update_range(workbook_id, sheet_name, header_range, [columns], **kwargs)
-            
-            # Add sample data if provided
-            sample_rows = []
-            if data_structure and "sample_data" in data_structure:
-                sample_rows = data_structure["sample_data"]
-            else:
-                # Generate smart sample data based on column types
-                sample_rows = self._generate_sample_data(columns, rows=5)
-            
-            if sample_rows:
-                data_start_row = 2
-                data_end_row = data_start_row + len(sample_rows) - 1
-                data_range = f"A{data_start_row}:{chr(65 + len(columns) - 1)}{data_end_row}"
-                self.excel_update_range(workbook_id, sheet_name, data_range, sample_rows, **kwargs)
-            
-            # Add formulas if requested
-            formula_info = []
-            if include_formulas:
-                formula_row = len(sample_rows) + 3  # Leave blank row
+            # STEP 2: Handle legacy single-sheet mode (backward compatibility)
+            if sheet_description and not worksheets:
+                # Convert legacy parameters to new format
+                description_lower = sheet_description.lower()
                 
-                # Add "Totals" label
-                self.excel_update_range(
-                    workbook_id, sheet_name, f"A{formula_row}",
-                    [["TOTALS"]], **kwargs
-                )
+                if data_structure and "columns" in data_structure:
+                    columns = data_structure["columns"]
+                else:
+                    columns = self._detect_columns_from_description(description_lower)
                 
-                # Auto-detect numeric columns and add SUM formulas
-                for col_idx, col_name in enumerate(columns):
-                    if self._is_numeric_column(col_name):
-                        col_letter = chr(65 + col_idx)
+                sample_data = data_structure.get("sample_data") if data_structure else None
+                if not sample_data:
+                    sample_data = self._generate_sample_data(columns, rows=5)
+                
+                worksheets = [{
+                    "name": "Data",
+                    "columns": columns,
+                    "data": sample_data,
+                    "description": sheet_description
+                }]
+            
+            # STEP 3: Process worksheets
+            worksheets_created = []
+            worksheets_updated = []
+            all_formulas = []
+            all_charts = []
+            
+            if worksheets:
+                for ws_def in worksheets:
+                    ws_name = ws_def.get("name", f"Sheet{len(worksheets_created) + 1}")
+                    
+                    # Create or get worksheet
+                    if mode == "create":
+                        ws_result = self.excel_add_worksheet(wb_id, ws_name, **kwargs)
+                        if "error" not in ws_result:
+                            worksheets_created.append(ws_name)
+                    else:
+                        # Check if sheet exists, create if not
+                        existing_sheets = self.excel_list_worksheets(wb_id, **kwargs)
+                        if ws_name not in existing_sheets.get('worksheets', []):
+                            self.excel_add_worksheet(wb_id, ws_name, **kwargs)
+                            worksheets_created.append(ws_name)
+                        else:
+                            worksheets_updated.append(ws_name)
+                    
+                    # Determine columns
+                    if "columns" in ws_def:
+                        columns = ws_def["columns"]
+                    elif "description" in ws_def:
+                        columns = self._detect_columns_from_description(ws_def["description"].lower())
+                    else:
+                        columns = ["Column A", "Column B", "Column C"]
+                    
+                    # Write headers
+                    header_range = f"A1:{chr(65 + len(columns) - 1)}1"
+                    self.excel_update_range(wb_id, ws_name, header_range, [columns], **kwargs)
+                    
+                    # Write data if provided
+                    if "data" in ws_def and ws_def["data"]:
+                        data_rows = ws_def["data"]
+                        data_start_row = 2
+                        data_end_row = data_start_row + len(data_rows) - 1
+                        data_range = f"A{data_start_row}:{chr(65 + len(columns) - 1)}{data_end_row}"
+                        self.excel_update_range(wb_id, ws_name, data_range, data_rows, **kwargs)
                         
-                        # Add SUM formula using natural language
+                        # Auto-add formulas if requested and not explicitly provided
+                        if include_formulas and "formulas" not in ws_def:
+                            formula_row = len(data_rows) + 3
+                            self.excel_update_range(wb_id, ws_name, f"A{formula_row}", [["TOTALS"]], **kwargs)
+                            
+                            for col_idx, col_name in enumerate(columns):
+                                if self._is_numeric_column(col_name):
+                                    col_letter = chr(65 + col_idx)
+                                    formula_result = self.excel_smart_formula_builder(
+                                        wb_id, ws_name,
+                                        f"sum column {col_letter}",
+                                        f"{col_letter}{formula_row}",
+                                        **kwargs
+                                    )
+                                    all_formulas.append({
+                                        "sheet": ws_name,
+                                        "cell": f"{col_letter}{formula_row}",
+                                        "formula": formula_result.get("formula", "")
+                                    })
+                    
+                    # Process explicit formulas
+                    if "formulas" in ws_def:
+                        for formula_def in ws_def["formulas"]:
+                            if "cell" in formula_def:
+                                # Single cell formula
+                                formula_result = self.excel_smart_formula_builder(
+                                    wb_id, ws_name,
+                                    formula_def["formula"],
+                                    formula_def["cell"],
+                                    **kwargs
+                                )
+                                all_formulas.append({
+                                    "sheet": ws_name,
+                                    "cell": formula_def["cell"],
+                                    "formula": formula_result.get("formula", formula_def["formula"])
+                                })
+                            elif "range" in formula_def:
+                                # Range formula (copy to all cells)
+                                # Parse range (e.g., "E2:E10")
+                                range_parts = formula_def["range"].split(":")
+                                if len(range_parts) == 2:
+                                    start_cell = range_parts[0]
+                                    end_cell = range_parts[1]
+                                    # Apply formula to first cell (Excel will auto-fill)
+                                    formula_result = self.excel_smart_formula_builder(
+                                        wb_id, ws_name,
+                                        formula_def["formula"],
+                                        start_cell,
+                                        **kwargs
+                                    )
+                                    all_formulas.append({
+                                        "sheet": ws_name,
+                                        "range": formula_def["range"],
+                                        "formula": formula_result.get("formula", formula_def["formula"])
+                                    })
+                    
+                    # Process chart if defined
+                    if "chart" in ws_def:
+                        chart_def = ws_def["chart"]
+                        chart_type = chart_def.get("type", "ColumnClustered")
+                        chart_range = chart_def.get("range", f"A1:{chr(65 + len(columns) - 1)}10")
+                        chart_title = chart_def.get("title", f"{ws_name} Chart")
+                        
+                        chart_result = self.excel_create_chart(
+                            wb_id, ws_name, chart_type,
+                            chart_range, chart_title, **kwargs
+                        )
+                        if "error" not in chart_result:
+                            all_charts.append({
+                                "sheet": ws_name,
+                                "type": chart_type,
+                                "title": chart_title
+                            })
+                    elif include_charts and "data" in ws_def and len(columns) >= 2:
+                        # Auto-create chart
+                        chart_type = "ColumnClustered"
+                        if "description" in ws_def:
+                            desc = ws_def["description"].lower()
+                            if "timeline" in desc or "trend" in desc:
+                                chart_type = "Line"
+                            elif "comparison" in desc:
+                                chart_type = "BarClustered"
+                            elif "distribution" in desc:
+                                chart_type = "Pie"
+                        
+                        data_row_count = len(ws_def.get("data", []))
+                        chart_range = f"A1:{chr(65 + min(len(columns), 3) - 1)}{min(data_row_count + 1, 10)}"
+                        chart_result = self.excel_create_chart(
+                            wb_id, ws_name, chart_type,
+                            chart_range, f"{ws_name} Overview", **kwargs
+                        )
+                        if "error" not in chart_result:
+                            all_charts.append({
+                                "sheet": ws_name,
+                                "type": chart_type,
+                                "title": f"{ws_name} Overview"
+                            })
+            
+            # STEP 4: Process global formulas
+            if formulas:
+                for formula_def in formulas:
+                    sheet_name = formula_def.get("sheet")
+                    if not sheet_name:
+                        continue
+                    
+                    if "cell" in formula_def:
                         formula_result = self.excel_smart_formula_builder(
-                            workbook_id, sheet_name,
-                            f"sum column {col_letter}",
-                            f"{col_letter}{formula_row}",
+                            wb_id, sheet_name,
+                            formula_def["formula"],
+                            formula_def["cell"],
                             **kwargs
                         )
-                        formula_info.append({
-                            "column": col_name,
-                            "formula": formula_result.get("formula", "")
+                        all_formulas.append({
+                            "sheet": sheet_name,
+                            "cell": formula_def["cell"],
+                            "formula": formula_result.get("formula", formula_def["formula"])
                         })
-                
-                # Add AVERAGE row
-                avg_row = formula_row + 1
-                self.excel_update_range(
-                    workbook_id, sheet_name, f"A{avg_row}",
-                    [["AVERAGE"]], **kwargs
-                )
-                
-                for col_idx, col_name in enumerate(columns):
-                    if self._is_numeric_column(col_name):
-                        col_letter = chr(65 + col_idx)
-                        self.excel_smart_formula_builder(
-                            workbook_id, sheet_name,
-                            f"average column {col_letter}",
-                            f"{col_letter}{avg_row}",
-                            **kwargs
-                        )
+                    elif "range" in formula_def:
+                        # Direct Excel formula (starts with =)
+                        if formula_def["formula"].startswith("="):
+                            self.excel_set_formula(
+                                wb_id, sheet_name,
+                                formula_def["range"],
+                                formula_def["formula"],
+                                **kwargs
+                            )
+                        else:
+                            # Natural language formula
+                            formula_result = self.excel_smart_formula_builder(
+                                wb_id, sheet_name,
+                                formula_def["formula"],
+                                formula_def["range"].split(":")[0],
+                                **kwargs
+                            )
+                        all_formulas.append({
+                            "sheet": sheet_name,
+                            "range": formula_def.get("range"),
+                            "formula": formula_def["formula"]
+                        })
             
-            # Add chart if requested
-            chart_created = False
-            if include_charts and len(sample_rows) > 0 and len(columns) >= 2:
-                chart_range = f"A1:{chr(65 + min(len(columns), 3) - 1)}{min(len(sample_rows) + 1, 10)}"
+            # STEP 5: Process global charts
+            if charts:
+                for chart_def in charts:
+                    sheet_name = chart_def.get("sheet")
+                    if not sheet_name:
+                        continue
+                    
+                    chart_type = chart_def.get("type", "ColumnClustered")
+                    chart_range = chart_def.get("range", "A1:C10")
+                    chart_title = chart_def.get("title", "Chart")
+                    
+                    chart_result = self.excel_create_chart(
+                        wb_id, sheet_name, chart_type,
+                        chart_range, chart_title, **kwargs
+                    )
+                    if "error" not in chart_result:
+                        all_charts.append({
+                            "sheet": sheet_name,
+                            "type": chart_type,
+                            "title": chart_title
+                        })
+            
+            # STEP 6: Create summary sheet if creating new workbook
+            if mode == "create" and len(worksheets_created) > 0:
+                summary_data = [
+                    ["Workbook Summary", ""],
+                    ["", ""],
+                    ["Mode", "Created from scratch"],
+                    ["Worksheets Created", len(worksheets_created)],
+                    ["Formulas Added", len(all_formulas)],
+                    ["Charts Created", len(all_charts)],
+                    ["", ""],
+                    ["Worksheets:", ""],
+                ]
                 
-                # Determine chart type from description
-                chart_type = "ColumnClustered"
-                if "timeline" in description_lower or "trend" in description_lower:
-                    chart_type = "Line"
-                elif "comparison" in description_lower or "compare" in description_lower:
-                    chart_type = "BarClustered"
-                elif "distribution" in description_lower or "breakdown" in description_lower:
-                    chart_type = "Pie"
+                for ws_name in worksheets_created:
+                    summary_data.append([f"  - {ws_name}", ""])
                 
-                chart_result = self.excel_create_chart(
-                    workbook_id, sheet_name, chart_type,
-                    chart_range, f"{workbook_name} Overview",
-                    **kwargs
-                )
-                chart_created = "error" not in chart_result
-            
-            # Create summary sheet
-            summary_sheet = self.excel_add_worksheet(workbook_id, "Summary", **kwargs)
-            summary_data = [
-                ["Workbook Summary", ""],
-                ["", ""],
-                ["Created", wb_result.get('created_datetime', 'N/A')],
-                ["Columns", len(columns)],
-                ["Sample Rows", len(sample_rows)],
-                ["Formulas Added", len(formula_info)],
-                ["Chart Created", "Yes" if chart_created else "No"],
-                ["", ""],
-                ["Column Structure:", ""],
-            ]
-            
-            for idx, col in enumerate(columns):
-                col_type = "Numeric" if self._is_numeric_column(col) else "Text"
-                summary_data.append([f"  {idx + 1}. {col}", col_type])
-            
-            summary_range = f"A1:B{len(summary_data)}"
-            self.excel_update_range(workbook_id, "Summary", summary_range, summary_data, **kwargs)
+                self.excel_add_worksheet(wb_id, "Summary", **kwargs)
+                summary_range = f"A1:B{len(summary_data)}"
+                self.excel_update_range(wb_id, "Summary", summary_range, summary_data, **kwargs)
             
             return {
                 "success": True,
-                "workbook_id": workbook_id,
-                "web_url": wb_result['web_url'],
-                "structure": {
-                    "columns": columns,
-                    "sample_rows": len(sample_rows),
-                    "formulas_added": formula_info,
-                    "chart_created": chart_created,
-                    "chart_type": chart_type if chart_created else None
-                },
-                "sheets": ["Data", "Summary"],
+                "mode": mode,
+                "workbook_id": wb_id,
+                "web_url": wb_url if mode == "create" else f"Updated existing workbook {wb_id}",
+                "worksheets_created": worksheets_created,
+                "worksheets_updated": worksheets_updated,
+                "formulas_added": len(all_formulas),
+                "formulas": all_formulas,
+                "charts_created": len(all_charts),
+                "charts": all_charts,
                 "ready_for_data": True
             }
             
         except Exception as e:
-            return {"error": f"Failed to build smart sheet: {str(e)}"}
+            return {"error": f"Failed to build/update workbook: {str(e)}"}
     
     def _detect_columns_from_description(self, description: str) -> List[str]:
         """Extract likely column names from natural language description"""
@@ -1967,6 +2171,8 @@ microsoft_excel_smart_data_analysis = microsoft_excel_tools.excel_smart_data_ana
 microsoft_excel_smart_create_pivot = microsoft_excel_tools.excel_smart_create_pivot
 
 microsoft_excel_smart_financial_report = microsoft_excel_tools.excel_smart_financial_report
+
+microsoft_excel_smart_sheet_builder = microsoft_excel_tools.excel_smart_sheet_builder
 
 microsoft_excel_smart_formula_builder = microsoft_excel_tools.excel_smart_formula_builder
 

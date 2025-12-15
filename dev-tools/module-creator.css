@@ -739,6 +739,89 @@ small {
 }
 
 /* ============================================================
+   CREDENTIAL MANAGEMENT
+   ============================================================ */
+.credential-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.credential-info {
+    flex: 1;
+}
+
+.credential-platform {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.credential-key {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.credential-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.credential-status {
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.credential-status.success {
+    background: rgba(78, 201, 176, 0.2);
+    color: var(--status-success);
+}
+
+.credential-status.error {
+    background: rgba(244, 135, 113, 0.2);
+    color: var(--status-error);
+}
+
+.credential-status.untested {
+    background: rgba(150, 150, 150, 0.2);
+    color: var(--text-secondary);
+}
+
+#credential-test-result {
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+#credential-test-result.success {
+    background: rgba(78, 201, 176, 0.1);
+    border: 1px solid var(--status-success);
+    color: var(--status-success);
+}
+
+#credential-test-result.error {
+    background: rgba(244, 135, 113, 0.1);
+    border: 1px solid var(--status-error);
+    color: var(--status-error);
+}
+
+#credential-test-result.testing {
+    background: rgba(220, 220, 170, 0.1);
+    border: 1px solid var(--status-warn);
+    color: var(--status-warn);
+}
+
+/* ============================================================
    UTILITIES
    ============================================================ */
 .header-actions {

@@ -1886,11 +1886,28 @@ def link_thread_to_synergy(session_id):
             cursor.execute(update_sql, update_params)
             
             # UPDATE sessions.threads.synergy_card_id (BIDIRECTIONAL LINK)
-            thread_update_sql, thread_update_params = convert_sql_placeholders('''
-                UPDATE sessions.threads 
-                SET synergy_card_id = %s, synergy_card_name = %s
-                WHERE id = %s OR thread_slug = %s
-            ''', (session_id, session_name, thread_id, thread_slug))
+            # Note: id is INTEGER (auto-increment), thread_slug is TEXT (user-provided)
+            # Try both thread_id (if numeric) and thread_slug for flexibility
+            try:
+                thread_id_int = int(thread_id) if thread_id and thread_id.isdigit() else None
+            except (ValueError, AttributeError):
+                thread_id_int = None
+            
+            if thread_id_int:
+                # Use id if thread_id is numeric
+                thread_update_sql, thread_update_params = convert_sql_placeholders('''
+                    UPDATE sessions.threads 
+                    SET synergy_card_id = %s, synergy_card_name = %s
+                    WHERE id = %s OR thread_slug = %s
+                ''', (session_id, session_name, thread_id_int, thread_slug))
+            else:
+                # Use only thread_slug if thread_id is not numeric
+                thread_update_sql, thread_update_params = convert_sql_placeholders('''
+                    UPDATE sessions.threads 
+                    SET synergy_card_id = %s, synergy_card_name = %s
+                    WHERE thread_slug = %s
+                ''', (session_id, session_name, thread_slug))
+            
             cursor.execute(thread_update_sql, thread_update_params)
             
             print(f"[SYNERGY SYNC] ✅ Linked thread {thread_id} → Synergy session {session_id}")

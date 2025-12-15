@@ -59,15 +59,11 @@
     },
     {
       "name": "microsoft_sharepoint_search_content",
-      "tier": 3,
-      "category": "Site Management",
-    },
-    {
-      "name": "microsoft_sharepoint_search_content",
       "short_description": "Search Microsoft SharePoint content across sites, documents, and lists",
       "tier": 2,
       "category": "Content Discovery",
-      "description": "🚨 CRITICAL EXECUTION RULES:,"parameters": {
+      "description": "🚨 CRITICAL EXECUTION RULES:",
+      "parameters": {
         "type": "object",
         "properties": {
           "query": {

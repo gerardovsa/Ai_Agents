@@ -1595,6 +1595,11 @@ const MultiAgent = {
                             messagesContainer.scrollTop = messagesContainer.scrollHeight;
                             console.log(`[OK] All ${loadedMessages.length} messages rendered for agent-${agentId}`);
 
+                            // ✅ Update scroll controls visibility after loading messages
+                            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.updateScrollControlsVisibility === 'function') {
+                                AgentColumn.updateScrollControlsVisibility(agentId);
+                            }
+
                             // Setup scroll detection for infinite scroll
                             setupScrollDetection(agentId, messagesContainer);
                         } else {
@@ -1649,6 +1654,11 @@ const MultiAgent = {
                 }
             });
             console.log(`[OK] All ${storedMessages.length} messages rendered for agent-${agentId}`);
+
+            // ✅ Update scroll controls visibility after loading messages from MessageStore
+            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.updateScrollControlsVisibility === 'function') {
+                AgentColumn.updateScrollControlsVisibility(agentId);
+            }
         }
 
         // Update agent's session to use thread ID
@@ -1702,14 +1712,14 @@ const MultiAgent = {
     },
 
     // Unload thread from agent and move to Prime
-    async unloadThreadFromAgent(location, threadId) {
-        console.log(`[UNLOAD] Unloading thread ${threadId} from ${location}`);
+    async unloadThreadFromAgent(agentLocation, threadId) {
+        console.log(`[UNLOAD] Unloading thread ${threadId} from ${agentLocation}`);
 
         // Extract agent ID from location (e.g., "agent-2" -> 2)
-        const agentId = parseInt(location.replace('agent-', ''));
+        const agentId = parseInt(agentLocation.replace('agent-', ''));
 
         if (!agentId || isNaN(agentId)) {
-            console.error('[UNLOAD] Invalid agent location:', location);
+            console.error('[UNLOAD] Invalid agent location:', agentLocation);
             return;
         }
 

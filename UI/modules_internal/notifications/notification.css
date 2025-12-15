@@ -36,6 +36,11 @@
     transition: transform 0.3s ease;
 }
 
+/* Only show when notification bell button is active - NOT account profile */
+#notificationBellBtn-sidebar:not(.active) ~ .notification-panel:not(.show) {
+    display: none;
+}
+
 /* Hide notification panel when loading overlay is visible */
 body.loading .notification-panel,
 .loading-overlay~.notification-panel {
@@ -196,7 +201,7 @@ body.loading .notification-panel,
 .notification-list {
     flex: 1;
     overflow-y: auto;
-    padding: 12px 0;
+    padding: 12px 10px;
 }
 
 /* Custom scrollbar */
@@ -236,8 +241,8 @@ body.loading .notification-panel,
 }
 
 .notification-item.unread.severity-error {
-    margin: 0 10px;
-    border-radius: 4px;
+    margin: 10px 10px;
+    border-radius: 8px;
 }
 
 .notification-item.read {
@@ -566,7 +571,7 @@ body.loading .notification-panel,
     background: var(--bg-secondary, #252839);
     border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
     padding: 16px;
-    max-height: 400px;
+    max-height: calc(100vh - 300px);
     overflow-y: auto;
     animation: slideDown 0.3s ease;
 }
@@ -579,7 +584,7 @@ body.loading .notification-panel,
     }
 
     to {
-        max-height: 400px;
+        max-height: calc(100vh - 300px);
         opacity: 1;
         padding: 16px;
     }

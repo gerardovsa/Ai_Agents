@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🧪 Parametric CAD - Smoke Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #58a6ff;
+            border-bottom: 2px solid #30363d;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+        }
+        .test-result.pass {
+            background: #0d4429;
+            border-left: 4px solid #3fb950;
+        }
+        .test-result.fail {
+            background: #490b0b;
+            border-left: 4px solid #f85149;
+        }
+        .test-result.pending {
+            background: #4d3800;
+            border-left: 4px solid #d29922;
+        }
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2ea043;
+        }
+        #moduleFrame {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            background: white;
+        }
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .metric {
+            display: inline-block;
+            background: #21262d;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 5px;
+        }
+        .metric strong {
+            color: #58a6ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Parametric CAD Module - Comprehensive Smoke Test</h1>
+        
+        <div class="test-section">
+            <h2>📊 Test Summary</h2>
+            <div id="summary">
+                <span class="metric"><strong>Status:</strong> <span id="statusText">Not started</span></span>
+                <span class="metric"><strong>Pass:</strong> <span id="passCount">0</span></span>
+                <span class="metric"><strong>Fail:</strong> <span id="failCount">0</span></span>
+                <span class="metric"><strong>Pending:</strong> <span id="pendingCount">0</span></span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Test Results</h2>
+            <button onclick="runAllTests()">▶️ Run All Tests</button>
+            <button onclick="clearResults()">🗑️ Clear Results</button>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎨 Module Preview</h2>
+            <button onclick="loadModule()">📦 Load Module in Frame</button>
+            <button onclick="openModuleNewTab()">🔗 Open in New Tab</button>
+            <div style="margin-top: 15px;">
+                <iframe id="moduleFrame" src="about:blank"></iframe>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Test Log</h2>
+            <div id="testLog" class="code-block"></div>
+        </div>
+    </div>
+
+    <script>
+        const MODULE_URL = '/external/modules/parametric-cad';
+        const tests = [];
+        let passCount = 0;
+        let failCount = 0;
+        let pendingCount = 0;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = {
+                info: 'ℹ️',
+                success: '✅',
+                error: '❌',
+                warning: '⚠️'
+            }[type] || 'ℹ️';
+            
+            logDiv.innerHTML += `[${timestamp}] ${prefix} ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function addTestResult(name, status, details = '') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${status}`;
+            resultDiv.innerHTML = `<strong>${name}:</strong> ${status.toUpperCase()}${details ? ' - ' + details : ''}`;
+            resultsDiv.appendChild(resultDiv);
+
+            // Update counts
+            if (status === 'pass') passCount++;
+            else if (status === 'fail') failCount++;
+            else if (status === 'pending') pendingCount++;
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('passCount').textContent = passCount;
+            document.getElementById('failCount').textContent = failCount;
+            document.getElementById('pendingCount').textContent = pendingCount;
+            
+            const total = passCount + failCount + pendingCount;
+            const status = failCount > 0 ? 'FAILED' : (total > 0 ? 'PASSED' : 'Not started');
+            document.getElementById('statusText').textContent = status;
+            document.getElementById('statusText').style.color = failCount > 0 ? '#f85149' : '#3fb950';
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('testLog').innerHTML = '';
+            passCount = 0;
+            failCount = 0;
+            pendingCount = 0;
+            updateSummary();
+            log('Results cleared', 'info');
+        }
+
+        // Test 1: Check if manifest.json is accessible
+        async function testManifestAccessible() {
+            log('Testing manifest.json accessibility...');
+            try {
+                const response = await fetch(`${MODULE_URL}/manifest.json`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addTestResult('Manifest Accessible', 'pass', `v${data.version}`);
+                    log(`Manifest loaded: ${data.name} v${data.version}`, 'success');
+                    return data;
+                } else {
+                    addTestResult('Manifest Accessible', 'fail', `HTTP ${response.status}`);
+                    log(`Manifest failed: HTTP ${response.status}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                addTestResult('Manifest Accessible', 'fail', error.message);
+                log(`Manifest error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // Test 2: Validate manifest structure
+        async function testManifestStructure() {
+            log('Validating manifest structure...');
+            try {
+                const manifest = await testManifestAccessible();
+                if (!manifest) {
+                    addTestResult('Manifest Structure', 'fail', 'Could not load manifest');
+                    return false;
+                }
+
+                const requiredFields = ['id', 'name', 'version', 'description', 'files', 'dependencies'];
+                const missingFields = requiredFields.filter(field => !manifest[field]);
+                
+                if (missingFields.length === 0) {
+                    addTestResult('Manifest Structure', 'pass', `All required fields present`);
+                    log('Manifest structure valid', 'success');
+                    return true;
+                } else {
+                    addTestResult('Manifest Structure', 'fail', `Missing: ${missingFields.join(', ')}`);
+                    log(`Missing fields: ${missingFields.join(', ')}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Manifest Structure', 'fail', error.message);
+                log(`Structure validation error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Test 3: Check if HTML file is accessible
+        async function testHTMLAccessible() {
+            log('Testing HTML file accessibility...');
+            try {
+                const response = await fetch(`${MODULE_URL}/parametric-cad.html`);
+                if (response.ok) {
+                    const html = await response.text();
+                    addTestResult('HTML File Accessible', 'pass', `${(html.length / 1024).toFixed(1)} KB`);
+                    log(`HTML loaded: ${html.length} bytes`, 'success');
+                    return true;
+                } else {
+                    addTestResult('HTML File Accessible', 'fail', `HTTP ${response.status}`);
+                    log(`HTML failed: HTTP ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('HTML File Accessible', 'fail', error.message);
+                log(`HTML error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Test 4: Check if CSS file is accessible
+        async function testCSSAccessible() {
+            log('Testing CSS file accessibility...');
+            try {
+                const response = await fetch(`${MODULE_URL}/parametric-cad.css`);
+                if (response.ok) {
+                    const css = await response.text();
+                    addTestResult('CSS File Accessible', 'pass', `${(css.length / 1024).toFixed(1)} KB`);
+                    log(`CSS loaded: ${css.length} bytes`, 'success');
+                    return true;
+                } else {
+                    addTestResult('CSS File Accessible', 'fail', `HTTP ${response.status}`);
+                    log(`CSS failed: HTTP ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('CSS File Accessible', 'fail', error.message);
+                log(`CSS error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Test 5: Check if JS file is accessible
+        async function testJSAccessible() {
+            log('Testing JS file accessibility...');
+            try {
+                const response = await fetch(`${MODULE_URL}/parametric-cad.js`);
+                if (response.ok) {
+                    const js = await response.text();
+                    const hasClass = js.includes('class ParametricCAD');
+                    const hasInitialize = js.includes('async initialize()');
+                    
+                    if (hasClass && hasInitialize) {
+                        addTestResult('JS File Accessible', 'pass', `${(js.length / 1024).toFixed(1)} KB, contains ParametricCAD class`);
+                        log(`JS loaded: ${js.length} bytes, class found`, 'success');
+                        return true;
+                    } else {
+                        addTestResult('JS File Accessible', 'fail', 'Missing ParametricCAD class or initialize method');
+                        log('JS missing required components', 'error');
+                        return false;
+                    }
+                } else {
+                    addTestResult('JS File Accessible', 'fail', `HTTP ${response.status}`);
+                    log(`JS failed: HTTP ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('JS File Accessible', 'fail', error.message);
+                log(`JS error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Test 6: Check CDN dependencies
+        async function testCDNDependencies() {
+            log('Testing CDN dependencies...');
+            const cdnTests = [
+                { name: 'Three.js', url: 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js' },
+                { name: 'OrbitControls', url: 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js' },
+                { name: 'OpenCascade.js', url: 'https://cdn.jsdelivr.net/npm/opencascade.js@1.1.1/dist/opencascade.wasm.js' }
+            ];
+
+            let allPassed = true;
+            for (const cdn of cdnTests) {
+                try {
+                    const response = await fetch(cdn.url, { method: 'HEAD' });
+                    if (response.ok) {
+                        log(`${cdn.name} CDN available`, 'success');
+                    } else {
+                        log(`${cdn.name} CDN failed: HTTP ${response.status}`, 'error');
+                        allPassed = false;
+                    }
+                } catch (error) {
+                    log(`${cdn.name} CDN error: ${error.message}`, 'error');
+                    allPassed = false;
+                }
+            }
+
+            if (allPassed) {
+                addTestResult('CDN Dependencies', 'pass', 'All CDNs accessible');
+            } else {
+                addTestResult('CDN Dependencies', 'fail', 'Some CDNs unavailable');
+            }
+
+            return allPassed;
+        }
+
+        // Test 7: Module loader integration
+        async function testModuleLoaderIntegration() {
+            log('Testing module loader integration...');
+            try {
+                const response = await fetch('/api/modules/registry');
+                if (response.ok) {
+                    const modules = await response.json();
+                    const cadModule = modules.find(m => m.id === 'parametric-cad');
+                    
+                    if (cadModule) {
+                        addTestResult('Module Loader Integration', 'pass', 'Module registered in loader');
+                        log('Module found in registry', 'success');
+                        return true;
+                    } else {
+                        addTestResult('Module Loader Integration', 'fail', 'Module not in registry');
+                        log('Module not found in registry', 'warning');
+                        return false;
+                    }
+                } else {
+                    addTestResult('Module Loader Integration', 'pending', 'Registry endpoint unavailable');
+                    log('Registry endpoint not available (normal for standalone test)', 'warning');
+                    return null;
+                }
+            } catch (error) {
+                addTestResult('Module Loader Integration', 'pending', 'Could not connect to registry');
+                log('Registry check skipped (normal for standalone test)', 'warning');
+                return null;
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            log('Starting comprehensive smoke test...', 'info');
+            log('====================================', 'info');
+
+            await testManifestAccessible();
+            await testManifestStructure();
+            await testHTMLAccessible();
+            await testCSSAccessible();
+            await testJSAccessible();
+            await testCDNDependencies();
+            await testModuleLoaderIntegration();
+
+            log('====================================', 'info');
+            log(`Test suite complete: ${passCount} passed, ${failCount} failed, ${pendingCount} pending`, 
+                failCount > 0 ? 'error' : 'success');
+        }
+
+        function loadModule() {
+            log('Loading module in iframe...', 'info');
+            const iframe = document.getElementById('moduleFrame');
+            iframe.src = `${MODULE_URL}/parametric-cad.html`;
+            
+            iframe.onload = function() {
+                log('Module loaded in iframe', 'success');
+                log('Check browser console for OpenCascade.js initialization', 'info');
+            };
+
+            iframe.onerror = function(error) {
+                log('Failed to load module in iframe: ' + error, 'error');
+            };
+        }
+
+        function openModuleNewTab() {
+            log('Opening module in new tab...', 'info');
+            window.open(`${MODULE_URL}/parametric-cad.html`, '_blank');
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            log('Smoke test page loaded', 'success');
+            log('Click "Run All Tests" to begin comprehensive testing', 'info');
+        });
+    </script>
+</body>
+</html>

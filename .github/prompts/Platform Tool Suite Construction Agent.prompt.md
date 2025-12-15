@@ -314,6 +314,590 @@ Tier 4: execute_tool(tool_name, **params) → Result
 
 ---
 
+## Critical: Debugging & Validation Best Practices
+
+### Lesson from Calculator Module Debugging (December 2025)
+
+**Context**: A single type conversion bug (`quantity` passed as `int` instead of `str`) led to misdiagnosis and unnecessary schema modifications before proper testing revealed the actual issue.
+
+**Key Lessons Learned**:
+
+#### 1. **Always Verify Diagnosis Before Implementing Fixes**
+
+**❌ What Went Wrong**:
+- Bug report: "saddle_stitch_books calculator failing"
+- Agent diagnosis: "Schema missing enums for 27/31 tools"
+- Reality: Schema ALREADY had enums for 26/31 tools (84% coverage)
+- Root cause: Regex pattern failed to parse existing enums correctly
+- Result: Unnecessary extraction and "update" of already-correct schema
+
+**✅ Correct Approach**:
+```python
+# STEP 1: Read and analyze current state FIRST
+schema = read_file("calculator_tools.json")
+actual_enum_count = count_enums_in_schema(schema)  # 26/31 had enums
+
+# STEP 2: Verify diagnosis with direct inspection
+for tool in schema["tools"]:
+    if "enum" in tool["parameters"]["quantity"]:
+        print(f"✅ {tool['name']} has enum")
+    else:
+        print(f"❌ {tool['name']} missing enum")
+
+# STEP 3: Only proceed if diagnosis is confirmed
+if actual_enum_count < expected_count:
+    # Now fix the actual problem
+    pass
+else:
+    # Re-analyze - diagnosis was wrong
+    pass
+```
+
+#### 2. **Test Incrementally - Don't Skip Validation**
+
+**The Actual Bug** (ONE line change needed):
+```python
+# File: calculator_wrapper.py, Line 1500
+# BEFORE (broken):
+def calculate_saddle_stitch_books(quantity, ...):
+    return calculator.calculate(
+        quantity=quantity,  # Passing int, backend expects str
+        ...
+    )
+
+# AFTER (fixed):
+def calculate_saddle_stitch_books(quantity, ...):
+    return calculator.calculate(
+        quantity=str(quantity),  # Convert to string
+        ...
+    )
+```
+
+**✅ Comprehensive Smoke Test Pattern**:
+```python
+"""
+test_module_complete.py - Comprehensive validation
+Tests: Schema → Registry → Wrappers → Backends → End-to-End
+"""
+
+# TEST 1: Schema Loading (4 tests)
+def test_schema_exists():
+    assert Path("schema/tools.json").exists()
+
+def test_schema_valid_json():
+    data = json.loads(schema_file.read_text())
+    assert len(data["tools"]) == 31
+
+def test_schema_structure():
+    assert "parameters" in first_tool
+    assert "description" in first_tool
+
+def test_enum_coverage():
+    tools_with_enums = sum(1 for t in tools if has_enum(t))
+    assert tools_with_enums >= 26  # Verify current state
+
+# TEST 2: Registry Loading (3 tests)
+def test_registry_import():
+    from tools.registry_v3 import RegistryV3
+    registry = RegistryV3()
+    assert len(registry.tools) > 1000
+
+def test_calculator_tools_loaded():
+    calc_tools = [t for t in registry.tools if t.startswith("calculate_")]
+    assert len(calc_tools) >= 30
+
+def test_get_tool_schema():
+    # CRITICAL: Correct method name
+    schema = registry.get_tool('calculate_premium_business_cards')
+    assert schema is not None
+    assert "parameters" in schema
+
+# TEST 3: Wrapper Compilation (3 tests)
+def test_wrapper_import():
+    import calculator_wrapper
+    assert calculator_wrapper is not None
+
+def test_wrapper_functions_exist():
+    test_funcs = ['calculate_saddle_stitch_books', 'calculate_bollards']
+    missing = [f for f in test_funcs if not hasattr(wrapper, f)]
+    assert len(missing) == 0
+
+def test_wrapper_decorators():
+    func = getattr(wrapper, 'calculate_saddle_stitch_books')
+    assert hasattr(func, '__wrapped__')  # Decorator applied
+
+# TEST 4: Backend Compilation (3 tests)
+def test_backend_import_saddle_stitch():
+    from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalculator
+    calc = SaddleStitchBooksShopifyCalculator()
+    assert calc.__class__.__name__ == "SaddleStitchBooksShopifyCalculator"
+
+# TEST 5: End-to-End Execution (THE CRITICAL TEST)
+def test_actual_bug_fix():
+    # This is the test that proves the bug is fixed
+    result = calculate_saddle_stitch_books(
+        quantity=500,  # The parameter that was failing
+        paper_size="A4",
+        pages=24,
+        ...
+    )
+    assert result["success"] == True
+    assert "price" in result
+    print(f"✅ Price calculated: ${result['price']}")
+
+# TEST 6: Enum Validation (2 tests)
+def test_enum_rejects_invalid():
+    try:
+        result = calculate_premium_business_cards(quantity=100)  # Invalid
+        assert False, "Should have rejected invalid enum"
+    except ValueError as e:
+        assert "Invalid quantity" in str(e)
+
+def test_enum_accepts_valid():
+    result = calculate_premium_business_cards(quantity=500)  # Valid
+    assert result["success"] == True
+
+# TEST 7: Multiple Calculator Types (3 tests)
+def test_bollard_signs():
+    result = calculate_bollard_signs(...)
+    assert result["success"] == True
+
+def test_notepads_a4():
+    result = calculate_notepads_a4(...)
+    assert result["success"] == True
+
+def test_business_cards():
+    result = calculate_premium_business_cards(...)
+    assert result["success"] == True
+
+# RESULTS: 19 tests, 100% pass rate = Module fully functional
+```
+
+#### 3. **Registry V3 API - Know the Correct Methods**
+
+**Common Confusion**:
+```python
+# ❌ WRONG - Method doesn't exist
+schema = registry.get_tool_schema('tool_name')
+# Error: 'RegistryV3' object has no attribute 'get_tool_schema'
+
+# ✅ CORRECT - Method returns tool schema (Dict)
+schema = registry.get_tool('tool_name')
+# Returns: {"name": "...", "description": "...", "parameters": {...}}
+
+# Other key methods:
+registry.get_implementation('module_name')  # Get implementation module
+registry.list_tools_by_platform('gmail')    # List platform's tools
+registry.get_tool_function('tool_name')     # Get callable function
+registry.execute_tool('tool_name', **kwargs)  # Execute with params
+registry.get_anthropic_tools()              # All tools in Anthropic format
+```
+
+#### 4. **Backend Class Naming Patterns**
+
+**Shopify Calculator Pattern**:
+```python
+# File: SaddleStitchBooks_Shopify_Calculator.py
+
+# ❌ WRONG assumption
+from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksCalculator
+
+# ✅ CORRECT pattern (check actual file)
+from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalculator
+#                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#                                                 Resource + Shopify + Calculator
+
+# Pattern: {Resource}{Provider}Calculator
+# Examples:
+# - SaddleStitchBooksShopifyCalculator
+# - BollardSignsShopifyCalculator
+# - NotepadsA4ShopifyCalculator
+# - PremiumBusinessCardsShopifyCalculator
+```
+
+**How to verify**:
+```bash
+# Search for class definitions
+grep -n "^class " backend/shopify_calculators/*.py
+
+# Example output:
+# SaddleStitchBooks_Shopify_Calculator.py:23:class SaddleStitchBooksShopifyCalculatorQuoteResult:
+# SaddleStitchBooks_Shopify_Calculator.py:33:class SaddleStitchBooksShopifyCalculator:
+```
+
+#### 5. **Type Conversion Edge Cases**
+
+**The Bug Pattern**:
+```python
+# Most Shopify calculators accept int for quantity
+def calculate_premium_business_cards(quantity: int, ...):
+    return calculator.calculate(quantity=quantity, ...)  # ✅ Works
+
+# But ONE calculator expects str (discovered through testing)
+def calculate_saddle_stitch_books(quantity: int, ...):
+    return calculator.calculate(quantity=str(quantity), ...)  # ✅ Must convert
+    #                                   ^^^^ Critical conversion
+```
+
+**Testing Strategy for Type Mismatches**:
+```python
+# Create a test for EACH calculator to catch edge cases
+def test_all_calculator_types():
+    calculators = [
+        ('calculate_business_cards', {'quantity': 500, ...}),
+        ('calculate_saddle_stitch_books', {'quantity': 500, ...}),
+        ('calculate_bollard_signs', {'quantity': 50, ...}),
+        # ... test ALL 31 calculators
+    ]
+    
+    for calc_name, params in calculators:
+        try:
+            result = execute_tool(calc_name, **params)
+            if not result.get('success'):
+                print(f"❌ {calc_name} failed: {result.get('error')}")
+            else:
+                print(f"✅ {calc_name}: ${result['price']}")
+        except Exception as e:
+            print(f"💥 {calc_name} exception: {e}")
+```
+
+#### 6. **Validation Checklist for Module Plugins**
+
+When creating or debugging Module Plugins:
+
+**✅ Pre-Implementation Validation**:
+- [ ] Schema file exists: `UI/modules_external/{module}/schema/tools.json`
+- [ ] Schema is valid JSON (no trailing commas, proper escaping)
+- [ ] All tools have `name`, `description`, `parameters` fields
+- [ ] Enum coverage documented (X/Y tools have enums)
+- [ ] No duplicate tool names with core tools (or sync script exists)
+
+**✅ Implementation Validation**:
+- [ ] Wrapper file: `UI/modules_external/{module}/implementations/wrapper.py`
+- [ ] All schema tools have corresponding wrapper functions
+- [ ] Function signatures match schema parameters
+- [ ] Type conversions documented if needed
+- [ ] Error handling includes all common cases
+- [ ] Imports work from module root (sys.path setup)
+
+**✅ Integration Validation**:
+- [ ] Registry loads module: `RegistryV3()` shows module in logs
+- [ ] Tool count matches: `len([t for t in registry.tools if t.startswith('prefix_')])`
+- [ ] `registry.get_tool('tool_name')` returns correct schema
+- [ ] `registry.get_tool_function('tool_name')` returns callable
+- [ ] Backend classes import correctly (verify class names)
+
+**✅ End-to-End Validation**:
+- [ ] Create comprehensive smoke test (see pattern above)
+- [ ] Test schema loading (4 tests minimum)
+- [ ] Test registry integration (3 tests minimum)
+- [ ] Test wrapper compilation (3 tests minimum)
+- [ ] Test backend imports (1 test per backend type)
+- [ ] Test actual execution (THE CRITICAL TEST)
+- [ ] Test error cases (enum validation, missing params)
+- [ ] Test multiple tool types (variety coverage)
+- [ ] Target: 100% pass rate before declaring complete
+
+**✅ Documentation Validation**:
+- [ ] README.md explains module purpose and structure
+- [ ] TESTING.md shows how to run smoke tests
+- [ ] Error messages are clear and actionable
+- [ ] Common issues documented with resolutions
+
+---
+
+## Critical: Debugging & Validation Best Practices
+
+### Lesson from Calculator Module Debugging (December 2025)
+
+**Context**: A single type conversion bug (`quantity` passed as `int` instead of `str`) led to misdiagnosis and unnecessary schema modifications before proper testing revealed the actual issue.
+
+**Key Lessons Learned**:
+
+#### 1. **Always Verify Diagnosis Before Implementing Fixes**
+
+**❌ What Went Wrong**:
+- Bug report: "saddle_stitch_books calculator failing"
+- Agent diagnosis: "Schema missing enums for 27/31 tools"
+- Reality: Schema ALREADY had enums for 26/31 tools (84% coverage)
+- Root cause: Regex pattern failed to parse existing enums correctly
+- Result: Unnecessary extraction and "update" of already-correct schema
+
+**✅ Correct Approach**:
+```python
+# STEP 1: Read and analyze current state FIRST
+schema = read_file("calculator_tools.json")
+actual_enum_count = count_enums_in_schema(schema)  # 26/31 had enums
+
+# STEP 2: Verify diagnosis with direct inspection
+for tool in schema["tools"]:
+    if "enum" in tool["parameters"]["quantity"]:
+        print(f"✅ {tool['name']} has enum")
+    else:
+        print(f"❌ {tool['name']} missing enum")
+
+# STEP 3: Only proceed if diagnosis is confirmed
+if actual_enum_count < expected_count:
+    # Now fix the actual problem
+    pass
+else:
+    # Re-analyze - diagnosis was wrong
+    pass
+```
+
+#### 2. **Test Incrementally - Don't Skip Validation**
+
+**The Actual Bug** (ONE line change needed):
+```python
+# File: calculator_wrapper.py, Line 1500
+# BEFORE (broken):
+def calculate_saddle_stitch_books(quantity, ...):
+    return calculator.calculate(
+        quantity=quantity,  # Passing int, backend expects str
+        ...
+    )
+
+# AFTER (fixed):
+def calculate_saddle_stitch_books(quantity, ...):
+    return calculator.calculate(
+        quantity=str(quantity),  # Convert to string
+        ...
+    )
+```
+
+**✅ Comprehensive Smoke Test Pattern**:
+```python
+"""
+test_module_complete.py - Comprehensive validation
+Tests: Schema → Registry → Wrappers → Backends → End-to-End
+"""
+
+# TEST 1: Schema Loading (4 tests)
+def test_schema_exists():
+    assert Path("schema/tools.json").exists()
+
+def test_schema_valid_json():
+    data = json.loads(schema_file.read_text())
+    assert len(data["tools"]) == 31
+
+def test_schema_structure():
+    assert "parameters" in first_tool
+    assert "description" in first_tool
+
+def test_enum_coverage():
+    tools_with_enums = sum(1 for t in tools if has_enum(t))
+    assert tools_with_enums >= 26  # Verify current state
+
+# TEST 2: Registry Loading (3 tests)
+def test_registry_import():
+    from tools.registry_v3 import RegistryV3
+    registry = RegistryV3()
+    assert len(registry.tools) > 1000
+
+def test_calculator_tools_loaded():
+    calc_tools = [t for t in registry.tools if t.startswith("calculate_")]
+    assert len(calc_tools) >= 30
+
+def test_get_tool_schema():
+    # CRITICAL: Correct method name
+    schema = registry.get_tool('calculate_premium_business_cards')
+    assert schema is not None
+    assert "parameters" in schema
+
+# TEST 3: Wrapper Compilation (3 tests)
+def test_wrapper_import():
+    import calculator_wrapper
+    assert calculator_wrapper is not None
+
+def test_wrapper_functions_exist():
+    test_funcs = ['calculate_saddle_stitch_books', 'calculate_bollards']
+    missing = [f for f in test_funcs if not hasattr(wrapper, f)]
+    assert len(missing) == 0
+
+def test_wrapper_decorators():
+    func = getattr(wrapper, 'calculate_saddle_stitch_books')
+    assert hasattr(func, '__wrapped__')  # Decorator applied
+
+# TEST 4: Backend Compilation (3 tests)
+def test_backend_import_saddle_stitch():
+    from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalculator
+    calc = SaddleStitchBooksShopifyCalculator()
+    assert calc.__class__.__name__ == "SaddleStitchBooksShopifyCalculator"
+
+# TEST 5: End-to-End Execution (THE CRITICAL TEST)
+def test_actual_bug_fix():
+    # This is the test that proves the bug is fixed
+    result = calculate_saddle_stitch_books(
+        quantity=500,  # The parameter that was failing
+        paper_size="A4",
+        pages=24,
+        ...
+    )
+    assert result["success"] == True
+    assert "price" in result
+    print(f"✅ Price calculated: ${result['price']}")
+
+# TEST 6: Enum Validation (2 tests)
+def test_enum_rejects_invalid():
+    try:
+        result = calculate_premium_business_cards(quantity=100)  # Invalid
+        assert False, "Should have rejected invalid enum"
+    except ValueError as e:
+        assert "Invalid quantity" in str(e)
+
+def test_enum_accepts_valid():
+    result = calculate_premium_business_cards(quantity=500)  # Valid
+    assert result["success"] == True
+
+# TEST 7: Multiple Calculator Types (3 tests)
+def test_bollard_signs():
+    result = calculate_bollard_signs(...)
+    assert result["success"] == True
+
+def test_notepads_a4():
+    result = calculate_notepads_a4(...)
+    assert result["success"] == True
+
+def test_business_cards():
+    result = calculate_premium_business_cards(...)
+    assert result["success"] == True
+
+# RESULTS: 19 tests, 100% pass rate = Module fully functional
+```
+
+#### 3. **Registry V3 API - Know the Correct Methods**
+
+**Common Confusion**:
+```python
+# ❌ WRONG - Method doesn't exist
+schema = registry.get_tool_schema('tool_name')
+# Error: 'RegistryV3' object has no attribute 'get_tool_schema'
+
+# ✅ CORRECT - Method returns tool schema (Dict)
+schema = registry.get_tool('tool_name')
+# Returns: {"name": "...", "description": "...", "parameters": {...}}
+
+# Other key methods:
+registry.get_implementation('module_name')  # Get implementation module
+registry.list_tools_by_platform('gmail')    # List platform's tools
+registry.get_tool_function('tool_name')     # Get callable function
+registry.execute_tool('tool_name', **kwargs)  # Execute with params
+registry.get_anthropic_tools()              # All tools in Anthropic format
+```
+
+#### 4. **Backend Class Naming Patterns**
+
+**Shopify Calculator Pattern**:
+```python
+# File: SaddleStitchBooks_Shopify_Calculator.py
+
+# ❌ WRONG assumption
+from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksCalculator
+
+# ✅ CORRECT pattern (check actual file)
+from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalculator
+#                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#                                                 Resource + Shopify + Calculator
+
+# Pattern: {Resource}{Provider}Calculator
+# Examples:
+# - SaddleStitchBooksShopifyCalculator
+# - BollardSignsShopifyCalculator
+# - NotepadsA4ShopifyCalculator
+# - PremiumBusinessCardsShopifyCalculator
+```
+
+**How to verify**:
+```bash
+# Search for class definitions
+grep -n "^class " backend/shopify_calculators/*.py
+
+# Example output:
+# SaddleStitchBooks_Shopify_Calculator.py:23:class SaddleStitchBooksShopifyCalculatorQuoteResult:
+# SaddleStitchBooks_Shopify_Calculator.py:33:class SaddleStitchBooksShopifyCalculator:
+```
+
+#### 5. **Type Conversion Edge Cases**
+
+**The Bug Pattern**:
+```python
+# Most Shopify calculators accept int for quantity
+def calculate_premium_business_cards(quantity: int, ...):
+    return calculator.calculate(quantity=quantity, ...)  # ✅ Works
+
+# But ONE calculator expects str (discovered through testing)
+def calculate_saddle_stitch_books(quantity: int, ...):
+    return calculator.calculate(quantity=str(quantity), ...)  # ✅ Must convert
+    #                                   ^^^^ Critical conversion
+```
+
+**Testing Strategy for Type Mismatches**:
+```python
+# Create a test for EACH calculator to catch edge cases
+def test_all_calculator_types():
+    calculators = [
+        ('calculate_business_cards', {'quantity': 500, ...}),
+        ('calculate_saddle_stitch_books', {'quantity': 500, ...}),
+        ('calculate_bollard_signs', {'quantity': 50, ...}),
+        # ... test ALL 31 calculators
+    ]
+    
+    for calc_name, params in calculators:
+        try:
+            result = execute_tool(calc_name, **params)
+            if not result.get('success'):
+                print(f"❌ {calc_name} failed: {result.get('error')}")
+            else:
+                print(f"✅ {calc_name}: ${result['price']}")
+        except Exception as e:
+            print(f"💥 {calc_name} exception: {e}")
+```
+
+#### 6. **Validation Checklist for Module Plugins**
+
+When creating or debugging Module Plugins:
+
+**✅ Pre-Implementation Validation**:
+- [ ] Schema file exists: `UI/modules_external/{module}/schema/tools.json`
+- [ ] Schema is valid JSON (no trailing commas, proper escaping)
+- [ ] All tools have `name`, `description`, `parameters` fields
+- [ ] Enum coverage documented (X/Y tools have enums)
+- [ ] No duplicate tool names with core tools (or sync script exists)
+
+**✅ Implementation Validation**:
+- [ ] Wrapper file: `UI/modules_external/{module}/implementations/wrapper.py`
+- [ ] All schema tools have corresponding wrapper functions
+- [ ] Function signatures match schema parameters
+- [ ] Type conversions documented if needed
+- [ ] Error handling includes all common cases
+- [ ] Imports work from module root (sys.path setup)
+
+**✅ Integration Validation**:
+- [ ] Registry loads module: `RegistryV3()` shows module in logs
+- [ ] Tool count matches: `len([t for t in registry.tools if t.startswith('prefix_')])`
+- [ ] `registry.get_tool('tool_name')` returns correct schema
+- [ ] `registry.get_tool_function('tool_name')` returns callable
+- [ ] Backend classes import correctly (verify class names)
+
+**✅ End-to-End Validation**:
+- [ ] Create comprehensive smoke test (see pattern above)
+- [ ] Test schema loading (4 tests minimum)
+- [ ] Test registry integration (3 tests minimum)
+- [ ] Test wrapper compilation (3 tests minimum)
+- [ ] Test backend imports (1 test per backend type)
+- [ ] Test actual execution (THE CRITICAL TEST)
+- [ ] Test error cases (enum validation, missing params)
+- [ ] Test multiple tool types (variety coverage)
+- [ ] Target: 100% pass rate before declaring complete
+
+**✅ Documentation Validation**:
+- [ ] README.md explains module purpose and structure
+- [ ] TESTING.md shows how to run smoke tests
+- [ ] Error messages are clear and actionable
+- [ ] Common issues documented with resolutions
+
+---
+
 ## 6-Stage Construction Process
 
 ### Stage 1: Platform API Research (Research Phase)
@@ -1058,7 +1642,9 @@ def notion_search_pages(
 
 ### Stage 5: Testing & Validation (Validation Phase)
 
-**Quick Validation Script**:
+**Comprehensive Testing Strategy** (Based on Calculator Module Success):
+
+**Level 1: Quick Validation Script** (Initial check):
 
 ```python
 """Quick validation test for {Platform} tools"""
@@ -1075,9 +1661,12 @@ print(f"✅ Found {len(tools)} {platform} tools")
 
 # Validate schemas
 for name in tools:
-    tool = registry.get_tool(name)
+    tool = registry.get_tool(name)  # NOTE: get_tool(), NOT get_tool_schema()
     assert 'name' in tool, f"{name}: Missing 'name'"
     assert 'description' in tool, f"{name}: Missing 'description'"
+    assert 'short_description' in tool, f"{name}: Missing 'short_description'"
+    assert 50 <= len(tool.get('short_description', '')) <= 120, \
+           f"{name}: short_description must be 50-120 chars"
     assert 'parameters' in tool, f"{name}: Missing 'parameters'"
     assert len(tool.get('examples', [])) >= 2, f"{name}: Need 2+ examples"
     assert 'usage_guide' in tool, f"{name}: Missing usage_guide"
@@ -1092,8 +1681,276 @@ for tool in platform_anthropic:
     assert tool['input_schema']['type'] == 'object', f"{tool['name']}: Wrong type"
 
 print(f"✅ Anthropic format valid")
-print(f"\n🎉 Validation complete: {len(tools)} tools ready!")
+print(f"\n🎉 Quick validation complete: {len(tools)} tools ready!")
 ```
+
+**Level 2: Comprehensive Smoke Test** (Complete validation - USE THIS PATTERN):
+
+```python
+"""
+test_{platform}_module_complete.py - Comprehensive validation
+Pattern proven successful with Calculator Module (19 tests, 100% pass rate)
+Tests: Schema → Registry → Implementation → End-to-End → Error Handling
+"""
+
+import sys
+import json
+from pathlib import Path
+
+# Setup paths
+sys.path.insert(0, 'AI_infrastructure')
+
+# Track results
+tests_passed = 0
+tests_failed = 0
+failed_tests = []
+
+def test_step(name, test_func):
+    """Execute a test and track results"""
+    global tests_passed, tests_failed, failed_tests
+    print(f"[TEST] {name}")
+    try:
+        result = test_func()
+        print(f"   [PASS] {result if result else 'Success'}")
+        tests_passed += 1
+        return True
+    except Exception as e:
+        print(f"   [FAIL] {str(e)}")
+        tests_failed += 1
+        failed_tests.append(f"[FAIL] {name}: {str(e)}")
+        return False
+
+# ============================================================================
+# TEST 1: SCHEMA LOADING (4 tests)
+# ============================================================================
+print("\n" + "=" * 80)
+print("TEST 1: SCHEMA LOADING")
+print("=" * 80)
+
+def test_schema_exists():
+    schema_path = Path("tools/schemas/{platform}_tools.json")
+    if not schema_path.exists():
+        raise FileNotFoundError(f"Schema not found: {schema_path}")
+    return f"Schema file exists: {schema_path}"
+
+def test_schema_valid_json():
+    with open("tools/schemas/{platform}_tools.json", 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    if "tools" not in data:
+        raise ValueError("Schema missing 'tools' array")
+    return f"Valid JSON with {len(data['tools'])} tools"
+
+def test_schema_structure():
+    with open("tools/schemas/{platform}_tools.json", 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    first_tool = data["tools"][0]
+    required = ["name", "description", "short_description", "parameters"]
+    missing = [f for f in required if f not in first_tool]
+    if missing:
+        raise ValueError(f"Missing fields: {missing}")
+    return f"Schema structure valid, first tool: {first_tool['name']}"
+
+def test_short_descriptions():
+    with open("tools/schemas/{platform}_tools.json", 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    tools_with_short = sum(1 for t in data["tools"] 
+                          if 50 <= len(t.get('short_description', '')) <= 120)
+    if tools_with_short < len(data["tools"]):
+        raise ValueError(f"Only {tools_with_short}/{len(data['tools'])} have valid short_description")
+    return f"{tools_with_short}/{len(data['tools'])} tools have proper short descriptions"
+
+test_step("Schema file exists", test_schema_exists)
+test_step("Schema is valid JSON", test_schema_valid_json)
+test_step("Schema structure correct", test_schema_structure)
+test_step("Short descriptions valid", test_short_descriptions)
+
+# ============================================================================
+# TEST 2: REGISTRY LOADING (3 tests)
+# ============================================================================
+print("\n" + "=" * 80)
+print("TEST 2: REGISTRY LOADING")
+print("=" * 80)
+
+registry = None
+
+def test_registry_import():
+    global registry
+    from tools.registry_v3 import RegistryV3
+    registry = RegistryV3()
+    return f"Registry imported and initialized"
+
+def test_platform_tools_loaded():
+    platform_tools = [n for n in registry.tools.keys() 
+                     if n.startswith('{platform}_')]
+    if len(platform_tools) == 0:
+        raise ValueError("No {platform} tools loaded")
+    return f"{len(platform_tools)} {platform} tools in registry"
+
+def test_get_tool_method():
+    """Test registry.get_tool() returns schema correctly"""
+    schema = registry.get_tool('{platform}_first_tool')  # Use actual tool name
+    if not schema:
+        raise ValueError("Failed to get tool schema")
+    if "parameters" not in schema:
+        raise ValueError("Schema missing parameters")
+    return f"Schema retrieved successfully"
+
+test_step("Import Registry", test_registry_import)
+test_step("{Platform} tools loaded", test_platform_tools_loaded)
+test_step("Get tool schema works", test_get_tool_method)
+
+# ============================================================================
+# TEST 3: IMPLEMENTATION LOADING (3 tests)
+# ============================================================================
+print("\n" + "=" * 80)
+print("TEST 3: IMPLEMENTATION LOADING")
+print("=" * 80)
+
+implementation = None
+
+def test_implementation_import():
+    global implementation
+    sys.path.insert(0, 'tools/implementations')
+    import {platform}
+    implementation = {platform}
+    return "Implementation module imported successfully"
+
+def test_functions_exist():
+    """Verify all schema tools have implementations"""
+    platform_tools = [n for n in registry.tools.keys() 
+                     if n.startswith('{platform}_')]
+    test_funcs = platform_tools[:5]  # Test first 5
+    missing = [f for f in test_funcs if not hasattr(implementation, f)]
+    if missing:
+        raise ValueError(f"Missing implementations: {missing}")
+    return f"All {len(test_funcs)} test functions exist"
+
+def test_function_signatures():
+    """Verify functions accept **kwargs"""
+    func_name = '{platform}_first_tool'  # Use actual tool name
+    func = getattr(implementation, func_name)
+    import inspect
+    sig = inspect.signature(func)
+    # Check for **kwargs parameter
+    has_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD 
+                    for p in sig.parameters.values())
+    if not has_kwargs:
+        raise ValueError(f"{func_name} missing **kwargs parameter")
+    return f"Function signatures correct"
+
+test_step("Import implementation module", test_implementation_import)
+test_step("Implementation functions exist", test_functions_exist)
+test_step("Function signatures valid", test_function_signatures)
+
+# ============================================================================
+# TEST 4: END-TO-END EXECUTION (3 tests - THE CRITICAL TESTS)
+# ============================================================================
+print("\n" + "=" * 80)
+print("TEST 4: END-TO-END EXECUTION")
+print("=" * 80)
+
+def test_list_operation():
+    """Test basic list/get operation"""
+    # Use actual test credentials or mock
+    result = getattr(implementation, '{platform}_list_items')(
+        access_token='test_token_or_real',
+        limit=10
+    )
+    # Should return success even if token invalid (for structure testing)
+    if "success" not in result:
+        raise ValueError("Result missing 'success' field")
+    return f"List operation structure valid"
+
+def test_create_operation():
+    """Test create operation with valid parameters"""
+    result = getattr(implementation, '{platform}_create_item')(
+        title="Test Item",
+        access_token='test_token',
+        # ... other required params
+    )
+    if "success" not in result:
+        raise ValueError("Result missing 'success' field")
+    # Note: May fail auth, but should return proper error structure
+    return f"Create operation structure valid"
+
+def test_error_handling():
+    """Test error handling with invalid params"""
+    result = getattr(implementation, '{platform}_create_item')(
+        # Deliberately missing required params
+    )
+    if result.get("success") != False:
+        raise ValueError("Should return success=False for missing params")
+    if "error" not in result:
+        raise ValueError("Missing error message")
+    return f"Error handling works: {result['error']}"
+
+test_step("List operation", test_list_operation)
+test_step("Create operation", test_create_operation)
+test_step("Error handling", test_error_handling)
+
+# ============================================================================
+# FINAL REPORT
+# ============================================================================
+print("\n" + "=" * 80)
+print("FINAL TEST REPORT")
+print("=" * 80)
+
+total = tests_passed + tests_failed
+pass_rate = (tests_passed / total * 100) if total > 0 else 0
+
+print(f"\nTotal Tests: {total}")
+print(f"[PASS] Passed: {tests_passed}")
+print(f"[FAIL] Failed: {tests_failed}")
+print(f"[RATE] Pass Rate: {pass_rate:.1f}%")
+
+if tests_failed > 0:
+    print(f"\nFAILED TESTS:")
+    for failure in failed_tests:
+        print(f"  {failure}")
+    print(f"\n" + "=" * 80)
+    print("[WARNING] SOME TESTS FAILED - REVIEW AND FIX")
+    print("=" * 80)
+else:
+    print(f"\n" + "=" * 80)
+    print("[SUCCESS] ALL TESTS PASSED - MODULE IS FULLY FUNCTIONAL")
+    print("=" * 80)
+```
+
+**Test Execution**:
+```powershell
+# Run comprehensive smoke test
+python test_{platform}_module_complete.py
+
+# Expected output:
+# ================================================================================
+# FINAL TEST REPORT
+# ================================================================================
+# Total Tests: 16
+# [PASS] Passed: 16
+# [FAIL] Failed: 0
+# [RATE] Pass Rate: 100.0%
+# ================================================================================
+# [SUCCESS] ALL TESTS PASSED - MODULE IS FULLY FUNCTIONAL
+# ================================================================================
+```
+
+**Validation Criteria for "Production Ready"**:
+- ✅ Schema validation: 4/4 tests pass
+- ✅ Registry integration: 3/3 tests pass
+- ✅ Implementation loading: 3/3 tests pass
+- ✅ End-to-end execution: 3/3 tests pass (structure validation)
+- ✅ Error handling: Proper error formats returned
+- ✅ **Target: 100% pass rate** (or 95%+ with documented known issues)
+
+**Common Test Failures & Fixes**:
+
+| Failure | Cause | Fix |
+|---------|-------|-----|
+| `'RegistryV3' object has no attribute 'get_tool_schema'` | Wrong method name | Use `registry.get_tool()` instead |
+| `cannot import name 'ClassNameCalculator'` | Wrong class name assumption | Check actual class name with `grep "^class " file.py` |
+| `Missing 'short_description'` | Schema missing field | Add short_description (50-120 chars) to all tools |
+| `Schema missing 'parameters'` | Malformed JSON | Validate JSON structure, check for trailing commas |
+| `Result missing 'success' field` | Wrong return format | All functions must return `{"success": bool, ...}` |
 
 ---
 

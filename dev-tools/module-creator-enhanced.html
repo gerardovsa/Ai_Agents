@@ -253,6 +253,66 @@
                     </div>
                 </section>
 
+                <!-- Test Credentials -->
+                <section class="config-section">
+                    <h3>
+                        <i class="fas fa-key"></i> Test Credentials
+                        <button class="btn-icon" id="toggle-credentials" title="Expand/Collapse" style="float: right;">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </h3>
+                    <div id="credentials-panel" style="display: none;">
+                        <small style="color: var(--text-secondary); display: block; margin-bottom: 12px;">
+                            Add API keys and credentials to test your module. These are stored in browser memory only
+                            (not saved to disk).
+                        </small>
+
+                        <!-- Platform Selection -->
+                        <div class="form-group">
+                            <label>Platform</label>
+                            <select id="credential-platform" class="dev-input">
+                                <option value="">Select platform...</option>
+                                <option value="custom">Custom API</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic Claude</option>
+                                <option value="pinecone">Pinecone</option>
+                                <option value="stripe">Stripe</option>
+                                <option value="shopify">Shopify</option>
+                                <option value="twilio">Twilio</option>
+                                <option value="sendgrid">SendGrid</option>
+                                <option value="supabase">Supabase</option>
+                            </select>
+                        </div>
+
+                        <!-- Credential Fields (Dynamic) -->
+                        <div id="credential-fields">
+                            <!-- API Key (most common) -->
+                            <div class="form-group">
+                                <label>API Key</label>
+                                <input type="password" id="credential-api-key" class="dev-input" placeholder="sk-...">
+                            </div>
+                        </div>
+
+                        <!-- Test Buttons -->
+                        <div class="btn-group" style="margin-top: 12px;">
+                            <button class="btn-primary" id="test-credential">
+                                <i class="fas fa-vial"></i> Test Connection
+                            </button>
+                            <button class="btn-secondary" id="save-credential">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                        </div>
+
+                        <!-- Saved Credentials List -->
+                        <div id="saved-credentials" style="margin-top: 12px; max-height: 150px; overflow-y: auto;">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Test Result -->
+                        <div id="credential-test-result" style="margin-top: 12px; display: none;"></div>
+                    </div>
+                </section>
+
                 <!-- Actions -->
                 <section class="config-section">
                     <button class="btn-success btn-large" id="create-module">
