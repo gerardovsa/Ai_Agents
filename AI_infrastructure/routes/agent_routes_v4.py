@@ -52,6 +52,11 @@ from shared.database_utils import (
     get_synergy_sessions_connection,
     is_using_supabase
 )
+from utils.logger_config import Colors
+
+def cprint(message: str, color: str = Colors.RESET):
+    """Print with color support"""
+    print(f"{color}{message}{Colors.RESET}")
 
 # Import from tools directory
 import registry_v3
@@ -89,11 +94,11 @@ def get_semantic_search(registry):
         if _semantic_search_cache is None:
             try:
                 from tools.intelligent_discovery import SemanticToolSearch
-                print("[SEMANTIC CACHE] Initializing semantic search (ONE-TIME OPERATION)...")
+                cprint("[SEMANTIC CACHE] Initializing semantic search (ONE-TIME OPERATION)...", Colors.INFO)
                 _semantic_search_cache = SemanticToolSearch(registry)
-                print(f"[SEMANTIC CACHE] [OK] Initialized with {len(_semantic_search_cache.tool_embeddings)} tool embeddings")
+                cprint(f"[SEMANTIC CACHE] [OK] Initialized with {len(_semantic_search_cache.tool_embeddings)} tool embeddings", Colors.SUCCESS)
             except Exception as e:
-                print(f"[SEMANTIC CACHE] [ERROR] Failed to initialize: {e}")
+                cprint(f"[SEMANTIC CACHE] [ERROR] Failed to initialize: {e}", Colors.ERROR)
                 _semantic_search_cache = None
         
         return _semantic_search_cache
@@ -138,7 +143,7 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
         thread_row = cursor.fetchone()
         
         if not thread_row:
-            print(f"[DB LOAD] ℹ️  Thread not found in database - this is a NEW conversation")
+            cprint(f"[DB LOAD] INFO: Thread not found in database - this is a NEW conversation", Colors.INFO)
             
             # ✅ Close before return
             cursor.close()
@@ -150,7 +155,7 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
             return []  # Empty conversation for new threads
         
         thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-        print(f"[DB LOAD] Thread ID: {thread_id}")
+        cprint(f"[DB LOAD] Thread ID: {thread_id}", Colors.DB)
         
         # Get messages for this thread (with optional pagination)
         if limit:
@@ -172,7 +177,7 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
             """, (thread_id,))
         
         rows = cursor.fetchall()
-        print(f"[DB LOAD] Found {len(rows)} messages in database")
+        cprint(f"[DB LOAD] Found {len(rows)} messages in database", Colors.INFO)
         
         messages = []
         for idx, row in enumerate(rows):
@@ -190,7 +195,7 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
                 try:
                     content = json.loads(content)
                 except Exception as e:
-                    print(f"[DB LOAD] ⚠️  Message {idx} content parse failed: {e}")
+                    cprint(f"[DB LOAD] WARNING: Message {idx} content parse failed: {e}", Colors.WARNING)
                     content = [{'type': 'text', 'text': content}]
             
             messages.append({
@@ -208,13 +213,13 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
         conn.close()
         conn = None
         
-        print(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database")
+        cprint(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database", Colors.SUCCESS)
         print(f"{'='*80}\n")
         
         return messages
     
     except Exception as e:
-        print(f"[DB LOAD] ❌ ERROR loading conversation: {e}")
+        cprint(f"[DB LOAD] ERROR: loading conversation: {e}", Colors.ERROR)
         import traceback
         traceback.print_exc()
         print(f"{'='*80}\n")
@@ -243,7 +248,7 @@ def validate_and_fix_tool_pairs(messages: List[Dict[str, Any]]) -> List[Dict[str
     
     Returns: Cleaned messages list
     """
-    print(f"[TOOL VALIDATION] Validating tool_use/tool_result pairs...")
+    cprint(f"[TOOL VALIDATION] Validating tool_use/tool_result pairs...", Colors.INFO)
     
     cleaned = []
     tool_use_ids = set()  # Track tool_use IDs from previous assistant message
@@ -277,13 +282,13 @@ def validate_and_fix_tool_pairs(messages: List[Dict[str, Any]]) -> List[Dict[str
                         else:
                             # Orphaned tool_result - remove it
                             removed_count += 1
-                            print(f"[TOOL VALIDATION] ⚠️ Removing orphaned tool_result (ID: {tool_use_id}) at message {idx}")
+                            cprint(f"[TOOL VALIDATION] ⚠️ Removing orphaned tool_result (ID: {tool_use_id}) at message {idx}", Colors.WARNING)
                     else:
                         # Keep non-tool_result blocks (text, images, etc.)
                         valid_blocks.append(block)
                 
                 if removed_count > 0:
-                    print(f"[TOOL VALIDATION] Removed {removed_count} orphaned tool_result(s) from message {idx}")
+                    cprint(f"[TOOL VALIDATION] Removed {removed_count} orphaned tool_result(s) from message {idx}", Colors.INFO)
                 
                 # Only add message if it has content left
                 if valid_blocks:
@@ -292,7 +297,7 @@ def validate_and_fix_tool_pairs(messages: List[Dict[str, Any]]) -> List[Dict[str
                         'content': valid_blocks
                     })
                 else:
-                    print(f"[TOOL VALIDATION] ⚠️ Message {idx} empty after removing orphaned tool_results - skipping")
+                    cprint(f"[TOOL VALIDATION] ⚠️ Message {idx} empty after removing orphaned tool_results - skipping", Colors.WARNING)
             else:
                 # Simple text message - keep as is
                 cleaned.append(msg)
@@ -301,9 +306,9 @@ def validate_and_fix_tool_pairs(messages: List[Dict[str, Any]]) -> List[Dict[str
             tool_use_ids.clear()
     
     if len(cleaned) != len(messages):
-        print(f"[TOOL VALIDATION] ✅ Cleaned {len(messages)} messages → {len(cleaned)} messages")
+        cprint(f"[TOOL VALIDATION] ✅ Cleaned {len(messages)} messages → {len(cleaned)} messages", Colors.SUCCESS)
     else:
-        print(f"[TOOL VALIDATION] ✅ All messages valid - no changes needed")
+        cprint(f"[TOOL VALIDATION] ✅ All messages valid - no changes needed", Colors.SUCCESS)
     
     return cleaned
 
@@ -318,9 +323,9 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
     
     FIXED: Proper cursor management with finally block and rollback handling.
     """
-    print(f"[DB SAVE] 💾 Saving {role} message to database...")
-    print(f"[DB SAVE] Thread slug: {thread_slug}")
-    print(f"[DB SAVE] User ID: {user_id}")
+    cprint(f"[DB SAVE] Saving {role} message to database...", Colors.DB)
+    cprint(f"[DB SAVE] Thread slug: {thread_slug}", Colors.DB)
+    cprint(f"[DB SAVE] User ID: {user_id}", Colors.DB)
     
     conn = None
     cursor = None  # ✅ Already initialized
@@ -344,7 +349,7 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
         
         if not thread_row:
             # Thread doesn't exist - create it first
-            print(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}")
+            cprint(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}", Colors.INFO)
             
             cursor.execute("""
                 INSERT INTO sessions.threads 
@@ -354,10 +359,10 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
             """, (thread_slug, user_id or 1, 'New Chat'))
             
             thread_row = cursor.fetchone()
-            print(f"[DB SAVE] ✅ Thread created: {thread_slug}")
+            cprint(f"[DB SAVE] SUCCESS: Thread created: {thread_slug}", Colors.SUCCESS)
         
         thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-        print(f"[DB SAVE] Thread ID: {thread_id}")
+        cprint(f"[DB SAVE] Thread ID: {thread_id}", Colors.DB)
         
         # Step 2: Format content for JSONB storage
         try:
@@ -375,16 +380,16 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
             else:
                 content_value = Json([{'type': 'text', 'text': str(content)}])
             
-            print(f"[DB SAVE] Content formatted as JSONB")
+            cprint(f"[DB SAVE] Content formatted as JSONB", Colors.INFO)
         except Exception as json_error:
-            print(f"[DB SAVE] ⚠️ JSON formatting failed, using string fallback: {json_error}")
+            cprint(f"[DB SAVE] WARNING: JSON formatting failed, using string fallback: {json_error}", Colors.WARNING)
             content_value = Json([{'type': 'text', 'text': str(content)}])
         
         # Step 3: Prepare metadata
         try:
             metadata_val = json.dumps(metadata) if metadata else None
         except Exception as meta_error:
-            print(f"[DB SAVE] ⚠️ Metadata serialization failed: {meta_error}")
+            cprint(f"[DB SAVE] WARNING: Metadata serialization failed: {meta_error}", Colors.WARNING)
             metadata_val = None
         
         # Step 4: Insert message
@@ -400,7 +405,7 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
         
         # Commit transaction
         cursor.execute("COMMIT")
-        print(f"[DB SAVE] ✅ Transaction committed")
+        cprint(f"[DB SAVE] ✅ Transaction committed", Colors.SUCCESS)
         
         # Verify message was saved
         cursor.execute("""
@@ -429,21 +434,21 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
         if cursor:
             try:
                 cursor.execute("ROLLBACK")
-                print(f"[DB SAVE] 🔄 Transaction rolled back")
+                cprint(f"[DB SAVE] 🔄 Transaction rolled back", Colors.WARNING)
             except:
                 pass
         
         print(f"\n{'='*80}")
-        print(f"[DB SAVE] ❌❌❌ CRITICAL ERROR: Failed to save message!")
+        cprint(f"[DB SAVE] CRITICAL ERROR: Failed to save message!", Colors.ERROR)
         print(f"{'='*80}")
-        print(f"[DB SAVE] Error type: {type(e).__name__}")
-        print(f"[DB SAVE] Error: {e}")
-        print(f"[DB SAVE] Thread slug: {thread_slug}")
-        print(f"[DB SAVE] Role: {role}")
-        print(f"[DB SAVE] User ID: {user_id}")
-        print(f"[DB SAVE] Content type: {type(content)}")
+        cprint(f"[DB SAVE] Error type: {type(e).__name__}", Colors.ERROR)
+        cprint(f"[DB SAVE] Error: {e}", Colors.ERROR)
+        cprint(f"[DB SAVE] Thread slug: {thread_slug}", Colors.ERROR)
+        cprint(f"[DB SAVE] Role: {role}", Colors.ERROR)
+        cprint(f"[DB SAVE] User ID: {user_id}", Colors.ERROR)
+        cprint(f"[DB SAVE] Content type: {type(content)}", Colors.ERROR)
         import traceback
-        print(f"[DB SAVE] Traceback:")
+        cprint(f"[DB SAVE] Traceback:", Colors.ERROR)
         traceback.print_exc()
         print(f"{'='*80}\n")
         return False

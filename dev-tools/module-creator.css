@@ -15,26 +15,26 @@
     --bg-secondary: #252526;
     --bg-tertiary: #2d2d30;
     --bg-elevated: #3e3e42;
-    
+
     --text-primary: #cccccc;
     --text-secondary: #969696;
     --text-muted: #6a6a6a;
-    
+
     --border-color: #3e3e42;
     --border-light: #4a4a4a;
-    
+
     --accent-blue: #0e639c;
     --accent-blue-hover: #1177bb;
     --accent-green: #16825d;
     --accent-green-hover: #1a9970;
     --accent-red: #f14c4c;
     --accent-yellow: #cca700;
-    
+
     --status-success: #4ec9b0;
     --status-error: #f48771;
     --status-warn: #dcdcaa;
     --status-info: #569cd6;
-    
+
     --font-mono: 'Cascadia Code', 'Consolas', 'Monaco', monospace;
     --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -118,7 +118,8 @@ body {
 .dev-workspace {
     display: grid;
     grid-template-columns: 350px 1fr 400px;
-    height: calc(100vh - 56px - 40px); /* header + footer */
+    height: calc(100vh - 56px - 40px);
+    /* header + footer */
     gap: 1px;
     background: var(--border-color);
 }
@@ -392,7 +393,7 @@ small {
     height: 14px;
 }
 
-.platform-tag input[type="checkbox"]:checked + span {
+.platform-tag input[type="checkbox"]:checked+span {
     color: var(--status-success);
 }
 

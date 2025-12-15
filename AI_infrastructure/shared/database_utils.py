@@ -32,6 +32,15 @@ from pathlib import Path
 from typing import Optional, Tuple
 from dotenv import load_dotenv
 
+# Import colored print helper
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.logger_config import Colors
+
+def cprint(text: str, color: str = Colors.RESET):
+    """Print with color"""
+    print(f"{color}{text}{Colors.RESET}")
+
 # Load environment variables from project root
 _root_dir = Path(__file__).parent.parent.parent
 _env_file = _root_dir / '.env.master'
@@ -138,7 +147,7 @@ def get_connection_pool(schema_name: str):
                 # Fallback to Session Mode pooler
                 db_url = os.getenv('SUPABASE_DB_URL_SESSION')
                 connection_mode = 'Session Mode (port 5432) - FALLBACK'
-                print(f"[WARNING] [POOL] Transaction pooler not configured, using Session Mode fallback")
+                cprint(f"[WARNING] [POOL] Transaction pooler not configured, using Session Mode fallback", Colors.WARNING)
             
             if not db_url:
                 raise ValueError(
@@ -147,7 +156,7 @@ def get_connection_pool(schema_name: str):
                     "  - SUPABASE_DB_URL_SESSION (Session Mode, port 5432) - FALLBACK"
                 )
             
-            print(f" [POOL] Using {connection_mode} for '{schema_name}'")
+            cprint(f" [POOL] Using {connection_mode} for '{schema_name}'", Colors.DB)
             
             # Create thread-safe connection pool
             # OPTIMIZED for Supabase Nano Transaction Mode (Nov 25, 2025):
@@ -174,10 +183,10 @@ def get_connection_pool(schema_name: str):
             _pool_stats['pools_created'] += 1
             _pool_stats['pool_misses'] += 1
             
-            print(f" [POOL] Created connection pool for '{schema_name}' (4-12 connections)")
-            print(f" [POOL] Total pools: {_pool_stats['pools_created']}")
-            print(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 12} (Supabase Nano limit: 60)")
-            print(f" [POOL] Pool configuration: minconn=4, maxconn=12 (handles UI bursts + Python GC delays)")
+            cprint(f" [POOL] Created connection pool for '{schema_name}' (4-12 connections)", Colors.SUCCESS)
+            cprint(f" [POOL] Total pools: {_pool_stats['pools_created']}", Colors.INFO)
+            cprint(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 12} (Supabase Nano limit: 60)", Colors.INFO)
+            cprint(f" [POOL] Pool configuration: minconn=4, maxconn=12 (handles UI bursts + Python GC delays)", Colors.INFO)
         else:
             _pool_stats['pool_hits'] += 1
         
@@ -257,12 +266,12 @@ def close_all_pools():
         for schema_name, pool_instance in _connection_pools.items():
             try:
                 pool_instance.closeall()
-                print(f" [POOL] Closed pool for '{schema_name}'")
+                cprint(f" [POOL] Closed pool for '{schema_name}'", Colors.SUCCESS)
             except Exception as e:
                 print(f" [POOL] Error closing pool '{schema_name}': {e}")
         
         _connection_pools.clear()
-        print(f" [POOL] All pools closed")
+        cprint(f" [POOL] All pools closed", Colors.SUCCESS)
 
 
 def get_database_connection(db_name: str = 'ai_infrastructure'):
@@ -332,7 +341,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         if thread.is_alive() or conn is None:
             # Pool exhausted - log leaked connections
             print(f"\n{'='*70}")
-            print(f" [POOL] CONNECTION POOL EXHAUSTED - LEAKED CONNECTIONS DETECTED")
+            cprint(f" [POOL] CONNECTION POOL EXHAUSTED - LEAKED CONNECTIONS DETECTED", Colors.ERROR)
             print(f"{'='*70}")
             print(f"Schema: {schema_name}")
             print(f"Pool stats:")

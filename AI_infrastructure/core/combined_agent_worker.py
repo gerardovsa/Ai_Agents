@@ -29,6 +29,14 @@ from typing import List, Dict, Any, Optional, Generator
 from queue import Queue
 import threading
 
+# Import colored logging
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from utils.logger_config import Colors
+
+def cprint(message: str, color: str = Colors.RESET):
+    """Print with color support"""
+    print(f"{color}{message}{Colors.RESET}")
+
 
 # ============================================================
 # SHARED VALIDATION FUNCTIONS (Used by all workers)
@@ -144,7 +152,7 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
     final_messages = []
     for msg in cleaned_messages:
         if final_messages and final_messages[-1].get('role') == msg.get('role'):
-            print(f"{log_prefix} ⚠️ Found consecutive {msg['role']} messages")
+            cprint(f"{log_prefix} ⚠️ Found consecutive {msg['role']} messages", Colors.WARNING)
             # Merge content if both are same role
             if msg.get('role') == 'user':
                 prev_content = final_messages[-1].get('content', [])
@@ -202,7 +210,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     
     for block in content:
         if not isinstance(block, dict):
-            print(f"[Combined Worker] ⚠️ Skipping non-dict block")
+            cprint(f"[Combined Worker] WARNING: Skipping non-dict block", Colors.WARNING)
             continue
         
         block_type = block.get('type')
@@ -210,7 +218,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         # RULE 1: tool_result blocks are FORBIDDEN in assistant messages
         # BUT we need to extract and preserve them for proper conversation structure
         if block_type == 'tool_result':
-            print(f"[Combined Worker] ⚠️ Extracting tool_result from assistant message (will be moved to user message)")
+            cprint(f"[Combined Worker] WARNING: Extracting tool_result from assistant message (will be moved to user message)", Colors.WARNING)
             extracted_tool_results.append(block)
             continue
         
@@ -223,7 +231,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         # RULE 2: Validate thinking blocks
         if block_type in ('thinking', 'redacted_thinking'):
             if 'thinking' not in block or not isinstance(block.get('thinking'), str):
-                print(f"[Combined Worker] ⚠️ Removing invalid thinking block (missing 'thinking' field)")
+                cprint(f"[Combined Worker] WARNING: Removing invalid thinking block (missing 'thinking' field)", Colors.WARNING)
                 continue
             
             # RULE 2a: Signature field validation (Extended Thinking)
@@ -231,7 +239,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
             # Anthropic API explicitly forbids modifying thinking blocks from previous turns
             # Per API error: "thinking blocks in the latest assistant message cannot be modified"
             # We must preserve blocks EXACTLY as Claude generated them, even with empty signatures
-            print(f"[Combined Worker] 🔍 Thinking block validation:")
+            cprint(f"[Combined Worker] Thinking block validation:", Colors.INFO)
             print(f"  - Has 'signature' key: {'signature' in block}")
             if 'signature' in block:
                 sig_value = block['signature']
@@ -243,13 +251,13 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
                 
                 # WARNING: Do not delete empty signatures - that modifies the block!
                 if sig_value == '':
-                    print(f"[Combined Worker] ⚠️ WARNING: Thinking block has empty signature (preserving unchanged)")
-                    print(f"[Combined Worker] ℹ️  Thinking blocks must remain unmodified per Anthropic API requirements")
+                    cprint(f"[Combined Worker] WARNING: Thinking block has empty signature (preserving unchanged)", Colors.WARNING)
+                    cprint(f"[Combined Worker] INFO: Thinking blocks must remain unmodified per Anthropic API requirements", Colors.INFO)
         
         # RULE 3: Validate text blocks
         elif block_type == 'text':
             if 'text' not in block or not isinstance(block.get('text'), str):
-                print(f"[Combined Worker] ⚠️ Removing invalid text block (missing 'text' field)")
+                cprint(f"[Combined Worker] WARNING: Removing invalid text block (missing 'text' field)", Colors.WARNING)
                 continue
             
             # CRITICAL FIX (Nov 19, 2025): Filter empty text blocks
@@ -257,13 +265,13 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
             # "tool_use ids were found without tool_result blocks"
             text_content = block.get('text', '').strip()
             if not text_content:
-                print(f"[Combined Worker] ⚠️ Removing empty text block (would break tool_use/tool_result pairing)")
+                cprint(f"[Combined Worker] WARNING: Removing empty text block (would break tool_use/tool_result pairing)", Colors.WARNING)
                 continue
         
         # RULE 4: Validate tool_use blocks
         elif block_type == 'tool_use':
             if not all(k in block for k in ['id', 'name', 'input']):
-                print(f"[Combined Worker] ⚠️ Removing invalid tool_use block (missing required fields)")
+                cprint(f"[Combined Worker] WARNING: Removing invalid tool_use block (missing required fields)", Colors.WARNING)
                 continue
         
         validated_blocks.append(block)
@@ -295,7 +303,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     # 3. Handle conversation history correctly without our intervention
     
     if not has_thinking:
-        print(f"[Combined Worker] ℹ️  No thinking blocks in message (this is OK - API handles it)")
+        cprint(f"[Combined Worker] INFO: No thinking blocks in message (this is OK - API handles it)", Colors.INFO)
     
     # STEP 3: CRITICAL ID VERIFICATION (Nov 18, 2025 FIX)
     # Verify that extracted tool_result IDs match the tool_use IDs
@@ -303,7 +311,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     if tool_use_ids and extracted_tool_results:
         tool_result_ids = [tr.get('tool_use_id') for tr in extracted_tool_results]
         
-        print(f"[Combined Worker]  CRITICAL ID VERIFICATION:")
+        cprint(f"[Combined Worker] CRITICAL ID VERIFICATION:", Colors.MAGENTA)
         print(f"  - tool_use IDs in assistant: {tool_use_ids}")
         print(f"  - tool_result IDs extracted: {tool_result_ids}")
         
@@ -314,10 +322,10 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
                 missing_results.append(tool_use_id)
         
         if missing_results:
-            print(f"[Combined Worker] ❌ CRITICAL ERROR: tool_use IDs without matching tool_result:")
-            print(f"  - Missing tool_results for: {missing_results}")
-            print(f"  - This WILL cause API error: 'tool_use ids were found without tool_result blocks'")
-            print(f"[Combined Worker] 🔧 FIX: Returning EMPTY to truncate conversation at this malformed message")
+            cprint(f"[Combined Worker] CRITICAL ERROR: tool_use IDs without matching tool_result:", Colors.ERROR)
+            cprint(f"  - Missing tool_results for: {missing_results}", Colors.ERROR)
+            cprint(f"  - This WILL cause API error: 'tool_use ids were found without tool_result blocks'", Colors.ERROR)
+            cprint(f"[Combined Worker] FIX: Returning EMPTY to truncate conversation at this malformed message", Colors.WARNING)
             # Return empty lists - this will cause the message to be skipped
             # and conversation will be truncated to before this malformed message
             return [], []
@@ -329,14 +337,14 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
                 extra_results.append(tool_result_id)
         
         if extra_results:
-            print(f"[Combined Worker] ⚠️ WARNING: tool_result IDs without matching tool_use:")
+            cprint(f"[Combined Worker] ⚠️ WARNING: tool_result IDs without matching tool_use:", Colors.WARNING)
             print(f"  - Extra tool_results for: {extra_results}")
-            print(f"[Combined Worker] 🔧 FIX: Removing orphaned tool_results")
+            cprint(f"[Combined Worker] 🔧 FIX: Removing orphaned tool_results", Colors.WARNING)
             # Remove tool_results that don't have matching tool_use
             extracted_tool_results = [tr for tr in extracted_tool_results if tr.get('tool_use_id') in tool_use_ids]
             print(f"  - Kept {len(extracted_tool_results)} matching tool_results")
         
-        print(f"[Combined Worker] ✅ ID VERIFICATION PASSED: All tool_use IDs have matching tool_results")
+        cprint(f"[Combined Worker] ✅ ID VERIFICATION PASSED: All tool_use IDs have matching tool_results", Colors.SUCCESS)
     
     # STEP 4: Check if first block is already thinking
     first_block_type = validated_blocks[0].get('type')
@@ -354,9 +362,9 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     # Fix: Always ensure at least one text block exists (even if empty)
     has_text = any(b.get('type') == 'text' for b in validated_blocks)
     if not has_text:
-        print(f"[Combined Worker] ⚠️ No text block found in assistant message")
-        print(f"[Combined Worker] 🔧 Adding minimal text block (Anthropic API requirement)")
-        print(f"[Combined Worker] ℹ️  Messages with ONLY thinking+tool_use are considered 'empty' by Anthropic")
+        cprint(f"[Combined Worker] WARNING: No text block found in assistant message", Colors.WARNING)
+        cprint(f"[Combined Worker] FIX: Adding minimal text block (Anthropic API requirement)", Colors.WARNING)
+        cprint(f"[Combined Worker] INFO: Messages with ONLY thinking+tool_use are considered 'empty' by Anthropic", Colors.INFO)
         
         # Find correct position: after thinking blocks, before tool_use blocks
         thinking_count = sum(1 for b in validated_blocks if b.get('type') in ('thinking', 'redacted_thinking'))
@@ -365,8 +373,8 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         # Using a single space instead of empty string to satisfy API requirement
         validated_blocks.insert(thinking_count, {'type': 'text', 'text': ' '})
         
-        print(f"[Combined Worker] ✅ Inserted minimal text block at position {thinking_count}")
-        print(f"[Combined Worker] 📋 New structure: {[b.get('type') for b in validated_blocks]}")
+        cprint(f"[Combined Worker] SUCCESS: Inserted minimal text block at position {thinking_count}", Colors.SUCCESS)
+        cprint(f"[Combined Worker] INFO: New structure: {[b.get('type') for b in validated_blocks]}", Colors.INFO)
     
     # STEP 5: Reorder: thinking blocks first, then others (only if thinking not already first)
     thinking_blocks = [
@@ -378,7 +386,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         if b.get('type') not in ('thinking', 'redacted_thinking')
     ]
     
-    print(f"[Combined Worker] 🔧 Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks")
+    cprint(f"[Combined Worker] INFO: Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks", Colors.INFO)
     return thinking_blocks + other_blocks, extracted_tool_results
 
 
@@ -424,8 +432,8 @@ def validate_user_content(content: List[Dict], messages: List[Dict]) -> List[Dic
     
     # If no assistant message found or no tool_use blocks, tool_results are orphaned
     if not found_assistant or not expected_tool_use_ids:
-        print(f"[Combined Worker] ⚠️ Found {len(tool_result_blocks)} tool_result blocks but no prior tool_use blocks")
-        print(f"[Combined Worker] 🔧 Converting orphaned tool_result blocks to text blocks (preserving context)")
+        cprint(f"[Combined Worker] WARNING: Found {len(tool_result_blocks)} tool_result blocks but no prior tool_use blocks", Colors.WARNING)
+        cprint(f"[Combined Worker] FIX: Converting orphaned tool_result blocks to text blocks (preserving context)", Colors.WARNING)
         
         # CRITICAL FIX (Nov 21, 2025): Don't remove tool_result blocks - convert to text
         # This happens when threads are dragged between agents and tool_results appear as user messages
@@ -456,7 +464,7 @@ def validate_user_content(content: List[Dict], messages: List[Dict]) -> List[Dic
                     'text': f"[Previous Tool Result - ID: {tool_use_id}]\n{result_content}"
                 }
                 validated_blocks.append(text_block)
-                print(f"[Combined Worker]   → Converted tool_result (ID: {tool_use_id}) to text block")
+                cprint(f"[Combined Worker] INFO: Converted tool_result (ID: {tool_use_id}) to text block", Colors.INFO)
             else:
                 validated_blocks.append(block)
         
@@ -466,7 +474,7 @@ def validate_user_content(content: List[Dict], messages: List[Dict]) -> List[Dic
     validated_blocks = []
     for block in content:
         if not isinstance(block, dict):
-            print(f"[Combined Worker] ⚠️ Skipping non-dict block in user message")
+            cprint(f"[Combined Worker] WARNING: Skipping non-dict block in user message", Colors.WARNING)
             continue
         
         if block.get('type') == 'tool_result':
@@ -474,7 +482,7 @@ def validate_user_content(content: List[Dict], messages: List[Dict]) -> List[Dic
             if tool_use_id in expected_tool_use_ids:
                 validated_blocks.append(block)
             else:
-                print(f"[Combined Worker] ⚠️ Removing orphaned tool_result (tool_use_id={tool_use_id} not found in previous assistant message)")
+                cprint(f"[Combined Worker] WARNING: Removing orphaned tool_result (tool_use_id={tool_use_id} not found in previous assistant message)", Colors.WARNING)
         else:
             validated_blocks.append(block)
     
@@ -507,19 +515,19 @@ def normalize_content_to_blocks(content: Any, role: str) -> List[Dict]:
         try:
             parsed = json.loads(content)
             if isinstance(parsed, list):
-                print(f"[Combined Worker] 🔧 Parsed JSON string to {len(parsed)} blocks ({role})")
+                cprint(f"[Combined Worker] INFO: Parsed JSON string to {len(parsed)} blocks ({role})", Colors.INFO)
                 return parsed
             else:
                 # JSON but not a list - wrap in text block
-                print(f"[Combined Worker] 🔧 Converting JSON value to text block ({role})")
+                cprint(f"[Combined Worker] INFO: Converting JSON value to text block ({role})", Colors.INFO)
                 return [{'type': 'text', 'text': str(parsed)}]
         except (json.JSONDecodeError, TypeError):
             # Not JSON - wrap in text block
-            print(f"[Combined Worker] 🔧 Converting plain string to text block ({role})")
+            cprint(f"[Combined Worker] INFO: Converting plain string to text block ({role})", Colors.INFO)
             return [{'type': 'text', 'text': content}]
     
     # Unknown format - convert to text block
-    print(f"[Combined Worker] ⚠️ Unknown content type ({type(content)}) - converting to text ({role})")
+    cprint(f"[Combined Worker] WARNING: Unknown content type ({type(content)}) - converting to text ({role})", Colors.WARNING)
     return [{'type': 'text', 'text': str(content)}]
 
 

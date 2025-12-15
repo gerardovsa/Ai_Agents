@@ -1,0 +1,339 @@
+/* Parametric CAD Module Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a1a;
+    color: #ffffff;
+    overflow: hidden;
+}
+
+.cad-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Left Sidebar - Parts Library */
+.sidebar-left {
+    width: 280px;
+    background: #242424;
+    border-right: 1px solid #333;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.sidebar-left h3 {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #00bcd4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.parts-section {
+    margin-bottom: 25px;
+}
+
+.parts-section h4 {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.part-button,
+.template-button {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.part-button:hover,
+.template-button:hover {
+    background: #444;
+    border-color: #00bcd4;
+    transform: translateX(5px);
+}
+
+.template-button {
+    background: #1e3a5f;
+    border-color: #00bcd4;
+}
+
+.template-button:hover {
+    background: #2a5080;
+}
+
+/* Main Viewport */
+.cad-viewport {
+    flex: 1;
+    position: relative;
+    background: #1a1a1a;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 26, 26, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 1000;
+}
+
+.loading-overlay.hidden {
+    display: none;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #333;
+    border-top: 5px solid #00bcd4;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    font-size: 16px;
+    color: #888;
+}
+
+/* Right Sidebar - Properties */
+.sidebar-right {
+    width: 300px;
+    background: #242424;
+    border-left: 1px solid #333;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.sidebar-right h3 {
+    font-size: 14px;
+    margin-bottom: 15px;
+    color: #00bcd4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.property-section {
+    margin-bottom: 15px;
+}
+
+.property-section label {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.property-section input[type="number"],
+.property-section select {
+    width: 100%;
+    padding: 10px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.property-section input:focus,
+.property-section select:focus {
+    outline: none;
+    border-color: #00bcd4;
+}
+
+.action-button {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #00bcd4;
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-button:hover {
+    background: #00acc1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 188, 212, 0.3);
+}
+
+.ai-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.ai-button:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 10px;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #00bcd4;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 20px 0;
+}
+
+/* Collaborators */
+.collaborator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #2a2a2a;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.collaborator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Top Toolbar */
+.toolbar {
+    position: absolute;
+    top: 20px;
+    left: 300px;
+    display: flex;
+    gap: 10px;
+    background: #242424;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    z-index: 100;
+}
+
+.toolbar-button {
+    padding: 8px 16px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toolbar-button:hover {
+    background: #444;
+    border-color: #00bcd4;
+}
+
+/* Scrollbar Styling */
+.sidebar-left::-webkit-scrollbar,
+.sidebar-right::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar-left::-webkit-scrollbar-track,
+.sidebar-right::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.sidebar-left::-webkit-scrollbar-thumb,
+.sidebar-right::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+.sidebar-left::-webkit-scrollbar-thumb:hover,
+.sidebar-right::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+
+    .sidebar-left,
+    .sidebar-right {
+        width: 250px;
+    }
+}
+
+@media (max-width: 900px) {
+    .cad-container {
+        flex-direction: column;
+    }
+
+    .sidebar-left,
+    .sidebar-right {
+        width: 100%;
+        height: auto;
+        max-height: 300px;
+    }
+
+    .toolbar {
+        left: 20px;
+        right: 20px;
+        width: auto;
+    }
+}

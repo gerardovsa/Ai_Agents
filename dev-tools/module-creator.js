@@ -20,10 +20,10 @@
 
 class ModuleCreator {
     constructor() {
-        this.API_BASE = window.location.origin.includes('5001') 
-            ? window.location.origin 
+        this.API_BASE = window.location.origin.includes('5001')
+            ? window.location.origin
             : 'http://localhost:5001';
-        
+
         this.moduleData = {
             id: '',
             name: '',
@@ -83,7 +83,7 @@ class ModuleCreator {
                 document.querySelectorAll('[data-type]').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 const type = e.target.dataset.type;
-                document.getElementById('existing-module-section').style.display = 
+                document.getElementById('existing-module-section').style.display =
                     type === 'existing' ? 'block' : 'none';
             });
         });
@@ -254,10 +254,10 @@ class ModuleCreator {
             if (response.ok) {
                 const data = await response.json();
                 const platforms = data.platforms || [
-                    'openai', 'anthropic', 'pinecone', 'supabase', 'shopify', 
+                    'openai', 'anthropic', 'pinecone', 'supabase', 'shopify',
                     'xero', 'kajabi', 'stripe', 'twilio', 'github'
                 ];
-                
+
                 this.renderPlatformsList(platforms);
                 this.log(`Loaded ${platforms.length} available platforms`, 'info');
             }
@@ -265,7 +265,7 @@ class ModuleCreator {
             this.log(`Failed to load platforms: ${error.message}`, 'warn');
             // Use fallback platforms
             this.renderPlatformsList([
-                'openai', 'anthropic', 'pinecone', 'supabase', 'shopify', 
+                'openai', 'anthropic', 'pinecone', 'supabase', 'shopify',
                 'xero', 'kajabi', 'stripe', 'twilio', 'github'
             ]);
         }

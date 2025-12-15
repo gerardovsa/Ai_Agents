@@ -70,6 +70,12 @@ class ColoredFormatter(logging.Formatter):
         'PLUGIN': Colors.MODULE,
         'DISCOVER': Colors.INFO,
         'LOAD': Colors.TOOL,
+        'POOL': Colors.DB,
+        'REGISTRY_V3': Colors.MODULE,
+        'SCHEMAS': Colors.TOOL,
+        'SECURITY': Colors.WARNING,
+        'PLUGINS': Colors.MODULE,
+        'INTELLIGENCE': Colors.INFO,
     }
     
     def format(self, record):
@@ -88,9 +94,35 @@ class ColoredFormatter(logging.Formatter):
             colored_marker = f'{color}\\1{Colors.RESET}'
             message = re.sub(pattern, colored_marker, message, flags=re.IGNORECASE)
         
+        # Color HTTP methods (GET, POST, PUT, DELETE, etc.)
+        http_methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD']
+        for method in http_methods:
+            # Match quoted HTTP methods like "GET /api/..."
+            pattern = r'"(' + method + r')\s'
+            message = re.sub(pattern, f'"{Colors.INFO}\\1{Colors.RESET} ', message)
+        
+        # Color HTTP status codes
+        # 2xx = green, 3xx = cyan, 4xx = yellow, 5xx = red
+        message = re.sub(r'\b(2\d{2})\b', f'{Colors.SUCCESS}\\1{Colors.RESET}', message)  # 2xx success
+        message = re.sub(r'\b(3\d{2})\b', f'{Colors.INIT}\\1{Colors.RESET}', message)     # 3xx redirect
+        message = re.sub(r'\b(4\d{2})\b', f'{Colors.WARNING}\\1{Colors.RESET}', message)  # 4xx client error
+        message = re.sub(r'\b(5\d{2})\b', f'{Colors.ERROR}\\1{Colors.RESET}', message)    # 5xx server error
+        
+        # Highlight arrows and special markers
+        message = re.sub(r'(➡️|→|✅|🔧|⚠️|❌|🔍|🚀|📋)', f'{Colors.SUCCESS}\\1{Colors.RESET}', message)
+        
+        # Highlight "Loaded" and "loaded" with numbers
+        message = re.sub(r'\b(Loaded|loaded)\s+(\d+)', f'{Colors.SUCCESS}\\1{Colors.RESET} {Colors.INFO}\\2{Colors.RESET}', message)
+        
+        # Highlight "functions" after numbers
+        message = re.sub(r'(\d+)\s+(functions?|tools?|implementations?)', f'{Colors.INFO}\\1{Colors.RESET} \\2', message)
+        
         # Highlight the word "error" in red anywhere in the message (case-insensitive)
-        error_pattern = r'\b(error|ERROR|Error)\b'
+        error_pattern = r'\b(error|ERROR|Error|failed|FAILED|Failed)\b'
         message = re.sub(error_pattern, f'{Colors.ERROR}\\1{Colors.RESET}', message)
+        
+        # Highlight "Running job" and "executed successfully"
+        message = re.sub(r'\b(Running job|executed successfully)\b', f'{Colors.SUCCESS}\\1{Colors.RESET}', message)
         
         # Add red separator lines for ERROR and CRITICAL level messages
         if record.levelno >= logging.ERROR:
@@ -212,3 +244,24 @@ def log_tool_failure(tool_name: str, error: str, tokens: int = 0):
 
 # Default application logger
 app_logger = setup_logger('AI_infrastructure')
+
+
+# Export commonly used items
+__all__ = [
+    'setup_logger',
+    'log_init',
+    'log_config',
+    'log_route',
+    'log_db',
+    'log_auth',
+    'log_tool',
+    'log_module',
+    'log_success',
+    'log_error',
+    'log_warning',
+    'log_tool_success',
+    'log_tool_failure',
+    'app_logger',
+    'Colors',
+    'ColoredFormatter',
+]

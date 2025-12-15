@@ -20,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from flask import Blueprint, request, jsonify
 from typing import Dict, Any, List
+from flask_socketio import emit
 
 # Create blueprint
 dev_tools_bp = Blueprint('dev_tools', __name__, url_prefix='/api/dev-tools')
@@ -555,6 +556,96 @@ def save_manifest():
 # ================================================================
 # TEMPLATES
 # ================================================================
+
+@dev_tools_bp.route('/save-files', methods=['POST'])
+def save_files():
+    """
+    POST /api/dev-tools/save-files
+    
+    Save multiple module files at once (for live editing).
+    
+    Request Body:
+        {
+            "module_id": "my_module",
+            "files": [
+                {"file_type": "html", "content": "..."},
+                {"file_type": "js", "content": "..."},
+                {"file_type": "css", "content": "..."}
+            ]
+        }
+    
+    Response:
+        {
+            "success": true,
+            "files_saved": 3,
+            "module_id": "my_module"
+        }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'module_id' not in data or 'files' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing module_id or files in request'
+            }), 400
+        
+        module_id = data['module_id']
+        files = data['files']
+        
+        module_path = MODULES_DIR / module_id
+        
+        # Check if module exists
+        if not module_path.exists():
+            return jsonify({
+                'success': False,
+                'error': f'Module not found: {module_id}'
+            }), 404
+        
+        files_saved = 0
+        
+        for file_data in files:
+            file_type = file_data.get('file_type')
+            content = file_data.get('content', '')
+            
+            # Determine file extension
+            ext_map = {
+                'html': 'html',
+                'js': 'js',
+                'css': 'css',
+                'routes': 'py',
+                'manifest': 'json'
+            }
+            
+            ext = ext_map.get(file_type)
+            if not ext:
+                continue
+            
+            # Determine file path
+            if file_type == 'routes':
+                file_path = module_path / 'routes' / f'{module_id}_routes.py'
+                file_path.parent.mkdir(exist_ok=True)
+            elif file_type == 'manifest':
+                file_path = module_path / 'manifest.json'
+            else:
+                file_path = module_path / f'{module_id}.{ext}'
+            
+            # Save file
+            file_path.write_text(content, encoding='utf-8')
+            files_saved += 1
+        
+        return jsonify({
+            'success': True,
+            'files_saved': files_saved,
+            'module_id': module_id
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @dev_tools_bp.route('/templates', methods=['GET'])
 def get_templates():

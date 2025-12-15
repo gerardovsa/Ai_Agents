@@ -20,8 +20,41 @@ for path in [str(ai_agents_root), str(ai_infrastructure_path)]:
         sys.path.insert(0, path)
 
 # Setup unified logging FIRST
-from utils.logger_config import setup_logger, log_init, log_config, log_success, log_warning, log_error
+from utils.logger_config import setup_logger, log_init, log_config, log_success, log_warning, log_error, ColoredFormatter, Colors
+import logging
+
+def log_debug(message: str):
+    """Print debug message with color"""
+    print(f"{Colors.DEBUG}[DEBUG]{Colors.RESET} {message}")
+
 logger = setup_logger('flask_app')
+
+# Configure werkzeug (Flask's HTTP server) with colored output
+werkzeug_logger = logging.getLogger('werkzeug')
+werkzeug_logger.handlers.clear()
+werkzeug_handler = logging.StreamHandler(sys.stdout)
+werkzeug_handler.setFormatter(ColoredFormatter('%(levelname)s:%(name)s: %(message)s'))
+werkzeug_logger.addHandler(werkzeug_handler)
+werkzeug_logger.setLevel(logging.INFO)
+werkzeug_logger.propagate = False
+
+# Configure apscheduler (task scheduler) with colored output
+apscheduler_logger = logging.getLogger('apscheduler.executors.default')
+apscheduler_logger.handlers.clear()
+apscheduler_handler = logging.StreamHandler(sys.stdout)
+apscheduler_handler.setFormatter(ColoredFormatter('%(levelname)s:%(name)s: %(message)s'))
+apscheduler_logger.addHandler(apscheduler_handler)
+apscheduler_logger.setLevel(logging.INFO)
+apscheduler_logger.propagate = False
+
+# Configure registry logger with colored output
+registry_logger = logging.getLogger('tools.registry_v3')
+registry_logger.handlers.clear()
+registry_handler = logging.StreamHandler(sys.stdout)
+registry_handler.setFormatter(ColoredFormatter('%(levelname)s:%(name)s: %(message)s'))
+registry_logger.addHandler(registry_handler)
+registry_logger.setLevel(logging.INFO)
+registry_logger.propagate = False
 
 log_init(logger, "AI_agents standalone - No external dependencies")
 
@@ -62,12 +95,12 @@ log_config(logger, f"SUPABASE_URL: {'SET' if os.getenv('SUPABASE_URL') else 'NOT
 log_config(logger, f"SUPABASE_DB_URL: {'SET' if os.getenv('SUPABASE_DB_URL') else 'NOT SET'}")
 log_config(logger, f"SUPABASE_KEY: {'SET' if os.getenv('SUPABASE_KEY') else 'NOT SET'}")
 
-print("[DEBUG] About to import db_path_helper...")
+log_debug("About to import db_path_helper...")
 # Stock Management - ENABLED (Supabase stock_data schema)
 from AI_infrastructure.utils.db_path_helper import get_stock_db_path
 
 STOCK_DB_SCHEMA = get_stock_db_path()  # Returns 'stock_data'
-print(f"[DEBUG] STOCK_DB_SCHEMA={STOCK_DB_SCHEMA}")
+log_debug(f"STOCK_DB_SCHEMA={STOCK_DB_SCHEMA}")
 
 # Check if using Supabase (always true for stock_data schema)
 STOCK_DB_AVAILABLE = bool(os.getenv('SUPABASE_URL'))
@@ -106,41 +139,41 @@ from core.unified_session_manager import session_manager
 from core.unified_ai_client import initialize_ai_client
 
 # Import routes (blueprints) - Working In_House_SQL implementation
-print("[DEBUG] Importing agent_routes_v4...")
+log_debug("Importing agent_routes_v4...")
 from routes.agent_routes_v4 import agent_bp  # V4 modular architecture with tool execution
-print("[DEBUG] Importing thread_routes...")
+log_debug("Importing thread_routes...")
 from routes.thread_routes import thread_bp
-print("[DEBUG] Importing chat_routes...")
+log_debug("Importing chat_routes...")
 from routes.chat_routes import chat_bp  # NEW: Chat with file uploads
-print("[DEBUG] Importing message_operations...")
+log_debug("Importing message_operations...")
 from routes.message_operations import message_ops_bp  # NEW: Message operations (fork, clone, copy, delete) - ✅ IMPLEMENTED Dec 7, 2025
-print("[DEBUG] Importing export_routes...")
+log_debug("Importing export_routes...")
 from routes.export_routes import export_bp
-print("[DEBUG] Importing woocommerce_routes...")
+log_debug("Importing woocommerce_routes...")
 from routes.woocommerce_routes import woocommerce_bp
-print("[DEBUG] Importing auth_routes...")
+log_debug("Importing auth_routes...")
 from routes.auth_routes import auth_bp  # NEW: User authentication
-print("[DEBUG] Importing oauth_routes...")
+log_debug("Importing oauth_routes...")
 from routes.oauth_routes import oauth_bp  # NEW: OAuth workspace integration (Google Workspace + M365)
-print("[DEBUG] Importing vsa_alerts_routes...")
+log_debug("Importing vsa_alerts_routes...")
 from routes.vsa_alerts_routes import vsa_alerts_bp  # NEW: VSA Veterinary Alerts (transcript + coaching generation)
-print("[DEBUG] Importing google_auth_routes_V2_FIXED...")
+log_debug("Importing google_auth_routes_V2_FIXED...")
 from routes.google_auth_routes_V2_FIXED import google_auth_bp  # NEW: Google OAuth V2
-print("[DEBUG] Importing microsoft_auth_routes_V2_FIXED...")
+log_debug("Importing microsoft_auth_routes_V2_FIXED...")
 from routes.microsoft_auth_routes_V2_FIXED import microsoft_auth_bp  # NEW: Microsoft OAuth V2
-print("[DEBUG] Importing account_linking_routes...")
+log_debug("Importing account_linking_routes...")
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
-print("[DEBUG] Importing kanban_routes...")
+log_debug("Importing kanban_routes...")
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
 from routes.database_visualizer_routes import database_visualizer_bp  # ✅ MIGRATED to Supabase PostgreSQL (2025-12-07)
-print("[DEBUG] Importing synergy_routes...")
+log_debug("Importing synergy_routes...")
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
 from routes.synergy_file_search import synergy_search_bp  # NEW: Synergy Files global search (Gap #8 fix)
-print("[DEBUG] Importing scheduler_routes...")
+log_debug("Importing scheduler_routes...")
 from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
-print("[DEBUG] Importing automation_routes...")
+log_debug("Importing automation_routes...")
 from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
-print("[DEBUG] Done with main route imports!")
+log_debug("Done with main route imports!")
 
 # Optional: InHousePrint production workflow (requires pymssql)
 try:
@@ -947,6 +980,97 @@ print("   • WooCommerce/Stripe/PayPal (e-commerce)")
 print("   • Google Workspace (Docs/Forms/Drive/etc)")
 print("   • Supabase/GitHub/CloudFlare (infrastructure)")
 print("=" * 80)
+
+
+# ============================================================================
+# DEV TOOLS WEBSOCKET HANDLERS (/ws/dev-tools)
+# ============================================================================
+
+@socketio.on('connect', namespace='/ws/dev-tools')
+def dev_tools_connect():
+    """Handle client connection to dev tools namespace"""
+    try:
+        from flask_socketio import emit
+        from flask import request as flask_request
+        
+        client_id = flask_request.sid
+        log_success(logger, f"[DEV TOOLS WS] Client connected: {client_id}")
+        
+        # Send welcome message
+        emit('connected', {'message': 'Connected to dev tools WebSocket', 'client_id': client_id})
+        return True
+        
+    except Exception as e:
+        log_error(logger, f"[DEV TOOLS WS] Connection error: {e}")
+        return False
+
+@socketio.on('disconnect', namespace='/ws/dev-tools')
+def dev_tools_disconnect():
+    """Handle client disconnection from dev tools namespace"""
+    from flask import request as flask_request
+    client_id = flask_request.sid
+    log_warning(logger, f"[DEV TOOLS WS] Client disconnected: {client_id}")
+
+@socketio.on('file_saved', namespace='/ws/dev-tools')
+def handle_file_saved(data):
+    """
+    Broadcast file save event to all connected clients (real-time sync)
+    
+    Expected data format:
+    {
+        'module_id': 'my_module',
+        'file_type': 'html',  # html, js, css, routes, manifest
+        'content': '<!-- file content -->'
+    }
+    """
+    try:
+        from flask_socketio import emit
+        from flask import request as flask_request
+        
+        client_id = flask_request.sid
+        module_id = data.get('module_id')
+        file_type = data.get('file_type')
+        
+        log_success(logger, f"[DEV TOOLS WS] File saved by {client_id}: {module_id}/{file_type}")
+        
+        # Broadcast to ALL clients EXCEPT sender (prevents duplicate updates)
+        emit('file_updated', data, broadcast=True, include_self=False)
+        
+    except Exception as e:
+        log_error(logger, f"[DEV TOOLS WS] Error broadcasting file save: {e}")
+
+@socketio.on('module_created', namespace='/ws/dev-tools')
+def handle_module_created(data):
+    """
+    Broadcast module creation event to all connected clients
+    
+    Expected data format:
+    {
+        'module_id': 'new_module',
+        'name': 'New Module',
+        'path': '/UI/modules_external/new_module'
+    }
+    """
+    try:
+        from flask_socketio import emit
+        from flask import request as flask_request
+        
+        client_id = flask_request.sid
+        module_id = data.get('module_id')
+        
+        log_success(logger, f"[DEV TOOLS WS] Module created by {client_id}: {module_id}")
+        
+        # Broadcast to ALL clients
+        emit('module_created', data, broadcast=True)
+        
+    except Exception as e:
+        log_error(logger, f"[DEV TOOLS WS] Error broadcasting module creation: {e}")
+
+@socketio.on('ping', namespace='/ws/dev-tools')
+def dev_tools_ping():
+    """Handle ping from client (keep-alive)"""
+    from flask_socketio import emit
+    emit('pong', {'timestamp': datetime.now().isoformat()})
 
 
 # ============================================================================

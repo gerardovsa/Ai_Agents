@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Parametric CAD - T-Slot Aluminum Design</title>
+    <link rel="stylesheet" href="parametric-cad.css">
+</head>
+
+<body>
+    <div class="cad-container">
+        <!-- Left Sidebar - Parts Library -->
+        <div class="sidebar-left">
+            <h3>📦 Parts Library</h3>
+
+            <div class="parts-section">
+                <h4>Profile 8 (40mm)</h4>
+                <button class="part-button" onclick="cadApp.createExtrusion('profile8', '40x40', 500)">
+                    ▭ 40x40 (500mm)
+                </button>
+                <button class="part-button" onclick="cadApp.createExtrusion('profile8', '80x40', 500)">
+                    ▬ 80x40 (500mm)
+                </button>
+                <button class="part-button" onclick="cadApp.createExtrusion('profile8', '80x80', 500)">
+                    ▬ 80x80 (500mm)
+                </button>
+            </div>
+
+            <div class="parts-section">
+                <h4>Profile 6 (30mm)</h4>
+                <button class="part-button" onclick="cadApp.createExtrusion('profile6', '30x30', 500)">
+                    ▭ 30x30 (500mm)
+                </button>
+                <button class="part-button" onclick="cadApp.createExtrusion('profile6', '60x30', 500)">
+                    ▬ 60x30 (500mm)
+                </button>
+            </div>
+
+            <div class="parts-section">
+                <h4>80/20 Series</h4>
+                <button class="part-button" onclick="cadApp.createExtrusion('series10', '1x1', 500)">
+                    ▭ 1"x1" (500mm)
+                </button>
+                <button class="part-button" onclick="cadApp.createExtrusion('series15', '1.5x1.5', 500)">
+                    ▬ 1.5"x1.5" (500mm)
+                </button>
+            </div>
+
+            <div class="parts-section">
+                <h4>📐 Templates</h4>
+                <button class="template-button" onclick="cadApp.createTemplate('workbench', {})">
+                    🛠️ Workbench
+                </button>
+                <button class="template-button" onclick="cadApp.createTemplate('enclosure', {})">
+                    📦 Enclosure
+                </button>
+                <button class="template-button" onclick="cadApp.createTemplate('frame', {})">
+                    🏗️ Frame
+                </button>
+            </div>
+        </div>
+
+        <!-- Main 3D Viewport -->
+        <div id="cad-viewport" class="cad-viewport">
+            <!-- Three.js canvas will be inserted here -->
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+                <div class="loading-text">Loading OpenCascade.js CAD Engine...</div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar - Properties & Actions -->
+        <div class="sidebar-right">
+            <h3>⚙️ Properties</h3>
+
+            <div class="property-section">
+                <label>Length (mm):</label>
+                <input type="number" id="extrusionLength" value="500" min="10" max="10000">
+            </div>
+
+            <div class="property-section">
+                <label>Material:</label>
+                <select id="materialSelect">
+                    <option value="aluminum">Aluminum 6061</option>
+                    <option value="steel">Steel</option>
+                    <option value="stainless">Stainless Steel</option>
+                </select>
+            </div>
+
+            <div class="property-section">
+                <label>Finish:</label>
+                <select id="finishSelect">
+                    <option value="anodized">Anodized</option>
+                    <option value="powder">Powder Coated</option>
+                    <option value="raw">Raw</option>
+                </select>
+            </div>
+
+            <hr>
+
+            <h3>💾 Export</h3>
+            <button class="action-button" onclick="cadApp.exportSTEP('design.step')">
+                📄 Export STEP
+            </button>
+            <button class="action-button" onclick="cadApp.exportSTL('design.stl')">
+                🖨️ Export STL (3D Print)
+            </button>
+            <button class="action-button" onclick="exportDXF()">
+                📐 Export DXF (Laser Cut)
+            </button>
+
+            <hr>
+
+            <h3>🤖 AI Assistant</h3>
+            <textarea id="aiPrompt" placeholder="Ask AI for design help..." rows="3"></textarea>
+            <button class="action-button ai-button" onclick="requestAIHelp()">
+                ✨ Get AI Suggestions
+            </button>
+
+            <hr>
+
+            <h3>👥 Collaborators</h3>
+            <div id="collaboratorsList">
+                <div class="collaborator">
+                    <span class="collaborator-dot" style="background: #ff6b6b;"></span>
+                    <span>You</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Toolbar -->
+    <div class="toolbar">
+        <button class="toolbar-button" onclick="newProject()">
+            🆕 New Project
+        </button>
+        <button class="toolbar-button" onclick="saveProject()">
+            💾 Save
+        </button>
+        <button class="toolbar-button" onclick="loadProject()">
+            📂 Load
+        </button>
+        <button class="toolbar-button" onclick="undoAction()">
+            ↶ Undo
+        </button>
+        <button class="toolbar-button" onclick="redoAction()">
+            ↷ Redo
+        </button>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/opencascade.js@2.0.0-beta.2/dist/opencascade.wasm.js"></script>
+
+    <!-- Supabase for collaboration (if available) -->
+    <script src="../../../shared/js/supabase-connection-manager.js"></script>
+    <script src="../../../shared/js/supabase-realtime-manager.js"></script>
+
+    <!-- Main module -->
+    <script src="parametric-cad.js"></script>
+
+    <script>
+        let cadApp;
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Initializing Parametric CAD...');
+
+            // Create CAD application
+            cadApp = new ParametricCAD('cad-viewport');
+
+            // Initialize CAD engine
+            await cadApp.initialize();
+
+            // Hide loading overlay
+            document.getElementById('loadingOverlay').classList.add('hidden');
+
+            // Connect to collaboration (optional)
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('project');
+            if (projectId && typeof SupabaseRealtimeManager !== 'undefined') {
+                await cadApp.connectCollaboration(projectId);
+            }
+
+            console.log('✅ Parametric CAD ready');
+        });
+
+        // Helper functions
+        function newProject() {
+            if (confirm('Create new project? Unsaved changes will be lost.')) {
+                location.reload();
+            }
+        }
+
+        function saveProject() {
+            console.log('💾 Saving project...');
+            // TODO: Implement save to Supabase
+            alert('Save functionality coming soon!');
+        }
+
+        function loadProject() {
+            console.log('📂 Loading project...');
+            // TODO: Implement load from Supabase
+            alert('Load functionality coming soon!');
+        }
+
+        function undoAction() {
+            console.log('↶ Undo');
+            // TODO: Implement undo stack
+            alert('Undo functionality coming soon!');
+        }
+
+        function redoAction() {
+            console.log('↷ Redo');
+            // TODO: Implement redo stack
+            alert('Redo functionality coming soon!');
+        }
+
+        function exportDXF() {
+            console.log('📐 Exporting DXF...');
+            // TODO: Implement DXF export
+            alert('DXF export functionality coming soon!');
+        }
+
+        function requestAIHelp() {
+            const prompt = document.getElementById('aiPrompt').value;
+            if (!prompt) {
+                alert('Please enter a request for the AI assistant');
+                return;
+            }
+
+            console.log('🤖 AI request:', prompt);
+            // TODO: Send to AI backend for design suggestions
+            alert('AI assistant functionality coming soon!');
+        }
+    </script>
+</body>
+
+</html>

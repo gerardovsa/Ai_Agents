@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Module Creator & Verifier - Development Tool</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="module-creator.css">
+
+    <!-- Monaco Editor (VS Code's editor) -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+    <!-- Socket.IO for real-time sync -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
+
 <body>
     <!-- ============================================================ -->
     <!-- HEADER -->
@@ -73,34 +81,31 @@
                     <h3>Basic Information</h3>
                     <div class="form-group">
                         <label for="module-id">Module ID <span class="required">*</span></label>
-                        <input type="text" id="module-id" class="dev-input" 
-                               placeholder="my-module" pattern="[a-z0-9-]+"
-                               title="Lowercase letters, numbers, hyphens only">
+                        <input type="text" id="module-id" class="dev-input" placeholder="my-module" pattern="[a-z0-9-]+"
+                            title="Lowercase letters, numbers, hyphens only">
                         <small>Lowercase letters, numbers, hyphens only</small>
                     </div>
 
                     <div class="form-group">
                         <label for="module-name">Display Name <span class="required">*</span></label>
-                        <input type="text" id="module-name" class="dev-input" 
-                               placeholder="My Module">
+                        <input type="text" id="module-name" class="dev-input" placeholder="My Module">
                     </div>
 
                     <div class="form-group">
                         <label for="module-description">Description</label>
                         <textarea id="module-description" class="dev-textarea" rows="3"
-                                  placeholder="Brief description of what this module does"></textarea>
+                            placeholder="Brief description of what this module does"></textarea>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label for="module-version">Version</label>
-                            <input type="text" id="module-version" class="dev-input" 
-                                   value="1.0.0" pattern="\\d+\\.\\d+\\.\\d+">
+                            <input type="text" id="module-version" class="dev-input" value="1.0.0"
+                                pattern="\\d+\\.\\d+\\.\\d+">
                         </div>
                         <div class="form-group">
                             <label for="module-icon">Icon (FontAwesome)</label>
-                            <input type="text" id="module-icon" class="dev-input" 
-                                   placeholder="fas fa-cube">
+                            <input type="text" id="module-icon" class="dev-input" placeholder="fas fa-cube">
                         </div>
                     </div>
                 </section>
@@ -157,8 +162,8 @@
                     <div id="platforms-list" class="platforms-list">
                         <!-- Dynamically populated -->
                     </div>
-                    <input type="text" id="add-platform" class="dev-input" 
-                           placeholder="Add platform (e.g., openai, pinecone)">
+                    <input type="text" id="add-platform" class="dev-input"
+                        placeholder="Add platform (e.g., openai, pinecone)">
                 </section>
 
                 <!-- Action Buttons -->
@@ -201,8 +206,7 @@
                             </button>
                             <span class="preview-label">Module Preview (Read-Only)</span>
                         </div>
-                        <iframe id="module-preview" class="module-iframe" 
-                                sandbox="allow-scripts allow-same-origin">
+                        <iframe id="module-preview" class="module-iframe" sandbox="allow-scripts allow-same-origin">
                         </iframe>
                     </div>
                 </div>
@@ -219,8 +223,8 @@
                                     <option value="PUT">PUT</option>
                                     <option value="DELETE">DELETE</option>
                                 </select>
-                                <input type="text" id="api-endpoint" class="dev-input" 
-                                       placeholder="/api/your-module/endpoint">
+                                <input type="text" id="api-endpoint" class="dev-input"
+                                    placeholder="/api/your-module/endpoint">
                                 <button class="btn-primary" id="send-request">
                                     <i class="fas fa-paper-plane"></i> Send
                                 </button>
@@ -228,7 +232,7 @@
                             <div class="form-group">
                                 <label>Request Body (JSON)</label>
                                 <textarea id="request-body" class="code-editor" rows="8"
-                                          placeholder='{\n  "key": "value"\n}'></textarea>
+                                    placeholder='{\n  "key": "value"\n}'></textarea>
                             </div>
                         </div>
 
@@ -338,4 +342,5 @@
     <!-- ============================================================ -->
     <script src="module-creator.js"></script>
 </body>
+
 </html>

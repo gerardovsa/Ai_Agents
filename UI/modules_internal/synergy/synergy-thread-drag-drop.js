@@ -56,7 +56,7 @@ class SynergyThreadDragDrop {
      */
     initThreadCardDrag() {
         const threadCards = document.querySelectorAll('.thread-info-card, .thread-card-item');
-        
+
         threadCards.forEach(card => {
             // Skip if already made draggable
             if (card.hasAttribute('draggable')) return;
@@ -66,7 +66,7 @@ class SynergyThreadDragDrop {
 
             card.addEventListener('dragstart', (e) => {
                 console.log('🎯 Drag start:', card);
-                
+
                 // Get thread data from card
                 this.draggedThreadId = card.dataset.threadId || card.dataset.id;
                 this.draggedThreadSlug = card.dataset.threadSlug || card.dataset.slug;
@@ -113,7 +113,7 @@ class SynergyThreadDragDrop {
             zone.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'link';
-                
+
                 // Visual feedback
                 zone.classList.add('drag-over');
             });
@@ -127,9 +127,9 @@ class SynergyThreadDragDrop {
                 zone.classList.remove('drag-over');
 
                 // Get session ID from container
-                const sessionId = zone.dataset.sessionId || 
-                                 zone.closest('[data-session-id]')?.dataset?.sessionId ||
-                                 zone.closest('.synergy-linked-threads-container')?.dataset?.sessionId;
+                const sessionId = zone.dataset.sessionId ||
+                    zone.closest('[data-session-id]')?.dataset?.sessionId ||
+                    zone.closest('.synergy-linked-threads-container')?.dataset?.sessionId;
 
                 if (!sessionId) {
                     console.error('❌ No session ID found for drop zone');

@@ -1,7 +1,7 @@
 {
   "platform": "microsoft_excel",
-  "version": "2.0",
-  "description": "Microsoft Excel spreadsheet creation, data analysis, and automation tools via Graph API with FULL intelligence layers and data analysis integration\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)\n\n✨ NEW IN v2.0:\n- Multi-modal parameters on all GET/LIST tools (mode, format, export)\n- Natural language mapping for conversational AI\n- Tool intelligence with workflow patterns and success/failure indicators\n- Memory context for semantic search and conversation recall\n- Data analysis tool integration for advanced analytics pipelines\n- Single-call workflows: Read Excel → Analyze → Export to Google Sheets",
+  "version": "2.2",
+  "description": "Microsoft Excel spreadsheet creation, data analysis, and automation tools via Graph API with FULL intelligence layers and data analysis integration\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)\n\n✨ NEW IN v2.2:\n- Multi-modal parameters on all GET/LIST tools (mode, format, export)\n- Natural language mapping for conversational AI\n- Tool intelligence with workflow patterns and success/failure indicators\n- Memory context for semantic search and conversation recall\n- Data analysis tool integration for advanced analytics pipelines\n- SMART Sheet Builder (build from scratch), AI Formula Assistant, Batch Updates, Single-call workflows: Read Excel → Analyze → Export to Google Sheets",
   "authentication": "microsoft_oauth",
   "base_url": "https://graph.microsoft.com/v1.0",
   "required_scopes": [
@@ -3893,6 +3893,395 @@
           }
         }
       }
+    },
+    {
+      "name": "microsoft_excel_smart_sheet_builder",
+      "short_description": "⭐ SMART: Build complete Excel workbook from natural language description",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) MUST return format: 'Created **[Name]** with [X] columns, [Y] formulas, and [chart_type] chart'\n(3) Use EXACT values from tool response\n(4) If tool fails, say 'Could not build sheet' - suggest simpler structure\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_sheet_builder', ...) - DO NOT call directly!\n\n⭐ SMART SHEET BUILDER - Create professional Excel workbooks from scratch using natural language.\n\n✨ WHAT IT BUILDS:\n- Auto-detects column structure from description\n- Generates sample data matching column types\n- Adds calculation formulas (SUM, AVERAGE)\n- Creates appropriate charts\n- Professional formatting\n- Summary sheet with metadata\n\n🎯 INTELLIGENCE FEATURES:\n- Recognizes patterns: \"sales tracker\", \"expense report\", \"project timeline\"\n- Auto-detects numeric columns for formulas\n- Smart chart type selection based on description\n- Generates realistic sample data\n\n📊 EXAMPLE DESCRIPTIONS:\n- \"sales tracker with monthly totals and rep performance\"\n- \"expense report with categories and budget tracking\"\n- \"project timeline with milestones and owner assignments\"\n- \"inventory list with stock levels and reorder alerts\"\n- \"customer database with contact info and status tracking\"\n\n🔗 SMART WORKFLOW INTEGRATION:\n- Uses excel_smart_formula_builder for calculations\n- Uses excel_batch_update for efficient data loading\n- Creates multi-sheet workbooks automatically\n\n⚙️ CUSTOMIZATION:\n- Provide data_structure dict to override auto-detection\n- Specify columns, sample_data, formulas, chart_type\n- Toggle formulas, charts, formatting on/off",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_name": {
+            "type": "string",
+            "description": "Name for the workbook (e.g., 'Q1 Sales Tracker')"
+          },
+          "sheet_description": {
+            "type": "string",
+            "description": "Natural language description of what the sheet should contain. Examples: 'sales tracker with monthly totals', 'expense report with categories', 'project timeline with milestones'"
+          },
+          "data_structure": {
+            "type": "object",
+            "description": "Optional custom structure: {'columns': ['Name', 'Date', 'Amount'], 'sample_data': [[...]], 'formulas': ['sum totals'], 'chart_type': 'column'}",
+            "required": false
+          },
+          "include_formulas": {
+            "type": "boolean",
+            "description": "Auto-add calculation formulas (SUM, AVERAGE) for numeric columns (default: true)",
+            "default": true
+          },
+          "include_charts": {
+            "type": "boolean",
+            "description": "Auto-generate visualization chart based on data (default: true)",
+            "default": true
+          },
+          "include_formatting": {
+            "type": "boolean",
+            "description": "Apply professional formatting (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "workbook_name",
+          "sheet_description"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with workbook_id, web_url, structure (columns, formulas, chart info), sheets created, ready_for_data flag"
+      },
+      "user_facing_language": {
+        "action_verb": "build",
+        "resource_name": "workbook",
+        "natural_phrases": [
+          "create a spreadsheet for",
+          "build a tracker for",
+          "make a worksheet for",
+          "set up a workbook for",
+          "generate a sheet for"
+        ],
+        "capability_description": "I can build complete Excel workbooks from scratch based on your description. Just tell me what you need to track.",
+        "example_ai_responses": [
+          "I'll create a sales tracker workbook with columns for rep names, monthly sales, and quarterly totals.",
+          "I'll build an expense report with categories, amounts, and auto-calculated totals.",
+          "I'll set up a project timeline with tasks, owners, dates, and status tracking."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "typical_workflow_patterns": [
+          "smart_sheet_builder(create structure) → update_range(add real data) → create_chart(visualize)",
+          "smart_sheet_builder(template) → share_workbook(team collaboration)"
+        ],
+        "auto_suggests_when": [
+          "User asks to 'create a spreadsheet'",
+          "User mentions tracking/reporting without existing data",
+          "User needs template or starting point"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "created workbook",
+            "built sheet",
+            "structure ready"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "could not build",
+            "failed to create"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 3000,
+          "rate_limit_per_minute": 20
+        },
+        "smart_offering_based_on_context": {
+          "when_user_has_no_data": {
+            "should_offer": true,
+            "message": "I can build a starter template with sample data"
+          },
+          "when_user_has_csv": {
+            "should_offer": false,
+            "alternative": "Use excel_smart_import_csv instead"
+          }
+        }
+      },
+      "examples": [
+        {
+          "scenario": "Create sales tracker from scratch",
+          "input": {
+            "workbook_name": "Q1 2025 Sales Tracker",
+            "sheet_description": "sales tracker with rep names, monthly sales amounts, and quarterly totals",
+            "include_formulas": true,
+            "include_charts": true
+          },
+          "output": {
+            "success": true,
+            "structure": {
+              "columns": [
+                "Sales Rep",
+                "Month",
+                "Amount",
+                "Region"
+              ],
+              "sample_rows": 5,
+              "formulas_added": [
+                {
+                  "column": "Amount",
+                  "formula": "=SUM(C:C)"
+                }
+              ],
+              "chart_created": true,
+              "chart_type": "ColumnClustered"
+            },
+            "ready_for_data": true
+          }
+        },
+        {
+          "scenario": "Create expense report with custom columns",
+          "input": {
+            "workbook_name": "Monthly Expenses",
+            "sheet_description": "expense tracking",
+            "data_structure": {
+              "columns": [
+                "Date",
+                "Vendor",
+                "Category",
+                "Amount",
+                "Receipt #"
+              ],
+              "chart_type": "pie"
+            }
+          },
+          "output": {
+            "success": true,
+            "structure": {
+              "columns": [
+                "Date",
+                "Vendor",
+                "Category",
+                "Amount",
+                "Receipt #"
+              ],
+              "chart_type": "Pie"
+            }
+          }
+        }
+      ],
+      "smart_workflow_integration": {
+        "uses_internally": [
+          "excel_create_workbook",
+          "excel_add_worksheet",
+          "excel_smart_formula_builder",
+          "excel_update_range",
+          "excel_create_chart"
+        ],
+        "enhancement": "Complete end-to-end workbook creation from natural language - no manual setup needed",
+        "replaces_manual_workflow": [
+          "Manual: Create workbook → Add headers → Format → Add formulas → Create chart (5-10 minutes)",
+          "SMART: One call with description (30 seconds)"
+        ]
+      }
+    },
+    {
+      "name": "microsoft_excel_smart_formula_builder",
+      "short_description": "⭐ SMART: AI Formula Assistant - Convert natural language to Excel formulas",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) MUST return format: 'Applied formula **[formula]** to range [range]: [explanation]'\n(3) Use EXACT values from tool response\n(4) If tool fails, say 'Could not generate formula' - suggest alternative phrasing\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_formula_builder', ...) - DO NOT call directly!\n\n⭐ AI FORMULA ASSISTANT - Converts natural language to Excel formulas automatically.\n\n✨ SUPPORTED PATTERNS:\n- SUM: 'sum column A', 'total of column B'\n- AVERAGE: 'average column D', 'mean of column E'\n- MULTIPLY: 'multiply column B by column C'\n- COUNT: 'count column A'\n\n🔗 SMART WORKFLOW INTEGRATION:\n- Used internally by excel_smart_financial_report for auto-calculations\n- Enhances excel_smart_data_analysis with custom metrics\n- Powers excel_smart_create_dashboard formula generation\n\n📊 EXAMPLES:\n- \"sum column A\" → =SUM(A:A)\n- \"multiply column B by column C\" → =B2*C2",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "OneDrive item ID of the workbook"
+          },
+          "worksheet_name": {
+            "type": "string",
+            "description": "Name of the worksheet"
+          },
+          "natural_language_query": {
+            "type": "string",
+            "description": "Natural language description. Examples: 'sum column A', 'multiply column B by column C'"
+          },
+          "target_range": {
+            "type": "string",
+            "description": "Cell or range (e.g., 'C1', 'D2:D100')"
+          },
+          "context": {
+            "type": "object",
+            "description": "Optional context. Example: {'has_headers': true}",
+            "required": false
+          }
+        },
+        "required": [
+          "workbook_id",
+          "worksheet_name",
+          "natural_language_query",
+          "target_range"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with formula, explanation, applied_range, success"
+      },
+      "user_facing_language": {
+        "action_verb": "build",
+        "resource_name": "formula",
+        "natural_phrases": [
+          "create a formula",
+          "calculate the total",
+          "sum column"
+        ],
+        "capability_description": "I can convert natural language to Excel formulas. Just tell me what calculation you need.",
+        "example_ai_responses": [
+          "I'll create a SUM formula to total column A."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "typical_workflow_patterns": [
+          "update_range(data) → smart_formula_builder(calculations) → create_chart"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "formula applied",
+            "calculation created"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "could not generate formula"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60
+        }
+      },
+      "smart_workflow_integration": {
+        "used_by": [
+          "microsoft_excel_smart_financial_report",
+          "microsoft_excel_smart_data_analysis",
+          "microsoft_excel_smart_create_dashboard"
+        ],
+        "enhancement": "SMART workflows can now use natural language for formula creation instead of hardcoded formulas",
+        "example_integration": "Financial report can accept 'calculate profit margin' instead of requiring explicit formula syntax"
+      }
+    },
+    {
+      "name": "microsoft_excel_batch_update",
+      "short_description": "⚡ Update multiple ranges in one operation (reduces API calls)",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_batch_update', ...) - DO NOT call directly!\n\n⚡ PERFORMANCE OPTIMIZATION - Update multiple cell ranges in a single operation.\n\n🔗 SMART WORKFLOW INTEGRATION:\n- Used by excel_smart_import_csv for efficient data loading\n- Powers excel_smart_financial_report multi-sheet creation\n\n✨ BENEFITS:\n- Reduces API calls\n- Faster execution\n- Update multiple columns at once",
+      "category": "content_management",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "worksheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "updates": {
+            "type": "array",
+            "description": "Array of {'range': 'A1:A10', 'values': [[...]]} objects",
+            "items": {
+              "type": "object",
+              "properties": {
+                "range": {
+                  "type": "string"
+                },
+                "values": {
+                  "type": "array"
+                }
+              },
+              "required": [
+                "range",
+                "values"
+              ]
+            }
+          }
+        },
+        "required": [
+          "workbook_id",
+          "worksheet_name",
+          "updates"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with total_updates, successful, failed, results"
+      },
+      "user_facing_language": {
+        "action_verb": "update",
+        "resource_name": "multiple ranges",
+        "natural_phrases": [
+          "update multiple ranges",
+          "populate several columns"
+        ],
+        "capability_description": "I can update multiple cell ranges in one operation, which is faster.",
+        "example_ai_responses": [
+          "I'll update all 3 ranges at once."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "create_workbook → batch_update(populate all) → smart_formula_builder"
+        ],
+        "performance_expectations": {
+          "typical_duration_ms": 1200,
+          "rate_limit_per_minute": 30
+        }
+      },
+      "smart_workflow_integration": {
+        "used_by": [
+          "microsoft_excel_smart_import_csv",
+          "microsoft_excel_smart_financial_report"
+        ],
+        "enhancement": "SMART workflows use batch_update for faster multi-sheet population",
+        "performance_gain": "3-5x faster than sequential range updates for large datasets"
+      }
     }
-  ]
+  ],
+  "api_limitations": {
+    "description": "Microsoft Graph API constraints - features NOT available via API",
+    "limitations": [
+      {
+        "feature": "Conditional Formatting",
+        "status": "NOT_SUPPORTED",
+        "reason": "Graph API does not expose conditional formatting endpoints",
+        "workaround": "Use Excel Desktop, Excel Online UI, or Office Add-ins",
+        "impact": "Cannot create color scales, data bars, icon sets via API"
+      },
+      {
+        "feature": "Data Validation",
+        "status": "NOT_SUPPORTED",
+        "reason": "Graph API does not support data validation rules",
+        "workaround": "Use Office Scripts or Excel Desktop",
+        "impact": "Cannot create dropdown lists or input restrictions via API"
+      },
+      {
+        "feature": "Advanced Chart Types",
+        "status": "LIMITED",
+        "reason": "Graph API only supports 6 basic chart types",
+        "available_types": [
+          "column",
+          "bar",
+          "line",
+          "pie",
+          "scatter",
+          "area"
+        ],
+        "unavailable_types": [
+          "waterfall",
+          "funnel",
+          "treemap",
+          "sunburst",
+          "histogram",
+          "box_whisker"
+        ],
+        "workaround": "Use Excel Desktop for advanced visualizations",
+        "impact": "Limited chart variety for data visualization"
+      }
+    ],
+    "note": "These limitations are enforced by Microsoft Graph API v1.0. Tools will return clear error messages with workarounds when these features are requested."
+  }
 }
