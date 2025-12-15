@@ -1498,7 +1498,7 @@ def calculate_saddle_stitch_books(
         
         calculator = SaddleStitchBooksShopifyCalculator()
         result = calculator.calculate(
-            quantity=quantity,
+            quantity=str(quantity),  # Convert int to str for calculator
             artworks=artworks,
             cover_option=cover_option,
             cover_stock=cover_stock,
