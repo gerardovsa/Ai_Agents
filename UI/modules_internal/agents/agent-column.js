@@ -1109,24 +1109,29 @@ const AgentColumn = (function () {
             return;
         }
 
-        // Check if any messages exist - check multiple selectors for compatibility with different renderers
-        const messageBubbles = messagesContainer.querySelectorAll('.ai-message, .message-bubble, .message-row, .user-message, .agent-message');
-        const emptyState = messagesContainer.querySelector('.empty-state');
+        // Check if any ACTUAL message bubbles exist (not empty state or scroll controls)
+        const messageBubbles = messagesContainer.querySelectorAll('.ai-message, .message-bubble, .message-row, .user-message, .agent-message, .message-container');
 
-        // Has messages if: bubbles exist AND no empty state (or empty state is hidden)
-        const hasMessages = messageBubbles.length > 0 && (!emptyState || emptyState.style.display === 'none');
+        // Filter out empty state and scroll controls from count
+        let realMessageCount = 0;
+        messageBubbles.forEach(bubble => {
+            if (!bubble.classList.contains('empty-state') &&
+                !bubble.classList.contains('agent-scroll-controls')) {
+                realMessageCount++;
+            }
+        });
 
-        // Toggle 'has-messages' class to show/hide scroll controls via CSS
+        const hasMessages = realMessageCount > 0;
+
+        // Toggle 'has-messages' class to show/hide scroll controls via CSS (opacity transition)
         if (hasMessages) {
             messagesContainer.classList.add('has-messages');
-            console.log(`[AgentColumn] Showing scroll controls for agent ${agentId} (${messageBubbles.length} messages)`);
+            console.log(`[AgentColumn] ✅ Showing scroll controls for agent ${agentId} (${realMessageCount} messages)`);
         } else {
             messagesContainer.classList.remove('has-messages');
-            console.log(`[AgentColumn] Hiding scroll controls for agent ${agentId} (no messages)`);
+            console.log(`[AgentColumn] ⬜ Hiding scroll controls for agent ${agentId} (no messages)`);
         }
-    }
-
-    /**
+    }    /**
      * Toggle hamburger menu
      * @param {number} agentId - Agent ID
      */

@@ -28,7 +28,7 @@ from tools.implementations.pinecone.pinecone_tools import (
     PineconeToolsError
 )
 
-# Export all tools for registry discovery
+# Export all tools for registry discovery  
 __all__ = [
     'pinecone_query_vectors',
     'pinecone_upsert_vectors',
@@ -38,5 +38,41 @@ __all__ = [
     'pinecone_describe_index_stats',
     'pinecone_list_namespaces',
     'vector_db_upload_document',
-    'PineconeToolsError'
+    'PineconeToolsError',
+    # Deprecated aliases
+    'pinecone_explain_strategies',
+    'pinecone_query_namespaces',  # Alias for pinecone_list_namespaces
+    'pinecone_fetch_by_metadata',
+    'pinecone_search_summaries',
+    'pinecone_get_vector_details',
+    'pinecone_search_and_retrieve'
 ]
+
+
+# ============================================================
+# DEPRECATED TOOL ALIASES (for backwards compatibility)
+# ============================================================
+
+def pinecone_explain_strategies(**kwargs):
+    """DEPRECATED: Documentation moved to Pinecone UI/docs"""
+    return {"success": False, "error": "DEPRECATED: See Pinecone documentation for search strategies"}
+
+def pinecone_query_namespaces(**kwargs):
+    """DEPRECATED: Use pinecone_list_namespaces instead"""
+    return pinecone_list_namespaces(**kwargs)
+
+def pinecone_fetch_by_metadata(**kwargs):
+    """DEPRECATED: Use pinecone_query_vectors with filter parameter instead"""
+    return {"success": False, "error": "DEPRECATED: Use pinecone_query_vectors with filter={'your_field': 'value'}"}
+
+def pinecone_search_summaries(**kwargs):
+    """DEPRECATED: Use pinecone_query_vectors instead"""
+    return pinecone_query_vectors(**kwargs)
+
+def pinecone_get_vector_details(**kwargs):
+    """DEPRECATED: Use pinecone_fetch_vectors instead"""
+    return pinecone_fetch_vectors(**kwargs)
+
+def pinecone_search_and_retrieve(**kwargs):
+    """DEPRECATED: Use pinecone_query_vectors instead"""
+    return pinecone_query_vectors(**kwargs)

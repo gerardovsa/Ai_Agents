@@ -131,9 +131,9 @@ class XeroAPIClient:
             
             # Platform name mapping: business_id -> platform name in database
             platform_map = {
-                1: 'xero_print',      # InHouse Print
-                2: 'xero_pub',        # InHouse Publishing
-                3: 'xero_signs'       # InHouse Signs
+                1: 'xero_print',        # InHouse Print
+                2: 'xero_publishing',   # InHouse Publishing
+                3: 'xero_signs'         # InHouse Signs
             }
             
             platform = platform_map.get(self.business_id)

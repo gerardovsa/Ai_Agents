@@ -478,7 +478,6 @@
           "type": "integer",
           "description": "Number of cards: 250, 500, 1000, 2000, 5000, 10000",
           "enum": [
-            100,
             250,
             500,
             1000,
@@ -526,7 +525,6 @@
           "type": "integer",
           "description": "Number of cards: 250, 500, 1000, 2000, 5000, 10000",
           "enum": [
-            100,
             250,
             500,
             1000,
@@ -692,13 +690,17 @@
           "type": "integer",
           "description": "Number of books to print",
           "enum": [
+            10,
+            25,
+            50,
+            75,
             100,
+            150,
+            200,
             250,
-            500,
-            1000,
-            2000,
-            5000,
-            10000
+            300,
+            400,
+            500
           ]
         },
         "pages": {
@@ -1117,9 +1119,9 @@
             "50mm Square",
             "75mm Square",
             "100mm Square",
-            "75mm Ã— 50mm Rectangle",
-            "100mm Ã— 75mm Rectangle",
-            "150mm Ã— 100mm Rectangle",
+            "75mm × 50mm Rectangle",
+            "100mm × 75mm Rectangle",
+            "150mm × 100mm Rectangle",
             "Custom Size"
           ]
         },
@@ -1376,22 +1378,22 @@
       "description": "Ã°Å¸Å¡Â¨ CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Notepads A4. Professional A4 notepads with custom printing options. Perfect for office use, meeting notes, and promotional stationery.",
       "parameters": {
         "quantity": {
-          "type": "string",
+          "type": "integer",
           "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
           "enum": [
-            "25",
-            "50",
-            "75",
-            "100",
-            "150",
-            "200",
-            "250",
-            "300",
-            "400",
-            "500",
-            "750",
-            "1000",
-            "2000"
+            25,
+            50,
+            75,
+            100,
+            150,
+            200,
+            250,
+            300,
+            400,
+            500,
+            750,
+            1000,
+            2000
           ]
         },
         "artworks": {
@@ -1587,19 +1589,19 @@
       "description": "Ã°Å¸Å¡Â¨ CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Premium Bookmarks. High-quality premium bookmarks with custom printing options, ideal for branding, gifts, and promotional use.",
       "parameters": {
         "quantity": {
-          "type": "string",
+          "type": "integer",
           "description": "quantity. Valid options: '25', '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000'",
           "enum": [
-            "25",
-            "50",
-            "100",
-            "250",
-            "500",
-            "750",
-            "1000",
-            "1250",
-            "1500",
-            "2000"
+            25,
+            50,
+            100,
+            250,
+            500,
+            750,
+            1000,
+            1250,
+            1500,
+            2000
           ]
         },
         "celloglaze": {
@@ -1652,23 +1654,23 @@
       "description": "Ã°Å¸Å¡Â¨ CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for Printed Letterheads. High-quality printed letterheads with custom branding, ideal for professional business correspondence and official documents.",
       "parameters": {
         "quantity": {
-          "type": "string",
+          "type": "integer",
           "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'",
           "enum": [
-            "50",
-            "100",
-            "250",
-            "500",
-            "750",
-            "1000",
-            "1250",
-            "1500",
-            "2000",
-            "2500",
-            "3000",
-            "3500",
-            "4000",
-            "5000"
+            50,
+            100,
+            250,
+            500,
+            750,
+            1000,
+            1250,
+            1500,
+            2000,
+            2500,
+            3000,
+            3500,
+            4000,
+            5000
           ]
         },
         "print_sides": {
@@ -1716,22 +1718,22 @@
       "description": "Ã°Å¸Å¡Â¨ CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCalculate quote for Saddle Stitch Books. Professional saddle stitch booklets with customizable covers, content pages, and finishing options. Perfect for brochures, catalogs, programs, and marketing materials with optional celloglaze protection.",
       "parameters": {
         "quantity": {
-          "type": "string",
+          "type": "integer",
           "description": "quantity. Valid options: '25', '50', '75', '100', '150', '200', '250', '300', '400', '500', '750', '1000', '2000'",
           "enum": [
-            "25",
-            "50",
-            "75",
-            "100",
-            "150",
-            "200",
-            "250",
-            "300",
-            "400",
-            "500",
-            "750",
-            "1000",
-            "2000"
+            25,
+            50,
+            75,
+            100,
+            150,
+            200,
+            250,
+            300,
+            400,
+            500,
+            750,
+            1000,
+            2000
           ]
         },
         "artworks": {
@@ -2006,23 +2008,23 @@
       "description": "Ã°Å¸Å¡Â¨ CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate quote for With Compliments Slips. Custom printed With Compliments slips designed to match your brand, perfect for adding a personal touch to documents, packages, and client communications.",
       "parameters": {
         "quantity": {
-          "type": "string",
+          "type": "integer",
           "description": "quantity. Valid options: '50', '100', '250', '500', '750', '1000', '1250', '1500', '2000', '2500', '3000', '3500', '4000', '5000'",
           "enum": [
-            "50",
-            "100",
-            "250",
-            "500",
-            "750",
-            "1000",
-            "1250",
-            "1500",
-            "2000",
-            "2500",
-            "3000",
-            "3500",
-            "4000",
-            "5000"
+            50,
+            100,
+            250,
+            500,
+            750,
+            1000,
+            1250,
+            1500,
+            2000,
+            2500,
+            3000,
+            3500,
+            4000,
+            5000
           ]
         },
         "print_sides": {

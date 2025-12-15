@@ -651,6 +651,9 @@ class SynergySidebarRendererV2 {
                 <div class="synergy-flat-section-header">
                     <b>Linked Threads</b>
                     <span style="font-size: 14px; color: var(--text-secondary);" class="linked-threads-count">Loading...</span>
+                    <div class="synergy-flat-header-right">
+                        <button class="synergy-flat-action-btn synergy-open-thread-history-btn" title="Open Thread History"><i class="fas fa-plus"></i></button>
+                    </div>
                 </div>
                 <div class="synergy-linked-threads-container" data-session-id="${sessionId}">
                     <div class="synergy-flat-loading">
@@ -697,7 +700,6 @@ class SynergySidebarRendererV2 {
                         <i class="fas fa-comments"></i>
                         <div>No linked threads</div>
                         <div class="synergy-flat-empty-hint">
-                            <i class="fas fa-hand-pointer"></i>
                             Drag and drop a thread card here to link it
                         </div>
                     </div>

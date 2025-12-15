@@ -974,3 +974,5 @@ microsoft_onenote_smart_extract_tasks = microsoft_onenote_tools.onenote_smart_ex
 
 microsoft_onenote_smart_knowledge_base = microsoft_onenote_tools.onenote_smart_knowledge_base
 
+microsoft_onenote_list_notebooks = microsoft_onenote_tools.onenote_list_notebooks
+

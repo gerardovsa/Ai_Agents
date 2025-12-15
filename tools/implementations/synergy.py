@@ -3995,3 +3995,36 @@ def synergy_update_subtask_field(
         
     except requests.exceptions.RequestException as e:
         raise SynergyError(f"Failed to update subtask field: {str(e)}")
+
+
+# ============================================================
+# DEPRECATED TOOL ALIASES (for backwards compatibility)
+# ============================================================
+
+def synergy_create_session_complete(**kwargs):
+    """DEPRECATED: Use synergy_create_session instead"""
+    return synergy_create_session(**kwargs)
+
+def synergy_create_synergy_doc(**kwargs):
+    """DEPRECATED: Use synergy_create_internal_doc instead"""
+    return synergy_create_internal_doc(**kwargs)
+
+def synergy_resolve_reference(**kwargs):
+    """DEPRECATED: Functionality merged into synergy_get_session"""
+    return {"success": False, "error": "DEPRECATED: Use synergy_get_session instead"}
+
+def synergy_export_synergy_doc(**kwargs):
+    """DEPRECATED: Export functionality moved to UI"""
+    return {"success": False, "error": "DEPRECATED: Export documents via Synergy UI"}
+
+def synergy_get_synergy_doc(**kwargs):
+    """DEPRECATED: Use synergy_get_internal_doc instead"""
+    return {"success": False, "error": "DEPRECATED: Use synergy_get_internal_doc instead"}
+
+def synergy_update_synergy_doc(**kwargs):
+    """DEPRECATED: Use synergy_update_internal_doc instead"""
+    return {"success": False, "error": "DEPRECATED: Use synergy_update_internal_doc instead"}
+
+def synergy_get_dashboard_url(**kwargs):
+    """DEPRECATED: Dashboard URL is fixed at /synergy"""
+    return {"success": True, "url": "/synergy", "message": "Navigate to /synergy in your browser"}

@@ -1826,8 +1826,11 @@ def delete_session(session_id):
 def link_thread_to_synergy(session_id):
     """
     Link a thread to a Synergy session (bidirectional sync)
+    Updates BOTH:
+    - synergy_sessions.thread_ids (JSON array)
+    - sessions.threads.synergy_card_id (foreign key)
     
-    ✅ FIXED: Proper cursor management
+    ✅ FIXED: Proper cursor management + bidirectional linking
     """
     cursor = None
     conn = None
@@ -1843,9 +1846,9 @@ def link_thread_to_synergy(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Get current thread_ids array
+        # Get current thread_ids array from Synergy session
         sql, params = convert_sql_placeholders(
-            'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
+            'SELECT thread_ids, title FROM synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         cursor.execute(sql, params)
@@ -1857,6 +1860,8 @@ def link_thread_to_synergy(session_id):
             conn.close()
             conn = None
             return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        session_name = row['title']
         
         # Parse existing thread_ids (JSON array)
         thread_ids = []
@@ -1872,7 +1877,7 @@ def link_thread_to_synergy(session_id):
         if thread_id not in thread_ids:
             thread_ids.append(thread_id)
             
-            # UPDATE synergy_sessions
+            # UPDATE synergy_sessions.thread_ids
             update_sql, update_params = convert_sql_placeholders('''
                 UPDATE synergy_sessions 
                 SET thread_ids = %s, last_active = %s
@@ -1880,9 +1885,19 @@ def link_thread_to_synergy(session_id):
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
             cursor.execute(update_sql, update_params)
             
-            print(f"[SYNERGY SYNC] Added thread {thread_id} to Synergy session {session_id}")
+            # UPDATE sessions.threads.synergy_card_id (BIDIRECTIONAL LINK)
+            thread_update_sql, thread_update_params = convert_sql_placeholders('''
+                UPDATE sessions.threads 
+                SET synergy_card_id = %s, synergy_card_name = %s
+                WHERE id = %s OR thread_slug = %s
+            ''', (session_id, session_name, thread_id, thread_slug))
+            cursor.execute(thread_update_sql, thread_update_params)
+            
+            print(f"[SYNERGY SYNC] ✅ Linked thread {thread_id} → Synergy session {session_id}")
+            print(f"[SYNERGY SYNC]    - Updated synergy_sessions.thread_ids")
+            print(f"[SYNERGY SYNC]    - Updated sessions.threads.synergy_card_id = {session_id}")
         else:
-            print(f"[SYNERGY SYNC] Thread {thread_id} already linked to {session_id}")
+            print(f"[SYNERGY SYNC] ⚠️  Thread {thread_id} already linked to {session_id}")
         
         cursor.close()
         cursor = None
@@ -1893,12 +1908,15 @@ def link_thread_to_synergy(session_id):
         return jsonify({
             'success': True,
             'session_id': session_id,
+            'session_name': session_name,
             'thread_ids': thread_ids,
             'message': f'Thread {thread_id} linked successfully'
         })
     
     except Exception as e:
-        print(f"[SYNERGY SYNC ERROR] Failed to link thread: {e}")
+        print(f"[SYNERGY SYNC ERROR] ❌ Failed to link thread: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         if cursor:
@@ -2188,7 +2206,7 @@ def create_internal_doc():
              created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (doc_id, session_id, title, content, content_json, doc_format, doc_type,
-              created_by, now, now, 1, 0, slug, share_url))
+              created_by, now, now, 1, False, slug, share_url))
         cursor.execute(insert_sql, insert_params)
         
         cursor.close()

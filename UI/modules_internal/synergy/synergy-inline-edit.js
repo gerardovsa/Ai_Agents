@@ -1042,6 +1042,17 @@ document.addEventListener('click', function (e) {
         return;
     }
 
+    // Open thread history button (for linking threads)
+    if (target.classList.contains('synergy-open-thread-history-btn')) {
+        // Toggle the thread history sidebar
+        const threadMenu = document.getElementById('thread-menu-overlay');
+        if (threadMenu) {
+            threadMenu.classList.toggle('collapsed');
+            console.log('[SYNERGY] Thread history sidebar toggled for thread linking');
+        }
+        return;
+    }
+
     // Add task button
     if (target.classList.contains('synergy-add-task-btn')) {
         // Verify button is in a synergy container

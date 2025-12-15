@@ -738,6 +738,8 @@ def microsoft_forms_smart_export_to_excel(**kwargs):
 
 microsoft_forms_get_form = microsoft_forms_tools.forms_get_form
 
+microsoft_forms_list_forms = microsoft_forms_tools.forms_list_forms
+
 microsoft_forms_create_form = microsoft_forms_tools.forms_create_form
 
 microsoft_forms_delete_form = microsoft_forms_tools.forms_delete_form

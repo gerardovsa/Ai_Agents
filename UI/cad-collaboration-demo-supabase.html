@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAD Collaboration - Supabase Realtime</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Left sidebar - Tools */
+        .sidebar-left {
+            width: 80px;
+            background: #242424;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 15px;
+        }
+
+        .tool-button {
+            width: 50px;
+            height: 50px;
+            background: #333;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .tool-button:hover {
+            background: #444;
+            border-color: #00aaff;
+        }
+
+        .tool-button.active {
+            background: #00aaff;
+            border-color: #00aaff;
+        }
+
+        /* Main canvas area */
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+            padding: 20px;
+        }
+
+        #canvas {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+
+        /* Right sidebar - AI Chat & Participants */
+        .sidebar-right {
+            width: 350px;
+            background: #242424;
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .participants-panel {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .participants-panel h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .participant {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #2a2a2a;
+            border-radius: 6px;
+        }
+
+        .participant-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .participant-name {
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .ai-chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .ai-chat-panel h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 6px;
+        }
+
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #333;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .chat-message.ai {
+            background: #1e3a5f;
+        }
+
+        .chat-message strong {
+            color: #00aaff;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #00aaff;
+        }
+
+        .send-button {
+            padding: 12px 20px;
+            background: #00aaff;
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-button:hover {
+            background: #0088cc;
+        }
+
+        /* Top toolbar */
+        .toolbar {
+            position: absolute;
+            top: 20px;
+            left: 100px;
+            display: flex;
+            gap: 10px;
+            background: #242424;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .toolbar-button {
+            padding: 8px 16px;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toolbar-button:hover {
+            background: #444;
+            border-color: #00aaff;
+        }
+
+        /* Session info */
+        .session-info {
+            position: absolute;
+            top: 20px;
+            right: 370px;
+            background: #242424;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .session-info strong {
+            color: #00aaff;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 26, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top: 4px solid #00aaff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: #888;
+        }
+
+        /* Notification */
+        .notification {
+            position: absolute;
+            top: 80px;
+            right: 370px;
+            background: #242424;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-color: #51cf66;
+            color: #51cf66;
+        }
+
+        .notification.error {
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        .notification.info {
+            border-color: #4dabf7;
+            color: #4dabf7;
+        }
+
+        .notification.warning {
+            border-color: #ffd43b;
+            color: #ffd43b;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Connecting to session...</div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <!-- Session info -->
+    <div class="session-info">
+        <strong>Session:</strong> <span id="sessionName">Loading...</span>
+    </div>
+
+    <!-- Top toolbar -->
+    <div class="toolbar">
+        <button class="toolbar-button" onclick="cadClient.requestAIAnalysis('Suggest color improvements')">
+            🎨 AI Color Suggestions
+        </button>
+        <button class="toolbar-button" onclick="cadClient.requestAIAnalysis('Analyze composition')">
+            📐 AI Composition
+        </button>
+        <button class="toolbar-button" onclick="exportDesign()">
+            💾 Export SVG
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Left sidebar - Tools -->
+        <div class="sidebar-left">
+            <div class="tool-button active" data-tool="select" title="Select (V)" onclick="selectTool('select')">
+                ↖️
+            </div>
+            <div class="tool-button" data-tool="draw-circle" title="Circle (C)" onclick="selectTool('draw-circle')">
+                ⭕
+            </div>
+            <div class="tool-button" data-tool="draw-rectangle" title="Rectangle (R)"
+                onclick="selectTool('draw-rectangle')">
+                ◻️
+            </div>
+            <div class="tool-button" data-tool="draw-line" title="Line (L)" onclick="selectTool('draw-line')">
+                📏
+            </div>
+            <div class="tool-button" data-tool="draw-text" title="Text (T)" onclick="selectTool('draw-text')">
+                🔤
+            </div>
+            <div style="flex: 1;"></div>
+            <div class="tool-button" data-tool="delete" title="Delete (Del)" onclick="deleteSelected()">
+                🗑️
+            </div>
+        </div>
+
+        <!-- Main canvas area -->
+        <div class="canvas-container">
+            <canvas id="canvas" width="1200" height="800"></canvas>
+        </div>
+
+        <!-- Right sidebar - AI Chat & Participants -->
+        <div class="sidebar-right">
+            <!-- Participants panel -->
+            <div class="participants-panel">
+                <h3>Participants</h3>
+                <div id="participantsList">
+                    <!-- Participants will be added here dynamically -->
+                </div>
+            </div>
+
+            <!-- AI Chat panel -->
+            <div class="ai-chat-panel">
+                <h3>AI Assistant</h3>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-message ai">
+                        <strong>AI Assistant</strong>
+                        Hello! I'm here to help with your design. You can ask me to:
+                        <br>• Suggest color palettes
+                        <br>• Analyze composition
+                        <br>• Recommend improvements
+                        <br>• Generate design variations
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Ask AI for design help..."
+                        onkeypress="handleChatKeyPress(event)" />
+                    <button class="send-button" onclick="sendChatMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- IMPORTANT: Replace these with your actual files -->
+    <!-- For now, using mock implementations -->
+    <script>
+        // Mock SupabaseConnectionManager (replace with actual file)
+        window.SupabaseConnectionManager = {
+            async getClient() {
+                if (!window.supabaseClient) {
+                    // TODO: Replace with your Supabase URL and anon key
+                    window.supabaseClient = supabase.createClient(
+                        'https://your-project.supabase.co',
+                        'your-anon-key'
+                    );
+                }
+                return window.supabaseClient;
+            }
+        };
+
+        // Mock UserAuth (replace with actual file)
+        window.UserAuth = {
+            async getUserId() {
+                return 'user-' + Math.random().toString(36).substr(2, 9);
+            }
+        };
+
+        // Mock SupabaseRealtimeManager (replace with actual file)
+        window.SupabaseRealtimeManager = {
+            subscriptions: {},
+
+            async subscribe(name, config) {
+                console.log(`📡 Mock subscribe to ${config.table} (${name})`);
+
+                const client = await SupabaseConnectionManager.getClient();
+
+                const channel = client
+                    .channel(name)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: config.schema,
+                            table: config.table,
+                            filter: config.filter
+                        },
+                        (payload) => {
+                            if (payload.eventType === 'INSERT' && config.onInsert) {
+                                config.onInsert(payload);
+                            } else if (payload.eventType === 'UPDATE' && config.onUpdate) {
+                                config.onUpdate(payload);
+                            } else if (payload.eventType === 'DELETE' && config.onDelete) {
+                                config.onDelete(payload);
+                            }
+                        }
+                    )
+                    .subscribe();
+
+                this.subscriptions[name] = channel;
+            },
+
+            unsubscribe(name) {
+                if (this.subscriptions[name]) {
+                    this.subscriptions[name].unsubscribe();
+                    delete this.subscriptions[name];
+                    console.log(`🔌 Mock unsubscribe from ${name}`);
+                }
+            }
+        };
+    </script>
+
+    <!-- CAD Collaboration Client -->
+    <script src="cad-collaboration-supabase.js"></script>
+
+    <script>
+        let cadClient;
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Initializing CAD Collaboration Demo...');
+
+            // Get session ID from URL or create new one
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session') || 'c7e1f5d0-8e6a-4b3c-9f2d-1a5b7c9e3d4f';
+
+            // Create CAD client
+            cadClient = new CADCollaborationClient('canvas');
+
+            // Connect to session
+            try {
+                await cadClient.connect(sessionId);
+
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').classList.add('hidden');
+
+                // Update session name
+                document.getElementById('sessionName').textContent = sessionId.substr(0, 8) + '...';
+
+                console.log('✅ CAD Collaboration Demo ready');
+            } catch (error) {
+                console.error('❌ Failed to connect:', error);
+                alert('Failed to connect to session. Please check console for details.');
+            }
+
+            // Update participants list every second
+            setInterval(updateParticipantsList, 1000);
+        });
+
+        // Select tool
+        function selectTool(tool) {
+            // Update UI
+            document.querySelectorAll('.tool-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+
+            // Update client
+            if (cadClient) {
+                cadClient.setTool(tool);
+            }
+        }
+
+        // Delete selected object
+        function deleteSelected() {
+            if (cadClient && cadClient.selectedObject) {
+                cadClient.deleteObject(cadClient.selectedObject.object_id);
+                cadClient.selectedObject = null;
+            }
+        }
+
+        // Export design as SVG
+        function exportDesign() {
+            // TODO: Implement SVG export
+            showNotification('SVG export not yet implemented', 'info');
+        }
+
+        // Update participants list
+        function updateParticipantsList() {
+            if (!cadClient) return;
+
+            const container = document.getElementById('participantsList');
+            container.innerHTML = '';
+
+            Object.values(cadClient.participants).forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'participant';
+                div.innerHTML = `
+                    <div class="participant-dot" style="background: ${p.cursor_color};"></div>
+                    <div class="participant-name">${p.display_name}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Handle chat key press
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        // Send chat message to AI
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addChatMessage('You', message, false);
+
+            // Clear input
+            input.value = '';
+
+            // Request AI analysis
+            if (cadClient) {
+                try {
+                    await cadClient.requestAIAnalysis(message);
+
+                    // Add AI response (mock for now)
+                    setTimeout(() => {
+                        addChatMessage(
+                            'AI Assistant',
+                            'I understand you want me to: "' + message + '". This feature is under development and will be available soon!',
+                            true
+                        );
+                    }, 1000);
+                } catch (error) {
+                    addChatMessage('AI Assistant', 'Sorry, I encountered an error: ' + error.message, true);
+                }
+            }
+        }
+
+        // Add message to chat
+        function addChatMessage(sender, text, isAI) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'chat-message' + (isAI ? ' ai' : '');
+            div.innerHTML = `<strong>${sender}</strong>${text}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification ' + type + ' show';
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'v' || e.key === 'V') selectTool('select');
+            if (e.key === 'c' || e.key === 'C') selectTool('draw-circle');
+            if (e.key === 'r' || e.key === 'R') selectTool('draw-rectangle');
+            if (e.key === 'l' || e.key === 'L') selectTool('draw-line');
+            if (e.key === 't' || e.key === 'T') selectTool('draw-text');
+            if (e.key === 'Delete') deleteSelected();
+        });
+    </script>
+</body>
+
+</html>

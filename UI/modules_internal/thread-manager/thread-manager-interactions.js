@@ -388,35 +388,39 @@ Object.assign(window.ThreadManager, {
                     await this.assignThread(threadId, 'prime');
 
                     // Clear from agent - BOTH thread info AND messages
-                    if (typeof MultiAgent !== 'undefined') {
-                        [1, 2, 3, 4, 5].forEach(agentId => {
-                            const loadedThread = MultiAgent.loadedThreads?.[agentId];
-                            if (loadedThread && loadedThread.threadId === threadId) {
-                                // Clear thread tracking
-                                MultiAgent.clearAgentThread?.(agentId);
+                    // CRITICAL FIX (Dec 15, 2025): Extract agentId from currentLocation and ALWAYS clear
+                    if (currentLocation && currentLocation.startsWith('agent-')) {
+                        const match = currentLocation.match(/agent-(\d+)/);
+                        if (match) {
+                            const agentId = parseInt(match[1]);
+                            console.log(`🧹 [unloadThread] Clearing agent-${agentId} (was ${currentLocation})`);
 
-                                // ✅ FIX (Dec 13, 2025): Use AgentColumn.unloadThread() for proper empty state
-                                // This ensures both messages container AND thread info get reset correctly
-                                // with welcome screen, not just empty innerHTML
-                                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.unloadThread === 'function') {
-                                    AgentColumn.unloadThread(agentId);
-                                    console.log(`✅ [unloadThread] Called AgentColumn.unloadThread(${agentId}) for proper reset`);
-                                } else {
-                                    // Fallback if AgentColumn not available
-                                    const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
-                                    if (messagesContainer) {
-                                        messagesContainer.innerHTML = '';
-                                        console.log(`🧹 [unloadThread] Cleared messages for agent-${agentId} (fallback)`);
-                                    }
+                            // ALWAYS call AgentColumn.unloadThread() to clear messages + thread info
+                            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.unloadThread === 'function') {
+                                AgentColumn.unloadThread(agentId);
+                                console.log(`✅ [unloadThread] Called AgentColumn.unloadThread(${agentId})`);
+                            } else {
+                                console.warn(`⚠️ [unloadThread] AgentColumn.unloadThread not available`);
 
-                                    const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
-                                    if (threadInfoContainer) {
-                                        threadInfoContainer.innerHTML = '';
-                                        console.log(`🧹 [unloadThread] Reset thread info for agent-${agentId} (fallback)`);
-                                    }
+                                // Fallback: Clear manually
+                                const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+                                if (messagesContainer) {
+                                    messagesContainer.innerHTML = '';
+                                    console.log(`🧹 [unloadThread] Cleared messages for agent-${agentId} (fallback)`);
+                                }
+
+                                const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+                                if (threadInfoContainer) {
+                                    threadInfoContainer.innerHTML = '';
+                                    console.log(`🧹 [unloadThread] Reset thread info for agent-${agentId} (fallback)`);
                                 }
                             }
-                        });
+
+                            // Clear MultiAgent tracking if available
+                            if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.clearAgentThread === 'function') {
+                                MultiAgent.clearAgentThread(agentId);
+                            }
+                        }
                     }
 
                     // Update UI inline (don't close panel)

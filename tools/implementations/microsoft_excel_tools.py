@@ -1405,6 +1405,8 @@ def microsoft_excel_smart_financial_report(**kwargs):
     return microsoft_excel_tools.excel_smart_financial_report(user_id, **kwargs)
 
 
+microsoft_excel_create_workbook = microsoft_excel_tools.excel_create_workbook
+
 microsoft_excel_get_workbook = microsoft_excel_tools.excel_get_workbook
 
 microsoft_excel_list_workbooks = microsoft_excel_tools.excel_list_workbooks

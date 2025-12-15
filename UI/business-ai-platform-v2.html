@@ -468,10 +468,14 @@
     <script src="modules_internal/synergy/synergy-popup-modal.js"></script>
     <!-- REQUIRED: Popup modal for creating/editing sessions -->
     <script src="modules_internal/synergy/thread_synergy.js"></script>
+    <!-- THREAD DRAG-DROP LINKING (Dec 15, 2025) -->
+    <script src="modules_internal/synergy/synergy-thread-drag-drop.js?v=20251215"></script>
     <!-- SYNERGY DESIGN TOKENS (Load FIRST) -->
     <link rel="stylesheet" href="modules_internal/synergy/synergy-tokens.css">
     <!-- SYNERGY SIDEBAR CSS -->
     <link rel="stylesheet" href="modules_internal/synergy/synergy-sidebar.css">
+    <!-- THREAD DRAG-DROP CSS -->
+    <link rel="stylesheet" href="modules_internal/synergy/synergy-thread-drag-drop.css?v=20251215">
     <!-- FLAT SPACING CSS V2 (Nov 24, 2025) - Two-row structure, 400px width -->
     <link rel="stylesheet" href="modules_internal/synergy/synergy-flat-spacing.css?v=20251214_2348">
     <link rel="stylesheet" href="modules_internal/synergy/synergy-milestone-styles.css">
@@ -770,16 +774,19 @@
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
     <!-- ✅ DEFERRED: These load AFTER authentication via LazyLoader -->
     <!-- ThreadManager Core - Load FIRST (creates base object) -->
-    <script data-post-auth defer src="modules_internal/thread-manager/thread-manager-core.js?v=20251214_2348"></script>
+    <script data-post-auth defer
+        src="modules_internal/thread-manager/thread-manager-core.js?v=20251215_CACHE_BUST"></script>
 
     <!-- ThreadManager Modules - Load after core in dependency order -->
     <script data-post-auth defer src="modules_internal/thread-manager/thread-manager-welcome.js"></script>
     <script data-post-auth defer
         src="modules_internal/thread-manager/thread-manager-assignment.js?v=20251214_2348"></script>
     <script data-post-auth defer src="modules_internal/thread-manager/thread-manager-crud.js"></script>
-    <script data-post-auth defer src="modules_internal/thread-manager/thread-manager-ui.js"></script>
+    <script data-post-auth defer
+        src="modules_internal/thread-manager/thread-manager-ui.js?v=20251215_EMPTY_STATE"></script>
     <script data-post-auth defer src="modules_internal/thread-manager/thread-manager-messages.js"></script>
-    <script data-post-auth defer src="modules_internal/thread-manager/thread-manager-interactions.js"></script>
+    <script data-post-auth defer
+        src="modules_internal/thread-manager/thread-manager-interactions.js?v=20251215_UNLOAD_FIX"></script>
     <script data-post-auth defer src="modules_internal/thread-manager/thread-manager-filters.js"></script>
 
     <!-- ? NEW MODULES -->
@@ -817,7 +824,7 @@
     <script data-post-auth defer src="shared/js/workspace-manager.js?v=20251214_2348"></script>
     <script data-post-auth defer src="modules_internal/agents/agent-column.js?v=20251214_2348"></script>
     <script data-post-auth defer src="modules_internal/agents/agent-input-manager.js?v=20251214_2348"></script>
-    <script data-post-auth defer src="modules_internal/agents/agent-js.js?v=20251214_2348"></script>
+    <script data-post-auth defer src="modules_internal/agents/agent-js.js?v=20251215_ERROR_HANDLER"></script>
     <script data-post-auth defer src="modules_internal/agents/agent-ui.js?v=20251214_2348"></script>
     <script data-post-auth defer src="modules_internal/agents/prime_ai_chat.js?v=20251214_2348"></script>
 
@@ -2488,7 +2495,7 @@
             border: 1px solid var(--border-default);
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            z-index: 10001;
+            z-index: 1000;
             display: none;
             flex-direction: column;
             overflow: hidden;

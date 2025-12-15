@@ -306,6 +306,12 @@ Tier 3: get_tool_schema(tool_name) → Full parameter schema
 Tier 4: execute_tool(tool_name, **params) → Result
 ```
 
+**CRITICAL: Tool Execution**
+- ✅ Use `execute_tool(tool_name="...", **params)` for discovered tools
+- ✅ Alternatively, call tools directly by name (e.g., `notion_create_page(...)`)
+- Both methods work - `execute_tool` is a meta-tool proxy for dynamic execution
+- Direct calls send full schemas upfront; `execute_tool` enables progressive discovery
+
 ---
 
 ## 6-Stage Construction Process

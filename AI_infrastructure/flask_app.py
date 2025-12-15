@@ -437,6 +437,10 @@ app.register_blueprint(module_bp)                                    # NEW: Self
 app.register_blueprint(task_sync_bp)                                 # NEW: Universal Task Sync (Google Tasks, Microsoft To Do, Calendar - /api/sync/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
+# 🛠️ DEV TOOLS: Module Creator & Verifier (Development-only endpoints)
+from routes.dev_tools_routes import dev_tools_bp
+app.register_blueprint(dev_tools_bp)                                 # DEV TOOLS: Module development endpoints (4 endpoints: /api/dev-tools/*)
+
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)
 # This discovers and registers Flask routes from UI/external/modules/*/routes/
 # INCLUDES: Stock Management, Shopify E-Commerce, Database Visualizer, Quote Calculator, etc.

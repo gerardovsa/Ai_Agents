@@ -1246,20 +1246,27 @@
 }
 
 .agent-scroll-controls {
-    position: sticky;
-    top: 10px;
-    display: none;
+    position: absolute;
+    top: 0;
+    right: 8px;
+    left: auto;
+    /* Ensure right-side positioning */
+    display: flex;
+    /* Always in DOM */
     flex-direction: row;
-    gap: 8px;
+    gap: 4px;
     z-index: 1000;
-    float: right;
-    margin-bottom: -46px;
-    /* Negative margin to prevent layout shift */
+    opacity: 0;
+    /* Invisible by default */
+    visibility: hidden;
     pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 .agent-messages-container.has-messages .agent-scroll-controls {
-    display: flex;
+    opacity: 1;
+    /* Visible when messages exist */
+    visibility: visible;
 }
 
 .agent-scroll-controls button {
@@ -1268,22 +1275,28 @@
     height: 28px;
     padding: 0;
     background: transparent;
-    border: 1px solid var(--border-default);
-    border-radius: 6px;
+    /* Fully transparent background */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
     color: var(--text-secondary);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+    /* Subtle blur effect */
 }
 
 .agent-scroll-controls button:hover {
-    background: rgba(88, 166, 255, 0.1);
+    background: rgba(88, 166, 255, 0.15);
+    /* Slight blue tint on hover */
     color: var(--accent-primary);
     border-color: var(--accent-primary);
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.2);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+    backdrop-filter: blur(8px);
+    /* More blur on hover */
 }
 
 .agent-scroll-controls button:active {

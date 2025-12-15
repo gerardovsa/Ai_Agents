@@ -1159,3 +1159,44 @@ def automation_get_workflow_status(
         
     except Exception as e:
         raise AutomationError(f'Failed to get workflow status: {str(e)}')
+
+
+# ============================================================
+# DEPRECATED TOOL ALIASES (for backwards compatibility)
+# ============================================================
+
+def automation_parse_visual_flow(**kwargs):
+    """DEPRECATED: Use automation_create_workflow instead"""
+    return {"success": False, "error": "DEPRECATED: Use automation_create_workflow instead"}
+
+def automation_create_refined_version(**kwargs):
+    """DEPRECATED: Use automation_update_workflow instead"""
+    return {"success": False, "error": "DEPRECATED: Use automation_update_workflow instead"}
+
+def automation_save(**kwargs):
+    """DEPRECATED: Use automation_create_workflow instead"""
+    return {"success": False, "error": "DEPRECATED: Use automation_create_workflow instead"}
+
+def automation_list(**kwargs):
+    """DEPRECATED: Use automation_list_workflows instead"""
+    return automation_list_workflows(**kwargs)
+
+def automation_load(**kwargs):
+    """DEPRECATED: Use automation_get_workflow instead"""
+    return automation_get_workflow(**kwargs)
+
+def automation_activate_schedule(**kwargs):
+    """DEPRECATED: Use automation_schedule_workflow instead"""
+    return automation_schedule_workflow(**kwargs)
+
+def automation_deactivate(**kwargs):
+    """DEPRECATED: Use automation_deactivate_workflow instead"""
+    return automation_deactivate_workflow(**kwargs)
+
+def automation_delete(**kwargs):
+    """DEPRECATED: Use automation_delete_workflow instead"""
+    return automation_delete_workflow(**kwargs)
+
+def automation_export_to_canvas(**kwargs):
+    """DEPRECATED: Use automation_open_workflow_in_canvas instead"""
+    return automation_open_workflow_in_canvas(**kwargs)

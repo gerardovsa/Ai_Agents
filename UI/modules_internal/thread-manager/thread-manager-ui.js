@@ -422,8 +422,13 @@ window.ThreadManagerUI = {
         const thread = threads.find(t => t.id === threadId);
 
         if (!thread) {
-            console.warn(`⚠️ [renderThreadInfoContainer] Thread ${threadId} NOT FOUND in threads array`);
-            console.log(`   Available thread IDs:`, threads.map(t => t.id));
+            // If threadId is null, this is expected (showing empty state)
+            if (threadId === null || threadId === 'null') {
+                console.log(`📭 [renderThreadInfoContainer] No thread assigned to ${location} - showing empty state`);
+            } else {
+                console.warn(`⚠️ [renderThreadInfoContainer] Thread ${threadId} NOT FOUND in threads array`);
+                console.log(`   Available thread IDs:`, threads.map(t => t.id));
+            }
             return this.renderEmptyThreadInfo(location);
         }
 
@@ -515,10 +520,17 @@ window.ThreadManagerUI = {
 
     /**
      * Render empty thread info (no thread loaded)
-     * Uses ThreadCardTemplates for consistency across all locations
+     * For agents: returns empty string (nothing visible)
+     * For other locations: uses ThreadCardTemplates
      */
     renderEmptyThreadInfo(location) {
-        // Use ThreadCardTemplates for consistency
+        // For agent columns, show NOTHING (completely empty)
+        if (location && location.startsWith('agent-')) {
+            console.log(`📭 [renderEmptyThreadInfo] Agent ${location} - returning empty (no dropdown, no message)`);
+            return '';
+        }
+
+        // Use ThreadCardTemplates for consistency (Prime, Synergy, etc)
         if (typeof ThreadCardTemplates !== 'undefined') {
             let agentName = 'Prime';
             let agentIcon = 'fa-star';

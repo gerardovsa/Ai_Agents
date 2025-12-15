@@ -355,16 +355,17 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     has_text = any(b.get('type') == 'text' for b in validated_blocks)
     if not has_text:
         print(f"[Combined Worker] ⚠️ No text block found in assistant message")
-        print(f"[Combined Worker] 🔧 Adding empty text block (Anthropic API requirement)")
+        print(f"[Combined Worker] 🔧 Adding minimal text block (Anthropic API requirement)")
         print(f"[Combined Worker] ℹ️  Messages with ONLY thinking+tool_use are considered 'empty' by Anthropic")
         
         # Find correct position: after thinking blocks, before tool_use blocks
         thinking_count = sum(1 for b in validated_blocks if b.get('type') in ('thinking', 'redacted_thinking'))
         
-        # Insert empty text block at correct position
-        validated_blocks.insert(thinking_count, {'type': 'text', 'text': ''})
+        # Insert minimal non-empty text block (Anthropic requires non-empty text content)
+        # Using a single space instead of empty string to satisfy API requirement
+        validated_blocks.insert(thinking_count, {'type': 'text', 'text': ' '})
         
-        print(f"[Combined Worker] ✅ Inserted empty text block at position {thinking_count}")
+        print(f"[Combined Worker] ✅ Inserted minimal text block at position {thinking_count}")
         print(f"[Combined Worker] 📋 New structure: {[b.get('type') for b in validated_blocks]}")
     
     # STEP 5: Reorder: thinking blocks first, then others (only if thinking not already first)

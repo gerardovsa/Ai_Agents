@@ -3442,8 +3442,11 @@ async function sendAgentMessage(agentId) {
                             console.log(`[Agent ${agentId}] 📥 [SYNC] Received conversation_sync: ${data.message_count} messages`);
 
                             if (data.conversation_history && Array.isArray(data.conversation_history)) {
-                                // Get current thread from AppState
-                                const thread = AppState.agentThreads && AppState.agentThreads[agentId];
+                                // CRITICAL FIX (Dec 15, 2025): Use ThreadManager.getThreadByAgent() instead of AppState.agentThreads
+                                // AppState.agentThreads does NOT exist - threads are stored in ThreadManager.threads array
+                                // This fix mirrors AGENT_SAVE_THREAD_FIX_NOV22.md (same bug, different location)
+                                const agentName = MultiAgent.getAgentName(agentId);
+                                const thread = ThreadManager.getThreadByAgent(agentName);
 
                                 if (thread) {
                                     // Update thread with backend's authoritative conversation
@@ -3462,7 +3465,7 @@ async function sendAgentMessage(agentId) {
 
                                     console.log(`[Agent ${agentId}] ✅ [SYNC] MessageStore synced from backend's conversation`);
                                 } else {
-                                    console.warn(`[Agent ${agentId}] ⚠️ [SYNC] Thread not found in AppState.agentThreads`);
+                                    console.warn(`[Agent ${agentId}] ⚠️ [SYNC] Thread not found via ThreadManager.getThreadByAgent("${agentName}")`);
                                 }
                             } else {
                                 console.warn(`[Agent ${agentId}] ⚠️ [SYNC] Invalid conversation_history in conversation_sync event`);
@@ -4057,6 +4060,68 @@ async function sendAgentMessage(agentId) {
                                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                                 }
                             }
+                        }
+
+                        // ERROR EVENT - Log but DON'T stop stream (Dec 15, 2025 FIX)
+                        // Backend sends error events during multi-turn conversations (e.g., API errors from tool execution)
+                        // Frontend must acknowledge and continue listening for subsequent events
+                        else if (data.type === 'error') {
+                            console.warn(`[Agent ${agentId}] ⚠️ ERROR EVENT:`, data.error_type, data.error_message);
+
+                            // Create error bubble (red exclamation triangle)
+                            removeProcessingIndicator(agentId);
+
+                            const errorBubble = document.createElement('div');
+                            errorBubble.className = 'ai-message error';
+                            errorBubble.dataset.agentId = agentId;
+                            errorBubble.dataset.threadSlug = streamThreadSlug;
+
+                            // Header with RED TRIANGLE avatar
+                            const headerDiv = document.createElement('div');
+                            headerDiv.className = 'ai-message-header';
+
+                            const avatar = document.createElement('div');
+                            avatar.className = 'ai-message-avatar';
+                            avatar.style.background = '#ef4444'; // Red
+                            avatar.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: white;"></i>';
+
+                            const toggleBtn = document.createElement('button');
+                            toggleBtn.className = 'ai-message-toggle';
+                            toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                            toggleBtn.title = 'Collapse/Expand error';
+                            toggleBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                errorBubble.classList.toggle('collapsed');
+                            });
+
+                            headerDiv.appendChild(avatar);
+                            headerDiv.appendChild(toggleBtn);
+
+                            // Content
+                            const contentDiv = document.createElement('div');
+                            contentDiv.className = 'ai-message-content';
+                            contentDiv.style.color = '#ef4444';
+
+                            const errorMsg = data.error_message || 'Unknown error';
+                            const truncated = errorMsg.length > 500 ? errorMsg.substring(0, 500) + '...' : errorMsg;
+
+                            contentDiv.innerHTML = `
+                                <strong><i class="fas fa-times-circle"></i> API Error: ${data.error_type || 'Unknown'}</strong><br>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; margin-top: 8px; white-space: pre-wrap;">${truncated}</pre>
+                            `;
+
+                            errorBubble.appendChild(headerDiv);
+                            errorBubble.appendChild(contentDiv);
+                            errorBubble.classList.add('collapsed'); // Start collapsed
+                            messagesContainer.appendChild(errorBubble);
+
+                            // Apply view mode
+                            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
+                                AgentColumn.applyViewModeToMessage(agentId, errorBubble);
+                            }
+
+                            // DON'T break stream - backend may continue with more events
+                            // This is critical for multi-turn conversations where one tool may fail but agent continues
                         }
 
                     } catch (e) {

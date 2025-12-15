@@ -28,7 +28,7 @@ Usage:
 
 FILE: tools/plugins/module_plugin_loader.py
 PURPOSE: Auto-discover and load AI tools from UI modules
-LAST MODIFIED: 2025-11-04 - Initial creation
+LAST MODIFIED: 2025-12-15 - Added colored logging support
 """
 
 import sys
@@ -36,6 +36,19 @@ import json
 import importlib.util
 from pathlib import Path
 from typing import Dict, Any, List, Callable
+
+# ANSI color codes for colored output
+class Colors:
+    RESET = '\033[0m'
+    GREEN = '\033[92m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    YELLOW = '\033[93m'
+    MAGENTA = '\033[95m'
+
+def cprint(text: str, color: str = Colors.RESET):
+    """Print with color"""
+    print(f"{color}{text}{Colors.RESET}")
 
 class ModulePluginLoader:
     """Loads tools from self-contained UI module folders"""
@@ -45,8 +58,8 @@ class ModulePluginLoader:
         self.modules_dir = self.root_dir / "UI" / "modules_external"
         self.loaded_modules = {}
         
-        print(f"[PLUGIN] [Module Plugin] Initialized")
-        print(f"   Modules directory: {self.modules_dir}")
+        cprint("[PLUGIN] [Module Plugin] Initialized", Colors.MAGENTA)
+        cprint(f"   Modules directory: {self.modules_dir}", Colors.CYAN)
     
     def discover_modules_with_tools(self) -> List[str]:
         """
@@ -58,7 +71,7 @@ class ModulePluginLoader:
         modules_with_tools = []
         
         if not self.modules_dir.exists():
-            print(f"    [Module Plugin] Modules directory not found: {self.modules_dir}")
+            cprint(f"    [Module Plugin] Modules directory not found: {self.modules_dir}", Colors.YELLOW)
             return modules_with_tools
         
         for module_dir in self.modules_dir.iterdir():
@@ -75,7 +88,7 @@ class ModulePluginLoader:
             
             if schema_dir.exists() and impl_dir.exists():
                 modules_with_tools.append(module_dir.name)
-                print(f"OK [Module Plugin] Discovered module: {module_dir.name}")
+                cprint(f"[OK] [Module Plugin] Discovered module: {module_dir.name}", Colors.GREEN)
         
         return modules_with_tools
     
@@ -105,14 +118,14 @@ class ModulePluginLoader:
                     if "tools" in schema_data:
                         tools = schema_data["tools"]
                         all_tools.extend(tools)
-                        print(f"     [{module_id}] Loaded schema: {schema_file.name} ({len(tools)} tools)")
+                        cprint(f"     [{module_id}] Loaded schema: {schema_file.name} ({len(tools)} tools)", Colors.CYAN)
                     else:
-                        print(f"      [{module_id}] Schema has no 'tools' array: {schema_file.name}")
+                        cprint(f"      [{module_id}] Schema has no 'tools' array: {schema_file.name}", Colors.YELLOW)
                         
             except json.JSONDecodeError as e:
-                print(f"     [{module_id}] Invalid JSON in {schema_file.name}: {e}")
+                cprint(f"     [{module_id}] Invalid JSON in {schema_file.name}: {e}", Colors.YELLOW)
             except Exception as e:
-                print(f"     [{module_id}] Failed to load {schema_file.name}: {e}")
+                cprint(f"     [{module_id}] Failed to load {schema_file.name}: {e}", Colors.YELLOW)
         
         return all_tools
     
@@ -152,7 +165,7 @@ class ModulePluginLoader:
             wrapper_files = list(impl_dir.glob("*_wrapper.py"))
             
             if not wrapper_files:
-                print(f"      [{module_id}] No *_wrapper.py found in implementations/")
+                cprint(f"      [{module_id}] No *_wrapper.py found in implementations/", Colors.YELLOW)
                 return {}
             
             # Load ALL wrapper files (not just the first one)
@@ -165,7 +178,7 @@ class ModulePluginLoader:
                     wrapper_module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(wrapper_module)
                     
-                    print(f"  🔧 [{module_id}] Loaded wrapper: {wrapper_file.name}")
+                    cprint(f"  🔧 [{module_id}] Loaded wrapper: {wrapper_file.name}", Colors.CYAN)
                     
                     # Map tool names to wrapper functions
                     for tool_name in tool_names:
@@ -180,7 +193,7 @@ class ModulePluginLoader:
                         # Try exact match first
                         if hasattr(wrapper_module, tool_name):
                             implementations[tool_name] = getattr(wrapper_module, tool_name)
-                            print(f"    ✓ Mapped: {tool_name} → {tool_name}()")
+                            cprint(f"    ✓ Mapped: {tool_name} → {tool_name}()", Colors.GREEN)
                             continue
                         
                         # Try removing module prefix
@@ -191,7 +204,7 @@ class ModulePluginLoader:
                             func_name = parts[-1]
                             if hasattr(wrapper_module, func_name):
                                 implementations[tool_name] = getattr(wrapper_module, func_name)
-                                print(f"    ✓ Mapped: {tool_name} → {func_name}()")
+                                cprint(f"    ✓ Mapped: {tool_name} → {func_name}()", Colors.GREEN)
                                 continue
                             
                             # Try last two parts joined
@@ -199,19 +212,19 @@ class ModulePluginLoader:
                                 func_name = '_'.join(parts[-2:])
                                 if hasattr(wrapper_module, func_name):
                                     implementations[tool_name] = getattr(wrapper_module, func_name)
-                                    print(f"    ✓ Mapped: {tool_name} → {func_name}()")
+                                    cprint(f"    ✓ Mapped: {tool_name} → {func_name}()", Colors.GREEN)
                                     continue
                 
                 except Exception as e:
-                    print(f"     [{module_id}] Failed to load {wrapper_file.name}: {e}")
+                    cprint(f"     [{module_id}] Failed to load {wrapper_file.name}: {e}", Colors.YELLOW)
             
             # Report unmapped tools
             for tool_name in tool_names:
                 if tool_name not in implementations:
-                    print(f"        No implementation found for: {tool_name}")
+                    cprint(f"        No implementation found for: {tool_name}", Colors.YELLOW)
         
         except Exception as e:
-            print(f"     [{module_id}] Failed to load implementations: {e}")
+            cprint(f"     [{module_id}] Failed to load implementations: {e}", Colors.YELLOW)
         
         finally:
             # Remove from path
@@ -230,13 +243,13 @@ class ModulePluginLoader:
         Returns:
             Dict with 'tools' (list) and 'implementations' (dict)
         """
-        print(f"\n[LOAD] [Module Plugin] Loading module: {module_id}")
+        cprint(f"\n[LOAD] [Module Plugin] Loading module: {module_id}", Colors.BLUE)
         
         # Load schemas
         tools = self.load_module_schemas(module_id)
         
         if not tools:
-            print(f"      [{module_id}] No tools found in schemas")
+            cprint(f"      [{module_id}] No tools found in schemas", Colors.YELLOW)
             return {"tools": [], "implementations": {}}
         
         # Extract tool names

@@ -894,7 +894,7 @@ class InternalDocsManager {
         console.log('📄 Creating new internal document for session:', sessionId);
 
         const popupId = `doc-create-${Date.now()}`;
-        const popup = this.createPopupWindow(popupId, 'Create Internal Document', 600, 550);
+        const popup = this.createPopupWindow(popupId, 'Create Internal Document', 600, 1000);
 
         const timestamp = new Date().toLocaleString();
 
@@ -938,7 +938,7 @@ class InternalDocsManager {
                             Description
                         </label>
                         <textarea id="doc-description-input" rows="3"
-                            style="width: 100%; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); 
+                            style="width: 100%; height: 150px; padding: 10px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); 
                             border-radius: 6px; color: var(--text-primary); font-size: 14px; resize: vertical; font-family: inherit;"
                             placeholder="Brief description of this document..."></textarea>
                     </div>
@@ -964,18 +964,16 @@ class InternalDocsManager {
                         </label>
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
                             <div class="doc-type-option" data-type="richtext" 
-                                style="padding: 20px; background: var(--bg-tertiary); border: 2px solid var(--border-default); 
-                                border-radius: 12px; cursor: pointer; transition: all 0.2s; text-align: center;">
-                                <i class="fas fa-file-alt" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 8px;"></i>
-                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Rich Text</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">Documents with formatting</div>
+                                style="padding: 16px; background: var(--bg-tertiary); border: 2px solid var(--border-default); 
+                                border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: center;">
+                                <i class="fas fa-file-alt" style="font-size: 24px; color: var(--accent-primary); margin-bottom: 6px;"></i>
+                                <div style="font-weight: 600; color: var(--text-primary);">Document</div>
                             </div>
                             <div class="doc-type-option" data-type="spreadsheet"
-                                style="padding: 20px; background: var(--bg-tertiary); border: 2px solid var(--border-default); 
-                                border-radius: 12px; cursor: pointer; transition: all 0.2s; text-align: center;">
-                                <i class="fas fa-table" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 8px;"></i>
-                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Spreadsheet</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">Tables with calculations</div>
+                                style="padding: 16px; background: var(--bg-tertiary); border: 2px solid var(--border-default); 
+                                border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: center;">
+                                <i class="fas fa-table" style="font-size: 24px; color: var(--accent-primary); margin-bottom: 6px;"></i>
+                                <div style="font-weight: 600; color: var(--text-primary);">Spreadsheet</div>
                             </div>
                         </div>
                         <input type="hidden" id="doc-type-input" value="richtext">
@@ -2804,51 +2802,50 @@ Note: Use the document slug "${slug}" to reference this document in Synergy sess
         const handles = popup.popupElement.querySelectorAll('.popup-resize-handle');
 
         handles.forEach(handle => {
-            let isResizing = false;
-            let startX, startY, startWidth, startHeight, startLeft, startTop;
-            const direction = handle.className.split(' ')[1];
+            const direction = handle.className.split(' ').pop(); // Get last class (n, s, e, w, ne, nw, se, sw)
 
             handle.addEventListener('mousedown', (e) => {
                 if (popup.isMaximized) return;
 
-                isResizing = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                startWidth = popup.popupElement.offsetWidth;
-                startHeight = popup.popupElement.offsetHeight;
-                startLeft = popup.popupElement.offsetLeft;
-                startTop = popup.popupElement.offsetTop;
-
                 e.preventDefault();
                 e.stopPropagation();
-            });
 
-            document.addEventListener('mousemove', (e) => {
-                if (!isResizing) return;
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startWidth = popup.popupElement.offsetWidth;
+                const startHeight = popup.popupElement.offsetHeight;
+                const startLeft = popup.popupElement.offsetLeft;
+                const startTop = popup.popupElement.offsetTop;
 
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
+                const handleMouseMove = (moveEvent) => {
+                    const deltaX = moveEvent.clientX - startX;
+                    const deltaY = moveEvent.clientY - startY;
 
-                if (direction.includes('e')) {
-                    popup.popupElement.style.width = `${Math.max(400, startWidth + deltaX)}px`;
-                }
-                if (direction.includes('w')) {
-                    const newWidth = Math.max(400, startWidth - deltaX);
-                    popup.popupElement.style.width = `${newWidth}px`;
-                    popup.popupElement.style.left = `${startLeft + (startWidth - newWidth)}px`;
-                }
-                if (direction.includes('s')) {
-                    popup.popupElement.style.height = `${Math.max(300, startHeight + deltaY)}px`;
-                }
-                if (direction.includes('n')) {
-                    const newHeight = Math.max(300, startHeight - deltaY);
-                    popup.popupElement.style.height = `${newHeight}px`;
-                    popup.popupElement.style.top = `${startTop + (startHeight - newHeight)}px`;
-                }
-            });
+                    if (direction.includes('e')) {
+                        popup.popupElement.style.width = `${Math.max(400, startWidth + deltaX)}px`;
+                    }
+                    if (direction.includes('w')) {
+                        const newWidth = Math.max(400, startWidth - deltaX);
+                        popup.popupElement.style.width = `${newWidth}px`;
+                        popup.popupElement.style.left = `${startLeft + (startWidth - newWidth)}px`;
+                    }
+                    if (direction.includes('s')) {
+                        popup.popupElement.style.height = `${Math.max(300, startHeight + deltaY)}px`;
+                    }
+                    if (direction.includes('n')) {
+                        const newHeight = Math.max(300, startHeight - deltaY);
+                        popup.popupElement.style.height = `${newHeight}px`;
+                        popup.popupElement.style.top = `${startTop + (startHeight - newHeight)}px`;
+                    }
+                };
 
-            document.addEventListener('mouseup', () => {
-                isResizing = false;
+                const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
             });
         });
     }

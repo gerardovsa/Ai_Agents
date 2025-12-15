@@ -1,0 +1,746 @@
+/**
+ * Module Creator & Verifier - Development Tool CSS
+ * =================================================
+ * 
+ * Dark theme optimized for development workflows
+ * Syntax highlighting for code blocks
+ * Console-style logging display
+ */
+
+/* ============================================================
+   VARIABLES
+   ============================================================ */
+:root {
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #252526;
+    --bg-tertiary: #2d2d30;
+    --bg-elevated: #3e3e42;
+    
+    --text-primary: #cccccc;
+    --text-secondary: #969696;
+    --text-muted: #6a6a6a;
+    
+    --border-color: #3e3e42;
+    --border-light: #4a4a4a;
+    
+    --accent-blue: #0e639c;
+    --accent-blue-hover: #1177bb;
+    --accent-green: #16825d;
+    --accent-green-hover: #1a9970;
+    --accent-red: #f14c4c;
+    --accent-yellow: #cca700;
+    
+    --status-success: #4ec9b0;
+    --status-error: #f48771;
+    --status-warn: #dcdcaa;
+    --status-info: #569cd6;
+    
+    --font-mono: 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    overflow: hidden;
+    height: 100vh;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.dev-header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 56px;
+}
+
+.dev-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dev-logo i {
+    font-size: 24px;
+    color: var(--accent-blue);
+}
+
+.dev-logo h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dev-status {
+    display: flex;
+    gap: 20px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.status-indicator i {
+    font-size: 8px;
+}
+
+.status-indicator.connected i {
+    color: var(--status-success);
+}
+
+.status-indicator.disconnected i {
+    color: var(--status-error);
+}
+
+.status-indicator.unknown i {
+    color: var(--text-muted);
+}
+
+.dev-workspace {
+    display: grid;
+    grid-template-columns: 350px 1fr 400px;
+    height: calc(100vh - 56px - 40px); /* header + footer */
+    gap: 1px;
+    background: var(--border-color);
+}
+
+.dev-panel {
+    background: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-header {
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.panel-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.dev-footer {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    padding: 8px 20px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    height: 40px;
+    font-size: 12px;
+}
+
+.stat-item {
+    display: flex;
+    gap: 6px;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.stat-value.error {
+    color: var(--status-error);
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+button {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.btn-primary:hover {
+    background: var(--accent-blue-hover);
+}
+
+.btn-secondary {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: #4a4a4e;
+}
+
+.btn-success {
+    background: var(--accent-green);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.btn-success:hover {
+    background: var(--accent-green-hover);
+}
+
+.btn-large {
+    width: 100%;
+    padding: 12px;
+    font-weight: 600;
+}
+
+.btn-icon {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+.btn-icon:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.btn-group {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-option {
+    flex: 1;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-option.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+.config-section {
+    margin-bottom: 20px;
+}
+
+.config-section h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.required {
+    color: var(--status-error);
+}
+
+.dev-input,
+.dev-select,
+.dev-textarea {
+    width: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+}
+
+.dev-input:focus,
+.dev-select:focus,
+.dev-textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.dev-textarea {
+    resize: vertical;
+    font-family: var(--font-mono);
+}
+
+small {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 4px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* ============================================================
+   PLATFORMS
+   ============================================================ */
+.platforms-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.platform-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.platform-tag:hover {
+    background: var(--bg-elevated);
+}
+
+.platform-tag input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+}
+
+.platform-tag input[type="checkbox"]:checked + span {
+    color: var(--status-success);
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.tab-group {
+    display: flex;
+    gap: 2px;
+}
+
+.tab-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-btn.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-blue);
+}
+
+.tab-btn:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ============================================================
+   PREVIEW IFRAME
+   ============================================================ */
+.preview-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-toolbar {
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.preview-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.module-iframe {
+    flex: 1;
+    border: none;
+    background: white;
+}
+
+/* ============================================================
+   API TESTER
+   ============================================================ */
+.api-tester {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 20px;
+    height: 100%;
+}
+
+.api-request {
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 16px;
+}
+
+.method-select {
+    width: 100px;
+}
+
+.api-response {
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.response-status {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-badge.success {
+    background: rgba(78, 201, 176, 0.2);
+    color: var(--status-success);
+}
+
+.status-badge.error {
+    background: rgba(244, 135, 113, 0.2);
+    color: var(--status-error);
+}
+
+.response-time {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* ============================================================
+   CODE BLOCKS
+   ============================================================ */
+.code-editor,
+.code-block {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    overflow: auto;
+}
+
+.code-editor {
+    resize: vertical;
+}
+
+.code-block {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 500px;
+}
+
+.code-block.editable {
+    outline: none;
+}
+
+.code-block.editable:focus {
+    border-color: var(--accent-blue);
+}
+
+/* ============================================================
+   MANIFEST EDITOR
+   ============================================================ */
+.manifest-editor {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.manifest-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+#manifest-preview {
+    flex: 1;
+}
+
+/* ============================================================
+   CONSOLE
+   ============================================================ */
+.console-filters {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.filter-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.filter-btn.active {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.console-output {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 12px;
+    height: 400px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 20px;
+}
+
+.console-line {
+    display: flex;
+    gap: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.console-line .timestamp {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.console-line .level {
+    flex-shrink: 0;
+    font-weight: 600;
+}
+
+.console-line.log .level {
+    color: var(--text-secondary);
+}
+
+.console-line.info .level {
+    color: var(--status-info);
+}
+
+.console-line.warn .level {
+    color: var(--status-warn);
+}
+
+.console-line.error .level {
+    color: var(--status-error);
+}
+
+.console-line .message {
+    flex: 1;
+    word-wrap: break-word;
+}
+
+/* ============================================================
+   NETWORK LOG
+   ============================================================ */
+.network-section {
+    margin-top: 20px;
+}
+
+.network-section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.network-log {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.network-entry {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.network-method {
+    font-weight: 600;
+    color: var(--status-info);
+    width: 50px;
+}
+
+.network-endpoint {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.network-status {
+    width: 80px;
+}
+
+.network-entry.success .network-status {
+    color: var(--status-success);
+}
+
+.network-entry.error .network-status {
+    color: var(--status-error);
+}
+
+.network-entry.pending .network-status {
+    color: var(--status-warn);
+}
+
+.network-time {
+    color: var(--text-muted);
+    width: 60px;
+    text-align: right;
+}
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bg-elevated);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4e;
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+.header-actions {
+    display: flex;
+    gap: 4px;
+}

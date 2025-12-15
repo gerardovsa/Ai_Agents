@@ -531,9 +531,11 @@
 .agent-quick-nav-badge:hover {
     background: var(--bg-hover);
     border-color: var(--accent-primary);
-    border-width: 2px;  /* Brighter/thicker border */
+    border-width: 2px;
+    /* Brighter/thicker border */
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(88, 166, 255, 0.4);  /* Brighter blue shadow */
+    box-shadow: 0 4px 8px rgba(88, 166, 255, 0.4);
+    /* Brighter blue shadow */
 }
 
 .agent-quick-nav-badge.active {
@@ -551,15 +553,20 @@
 }
 
 .agent-quick-nav-badge.has-thread:hover {
-    background: rgba(88, 166, 255, 0.3);  /* Slightly brighter dull blue on hover */
-    border-width: 2px;  /* Brighter/thicker border */
-    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.6);  /* Brighter blue shadow */
+    background: rgba(88, 166, 255, 0.3);
+    /* Slightly brighter dull blue on hover */
+    border-width: 2px;
+    /* Brighter/thicker border */
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.6);
+    /* Brighter blue shadow */
 }
 
 /* Highlight badge when agent completes a message (green = ready to view) */
 .agent-quick-nav-badge.message-complete {
-    background: var(--accent-success-dull);  /* Dull dark green background */
-    border-color: var(--accent-success);  /* Bright green border */
+    background: var(--accent-success-dull);
+    /* Dull dark green background */
+    border-color: var(--accent-success);
+    /* Bright green border */
     border-width: 2px;
     color: var(--text-primary);
     box-shadow: 0 2px 8px rgba(63, 185, 80, 0.4);
@@ -567,20 +574,27 @@
 }
 
 .agent-quick-nav-badge.message-complete:hover {
-    background: rgba(63, 185, 80, 0.3);  /* Brighter green on hover */
+    background: rgba(63, 185, 80, 0.3);
+    /* Brighter green on hover */
     border-width: 2px;
     box-shadow: 0 4px 12px rgba(63, 185, 80, 0.6);
-    animation: none;  /* Stop pulsing on hover */
+    animation: none;
+    /* Stop pulsing on hover */
 }
 
 /* Green pulse animation for completed messages - PULSE THE BACKGROUND COLOR */
 @keyframes pulse-green-background {
-    0%, 100% {
-        background: rgba(63, 185, 80, 0.2);  /* Dull green */
+
+    0%,
+    100% {
+        background: rgba(63, 185, 80, 0.2);
+        /* Dull green */
         box-shadow: 0 2px 8px rgba(63, 185, 80, 0.4);
     }
+
     50% {
-        background: rgba(63, 185, 80, 0.4);  /* Brighter green */
+        background: rgba(63, 185, 80, 0.4);
+        /* Brighter green */
         box-shadow: 0 4px 16px rgba(63, 185, 80, 0.7);
     }
 }

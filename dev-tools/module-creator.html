@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Creator & Verifier - Development Tool</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="module-creator.css">
+</head>
+<body>
+    <!-- ============================================================ -->
+    <!-- HEADER -->
+    <!-- ============================================================ -->
+    <header class="dev-header">
+        <div class="dev-logo">
+            <i class="fas fa-hammer"></i>
+            <h1>Module Creator & Verifier</h1>
+        </div>
+        <div class="dev-status">
+            <div class="status-indicator" id="backend-status">
+                <i class="fas fa-circle"></i>
+                <span>Backend: <span id="backend-status-text">Disconnected</span></span>
+            </div>
+            <div class="status-indicator" id="db-status">
+                <i class="fas fa-database"></i>
+                <span>Database: <span id="db-status-text">Unknown</span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- MAIN WORKSPACE -->
+    <!-- ============================================================ -->
+    <main class="dev-workspace">
+        <!-- ======================================== -->
+        <!-- LEFT PANEL: Module Configuration -->
+        <!-- ======================================== -->
+        <aside class="dev-panel left-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-cog"></i> Module Configuration</h2>
+                <button class="btn-icon" id="generate-manifest" title="Generate manifest.json">
+                    <i class="fas fa-file-export"></i>
+                </button>
+            </div>
+
+            <div class="panel-content">
+                <!-- Module Type Selection -->
+                <section class="config-section">
+                    <h3>Module Type</h3>
+                    <div class="btn-group">
+                        <button class="btn-option active" data-type="scratch">
+                            <i class="fas fa-plus-circle"></i> New Module
+                        </button>
+                        <button class="btn-option" data-type="existing">
+                            <i class="fas fa-folder-open"></i> Load Existing
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Existing Module Selector (hidden by default) -->
+                <section class="config-section" id="existing-module-section" style="display: none;">
+                    <h3>Select Module</h3>
+                    <select id="existing-modules" class="dev-select">
+                        <option value="">-- Select a module --</option>
+                    </select>
+                    <button class="btn-primary" id="load-module">
+                        <i class="fas fa-download"></i> Load Module
+                    </button>
+                </section>
+
+                <!-- Module Basic Info -->
+                <section class="config-section">
+                    <h3>Basic Information</h3>
+                    <div class="form-group">
+                        <label for="module-id">Module ID <span class="required">*</span></label>
+                        <input type="text" id="module-id" class="dev-input" 
+                               placeholder="my-module" pattern="[a-z0-9-]+"
+                               title="Lowercase letters, numbers, hyphens only">
+                        <small>Lowercase letters, numbers, hyphens only</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="module-name">Display Name <span class="required">*</span></label>
+                        <input type="text" id="module-name" class="dev-input" 
+                               placeholder="My Module">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="module-description">Description</label>
+                        <textarea id="module-description" class="dev-textarea" rows="3"
+                                  placeholder="Brief description of what this module does"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="module-version">Version</label>
+                            <input type="text" id="module-version" class="dev-input" 
+                                   value="1.0.0" pattern="\\d+\\.\\d+\\.\\d+">
+                        </div>
+                        <div class="form-group">
+                            <label for="module-icon">Icon (FontAwesome)</label>
+                            <input type="text" id="module-icon" class="dev-input" 
+                                   placeholder="fas fa-cube">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- File Structure -->
+                <section class="config-section">
+                    <h3>File Structure</h3>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="include-html" checked>
+                            <span>HTML Template</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="include-js" checked>
+                            <span>JavaScript Controller</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="include-css" checked>
+                            <span>CSS Styling</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="include-routes">
+                            <span>Flask Routes (Backend API)</span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- Module Features -->
+                <section class="config-section">
+                    <h3>Features</h3>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="requires-auth" checked>
+                            <span>Requires Authentication</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="show-in-sidebar" checked>
+                            <span>Show in Sidebar</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="auto-load">
+                            <span>Auto-load on Startup</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="main-tab">
+                            <span>Main Tab (not sidebar)</span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- Required Platforms (Credentials) -->
+                <section class="config-section">
+                    <h3>Required Platforms</h3>
+                    <div id="platforms-list" class="platforms-list">
+                        <!-- Dynamically populated -->
+                    </div>
+                    <input type="text" id="add-platform" class="dev-input" 
+                           placeholder="Add platform (e.g., openai, pinecone)">
+                </section>
+
+                <!-- Action Buttons -->
+                <section class="config-section">
+                    <button class="btn-success btn-large" id="create-module">
+                        <i class="fas fa-rocket"></i> Create Module Files
+                    </button>
+                    <button class="btn-secondary btn-large" id="validate-manifest">
+                        <i class="fas fa-check-circle"></i> Validate Manifest
+                    </button>
+                </section>
+            </div>
+        </aside>
+
+        <!-- ======================================== -->
+        <!-- CENTER PANEL: Live Preview & API Tester -->
+        <!-- ======================================== -->
+        <section class="dev-panel center-panel">
+            <div class="panel-header">
+                <div class="tab-group">
+                    <button class="tab-btn active" data-tab="preview">
+                        <i class="fas fa-eye"></i> Live Preview
+                    </button>
+                    <button class="tab-btn" data-tab="api-tester">
+                        <i class="fas fa-network-wired"></i> API Tester
+                    </button>
+                    <button class="tab-btn" data-tab="manifest">
+                        <i class="fas fa-file-code"></i> Manifest JSON
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-content">
+                <!-- Tab 1: Live Preview -->
+                <div class="tab-content active" id="preview-tab">
+                    <div class="preview-container">
+                        <div class="preview-toolbar">
+                            <button class="btn-icon" id="refresh-preview">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <span class="preview-label">Module Preview (Read-Only)</span>
+                        </div>
+                        <iframe id="module-preview" class="module-iframe" 
+                                sandbox="allow-scripts allow-same-origin">
+                        </iframe>
+                    </div>
+                </div>
+
+                <!-- Tab 2: API Tester -->
+                <div class="tab-content" id="api-tester-tab">
+                    <div class="api-tester">
+                        <div class="api-request">
+                            <h4>Request</h4>
+                            <div class="form-row">
+                                <select id="http-method" class="dev-select method-select">
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                                <input type="text" id="api-endpoint" class="dev-input" 
+                                       placeholder="/api/your-module/endpoint">
+                                <button class="btn-primary" id="send-request">
+                                    <i class="fas fa-paper-plane"></i> Send
+                                </button>
+                            </div>
+                            <div class="form-group">
+                                <label>Request Body (JSON)</label>
+                                <textarea id="request-body" class="code-editor" rows="8"
+                                          placeholder='{\n  "key": "value"\n}'></textarea>
+                            </div>
+                        </div>
+
+                        <div class="api-response">
+                            <h4>Response</h4>
+                            <div class="response-status">
+                                <span class="status-badge" id="response-status">No Request</span>
+                                <span class="response-time" id="response-time"></span>
+                            </div>
+                            <pre id="response-body" class="code-block">No response yet</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Manifest JSON -->
+                <div class="tab-content" id="manifest-tab">
+                    <div class="manifest-editor">
+                        <div class="manifest-toolbar">
+                            <button class="btn-icon" id="copy-manifest">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                            <button class="btn-icon" id="download-manifest">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="btn-success" id="save-manifest">
+                                <i class="fas fa-save"></i> Save to Module
+                            </button>
+                        </div>
+                        <pre id="manifest-preview" class="code-block editable" contenteditable="true">{
+  "id": "my-module",
+  "name": "My Module",
+  "version": "1.0.0",
+  "description": "Module description",
+  "icon": "fas fa-cube"
+}</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- RIGHT PANEL: Console & Logs -->
+        <!-- ======================================== -->
+        <aside class="dev-panel right-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-terminal"></i> Console & Logs</h2>
+                <div class="header-actions">
+                    <button class="btn-icon" id="clear-console" title="Clear console">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button class="btn-icon" id="toggle-autoscroll" title="Toggle auto-scroll">
+                        <i class="fas fa-arrows-alt-v"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-content">
+                <!-- Console Log Filters -->
+                <div class="console-filters">
+                    <button class="filter-btn active" data-level="all">All</button>
+                    <button class="filter-btn" data-level="log">Log</button>
+                    <button class="filter-btn" data-level="info">Info</button>
+                    <button class="filter-btn" data-level="warn">Warn</button>
+                    <button class="filter-btn" data-level="error">Error</button>
+                </div>
+
+                <!-- Console Output -->
+                <div id="console-output" class="console-output">
+                    <div class="console-line log">
+                        <span class="timestamp">[00:00:00]</span>
+                        <span class="level">[LOG]</span>
+                        <span class="message">Module Creator initialized</span>
+                    </div>
+                </div>
+
+                <!-- Network Requests Log -->
+                <div class="network-section">
+                    <h4><i class="fas fa-exchange-alt"></i> Network Requests</h4>
+                    <div id="network-log" class="network-log">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER: Quick Stats -->
+    <!-- ============================================================ -->
+    <footer class="dev-footer">
+        <div class="stat-item">
+            <span class="stat-label">Console Messages:</span>
+            <span class="stat-value" id="console-count">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">API Calls:</span>
+            <span class="stat-value" id="api-count">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Errors:</span>
+            <span class="stat-value error" id="error-count">0</span>
+        </div>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================================ -->
+    <script src="module-creator.js"></script>
+</body>
+</html>

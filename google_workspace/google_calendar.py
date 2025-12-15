@@ -266,3 +266,32 @@ def google_calendar_list_events(_user_id=None, _injected_credentials=None, **kwa
 def google_calendar_check_availability(_user_id=None, _injected_credentials=None, **kwargs):
     tools = GoogleCalendarTools(_user_id=_user_id, _injected_credentials=_injected_credentials)
     return tools.check_availability(**kwargs)
+
+
+# ============================================================
+# DEPRECATED TOOL ALIASES (for backwards compatibility)
+# ============================================================
+
+def google_calendar_get_calendar(**kwargs):
+    """DEPRECATED: Use google_calendar_list_calendars instead"""
+    return google_calendar_list_calendars(**kwargs)
+
+def google_calendar_get_event(**kwargs):
+    """DEPRECATED: Use google_calendar_list_events with specific event_id filter instead"""
+    return {"success": False, "error": "DEPRECATED: Use google_calendar_list_events instead"}
+
+def google_calendar_quick_add(**kwargs):
+    """DEPRECATED: Use google_calendar_create_event instead"""
+    return google_calendar_create_event(**kwargs)
+
+def google_calendar_move_event(**kwargs):
+    """DEPRECATED: Use google_calendar_update_event to change calendar_id instead"""
+    return {"success": False, "error": "DEPRECATED: Use google_calendar_update_event with new calendar_id"}
+
+def google_calendar_add_reminder(**kwargs):
+    """DEPRECATED: Use google_calendar_update_event with reminders parameter instead"""
+    return {"success": False, "error": "DEPRECATED: Use google_calendar_update_event with reminders parameter"}
+
+def google_calendar_get_colors(**kwargs):
+    """DEPRECATED: Colors are managed by Google Calendar UI"""
+    return {"success": False, "error": "DEPRECATED: Manage colors in Google Calendar settings"}

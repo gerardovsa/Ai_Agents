@@ -871,6 +871,8 @@ microsoft_todo_smart_recurring_tasks = microsoft_todo_tools.todo_smart_recurring
 
 microsoft_todo_export_tasks = microsoft_todo_tools.todo_export_tasks
 
+microsoft_todo_list_tasks = microsoft_todo_tools.todo_list_tasks
+
 
 # Microsoft Planner functions
 planner_list_plans = microsoft_todo_tools.planner_list_plans
