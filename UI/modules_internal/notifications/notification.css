@@ -37,7 +37,7 @@
 }
 
 /* Only show when notification bell button is active - NOT account profile */
-#notificationBellBtn-sidebar:not(.active) ~ .notification-panel:not(.show) {
+#notificationBellBtn-sidebar:not(.active)~.notification-panel:not(.show) {
     display: none;
 }
 
@@ -424,7 +424,8 @@ body.loading .notification-panel,
    NOTIFICATION BADGE (Bell button)
    ======================================== */
 
-.notification-badge {
+/* Badge ONLY on notification bell button - not account profile */
+#notificationBellBtn-sidebar .notification-badge {
     position: absolute;
     top: -4px;
     right: -4px;
@@ -441,6 +442,7 @@ body.loading .notification-panel,
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     animation: badgePop 0.3s ease;
+    z-index: 10;
 }
 
 @keyframes badgePop {

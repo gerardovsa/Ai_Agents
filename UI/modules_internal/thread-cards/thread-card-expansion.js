@@ -46,9 +46,16 @@ window.ThreadCardExpansion = {
     toggleCard(event, threadId) {
         // CRITICAL: Prevent event bubbling (don't trigger double-click or parent handlers)
         if (event) {
-            event.stopPropagation();
-            event.preventDefault();
-            event.stopImmediatePropagation(); // Stop ALL handlers on this element
+            if (typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
+            if (typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
+            // Only call stopImmediatePropagation if it exists (not all event objects have it)
+            if (typeof event.stopImmediatePropagation === 'function') {
+                event.stopImmediatePropagation();
+            }
         }
 
         // ✅ FIX: Use event.target to find the ACTUAL clicked card (location-aware)

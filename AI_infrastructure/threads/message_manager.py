@@ -173,13 +173,24 @@ class MessageManager:
                 # Insert message
                 now = datetime.utcnow().isoformat()
                 
+                # Generate embedding for message content (async background job)
+                content_embedding = None
+                try:
+                    from tools.implementations.conversation_memory import generate_embedding
+                    # Only embed substantive content (>20 chars)
+                    if message_data.content and len(message_data.content.strip()) > 20:
+                        content_embedding = generate_embedding(message_data.content[:8000])  # Limit to 8K chars
+                except Exception as e:
+                    # Non-blocking: Continue even if embedding fails
+                    logger.warning(f"Failed to generate message embedding: {e}")
+                
                 sql, params = convert_sql_placeholders("""
                     INSERT INTO sessions.messages (
                         thread_id, workspace_id, user_id, role, content,
                         prompt, include, tool_calls, tokens_used, response_time_ms,
-                        metadata, created_at
+                        metadata, created_at, content_embedding
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     message_data.thread_id,
@@ -193,7 +204,8 @@ class MessageManager:
                     message_data.tokens_used,
                     message_data.response_time_ms,
                     json.dumps(message_data.metadata) if message_data.metadata else None,
-                    now
+                    now,
+                    content_embedding
                 ))
                 
                 cursor.execute(sql, params)

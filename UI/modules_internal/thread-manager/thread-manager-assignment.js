@@ -308,6 +308,13 @@ Object.assign(window.ThreadManager, {
 
         console.log(`✅ [CASCADE] Complete for thread ${threadId}`);
         this.cascadeInProgress = false;  // Allow UI refreshes
+
+        // ✨ Update agent badge if thread was assigned to an agent
+        if (newLocation && newLocation.startsWith('agent-') && typeof MultiAgent !== 'undefined' && typeof MultiAgent.updateQuickNavBadge === 'function') {
+            const agentId = parseInt(newLocation.replace('agent-', ''));
+            MultiAgent.updateQuickNavBadge(agentId);
+            console.log(`✅ [CASCADE] Updated quick nav badge for agent ${agentId}`);
+        }
     },
 
     /**

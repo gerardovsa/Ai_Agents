@@ -147,7 +147,7 @@ class UserAuthManager:
         if is_using_supabase():
             # Only log once per application lifetime (not per UserAuthManager instance)
             if not UserAuthManager._tables_initialized:
-                print("✅ [USER AUTH] Using Supabase - tables verified")
+                print("[USER AUTH] Using Supabase - tables verified")
                 UserAuthManager._tables_initialized = True
             return
         

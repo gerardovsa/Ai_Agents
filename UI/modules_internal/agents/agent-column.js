@@ -32,6 +32,25 @@
 const AgentColumn = (function () {
     'use strict';
 
+    // ========================================
+    // EXTERNAL MODULE: Feedback Widget
+    // ========================================
+    // Initialize feedback module (singleton instance)
+    let feedbackModule = null;
+
+    function initFeedbackModule() {
+        if (!feedbackModule && typeof FeedbackModule !== 'undefined') {
+            feedbackModule = FeedbackModule.getInstance({
+                theme: 'dark',
+                enableKeyboardShortcuts: true,
+                enableLocalStorage: true,
+                apiEndpoint: '/api/agent/feedback'
+            });
+            console.log('[AgentColumn] ✅ Feedback module initialized');
+        }
+        return feedbackModule;
+    }
+
     // Agent icon mapping
     const AGENT_ICONS = {
         1: 'fa-robot',
@@ -171,7 +190,14 @@ const AgentColumn = (function () {
                     
                     <!-- Center Title -->
                     <div class="agent-title-wrapper">
-                        <h2><i class="fas ${icon}"></i> ${name}</h2>
+                        <h2 style="display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas ${icon}"></i> ${name}
+                        </h2>
+                        <div class="active-users-badge" id="agent-active-users-badge-${agentId}"
+                             style="display: none; margin-left: 8px;" title="Active sessions">
+                            <i class="fas fa-users" style="margin-right: 4px;"></i>
+                            <span id="agent-active-users-count-${agentId}">1</span>
+                        </div>
                     </div>
                     
                     <!-- Right Controls -->
@@ -254,50 +280,8 @@ const AgentColumn = (function () {
                  data-agent-id="${agentId}" 
                  style="display: none;">
                 
-                <!-- Feedback Area (Per-Agent) -->
-                <div id="agent-feedback-${agentId}" class="agent-feedback-container">
-                    <div class="feedback-header">
-                        <div class="feedback-header-left">
-                            <i class="fas fa-comment-dots"></i>
-                            <span class="feedback-header-text">Provide guidance to AI</span>
-                        </div>
-                        <button class="feedback-close-btn" 
-                                onclick="event.stopPropagation(); AgentInput.toggleFeedback(${agentId})"
-                                aria-label="Close feedback area">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="feedback-body">
-                        <textarea id="agent-feedback-text-${agentId}" 
-                                  class="feedback-textarea"
-                                  placeholder="Type instructions or guidance for ${name}..."
-                                  rows="3"
-                                  aria-label="Feedback text"></textarea>
-                        <div class="feedback-quick-buttons">
-                            <button onclick="event.stopPropagation(); AgentInput.insertQuickFeedback(${agentId}, 'pause')"
-                                    title="Ask AI to pause"
-                                    aria-label="Pause AI">
-                                <i class="fas fa-pause"></i>
-                            </button>
-                            <button onclick="event.stopPropagation(); AgentInput.insertQuickFeedback(${agentId}, 'stop')"
-                                    title="Ask AI to stop"
-                                    aria-label="Stop AI">
-                                <i class="fas fa-stop"></i>
-                            </button>
-                            <button onclick="event.stopPropagation(); AgentInput.insertQuickFeedback(${agentId}, 'explain')"
-                                    title="Ask AI to explain"
-                                    aria-label="Explain">
-                                <i class="fas fa-question-circle"></i>
-                            </button>
-                            <button class="feedback-send-btn"
-                                    onclick="event.stopPropagation(); AgentInput.sendFeedback(${agentId})"
-                                    title="Send feedback"
-                                    aria-label="Send feedback">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Feedback Widget Container (External Module) -->
+                <div id="agent-feedback-${agentId}" class="agent-feedback-container"></div>
                 
                 <!-- Input Wrapper (Per-Agent) -->
                 <div class="agent-input-wrapper">
@@ -325,7 +309,7 @@ const AgentColumn = (function () {
                             </button>
                             <button class="agent-feedback-btn" 
                                     id="agent-feedback-btn-${agentId}"
-                                    onclick="event.stopPropagation(); AgentInput.toggleFeedback(${agentId})"
+                                    onclick="event.stopPropagation(); AgentColumn.toggleFeedback(${agentId})"
                                     title="Give feedback to AI"
                                     aria-label="Give feedback">
                                 <i class="fas fa-comment-dots"></i>
@@ -364,6 +348,17 @@ const AgentColumn = (function () {
             </div>
         `;
 
+        // Presence scope: mark this agent column as the active focus within Command Center
+        // Uses the shared Socket.IO connection managed by SynergyRealtime.
+        const header = column.querySelector('.agent-header');
+        if (header) {
+            header.addEventListener('pointerdown', () => {
+                if (window.SynergyRealtime && typeof window.SynergyRealtime.setPresenceScope === 'function') {
+                    window.SynergyRealtime.setPresenceScope(`agent:${agentId}`);
+                }
+            });
+        }
+
         // ✅ SETUP MUTATION OBSERVER TO TRACK MESSAGE CHANGES
         // This allows us to show/hide scroll controls based on whether messages exist
         setTimeout(() => {
@@ -390,9 +385,67 @@ const AgentColumn = (function () {
 
             // Setup auto-scroll observer
             setupAutoScrollObserver(agentId);
+
+            // ✅ INITIALIZE FEEDBACK WIDGET (External Module)
+            initializeFeedbackWidget(agentId, name);
         }, 100);
 
         return column;
+    }
+
+    /**
+     * Initialize feedback widget for an agent using external module
+     * @param {number} agentId - Agent ID
+     * @param {string} agentName - Agent name
+     */
+    function initializeFeedbackWidget(agentId, agentName) {
+        const feedbackContainer = document.getElementById(`agent-feedback-${agentId}`);
+        if (!feedbackContainer) {
+            console.warn(`[AgentColumn] Feedback container not found for agent ${agentId}`);
+            return;
+        }
+
+        // Initialize feedback module
+        const feedback = initFeedbackModule();
+        if (!feedback) {
+            console.error('[AgentColumn] Feedback module not available');
+            return;
+        }
+
+        // Create feedback widget
+        feedback.createWidget(`agent-${agentId}`, {
+            contextType: 'agent',
+            contextId: agentId,
+            placeholder: `Type instructions or guidance for ${agentName}...`,
+            quickButtons: ['pause', 'stop', 'explain', 'continue'],
+            onSend: async (text, data) => {
+                console.log(`[AgentColumn] Feedback sent for agent ${agentId}:`, text);
+
+                // Send to AgentInput handler if available
+                if (typeof AgentInput !== 'undefined' && typeof AgentInput.sendFeedback === 'function') {
+                    await AgentInput.sendFeedback(agentId, text);
+                } else {
+                    // Fallback: send message directly
+                    if (typeof sendMessage === 'function') {
+                        const inputArea = document.getElementById(`agent-input-${agentId}`);
+                        if (inputArea) {
+                            inputArea.value = text;
+                            sendMessage(agentId);
+                        }
+                    }
+                }
+            },
+            onCancel: () => {
+                console.log(`[AgentColumn] Feedback cancelled for agent ${agentId}`);
+            }
+        });
+
+        // Get widget element and append to container
+        const widgetElement = feedback.getWidgetElement(`agent-${agentId}`);
+        if (widgetElement) {
+            feedbackContainer.appendChild(widgetElement);
+            console.log(`[AgentColumn] ✅ Feedback widget initialized for agent ${agentId}`);
+        }
     }
 
     /**
@@ -1303,6 +1356,9 @@ const AgentColumn = (function () {
         if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
             await MultiAgent.loadThreadIntoAgent(agentId, thread);
             console.log(`✅ [AgentColumn] Loaded thread "${thread.title}" into Agent ${agentId}`);
+
+            // ✅ Update scroll controls visibility after messages load
+            setTimeout(() => updateScrollControlsVisibility(agentId), 200);
         } else {
             console.error('[AgentColumn] MultiAgent.loadThreadIntoAgent not available');
         }
@@ -1807,6 +1863,9 @@ const AgentColumn = (function () {
                 const thread = ThreadManager.threads.find(t => t.id === threadId);
                 if (thread && typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
                     await MultiAgent.loadThreadIntoAgent(agentId, thread);
+
+                    // ✅ Update scroll controls visibility after messages load
+                    setTimeout(() => updateScrollControlsVisibility(agentId), 200);
                 } else {
                     console.error(`Thread not found or MultiAgent not available: ${threadId}`);
                 }
@@ -2124,10 +2183,16 @@ const AgentColumn = (function () {
             attachedFilesContainer.innerHTML = '';
         }
 
-        // STEP 5: Notify MultiAgent system if available
+        // STEP 5: Notify MultiAgent system if available (with threadId if available)
         if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.unloadThreadFromAgent === 'function') {
-            MultiAgent.unloadThreadFromAgent(agentId);
-            console.log(`[AgentColumn] Notified MultiAgent to unload thread from agent ${agentId}`);
+            // Get threadId from MultiAgent state before clearing it
+            const threadId = MultiAgent.loadedThreads?.[agentId]?.threadId;
+            if (threadId) {
+                MultiAgent.unloadThreadFromAgent(agentId, threadId);
+                console.log(`[AgentColumn] Notified MultiAgent to unload thread ${threadId} from agent ${agentId}`);
+            } else {
+                console.log(`[AgentColumn] No thread loaded in agent ${agentId} - skipping MultiAgent.unloadThreadFromAgent`);
+            }
         }
 
         // STEP 6: Clear any active streaming connections
@@ -2147,7 +2212,28 @@ const AgentColumn = (function () {
         });
         document.dispatchEvent(unloadEvent);
 
+        // STEP 8: Update quick nav badge to remove 'has-thread' highlight
+        if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.updateQuickNavBadge === 'function') {
+            MultiAgent.updateQuickNavBadge(agentId);
+            console.log(`[AgentColumn] Updated quick nav badge for agent ${agentId}`);
+        }
+
         console.log(`[AgentColumn] ✅ Thread unloaded from agent ${agentId}`);
+    }
+
+    /**
+     * Toggle feedback widget visibility using external module
+     * @param {number} agentId - Agent ID
+     */
+    function toggleFeedback(agentId) {
+        const feedback = initFeedbackModule();
+        if (!feedback) {
+            console.error('[AgentColumn] Feedback module not available');
+            return;
+        }
+
+        feedback.toggle(`agent-${agentId}`);
+        console.log(`[AgentColumn] Toggled feedback for agent ${agentId}`);
     }
 
     // Public API
@@ -2184,7 +2270,8 @@ const AgentColumn = (function () {
         toggleThinkingToolBubbles,
         toggleViewModeMenu,
         setViewMode,
-        applyViewModeToMessage  // ✅ NEW: Apply view mode to single message
+        applyViewModeToMessage,  // ✅ Apply view mode to single message
+        toggleFeedback  // ✅ NEW: Toggle feedback widget (external module)
     };
 })();
 
@@ -2222,6 +2309,18 @@ if (typeof document !== 'undefined') {
     setTimeout(() => AgentColumn.refreshAllAgentThreadInfos(), 5000);
     setTimeout(() => AgentColumn.refreshAllAgentThreadInfos(), 7000);
     setTimeout(() => AgentColumn.refreshAllAgentThreadInfos(), 10000);
+
+    // ✅ SAFETY CHECK: Update scroll controls visibility for all agents after page load
+    // This catches any agents that loaded messages before MutationObserver was ready
+    setTimeout(() => {
+        document.querySelectorAll('[id^="agent-messages-"]').forEach(container => {
+            const agentId = parseInt(container.id.replace('agent-messages-', ''));
+            if (!isNaN(agentId)) {
+                AgentColumn.updateScrollControlsVisibility(agentId);
+            }
+        });
+        console.log('🔄 [AgentColumn] Performed safety check on scroll controls visibility');
+    }, 2000);
 
     // Watch for agent column creation using MutationObserver
     const observer = new MutationObserver((mutations) => {

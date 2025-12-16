@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Widget - Standalone Demo</title>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Feedback Module Styles -->
+    <link rel="stylesheet" href="feedback-styles.css">
+
+    <style>
+        /* Demo Page Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e5e7eb;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .demo-header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .demo-header p {
+            font-size: 18px;
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .demo-card {
+            background: rgba(31, 41, 55, 0.6);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .demo-card h2 i {
+            color: #667eea;
+        }
+
+        .demo-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .demo-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #667eea;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .demo-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .demo-btn:active {
+            transform: translateY(0);
+        }
+
+        .demo-btn.secondary {
+            background: rgba(75, 85, 99, 0.6);
+        }
+
+        .demo-btn.secondary:hover {
+            background: rgba(75, 85, 99, 0.8);
+        }
+
+        .demo-output {
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #10b981;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+
+        .demo-output .log-entry {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(75, 85, 99, 0.2);
+        }
+
+        .demo-output .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .demo-output .timestamp {
+            color: #6b7280;
+            margin-right: 8px;
+        }
+
+        .widget-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(17, 24, 39, 0.4);
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .widget-placeholder {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-card {
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .code-snippet {
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+
+        .code-snippet pre {
+            margin: 0;
+            color: #e5e7eb;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+        }
+
+        @media (max-width: 768px) {
+            .demo-header h1 {
+                font-size: 32px;
+            }
+
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button class="demo-btn" id="themeToggle">
+            <i class="fas fa-moon"></i>
+            Toggle Theme
+        </button>
+    </div>
+
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="demo-header">
+            <h1>🎯 Feedback Widget Module</h1>
+            <p>Reusable, portable feedback system for AI agent interactions</p>
+        </div>
+
+        <!-- Demo Grid -->
+        <div class="demo-grid">
+            <!-- Widget Demo -->
+            <div class="demo-card">
+                <h2><i class="fas fa-comment-dots"></i> Interactive Widget</h2>
+                <div class="demo-controls">
+                    <button class="demo-btn" id="createWidget">
+                        <i class="fas fa-plus"></i>
+                        Create Widget
+                    </button>
+                    <button class="demo-btn secondary" id="toggleWidget">
+                        <i class="fas fa-eye"></i>
+                        Toggle Widget
+                    </button>
+                    <button class="demo-btn secondary" id="destroyWidget">
+                        <i class="fas fa-trash"></i>
+                        Destroy Widget
+                    </button>
+                </div>
+                <div class="widget-container" id="widgetContainer">
+                    <div class="widget-placeholder">Widget will appear here when created</div>
+                </div>
+            </div>
+
+            <!-- Quick Templates Demo -->
+            <div class="demo-card">
+                <h2><i class="fas fa-bolt"></i> Quick Templates</h2>
+                <div class="demo-controls">
+                    <button class="demo-btn" onclick="insertTemplate('pause')">
+                        <i class="fas fa-pause"></i>
+                        Pause
+                    </button>
+                    <button class="demo-btn" onclick="insertTemplate('stop')">
+                        <i class="fas fa-stop"></i>
+                        Stop
+                    </button>
+                    <button class="demo-btn" onclick="insertTemplate('explain')">
+                        <i class="fas fa-question-circle"></i>
+                        Explain
+                    </button>
+                    <button class="demo-btn secondary" onclick="insertTemplate('continue')">
+                        <i class="fas fa-play"></i>
+                        Continue
+                    </button>
+                </div>
+            </div>
+
+            <!-- Event Logs -->
+            <div class="demo-card">
+                <h2><i class="fas fa-terminal"></i> Event Logs</h2>
+                <div class="demo-output" id="eventLogs">
+                    <div class="log-entry">
+                        <span class="timestamp">[Ready]</span>
+                        <span>Waiting for events...</span>
+                    </div>
+                </div>
+                <button class="demo-btn secondary" onclick="clearLogs()" style="margin-top: 12px;">
+                    <i class="fas fa-eraser"></i>
+                    Clear Logs
+                </button>
+            </div>
+
+            <!-- Statistics -->
+            <div class="demo-card">
+                <h2><i class="fas fa-chart-bar"></i> Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statWidgets">0</div>
+                        <div class="stat-label">Widgets</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statHistory">0</div>
+                        <div class="stat-label">History</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statActive">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                </div>
+                <button class="demo-btn secondary" onclick="updateStats()" style="margin-top: 12px;">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh Stats
+                </button>
+            </div>
+
+            <!-- API Example -->
+            <div class="demo-card">
+                <h2><i class="fas fa-code"></i> Code Example</h2>
+                <div class="code-snippet">
+                    <pre>// Create feedback widget
+const feedback = FeedbackModule.getInstance();
+
+feedback.createWidget('agent-1', {
+    contextType: 'agent',
+    contextId: 123,
+    placeholder: 'Guidance for AI...',
+    onSend: (text, data) => {
+        console.log('Sent:', text);
+    }
+});
+
+// Toggle visibility
+feedback.toggle('agent-1');</pre>
+                </div>
+            </div>
+
+            <!-- History Demo -->
+            <div class="demo-card">
+                <h2><i class="fas fa-history"></i> Feedback History</h2>
+                <div class="demo-output" id="historyList" style="max-height: 150px;">
+                    <div class="log-entry">No history yet</div>
+                </div>
+                <button class="demo-btn secondary" onclick="showHistory()" style="margin-top: 12px;">
+                    <i class="fas fa-list"></i>
+                    View History
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Module JS -->
+    <script src="feedback-module.js"></script>
+
+    <!-- Demo Logic -->
+    <script>
+        // Initialize feedback module
+        const feedback = FeedbackModule.getInstance({
+            theme: 'dark',
+            enableKeyboardShortcuts: true,
+            enableLocalStorage: true
+        });
+
+        let widgetCreated = false;
+
+        // Create widget
+        document.getElementById('createWidget').addEventListener('click', () => {
+            if (widgetCreated) {
+                logEvent('Widget already exists');
+                return;
+            }
+
+            feedback.createWidget('demo-widget', {
+                contextType: 'demo',
+                contextId: 1,
+                placeholder: 'Type your feedback here...',
+                quickButtons: ['pause', 'stop', 'explain', 'continue'],
+                onSend: (text, data) => {
+                    logEvent(`Feedback sent: "${text}"`);
+                    updateStats();
+                    showHistory();
+                },
+                onCancel: () => {
+                    logEvent('Feedback cancelled');
+                }
+            });
+
+            const widgetElement = feedback.getWidgetElement('demo-widget');
+            const container = document.getElementById('widgetContainer');
+            container.innerHTML = '';
+            container.appendChild(widgetElement);
+
+            widgetCreated = true;
+            logEvent('✅ Widget created successfully');
+            updateStats();
+        });
+
+        // Toggle widget
+        document.getElementById('toggleWidget').addEventListener('click', () => {
+            if (!widgetCreated) {
+                logEvent('❌ Create widget first');
+                return;
+            }
+
+            feedback.toggle('demo-widget');
+            logEvent('Widget toggled');
+        });
+
+        // Destroy widget
+        document.getElementById('destroyWidget').addEventListener('click', () => {
+            if (!widgetCreated) {
+                logEvent('❌ No widget to destroy');
+                return;
+            }
+
+            feedback.destroyWidget('demo-widget');
+            const container = document.getElementById('widgetContainer');
+            container.innerHTML = '<div class="widget-placeholder">Widget destroyed</div>';
+
+            widgetCreated = false;
+            logEvent('Widget destroyed');
+            updateStats();
+        });
+
+        // Insert template
+        function insertTemplate(templateKey) {
+            if (!widgetCreated) {
+                logEvent('❌ Create widget first');
+                return;
+            }
+
+            feedback.insertQuickFeedback('demo-widget', templateKey);
+            feedback.show('demo-widget');
+            logEvent(`Template inserted: ${templateKey}`);
+        }
+
+        // Theme toggle
+        let currentTheme = 'dark';
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            feedback.setTheme(currentTheme);
+
+            const icon = document.querySelector('#themeToggle i');
+            icon.className = currentTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+
+            logEvent(`Theme changed to: ${currentTheme}`);
+        });
+
+        // Log event
+        function logEvent(message) {
+            const logsContainer = document.getElementById('eventLogs');
+            const timestamp = new Date().toLocaleTimeString();
+
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                <span>${message}</span>
+            `;
+
+            logsContainer.insertBefore(entry, logsContainer.firstChild);
+
+            // Keep only last 10 entries
+            while (logsContainer.children.length > 10) {
+                logsContainer.removeChild(logsContainer.lastChild);
+            }
+        }
+
+        // Clear logs
+        function clearLogs() {
+            const logsContainer = document.getElementById('eventLogs');
+            logsContainer.innerHTML = '<div class="log-entry"><span class="timestamp">[Ready]</span><span>Logs cleared</span></div>';
+        }
+
+        // Update stats
+        function updateStats() {
+            const stats = feedback.getStats();
+            document.getElementById('statWidgets').textContent = stats.widgetCount;
+            document.getElementById('statHistory').textContent = stats.historyCount;
+            document.getElementById('statActive').textContent = stats.activeWidgets;
+        }
+
+        // Show history
+        function showHistory() {
+            const history = feedback.getHistory({ limit: 5 });
+            const historyContainer = document.getElementById('historyList');
+
+            if (history.length === 0) {
+                historyContainer.innerHTML = '<div class="log-entry">No history yet</div>';
+                return;
+            }
+
+            historyContainer.innerHTML = history.reverse().map(item => {
+                const time = new Date(item.timestamp).toLocaleTimeString();
+                return `
+                    <div class="log-entry">
+                        <span class="timestamp">[${time}]</span>
+                        <span>"${item.text.substring(0, 40)}${item.text.length > 40 ? '...' : ''}"</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Listen to module events
+        document.addEventListener('feedback:sent', (e) => {
+            logEvent(`📤 Event: feedback:sent`);
+            console.log('Feedback sent event:', e.detail);
+        });
+
+        document.addEventListener('widget:created', (e) => {
+            logEvent(`📦 Event: widget:created`);
+        });
+
+        document.addEventListener('widget:destroyed', (e) => {
+            logEvent(`🗑️ Event: widget:destroyed`);
+        });
+
+        // Initial stats update
+        updateStats();
+
+        // Welcome message
+        setTimeout(() => {
+            logEvent('👋 Welcome to Feedback Module Demo!');
+            logEvent('Click "Create Widget" to start');
+        }, 500);
+    </script>
+</body>
+
+</html>

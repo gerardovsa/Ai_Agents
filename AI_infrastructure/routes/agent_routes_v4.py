@@ -981,6 +981,21 @@ def stream_agent(agent_id):
     user_id = g.get('user_id', 1)
     print(f"[STREAM] 👤 User ID: {user_id}")
     
+    # Get user email from database
+    user_email = None
+    try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        row = cursor.fetchone()
+        if row:
+            user_email = row[0] if isinstance(row, tuple) else row.get('email')
+        cursor.close()
+        conn.close()
+        print(f"[STREAM] 📧 User Email fetched from DB: {user_email} (user_id={user_id})")
+    except Exception as e:
+        print(f"[STREAM] ⚠️ Could not fetch user email: {e}")
+    
     # ============================================
     # LOAD TOOLS (Dynamic Loading)
     # ============================================
@@ -1233,7 +1248,7 @@ def stream_agent(agent_id):
         if auth_platform == 'microsoft':
             mandatory_platform = "Microsoft 365 Suite"
             platform_instructions = """
-MANDATORY PLATFORM USE: Microsoft 365 Suite
+PLATFORM AUTHENTICATION: microsoft_* tools available ✅ | google_*/gmail_* BLOCKED ❌ (not authenticated)
 
 User is authenticated with Microsoft 365. For any functionality that 
 overlaps between Google Workspace and Microsoft 365 (email, documents, 
@@ -1244,11 +1259,13 @@ Use Microsoft tools for:
 - Documents → microsoft_word_* (NOT google_docs_*)
 - Spreadsheets → microsoft_excel_* (NOT google_sheets_*)
 - Storage → microsoft_onedrive_* (NOT google_drive_*)
-- Calendar → microsoft_calendar_* (NOT google_calendar_*)"""
+- Calendar → microsoft_calendar_* (NOT google_calendar_*)
+
+All google_* and gmail_* tools will return 401/403 authentication errors."""
         elif auth_platform == 'google':
             mandatory_platform = "Google Workspace"
             platform_instructions = """
-MANDATORY PLATFORM USE: Google Workspace
+PLATFORM AUTHENTICATION: google_*/gmail_* tools available ✅ | microsoft_* BLOCKED ❌ (not authenticated)
 
 User is authenticated with Google Workspace. For any functionality that 
 overlaps between Google Workspace and Microsoft 365 (email, documents, 
@@ -1259,7 +1276,9 @@ Use Google tools for:
 - Documents → google_docs_* (NOT microsoft_word_*)
 - Spreadsheets → google_sheets_* (NOT microsoft_excel_*)
 - Storage → google_drive_* (NOT microsoft_onedrive_*)
-- Calendar → google_calendar_* (NOT microsoft_calendar_*)"""
+- Calendar → google_calendar_* (NOT microsoft_calendar_*)
+
+All microsoft_* tools will return 401/403 authentication errors."""
         else:
             mandatory_platform = "Auto (Check Connected Platforms)"
             platform_instructions = """
@@ -1282,6 +1301,7 @@ available tools. Prefer the platform the user is authenticated with."""
 USER CONTEXT
 
 User: {nickname if nickname else 'User'}
+User Email Address: {user_email if user_email else 'Not available'}
 Location: {location_string}
 Current Time: {day_of_week}, {current_time_str}
 Season: {month_name} ({season})"""
@@ -1856,6 +1876,27 @@ Use tools in multiple rounds with interleaved thinking."""
     # START STREAMING
     # ============================================
     from core.combined_agent_worker import execute_streaming_request
+
+    def _broadcast_agent_thread_updated(event_payload: Dict[str, Any]):
+        """Best-effort Socket.IO broadcast to other Command Center clients.
+
+        This avoids circular imports by pulling the SocketIO instance from Flask app extensions.
+        """
+        try:
+            socketio_ext = getattr(current_app, 'extensions', {}).get('socketio')
+            if not socketio_ext:
+                return
+
+            # Broadcast to all clients in the Command Center room.
+            socketio_ext.emit(
+                'agent_thread_updated',
+                event_payload,
+                room='command_center',
+                namespace='/ws/synergy'
+            )
+        except Exception as e:
+            # Never break the SSE stream because of a realtime broadcast failure
+            print(f"[STREAM] ⚠️ Failed to broadcast agent_thread_updated: {e}")
     
     def generate():
         """Generator with flush and close signal to prevent incomplete chunked encoding"""
@@ -1867,6 +1908,7 @@ Use tools in multiple rounds with interleaved thinking."""
                 pass
         
         try:
+            did_broadcast_update = False
             yield stream_sse_event('start', {'session_id': thread_slug, 'agent_id': agent_id})
             flush_stream()
             
@@ -1884,6 +1926,29 @@ Use tools in multiple rounds with interleaved thinking."""
                 ai_thinking_budget=ai_thinking_budget
             ):
                 event_type = event.get('type', 'unknown')
+
+                # When the backend finishes persisting the authoritative conversation, notify
+                # other browser sessions so they can refresh their agent columns.
+                if event_type == 'conversation_sync':
+                    _broadcast_agent_thread_updated({
+                        'agent_id': agent_id,
+                        'thread_slug': thread_slug,
+                        'message_count': event.get('message_count'),
+                        'timestamp': int(datetime.utcnow().timestamp() * 1000)
+                    })
+                    did_broadcast_update = True
+
+                # Fallback: if the worker never emitted conversation_sync but does emit complete,
+                # still notify other sessions that this thread changed.
+                if event_type == 'complete' and not did_broadcast_update:
+                    _broadcast_agent_thread_updated({
+                        'agent_id': agent_id,
+                        'thread_slug': thread_slug,
+                        'message_count': event.get('message_count'),
+                        'timestamp': int(datetime.utcnow().timestamp() * 1000)
+                    })
+                    did_broadcast_update = True
+
                 yield stream_sse_event(event_type, event)
                 flush_stream()
                 

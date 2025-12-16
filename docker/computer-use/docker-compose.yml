@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  professional-verification-browser:
+    build: .
+    image: professional-verification-browser:latest
+    container_name: pv-browser
+    
+    # Port mapping: VNC server
+    ports:
+      - "5900:5900"
+    
+    # Environment variables
+    environment:
+      - DISPLAY=:1
+      - DISPLAY_WIDTH=1920
+      - DISPLAY_HEIGHT=1080
+      - VNC_PASSWORD=valorai
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    
+    # Shared memory for browser
+    shm_size: '2gb'
+    
+    # Network
+    networks:
+      - verification-net
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "x11vnc", "-display", ":1", "-version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  verification-net:
+    driver: bridge

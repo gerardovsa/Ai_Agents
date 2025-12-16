@@ -662,6 +662,7 @@ def list_calculators():
 
 # Serve static UI files
 UI_DIR = os.path.join(os.path.dirname(__file__), '..', 'UI')
+DEV_TOOLS_DIR = os.path.join(os.path.dirname(__file__), '..', 'dev-tools')
 
 @app.route('/')
 def serve_ui():
@@ -678,6 +679,11 @@ def serve_ui():
     response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     return response
 
+@app.route('/dev-tools/<path:filename>')
+def serve_dev_tools(filename):
+    """Serve development tools (Module Creator, etc.)"""
+    return send_from_directory(DEV_TOOLS_DIR, filename)
+
 @app.route('/<path:filename>')
 def serve_ui_static(filename):
     """Serve static files from UI directory (CSS, JS, etc.)"""
@@ -693,22 +699,157 @@ CORS(app,
 
 # Initialize SocketIO with full async support
 # FIX: Disable session management and cookies to prevent WSGI "write() before start_response" errors
-socketio = SocketIO(
-    app, 
-    cors_allowed_origins="*",
-    async_mode='threading',
-    logger=False,
-    engineio_logger=False,
-    ping_timeout=60,
-    ping_interval=25,
-    always_connect=True,
-    manage_session=False,  # ✅ FIX: Disable Flask-SocketIO session management to avoid WSGI conflicts
-    cookie=None,  # ✅ FIX: Disable cookies to prevent "write before start_response" errors
-    engineio_logger_level='WARNING'  # Only show warnings/errors
-)
+# NOTE: For multi-worker deployments, set SOCKETIO_MESSAGE_QUEUE (e.g. redis://) so rooms/broadcasts coordinate.
+socketio_message_queue = os.environ.get('SOCKETIO_MESSAGE_QUEUE')
+
+try:
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins="*",
+        async_mode='threading',
+        logger=False,
+        engineio_logger=False,
+        ping_timeout=60,
+        ping_interval=25,
+        always_connect=True,
+        manage_session=False,  # ✅ FIX: Disable Flask-SocketIO session management to avoid WSGI conflicts
+        cookie=None,  # ✅ FIX: Disable cookies to prevent "write before start_response" errors
+        engineio_logger_level='WARNING',  # Only show warnings/errors
+        message_queue=socketio_message_queue
+    )
+    if socketio_message_queue:
+        log_config(logger, f"[WS] message_queue enabled: {socketio_message_queue}")
+except Exception as e:
+    log_warning(logger, f"[WS] Failed to initialize message_queue ({socketio_message_queue}): {e} - using single-worker mode")
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins="*",
+        async_mode='threading',
+        logger=False,
+        engineio_logger=False,
+        ping_timeout=60,
+        ping_interval=25,
+        always_connect=True,
+        manage_session=False,
+        cookie=None,
+        engineio_logger_level='WARNING'
+    )
 
 # Track connected clients and their rooms
 connected_clients = {}
+
+# Track active users per account (for multi-user collaboration)
+active_users = {}  # Format: { user_id: { session_token: { device, ip, connected_at, user_name, room, scope } } }
+
+# Thread-safety for presence tracking (threading async_mode can interleave handlers)
+active_users_lock = threading.RLock()
+
+# Fast lookup from Socket.IO sid -> (user_id, session_token)
+client_presence_index = {}
+
+# Session TTL cleanup configuration
+SESSION_TTL_SECONDS = 300  # 5 minutes of inactivity before cleanup
+last_cleanup_time = datetime.now()
+
+# Initialize Redis manager (falls back to in-memory if unavailable)
+try:
+    from AI_infrastructure.redis_manager import get_redis_manager
+    redis_manager = get_redis_manager()
+    USE_REDIS = redis_manager.connected
+    log_config(logger, f"[REDIS] Status: {'Connected' if USE_REDIS else 'Using in-memory fallback'}")
+except Exception as e:
+    redis_manager = None
+    USE_REDIS = False
+    log_warning(logger, f"[REDIS] Failed to initialize: {e}")
+
+# Initialize Message Service for database persistence
+try:
+    from AI_infrastructure.message_service import get_message_service
+    message_service = get_message_service()
+    log_config(logger, "[MESSAGE SERVICE] Initialized for database persistence")
+except Exception as e:
+    message_service = None
+    log_warning(logger, f"[MESSAGE SERVICE] Failed to initialize: {e}")
+
+def cleanup_stale_sessions():
+    """Remove sessions that haven't sent heartbeat within TTL"""
+    global active_users, last_cleanup_time
+    
+    now = datetime.now()
+    stale_sessions = []
+    
+    with active_users_lock:
+        for user_id, sessions in list(active_users.items()):
+            for session_token, session_info in list(sessions.items()):
+                last_heartbeat_str = session_info.get('last_heartbeat')
+                if not last_heartbeat_str:
+                    continue
+
+                try:
+                    last_heartbeat = datetime.fromisoformat(last_heartbeat_str)
+                    age_seconds = (now - last_heartbeat).total_seconds()
+
+                    if age_seconds > SESSION_TTL_SECONDS:
+                        stale_sessions.append((user_id, session_token, session_info))
+                except:
+                    pass
+    
+    # Remove stale sessions
+    for user_id, session_token, session_info in stale_sessions:
+        room = session_info.get('room', 'synergy_board')
+        scope = session_info.get('scope')
+
+        with active_users_lock:
+            if user_id not in active_users or session_token not in active_users[user_id]:
+                continue
+
+            # Remove stale session
+            del active_users[user_id][session_token]
+
+            # Remove reverse index if it points to this session
+            sid = session_info.get('client_id')
+            if sid and client_presence_index.get(sid) == (user_id, session_token):
+                del client_presence_index[sid]
+
+            # Remaining counts for this user in this room/scope
+            remaining_room_count = len([
+                1
+                for info in active_users.get(user_id, {}).values()
+                if info.get('room', 'synergy_board') == room
+            ])
+            remaining_scope_count = 0
+            if scope:
+                remaining_scope_count = len([
+                    1
+                    for info in active_users.get(user_id, {}).values()
+                    if info.get('room', 'synergy_board') == room and info.get('scope') == scope
+                ])
+
+            # Drop user container if empty
+            if user_id in active_users and len(active_users[user_id]) == 0:
+                del active_users[user_id]
+
+        log_config(logger, f"[WS CLEANUP] Removed stale session: {session_info.get('user_name')} ({session_token[:8]}) room={room} scope={scope}")
+
+        # Broadcast leave event so UI badges self-heal after crashes
+        try:
+            socketio.emit('user_session_left', {
+                'user_id': user_id,
+                'user_name': session_info.get('user_name', 'Unknown'),
+                'device': session_info.get('device', 'Desktop'),
+                'session_token': session_token,
+                'room': room,
+                'scope': scope,
+                'active_session_count': remaining_room_count,
+                'active_scope_session_count': remaining_scope_count,
+                'timestamp': datetime.now().isoformat(),
+                'reason': 'stale_timeout'
+            }, namespace='/ws/synergy', room=room)
+        except Exception as e:
+            log_warning(logger, f"[WS CLEANUP] Failed to emit stale leave event: {e}")
+    
+    last_cleanup_time = now
+    return len(stale_sessions)
 
 # ============================================================================
 # DEFAULT NAMESPACE HANDLERS (catch unwanted connections)
@@ -780,6 +921,7 @@ def ws_synergy_disconnect(reason=None):
     This works identically on local Windows and Render Linux deployments with Supabase.
     """
     try:
+        from flask_socketio import emit
         from flask import request as flask_request
         
         # Get client_id from Flask-SocketIO request context
@@ -788,6 +930,99 @@ def ws_synergy_disconnect(reason=None):
         # If no client_id could be determined, skip silently (normal for some disconnect scenarios)
         if not client_id:
             return
+        
+        # Clean up user presence tracking
+        disconnected_user = None
+        disconnected_session = None
+        
+        with active_users_lock:
+            indexed = client_presence_index.get(client_id)
+            if indexed:
+                user_id, session_token = indexed
+                session_info = active_users.get(user_id, {}).get(session_token)
+                if session_info:
+                    disconnected_user = user_id
+                    disconnected_session = session_token
+                    user_name = session_info.get('user_name', 'Unknown')
+                    device = session_info.get('device', 'Desktop')
+                    room = session_info.get('room', 'synergy_board')
+                    scope = session_info.get('scope')
+
+                    del active_users[user_id][session_token]
+                    del client_presence_index[client_id]
+
+                    remaining_room_count = len([
+                        1
+                        for info in active_users.get(user_id, {}).values()
+                        if info.get('room', 'synergy_board') == room
+                    ])
+                    remaining_scope_count = 0
+                    if scope:
+                        remaining_scope_count = len([
+                            1
+                            for info in active_users.get(user_id, {}).values()
+                            if info.get('room', 'synergy_board') == room and info.get('scope') == scope
+                        ])
+
+                    if user_id in active_users and len(active_users[user_id]) == 0:
+                        del active_users[user_id]
+
+                    # Always notify the room (including when this was the last session)
+                    emit('user_session_left', {
+                        'user_id': user_id,
+                        'user_name': user_name,
+                        'device': device,
+                        'session_token': session_token,
+                        'room': room,
+                        'scope': scope,
+                        'active_session_count': remaining_room_count,
+                        'active_scope_session_count': remaining_scope_count,
+                        'timestamp': datetime.now().isoformat()
+                    }, namespace='/ws/synergy', room=room)
+            else:
+                # Fallback: scan when presence was never announced
+                for user_id, sessions in list(active_users.items()):
+                    for session_token, session_info in list(sessions.items()):
+                        if session_info.get('client_id') == client_id:
+                            disconnected_user = user_id
+                            disconnected_session = session_token
+                            user_name = session_info.get('user_name', 'Unknown')
+                            device = session_info.get('device', 'Desktop')
+                            room = session_info.get('room', 'synergy_board')
+                            scope = session_info.get('scope')
+
+                            del active_users[user_id][session_token]
+
+                            remaining_room_count = len([
+                                1
+                                for info in active_users.get(user_id, {}).values()
+                                if info.get('room', 'synergy_board') == room
+                            ])
+                            remaining_scope_count = 0
+                            if scope:
+                                remaining_scope_count = len([
+                                    1
+                                    for info in active_users.get(user_id, {}).values()
+                                    if info.get('room', 'synergy_board') == room and info.get('scope') == scope
+                                ])
+
+                            if len(active_users.get(user_id, {})) == 0 and user_id in active_users:
+                                del active_users[user_id]
+
+                            emit('user_session_left', {
+                                'user_id': user_id,
+                                'user_name': user_name,
+                                'device': device,
+                                'session_token': session_token,
+                                'room': room,
+                                'scope': scope,
+                                'active_session_count': remaining_room_count,
+                                'active_scope_session_count': remaining_scope_count,
+                                'timestamp': datetime.now().isoformat()
+                            }, namespace='/ws/synergy', room=room)
+                            break
+                    if disconnected_user:
+                        break
         
         if client_id in connected_clients:
             del connected_clients[client_id]
@@ -847,6 +1082,213 @@ def ws_synergy_ping(data):
         'timestamp': datetime.now().isoformat(),
         'data': data
     })
+
+@socketio.on('user_presence', namespace='/ws/synergy')
+def ws_synergy_user_presence(data):
+    """
+    Handle user presence announcement (for multi-user collaboration)
+    
+    Data format:
+    {
+        "user_id": 1,
+        "user_name": "John Doe",
+        "device": "💻 Windows",
+        "session_token": "unique-browser-session-id"
+    }
+    """
+    from flask_socketio import emit, join_room
+    from flask import request as flask_request
+    
+    try:
+        user_id = data.get('user_id')
+        session_token = data.get('session_token')
+        user_name = data.get('user_name', 'Unknown User')
+        display_name = data.get('display_name', user_name)  # Per-session identity
+        device = data.get('device', '💻 Desktop')
+        room = (data.get('room', 'synergy_board') or 'synergy_board')
+        scope = data.get('scope') or None
+        
+        # Sanitize display_name (max 50 chars, basic safety)
+        if display_name:
+            display_name = str(display_name)[:50].strip()
+        if not display_name:
+            display_name = user_name
+        
+        if not user_id or not session_token:
+            log_warning(logger, "[WS] Invalid user_presence data - missing user_id or session_token")
+            return
+        
+        # Ensure the client is in the room it's announcing for (defensive)
+        try:
+            join_room(room)
+            client_id = flask_request.sid
+            if client_id in connected_clients:
+                connected_clients[client_id]['rooms'].add(room)
+        except Exception:
+            pass
+
+        with active_users_lock:
+            # Initialize user tracking
+            if user_id not in active_users:
+                active_users[user_id] = {}
+
+            previous_room = None
+            previous_scope = None
+
+            if session_token in active_users[user_id]:
+                previous_room = active_users[user_id][session_token].get('room', 'synergy_board')
+                previous_scope = active_users[user_id][session_token].get('scope')
+
+            # Add/update this session to active users
+            active_users[user_id][session_token] = {
+                'user_name': user_name,
+                'display_name': display_name,  # Per-session identity for multi-person collaboration
+                'device': device,
+                'client_id': flask_request.sid,
+                'connected_at': datetime.now().isoformat(),
+                'last_heartbeat': datetime.now().isoformat(),
+                'ip_address': flask_request.remote_addr if hasattr(flask_request, 'remote_addr') else None,
+                'room': room,
+                'scope': scope
+            }
+
+            # Update reverse index
+            client_presence_index[flask_request.sid] = (user_id, session_token)
+        
+        # Count active sessions for this user in this room/scope
+        with active_users_lock:
+            active_session_count = len([
+                1
+                for info in active_users[user_id].values()
+                if info.get('room', 'synergy_board') == room
+            ])
+
+            active_scope_session_count = 0
+            if scope:
+                active_scope_session_count = len([
+                    1
+                    for info in active_users[user_id].values()
+                    if info.get('room', 'synergy_board') == room and info.get('scope') == scope
+                ])
+        
+        log_config(logger, f"[WS] User presence: {user_name} (ID: {user_id}) from {device} - room={room} scope={scope} - {active_session_count} active session(s)")
+
+        # If the client moved rooms/scopes, broadcast a synthetic leave to the previous context
+        if previous_room and previous_room != room:
+            prev_remaining_room_count = len([
+                1
+                for info in active_users[user_id].values()
+                if info.get('room', 'synergy_board') == previous_room
+            ])
+            prev_remaining_scope_count = 0
+            if previous_scope:
+                prev_remaining_scope_count = len([
+                    1
+                    for info in active_users[user_id].values()
+                    if info.get('room', 'synergy_board') == previous_room and info.get('scope') == previous_scope
+                ])
+            emit('user_session_left', {
+                'user_id': user_id,
+                'user_name': user_name,
+                'display_name': display_name,
+                'device': device,
+                'session_token': session_token,
+                'room': previous_room,
+                'scope': previous_scope,
+                'active_session_count': prev_remaining_room_count,
+                'active_scope_session_count': prev_remaining_scope_count,
+                'timestamp': datetime.now().isoformat()
+            }, namespace='/ws/synergy', room=previous_room, skip_sid=flask_request.sid)
+
+        if previous_room == room and previous_scope != scope and previous_scope:
+            prev_remaining_scope_count = len([
+                1
+                for info in active_users[user_id].values()
+                if info.get('room', 'synergy_board') == room and info.get('scope') == previous_scope
+            ])
+            emit('user_session_left', {
+                'user_id': user_id,
+                'user_name': user_name,
+                'display_name': display_name,
+                'device': device,
+                'session_token': session_token,
+                'room': room,
+                'scope': previous_scope,
+                'active_session_count': active_session_count,
+                'active_scope_session_count': prev_remaining_scope_count,
+                'timestamp': datetime.now().isoformat()
+            }, namespace='/ws/synergy', room=room, skip_sid=flask_request.sid)
+        
+        # Broadcast to other clients of same user (skip sender)
+        emit('user_joined', {
+            'user_id': user_id,
+            'user_name': user_name,
+            'display_name': display_name,
+            'device': device,
+            'session_token': session_token,
+            'room': room,
+            'scope': scope,
+            'active_session_count': active_session_count,
+            'active_scope_session_count': active_scope_session_count,
+            'timestamp': datetime.now().isoformat()
+        }, namespace='/ws/synergy', room=room, skip_sid=flask_request.sid)
+        
+        # Send confirmation to sender with list of other active sessions
+        with active_users_lock:
+            other_sessions = [
+                {
+                    'session_token': token,
+                    'user_name': info.get('user_name'),
+                    'display_name': info.get('display_name', info.get('user_name')),
+                    'device': info.get('device'),
+                    'connected_at': info.get('connected_at'),
+                    'room': info.get('room', 'synergy_board'),
+                    'scope': info.get('scope')
+                }
+                for token, info in active_users[user_id].items()
+                if token != session_token and info.get('room', 'synergy_board') == room
+            ]
+        
+        emit('presence_confirmed', {
+            'your_session_token': session_token,
+            'room': room,
+            'scope': scope,
+            'active_session_count': active_session_count,
+            'active_scope_session_count': active_scope_session_count,
+            'other_sessions': other_sessions,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] user_presence handler failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+@socketio.on('user_heartbeat', namespace='/ws/synergy')
+def ws_synergy_user_heartbeat(data):
+    """
+    Update user's last active timestamp (keepalive) and trigger stale session cleanup
+    Called periodically by frontend to maintain presence
+    """
+    global last_cleanup_time
+    
+    try:
+        user_id = data.get('user_id')
+        session_token = data.get('session_token')
+        
+        if user_id and session_token:
+            with active_users_lock:
+                if user_id in active_users and session_token in active_users[user_id]:
+                    active_users[user_id][session_token]['last_heartbeat'] = datetime.now().isoformat()
+        
+        # Trigger cleanup every 60 seconds
+        if (datetime.now() - last_cleanup_time).total_seconds() > 60:
+            cleaned = cleanup_stale_sessions()
+            if cleaned > 0:
+                log_config(logger, f"[WS CLEANUP] Removed {cleaned} stale session(s)")
+                
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] user_heartbeat handler failed: {e}")
 
 # ============================================================================
 # SOCKETIO ERROR HANDLERS
@@ -909,6 +1351,204 @@ def ws_synergy_session_update(data):
         'timestamp': datetime.now().isoformat()
     }, room=room, include_self=False)
 
+
+# ============================================================================
+# STREAMING SESSION REGISTRY (Inline Interaction System)
+# ============================================================================
+# Global registry to track active StreamingManager sessions
+# This allows WebSocket messages to route to the correct session
+
+from typing import Dict, Optional
+
+# Global dictionary: session_id -> StreamingSession instance
+streaming_sessions: Dict[str, any] = {}
+
+
+def register_streaming_session(session_id: str, session):
+    """
+    Register a streaming session for WebSocket message routing.
+    Called automatically when StreamingSession is created.
+    
+    Args:
+        session_id: Unique session identifier
+        session: StreamingSession instance
+    """
+    streaming_sessions[session_id] = session
+    log_config(logger, f'[STREAMING] ✅ Registered session: {session_id}')
+
+
+def unregister_streaming_session(session_id: str):
+    """
+    Unregister a streaming session.
+    Called automatically when StreamingSession closes.
+    
+    Args:
+        session_id: Session identifier to remove
+    """
+    if session_id in streaming_sessions:
+        del streaming_sessions[session_id]
+        log_config(logger, f'[STREAMING] ✅ Unregistered session: {session_id}')
+
+
+def get_streaming_session(session_id: str):
+    """
+    Get a streaming session by ID.
+    Returns None if session not found.
+    
+    Args:
+        session_id: Session identifier
+        
+    Returns:
+        StreamingSession instance or None
+    """
+    return streaming_sessions.get(session_id)
+
+
+# ============================================================================
+# AGENT STREAMING NAMESPACE (/ws/streaming)
+# ============================================================================
+# Dedicated namespace for AI agent inline interaction system
+# Used by: agent-interaction-websocket.js (frontend)
+# Purpose: Real-time two-way communication (input requests, progress updates)
+# Separate from /ws/synergy to avoid conflicts with Synergy Board
+
+@socketio.on('connect', namespace='/ws/streaming')
+def handle_streaming_connect():
+    """
+    Handle agent streaming connection for inline interaction.
+    Each agent gets its own session_id for isolation.
+    
+    URL format: ws://localhost:5000/ws/streaming?session_id=abc-123
+    """
+    from flask import request
+    from flask_socketio import join_room, emit
+    
+    session_id = flask_request.args.get('session_id')
+    client_id = flask_request.sid
+    
+    if not session_id:
+        log_error(logger, f'[STREAMING] ❌ Connection rejected - no session_id')
+        return False
+    
+    # Join session-specific room
+    join_room(session_id, namespace='/ws/streaming')
+    
+    log_config(logger, f'[STREAMING] ✅ Agent session connected: {session_id} (client: {client_id})')
+    
+    # Send handshake confirmation to client
+    emit('connected', {
+        'session_id': session_id,
+        'status': 'connected',
+        'timestamp': datetime.now().isoformat()
+    }, namespace='/ws/streaming')
+    
+    return True
+
+
+@socketio.on('disconnect', namespace='/ws/streaming')
+def handle_streaming_disconnect():
+    """Handle agent streaming disconnection"""
+    client_id = flask_request.sid
+    log_config(logger, f'[STREAMING] 🔌 Client disconnected: {client_id}')
+
+
+@socketio.on('handshake', namespace='/ws/streaming')
+def handle_streaming_handshake(data):
+    """
+    Handle initial handshake from agent.
+    
+    Message format:
+    {
+        'type': 'handshake',
+        'participant': 'user_123',
+        'agent_id': 1
+    }
+    """
+    from flask_socketio import emit
+    
+    agent_id = data.get('agent_id')
+    participant = data.get('participant')
+    
+    log_config(logger, f'[STREAMING] 🤝 Handshake from agent {agent_id}: {participant}')
+    
+    emit('handshake_ack', {
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat()
+    }, namespace='/ws/streaming')
+
+
+@socketio.on('provide_input', namespace='/ws/streaming')
+def handle_streaming_provide_input(data):
+    """
+    Handle user input submission from inline interaction bubble.
+    This is called when user clicks Submit in the bubble UI.
+    
+    Message format from frontend:
+    {
+        'type': 'provide_input',
+        'session_id': 'abc-123',
+        'request_id': 'req-456',
+        'input_value': 'user response',
+        'from_participant': 'user_789',
+        'timestamp': '2025-12-17T...'
+    }
+    """
+    from flask_socketio import emit
+    import asyncio
+    
+    session_id = data.get('session_id')
+    request_id = data.get('request_id')
+    input_value = data.get('input_value')
+    from_participant = data.get('from_participant', 'unknown')
+    
+    log_config(logger, f'[STREAMING] 📥 Input received for session {session_id}: {input_value}')
+    
+    # Find the StreamingSession instance
+    session = get_streaming_session(session_id)
+    
+    if session:
+        try:
+            # Check if provide_input is async
+            result = session.provide_input(input_value, from_participant)
+            if asyncio.iscoroutine(result):
+                # If async, we need to run it in event loop
+                try:
+                    asyncio.create_task(result)
+                except RuntimeError:
+                    # No running event loop, use run_coroutine_threadsafe
+                    import threading
+                    loop = asyncio.new_event_loop()
+                    threading.Thread(target=lambda: loop.run_until_complete(result), daemon=True).start()
+            
+            log_config(logger, f'[STREAMING] ✅ Input provided to session {session_id}')
+            
+            # Confirm receipt to client
+            emit('input_received', {
+                'request_id': request_id,
+                'status': 'received',
+                'timestamp': datetime.now().isoformat()
+            }, room=session_id, namespace='/ws/streaming')
+            
+        except Exception as e:
+            log_error(logger, f'[STREAMING] ❌ Error providing input: {str(e)}')
+            emit('error', {
+                'message': f'Error processing input: {str(e)}',
+                'request_id': request_id
+            }, namespace='/ws/streaming')
+    else:
+        log_error(logger, f'[STREAMING] ❌ Session not found: {session_id}')
+        emit('error', {
+            'message': f'Session {session_id} not found or expired',
+            'request_id': request_id
+        }, namespace='/ws/streaming')
+
+
+@socketio.on('ping', namespace='/ws/streaming')
+def handle_streaming_ping():
+    """Handle keepalive ping from client"""
+    from flask_socketio import emit
+    emit('pong', {'timestamp': datetime.now().isoformat()}, namespace='/ws/streaming')
+
 @socketio.on('column_change', namespace='/ws/synergy')
 def ws_synergy_column_change(data):
     """Handle Kanban column changes (drag & drop)"""
@@ -944,6 +1584,206 @@ def ws_synergy_user_activity(data):
         'activity': activity,
         'timestamp': datetime.now().isoformat()
     }, room=room, include_self=False)
+
+@socketio.on('send_direct_message', namespace='/ws/synergy')
+def ws_synergy_send_direct_message(data):
+    """Send direct message to specific user/session"""
+    from flask_socketio import emit
+    from flask import request as flask_request
+    
+    try:
+        target_user_id = data.get('target_user_id')
+        target_session_token = data.get('target_session_token')  # Optional: specific session
+        message = data.get('message')
+        sender_user_id = data.get('sender_user_id')
+        sender_user_name = data.get('sender_user_name')
+        sender_session_token = data.get('sender_session_token')
+        
+        if not target_user_id or not message:
+            log_warning(logger, "[WS] Invalid direct_message - missing target_user_id or message")
+            return
+        
+        # Find target user's sessions
+        if target_user_id not in active_users:
+            emit('message_delivery_failed', {
+                'target_user_id': target_user_id,
+                'reason': 'User not online',
+                'timestamp': datetime.now().isoformat()
+            })
+            return
+        
+        # Save message to database
+        message_id = None
+        if message_service:
+            message_id = message_service.save_message(
+                sender_user_id=sender_user_id,
+                message_text=message,
+                message_type='direct',
+                recipient_user_id=target_user_id,
+                room='synergy_board',
+                metadata={'source': 'socket.io'}
+            )
+        
+        # Send to specific session or all sessions of target user
+        target_sessions = active_users[target_user_id]
+        delivered_count = 0
+        
+        for session_token, session_info in target_sessions.items():
+            # Skip if targeting specific session and this isn't it
+            if target_session_token and session_token != target_session_token:
+                continue
+            
+            client_id = session_info.get('client_id')
+            if client_id:
+                emit('direct_message_received', {
+                    'source': 'socket.io',
+                    'message_id': message_id,
+                    'from_user_id': sender_user_id,
+                    'from_user_name': sender_user_name,
+                    'from_session_token': sender_session_token,
+                    'message': message,
+                    'timestamp': datetime.now().isoformat()
+                }, room=client_id)
+                delivered_count += 1
+                
+                # Mark as delivered in database
+                if message_id and message_service:
+                    message_service.mark_delivered(message_id, target_user_id)
+        
+        # Confirm delivery to sender
+        emit('message_delivered', {
+            'target_user_id': target_user_id,
+            'target_session_token': target_session_token,
+            'delivered_count': delivered_count,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        log_config(logger, f"[WS] Direct message: {sender_user_name} → User {target_user_id} ({delivered_count} session(s))")
+        
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] send_direct_message failed: {e}")
+
+@socketio.on('broadcast_message', namespace='/ws/synergy')
+def ws_synergy_broadcast_message(data):
+    """Broadcast message to all users in room"""
+    from flask_socketio import emit
+    from flask import request as flask_request
+    
+    try:
+        message = data.get('message')
+        sender_user_id = data.get('sender_user_id')
+        sender_user_name = data.get('sender_user_name')
+        room = data.get('room', 'synergy_board')
+        
+        if not message:
+            log_warning(logger, "[WS] Invalid broadcast_message - missing message")
+            return
+        
+        # Save message to database
+        message_id = None
+        if message_service:
+            message_id = message_service.save_message(
+                sender_user_id=sender_user_id,
+                message_text=message,
+                message_type='broadcast',
+                room=room,
+                metadata={'source': 'socket.io'}
+            )
+        
+        # Broadcast to all clients in room (excluding sender)
+        emit('broadcast_message_received', {
+            'source': 'socket.io',
+            'message_id': message_id,
+            'from_user_id': sender_user_id,
+            'from_user_name': sender_user_name,
+            'message': message,
+            'timestamp': datetime.now().isoformat()
+        }, room=room, skip_sid=flask_request.sid)
+        
+        log_config(logger, f"[WS] Broadcast: {sender_user_name} → room {room}")
+        
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] broadcast_message failed: {e}")
+
+@socketio.on('typing_start', namespace='/ws/synergy')
+def ws_synergy_typing_start(data):
+    """User started typing"""
+    from flask_socketio import emit
+    from flask import request as flask_request
+    
+    try:
+        user_id = data.get('user_id')
+        user_name = data.get('user_name')
+        room = data.get('room', 'synergy_board')
+        agent_id = data.get('agent_id')
+        
+        # Store in Redis if available
+        if USE_REDIS and redis_manager:
+            redis_manager.set_typing(user_id, user_name, room, agent_id, ttl=10)
+        
+        # Broadcast typing indicator (exclude sender)
+        emit('user_typing', {
+            'user_id': user_id,
+            'user_name': user_name,
+            'agent_id': agent_id,
+            'timestamp': datetime.now().isoformat()
+        }, room=room, skip_sid=flask_request.sid)
+        
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] typing_start failed: {e}")
+
+@socketio.on('typing_stop', namespace='/ws/synergy')
+def ws_synergy_typing_stop(data):
+    """User stopped typing"""
+    from flask_socketio import emit
+    from flask import request as flask_request
+    
+    try:
+        user_id = data.get('user_id')
+        room = data.get('room', 'synergy_board')
+        agent_id = data.get('agent_id')
+        
+        # Broadcast typing stopped (exclude sender)
+        emit('user_stopped_typing', {
+            'user_id': user_id,
+            'agent_id': agent_id,
+            'timestamp': datetime.now().isoformat()
+        }, room=room, skip_sid=flask_request.sid)
+        
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] typing_stop failed: {e}")
+
+@socketio.on('mark_message_read', namespace='/ws/synergy')
+def ws_synergy_mark_message_read(data):
+    """Mark message as read by user"""
+    from flask_socketio import emit
+    
+    try:
+        message_id = data.get('message_id')
+        user_id = data.get('user_id')
+        
+        if not message_id or not user_id:
+            return
+        
+        # Mark in Redis
+        if USE_REDIS and redis_manager:
+            redis_manager.mark_message_read(str(message_id), user_id)
+        
+        # Mark in database
+        if message_service:
+            message_service.mark_read(message_id, user_id)
+        
+        # Send read receipt back to sender
+        emit('message_read_receipt', {
+            'message_id': message_id,
+            'read_by_user_id': user_id,
+            'timestamp': datetime.now().isoformat()
+        }, broadcast=True)
+        
+        log_config(logger, f"[WS] Message {message_id} marked read by user {user_id}")
+        
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] mark_message_read failed: {e}")
 
 # Initialize AI client
 print(f"[DEBUG] Using config path: {Config.DB_CONFIG_PATH}")
@@ -1076,6 +1916,157 @@ def dev_tools_ping():
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================
+
+
+@app.route('/dev/presence', methods=['GET'])
+def dev_presence_snapshot():
+        """Read-only presence snapshot for debugging rooms/scopes across browsers/tabs."""
+        now = datetime.now()
+
+        with active_users_lock:
+                room_counts = {}
+                scope_counts = {}
+                users_out = []
+
+                for user_id, sessions in active_users.items():
+                        session_list = []
+
+                        for session_token, info in sessions.items():
+                                room = info.get('room', 'synergy_board')
+                                scope = info.get('scope')
+                                last_heartbeat_str = info.get('last_heartbeat')
+                                age_seconds = None
+
+                                try:
+                                        if last_heartbeat_str:
+                                                last_heartbeat_dt = datetime.fromisoformat(last_heartbeat_str)
+                                                age_seconds = int((now - last_heartbeat_dt).total_seconds())
+                                except Exception:
+                                        age_seconds = None
+
+                                room_counts[room] = room_counts.get(room, 0) + 1
+                                if room not in scope_counts:
+                                        scope_counts[room] = {}
+                                if scope:
+                                        scope_counts[room][scope] = scope_counts[room].get(scope, 0) + 1
+
+                                session_list.append({
+                                        'session_token': session_token,
+                                        'session_token_short': session_token[:16] + '…' if isinstance(session_token, str) and len(session_token) > 16 else session_token,
+                                        'user_name': info.get('user_name'),
+                                        'device': info.get('device'),
+                                        'room': room,
+                                        'scope': scope,
+                                        'connected_at': info.get('connected_at'),
+                                        'last_heartbeat': last_heartbeat_str,
+                                        'age_seconds': age_seconds
+                                })
+
+                        users_out.append({
+                                'user_id': user_id,
+                                'active_sessions': len(session_list),
+                                'sessions': session_list
+                        })
+
+        response = jsonify({
+                'now': now.isoformat(),
+                'ttl_seconds': SESSION_TTL_SECONDS,
+                'room_counts': room_counts,
+                'scope_counts': scope_counts,
+                'users': users_out
+        })
+
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+
+@app.route('/dev/presence-view', methods=['GET'])
+def dev_presence_view():
+        """Tiny HTML viewer for /dev/presence (auto-refresh) for quick local verification."""
+        html = """<!doctype html>
+<html lang=\"en\">
+    <head>
+        <meta charset=\"utf-8\" />
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+        <title>Presence Debug</title>
+        <style>
+            body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+            .row { display: flex; gap: 16px; flex-wrap: wrap; }
+            pre { background: #0b1220; color: #e5e7eb; padding: 12px; border-radius: 8px; overflow: auto; }
+            .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e5e7eb; margin-right: 6px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
+            th { background: #f3f4f6; position: sticky; top: 0; }
+            .muted { color: #6b7280; }
+        </style>
+    </head>
+    <body>
+        <h2>Presence Debug</h2>
+        <div class=\"muted\">Auto-refreshes every 2s. Source: <a href=\"/dev/presence\">/dev/presence</a></div>
+        <div id=\"summary\" class=\"row\" style=\"margin-top:12px\"></div>
+        <h3>Sessions</h3>
+        <div style=\"overflow:auto; max-height: 70vh; border: 1px solid #e5e7eb; border-radius: 8px;\">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Session</th>
+                        <th>Room</th>
+                        <th>Scope</th>
+                        <th>Device</th>
+                        <th>Last heartbeat</th>
+                        <th>Age (s)</th>
+                    </tr>
+                </thead>
+                <tbody id=\"rows\"></tbody>
+            </table>
+        </div>
+
+        <script>
+            async function refresh() {
+                const res = await fetch('/dev/presence', { cache: 'no-store' });
+                const data = await res.json();
+
+                const summary = document.getElementById('summary');
+                const rows = document.getElementById('rows');
+
+                const roomPills = Object.entries(data.room_counts || {}).map(([room, count]) =>
+                    `<span class=\"pill\">room: <b>${room}</b> = ${count}</span>`
+                ).join('') || '<span class=\"muted\">No active sessions</span>';
+
+                summary.innerHTML = `
+                    <div><div class=\"muted\">Now</div><div><b>${data.now}</b></div></div>
+                    <div><div class=\"muted\">TTL seconds</div><div><b>${data.ttl_seconds}</b></div></div>
+                    <div style=\"min-width: 320px\"><div class=\"muted\">Room counts</div><div>${roomPills}</div></div>
+                `;
+
+                const sessionRows = [];
+                (data.users || []).forEach(u => {
+                    (u.sessions || []).forEach(s => {
+                        sessionRows.push(`
+                            <tr>
+                                <td>${u.user_id}</td>
+                                <td><span class=\"muted\">${s.session_token_short || ''}</span></td>
+                                <td><b>${s.room || ''}</b></td>
+                                <td>${s.scope || ''}</td>
+                                <td>${s.device || ''}</td>
+                                <td class=\"muted\">${s.last_heartbeat || ''}</td>
+                                <td>${typeof s.age_seconds === 'number' ? s.age_seconds : ''}</td>
+                            </tr>
+                        `);
+                    });
+                });
+
+                rows.innerHTML = sessionRows.join('') || `<tr><td colspan=\"7\" class=\"muted\">No active sessions</td></tr>`;
+            }
+
+            refresh();
+            setInterval(refresh, 2000);
+        </script>
+    </body>
+</html>"""
+
+        return html
 
 @app.route('/health', methods=['GET', 'OPTIONS'])
 def health_check():
@@ -1239,6 +2230,9 @@ STATIC_DIR = Path(__file__).parent.parent / 'Quote_Calculator' / 'AI_Quote_Agent
 
 # CRITICAL FIX NOV 29: Favicon served from AI_infrastructure/static
 FAVICON_DIR = Path(__file__).parent / 'static'
+
+# CRITICAL FIX DEC 16 2025: Define UI_DIR for module file serving
+UI_DIR = str(Path(__file__).parent.parent / 'UI')  # AI_agents/UI directory
 
 @app.route('/stock-management')
 def serve_stock_management():

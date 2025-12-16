@@ -452,6 +452,14 @@ class AutomationScheduler:
     
     def _check_pending_approvals(self):
         """Check for tasks pending approval and notify users"""
+        # Skip if no network connectivity (prevents repeated failures)
+        import socket
+        try:
+            socket.create_connection(("db.ryoicrdifiqhqpsnjmdo.supabase.co", 5432), timeout=3)
+        except (socket.timeout, socket.error, OSError):
+            logger.warning("No Supabase connectivity - skipping approval check")
+            return
+        
         conn = None
         cursor = None
         try:

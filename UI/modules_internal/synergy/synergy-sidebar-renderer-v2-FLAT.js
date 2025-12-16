@@ -233,7 +233,19 @@ class SynergySidebarRendererV2 {
      * Border-top separator, 8px padding, NO indentation
      */
     renderMetadataSection(session) {
-        const assignees = this.parseJsonField(session.assignees, []);
+        // Safely parse assignees - handle string, array, or null
+        let assignees = session.assignees || [];
+        if (typeof assignees === 'string') {
+            try {
+                assignees = JSON.parse(assignees);
+            } catch (e) {
+                assignees = [];
+            }
+        }
+        if (!Array.isArray(assignees)) {
+            assignees = [];
+        }
+
         const assigneeNames = assignees
             .map(a => (typeof a === 'object' ? a.name : a))
             .filter(n => n)
@@ -313,6 +325,12 @@ class SynergySidebarRendererV2 {
      * Visual hierarchy via fonts: 17px → 15px → 14px
      */
     renderMilestonesSection(milestones, sessionId) {
+        // ✅ Type guard: Ensure milestones is always an array
+        if (!Array.isArray(milestones)) {
+            console.warn('[SYNERGY V2] Milestones is not an array, converting:', milestones);
+            milestones = [];
+        }
+
         if (!milestones || milestones.length === 0) {
             return `
                 <div class="synergy-flat-section">
@@ -589,7 +607,13 @@ class SynergySidebarRendererV2 {
      * DOCUMENTS SECTION - FLAT
      */
     renderDocumentsSection(documents, sessionId) {
-        const docs = this.parseJsonField(documents, []);
+        let docs = this.parseJsonField(documents, []);
+
+        // ✅ Type guard: Ensure docs is always an array
+        if (!Array.isArray(docs)) {
+            console.warn('[SYNERGY V2] Documents is not an array, converting:', docs);
+            docs = [];
+        }
 
         return `
             <div class="synergy-flat-section">
@@ -767,7 +791,13 @@ class SynergySidebarRendererV2 {
      * LINKS SECTION - FLAT
      */
     renderLinksSection(links) {
-        const linkArray = this.parseJsonField(links, []);
+        let linkArray = this.parseJsonField(links, []);
+
+        // ✅ Type guard: Ensure linkArray is always an array
+        if (!Array.isArray(linkArray)) {
+            console.warn('[SYNERGY V2] Links is not an array, converting:', linkArray);
+            linkArray = [];
+        }
 
         return `
             <div class="synergy-flat-section" data-section="links">
@@ -807,7 +837,13 @@ class SynergySidebarRendererV2 {
      * TAGS SECTION - FLAT
      */
     renderTagsSection(tags) {
-        const tagArray = this.parseJsonField(tags, []);
+        let tagArray = this.parseJsonField(tags, []);
+
+        // ✅ Type guard: Ensure tagArray is always an array
+        if (!Array.isArray(tagArray)) {
+            console.warn('[SYNERGY V2] Tags is not an array, converting:', tagArray);
+            tagArray = [];
+        }
 
         return `
             <div class="synergy-flat-section" data-section="tags">
@@ -882,10 +918,31 @@ class SynergySidebarRendererV2 {
         if (Array.isArray(field)) return field;
         if (typeof field === 'string') {
             try {
-                return JSON.parse(field);
+                let parsed = JSON.parse(field);
+
+                // Handle double-stringified JSON (when data was JSON.stringify'd twice)
+                if (typeof parsed === 'string') {
+                    try {
+                        parsed = JSON.parse(parsed);
+                    } catch (e2) {
+                        // If second parse fails, keep the first parsed result
+                    }
+                }
+
+                // ✅ Ensure parsed value is an array if defaultValue is an array
+                if (Array.isArray(defaultValue) && !Array.isArray(parsed)) {
+                    console.warn('[SYNERGY V2] parseJsonField: Expected array but got', typeof parsed, parsed);
+                    return defaultValue;
+                }
+                return parsed;
             } catch (e) {
                 return defaultValue;
             }
+        }
+        // ✅ If field is an object but not an array, return defaultValue
+        if (typeof field === 'object' && !Array.isArray(field)) {
+            console.warn('[SYNERGY V2] parseJsonField: Field is object but not array', field);
+            return defaultValue;
         }
         return defaultValue;
     }

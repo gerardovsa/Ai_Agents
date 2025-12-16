@@ -1,0 +1,433 @@
+/**
+ * ====================================================================
+ * FEEDBACK MODULE STYLES - External CSS Module
+ * ====================================================================
+ * 
+ * Scoped styles for the feedback widget system
+ * Supports dark/light themes and responsive design
+ * 
+ * USAGE:
+ * <link rel="stylesheet" href="feedback-styles.css">
+ * 
+ * @module FeedbackStyles
+ * @version 2.0.0
+ */
+
+/* ========================================
+   CSS VARIABLES (Theme Support)
+   ======================================== */
+
+.feedback-widget[data-theme="dark"] {
+    --feedback-bg-primary: rgba(31, 41, 55, 0.98);
+    --feedback-bg-secondary: rgba(17, 24, 39, 0.95);
+    --feedback-bg-hover: rgba(55, 65, 81, 0.8);
+    --feedback-border-color: rgba(75, 85, 99, 0.6);
+    --feedback-text-primary: #e5e7eb;
+    --feedback-text-secondary: #9ca3af;
+    --feedback-accent: #667eea;
+    --feedback-accent-hover: #5568d3;
+    --feedback-success: #10b981;
+    --feedback-warning: #f59e0b;
+    --feedback-danger: #ef4444;
+    --feedback-shadow: rgba(0, 0, 0, 0.5);
+}
+
+.feedback-widget[data-theme="light"] {
+    --feedback-bg-primary: rgba(255, 255, 255, 0.98);
+    --feedback-bg-secondary: rgba(249, 250, 251, 0.95);
+    --feedback-bg-hover: rgba(243, 244, 246, 0.9);
+    --feedback-border-color: rgba(209, 213, 219, 0.8);
+    --feedback-text-primary: #111827;
+    --feedback-text-secondary: #6b7280;
+    --feedback-accent: #667eea;
+    --feedback-accent-hover: #5568d3;
+    --feedback-success: #10b981;
+    --feedback-warning: #f59e0b;
+    --feedback-danger: #ef4444;
+    --feedback-shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   WIDGET CONTAINER
+   ======================================== */
+
+.feedback-widget {
+    display: none;
+    flex-direction: column;
+    background: var(--feedback-bg-primary);
+    border: 1px solid var(--feedback-border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px var(--feedback-shadow);
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 600px;
+    width: 100%;
+    z-index: 1000;
+}
+
+.feedback-widget.visible {
+    display: flex;
+    animation: feedbackSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes feedbackSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ========================================
+   HEADER
+   ======================================== */
+
+.feedback-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--feedback-bg-secondary);
+    border-bottom: 1px solid var(--feedback-border-color);
+}
+
+.feedback-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.feedback-header-left i {
+    font-size: 16px;
+    color: var(--feedback-accent);
+    animation: feedbackPulse 2s ease-in-out infinite;
+}
+
+@keyframes feedbackPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
+}
+
+.feedback-header-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--feedback-text-primary);
+    letter-spacing: -0.01em;
+}
+
+.feedback-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--feedback-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.feedback-close-btn:hover {
+    background: var(--feedback-bg-hover);
+    color: var(--feedback-text-primary);
+    transform: scale(1.05);
+}
+
+.feedback-close-btn:active {
+    transform: scale(0.95);
+}
+
+.feedback-close-btn i {
+    font-size: 14px;
+}
+
+/* ========================================
+   BODY
+   ======================================== */
+
+.feedback-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--feedback-bg-primary);
+}
+
+/* ========================================
+   TEXTAREA
+   ======================================== */
+
+.feedback-textarea {
+    width: 100%;
+    min-height: 80px;
+    max-height: 200px;
+    padding: 12px;
+    background: var(--feedback-bg-secondary);
+    border: 1px solid var(--feedback-border-color);
+    border-radius: 8px;
+    color: var(--feedback-text-primary);
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+    resize: vertical;
+    transition: all 0.15s ease;
+    outline: none;
+}
+
+.feedback-textarea::placeholder {
+    color: var(--feedback-text-secondary);
+    opacity: 0.6;
+}
+
+.feedback-textarea:focus {
+    border-color: var(--feedback-accent);
+    background: var(--feedback-bg-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.feedback-textarea:hover:not(:focus) {
+    border-color: var(--feedback-text-secondary);
+}
+
+/* ========================================
+   QUICK BUTTONS
+   ======================================== */
+
+.feedback-quick-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.feedback-quick-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--feedback-bg-secondary);
+    border: 1px solid var(--feedback-border-color);
+    border-radius: 8px;
+    color: var(--btn-color, var(--feedback-text-secondary));
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.feedback-quick-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--btn-color, var(--feedback-accent));
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.feedback-quick-btn i {
+    position: relative;
+    z-index: 1;
+    font-size: 14px;
+    transition: all 0.15s ease;
+}
+
+.feedback-quick-btn:hover {
+    border-color: var(--btn-color, var(--feedback-accent));
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.feedback-quick-btn:hover::before {
+    opacity: 0.1;
+}
+
+.feedback-quick-btn:hover i {
+    transform: scale(1.1);
+    color: var(--btn-color, var(--feedback-accent));
+}
+
+.feedback-quick-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* ========================================
+   SEND BUTTON
+   ======================================== */
+
+.feedback-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--feedback-accent);
+    border: 1px solid var(--feedback-accent);
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-left: auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.feedback-send-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.feedback-send-btn:hover::before {
+    width: 120%;
+    height: 120%;
+}
+
+.feedback-send-btn i {
+    position: relative;
+    z-index: 1;
+    font-size: 14px;
+    transition: all 0.15s ease;
+}
+
+.feedback-send-btn:hover {
+    background: var(--feedback-accent-hover);
+    border-color: var(--feedback-accent-hover);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.feedback-send-btn:hover i {
+    transform: translateX(2px);
+}
+
+.feedback-send-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .feedback-widget {
+        max-width: 100%;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .feedback-body {
+        padding: 14px;
+    }
+
+    .feedback-textarea {
+        min-height: 60px;
+        font-size: 16px;
+        /* Prevent zoom on iOS */
+    }
+
+    .feedback-quick-buttons {
+        gap: 6px;
+    }
+
+    .feedback-quick-btn,
+    .feedback-send-btn {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+.feedback-widget *:focus-visible {
+    outline: 2px solid var(--feedback-accent);
+    outline-offset: 2px;
+}
+
+.feedback-widget button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .feedback-widget {
+        border-width: 2px;
+    }
+
+    .feedback-textarea:focus {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+    .feedback-widget,
+    .feedback-widget *,
+    .feedback-widget::before,
+    .feedback-widget::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.feedback-widget.loading .feedback-send-btn {
+    pointer-events: none;
+}
+
+.feedback-widget.loading .feedback-send-btn i {
+    animation: feedbackSpin 1s linear infinite;
+}
+
+@keyframes feedbackSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.feedback-widget.error .feedback-textarea {
+    border-color: var(--feedback-danger);
+}
+
+.feedback-widget.success .feedback-send-btn {
+    background: var(--feedback-success);
+    border-color: var(--feedback-success);
+}

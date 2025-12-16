@@ -96,3 +96,11 @@ forallpeople==2.7.1
 handcalcs==1.10.0
 cadquery==2.6.1
 ezdxf==1.4.3
+
+# Infrastructure & Service Management
+docker>=7.0.0
+redis>=5.0.0
+
+# API Framework & WebSockets
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0

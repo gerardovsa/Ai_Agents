@@ -274,6 +274,42 @@ def close_all_pools():
         cprint(f" [POOL] All pools closed", Colors.SUCCESS)
 
 
+def reset_connection_pool(schema_name: str = None):
+    """
+    Reset connection pool(s) - useful when connections are leaked or network recovered
+    
+    Args:
+        schema_name: Specific schema to reset, or None to reset all
+    """
+    global _connection_pools, _pool_stats
+    
+    with _pool_lock:
+        if schema_name:
+            # Reset specific pool
+            if schema_name in _connection_pools:
+                try:
+                    pool = _connection_pools[schema_name]
+                    pool.closeall()
+                    del _connection_pools[schema_name]
+                    cprint(f" [POOL] Reset pool for '{schema_name}'", Colors.SUCCESS)
+                except Exception as e:
+                    print(f" [POOL] Error resetting pool '{schema_name}': {e}")
+        else:
+            # Reset all pools
+            for name, pool in _connection_pools.items():
+                try:
+                    pool.closeall()
+                    cprint(f" [POOL] Reset pool for '{name}'", Colors.SUCCESS)
+                except Exception as e:
+                    print(f" [POOL] Error resetting pool '{name}': {e}")
+            
+            _connection_pools.clear()
+            # Reset stats too
+            _pool_stats['connections_acquired'] = 0
+            _pool_stats['connections_returned'] = 0
+            cprint(f" [POOL] All pools reset", Colors.SUCCESS)
+
+
 def get_database_connection(db_name: str = 'ai_infrastructure'):
     """
     Get Supabase PostgreSQL database connection
@@ -319,6 +355,9 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
     
     schema_name = get_supabase_schema_name(db_name)
     
+    conn_acquired = False
+    conn = None
+    
     try:
         # GET CONNECTION FROM POOL (FAST - reuses existing connections)
         start_time = time.time()
@@ -328,10 +367,14 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         # If pool is exhausted, fail fast instead of blocking forever
         import threading
         
-        conn = None
         def _get_conn_with_timeout():
             nonlocal conn
-            conn = pool_instance.getconn()
+            try:
+                conn = pool_instance.getconn()
+            except Exception as e:
+                # Connection acquisition failed in thread
+                print(f"❌ [POOL] getconn() failed in thread: {e}")
+                conn = None
         
         thread = threading.Thread(target=_get_conn_with_timeout)
         thread.daemon = True
@@ -339,7 +382,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         thread.join(timeout=5.0)  # Wait max 5 seconds
         
         if thread.is_alive() or conn is None:
-            # Pool exhausted - log leaked connections
+            # Pool exhausted or connection failed - log leaked connections
             print(f"\n{'='*70}")
             cprint(f" [POOL] CONNECTION POOL EXHAUSTED - LEAKED CONNECTIONS DETECTED", Colors.ERROR)
             print(f"{'='*70}")
@@ -352,18 +395,25 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             print(f"  1. Check code for missing conn.close() calls")
             print(f"  2. Use context managers: with get_database_connection() as conn:")
             print(f"  3. Restart application to reset pool")
+            print(f"  4. Check network connectivity to Supabase")
             print(f"{'='*70}\n")
+            
+            # If thread is still alive, it may have acquired connection - mark as leaked
+            if thread.is_alive() and conn is not None:
+                print(f"⚠️  [POOL] Thread still running - connection may be leaked")
+                _pool_stats['connections_acquired'] += 1  # Count the leaked connection
             
             raise ConnectionError(
                 f"Connection pool exhausted for '{schema_name}'. "
                 f"Leaked connections: {_pool_stats['connections_acquired'] - _pool_stats['connections_returned']}. "
-                f"Check code for missing conn.close() calls."
+                f"Check code for missing conn.close() calls and network connectivity."
             )
         
         wait_time = time.time() - start_time
         
         # ✅ FIX 4: Track pool stats AFTER successful getconn()
         _pool_stats['connections_acquired'] += 1
+        conn_acquired = True
         _pool_stats['total_wait_time'] += wait_time
         
         # Set search_path and configure connection
@@ -433,7 +483,16 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         return DatabaseConnection(pooled_conn)
         
     except psycopg2.OperationalError as e:
-        # Connection failed - detailed error logging
+        # Connection failed - return to pool if acquired
+        if conn_acquired and conn is not None:
+            try:
+                pool_instance.putconn(conn)
+                _pool_stats['connections_returned'] += 1
+                print(f"✅ [POOL] Returned failed connection to pool")
+            except Exception as pool_err:
+                print(f"❌ [POOL] Failed to return connection: {pool_err}")
+        
+        # Detailed error logging
         error_msg = str(e)
         print(f"\n{'='*70}")
         print(f" [DB] SUPABASE CONNECTION FAILED - OPERATIONAL ERROR")
@@ -508,6 +567,15 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             )
     
     except Exception as e:
+        # Return connection to pool if acquired before failure
+        if conn_acquired and conn is not None:
+            try:
+                pool_instance.putconn(conn)
+                _pool_stats['connections_returned'] += 1
+                print(f"✅ [POOL] Returned failed connection to pool")
+            except Exception as pool_err:
+                print(f"❌ [POOL] Failed to return connection: {pool_err}")
+        
         # Catch-all for other exceptions
         print(f"\n{'='*70}")
         print(f" [DB] SUPABASE CONNECTION FAILED - UNEXPECTED ERROR")

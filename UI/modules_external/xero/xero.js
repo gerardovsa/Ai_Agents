@@ -70,6 +70,9 @@ class XeroModule extends BaseModule {
             // Call parent initialization
             await super.initialize();
 
+            // CRITICAL FIX DEC 16: Inject base HTML structure first
+            this.injectBaseStructure();
+
             // Create business selector in header
             this.createBusinessSelector();
 
@@ -84,6 +87,33 @@ class XeroModule extends BaseModule {
             console.error('Failed to initialize Xero module:', error);
             this.showError('Failed to initialize Xero module: ' + error.message);
         }
+    }
+
+    /**
+     * Inject base HTML structure into empty container
+     */
+    injectBaseStructure() {
+        if (!this.container) {
+            console.error('[Xero] Cannot inject structure - container not set');
+            return;
+        }
+
+        this.container.innerHTML = `
+            <div class="xero-module-wrapper">
+                <div class="module-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #0d1117; border-bottom: 1px solid #30363d;">
+                    <div class="module-header-left">
+                        <h2 style="margin: 0; color: #ffffff; font-size: 24px;">
+                            <i class="fas fa-file-invoice-dollar" style="margin-right: 10px; color: #13B5EA;"></i>
+                            Xero Accounting
+                        </h2>
+                    </div>
+                    <div class="module-header-right"></div>
+                </div>
+                <div class="xero-content">
+                    <!-- Sub-tabs and content will be injected here -->
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -170,6 +200,48 @@ class XeroModule extends BaseModule {
     initializeSubTabs() {
         console.log('Initializing Xero sub-tabs...');
 
+        // CRITICAL FIX DEC 16: Inject sub-tab navigation into content area
+        const contentArea = this.container.querySelector('.xero-content');
+        if (!contentArea) {
+            console.error('[Xero] Content area not found - cannot inject sub-tabs');
+            return;
+        }
+
+        contentArea.innerHTML = `
+            <div class="xero-subtabs-nav" style="display: flex; gap: 10px; padding: 15px 20px; background: #161b22; border-bottom: 1px solid #30363d;">
+                <button class="module-subtab-btn active" data-subtab="dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </button>
+                <button class="module-subtab-btn" data-subtab="invoices">
+                    <i class="fas fa-file-invoice"></i> Invoices
+                </button>
+                <button class="module-subtab-btn" data-subtab="contacts">
+                    <i class="fas fa-address-book"></i> Contacts
+                </button>
+                <button class="module-subtab-btn" data-subtab="payments">
+                    <i class="fas fa-money-bill-wave"></i> Payments
+                </button>
+                <button class="module-subtab-btn" data-subtab="accounts">
+                    <i class="fas fa-list"></i> Accounts
+                </button>
+                <button class="module-subtab-btn" data-subtab="reports">
+                    <i class="fas fa-chart-bar"></i> Reports
+                </button>
+            </div>
+            <div class="xero-tab-content-area" style="padding: 20px;">
+                <!-- Tab content will be injected here -->
+            </div>
+        `;
+
+        // Add click handlers to sub-tab buttons
+        const buttons = contentArea.querySelectorAll('.module-subtab-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-subtab');
+                this.switchSubTab(tabId);
+            });
+        });
+
         this.subTabs.set('dashboard', {
             render: () => this.renderDashboard(),
             load: () => this.loadDashboard()
@@ -221,23 +293,21 @@ class XeroModule extends BaseModule {
             }
         });
 
-        // Hide all tab contents
-        const allContents = this.container.querySelectorAll('.module-subtab-content');
-        allContents.forEach(content => content.style.display = 'none');
-
-        // Show selected tab
-        const selectedContent = this.container.querySelector(`#xero-tab-${tabId}`);
-        if (selectedContent) {
-            selectedContent.style.display = 'block';
-        }
-
+        // Store active tab
         this.activeSubTab = tabId;
 
-        // Load tab data if not already loaded
-        const tabConfig = this.subTabs.get(tabId);
-        if (tabConfig && tabConfig.load) {
-            tabConfig.load();
+        // Get tab definition and render
+        const tab = this.subTabs.get(tabId);
+        if (!tab) {
+            console.error(`[Xero] Unknown tab: ${tabId}`);
+            return;
         }
+
+        // Render tab content
+        tab.render();
+
+        // Load tab data
+        tab.load();
     }
 
     // ========================================================================
@@ -250,13 +320,13 @@ class XeroModule extends BaseModule {
             return;
         }
 
-        const container = this.container.querySelector('#xero-tab-dashboard');
-        if (!container) {
-            console.warn('[Xero] Dashboard container not found');
+        const contentArea = this.container.querySelector('.xero-tab-content-area');
+        if (!contentArea) {
+            console.warn('[Xero] Content area not found');
             return;
         }
 
-        container.innerHTML = `
+        contentArea.innerHTML = `
             <div class="xero-dashboard">
                 <div class="xero-stats-grid">
                     <div class="xero-stat-card" id="xero-stat-revenue">
@@ -1064,12 +1134,13 @@ class XeroModule extends BaseModule {
 // REGISTER MODULE
 // ============================================================================
 
-// Auto-register when script loads
-if (typeof window.moduleManager !== 'undefined') {
-    window.moduleManager.registerModule('xero', XeroModule);
-    console.log(' Xero module registered');
+// Register module with ModuleLoader (V5.0 pattern)
+if (window.ModuleLoader) {
+    window.ModuleLoader.registerModuleClass('xero', XeroModule);
+    console.log('[Xero] Module class registered with ModuleLoader');
+} else {
+    console.warn('[Xero] ModuleLoader not found - module may not load correctly');
 }
-
 
 // ES6 Export
 export default XeroModule;

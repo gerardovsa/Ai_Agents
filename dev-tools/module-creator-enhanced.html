@@ -6,433 +6,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Module Creator & Verifier - Enhanced Live Editor</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="module-creator.css">
 
-    <!-- Monaco Editor (VS Code's editor in browser) -->
-    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
-
-    <!-- Socket.IO for real-time file sync -->
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <!-- Dev Tools External Module -->
+    <link rel="stylesheet" href="dev-tools-styles.css">
+    <script src="dev-tools-module.js"></script>
 
     <style>
-        /* Enhanced layout for Monaco Editor */
-        .dev-workspace {
-            display: grid;
-            grid-template-columns: 320px 1fr 380px;
-            height: calc(100vh - 56px - 40px);
-            gap: 1px;
-            background: var(--border-color);
-        }
-
-        .center-panel {
-            display: flex;
-            flex-direction: column;
+        /* Minimal wrapper styles - main layout handled by dev-tools-styles.css */
+        body {
+            margin: 0;
+            padding: 0;
             overflow: hidden;
         }
 
-        .editor-tabs {
-            display: flex;
-            gap: 2px;
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 8px 12px;
-            flex-shrink: 0;
-        }
-
-        .editor-tab {
-            background: var(--bg-secondary);
-            border: none;
-            color: var(--text-secondary);
-            padding: 8px 16px;
-            border-radius: 4px 4px 0 0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-
-        .editor-tab:hover {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-        }
-
-        .editor-tab.active {
-            background: var(--bg-primary);
-            color: var(--accent-blue);
-            border-bottom: 2px solid var(--accent-blue);
-        }
-
-        .tab-actions {
-            margin-left: auto;
-            display: flex;
-            gap: 8px;
-        }
-
-        #monaco-editor-container {
-            flex: 1;
-            min-height: 300px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .preview-section {
-            height: 250px;
-            display: flex;
-            flex-direction: column;
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-tertiary);
-        }
-
-        .preview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: var(--bg-elevated);
-            border-bottom: 1px solid var(--border-color);
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 11px;
-            font-weight: normal;
-        }
-
-        .toggle-switch input[type="checkbox"] {
-            width: 14px;
-            height: 14px;
-        }
-
-        .module-iframe {
-            flex: 1;
-            border: none;
-            background: white;
-        }
-
-        .sync-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            background: rgba(78, 201, 176, 0.1);
-            color: var(--status-success);
-        }
-
-        .sync-indicator.syncing {
-            background: rgba(220, 220, 170, 0.1);
-            color: var(--status-warn);
-        }
-
-        .sync-indicator i {
-            font-size: 10px;
+        main {
+            height: 100vh;
+            width: 100%;
         }
     </style>
 </head>
 
 <body>
-    <!-- ============================================================ -->
-    <!-- HEADER -->
-    <!-- ============================================================ -->
-    <header class="dev-header">
-        <div class="dev-logo">
-            <i class="fas fa-hammer"></i>
-            <h1>Module Creator & Verifier</h1>
-            <span class="sync-indicator" id="sync-status">
-                <i class="fas fa-circle"></i>
-                <span id="sync-text">Ready</span>
-            </span>
-        </div>
-        <div class="dev-status">
-            <div class="status-indicator" id="backend-status">
-                <i class="fas fa-circle"></i>
-                <span>Backend: <span id="backend-status-text">Connecting...</span></span>
-            </div>
-            <div class="status-indicator" id="db-status">
-                <i class="fas fa-database"></i>
-                <span>Database: <span id="db-status-text">Unknown</span></span>
-            </div>
-        </div>
-    </header>
-
-    <!-- ============================================================ -->
-    <!-- MAIN WORKSPACE -->
-    <!-- ============================================================ -->
-    <main class="dev-workspace">
-        <!-- ======================================== -->
-        <!-- LEFT PANEL: Module Configuration -->
-        <!-- ======================================== -->
-        <aside class="dev-panel left-panel">
-            <div class="panel-header">
-                <h2><i class="fas fa-cog"></i> Configuration</h2>
-            </div>
-
-            <div class="panel-content">
-                <!-- Module Type -->
-                <section class="config-section">
-                    <div class="btn-group">
-                        <button class="btn-option active" data-type="new">
-                            <i class="fas fa-plus-circle"></i> New Module
-                        </button>
-                        <button class="btn-option" data-type="existing">
-                            <i class="fas fa-folder-open"></i> Existing
-                        </button>
-                    </div>
-                </section>
-
-                <!-- Basic Info -->
-                <section class="config-section">
-                    <h3>Basic Information</h3>
-                    <div class="form-group">
-                        <label>Module ID <span class="required">*</span></label>
-                        <input type="text" id="module-id" class="dev-input" placeholder="my_module" required>
-                        <small>Alphanumeric, underscores, hyphens only</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Module Name <span class="required">*</span></label>
-                        <input type="text" id="module-name" class="dev-input" placeholder="My Module" required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Version</label>
-                            <input type="text" id="module-version" class="dev-input" value="1.0.0">
-                        </div>
-                        <div class="form-group">
-                            <label>Icon</label>
-                            <input type="text" id="module-icon" class="dev-input" placeholder="fas fa-cube">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="module-description" class="dev-textarea" rows="2"
-                            placeholder="Module description"></textarea>
-                    </div>
-                </section>
-
-                <!-- File Structure -->
-                <section class="config-section">
-                    <h3>File Structure</h3>
-                    <div class="checkbox-group">
-                        <label>
-                            <input type="checkbox" id="file-html" checked> HTML Template
-                        </label>
-                        <label>
-                            <input type="checkbox" id="file-js" checked> JavaScript Controller
-                        </label>
-                        <label>
-                            <input type="checkbox" id="file-css" checked> CSS Stylesheet
-                        </label>
-                        <label>
-                            <input type="checkbox" id="file-routes"> Flask Routes (Python)
-                        </label>
-                    </div>
-                </section>
-
-                <!-- Features -->
-                <section class="config-section">
-                    <h3>Features</h3>
-                    <div class="checkbox-group">
-                        <label>
-                            <input type="checkbox" id="feature-auth" checked> Requires Authentication
-                        </label>
-                        <label>
-                            <input type="checkbox" id="feature-sidebar" checked> Show in Sidebar
-                        </label>
-                        <label>
-                            <input type="checkbox" id="feature-autoload"> Auto-load on Startup
-                        </label>
-                        <label>
-                            <input type="checkbox" id="feature-maintab"> Main Tab Integration
-                        </label>
-                    </div>
-                </section>
-
-                <!-- Test Credentials -->
-                <section class="config-section">
-                    <h3>
-                        <i class="fas fa-key"></i> Test Credentials
-                        <button class="btn-icon" id="toggle-credentials" title="Expand/Collapse" style="float: right;">
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                    </h3>
-                    <div id="credentials-panel" style="display: none;">
-                        <small style="color: var(--text-secondary); display: block; margin-bottom: 12px;">
-                            Add API keys and credentials to test your module. These are stored in browser memory only
-                            (not saved to disk).
-                        </small>
-
-                        <!-- Platform Selection -->
-                        <div class="form-group">
-                            <label>Platform</label>
-                            <select id="credential-platform" class="dev-input">
-                                <option value="">Select platform...</option>
-                                <option value="custom">Custom API</option>
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic Claude</option>
-                                <option value="pinecone">Pinecone</option>
-                                <option value="stripe">Stripe</option>
-                                <option value="shopify">Shopify</option>
-                                <option value="twilio">Twilio</option>
-                                <option value="sendgrid">SendGrid</option>
-                                <option value="supabase">Supabase</option>
-                            </select>
-                        </div>
-
-                        <!-- Credential Fields (Dynamic) -->
-                        <div id="credential-fields">
-                            <!-- API Key (most common) -->
-                            <div class="form-group">
-                                <label>API Key</label>
-                                <input type="password" id="credential-api-key" class="dev-input" placeholder="sk-...">
-                            </div>
-                        </div>
-
-                        <!-- Test Buttons -->
-                        <div class="btn-group" style="margin-top: 12px;">
-                            <button class="btn-primary" id="test-credential">
-                                <i class="fas fa-vial"></i> Test Connection
-                            </button>
-                            <button class="btn-secondary" id="save-credential">
-                                <i class="fas fa-save"></i> Save
-                            </button>
-                        </div>
-
-                        <!-- Saved Credentials List -->
-                        <div id="saved-credentials" style="margin-top: 12px; max-height: 150px; overflow-y: auto;">
-                            <!-- Populated dynamically -->
-                        </div>
-
-                        <!-- Test Result -->
-                        <div id="credential-test-result" style="margin-top: 12px; display: none;"></div>
-                    </div>
-                </section>
-
-                <!-- Actions -->
-                <section class="config-section">
-                    <button class="btn-success btn-large" id="create-module">
-                        <i class="fas fa-plus-circle"></i> Create Module
-                    </button>
-                    <button class="btn-primary btn-large" id="load-template">
-                        <i class="fas fa-file-import"></i> Load Template
-                    </button>
-                </section>
-            </div>
-        </aside>
-
-        <!-- ======================================== -->
-        <!-- CENTER PANEL: Live Code Editor -->
-        <!-- ======================================== -->
-        <section class="dev-panel center-panel">
-            <div class="editor-tabs">
-                <button class="editor-tab active" data-file="html">
-                    <i class="fab fa-html5"></i> HTML
-                </button>
-                <button class="editor-tab" data-file="js">
-                    <i class="fab fa-js"></i> JavaScript
-                </button>
-                <button class="editor-tab" data-file="css">
-                    <i class="fab fa-css3"></i> CSS
-                </button>
-                <button class="editor-tab" data-file="routes">
-                    <i class="fab fa-python"></i> Routes
-                </button>
-                <button class="editor-tab" data-file="manifest">
-                    <i class="fas fa-file-code"></i> Manifest
-                </button>
-                <div class="tab-actions">
-                    <button class="btn-icon" id="save-all" title="Save All Files (Ctrl+S)">
-                        <i class="fas fa-save"></i>
-                    </button>
-                    <button class="btn-icon" id="format-code" title="Format Code (Alt+Shift+F)">
-                        <i class="fas fa-align-left"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Monaco Editor -->
-            <div id="monaco-editor-container"></div>
-
-            <!-- Live Preview -->
-            <div class="preview-section">
-                <div class="preview-header">
-                    <span><i class="fas fa-eye"></i> Live Preview (With Real UI CSS)</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="auto-refresh" checked>
-                        <span>Auto-refresh</span>
-                    </label>
-                </div>
-                <iframe id="module-preview" class="module-iframe"></iframe>
-            </div>
-        </section>
-
-        <!-- ======================================== -->
-        <!-- RIGHT PANEL: Console & Network -->
-        <!-- ======================================== -->
-        <aside class="dev-panel right-panel">
-            <div class="panel-header">
-                <h2><i class="fas fa-terminal"></i> Console</h2>
-                <div class="header-actions">
-                    <button class="btn-icon" id="clear-console" title="Clear Console">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                    <button class="btn-icon" id="toggle-autoscroll" title="Auto-scroll">
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="panel-content">
-                <!-- Console Filters -->
-                <div class="console-filters">
-                    <button class="filter-btn active" data-level="all">ALL</button>
-                    <button class="filter-btn active" data-level="log">LOG</button>
-                    <button class="filter-btn active" data-level="info">INFO</button>
-                    <button class="filter-btn active" data-level="warn">WARN</button>
-                    <button class="filter-btn active" data-level="error">ERROR</button>
-                </div>
-
-                <!-- Console Output -->
-                <div class="console-output" id="console-output"></div>
-
-                <!-- Network Log -->
-                <section class="network-section">
-                    <h4><i class="fas fa-network-wired"></i> Network Activity</h4>
-                    <div class="network-log" id="network-log"></div>
-                </section>
-            </div>
-        </aside>
+    <!-- Dev Tools Module Container (populated by external module) -->
+    <main id="dev-tools-workspace">
+        <!-- Module workspace will be dynamically created by dev-tools-module.js -->
     </main>
 
-    <!-- ============================================================ -->
-    <!-- FOOTER -->
-    <!-- ============================================================ -->
-    <footer class="dev-footer">
-        <div class="stat-item">
-            <span class="stat-label">Console:</span>
-            <span class="stat-value" id="console-count">0</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">API Calls:</span>
-            <span class="stat-value" id="api-count">0</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">Errors:</span>
-            <span class="stat-value error" id="error-count">0</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">Last Saved:</span>
-            <span class="stat-value" id="last-saved">Never</span>
-        </div>
-    </footer>
+    <!-- Initialize Dev Tools Module -->
+    <script>
+        (async () => {
+            console.log('[ModuleCreator] Initializing dev-tools external module...');
 
-    <!-- Load enhanced JavaScript controller -->
-    <script src="module-creator-enhanced.js"></script>
+            try {
+                // Get DevToolsModule singleton instance
+                const devTools = DevToolsModule.getInstance({
+                    apiBase: 'http://localhost:5001',
+                    monacoPath: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs',
+                    enableWebSocket: true,
+                    enableAutoSave: true,
+                    autoSaveInterval: 30000,
+                    enableCredentialTesting: true,
+                    theme: 'vs-dark',
+                    enableLivePreview: true,
+                    previewUpdateDelay: 1000
+                });
+
+                // Initialize workspace in main element
+                await devTools.initialize('#dev-tools-workspace');
+
+                console.log('[ModuleCreator] ✅ Dev-tools module initialized successfully');
+
+            } catch (error) {
+                console.error('[ModuleCreator] ❌ Failed to initialize dev-tools module:', error);
+                alert('Failed to initialize Module Creator. Check console for details.');
+            }
+        })();
+    </script>
 </body>
 
 </html>

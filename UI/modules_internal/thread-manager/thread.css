@@ -582,6 +582,78 @@
     /* Stop pulsing on hover */
 }
 
+/* Processing state - pulsing orange border when AI is generating */
+.agent-quick-nav-badge.processing {
+    border: 2px solid var(--warning-color);
+    animation: pulse-processing 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-processing {
+
+    0%,
+    100% {
+        border-color: rgba(255, 165, 0, 0.8);
+        box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.7);
+    }
+
+    50% {
+        border-color: rgba(255, 200, 0, 1);
+        box-shadow: 0 0 0 6px rgba(255, 165, 0, 0);
+    }
+}
+
+/* Viewing state - bold cyan border when current user is viewing this agent */
+.agent-quick-nav-badge.viewing {
+    border: 3px solid var(--accent-primary);
+    box-shadow: 0 0 12px var(--accent-primary);
+}
+
+/* Other user/session viewing - purple border + bubble (shows initials or count) */
+.agent-quick-nav-badge.other-user {
+    border: 2px solid #a855f7;
+    position: relative;
+}
+
+.agent-quick-nav-badge.other-user::after {
+    content: attr(data-user-initials);
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #a855f7;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    line-height: 1;
+}
+
+/* Pulsing animation when other sessions are viewing */
+.agent-quick-nav-badge.other-user {
+    animation: pulse-purple 2s ease-in-out infinite;
+}
+
+@keyframes pulse-purple {
+
+    0%,
+    100% {
+        border-color: #a855f7;
+        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+    }
+
+    50% {
+        border-color: #c084fc;
+        box-shadow: 0 0 0 4px rgba(168, 85, 247, 0);
+    }
+}
+
 /* Green pulse animation for completed messages - PULSE THE BACKGROUND COLOR */
 @keyframes pulse-green-background {
 

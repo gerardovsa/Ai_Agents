@@ -1270,7 +1270,13 @@ class SynergySidebarRenderer {
      * Render tags section
      */
     renderTagsSection(tags) {
-        const tagList = this.parseJsonField(tags, []);
+        let tagList = this.parseJsonField(tags, []);
+
+        // ✅ Type guard: Ensure tagList is always an array
+        if (!Array.isArray(tagList)) {
+            console.warn('[SYNERGY] Tags is not an array, converting:', tagList);
+            tagList = [];
+        }
 
         if (tagList.length === 0) return '';
 
@@ -1301,13 +1307,26 @@ class SynergySidebarRenderer {
     parseJsonField(field, fallback = []) {
         if (!field) return fallback;
         if (Array.isArray(field)) return field;
-        if (typeof field === 'object') return field;
         if (typeof field === 'string') {
             try {
-                return JSON.parse(field);
+                const parsed = JSON.parse(field);
+                // ✅ Ensure parsed value is an array if fallback is an array
+                if (Array.isArray(fallback) && !Array.isArray(parsed)) {
+                    console.warn('[SYNERGY] parseJsonField: Expected array but got', typeof parsed, parsed);
+                    return fallback;
+                }
+                return parsed;
             } catch (e) {
                 return fallback;
             }
+        }
+        // ✅ If field is an object but not an array, return fallback when expecting array
+        if (typeof field === 'object' && !Array.isArray(field)) {
+            if (Array.isArray(fallback)) {
+                console.warn('[SYNERGY] parseJsonField: Field is object but expected array', field);
+                return fallback;
+            }
+            return field; // Return object if not expecting array
         }
         return fallback;
     }

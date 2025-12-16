@@ -2009,12 +2009,21 @@ def get_messages():
             cursor = conn.cursor()
             
             # Get total message count
-            sql, params = convert_sql_placeholders("""
+            # Support both thread_slug (string) and thread_id (integer)
+            # Try as integer first, fallback to slug
+            try:
+                thread_id_int = int(thread_id)
+                where_clause = "t.id = %s"
+            except (ValueError, TypeError):
+                thread_id_int = thread_id
+                where_clause = "t.thread_slug = %s"
+            
+            sql, params = convert_sql_placeholders(f"""
                 SELECT COUNT(m.id) as total
                 FROM sessions.messages m
                 JOIN sessions.threads t ON m.thread_id = t.id
-                WHERE t.thread_slug = %s
-            """, (thread_id,))
+                WHERE {where_clause}
+            """, (thread_id_int,))
             
             cursor.execute(sql, params)
             result = cursor.fetchone()
@@ -2022,7 +2031,7 @@ def get_messages():
             
             # Query messages
             if limit:
-                sql, params = convert_sql_placeholders("""
+                sql, params = convert_sql_placeholders(f"""
                     SELECT 
                         m.id,
                         m.role,
@@ -2033,12 +2042,12 @@ def get_messages():
                         m.metadata
                     FROM sessions.messages m
                     JOIN sessions.threads t ON m.thread_id = t.id
-                    WHERE t.thread_slug = %s
+                    WHERE {where_clause}
                     ORDER BY m.created_at DESC
                     LIMIT %s OFFSET %s
-                """, (thread_id, limit, offset))
+                """, (thread_id_int, limit, offset))
             else:
-                sql, params = convert_sql_placeholders("""
+                sql, params = convert_sql_placeholders(f"""
                     SELECT 
                         m.id,
                         m.role,
@@ -2049,9 +2058,9 @@ def get_messages():
                         m.metadata
                     FROM sessions.messages m
                     JOIN sessions.threads t ON m.thread_id = t.id
-                    WHERE t.thread_slug = %s
+                    WHERE {where_clause}
                     ORDER BY m.created_at ASC
-                """, (thread_id,))
+                """, (thread_id_int,))
             
             cursor.execute(sql, params)
             rows = cursor.fetchall()

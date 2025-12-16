@@ -759,6 +759,9 @@ const MultiAgent = {
             console.log(`[Agent ${agentId}] Badge viewed - removed completion indicator`);
         }
 
+        // ✨ NEW: Set as currently viewing agent
+        this.setCurrentlyViewing(agentId);
+
         // Expand if collapsed
         if (column.classList.contains('collapsed')) {
             this.expandColumn(agentId);
@@ -780,12 +783,130 @@ const MultiAgent = {
             column.style.boxShadow = '';
         }, 1000);
 
-        // Update active state in nav
-        document.querySelectorAll('.agent-quick-nav-badge').forEach(b => {
-            b.classList.toggle('active', parseInt(b.dataset.agentId) === agentId);
-        });
+        // DON'T toggle 'active' class here - it conflicts with 'has-thread' state
+        // The 'has-thread' class is managed by updateQuickNavBadge() based on actual thread data
+        // Clicking a badge should just scroll, not change its highlight state
 
         console.log(`[Command Center] Scrolled to ${this.getAgentName(agentId)}`);
+    },
+
+    // Set currently viewing agent (tracks which agent current user is viewing)
+    setCurrentlyViewing(agentId) {
+        // Remove viewing from all badges
+        document.querySelectorAll('.agent-quick-nav-badge').forEach(badge => {
+            badge.classList.remove('viewing');
+        });
+
+        // Add viewing to current agent
+        const badge = document.getElementById(`quick-nav-badge-${agentId}`);
+        if (badge) {
+            badge.classList.add('viewing');
+            console.log(`[Agent ${agentId}] 👁️ Marked as currently viewing`);
+        }
+
+        // Broadcast to other users via existing WebSocket presence system
+        if (window.SynergyRealtime && typeof SynergyRealtime.updateAgentViewingScope === 'function') {
+            SynergyRealtime.updateAgentViewingScope(agentId);
+        }
+    },
+
+    // Update badge to show OTHER sessions viewing this agent (can be same user on different device)
+    updateBadgeForOtherSessions(agentId, sessions) {
+        const column = document.getElementById(`agent-column-${agentId}`);
+        const badge = document.getElementById(`quick-nav-badge-${agentId}`);
+        if (!badge && !column) return;
+
+        if (!sessions || sessions.length === 0) {
+            // No other sessions viewing - remove indicator
+            if (badge) {
+                badge.classList.remove('other-user');
+                badge.removeAttribute('data-user-initials');
+                badge.removeAttribute('data-session-devices');
+                badge.removeAttribute('title');
+            }
+
+            if (column) {
+                column.classList.remove('other-session-viewing');
+            }
+            console.log(`[Agent ${agentId}] 👥 No other sessions viewing`);
+            return;
+        }
+
+        if (column) {
+            column.classList.add('other-session-viewing');
+        }
+
+        // Show indicator for multiple sessions
+        if (badge) badge.classList.add('other-user');
+
+        // Build display text (no emojis)
+        if (sessions.length === 1) {
+            const session = sessions[0];
+            const displayName = session.display_name || session.user_name;
+            
+            if (session.isYourOtherSession) {
+                // Your other device/session - show device label
+                const deviceLabel = this.getDeviceLabel(session.device);
+                if (badge) {
+                    badge.setAttribute('data-user-initials', deviceLabel);
+                    badge.setAttribute('title', `${displayName} viewing on ${session.device}`);
+                }
+            } else {
+                // Different person (same account) - show their display name initials
+                const initials = this.getInitials(displayName);
+                if (badge) {
+                    badge.setAttribute('data-user-initials', initials);
+                    badge.setAttribute('title', `${displayName} viewing on ${session.device}`);
+                }
+            }
+        } else {
+            // Multiple sessions - show count
+            if (badge) badge.setAttribute('data-user-initials', `${sessions.length}`);
+            const deviceList = sessions.map(s => {
+                const displayName = s.display_name || s.user_name;
+                if (s.isYourOtherSession) {
+                    return `${displayName} (${s.device})`;
+                } else {
+                    return `${displayName} (${s.device})`;
+                }
+            }).join('\n');
+            if (badge) badge.setAttribute('title', `${sessions.length} people viewing:\n${deviceList}`);
+        }
+
+        // Store session info for hover tooltip
+        if (badge) badge.setAttribute('data-session-devices', JSON.stringify(sessions.map(s => s.device)));
+
+        console.log(`[Agent ${agentId}] 👥 ${sessions.length} session(s) viewing:`, sessions);
+    },
+
+    // Get device label from device string (no emojis)
+    getDeviceLabel(deviceStr) {
+        if (!deviceStr) return 'PC';
+        if (deviceStr.includes('iPhone')) return 'iPhone';
+        if (deviceStr.includes('Android')) return 'Phone';
+        if (deviceStr.includes('Mac')) return 'Mac';
+        if (deviceStr.includes('Windows')) return 'Win';
+        if (deviceStr.includes('Linux')) return 'Linux';
+        if (deviceStr.includes('Desktop')) return 'PC';
+        if (deviceStr.includes('Phone') || deviceStr.includes('Mobile')) return 'Mobile';
+        return 'PC';
+    },
+
+    // Legacy method - kept for backwards compatibility but redirects to new method
+    updateBadgeForOtherUser(agentId, userName, sessionToken, action = 'add') {
+        // This is now handled by updateBadgeForOtherSessions
+        // Kept for backwards compatibility
+        console.warn('[DEPRECATED] updateBadgeForOtherUser - use updateBadgeForOtherSessions instead');
+    },
+
+    // Get initials from user name
+    getInitials(name) {
+        if (!name) return '??';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) {
+            return parts[0].substring(0, 2).toUpperCase();
+        }
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     },
 
     // Update dashboard stats
@@ -809,6 +930,69 @@ const MultiAgent = {
         this.updateDashboardStats();
         if (typeof showNotification === 'function') {
             showNotification('All agents refreshed', 'success');
+        }
+    },
+
+    // Toggle visibility of empty agent columns
+    toggleEmptyAgents() {
+        const btn = document.getElementById('toggle-empty-agents-btn');
+        const icon = btn?.querySelector('i');
+
+        // Get current state from button or default to false
+        const currentlyCollapsed = btn?.dataset.collapseEmpty === 'true';
+        const newState = !currentlyCollapsed;
+
+        // Update button state
+        if (btn) btn.dataset.collapseEmpty = newState.toString();
+
+        // Find all agent columns
+        const allColumns = document.querySelectorAll('.agent-column');
+        let collapsedCount = 0;
+
+        allColumns.forEach(column => {
+            const agentId = parseInt(column.id.replace('agent-column-', ''));
+            const hasThread = this.loadedThreads[agentId]?.threadId;
+
+            if (!hasThread && newState) {
+                // Collapse empty agents (using AgentColumn.collapse function)
+                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.collapse === 'function') {
+                    AgentColumn.collapse(agentId);
+                    collapsedCount++;
+                } else {
+                    // Fallback: add collapsed class manually
+                    column.classList.add('collapsed');
+                    collapsedCount++;
+                }
+            } else if (!hasThread && !newState) {
+                // Expand empty agents (using AgentColumn.expand function)
+                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.expand === 'function') {
+                    AgentColumn.expand(agentId);
+                } else {
+                    // Fallback: remove collapsed class manually
+                    column.classList.remove('collapsed');
+                }
+            }
+        });
+
+        // Update button icon and tooltip
+        if (icon && btn) {
+            if (newState) {
+                icon.className = 'fas fa-compress-alt';
+                btn.title = `Expand ${collapsedCount} collapsed empty agents`;
+            } else {
+                icon.className = 'fas fa-expand-alt';
+                btn.title = 'Collapse empty agents';
+            }
+        }
+
+        console.log(`[Command Center] ${newState ? 'Collapsing' : 'Expanding'} empty agents (${collapsedCount} affected)`);
+
+        if (typeof showNotification === 'function') {
+            if (newState) {
+                showNotification(`${collapsedCount} empty agents collapsed`, 'info');
+            } else {
+                showNotification('All agents expanded', 'info');
+            }
         }
     },
 
@@ -849,8 +1033,9 @@ const MultiAgent = {
         delete this.loadedThreads[agentId];
         delete this.sessions[agentId];
 
-        // 4. Update agent header to show empty state
+        // 4. Update agent header AND badge to show empty state
         this.updateAgentHeader(agentId);
+        this.updateQuickNavBadge(agentId);  // ✨ Update badge to remove 'has-thread' class
 
         // 5. Save state
         this.saveState();
@@ -2215,6 +2400,14 @@ async function initMultiAgent() {
                             messagesContainer.innerHTML = '<div class="agent-messages" id="agent-messages-' + agentId + '"></div>';
                         }
 
+                        // ✅ FIX DEC 17: Load messages into MessageStore FIRST before rendering
+                        console.log(`📥 [initMultiAgent] Pre-loading messages for thread ${thread.id} into MessageStore...`);
+                        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadMessagesForThread === 'function') {
+                            await ThreadManager.loadMessagesForThread(thread.id, null, 0);
+                            const messageCount = window.MessageStore.getMessages(thread.id).length;
+                            console.log(`✅ [initMultiAgent] ${messageCount} messages loaded into MessageStore for thread ${thread.id}`);
+                        }
+
                         // Load thread with full rendering
                         await MultiAgent.loadThreadIntoAgent(agentId, thread);
                         console.log(`✅ [initMultiAgent] Loaded thread "${thread.title}" into ${agentName}`);
@@ -3162,6 +3355,129 @@ function handleAgentKeypress(event, agentId) {
     }
 }
 
+// ============================================================
+// REALTIME: Cross-session agent message sync (Socket.IO -> DOM event)
+// ============================================================
+
+(function setupAgentThreadRealtimeSync() {
+    if (window.__agentThreadRealtimeSyncInstalled) return;
+    window.__agentThreadRealtimeSyncInstalled = true;
+
+    // Deduplicate rapid-fire updates (same agent/thread) within a short window
+    const recentRefreshes = new Map(); // key -> timestamp
+    const REFRESH_DEDUP_MS = 1500;
+
+    window.addEventListener('synergyrealtime:agent_thread_updated', async (evt) => {
+        try {
+            const data = (evt && evt.detail) ? evt.detail : {};
+            const updatedAgentId = data.agent_id || data.agentId;
+            const threadSlug = data.thread_slug || data.threadSlug;
+
+            if (!updatedAgentId || !threadSlug) return;
+            if (typeof window.MultiAgent === 'undefined' || typeof window.ThreadManager === 'undefined') return;
+            if (typeof ThreadManager.loadMessagesForThread !== 'function') return;
+
+            const dedupKey = `${updatedAgentId}:${threadSlug}`;
+            const last = recentRefreshes.get(dedupKey);
+            if (last && (Date.now() - last) < REFRESH_DEDUP_MS) {
+                return;
+            }
+            recentRefreshes.set(dedupKey, Date.now());
+
+            const agentIdNum = parseInt(updatedAgentId);
+            if (Number.isNaN(agentIdNum)) return;
+
+            // Ensure ThreadManager has a current view of thread assignments (location fields)
+            if (!ThreadManager.threadsLoaded && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                await ThreadManager.loadThreadsFromBackend();
+            }
+
+            // AUTHORITATIVE APPLY:
+            // When a thread update arrives for agent-X + threadSlug, make this browser's
+            // agent-X column reflect that thread (even if empty or currently showing another thread).
+            const expectedLocation = `agent-${agentIdNum}`;
+            const loadedInfo = MultiAgent.loadedThreads?.[agentIdNum];
+            const isEmptyAgentHere = !loadedInfo || !loadedInfo.threadId;
+            const isDifferentThreadLoaded = !!loadedInfo?.threadId && loadedInfo.threadId !== threadSlug;
+
+            if (isEmptyAgentHere || isDifferentThreadLoaded) {
+                // Try to locate thread metadata from ThreadManager.threads; fall back to a stub.
+                let threadMeta = (ThreadManager.threads || []).find(t => t && t.id === threadSlug) || null;
+
+                if (threadMeta) {
+                    // Prevent loadThreadIntoAgent() from re-assigning in backend by aligning location.
+                    threadMeta = { ...threadMeta, location: expectedLocation };
+                } else {
+                    threadMeta = {
+                        id: threadSlug,
+                        title: (loadedInfo && loadedInfo.threadTitle) ? loadedInfo.threadTitle : `Agent ${agentIdNum} Chat`,
+                        message_count: data.message_count || 0,
+                        location: expectedLocation
+                    };
+                }
+
+                console.log(`[REALTIME] ✅ Applying thread ${threadSlug} to agent-${agentIdNum} (empty=${isEmptyAgentHere}, switched=${isDifferentThreadLoaded})`);
+
+                // Pull latest messages first so the render uses fresh MessageStore contents.
+                await ThreadManager.loadMessagesForThread(threadSlug, null, 0);
+
+                if (typeof MultiAgent.loadThreadIntoAgent === 'function') {
+                    MultiAgent.loadThreadIntoAgent(agentIdNum, threadMeta);
+                }
+            }
+
+            // Refresh only if this browser has the thread loaded in an agent column.
+            // Prefer the payload agent_id, but also support cases where the same thread is loaded elsewhere.
+            const candidates = [];
+            if (MultiAgent.loadedThreads && MultiAgent.loadedThreads[updatedAgentId]?.threadId) {
+                candidates.push(parseInt(updatedAgentId));
+            }
+
+            if (MultiAgent.loadedThreads) {
+                Object.keys(MultiAgent.loadedThreads).forEach((aid) => {
+                    const num = parseInt(aid);
+                    if (!Number.isNaN(num) && candidates.indexOf(num) === -1) {
+                        candidates.push(num);
+                    }
+                });
+            }
+
+            for (const agentId of candidates) {
+                const loaded = MultiAgent.loadedThreads?.[agentId];
+                if (!loaded || loaded.threadId !== threadSlug) continue;
+
+                console.log(`[REALTIME] 🔄 Refreshing agent-${agentId} thread ${threadSlug} (external update)`);
+
+                // Pull latest messages from backend into MessageStore (source of truth)
+                await ThreadManager.loadMessagesForThread(threadSlug, null, 0);
+
+                // Re-render the agent column using existing load pathway (reads from MessageStore)
+                const agentName = MultiAgent.getAgentName ? MultiAgent.getAgentName(agentId) : null;
+                const thread = (agentName && typeof ThreadManager.getThreadByAgent === 'function')
+                    ? ThreadManager.getThreadByAgent(agentName)
+                    : null;
+
+                const fallbackThread = ThreadManager.threads
+                    ? ThreadManager.threads.find(t => t.id === threadSlug)
+                    : null;
+
+                const threadToRender = thread || fallbackThread || {
+                    id: threadSlug,
+                    title: loaded.threadTitle || `Agent ${agentId} Chat`,
+                    message_count: data.message_count || 0,
+                    location: `agent-${agentId}`
+                };
+
+                if (typeof MultiAgent.loadThreadIntoAgent === 'function') {
+                    MultiAgent.loadThreadIntoAgent(agentId, threadToRender);
+                }
+            }
+        } catch (e) {
+            console.warn('[REALTIME] Failed to refresh agent thread from realtime update:', e);
+        }
+    });
+})();
+
 async function sendAgentMessage(agentId) {
     // Try new naming convention first (agent-input-*), fall back to old (input-*)
     const input = document.getElementById(`agent-input-${agentId}`) || document.getElementById(`input-${agentId}`);
@@ -3393,6 +3709,13 @@ async function sendAgentMessage(agentId) {
         const streamStartTime = Date.now();
 
         console.log(`[Agent ${agentId}] 🔒 STREAM ISOLATION: thread=${streamThreadSlug}, location=${expectedAgentLocation}, timestamp=${streamStartTime}`);
+
+        // ✨ NEW: Mark badge as processing (pulsing orange border)
+        const badge = document.getElementById(`quick-nav-badge-${agentId}`);
+        if (badge) {
+            badge.classList.add('processing');
+            console.log(`[Agent ${agentId}] 🔄 Badge marked as processing`);
+        }
 
         // HANDLE STREAMING RESPONSE - Use shared TwoRule pathway
         console.log(`[Agent ${agentId}] Receiving streamed response...`);
@@ -4293,11 +4616,12 @@ async function sendAgentMessage(agentId) {
                 MultiAgent.updateQuickNavBadge(agentId);
                 console.log(`[Agent ${agentId}] Updated quick-nav badge`);
 
-                // ✨ NEW: Add green completion indicator
+                // ✨ Remove processing state and add completion indicator
                 const badge = document.getElementById(`quick-nav-badge-${agentId}`);
                 if (badge) {
+                    badge.classList.remove('processing');
                     badge.classList.add('message-complete');
-                    console.log(`[Agent ${agentId}] ✅ Badge marked as message-complete (green)`);
+                    console.log(`[Agent ${agentId}] ✅ Badge marked as message-complete (green), processing removed`);
                 }
             }
 

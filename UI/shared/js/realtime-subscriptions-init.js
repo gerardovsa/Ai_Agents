@@ -183,16 +183,19 @@ window.RealtimeSubscriptionsInit = (function () {
             // 2. WORKSPACE - Cross-tab sync
             await subscribeToWorkspace(userId);
 
-            // 3. THREADS - Thread updates
+            // 3. THREADS - Thread metadata updates
             await subscribeToThreads(userId);
 
-            // 4. SYNERGY - Kanban board updates
+            // 4. ✅ NEW: THREAD MESSAGES - Real-time message sync (CRITICAL for multi-session)
+            await subscribeToThreadMessages(userId);
+
+            // 5. SYNERGY - Kanban board updates
             await subscribeToSynergy(userId);
 
-            // 5. CREDENTIALS - OAuth updates
+            // 6. CREDENTIALS - OAuth updates
             await subscribeToCredentials(userId);
 
-            // 6. SESSIONS - User session updates
+            // 7. SESSIONS - User session updates
             await subscribeToSessions(userId);
 
             console.log('✅ [Realtime Init] All subscriptions initialized successfully');
@@ -288,6 +291,92 @@ window.RealtimeSubscriptionsInit = (function () {
     }
 
     /**
+     * ✅ CORRECTED: Subscribe to CONVERSATION MESSAGES (sessions.messages table)
+     * Broadcasts AI responses and user messages across all browser tabs/sessions in real-time
+     * Ensures zero-latency synchronization for multi-session collaboration
+     */
+    async function subscribeToThreadMessages(userId) {
+        try {
+            console.log('💬 [Realtime Init] Subscribing to CONVERSATION MESSAGES (sessions.messages)...');
+
+            SupabaseRealtimeManager.subscribe('conversation-messages', {
+                event: 'INSERT',  // Only listen for NEW messages (AI responses, user messages)
+                schema: 'sessions',
+                table: 'messages',  // ✅ CORRECT TABLE: sessions.messages (actual conversation data)
+                filter: `user_id=eq.${userId}`,
+                onChange: (eventType, payload) => {
+                    console.log('🔔 [Conversation Messages] New message received:', eventType, payload);
+
+                    const message = payload.new || payload.old;
+                    const threadId = message.thread_id;
+
+                    // ✅ INSTANT UPDATE: Add message to MessageStore (all tabs get this)
+                    if (eventType === 'INSERT' && window.MessageStore) {
+                        window.MessageStore.addMessage(threadId, message, {
+                            checkDuplicates: true,
+                            syncToBackend: false,  // Already in backend
+                            silent: false
+                        });
+
+                        // ✅ RENDER MESSAGE: If agent column has this thread loaded, render immediately
+                        if (window.MultiAgent && window.MultiAgent.loadedThreads) {
+                            // Find which agent has this thread
+                            for (const [agentId, threadInfo] of Object.entries(window.MultiAgent.loadedThreads)) {
+                                if (threadInfo.threadId === threadId) {
+                                    console.log(`📥 [Messages] Rendering new message in agent-${agentId} column`);
+                                    
+                                    // Get messages container
+                                    const messagesDiv = document.getElementById(`agent-messages-${agentId}`);
+                                    if (messagesDiv && window.UnifiedMessageRenderer) {
+                                        window.UnifiedMessageRenderer.render(
+                                            messagesDiv,
+                                            message.role,
+                                            message.content,
+                                            {
+                                                threadId: threadId,
+                                                syncToBackend: false,
+                                                scrollToBottom: true,
+                                                createdAt: message.created_at
+                                            }
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        // ✅ ALSO UPDATE PRIME if this thread is in Prime
+                        if (window.ThreadManager && window.ThreadManager.currentThreadId === threadId) {
+                            const primeMessages = document.getElementById('ai-chat-messages');
+                            if (primeMessages && window.UnifiedMessageRenderer) {
+                                console.log('📥 [Messages] Rendering new message in Prime AI');
+                                window.UnifiedMessageRenderer.render(
+                                    primeMessages,
+                                    message.role,
+                                    message.content,
+                                    {
+                                        threadId: threadId,
+                                        syncToBackend: false,
+                                        scrollToBottom: true,
+                                        createdAt: message.created_at
+                                    }
+                                );
+                            }
+                        }
+                    }
+
+                    // NOTE: Only handling INSERT - UPDATE/DELETE not needed for real-time message sync
+                }
+            });
+
+            activeSubscriptions.add('conversation-messages');
+            console.log('✅ [Realtime Init] Conversation messages subscription active (sessions.messages)');
+
+        } catch (error) {
+            console.error('❌ [Realtime Init] Thread messages subscription failed:', error);
+        }
+    }
+
+    /**
      * Subscribe to Synergy (Kanban) updates
      */
     async function subscribeToSynergy(userId) {
@@ -305,6 +394,14 @@ window.RealtimeSubscriptionsInit = (function () {
                     filter: `user_id=eq.${userId}`,
                     onChange: (eventType, payload) => {
                         console.log(`🔔 [Synergy:${table}] Update received:`, eventType, payload);
+
+                        // Check source to prevent duplicate processing
+                        // Skip if update came from Socket.IO (already processed)
+                        const source = payload?.new?.metadata?.source || payload?.new?.message_metadata?.source;
+                        if (source === 'socket.io') {
+                            console.log(`[Synergy:${table}] Skipping - already handled by Socket.IO`);
+                            return;
+                        }
 
                         // Notify SynergyManager if available
                         if (window.SynergyManager && window.SynergyManager.handleRealtimeUpdate) {

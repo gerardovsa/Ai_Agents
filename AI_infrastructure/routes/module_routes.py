@@ -690,3 +690,125 @@ def serve_module_css(module_id):
         import traceback
         logger.error(traceback.format_exc())
         return Response('/* Error loading CSS */', mimetype='text/css')
+
+
+@module_bp.route('/<module_id>/files', methods=['GET'])
+def get_module_files(module_id: str):
+    """
+    Get all source files for a module (for dev-tools editor)
+    
+    Path params:
+        module_id: Module ID
+    
+    Returns:
+        {
+            'id': 'inhouse-kanban',
+            'name': 'Kanban Board',
+            'type': 'dashboard',
+            'icon': 'fa-tasks',
+            'description': '...',
+            'version': '1.0.0',
+            'files': {
+                'html': '<div>...</div>',
+                'js': 'function init() {...}',
+                'css': '.kanban {...}',
+                'routes': '@kanban_bp.route...',
+                'manifest': '{"id": "kanban"...}'
+            }
+        }
+    """
+    logger.info(f"🔵 [get_module_files] API ENDPOINT CALLED: GET /api/modules/{module_id}/files")
+    try:
+        from pathlib import Path
+        import os
+        
+        # Get module registry
+        registry = get_module_registry()
+        module = registry.get_module(module_id)
+        
+        if not module:
+            return jsonify({'error': f"Module {module_id} not found"}), 404
+        
+        # Build file paths
+        module_dir = Path(module.module_path)
+        
+        files = {}
+        
+        # Try to load HTML
+        html_candidates = [
+            module_dir / f"{module_id}.html",
+            module_dir / f"module-{module_id}.html",
+            module_dir / "index.html",
+            module_dir / f"{module_id}-template.html"
+        ]
+        for html_path in html_candidates:
+            if html_path.exists():
+                with open(html_path, 'r', encoding='utf-8') as f:
+                    files['html'] = f.read()
+                break
+        
+        # Try to load JavaScript
+        js_candidates = [
+            module_dir / f"{module_id}.js",
+            module_dir / f"module-{module_id}.js",
+            module_dir / "script.js",
+            module_dir / f"{module_id}-module.js"
+        ]
+        for js_path in js_candidates:
+            if js_path.exists():
+                with open(js_path, 'r', encoding='utf-8') as f:
+                    files['js'] = f.read()
+                break
+        
+        # Try to load CSS
+        css_candidates = [
+            module_dir / f"{module_id}.css",
+            module_dir / f"{module_id}-styles.css",
+            module_dir / f"module-{module_id}-styles.css",
+            module_dir / "styles.css"
+        ]
+        for css_path in css_candidates:
+            if css_path.exists():
+                with open(css_path, 'r', encoding='utf-8') as f:
+                    files['css'] = f.read()
+                break
+        
+        # Try to load Python routes
+        routes_candidates = [
+            module_dir / f"{module_id}_routes.py",
+            module_dir / f"{module_id}-routes.py",
+            module_dir / "routes.py"
+        ]
+        for routes_path in routes_candidates:
+            if routes_path.exists():
+                with open(routes_path, 'r', encoding='utf-8') as f:
+                    files['routes'] = f.read()
+                break
+        
+        # Try to load manifest
+        manifest_candidates = [
+            module_dir / "manifest.json",
+            module_dir / f"{module_id}-manifest.json"
+        ]
+        for manifest_path in manifest_candidates:
+            if manifest_path.exists():
+                with open(manifest_path, 'r', encoding='utf-8') as f:
+                    files['manifest'] = f.read()
+                break
+        
+        return jsonify({
+            'id': module.id,
+            'name': module.name,
+            'type': getattr(module, 'type', 'dashboard'),
+            'icon': module.icon,
+            'description': module.description,
+            'version': module.version,
+            'files': files,
+            'module_path': str(module_dir)
+        })
+    
+    except Exception as e:
+        logger.error(f"❌ Failed to get module files for {module_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500

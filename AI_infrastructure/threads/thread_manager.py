@@ -143,14 +143,29 @@ class ThreadManager:
             # Verify workspace exists (from ai_infrastructure.db)
             # TODO: Add workspace validation once workspace module is complete
             
+            # Generate embedding for thread title (async background job)
+            name_embedding = None
+            try:
+                from tools.implementations.conversation_memory import generate_embedding
+                # Embed thread name for semantic search
+                if thread_data.name and len(thread_data.name.strip()) > 3:
+                    # Combine name + description for richer embedding
+                    embed_text = thread_data.name
+                    if thread_data.description:
+                        embed_text += f". {thread_data.description}"
+                    name_embedding = generate_embedding(embed_text[:2000])  # Limit to 2K chars
+            except Exception as e:
+                # Non-blocking: Continue even if embedding fails
+                logger.warning(f"Failed to generate thread embedding: {e}")
+            
             # Insert thread
             now = datetime.utcnow().isoformat()
             sql, params = convert_sql_placeholders("""
                 INSERT INTO threads (
                     thread_slug, name, description, workspace_id, user_id,
-                    agent_id, status, visibility, created_at, updated_at
+                    agent_id, status, visibility, created_at, updated_at, name_embedding
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 thread_slug,
                 thread_data.name,
@@ -161,7 +176,8 @@ class ThreadManager:
                 thread_data.status.value,
                 thread_data.visibility.value,
                 now,
-                now
+                now,
+                name_embedding
             ))
 
             cursor.execute(sql, params)
@@ -305,13 +321,31 @@ class ThreadManager:
             updates = []
             params = []
             
+            # Track if we need to regenerate embedding
+            regenerate_embedding = False
+            
             if update_data.name is not None:
                 updates.append("name = ?")
                 params.append(update_data.name)
+                regenerate_embedding = True
             
             if update_data.description is not None:
                 updates.append("description = ?")
                 params.append(update_data.description)
+                regenerate_embedding = True
+            
+            # Regenerate embedding if name/description changed
+            if regenerate_embedding:
+                try:
+                    from tools.implementations.conversation_memory import generate_embedding
+                    embed_text = update_data.name or thread.name
+                    if update_data.description or thread.description:
+                        embed_text += f". {update_data.description or thread.description}"
+                    name_embedding = generate_embedding(embed_text[:2000])
+                    updates.append("name_embedding = ?")
+                    params.append(name_embedding)
+                except Exception as e:
+                    logger.warning(f"Failed to update thread embedding: {e}")
             
             if update_data.status is not None:
                 updates.append("status = ?")

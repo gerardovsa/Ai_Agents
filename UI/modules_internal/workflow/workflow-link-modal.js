@@ -79,11 +79,11 @@
         }
 
         const modalHTML = `
-            <div class="modal-overlay" id="workflowLinkModalOverlay" onclick="if(event.target.id === 'workflowLinkModalOverlay') document.getElementById('workflowLinkModalOverlay').remove()">
+            <div class="modal-overlay" id="workflowLinkModalOverlay" onclick="if(event.target.id === 'workflowLinkModalOverlay') { event.stopPropagation(); document.getElementById('workflowLinkModalOverlay').remove(); }">
                 <div class="workflow-link-modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h3><i class="fas fa-robot"></i> Link to Automated Workflow</h3>
-                        <button class="modal-close" onclick="document.getElementById('workflowLinkModalOverlay').remove()">
+                        <button class="modal-close" onclick="event.stopPropagation(); event.preventDefault(); const overlay = document.getElementById('workflowLinkModalOverlay'); if(overlay) overlay.remove();">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>

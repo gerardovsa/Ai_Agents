@@ -954,6 +954,37 @@ Object.assign(window.ThreadManager, {
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+        // Make modal draggable
+        const modal = document.querySelector('.new-chat-modal');
+        const modalHeader = modal.querySelector('.modal-header');
+        let isDragging = false;
+        let currentX, currentY, initialX, initialY;
+
+        modalHeader.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            initialX = e.clientX - (parseInt(modal.style.left) || 0);
+            initialY = e.clientY - (parseInt(modal.style.top) || 0);
+            modalHeader.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                modal.style.left = `${currentX}px`;
+                modal.style.top = `${currentY}px`;
+                modal.style.position = 'fixed';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                modalHeader.style.cursor = 'move';
+            }
+        });
+
         // Setup platform tag button interactions with resource selection
         const platformTagBtns = document.querySelectorAll('.platform-tag-btn');
         platformTagBtns.forEach(btn => {
@@ -1334,13 +1365,19 @@ Object.assign(window.ThreadManager, {
                 headers: { 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) throw new Error('Failed to fetch Synergy sessions');
+            if (!response.ok) {
+                console.warn('Synergy sessions API not available, using generic tag');
+                // Just mark as selected without specific ID
+                buttonElement.classList.add('selected');
+                return;
+            }
 
             const data = await response.json();
             const sessions = data.sessions || [];
 
             if (sessions.length === 0) {
-                alert('No Synergy sessions found. Create a session first in the Synergy Dashboard.');
+                console.log('No Synergy sessions found, using generic tag');
+                buttonElement.classList.add('selected');
                 return;
             }
 
@@ -1417,12 +1454,17 @@ Object.assign(window.ThreadManager, {
                 headers: { 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) throw new Error('Failed to fetch workflows');
+            if (!response.ok) {
+                console.warn('Workflows API not available, using generic tag');
+                buttonElement.classList.add('selected');
+                return;
+            }
 
             const workflows = await response.json();
 
-            if (!workflows || workflows.length === 0) {
-                alert(`No ${tagType}s found. Create one first in the Automation tab.`);
+            if (!workflows || !Array.isArray(workflows) || workflows.length === 0) {
+                console.log(`No ${tagType}s found, using generic tag`);
+                buttonElement.classList.add('selected');
                 return;
             }
 
@@ -1496,12 +1538,17 @@ Object.assign(window.ThreadManager, {
                 headers: { 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) throw new Error('Failed to fetch internal docs');
+            if (!response.ok) {
+                console.warn('Internal docs API not available, using generic tag');
+                buttonElement.classList.add('selected');
+                return;
+            }
 
             const docs = await response.json();
 
             if (!docs || docs.length === 0) {
-                alert('No internal documents found. Create one first in Synergy Docs.');
+                console.log('No internal documents found, using generic tag');
+                buttonElement.classList.add('selected');
                 return;
             }
 
@@ -1573,12 +1620,11 @@ Object.assign(window.ThreadManager, {
             });
 
             // Check if endpoint exists (may not be implemented yet)
-            if (response.status === 404) {
-                alert('Email selector not yet implemented. Please use generic "emails" tag or link email manually.');
+            if (response.status === 404 || !response.ok) {
+                console.warn('Email API not available, using generic tag');
+                buttonElement.classList.add('selected');
                 return;
             }
-
-            if (!response.ok) throw new Error('Failed to fetch emails');
 
             const emails = await response.json();
 

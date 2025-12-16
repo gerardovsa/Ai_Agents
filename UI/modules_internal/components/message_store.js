@@ -15,7 +15,8 @@ class MessageStore {
     constructor() {
         this._messages = new Map(); // threadId -> Message[]
         this._messageIndex = new Map(); // messageId -> Message
-        console.log('[MessageStore] Initialized (minimal v1)');
+        this._realtimeEnabled = false;  // Track if real-time is active
+        console.log('[MessageStore] Initialized (real-time ready v2)');
     }
 
     async addMessage(threadId, message, options = {}) {
@@ -141,8 +142,81 @@ class MessageStore {
         this._messageIndex.clear();
         console.log('[MessageStore] All data cleared');
     }
+
+    /**
+     * ✅ NEW: Enable real-time synchronization
+     * Called when Supabase real-time subscriptions are active
+     */
+    enableRealtime() {
+        this._realtimeEnabled = true;
+        console.log('[MessageStore] ✅ Real-time synchronization ENABLED (multi-session mode)');
+    }
+
+    /**
+     * ✅ NEW: Disable real-time (fallback to local-only)
+     */
+    disableRealtime() {
+        this._realtimeEnabled = false;
+        console.log('[MessageStore] ⚠️ Real-time synchronization DISABLED (local-only mode)');
+    }
+
+    /**
+     * ✅ NEW: Check if real-time is enabled
+     */
+    isRealtimeEnabled() {
+        return this._realtimeEnabled;
+    }
+
+    /**
+     * ✅ NEW: Delete a message (for real-time DELETE events)
+     */
+    deleteMessage(messageId) {
+        const message = this._messageIndex.get(messageId);
+        if (!message) {
+            console.warn(`[MessageStore] Cannot delete message ${messageId} - not found`);
+            return false;
+        }
+
+        // Find thread containing this message
+        for (const [threadId, messages] of this._messages.entries()) {
+            const index = messages.findIndex(m => m.id === messageId);
+            if (index !== -1) {
+                messages.splice(index, 1);
+                this._messageIndex.delete(messageId);
+                console.log(`[MessageStore] Deleted message ${messageId} from thread ${threadId}`);
+                this._emitChange('message-deleted', { threadId, messageId });
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * ✅ NEW: Update an existing message (for real-time UPDATE events)
+     */
+    updateMessage(messageId, updates) {
+        const message = this._messageIndex.get(messageId);
+        if (!message) {
+            console.warn(`[MessageStore] Cannot update message ${messageId} - not found`);
+            return false;
+        }
+
+        Object.assign(message, updates);
+        console.log(`[MessageStore] Updated message ${messageId}`);
+        
+        // Find thread ID for event emission
+        for (const [threadId, messages] of this._messages.entries()) {
+            if (messages.some(m => m.id === messageId)) {
+                this._emitChange('message-updated', { threadId, messageId, updates });
+                break;
+            }
+        }
+
+        return true;
+    }
 }
 
 // Initialize global MessageStore
 window.MessageStore = new MessageStore();
-console.log('MessageStore module loaded');
+console.log('MessageStore module loaded (real-time ready)');

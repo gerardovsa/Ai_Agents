@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>🧪 Parametric CAD - Smoke Test</title>
@@ -11,15 +12,18 @@
             margin: 0;
             padding: 20px;
         }
+
         .test-container {
             max-width: 1200px;
             margin: 0 auto;
         }
+
         h1 {
             color: #58a6ff;
             border-bottom: 2px solid #30363d;
             padding-bottom: 10px;
         }
+
         .test-section {
             background: #161b22;
             border: 1px solid #30363d;
@@ -27,24 +31,29 @@
             padding: 20px;
             margin: 20px 0;
         }
+
         .test-result {
             padding: 10px;
             margin: 10px 0;
             border-radius: 4px;
             font-family: 'Consolas', monospace;
         }
+
         .test-result.pass {
             background: #0d4429;
             border-left: 4px solid #3fb950;
         }
+
         .test-result.fail {
             background: #490b0b;
             border-left: 4px solid #f85149;
         }
+
         .test-result.pending {
             background: #4d3800;
             border-left: 4px solid #d29922;
         }
+
         button {
             background: #238636;
             color: white;
@@ -54,9 +63,11 @@
             cursor: pointer;
             margin: 5px;
         }
+
         button:hover {
             background: #2ea043;
         }
+
         #moduleFrame {
             width: 100%;
             height: 600px;
@@ -64,6 +75,7 @@
             border-radius: 6px;
             background: white;
         }
+
         .code-block {
             background: #0d1117;
             border: 1px solid #30363d;
@@ -73,6 +85,7 @@
             font-family: 'Consolas', monospace;
             font-size: 12px;
         }
+
         .metric {
             display: inline-block;
             background: #21262d;
@@ -80,15 +93,17 @@
             border-radius: 20px;
             margin: 5px;
         }
+
         .metric strong {
             color: #58a6ff;
         }
     </style>
 </head>
+
 <body>
     <div class="test-container">
         <h1>🧪 Parametric CAD Module - Comprehensive Smoke Test</h1>
-        
+
         <div class="test-section">
             <h2>📊 Test Summary</h2>
             <div id="summary">
@@ -137,7 +152,7 @@
                 error: '❌',
                 warning: '⚠️'
             }[type] || 'ℹ️';
-            
+
             logDiv.innerHTML += `[${timestamp}] ${prefix} ${message}<br>`;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
@@ -161,7 +176,7 @@
             document.getElementById('passCount').textContent = passCount;
             document.getElementById('failCount').textContent = failCount;
             document.getElementById('pendingCount').textContent = pendingCount;
-            
+
             const total = passCount + failCount + pendingCount;
             const status = failCount > 0 ? 'FAILED' : (total > 0 ? 'PASSED' : 'Not started');
             document.getElementById('statusText').textContent = status;
@@ -212,7 +227,7 @@
 
                 const requiredFields = ['id', 'name', 'version', 'description', 'files', 'dependencies'];
                 const missingFields = requiredFields.filter(field => !manifest[field]);
-                
+
                 if (missingFields.length === 0) {
                     addTestResult('Manifest Structure', 'pass', `All required fields present`);
                     log('Manifest structure valid', 'success');
@@ -282,7 +297,7 @@
                     const js = await response.text();
                     const hasClass = js.includes('class ParametricCAD');
                     const hasInitialize = js.includes('async initialize()');
-                    
+
                     if (hasClass && hasInitialize) {
                         addTestResult('JS File Accessible', 'pass', `${(js.length / 1024).toFixed(1)} KB, contains ParametricCAD class`);
                         log(`JS loaded: ${js.length} bytes, class found`, 'success');
@@ -346,7 +361,7 @@
                 if (response.ok) {
                     const modules = await response.json();
                     const cadModule = modules.find(m => m.id === 'parametric-cad');
-                    
+
                     if (cadModule) {
                         addTestResult('Module Loader Integration', 'pass', 'Module registered in loader');
                         log('Module found in registry', 'success');
@@ -382,7 +397,7 @@
             await testModuleLoaderIntegration();
 
             log('====================================', 'info');
-            log(`Test suite complete: ${passCount} passed, ${failCount} failed, ${pendingCount} pending`, 
+            log(`Test suite complete: ${passCount} passed, ${failCount} failed, ${pendingCount} pending`,
                 failCount > 0 ? 'error' : 'success');
         }
 
@@ -390,13 +405,13 @@
             log('Loading module in iframe...', 'info');
             const iframe = document.getElementById('moduleFrame');
             iframe.src = `${MODULE_URL}/parametric-cad.html`;
-            
-            iframe.onload = function() {
+
+            iframe.onload = function () {
                 log('Module loaded in iframe', 'success');
                 log('Check browser console for OpenCascade.js initialization', 'info');
             };
 
-            iframe.onerror = function(error) {
+            iframe.onerror = function (error) {
                 log('Failed to load module in iframe: ' + error, 'error');
             };
         }
@@ -413,4 +428,5 @@
         });
     </script>
 </body>
+
 </html>

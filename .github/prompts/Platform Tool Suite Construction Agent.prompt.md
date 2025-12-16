@@ -2369,6 +2369,161 @@ Does tool need custom UI dashboard?
 
 ---
 
+## System Accuracy & Platform Authentication Patterns
+
+### Critical Lessons from December 2025 AI Self-Audit
+
+**Context:** Production AI performed self-audit and discovered system prompt inaccuracies that led to misunderstandings about available tools and platform authentication.
+
+#### Lesson 1: Always Verify Tool Counts
+**Problem:** System prompt claimed "585+ tools" but actual count was 1,046 tools (+79% undercount)
+
+**Impact:**
+- AI underestimated available capabilities
+- Users received less comprehensive suggestions
+- Platform coverage appeared limited when it was actually extensive
+
+**Prevention:**
+```python
+# ALWAYS run this before claiming tool counts:
+from tools.registry_v3 import RegistryV3
+registry = RegistryV3()
+actual_count = len(registry.tools)
+print(f"Actual tool count: {actual_count}")
+
+# Don't rely on outdated documentation
+# Verify with live registry data
+```
+
+#### Lesson 2: Platform Structure Matters
+**Problem:** System prompt referenced "microsoft_365" as platform, but it doesn't exist
+
+**Reality:**
+- Microsoft tools split across 9 platforms: `microsoft_outlook`, `microsoft_excel`, `microsoft_word`, `microsoft_teams`, `microsoft_calendar`, `microsoft_onedrive`, `microsoft_sharepoint`, `microsoft_forms`, `microsoft_onenote`
+- Google tools split across 12 platforms: `gmail`, `google_docs`, `google_sheets`, `google_slides`, `google_drive`, `google_calendar`, `google_forms`, `google_meet`, `google_tasks`, `google_analytics`, `google_apps_script`, `google_cloud_run`
+- Total: 172 Microsoft tools, 224 Google tools
+
+**Impact:**
+- `list_platform_tools("microsoft_365")` returns 0 tools (platform doesn't exist)
+- AI must know individual platform names to discover tools
+- System prompt must use pattern-based naming: `microsoft_*` not "Microsoft 365"
+
+#### Lesson 3: Platform Authentication Clarity
+**AI Feedback:** "I need ONE LINE that tells me which platform to use"
+
+**Current System (3 Layers of Control):**
+1. **Semantic search filtering** - Excludes wrong platform tools from suggestions
+2. **System prompt instructions** - Multi-line explanation of available platforms
+3. **Intelligent discovery** - Hard exclusion filter (2.0x boost for authenticated, complete removal of unauthenticated)
+
+**AI's Preferred Format (Pattern-Based):**
+```
+PLATFORM AUTHENTICATION: microsoft_* tools available ✅ | google_*/gmail_* BLOCKED ❌ (not authenticated)
+```
+
+**Why This Works Better:**
+- ✅ Pattern matching (`microsoft_*` vs `google_*/gmail_*`)
+- ✅ Visual symbols (✅ ❌) improve scannability
+- ✅ Instant recognition without parsing paragraphs
+- ✅ Machine-readable format
+
+**Hybrid Approach (Recommended):**
+```
+PLATFORM AUTHENTICATION: microsoft_* tools available ✅ | google_*/gmail_* BLOCKED ❌
+
+User is authenticated with Microsoft 365. For overlapping functionality:
+- Email → microsoft_outlook_* (NOT gmail_*)
+- Documents → microsoft_word_* (NOT google_docs_*)
+- Spreadsheets → microsoft_excel_* (NOT google_sheets_*)
+```
+
+#### Lesson 4: Verify Module Plugin Tool Counts
+**Problem:** System prompt claimed "7 quote calculators" but actual count was 33
+
+**Reality:**
+```
+Platform: quote_calculator (33 tools)
+- 6 basic calculators (business_cards, flyers, booklets, etc.)
+- 3 GOD database-driven calculators
+- 24 Shopify hardcoded calculators (signs, specialty products)
+```
+
+**Prevention:**
+```python
+# Check module plugin tool counts
+from tools.registry_v3 import RegistryV3
+registry = RegistryV3()
+calc_tools = [t for t in registry.tools if t.startswith('calculate_')]
+print(f"Calculator tools: {len(calc_tools)}")  # 30-33 depending on schema sync
+```
+
+#### Implementation Guidelines for New Tool Suites
+
+**1. Always Start With Live Registry Query**
+```python
+from tools.registry_v3 import RegistryV3
+registry = RegistryV3()
+
+# Get actual counts
+total_tools = len(registry.tools)
+platform_tools = [t for t in registry.tools if t.startswith(f'{platform}_')]
+print(f"Total: {total_tools}, {platform}: {len(platform_tools)}")
+```
+
+**2. Use Pattern-Based Platform References**
+```markdown
+# ❌ WRONG (implies unified platform)
+- "Microsoft 365 integration with email, documents, and spreadsheets"
+- `list_platform_tools("microsoft_365")` → Returns 0 tools
+
+# ✅ CORRECT (pattern-based)
+- "Microsoft tools: microsoft_outlook, microsoft_word, microsoft_excel"
+- "Use microsoft_* tool prefix for all Microsoft 365 services"
+- `list_platform_tools("microsoft_outlook")` → Returns 18 tools
+```
+
+**3. Document Platform Authentication Patterns**
+```markdown
+## Platform Authentication
+
+**Pattern:** `{provider}_{service}_{action}`
+
+**Microsoft Tools:**
+- microsoft_outlook_* (email)
+- microsoft_word_* (documents)
+- microsoft_excel_* (spreadsheets)
+- microsoft_onedrive_* (storage)
+- microsoft_calendar_* (calendar)
+
+**Google Tools:**
+- gmail_* (email - special case, NOT google_gmail_*)
+- google_docs_* (documents)
+- google_sheets_* (spreadsheets)
+- google_drive_* (storage)
+- google_calendar_* (calendar)
+```
+
+**4. Test Tool Discovery Before Documentation**
+```python
+# Verify each platform name works
+from tools.registry_v3 import RegistryV3
+registry = RegistryV3()
+
+test_platforms = ['microsoft_outlook', 'gmail', 'google_docs']
+for platform in test_platforms:
+    tools = registry.list_platform_tools(platform)
+    print(f"{platform}: {len(tools.get('tools', []))} tools")
+    assert len(tools.get('tools', [])) > 0, f"{platform} returned no tools!"
+```
+
+**Reference Documentation:**
+- Full analysis: `PLATFORM_AUTHENTICATION_ANALYSIS_DEC17.md`
+- System prompt location: `AI_infrastructure/prompts/tool_usage_system_prompt.md`
+- Platform filtering: `AI_infrastructure/routes/agent_routes_v4.py` lines 1046-1076, 1248-1283
+- Discovery filter: `tools/intelligent_discovery.py` lines 521-581
+
+---
+
 ## Response Format
 
 When presenting completed tool suite, provide:
@@ -2382,6 +2537,7 @@ When presenting completed tool suite, provide:
 - **API Coverage**: X% of platform capabilities
 - **Status**: ✅ Production Ready
 - **Search Optimization**: ✅ All tools have vectorization-optimized short descriptions
+- **Platform Pattern**: ✅ Verified `{platform}_*` prefix works with registry
 
 ## Files Created
 1. `tools/schemas/{platform}_tools.json` (X KB, X tools)

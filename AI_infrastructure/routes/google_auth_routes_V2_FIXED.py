@@ -1262,8 +1262,8 @@ def google_config():
 # ============================================================================
 
 if GOOGLE_CLIENT_ID:
-    print('✅ Google OAuth routes loaded')
+    print('[OK] Google OAuth routes loaded')
 else:
-    print('⚠️ Google OAuth routes loaded (Client ID not configured)')
+    print('[WARN] Google OAuth routes loaded (Client ID not configured)')
 
 

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Tools Module - Standalone Demo</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Dev Tools Styles -->
+    <link rel="stylesheet" href="dev-tools-styles.css">
+
+    <style>
+        /* Demo-specific styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1f2937;
+            color: #e5e7eb;
+        }
+
+        .demo-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .demo-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .demo-header p {
+            margin: 0;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .demo-info {
+            background: rgba(31, 41, 55, 0.95);
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .demo-info h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .demo-info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .demo-info li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .demo-info code {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            color: #a5b4fc;
+        }
+
+        #workspace {
+            height: calc(100vh - 200px);
+        }
+
+        .keyboard-shortcuts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .shortcut {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(55, 65, 81, 0.5);
+            border-radius: 6px;
+        }
+
+        .shortcut-key {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #a5b4fc;
+        }
+
+        .event-log {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: 250px;
+            background: rgba(31, 41, 55, 0.98);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .event-log h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .event-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+            font-size: 12px;
+        }
+
+        .event-entry:last-child {
+            border-bottom: none;
+        }
+
+        .event-time {
+            color: #9ca3af;
+            font-size: 11px;
+        }
+
+        .event-name {
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Demo Header -->
+    <div class="demo-header">
+        <h1><i class="fas fa-tools"></i> Dev Tools Module</h1>
+        <p>Visual Module Creator with Monaco Editor Integration</p>
+    </div>
+
+    <!-- Demo Information -->
+    <div class="demo-info">
+        <h2><i class="fas fa-info-circle"></i> Demo Features</h2>
+        <ul>
+            <li><strong>Monaco Editor:</strong> VS Code editor in browser for HTML, JavaScript, CSS, Python, and JSON
+            </li>
+            <li><strong>Multi-File Tabs:</strong> Switch between HTML, JS, CSS, Routes, and Manifest files</li>
+            <li><strong>Live Preview:</strong> Real-time iframe preview with 1-second debounce</li>
+            <li><strong>Module Templates:</strong> Pre-built templates for dashboard, sidebar, combo, and utility
+                modules</li>
+            <li><strong>Auto-Save:</strong> Automatic saving every 30 seconds</li>
+            <li><strong>Event System:</strong> Listen to workspace:initialized, module:created, module:saved,
+                module:validated, file:switched</li>
+        </ul>
+
+        <h2 style="margin-top: 20px;"><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h2>
+        <div class="keyboard-shortcuts">
+            <div class="shortcut">
+                <span>Save Module</span>
+                <span class="shortcut-key">Ctrl+S / Cmd+S</span>
+            </div>
+            <div class="shortcut">
+                <span>Format Code</span>
+                <span class="shortcut-key">Alt+Shift+F</span>
+            </div>
+            <div class="shortcut">
+                <span>Refresh Preview</span>
+                <span class="shortcut-key">Ctrl+P / Cmd+P</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workspace Container -->
+    <div id="workspace"></div>
+
+    <!-- Event Log -->
+    <div class="event-log">
+        <h3><i class="fas fa-stream"></i> Event Log</h3>
+        <div id="event-log-content">
+            <div class="event-entry">
+                <div class="event-time">Waiting for events...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dev Tools Module -->
+    <script src="dev-tools-module.js"></script>
+
+    <script>
+        // Initialize Dev Tools Module
+        (async () => {
+            console.log('[Demo] Initializing Dev Tools Module...');
+
+            // Get singleton instance with configuration
+            const devTools = DevToolsModule.getInstance({
+                apiBase: window.location.origin,
+                monacoPath: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs',
+                enableWebSocket: false, // Disable WebSocket for demo
+                enableAutoSave: true,
+                autoSaveInterval: 30000,
+                enableCredentialTesting: false, // Disable credential testing for demo
+                theme: 'vs-dark',
+                enableLivePreview: true,
+                previewUpdateDelay: 1000
+            });
+
+            // Setup event listeners for demo
+            const eventLogContent = document.getElementById('event-log-content');
+
+            const logEvent = (eventName, detail = {}) => {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString();
+
+                const entry = document.createElement('div');
+                entry.className = 'event-entry';
+                entry.innerHTML = `
+                    <div class="event-time">${timeStr}</div>
+                    <div class="event-name">${eventName}</div>
+                    <div style="color: #9ca3af; font-size: 11px;">${JSON.stringify(detail, null, 2)}</div>
+                `;
+
+                eventLogContent.insertBefore(entry, eventLogContent.firstChild);
+
+                // Keep only last 10 events
+                while (eventLogContent.children.length > 10) {
+                    eventLogContent.removeChild(eventLogContent.lastChild);
+                }
+            };
+
+            // Listen to all dev-tools events
+            document.addEventListener('dev-tools:workspace:initialized', (e) => {
+                logEvent('workspace:initialized', { container: e.detail.container });
+                console.log('[Demo] ✅ Workspace initialized');
+            });
+
+            document.addEventListener('dev-tools:module:created', (e) => {
+                logEvent('module:created', {
+                    id: e.detail.moduleData?.id,
+                    name: e.detail.moduleData?.name,
+                    type: e.detail.moduleData?.type
+                });
+                console.log('[Demo] ✅ Module created:', e.detail.moduleData);
+            });
+
+            document.addEventListener('dev-tools:module:saved', (e) => {
+                logEvent('module:saved', {
+                    id: e.detail.moduleData?.id,
+                    success: e.detail.success
+                });
+                console.log('[Demo] ✅ Module saved:', e.detail.moduleData);
+            });
+
+            document.addEventListener('dev-tools:module:validated', (e) => {
+                logEvent('module:validated', {
+                    passed: e.detail.passed,
+                    errors: e.detail.errors?.length || 0,
+                    warnings: e.detail.warnings?.length || 0
+                });
+                console.log('[Demo] ✅ Module validated:', e.detail);
+            });
+
+            document.addEventListener('dev-tools:file:switched', (e) => {
+                logEvent('file:switched', { fileName: e.detail.fileName });
+                console.log('[Demo] 🔄 Switched to file:', e.detail.fileName);
+            });
+
+            // Initialize workspace
+            try {
+                await devTools.initialize('#workspace');
+                console.log('[Demo] ✅ Dev Tools Module initialized successfully');
+
+                // Show welcome message in console
+                devTools.log('Welcome to Dev Tools Module Demo!', 'success');
+                devTools.log('Use the configuration panel to create a new module', 'info');
+                devTools.log('Or load an existing module to edit', 'info');
+            } catch (error) {
+                console.error('[Demo] ❌ Failed to initialize Dev Tools Module:', error);
+                alert('Failed to initialize Dev Tools Module. Check console for details.');
+            }
+        })();
+    </script>
+</body>
+
+</html>

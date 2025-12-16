@@ -840,7 +840,7 @@ window.synergyBoard = {
                             <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
                             <div class="synergy-updated">${timeAgo}</div>
                         </div>
-                        ${session.tags && session.tags.length > 0 ? `
+                        ${session.tags && Array.isArray(session.tags) && session.tags.length > 0 ? `
                             <div class="synergy-footer-row-2">
                                 <div class="synergy-tags">
                                     ${session.tags.slice(0, 3).map(tag => `<span class="synergy-tag">${this.escapeHtml(tag)}</span>`).join('')}

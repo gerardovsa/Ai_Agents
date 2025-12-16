@@ -83,7 +83,7 @@ class PlatformToolsLister:
             if platform_lower in tool_platform or tool_platform in platform_lower:
                 tools.append({
                     'name': tool_schema.get('name', tool_name),
-                    'description': tool_schema.get('description', 'No description'),
+                    'short_description': tool_schema.get('short_description', tool_schema.get('description', 'No description')),
                     'platform': tool_schema.get('platform', 'unknown')
                 })
         

@@ -34,6 +34,11 @@
     flex: 1;
 }
 
+/* Realtime presence highlight: another session is viewing this agent */
+.agent-column.other-session-viewing:not(.drag-over) {
+    box-shadow: 0 0 0 2px var(--accent-primary) inset;
+}
+
 /* Drag-over state for drop zones */
 .agent-column.drag-over {
     border: 2px solid var(--accent-primary);

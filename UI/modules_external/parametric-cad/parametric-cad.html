@@ -151,7 +151,7 @@
     <!-- Libraries -->
     <!-- Three.js (r160) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    
+
     <!-- OrbitControls - Using importmap for ES modules -->
     <script type="importmap">
         {
@@ -166,7 +166,7 @@
         window.OrbitControls = OrbitControls;
         console.log('✅ OrbitControls loaded:', typeof OrbitControls);
     </script>
-    
+
     <!-- OpenCascade.js (WASM CAD kernel) - Stable version -->
     <script src="https://cdn.jsdelivr.net/npm/opencascade.js@1.1.1/dist/opencascade.wasm.js"></script>
     <script>
@@ -190,8 +190,15 @@
     </script>
 
     <!-- Supabase for collaboration (if available) -->
-    <script src="../../../shared/js/supabase-connection-manager.js" onerror="console.warn('Supabase not available')"></script>
-    <script src="../../../shared/js/supabase-realtime-manager.js" onerror="console.warn('Supabase Realtime not available')"></script>
+    <script src="../../../shared/js/supabase-connection-manager.js"
+        onerror="console.warn('Supabase not available')"></script>
+    <script src="../../../shared/js/supabase-realtime-manager.js"
+        onerror="console.warn('Supabase Realtime not available')"></script>
+
+    <!-- Enhanced modules -->
+    <script src="cad-linter.js"></script>
+    <script src="streaming-renderer.js"></script>
+    <script src="ai-ux-enhancements.js"></script>
 
     <!-- Main module -->
     <script src="parametric-cad.js"></script>
