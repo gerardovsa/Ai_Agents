@@ -147,6 +147,8 @@ def inhouse_get_domain_guide(**kwargs) -> Dict[str, Any]:
         
         "anti_patterns": [
             "Calling inhouse_calculate_quote WITHOUT inhouse_get_calculator_requirements",
+            "Calling calculate_business_cards() WITHOUT get_tool_schema (direct workflow)",
+            "Mixing wrapper and direct workflows (e.g., inhouse_get_calculator_requirements → calculate_business_cards)",
             "Calling inhouse_execute_sql WITHOUT inhouse_database_guide (for custom SQL)",
             "Skipping domain_guide and going directly to action tools",
             "Assuming schema knowledge without reading database_guide"
@@ -195,27 +197,107 @@ def inhouse_calculator_guide(**kwargs) -> Dict[str, Any]:
             }
         },
         
-        "workflow_guidance": {
-            "step_1": {
-                "tool": "inhouse_get_calculator_requirements(product_type)",
-                "description": "Get complete parameter requirements, natural language mappings, historical patterns",
-                "mandatory": "YES - DO NOT skip this step or you will get parameter errors",
-                "returns": "parameters dict (types, required flags, options, defaults), natural_language_mapping (text → params), historical_patterns (common values)"
-            },
-            "step_2": {
-                "tool": "Parse user input or TicketNotes",
-                "description": "Extract parameters from user request or JobTickets.TicketNotes using natural_language_mapping from step 1",
-                "techniques": [
-                    "Use natural_language_mapping: '350gsm satin' → 'satin_350gsm'",
-                    "Use historical_patterns for defaults: Most common is satin_350gsm with 2_side_matt",
-                    "Check extraction_strategy for TicketNotes parsing patterns"
-                ]
-            },
-            "step_3": {
-                "tool": "inhouse_calculate_quote(product_type, parameters)",
-                "description": "Calculate quote with validated parameters",
-                "prerequisite": "MUST have called get_calculator_requirements first",
+        "available_workflows": {
+            "workflow_a_wrapper_approach": {
+                "name": "InHouse Wrapper Workflow",
+                "description": "Use InHouse wrapper tools (recommended for complex workflows)",
+                "steps": [
+                    "1. inhouse_calculator_guide() - Learn system and choose workflow",
+                    "2. inhouse_get_calculator_requirements(product_type) - Get params with natural language mapping",
+                    "3. inhouse_calculate_quote(product_type, parameters) - Execute via wrapper"
+                ],
+                "advantages": [
+                    "Automatic parameter validation",
+                    "Natural language mapping included ('350gsm satin' → 'satin_350gsm')",
+                    "Historical patterns for defaults (most common: satin_350gsm with 2_side_matt)",
+                    "Consistent error handling",
+                    "Perfect for parsing TicketNotes from JobTickets table"
+                ],
                 "returns": "cost_ex_gst, cost_inc_gst, cost_to_business, profit_margin, specifications, breakdown"
+            },
+            "workflow_b_direct_calculators": {
+                "name": "Direct Calculator Workflow",
+                "description": "Use direct calculator tools (recommended for simple quotes)",
+                "steps": [
+                    "1. list_platform_tools('quote_calculator') - See all 31 calculators (optional)",
+                    "2. get_tool_schema('calculate_business_cards') - Get parameter requirements",
+                    "3. calculate_business_cards(quantity=500, ...) - Execute calculator directly"
+                ],
+                "advantages": [
+                    "Fewer steps (3 steps vs wrapper's 3 steps, but simpler)",
+                    "Direct access to 31 specialized calculators",
+                    "Type enforcement via schema_validator",
+                    "No intermediate wrapper layer",
+                    "Faster for simple quotes with known parameters"
+                ],
+                "returns": "Same output format as wrapper: cost_ex_gst, cost_inc_gst, cost_to_business, etc."
+            }
+        },
+        
+        "when_to_use_which": {
+            "use_wrapper_approach": [
+                "Parsing TicketNotes from JobTickets table (wrapper has extraction logic)",
+                "User provides natural language specs ('350gsm satin with matt cello')",
+                "Need historical pattern defaults from database",
+                "Complex multi-product quotes",
+                "Uncertain about parameter format - wrapper provides mapping"
+            ],
+            "use_direct_calculators": [
+                "Simple single-product quotes",
+                "Parameters already known and validated (quantity=500, finish_size='90x55mm')",
+                "Using specific calculator (e.g., premium_business_cards_shopify vs economical)",
+                "Performance-critical workflows",
+                "Direct schema access preferred"
+            ],
+            "critical_rule": "NEVER MIX WORKFLOWS! Choose wrapper OR direct, not both in same operation"
+        },
+        
+        "workflow_guidance": {
+            "wrapper_workflow_details": {
+                "step_1": {
+                    "tool": "inhouse_get_calculator_requirements(product_type)",
+                    "description": "Get complete parameter requirements, natural language mappings, historical patterns",
+                    "mandatory": "YES - DO NOT skip this step or you will get parameter errors",
+                    "returns": "parameters dict (types, required flags, options, defaults), natural_language_mapping (text → params), historical_patterns (common values)"
+                },
+                "step_2": {
+                    "tool": "Parse user input or TicketNotes",
+                    "description": "Extract parameters from user request or JobTickets.TicketNotes using natural_language_mapping from step 1",
+                    "techniques": [
+                        "Use natural_language_mapping: '350gsm satin' → 'satin_350gsm'",
+                        "Use historical_patterns for defaults: Most common is satin_350gsm with 2_side_matt",
+                        "Check extraction_strategy for TicketNotes parsing patterns"
+                    ]
+                },
+                "step_3": {
+                    "tool": "inhouse_calculate_quote(product_type, parameters)",
+                    "description": "Calculate quote with validated parameters",
+                    "prerequisite": "MUST have called get_calculator_requirements first",
+                    "returns": "cost_ex_gst, cost_inc_gst, cost_to_business, profit_margin, specifications, breakdown"
+                }
+            },
+            "direct_workflow_details": {
+                "step_1": {
+                    "tool": "get_tool_schema('calculate_business_cards')",
+                    "description": "Get parameter requirements directly from calculator schema",
+                    "mandatory": "YES - DO NOT call calculator without schema",
+                    "returns": "parameters dict with types, enums, descriptions, examples"
+                },
+                "step_2": {
+                    "tool": "Parse user input using schema",
+                    "description": "Extract parameters from user request using enum values from schema",
+                    "techniques": [
+                        "Check enum values in schema for valid options",
+                        "Use schema descriptions to understand parameter meaning",
+                        "Verify required vs optional parameters"
+                    ]
+                },
+                "step_3": {
+                    "tool": "calculate_business_cards(quantity, finish_size, stock_type, ...)",
+                    "description": "Execute calculator with validated parameters from schema",
+                    "prerequisite": "MUST have called get_tool_schema first",
+                    "returns": "cost_ex_gst, cost_inc_gst, cost_to_business, profit_margin, specifications, breakdown"
+                }
             }
         },
         
@@ -252,16 +334,19 @@ def inhouse_calculator_guide(**kwargs) -> Dict[str, Any]:
         },
         
         "error_prevention": [
-            "Calling calculator WITHOUT get_tool_schema = PARAMETER ERRORS",
-            "Skipping calculator_guide = Don't know which calculator to use",
+            "Calling inhouse_calculate_quote WITHOUT inhouse_get_calculator_requirements = PARAMETER ERRORS",
+            "Calling calculate_business_cards() WITHOUT get_tool_schema = PARAMETER ERRORS",
+            "Mixing workflows (e.g., inhouse_get_calculator_requirements then calculate_business_cards) = CONFUSION",
+            "Skipping calculator_guide = Don't know which workflow to use",
             "Not checking enum values in schema = Invalid parameter values",
-            "Guessing parameters instead of reading schema = Wrong types or missing required fields"
+            "Guessing parameters instead of reading requirements/schema = Wrong types or missing required fields"
         ],
         
         "next_steps": [
-            "1. Call get_tool_schema('calculate_business_cards') to get parameter requirements from schema",
-            "2. Parse user input using enum values and descriptions from schema",
-            "3. Call calculate_business_cards(quantity=1000, ...) with validated parameters"
+            "Decision point: Choose wrapper approach OR direct calculators",
+            "Wrapper: Call inhouse_get_calculator_requirements(product_type) → inhouse_calculate_quote()",
+            "Direct: Call get_tool_schema('calculate_business_cards') → calculate_business_cards()",
+            "Both workflows are valid - wrapper provides more guidance, direct is faster for simple quotes"
         ],
         
         "available_calculators": {
@@ -277,34 +362,70 @@ def inhouse_calculator_guide(**kwargs) -> Dict[str, Any]:
         },
         
         "follow_up_tool_chain": {
-            "description": "MANDATORY workflow after reading this guide",
-            "steps": [
-                {
-                    "step": 1,
-                    "tool": "inhouse_calculator_guide()",
-                    "status": "YOU ARE HERE",
-                    "action": "Read this guide to understand calculator system"
-                },
-                {
-                    "step": 2,
-                    "tool": "get_tool_schema('calculate_business_cards')",
-                    "status": "NEXT (MANDATORY)",
-                    "action": "Get parameter requirements, enums, examples from calculator schema"
-                },
-                {
-                    "step": 3,
-                    "tool": "calculate_business_cards(quantity, finish_size, stock_type, print_sides, celloglaze)",
-                    "status": "FINAL",
-                    "action": "Execute calculator with validated parameters from schema"
-                }
-            ],
-            "ascii_diagram": """
-            1. inhouse_calculator_guide() ← YOU ARE HERE
-                    ↓
-            2. get_tool_schema('calculate_business_cards') ← MANDATORY NEXT
-                    ↓
-            3. calculate_business_cards(...) ← FINAL EXECUTION
-            """
+            "description": "Choose your workflow after reading this guide - TWO SEPARATE VALID APPROACHES",
+            "option_a_wrapper": {
+                "name": "Wrapper Approach (Recommended for TicketNotes parsing)",
+                "steps": [
+                    {
+                        "step": 1,
+                        "tool": "inhouse_calculator_guide()",
+                        "status": "YOU ARE HERE",
+                        "action": "Read this guide to understand both workflows"
+                    },
+                    {
+                        "step": 2,
+                        "tool": "inhouse_get_calculator_requirements(product_type='business_cards')",
+                        "status": "NEXT (Wrapper approach)",
+                        "action": "Get parameter requirements with natural language mapping"
+                    },
+                    {
+                        "step": 3,
+                        "tool": "inhouse_calculate_quote(product_type='business_cards', parameters={...})",
+                        "status": "FINAL",
+                        "action": "Execute quote calculation via wrapper"
+                    }
+                ],
+                "ascii_diagram": """
+                WRAPPER WORKFLOW:
+                1. inhouse_calculator_guide() ← YOU ARE HERE
+                        ↓
+                2. inhouse_get_calculator_requirements('business_cards') ← Get params + NL mapping
+                        ↓
+                3. inhouse_calculate_quote('business_cards', {...}) ← Execute via wrapper
+                """
+            },
+            "option_b_direct": {
+                "name": "Direct Calculator Approach (Recommended for simple quotes)",
+                "steps": [
+                    {
+                        "step": 1,
+                        "tool": "inhouse_calculator_guide()",
+                        "status": "YOU ARE HERE",
+                        "action": "Read this guide to understand both workflows"
+                    },
+                    {
+                        "step": 2,
+                        "tool": "get_tool_schema('calculate_business_cards')",
+                        "status": "NEXT (Direct approach)",
+                        "action": "Get parameter schema from calculator tool"
+                    },
+                    {
+                        "step": 3,
+                        "tool": "calculate_business_cards(quantity=500, finish_size='90x55mm', ...)",
+                        "status": "FINAL",
+                        "action": "Execute calculator directly"
+                    }
+                ],
+                "ascii_diagram": """
+                DIRECT WORKFLOW:
+                1. inhouse_calculator_guide() ← YOU ARE HERE
+                        ↓
+                2. get_tool_schema('calculate_business_cards') ← Get schema
+                        ↓
+                3. calculate_business_cards(quantity=500, ...) ← Execute directly
+                """
+            },
+            "critical_reminder": "⚠️ DO NOT MIX WORKFLOWS! Choose wrapper OR direct, not both. Mixing causes confusion and errors."
         }
     }
 

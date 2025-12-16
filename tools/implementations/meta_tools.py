@@ -732,7 +732,7 @@ Just use it directly.""",
         if matched:
             matching_tools.append({
                 "name": tool_name,
-                "description": tool.get("description", ""),
+                "short_description": tool.get("short_description", tool.get("description", "")),
                 "platform": tool.get("platform", "unknown")
             })
             matched_tool_names.add(tool_name)

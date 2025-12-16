@@ -138,7 +138,8 @@ window.SynergyNotificationIntegration = {
      * Update badge counter
      */
     updateBadge() {
-        // Update notification bell badge
+        // Update notification bell badge ONLY (right sidebar button)
+        // DO NOT update account profile notifications tab
         const bellBtn = document.getElementById('notificationBellBtn-sidebar');
         if (bellBtn) {
             let badge = bellBtn.querySelector('.notification-badge');
@@ -156,22 +157,9 @@ window.SynergyNotificationIntegration = {
             }
         }
 
-        // Update notifications tab badge in AccountSidebar
-        const notifTab = document.querySelector('[data-tab="notifications"]');
-        if (notifTab) {
-            let tabBadge = notifTab.querySelector('.tab-badge');
-
-            if (this.unreadCount > 0) {
-                if (!tabBadge) {
-                    tabBadge = document.createElement('span');
-                    tabBadge.className = 'tab-badge';
-                    notifTab.appendChild(tabBadge);
-                }
-                tabBadge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
-            } else if (tabBadge) {
-                tabBadge.remove();
-            }
-        }
+        // REMOVED: Account profile notifications tab badge
+        // Badge should ONLY appear on right sidebar notification bell button
+        // Account profile notifications tab should NOT have a badge
     },
 
     /**

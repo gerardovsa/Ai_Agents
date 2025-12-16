@@ -985,76 +985,117 @@ def calculate_perfect_bound_books_god(
         }
 
 
-def calculate_corflute_signs_god(
+def calculate_corflute_signs_shopify(
     quantity: int,
-    width: int = 600,
-    height: int = 900,
-    thickness: int = 5,
-    print_sides: str = "single",
+    size_preset: str = "600x900",
+    custom_width_mm: int = 0,
+    custom_height_mm: int = 0,
+    thickness: str = "5mm",
+    double_sided: bool = False,
+    eyelet_option: str = "none",
+    artworks: int = 1,
     **kwargs
 ) -> Dict[str, Any]:
     """
-    GOD (database-driven) corflute signs calculator
+    Shopify (hardcoded pricing) corflute signs calculator
     
     Args:
-        quantity: Number of signs
-        width: Sign width in mm (e.g., 600, 900, 1200)
-        height: Sign height in mm (e.g., 600, 900, 1200)
-        thickness: Corflute thickness in mm (3, 5, or 10)
-        print_sides: "single" or "double"
+        quantity: Number of signs to print
+        size_preset: Preset size ("450x600", "600x900", "900x1200", "1200x2400", "custom")
+        custom_width_mm: Custom width in mm (only if size_preset='custom')
+        custom_height_mm: Custom height in mm (only if size_preset='custom')
+        thickness: "3mm" or "5mm"
+        double_sided: Print both sides (adds $6/sqm)
+        eyelet_option: "none", "four_corners", "two_top", "two_center_lr", "two_center_tb", "six_top_bottom", "six_left_right"
+        artworks: Number of artworks (first 5 free, then $5 each)
     
     Returns:
-        Dict with success, quote result, or error
+        Dict with success, detailed pricing breakdown, or error
     """
-    if not GOD_CALCULATORS_AVAILABLE:
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {
             "success": False,
-            "error": "GOD calculators not available. Check database connection."
+            "error": "Shopify calculators not available."
         }
     
     try:
-        from decimal import Decimal
+        from corflute_calculator_shopify import (
+            CorflutePricingCalculatorShopify,
+            CorfluteSizePreset,
+            CorfiuteThickness,
+            EyeletOption
+        )
         
-        calculator = CorflutePricingCalculator()  # No args needed
+        # Map size preset string to enum
+        size_map = {
+            "450x600": CorfluteSizePreset.SIZE_450x600,
+            "600x900": CorfluteSizePreset.SIZE_600x900,
+            "900x1200": CorfluteSizePreset.SIZE_900x1200,
+            "1200x2400": CorfluteSizePreset.SIZE_1200x2400,
+            "custom": CorfluteSizePreset.CUSTOM
+        }
         
-        # Convert print_sides to string format if passed as int
-        if isinstance(print_sides, int):
-            print_sides_str = "double" if print_sides == 2 else "single"
-        else:
-            print_sides_str = print_sides.lower() if print_sides else "single"
+        # Map thickness string to enum
+        thickness_map = {
+            "3mm": CorfiuteThickness.MM_3,
+            "5mm": CorfiuteThickness.MM_5
+        }
         
-        result = calculator.calculate_base_quote(
-            width_mm=width,
-            height_mm=height,
-            thickness_mm=thickness,
+        # Map eyelet option string to enum
+        eyelet_map = {
+            "none": EyeletOption.NONE,
+            "four_corners": EyeletOption.FOUR_CORNERS,
+            "two_top": EyeletOption.TWO_TOP,
+            "two_center_lr": EyeletOption.TWO_CENTER_LR,
+            "two_center_tb": EyeletOption.TWO_CENTER_TB,
+            "six_top_bottom": EyeletOption.SIX_TOP_BOTTOM,
+            "six_left_right": EyeletOption.SIX_LEFT_RIGHT
+        }
+        
+        calculator = CorflutePricingCalculatorShopify()
+        result = calculator.calculate_quote(
+            size_preset=size_map.get(size_preset, CorfluteSizePreset.SIZE_600x900),
+            custom_width_mm=custom_width_mm,
+            custom_height_mm=custom_height_mm,
+            thickness=thickness_map.get(thickness, CorfiuteThickness.MM_5),
             quantity=quantity,
-            print_sides=print_sides_str
+            double_sided=double_sided,
+            eyelet_option=eyelet_map.get(eyelet_option, EyeletOption.NONE),
+            artworks=artworks
         )
         
         return {
             "success": True,
-            "product_type": "Corflute Signs (GOD)",
+            "product_type": "Corflute Signs (Shopify)",
             "quantity": result['quantity'],
-            "cost_to_business": float(result['total_cost_ex_margin']),
-            "profit_margin": float(result['margin_percent']),
-            "total_cost_ex_gst": float(result['total_cost_inc_margin']),
-            "total_cost_inc_gst": float(result['total_inc_gst']),
+            "total_price": result['total'],
+            "per_unit_price": result['per_unit'],
             "breakdown": {
-                "material_cost_per_unit": result['material_cost_per_unit'],
-                "print_cost_per_unit": result['print_cost_per_unit'],
-                "cutting_cost_per_unit": result['cutting_cost_per_unit'],
-                "margin_multiplier": result['margin_multiplier']
+                "dimensions": f"{result['width_mm']}mm x {result['height_mm']}mm",
+                "thickness": result['thickness'],
+                "sqm_per_unit": result['sqm_per_unit'],
+                "total_sqm": result['total_sqm'],
+                "tier_price_per_sqm": result['tier_price_per_sqm'],
+                "base_cost": result['base_cost'],
+                "double_sided_cost": result['double_sided_cost'],
+                "custom_premium": result['custom_premium'],
+                "eyelet_cost": result['eyelet_cost'],
+                "artwork_cost": result['artwork_cost'],
+                "subtotal_before_discount": result['subtotal_before_discount'],
+                "discount_5_percent": result['discount_amount'],
+                "subtotal_after_discount": result['subtotal_after_discount'],
+                "minimum_order_applied": result.get('minimum_applied', False)
             },
             "specifications": {
-                "dimensions": result['dimensions'],
-                "area_sqm": result['area_sqm'],
-                "thickness_mm": result['thickness_mm'],
-                "print_specification": result['print_specification']
+                "is_custom_size": result['is_custom_size'],
+                "double_sided": result['double_sided'],
+                "eyelets": result['eyelets'],
+                "artworks": result['artworks']
             }
         }
         
     except Exception as e:
-        print(f"❌ [GOD Corflute Signs Calculator] Error: {e}")
+        print(f"❌ [Shopify Corflute Signs Calculator] Error: {e}")
         import traceback
         traceback.print_exc()
         return {

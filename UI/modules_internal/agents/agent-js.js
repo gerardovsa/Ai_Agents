@@ -1712,14 +1712,22 @@ const MultiAgent = {
     },
 
     // Unload thread from agent and move to Prime
-    async unloadThreadFromAgent(agentLocation, threadId) {
-        console.log(`[UNLOAD] Unloading thread ${threadId} from ${agentLocation}`);
+    async unloadThreadFromAgent(agentIdOrLocation, threadId) {
+        console.log(`[UNLOAD] Unloading thread ${threadId} from ${agentIdOrLocation}`);
 
-        // Extract agent ID from location (e.g., "agent-2" -> 2)
-        const agentId = parseInt(agentLocation.replace('agent-', ''));
+        // Handle both agentId (number) and location string ("agent-4")
+        let agentId;
+        if (typeof agentIdOrLocation === 'number') {
+            agentId = agentIdOrLocation;
+        } else if (typeof agentIdOrLocation === 'string' && agentIdOrLocation.startsWith('agent-')) {
+            agentId = parseInt(agentIdOrLocation.replace('agent-', ''));
+        } else {
+            console.error('[UNLOAD] Invalid agent parameter:', agentIdOrLocation);
+            return;
+        }
 
         if (!agentId || isNaN(agentId)) {
-            console.error('[UNLOAD] Invalid agent location:', agentLocation);
+            console.error('[UNLOAD] Invalid agent ID:', agentIdOrLocation);
             return;
         }
 
