@@ -857,7 +857,7 @@ __all__ = ['${'{MODULE_ID}'}_bp']`,
                 document.getElementById('ai-chat-input')?.focus();
                 return;
             }
-            
+
             const chatHtml = `
                 <div id="ai-chat-area" class="ai-chat-area">
                     <div class="ai-chat-header">
@@ -888,20 +888,20 @@ __all__ = ['${'{MODULE_ID}'}_bp']`,
                     </div>
                 </div>
             `;
-            
+
             // Insert after console panel
             const consolePanel = document.querySelector('.console-panel');
             if (consolePanel) {
                 consolePanel.insertAdjacentHTML('afterend', chatHtml);
-                
+
                 // Focus textarea
                 setTimeout(() => document.getElementById('ai-chat-input')?.focus(), 100);
-                
+
                 // Handle send button
                 document.getElementById('ai-send-btn')?.addEventListener('click', () => {
                     this.generateWithAI();
                 });
-                
+
                 // Handle Enter key (Shift+Enter for new line)
                 document.getElementById('ai-chat-input')?.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -919,23 +919,23 @@ __all__ = ['${'{MODULE_ID}'}_bp']`,
             const prompt = document.getElementById('ai-chat-input')?.value.trim();
             const includeContext = document.getElementById('ai-include-context')?.checked;
             const showThinking = document.getElementById('ai-show-thinking')?.checked;
-            
+
             if (!prompt) {
                 this.log('⚠️ Please enter a prompt describing what you want to build', 'warning');
                 return;
             }
-            
+
             // Clear input
             const input = document.getElementById('ai-chat-input');
             if (input) input.value = '';
-            
+
             // Disable send button during generation
             const sendBtn = document.getElementById('ai-send-btn');
             if (sendBtn) {
                 sendBtn.disabled = true;
                 sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             }
-            
+
             // Build context
             let fullPrompt = prompt;
             if (includeContext && this.currentModule) {
@@ -950,10 +950,10 @@ Current Module Context:
 
 Generate complete code files (HTML, JavaScript, CSS, Python routes, and manifest.json).`;
             }
-            
+
             this.log('🤖 AI is generating code...', 'info');
             this.log(`Prompt: ${prompt}`, 'info');
-            
+
             try {
                 const response = await fetch(`${this.config.apiBase}/api/agent/stream`, {
                     method: 'POST',
@@ -968,30 +968,30 @@ Generate complete code files (HTML, JavaScript, CSS, Python routes, and manifest
                         enable_thinking: showThinking
                     })
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`AI request failed: ${response.status} ${response.statusText}`);
                 }
-                
+
                 // Stream response
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
                 let accumulatedCode = '';
-                
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
+
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split('\n');
                     buffer = lines.pop() || '';
-                    
+
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             try {
                                 const data = JSON.parse(line.slice(6));
-                                
+
                                 if (data.type === 'thinking' && showThinking) {
                                     this.log(`💭 ${data.content}`, 'thinking');
                                 } else if (data.type === 'tool_use') {
@@ -1010,9 +1010,9 @@ Generate complete code files (HTML, JavaScript, CSS, Python routes, and manifest
                         }
                     }
                 }
-                
+
                 this.log('✅ Code generation finished. Review and edit as needed.', 'success');
-                
+
             } catch (error) {
                 this.log(`❌ AI generation failed: ${error.message}`, 'error');
                 this.log('Make sure Flask backend is running on http://localhost:5001', 'warning');
@@ -1032,19 +1032,19 @@ Generate complete code files (HTML, JavaScript, CSS, Python routes, and manifest
          */
         _appendToEditor(text) {
             if (!this.editor) return;
-            
+
             const model = this.editor.getModel();
             if (!model) return;
-            
+
             const lastLine = model.getLineCount();
             const lastColumn = model.getLineMaxColumn(lastLine);
-            
+
             // Insert text at end
             this.editor.executeEdits('ai-generation', [{
                 range: new monaco.Range(lastLine, lastColumn, lastLine, lastColumn),
                 text: text
             }]);
-            
+
             // Scroll to bottom
             this.editor.revealLine(model.getLineCount());
         }

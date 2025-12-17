@@ -276,6 +276,19 @@ class SynergySidebarRendererV2 {
                         <div class="synergy-flat-value">${this.escapeHtml(assigneeNames)}</div>
                     </div>
                 ` : ''}
+                ${session.team_id ? `
+                    <div style="margin-bottom: 8px;">
+                        <div class="synergy-flat-label"><i class="fas fa-users-cog"></i> Team ID</div>
+                        <div class="synergy-flat-value">
+                            <span class="team-id-tag" 
+                                  onclick="event.stopPropagation(); filterByTeamId('${session.team_id}')"
+                                  title="Click to filter by Team ID: ${session.team_id}">
+                                <i class="fas fa-users"></i>
+                                ${this.escapeHtml(session.team_id)}
+                            </span>
+                        </div>
+                    </div>
+                ` : ''}
                 ${dueDateHTML ? `<div style="margin-bottom: 8px;">${dueDateHTML}</div>` : ''}
                 <div class="synergy-flat-stats">
                     <span><i class="fas fa-comments"></i> ${session.message_count || 0} messages</span>

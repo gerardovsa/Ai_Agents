@@ -4995,6 +4995,114 @@
             opacity: 0.7;
         }
 
+        /* Team ID Tag - Clickable badge for filtering */
+        .team-id-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: var(--accent-primary);
+            color: white;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .team-id-tag:hover {
+            background: var(--accent-primary-hover);
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .team-id-tag:active {
+            transform: scale(0.98);
+        }
+
+        .team-id-tag i {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+
+        /* Active Filter Indicator Bar */
+        .active-filter-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            margin-bottom: 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .filter-indicator-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .filter-indicator-content i {
+            color: var(--accent-primary);
+            font-size: 14px;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .filter-value {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--accent-primary);
+            color: white;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .filter-clear-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            color: #ef4444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-clear-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            transform: scale(1.1);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Row 3: Thread Slug (Full Width) */
         .thread-info-row-3 {
             width: 100%;
@@ -12428,7 +12536,8 @@
         /* Lock banner - floats above chat, doesn't block scrolling */
         .agent-lock-banner {
             position: absolute;
-            top: 60px; /* Below header */
+            top: 60px;
+            /* Below header */
             left: 0;
             right: 0;
             z-index: 50;
@@ -12439,7 +12548,8 @@
             font-size: 12px;
             font-weight: 500;
             box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-            pointer-events: none; /* Don't block clicks/scrolling */
+            pointer-events: none;
+            /* Don't block clicks/scrolling */
         }
 
         .agent-lock-banner i {
@@ -12455,7 +12565,8 @@
         /* Prime AI panel lock banner - floats above chat */
         .prime-lock-banner {
             position: absolute;
-            top: 110px; /* Below Prime header */
+            top: 110px;
+            /* Below Prime header */
             left: 0;
             right: 0;
             z-index: 50;
@@ -12466,7 +12577,8 @@
             font-size: 12px;
             font-weight: 500;
             box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-            pointer-events: none; /* Don't block clicks/scrolling */
+            pointer-events: none;
+            /* Don't block clicks/scrolling */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -19398,6 +19510,39 @@
                 </div>
             </div>
 
+            <!-- Team ID Multi-Select Filter -->
+            <div class="thread-team-id-filter" id="thread-team-id-filter" style="margin-top: 15px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <label style="font-weight: 500; color: #64748b; font-size: 13px;">
+                        <i class="fas fa-users" style="margin-right: 6px;"></i>
+                        Team IDs:
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="selectAllTeamIds()"
+                            style="padding: 4px 10px; font-size: 11px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.background='#2980b9'" onmouseout="this.style.background='#3498db'">
+                            Select All
+                        </button>
+                        <button onclick="clearTeamIdFilter()"
+                            style="padding: 4px 10px; font-size: 11px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.background='#7f8c8d'" onmouseout="this.style.background='#95a5a6'">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                <div id="team-id-checkbox-list"
+                    style="max-height: 200px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+                    <div style="color: #94a3b8; text-align: center; padding: 20px; font-size: 13px;">
+                        <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>
+                        Loading Team IDs...
+                    </div>
+                </div>
+                <div
+                    style="margin-top: 8px; padding: 8px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 12px; color: #1e40af;">
+                    <span id="team-id-filter-status">No Team IDs selected</span>
+                </div>
+            </div>
+
             <!-- Custom Date Range Picker (hidden by default) -->
             <div class="thread-custom-date-range" id="thread-custom-date-range" style="display: none;">
                 <div class="thread-custom-date-inputs">
@@ -19847,6 +19992,78 @@
                         <i class="fas fa-sign-out-alt"></i> Revoke All Other Sessions
                     </button>
                 </div>
+
+                <!-- Team ID Management Section -->
+                <div
+                    style="margin-bottom: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-default);">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-users" style="color: var(--text-primary); font-size: 20px;"></i>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 16px;">Team ID
+                                    Management</div>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Sub-users
+                                    for team collaboration</div>
+                            </div>
+                        </div>
+                        <span id="teamIdCount"
+                            style="background: var(--accent-success); color: white; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; min-width: 30px; text-align: center;">0</span>
+                    </div>
+
+                    <p
+                        style="font-size: 13px; color: var(--text-secondary); margin: 0 0 var(--space-4) 0; padding: var(--space-3); background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--accent-success);">
+                        <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                        Create Team IDs to share access with specific teams or departments. Each Team ID can have its
+                        own threads and permissions.
+                    </p>
+
+                    <!-- Team ID Quick Actions -->
+                    <div style="display: flex; gap: 8px; margin-bottom: var(--space-3);">
+                        <button class="btn btn-primary" onclick="showCreateTeamIdModal()" style="flex: 1;">
+                            <i class="fas fa-plus"></i> Create Team ID
+                        </button>
+                        <button class="btn btn-secondary" onclick="showTeamIdImportModal()">
+                            <i class="fas fa-file-upload"></i> Import CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportTeamIdsToCSV()">
+                            <i class="fas fa-file-download"></i> Export CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshTeamIdList()" title="Refresh">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+
+                    <!-- Team IDs List -->
+                    <div id="teamIdsList" style="max-height: 400px; overflow-y: auto; margin-bottom: var(--space-3);">
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+                            <div style="font-size: 14px;">Loading Team IDs...</div>
+                        </div>
+                    </div>
+
+                    <!-- Team ID Stats Summary -->
+                    <div id="teamIdStats"
+                        style="display: none; padding: var(--space-3); background: var(--bg-secondary); border-radius: 8px; font-size: 12px; color: var(--text-secondary);">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 18px;"
+                                    id="statTotalThreads">0</div>
+                                <div style="margin-top: 4px;">Total Threads</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 18px;"
+                                    id="statTotalMessages">0</div>
+                                <div style="margin-top: 4px;">Total Messages</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 18px;"
+                                    id="statActiveTeams">0</div>
+                                <div style="margin-top: 4px;">Active Teams</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer"
                 style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default); justify-content: space-between;">
@@ -20090,6 +20307,213 @@
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="closeAISettings()">
                     <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TEAM ID CREATE/EDIT MODAL ==================== -->
+    <div class="edit-card-modal" id="team-id-modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeTeamIdModal()"></div>
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-users"></i> <span id="teamIdModalTitle">Create Team ID</span>
+                </h3>
+                <button class="modal-close" onclick="closeTeamIdModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: var(--space-4);">
+                <input type="hidden" id="editTeamIdOriginal" value="">
+
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdName" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-user"></i> Team ID Name <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="text" id="teamIdName" placeholder="e.g., sales_team, support_team"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Used for filtering threads. Min 2 characters, alphanumeric + underscore.
+                    </small>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdEmail" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-envelope"></i> Email
+                    </label>
+                    <input type="email" id="teamIdEmail" placeholder="team@company.com"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdPassword" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-key"></i> Password
+                    </label>
+                    <input type="password" id="teamIdPassword" placeholder="Leave blank for auto-generated"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Leave empty to auto-generate a secure password.
+                    </small>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="teamIdActive" checked>
+                        <span style="font-weight: 600;"><i class="fas fa-toggle-on"></i> Active</span>
+                    </label>
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Inactive Team IDs cannot access threads.
+                    </small>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdColor" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-palette"></i> Color
+                    </label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="color" id="teamIdColor" value="#3498db"
+                            style="width: 60px; height: 40px; border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer;">
+                        <input type="text" id="teamIdColorHex" value="#3498db" placeholder="#3498db"
+                            style="flex: 1; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Used to color-code threads from this Team ID.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default);">
+                <button class="btn btn-secondary" onclick="closeTeamIdModal()" style="flex: 1;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-primary" onclick="saveTeamId()" style="flex: 1;">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TEAM ID ANALYTICS MODAL ==================== -->
+    <div class="edit-card-modal" id="team-id-analytics-modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeTeamIdAnalyticsModal()"></div>
+        <div class="modal-content" style="max-width: 800px; max-height: 85vh;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-chart-line"></i> Team ID Analytics: <span id="analyticsTeamIdName">-</span>
+                </h3>
+                <button class="modal-close" onclick="closeTeamIdAnalyticsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: var(--space-4); overflow-y: auto;">
+                <!-- Timeframe Selector -->
+                <div style="margin-bottom: var(--space-4);">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Timeframe:</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary"
+                            onclick="loadTeamIdAnalytics(window.currentAnalyticsTeamId, 7)">7 Days</button>
+                        <button class="btn btn-primary"
+                            onclick="loadTeamIdAnalytics(window.currentAnalyticsTeamId, 30)">30 Days</button>
+                        <button class="btn btn-secondary"
+                            onclick="loadTeamIdAnalytics(window.currentAnalyticsTeamId, 90)">90 Days</button>
+                    </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div
+                    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-4);">
+                    <div
+                        style="padding: var(--space-3); background: var(--bg-secondary); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: 700; color: var(--accent-primary);"
+                            id="analyticsThreads">0</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Threads</div>
+                    </div>
+                    <div
+                        style="padding: var(--space-3); background: var(--bg-secondary); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: 700; color: var(--accent-success);"
+                            id="analyticsMessages">0</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Messages</div>
+                    </div>
+                    <div
+                        style="padding: var(--space-3); background: var(--bg-secondary); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: 700; color: var(--accent-warning);"
+                            id="analyticsAvgMessages">0.0</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Avg Msg/Thread
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Activity Chart -->
+                <div style="margin-bottom: var(--space-4);">
+                    <h4 style="margin-bottom: var(--space-2);"><i class="fas fa-calendar-alt"></i> Daily Activity</h4>
+                    <div id="analyticsDailyChart"
+                        style="height: 250px; background: var(--bg-secondary); border-radius: 8px; padding: var(--space-3); overflow-x: auto;">
+                        <!-- Chart will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Top Agents -->
+                <div>
+                    <h4 style="margin-bottom: var(--space-2);"><i class="fas fa-robot"></i> Top Agents Used</h4>
+                    <div id="analyticsTopAgents"
+                        style="background: var(--bg-secondary); border-radius: 8px; padding: var(--space-3);">
+                        <!-- Agent list will be rendered here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: var(--space-4); border-top: 1px solid var(--border-default);">
+                <button class="btn btn-primary" onclick="closeTeamIdAnalyticsModal()" style="width: 100%;">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TEAM ID CSV IMPORT MODAL ==================== -->
+    <div class="edit-card-modal" id="team-id-import-modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeTeamIdImportModal()"></div>
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-file-upload"></i> Import Team IDs from CSV
+                </h3>
+                <button class="modal-close" onclick="closeTeamIdImportModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: var(--space-4);">
+                <p style="margin-bottom: 16px; font-size: 13px; color: var(--text-secondary);">
+                    Upload a CSV file with the following columns:
+                </p>
+                <div
+                    style="background: var(--bg-secondary); padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: monospace; font-size: 12px;">
+                    team_id,email,password<br>
+                    sales_team,sales@company.com,pass123<br>
+                    support_team,support@company.com,pass456
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdCsvFile" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                        Select CSV File:
+                    </label>
+                    <input type="file" id="teamIdCsvFile" accept=".csv"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                </div>
+
+                <div id="importProgress"
+                    style="display: none; margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Import Progress:</div>
+                    <div id="importStatus" style="font-size: 13px;"></div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default);">
+                <button class="btn btn-secondary" onclick="closeTeamIdImportModal()" style="flex: 1;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-primary" onclick="importTeamIdsFromCSV()" style="flex: 1;">
+                    <i class="fas fa-upload"></i> Import
                 </button>
             </div>
         </div>
@@ -22446,6 +22870,13 @@
                 console.log('🔧 [INIT] Calling ThreadManager.init() (duplicate-safe)...');
                 await ThreadManager.init();
                 console.log('✅ [INIT] ThreadManager.init() completed');
+
+                // Load Team ID checkboxes for thread filtering
+                if (typeof loadTeamIdCheckboxList === 'function') {
+                    console.log('📋 [INIT] Loading Team ID filter checkboxes...');
+                    await loadTeamIdCheckboxList();
+                    console.log('✅ [INIT] Team ID filter loaded');
+                }
             } else {
                 console.error('❌ [INIT] ThreadManager.init() not available after waiting', maxWaitTime, 'ms');
                 console.error('❌ [INIT] ThreadManager type:', typeof ThreadManager);
@@ -26248,6 +26679,569 @@
             }
         }
 
+        // ============================================================================
+        // TEAM ID MANAGEMENT FUNCTIONS
+        // ============================================================================
+
+        // Team ID color storage (persisted to localStorage)
+        const TEAM_ID_COLORS_KEY = 'team_id_colors';
+
+        function getTeamIdColors() {
+            const stored = localStorage.getItem(TEAM_ID_COLORS_KEY);
+            return stored ? JSON.parse(stored) : {};
+        }
+
+        function setTeamIdColor(teamId, color) {
+            const colors = getTeamIdColors();
+            colors[teamId] = color;
+            localStorage.setItem(TEAM_ID_COLORS_KEY, JSON.stringify(colors));
+        }
+
+        function getTeamIdColor(teamId) {
+            const colors = getTeamIdColors();
+            if (colors[teamId]) return colors[teamId];
+
+            // Auto-assign from palette
+            const palette = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+            const teamIds = Object.keys(colors);
+            const newColor = palette[teamIds.length % palette.length];
+            setTeamIdColor(teamId, newColor);
+            return newColor;
+        }
+
+        /**
+         * Load Team IDs list and stats
+         */
+        async function loadTeamIdList() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load Team IDs');
+                }
+
+                const data = await response.json();
+                const teamIds = data.team_ids || [];
+
+                // Update count badge
+                document.getElementById('teamIdCount').textContent = data.total_team_ids || 0;
+
+                // Update stats
+                document.getElementById('statTotalThreads').textContent = data.total_threads || 0;
+                document.getElementById('statTotalMessages').textContent = data.total_messages || 0;
+                document.getElementById('statActiveTeams').textContent = data.active_team_ids || 0;
+                document.getElementById('teamIdStats').style.display = teamIds.length > 0 ? 'block' : 'none';
+
+                // Render Team ID list
+                const container = document.getElementById('teamIdsList');
+                if (teamIds.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fas fa-users" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                            <p>No Team IDs created yet</p>
+                            <small>Click "Create Team ID" to get started</small>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = teamIds.map(team => {
+                    const color = getTeamIdColor(team.team_id);
+                    const lastActive = team.last_active ? new Date(team.last_active).toLocaleString() : 'Never';
+
+                    return `
+                        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${color};">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                                        <span>${team.team_id}</span>
+                                        ${team.is_active ? '<span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">ACTIVE</span>' : '<span style="background: #94a3b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">INACTIVE</span>'}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                                        <span><i class="fas fa-comment-alt"></i> ${team.thread_count} threads</span>
+                                        <span><i class="fas fa-envelope"></i> ${team.message_count} messages</span>
+                                        <span><i class="fas fa-clock"></i> ${lastActive}</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-sm btn-secondary" onclick="showTeamIdAnalytics('${team.team_id}')" title="Analytics">
+                                        <i class="fas fa-chart-line"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="editTeamId('${team.team_id}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTeamId('${team.team_id}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('[TEAM IDs] Error loading:', error);
+                document.getElementById('teamIdsList').innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load Team IDs
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Refresh Team ID list
+         */
+        function refreshTeamIdList() {
+            loadTeamIdList();
+            showToast('Team IDs refreshed', 'success');
+        }
+
+        /**
+         * Show create Team ID modal
+         */
+        function showCreateTeamIdModal() {
+            document.getElementById('teamIdModalTitle').textContent = 'Create Team ID';
+            document.getElementById('editTeamIdOriginal').value = '';
+            document.getElementById('teamIdName').value = '';
+            document.getElementById('teamIdEmail').value = '';
+            document.getElementById('teamIdPassword').value = '';
+            document.getElementById('teamIdActive').checked = true;
+            document.getElementById('teamIdColor').value = '#3498db';
+            document.getElementById('teamIdColorHex').value = '#3498db';
+            document.getElementById('team-id-modal').style.display = 'flex';
+        }
+
+        /**
+         * Edit Team ID
+         */
+        async function editTeamId(teamId) {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                const team = data.team_ids.find(t => t.team_id === teamId);
+
+                if (!team) throw new Error('Team ID not found');
+
+                document.getElementById('teamIdModalTitle').textContent = 'Edit Team ID';
+                document.getElementById('editTeamIdOriginal').value = teamId;
+                document.getElementById('teamIdName').value = teamId;
+                document.getElementById('teamIdName').disabled = true; // Cannot rename
+                document.getElementById('teamIdEmail').value = team.email || '';
+                document.getElementById('teamIdPassword').value = ''; // Don't show existing password
+                document.getElementById('teamIdActive').checked = team.is_active;
+
+                const color = getTeamIdColor(teamId);
+                document.getElementById('teamIdColor').value = color;
+                document.getElementById('teamIdColorHex').value = color;
+
+                document.getElementById('team-id-modal').style.display = 'flex';
+
+            } catch (error) {
+                console.error('[TEAM IDs] Error editing:', error);
+                showToast('Failed to load Team ID details', 'error');
+            }
+        }
+
+        /**
+         * Close Team ID modal
+         */
+        function closeTeamIdModal() {
+            document.getElementById('team-id-modal').style.display = 'none';
+            document.getElementById('teamIdName').disabled = false;
+        }
+
+        /**
+         * Save Team ID (create or update)
+         */
+        async function saveTeamId() {
+            try {
+                const isEdit = !!document.getElementById('editTeamIdOriginal').value;
+                const teamId = document.getElementById('teamIdName').value.trim();
+                const email = document.getElementById('teamIdEmail').value.trim();
+                const password = document.getElementById('teamIdPassword').value;
+                const isActive = document.getElementById('teamIdActive').checked;
+                const color = document.getElementById('teamIdColor').value;
+
+                if (!teamId || teamId.length < 2) {
+                    showToast('Team ID must be at least 2 characters', 'error');
+                    return;
+                }
+
+                // Save color
+                setTeamIdColor(teamId, color);
+
+                const token = localStorage.getItem('authToken');
+                const url = isEdit
+                    ? `${API_BASE_URL}/api/auth/team-ids/${teamId}`
+                    : `${API_BASE_URL}/api/auth/team-ids/add`;
+
+                const method = isEdit ? 'PUT' : 'POST';
+                const body = isEdit
+                    ? { is_active: isActive, ...(password && { password }) }
+                    : { team_id: teamId, email, password };
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save Team ID');
+                }
+
+                showToast(isEdit ? 'Team ID updated' : 'Team ID created', 'success');
+                closeTeamIdModal();
+                loadTeamIdList();
+
+            } catch (error) {
+                console.error('[TEAM IDs] Error saving:', error);
+                showToast(error.message, 'error');
+            }
+        }
+
+        /**
+         * Delete Team ID
+         */
+        async function deleteTeamId(teamId) {
+            if (!confirm(`Are you sure you want to delete Team ID "${teamId}"? This will deactivate the Team ID and revoke all sessions.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/${teamId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete Team ID');
+                }
+
+                showToast(`Team ID "${teamId}" deleted`, 'success');
+                loadTeamIdList();
+
+            } catch (error) {
+                console.error('[TEAM IDs] Error deleting:', error);
+                showToast(error.message, 'error');
+            }
+        }
+
+        /**
+         * Show Team ID analytics modal
+         */
+        function showTeamIdAnalytics(teamId) {
+            document.getElementById('analyticsTeamIdName').textContent = teamId;
+            document.getElementById('team-id-analytics-modal').style.display = 'flex';
+            window.currentAnalyticsTeamId = teamId;
+            loadTeamIdAnalytics(teamId, 30);
+        }
+
+        /**
+         * Close analytics modal
+         */
+        function closeTeamIdAnalyticsModal() {
+            document.getElementById('team-id-analytics-modal').style.display = 'none';
+        }
+
+        /**
+         * Load Team ID analytics
+         */
+        async function loadTeamIdAnalytics(teamId, days = 30) {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/${teamId}/analytics?days=${days}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to load analytics');
+
+                const data = await response.json();
+
+                // Update summary stats
+                document.getElementById('analyticsThreads').textContent = data.total_threads || 0;
+                document.getElementById('analyticsMessages').textContent = data.total_messages || 0;
+                document.getElementById('analyticsAvgMessages').textContent = data.avg_messages_per_thread || '0.0';
+
+                // Render daily activity chart (simple bar chart)
+                const chartContainer = document.getElementById('analyticsDailyChart');
+                if (!data.daily_activity || data.daily_activity.length === 0) {
+                    chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No activity data available</div>';
+                } else {
+                    const maxThreads = Math.max(...data.daily_activity.map(d => d.threads), 1);
+                    chartContainer.innerHTML = data.daily_activity.slice(0, 10).map(day => {
+                        const barHeight = (day.threads / maxThreads) * 100;
+                        return `
+                            <div style="display: flex; align-items: flex-end; gap: 8px; margin-bottom: 8px;">
+                                <div style="width: 100px; font-size: 11px; color: var(--text-secondary);">${new Date(day.date).toLocaleDateString()}</div>
+                                <div style="flex: 1; height: 24px; background: linear-gradient(90deg, var(--accent-primary) ${barHeight}%, var(--bg-tertiary) ${barHeight}%); border-radius: 4px; display: flex; align-items: center; padding: 0 8px;">
+                                    <span style="font-size: 11px; font-weight: 600; color: var(--text-primary);">${day.threads} threads, ${day.messages} msgs</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // Render top agents
+                const agentsContainer = document.getElementById('analyticsTopAgents');
+                if (!data.top_agents || data.top_agents.length === 0) {
+                    agentsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No agent data available</div>';
+                } else {
+                    agentsContainer.innerHTML = data.top_agents.map((agent, i) => `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-default);">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="background: var(--accent-primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">${i + 1}</span>
+                                <span style="font-weight: 600;">${agent.agent}</span>
+                            </div>
+                            <span style="color: var(--text-secondary); font-size: 13px;">${agent.usage_count} uses</span>
+                        </div>
+                    `).join('');
+                }
+
+            } catch (error) {
+                console.error('[TEAM IDs] Error loading analytics:', error);
+                showToast('Failed to load analytics', 'error');
+            }
+        }
+
+        /**
+         * Export Team IDs to CSV
+         */
+        async function exportTeamIdsToCSV() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/export`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Export failed');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `team_ids_export_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                showToast('Team IDs exported successfully', 'success');
+
+            } catch (error) {
+                console.error('[TEAM IDs] Export error:', error);
+                showToast('Failed to export Team IDs', 'error');
+            }
+        }
+
+        /**
+         * Show import modal
+         */
+        function showTeamIdImportModal() {
+            document.getElementById('teamIdCsvFile').value = '';
+            document.getElementById('importProgress').style.display = 'none';
+            document.getElementById('team-id-import-modal').style.display = 'flex';
+        }
+
+        /**
+         * Close import modal
+         */
+        function closeTeamIdImportModal() {
+            document.getElementById('team-id-import-modal').style.display = 'none';
+        }
+
+        /**
+         * Import Team IDs from CSV
+         */
+        async function importTeamIdsFromCSV() {
+            const fileInput = document.getElementById('teamIdCsvFile');
+            if (!fileInput.files || !fileInput.files[0]) {
+                showToast('Please select a CSV file', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('importProgress').style.display = 'block';
+                document.getElementById('importStatus').textContent = 'Uploading...';
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/import`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Import failed');
+                }
+
+                const data = await response.json();
+                document.getElementById('importStatus').innerHTML = `
+                    <div style="color: var(--success); font-weight: 600;">✓ Import Complete</div>
+                    <div style="margin-top: 8px; font-size: 12px;">
+                        • Imported: ${data.imported}<br>
+                        • Failed: ${data.failed}
+                    </div>
+                    ${data.errors.length > 0 ? `<div style="margin-top: 8px; font-size: 11px; color: var(--danger);">Errors: ${data.errors.join(', ')}</div>` : ''}
+                `;
+
+                showToast(`Imported ${data.imported} Team ID(s)`, 'success');
+                loadTeamIdList();
+
+            } catch (error) {
+                console.error('[TEAM IDs] Import error:', error);
+                document.getElementById('importStatus').innerHTML = `<div style="color: var(--danger);">✗ ${error.message}</div>`;
+                showToast('Import failed: ' + error.message, 'error');
+            }
+        }
+
+        // Color picker sync
+        document.addEventListener('DOMContentLoaded', () => {
+            const colorPicker = document.getElementById('teamIdColor');
+            const colorHex = document.getElementById('teamIdColorHex');
+
+            if (colorPicker && colorHex) {
+                colorPicker.addEventListener('input', (e) => {
+                    colorHex.value = e.target.value;
+                });
+
+                colorHex.addEventListener('input', (e) => {
+                    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                        colorPicker.value = e.target.value;
+                    }
+                });
+            }
+        });
+
+        /**
+         * Load Team IDs for multi-select filter
+         */
+        async function loadTeamIdCheckboxList() {
+            const checkboxListContainer = document.getElementById('team-id-checkbox-list');
+            if (!checkboxListContainer) return;
+
+            try {
+                const response = await fetch('/api/auth/team-ids', {
+                    headers: {
+                        'Authorization': `Bearer ${window.UserAuth?.token || localStorage.getItem('auth_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load Team IDs');
+
+                const data = await response.json();
+                const teamIds = data.team_ids || [];
+
+                if (teamIds.length === 0) {
+                    checkboxListContainer.innerHTML = `
+                        <div style="color: #94a3b8; text-align: center; padding: 20px; font-size: 13px;">
+                            <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+                            No Team IDs available. Create one in the Security tab.
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Render checkboxes with colors
+                checkboxListContainer.innerHTML = teamIds.map(team => {
+                    const color = getTeamIdColor(team.team_id);
+                    return `
+                        <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 4px; transition: background 0.2s; border-left: 4px solid ${color};"
+                               onmouseover="this.style.background='#e2e8f0'"
+                               onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" 
+                                   class="team-id-checkbox" 
+                                   value="${team.team_id}" 
+                                   onchange="applyTeamIdFilter()"
+                                   style="margin-right: 10px; width: 16px; height: 16px; cursor: pointer;">
+                            <span style="flex: 1; font-weight: 500; color: #334155; font-size: 13px;">${team.team_id}</span>
+                            <span style="color: #64748b; font-size: 11px; background: #f1f5f9; padding: 2px 8px; border-radius: 12px;">
+                                ${team.thread_count || 0} threads
+                            </span>
+                        </label>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading Team ID checkboxes:', error);
+                checkboxListContainer.innerHTML = `
+                    <div style="color: #ef4444; text-align: center; padding: 20px; font-size: 13px;">
+                        <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+                        Failed to load Team IDs
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Apply Team ID filter based on selected checkboxes
+         */
+        async function applyTeamIdFilter() {
+            const checkboxes = document.querySelectorAll('.team-id-checkbox:checked');
+            const selectedTeamIds = Array.from(checkboxes).map(cb => cb.value);
+            const statusElement = document.getElementById('team-id-filter-status');
+
+            if (selectedTeamIds.length === 0) {
+                // Clear filter
+                if (window.ThreadFilters && typeof window.ThreadFilters.clearTeamIdFilter === 'function') {
+                    window.ThreadFilters.clearTeamIdFilter();
+                }
+                if (statusElement) {
+                    statusElement.textContent = 'No Team IDs selected';
+                }
+                return;
+            }
+
+            // Update status
+            if (statusElement) {
+                const label = selectedTeamIds.length === 1 ? selectedTeamIds[0] : `${selectedTeamIds.length} Team IDs`;
+                statusElement.innerHTML = `<i class="fas fa-filter" style="margin-right: 6px;"></i>Filtering by: ${label}`;
+            }
+
+            // Apply filter
+            if (window.ThreadFilters && typeof window.ThreadFilters.filterByTeamId === 'function') {
+                await window.ThreadFilters.filterByTeamId(selectedTeamIds);
+            } else {
+                showToast('Thread filter not available', 'error');
+            }
+        }
+
+        /**
+         * Select all Team ID checkboxes
+         */
+        function selectAllTeamIds() {
+            const checkboxes = document.querySelectorAll('.team-id-checkbox');
+            checkboxes.forEach(cb => cb.checked = true);
+            applyTeamIdFilter();
+        }
+
+        /**
+         * Clear Team ID filter
+         */
+        function clearTeamIdFilter() {
+            const checkboxes = document.querySelectorAll('.team-id-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            applyTeamIdFilter();
+        }
+
         /**
          * Show toast notification
          */
@@ -27306,8 +28300,11 @@
                     const modalBody = securityModal.querySelector('.modal-body');
                     if (modalBody) {
                         container.innerHTML = modalBody.innerHTML;
-                        // Load active sessions
-                        setTimeout(() => loadActiveSessions(), 100);
+                        // Load active sessions and Team IDs
+                        setTimeout(() => {
+                            loadActiveSessions();
+                            loadTeamIdList();
+                        }, 100);
                     }
                 }
             }

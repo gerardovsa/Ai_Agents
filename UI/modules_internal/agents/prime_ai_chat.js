@@ -2838,7 +2838,7 @@ const PrimeAI = {
     toggleViewModeMenu: toggleViewModeMenuPrime,
     setViewMode: setViewModePrime,
     unloadThread: unloadThreadFromPrime,
-    
+
     // Lock system methods
     showLockBanner(lockedByDisplayName) {
         const panel = document.getElementById('ai-chat-panel');

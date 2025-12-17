@@ -946,6 +946,36 @@ const ThreadManager = {
         });
 
         console.log('✅ [ThreadManager] Menu handlers initialized');
+    },
+
+    /**
+     * NEW: Filter threads by Team ID
+     * Delegates to ThreadManagerFilters module
+     */
+    filterByTeamId(teamId) {
+        if (typeof window.ThreadManagerFilters !== 'undefined' &&
+            typeof window.ThreadManagerFilters.filterByTeamId === 'function') {
+            window.ThreadManagerFilters.filterByTeamId(teamId);
+        } else {
+            console.warn('⚠️ [ThreadManager] ThreadManagerFilters not loaded yet');
+            // Fallback: show notification
+            if (typeof showNotification === 'function') {
+                showNotification(`Filtering by Team ID: ${teamId}`, 'info');
+            }
+        }
+    },
+
+    /**
+     * NEW: Clear Team ID filter
+     * Delegates to ThreadManagerFilters module
+     */
+    clearTeamIdFilter() {
+        if (typeof window.ThreadManagerFilters !== 'undefined' &&
+            typeof window.ThreadManagerFilters.clearTeamIdFilter === 'function') {
+            window.ThreadManagerFilters.clearTeamIdFilter();
+        } else {
+            console.warn('⚠️ [ThreadManager] ThreadManagerFilters not loaded yet');
+        }
     }
 };
 

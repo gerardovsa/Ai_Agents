@@ -58,7 +58,7 @@ if (typeof ChatSidebar !== 'undefined') {
         'loadConversationHistory',
         'refreshChatList'
     ];
-    
+
     methods.forEach(method => {
         const exists = typeof ChatSidebar[method] === 'function';
         const status = exists ? '✓' : '✗';
@@ -84,24 +84,24 @@ if (typeof SynergyRealtime !== 'undefined') {
         '_getDeviceInfo',
         '_generateSessionToken'
     ];
-    
+
     methods.forEach(method => {
         const exists = typeof SynergyRealtime[method] === 'function';
         const status = exists ? '✓' : '✗';
         console.log(`  ${status} SynergyRealtime.${method}(): ${exists ? 'Defined' : 'MISSING'}`);
     });
-    
+
     // Check session token
     if (SynergyRealtime.sessionToken) {
         console.log(`  ✓ Session Token: ${SynergyRealtime.sessionToken}`);
     } else {
         console.log('  ⚠ Session Token: Not generated yet');
     }
-    
+
     // Check connection status
     const connected = SynergyRealtime.isConnected();
     console.log(`  ${connected ? '✓' : '⚠'} Connection Status: ${connected ? 'Connected' : 'Not Connected'}`);
-    
+
 } else {
     console.log('  ✗ SynergyRealtime not loaded - cannot check methods');
 }
@@ -148,9 +148,9 @@ document.body.appendChild(testDiv);
 requiredClasses.forEach(className => {
     testDiv.className = className;
     const styles = window.getComputedStyle(testDiv);
-    const hasStyles = styles.position !== 'static' || 
-                      styles.display !== 'inline' || 
-                      styles.padding !== '0px';
+    const hasStyles = styles.position !== 'static' ||
+        styles.display !== 'inline' ||
+        styles.padding !== '0px';
     const status = hasStyles ? '✓' : '⚠';
     console.log(`  ${status} .${className}: ${hasStyles ? 'Styled' : 'No specific styles (may be OK)'}`);
 });
@@ -185,34 +185,34 @@ async function testEndpoint(endpoint) {
     for (const endpoint of apiEndpoints) {
         await testEndpoint(endpoint);
     }
-    
+
     // ==================== MULTI-SESSION TEST ====================
-    
+
     console.log('\n8. Multi-Session Support Test...');
-    
+
     if (typeof SynergyRealtime !== 'undefined') {
         const deviceInfo = SynergyRealtime._getDeviceInfo();
         console.log(`  ✓ Device Detection: ${deviceInfo}`);
-        
+
         // Check for emojis (should be text only)
         const hasEmojis = /[\u{1F300}-\u{1F9FF}]/u.test(deviceInfo);
         console.log(`  ${hasEmojis ? '✗' : '✓'} Emoji Check: ${hasEmojis ? 'CONTAINS EMOJIS (should be text)' : 'Text only (correct)'}`);
-        
+
         // Check session token format
         if (SynergyRealtime.sessionToken) {
             const validFormat = /^session_[a-z0-9]+_\d+$/.test(SynergyRealtime.sessionToken);
             console.log(`  ${validFormat ? '✓' : '✗'} Session Token Format: ${validFormat ? 'Valid' : 'Invalid format'}`);
         }
-        
+
         // Check multi-session tracking
         const hasTracking = typeof SynergyRealtime.otherSessionsViewingAgents === 'object';
         console.log(`  ${hasTracking ? '✓' : '✗'} Multi-Session Tracking: ${hasTracking ? 'Enabled' : 'MISSING'}`);
     }
-    
+
     // ==================== WEBSOCKET EVENTS ====================
-    
+
     console.log('\n9. Checking WebSocket Event Handlers...');
-    
+
     if (typeof SynergyRealtime !== 'undefined' && SynergyRealtime.socket) {
         const eventHandlers = [
             'voice_call_offer',
@@ -222,52 +222,52 @@ async function testEndpoint(endpoint) {
             'direct_message_received',
             'broadcast_message_received'
         ];
-        
+
         eventHandlers.forEach(event => {
-            const hasHandler = SynergyRealtime.socket._callbacks && 
-                              SynergyRealtime.socket._callbacks[`$${event}`];
+            const hasHandler = SynergyRealtime.socket._callbacks &&
+                SynergyRealtime.socket._callbacks[`$${event}`];
             const status = hasHandler ? '✓' : '⚠';
             console.log(`  ${status} ${event}: ${hasHandler ? 'Handler registered' : 'No handler (may be added later)'}`);
         });
     } else {
         console.log('  ⚠ Socket not connected - cannot check event handlers');
     }
-    
+
     // ==================== SECURITY CHECKS ====================
-    
+
     console.log('\n10. Security Checks...');
-    
-    const isSecure = window.location.protocol === 'https:' || 
-                     window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
-    
+
+    const isSecure = window.location.protocol === 'https:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+
     console.log(`  ${isSecure ? '✓' : '⚠'} HTTPS/Localhost: ${window.location.protocol} ${isSecure ? '(WebRTC will work)' : '(WebRTC requires HTTPS)'}`);
-    
+
     // ==================== FINAL SUMMARY ====================
-    
+
     console.log('\n=== SMOKE TEST SUMMARY ===\n');
-    
-    const allDepsAvailable = dependencies['Socket.IO'] && 
-                            dependencies['SynergyRealtime'] && 
-                            dependencies['ChatSidebar'];
-    
-    const webrtcSupported = webrtcChecks['getUserMedia'] && 
-                           webrtcChecks['RTCPeerConnection'];
-    
+
+    const allDepsAvailable = dependencies['Socket.IO'] &&
+        dependencies['SynergyRealtime'] &&
+        dependencies['ChatSidebar'];
+
+    const webrtcSupported = webrtcChecks['getUserMedia'] &&
+        webrtcChecks['RTCPeerConnection'];
+
     console.log(`Dependencies: ${allDepsAvailable ? '✓ ALL REQUIRED AVAILABLE' : '✗ SOME MISSING'}`);
     console.log(`WebRTC Support: ${webrtcSupported ? '✓ FULLY SUPPORTED' : '✗ NOT SUPPORTED'}`);
     console.log(`Security: ${isSecure ? '✓ SECURE CONTEXT' : '⚠ INSECURE (WebRTC may fail)'}`);
-    
+
     if (allDepsAvailable && webrtcSupported && isSecure) {
         console.log('\n✓✓✓ CHAT SIDEBAR IS READY TO USE ✓✓✓');
     } else {
         console.log('\n⚠⚠⚠ SOME ISSUES FOUND - REVIEW ABOVE ⚠⚠⚠');
     }
-    
+
     // ==================== INTEGRATION TEST ====================
-    
+
     console.log('\n11. Quick Integration Test...');
-    
+
     if (typeof ChatSidebar !== 'undefined' && typeof ChatSidebar.init === 'function') {
         try {
             // Don't actually init (may cause issues), just check it's callable
@@ -279,7 +279,7 @@ async function testEndpoint(endpoint) {
             console.log(`  ✗ Error checking init: ${error.message}`);
         }
     }
-    
+
     console.log('\n=== END OF SMOKE TEST ===');
 })();
 

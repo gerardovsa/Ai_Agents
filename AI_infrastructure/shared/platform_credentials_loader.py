@@ -83,6 +83,19 @@ def get_user_credentials(user_id: int, platform: str) -> Optional[Dict[str, Any]
         >>> creds = get_user_credentials(1, 'xero_print')
         >>> client_id = creds['credentials']['client_id']
     """
+    # ✅ PERFORMANCE OPTIMIZATION (Dec 2025): Try Redis cache first
+    try:
+        from AI_infrastructure.utils.cache_utils import get_cached_platform_credentials
+        cached = get_cached_platform_credentials(user_id, platform)
+        if cached:
+            print(f"[CREDENTIALS] ⚡ Cache HIT for user_id={user_id}, platform={platform}")
+            return cached
+    except Exception as e:
+        # Silently fail if cache unavailable - fallback to DB
+        pass
+    
+    print(f"[CREDENTIALS] Cache MISS for user_id={user_id}, platform={platform} - fetching from DB")
+    
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
@@ -158,6 +171,15 @@ def get_user_credentials(user_id: int, platform: str) -> Optional[Dict[str, Any]
             for key, value in result['credentials'].items():
                 if key not in result:  # Don't overwrite top-level keys
                     result[key] = value
+        
+        # ✅ PERFORMANCE OPTIMIZATION (Dec 2025): Cache for future requests
+        try:
+            from AI_infrastructure.utils.cache_utils import cache_platform_credentials
+            cache_platform_credentials(user_id, platform, result, ttl=600)  # 10 minute cache
+            print(f"[CREDENTIALS] ⚡ Cached credentials for user_id={user_id}, platform={platform}")
+        except Exception as e:
+            # Silently fail if cache unavailable
+            pass
         
         print(f"[CREDENTIALS] ✅ Loaded credentials for user_id={user_id}, platform={platform}")
         return result

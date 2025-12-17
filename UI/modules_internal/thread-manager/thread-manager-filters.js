@@ -400,6 +400,221 @@ window.ThreadManagerFilters = {
         if (customRangeDiv) {
             customRangeDiv.style.display = show ? 'block' : 'none';
         }
+    },
+
+    /**
+     * NEW: Filter threads by Team ID(s) with backend authorization
+     * Supports single or multiple Team IDs (multi-select)
+     * @param {string|string[]} teamIds - Team ID(s) to filter by
+     */
+    async filterByTeamId(teamIds) {
+        const teamIdArray = Array.isArray(teamIds) ? teamIds : [teamIds];
+        const teamIdParam = teamIdArray.join(',');
+
+        console.log(`👥 [Filters] Filtering by Team ID(s): ${teamIdParam}`);
+
+        try {
+            // Store active Team ID filter
+            this.teamIdFilter = teamIdArray;
+
+            // Show loading state
+            const filterLabel = teamIdArray.length === 1 ? teamIdArray[0] : `${teamIdArray.length} teams`;
+            this.showFilterIndicator('Team ID', `${filterLabel} (loading...)`);
+
+            // SECURITY: Use backend filtering endpoint with authorization
+            const userId = window.UserAuth?.user?.id || window.currentUserId;
+
+            if (!userId) {
+                throw new Error('User not authenticated');
+            }
+
+            const response = await fetch(
+                `/api/threads/filter-by-team?team_ids=${encodeURIComponent(teamIdParam)}&user_id=${userId}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    throw new Error(`Access denied: You do not have permission to view one or more Team IDs`);
+                } else if (response.status === 404) {
+                    throw new Error(`One or more Team IDs not found`);
+                } else {
+                    throw new Error(`Failed to filter threads: ${response.statusText}`);
+                }
+            }
+
+            const data = await response.json();
+
+            // Update ThreadManager with filtered threads
+            if (window.ThreadManager && data.threads) {
+                // Store original threads if not already stored
+                if (!this.originalThreads) {
+                    this.originalThreads = [...(window.ThreadManager.threads || [])];
+                }
+
+                // Replace threads array with filtered results
+                window.ThreadManager.threads = data.threads;
+
+                // Apply color coding to threads based on Team ID
+                this.applyTeamIdColors(data.threads);
+
+                // Update UI to show filter is active
+                const finalLabel = teamIdArray.length === 1 ? teamIdArray[0] : `${teamIdArray.length} teams`;
+                this.showFilterIndicator('Team ID', `${finalLabel} (${data.threads.length} threads)`);
+
+                // Re-render thread list
+                if (typeof this.renderThreadList === 'function') {
+                    this.renderThreadList();
+                }
+
+                // Update URL with filter parameter
+                const url = new URL(window.location);
+                url.searchParams.set('team_id', teamIdParam);
+                window.history.pushState({}, '', url);
+
+                // Show notification
+                if (typeof showNotification === 'function') {
+                    showNotification(
+                        `Showing ${data.threads.length} threads for ${finalLabel}`,
+                        'success'
+                    );
+                }
+            }
+
+        } catch (error) {
+            console.error(`[Filters] Team ID filter error:`, error);
+
+            // Show error notification
+            if (typeof showNotification === 'function') {
+                showNotification(error.message || 'Failed to filter by Team ID', 'error');
+            }
+
+            // Clear filter on error
+            this.clearTeamIdFilter();
+        }
+    },
+
+    /**
+     * NEW: Apply color coding to threads based on Team ID
+     * @param {Array} threads - Threads to colorize
+     */
+    applyTeamIdColors(threads) {
+        if (!threads || !window.getTeamIdColor) return;
+
+        // Add color property to each thread based on team_id
+        threads.forEach(thread => {
+            if (thread.team_id) {
+                thread._teamColor = window.getTeamIdColor(thread.team_id);
+            }
+        });
+    },
+
+    /**
+     * NEW: Clear Team ID filter and restore original threads
+     */
+    clearTeamIdFilter() {
+        console.log(`👥 [Filters] Clearing Team ID filter`);
+
+        this.teamIdFilter = null;
+        this.hideFilterIndicator();
+
+        // Restore original threads if they were stored
+        if (this.originalThreads && window.ThreadManager) {
+            window.ThreadManager.threads = [...this.originalThreads];
+            this.originalThreads = null;
+        }
+
+        // Re-render thread list
+        if (typeof this.renderThreadList === 'function') {
+            this.renderThreadList();
+        }
+
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.delete('team_id');
+        window.history.pushState({}, '', url);
+    },
+
+    /**
+     * NEW: Show filter indicator bar
+     * @param {string} filterType - Type of filter (e.g., 'Team ID')
+     * @param {string} filterValue - Value being filtered
+     */
+    showFilterIndicator(filterType, filterValue) {
+        let indicator = document.getElementById('active-filter-indicator');
+
+        // Create indicator if it doesn't exist
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'active-filter-indicator';
+            indicator.className = 'active-filter-bar';
+
+            // Insert at top of thread list container
+            const threadListContainer = document.querySelector('.thread-list-container') ||
+                document.querySelector('#thread-cards-container');
+            if (threadListContainer) {
+                threadListContainer.insertBefore(indicator, threadListContainer.firstChild);
+            }
+        }
+
+        // Update indicator content
+        indicator.innerHTML = `
+            <div class="filter-indicator-content">
+                <i class="fas fa-filter"></i>
+                <span class="filter-label">Filtered by ${filterType}:</span>
+                <span class="filter-value">${filterValue}</span>
+                <button class="filter-clear-btn" onclick="ThreadManager.clearTeamIdFilter()" title="Clear filter">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+
+        indicator.style.display = 'flex';
+    },
+
+    /**
+     * NEW: Hide filter indicator bar
+     */
+    hideFilterIndicator() {
+        const indicator = document.getElementById('active-filter-indicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+    },
+
+    /**
+     * NEW: Get filtered threads based on all active filters
+     * @returns {Array} Filtered thread array
+     */
+    getFilteredThreads() {
+        const threads = window.ThreadManager?.threads || [];
+        let filtered = [...threads];
+
+        // Apply Team ID filter if active
+        if (this.teamIdFilter) {
+            filtered = filtered.filter(t => t.team_id === this.teamIdFilter);
+        }
+
+        // Apply location filter if active
+        if (this.locationFilter && this.locationFilter !== 'all') {
+            filtered = filtered.filter(t => t.location === this.locationFilter);
+        }
+
+        // Apply search query if active
+        if (this.searchQuery) {
+            filtered = filtered.filter(t => {
+                const title = (t.title || '').toLowerCase();
+                const description = (t.description || '').toLowerCase();
+                return title.includes(this.searchQuery) || description.includes(this.searchQuery);
+            });
+        }
+
+        return filtered;
     }
 };
 

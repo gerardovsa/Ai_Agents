@@ -257,6 +257,76 @@ class RedisManager:
             return {'delivered': [], 'read': []}
     
     # ========================================
+    # GENERIC CACHING (Performance Optimization - Dec 2025)
+    # ========================================
+    
+    def cache_get(self, key: str) -> Optional[str]:
+        """
+        Get cached value by key
+        Args:
+            key: Cache key
+        Returns:
+            Cached value (JSON string) or None if not found or Redis unavailable
+        """
+        if not self.connected:
+            return None
+        
+        try:
+            return self.client.get(key)
+        except Exception as e:
+            print(f"[REDIS ERROR] cache_get({key}): {e}")
+            return None
+    
+    def cache_set(self, key: str, value: str, ttl: int = 300) -> bool:
+        """
+        Set cached value with TTL
+        Args:
+            key: Cache key
+            value: Value to cache (JSON string)
+            ttl: Time-to-live in seconds (default: 5 minutes)
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.connected:
+            return False
+        
+        try:
+            self.client.setex(key, ttl, value)
+            return True
+        except Exception as e:
+            print(f"[REDIS ERROR] cache_set({key}): {e}")
+            return False
+    
+    def cache_delete(self, key: str) -> bool:
+        """
+        Delete cached value
+        Args:
+            key: Cache key to delete
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.connected:
+            return False
+        
+        try:
+            self.client.delete(key)
+            return True
+        except Exception as e:
+            print(f"[REDIS ERROR] cache_delete({key}): {e}")
+            return False
+    
+    def cache_exists(self, key: str) -> bool:
+        """Check if cache key exists"""
+        if not self.connected:
+            return False
+        
+        try:
+            return self.client.exists(key) > 0
+        except Exception as e:
+            print(f"[REDIS ERROR] cache_exists({key}): {e}")
+            return False
+    
+    # ========================================
     # UTILITY
     # ========================================
     

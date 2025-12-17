@@ -837,3 +837,308 @@ def merge_branch():
                 conn.close()
             except:
                 pass
+
+
+# ============================================================================
+# TEAM ID MESSAGE ROUTING FUNCTIONS
+# ============================================================================
+
+def save_message_with_team_id(
+    thread_id: int,
+    user_id: int,
+    role: str,
+    content: str,
+    sender_team_id: str = None,
+    recipient_team_id: str = None,
+    message_type: str = 'direct',
+    workspace_id: int = None,
+    metadata: dict = None
+) -> dict:
+    """
+    Save message with Team ID routing
+    
+    Args:
+        thread_id: Thread ID
+        user_id: User ID of sender
+        role: 'user', 'assistant', 'system'
+        content: Message content
+        sender_team_id: Team ID of sender (username of sub-user)
+        recipient_team_id: Team ID of recipient (None for broadcast)
+        message_type: 'direct', 'broadcast', 'team'
+        workspace_id: Optional workspace ID
+        metadata: Additional metadata
+    
+    Returns:
+        {'success': True, 'message_id': int} or {'error': str}
+    
+    Example:
+        # Direct message from Sarah to Bob
+        save_message_with_team_id(
+            thread_id=123,
+            user_id=1,
+            role='user',
+            content='Hey Bob!',
+            sender_team_id='Sarah',
+            recipient_team_id='Bob',
+            message_type='direct'
+        )
+        
+        # Broadcast message (visible to all Team IDs)
+        save_message_with_team_id(
+            thread_id=123,
+            user_id=1,
+            role='user',
+            content='Team announcement!',
+            sender_team_id='Sarah',
+            recipient_team_id=None,
+            message_type='broadcast'
+        )
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        # Insert message with Team ID columns
+        sql, params = convert_sql_placeholders("""
+            INSERT INTO sessions.messages (
+                thread_id, workspace_id, user_id, role, content,
+                sender_team_id, recipient_team_id, message_type,
+                metadata, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            thread_id,
+            workspace_id,
+            user_id,
+            role,
+            content,
+            sender_team_id,
+            recipient_team_id,
+            message_type,
+            json.dumps(metadata) if metadata else None,
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        ))
+        
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        message_id = row['id'] if isinstance(row, dict) else row[0]
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        print(f"✅ Saved message {message_id} | Sender: {sender_team_id or 'main'} → Recipient: {recipient_team_id or 'broadcast'}")
+        
+        return {'success': True, 'message_id': message_id}
+        
+    except Exception as e:
+        print(f"❌ Save Team ID message error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': str(e)}
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+def get_team_messages(
+    thread_id: int,
+    team_id: str = None,
+    message_type: str = None,
+    limit: int = 100,
+    offset: int = 0
+) -> dict:
+    """
+    Get messages for a specific Team ID with filtering
+    
+    Args:
+        thread_id: Thread ID
+        team_id: Team ID to filter by (shows messages sent TO this Team ID or broadcasts)
+        message_type: Filter by 'direct', 'broadcast', 'team'
+        limit: Max messages to return
+        offset: Pagination offset
+    
+    Returns:
+        {
+            'messages': [...],
+            'total': int,
+            'team_id': str,
+            'has_more': bool
+        }
+    
+    Logic:
+        - If team_id provided: Get messages WHERE recipient_team_id = team_id OR recipient_team_id IS NULL
+        - If team_id is None: Get all messages (main account view)
+        - Broadcasts (recipient_team_id IS NULL) visible to everyone
+    
+    Example:
+        # Get Sarah's messages (sent to her + broadcasts)
+        result = get_team_messages(thread_id=123, team_id='Sarah')
+        
+        # Get all messages (main account)
+        result = get_team_messages(thread_id=123, team_id=None)
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        # Build WHERE clause
+        where_parts = ['thread_id = %s']
+        params = [thread_id]
+        
+        if team_id:
+            # Team ID sees: messages sent TO them + broadcasts (NULL recipient)
+            where_parts.append('(recipient_team_id = %s OR recipient_team_id IS NULL)')
+            params.append(team_id)
+        
+        if message_type:
+            where_parts.append('message_type = %s')
+            params.append(message_type)
+        
+        where_clause = ' AND '.join(where_parts)
+        
+        # Count total
+        sql, count_params = convert_sql_placeholders(
+            f"SELECT COUNT(*) FROM sessions.messages WHERE {where_clause}",
+            params
+        )
+        
+        cursor.execute(sql, count_params)
+        row = cursor.fetchone()
+        total = row['count'] if isinstance(row, dict) else row[0]
+        
+        # Get messages
+        params.extend([limit, offset])
+        sql, msg_params = convert_sql_placeholders(f"""
+            SELECT 
+                id, thread_id, workspace_id, user_id, role, content,
+                sender_team_id, recipient_team_id, message_type,
+                metadata, created_at, updated_at
+            FROM sessions.messages
+            WHERE {where_clause}
+            ORDER BY created_at DESC
+            LIMIT %s OFFSET %s
+        """, params)
+        
+        cursor.execute(sql, msg_params)
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                'id': row['id'] if isinstance(row, dict) else row[0],
+                'thread_id': row['thread_id'] if isinstance(row, dict) else row[1],
+                'user_id': row['user_id'] if isinstance(row, dict) else row[3],
+                'role': row['role'] if isinstance(row, dict) else row[4],
+                'content': row['content'] if isinstance(row, dict) else row[5],
+                'sender_team_id': row['sender_team_id'] if isinstance(row, dict) else row[6],
+                'recipient_team_id': row['recipient_team_id'] if isinstance(row, dict) else row[7],
+                'message_type': row['message_type'] if isinstance(row, dict) else row[8],
+                'metadata': json.loads(row['metadata'] if isinstance(row, dict) else row[9]) if (row['metadata'] if isinstance(row, dict) else row[9]) else None,
+                'created_at': (row['created_at'] if isinstance(row, dict) else row[10]).isoformat() if (row['created_at'] if isinstance(row, dict) else row[10]) else None,
+                'updated_at': (row['updated_at'] if isinstance(row, dict) else row[11]).isoformat() if (row['updated_at'] if isinstance(row, dict) else row[11]) else None
+            })
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return {
+            'success': True,
+            'messages': messages,
+            'total': total,
+            'team_id': team_id,
+            'has_more': (offset + limit) < total
+        }
+        
+    except Exception as e:
+        print(f"❌ Get Team messages error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': str(e)}
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+def get_team_id_from_user(user_id: int) -> str:
+    """
+    Get Team ID (username) for a sub-user
+    
+    Args:
+        user_id: User ID
+    
+    Returns:
+        Team ID (username) if sub-user, None if main account
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders("""
+            SELECT username, is_sub_user
+            FROM ai_infrastructure.users
+            WHERE id = %s
+        """, [user_id])
+        
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if not row:
+            return None
+        
+        is_sub_user = row['is_sub_user'] if isinstance(row, dict) else row[1]
+        
+        if is_sub_user:
+            return row['username'] if isinstance(row, dict) else row[0]
+        
+        return None
+        
+    except Exception as e:
+        print(f"❌ Get Team ID error: {e}")
+        return None
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass

@@ -914,7 +914,7 @@ const MultiAgent = {
     // Get color for session based on hash of session token
     getSessionColor(sessionToken) {
         if (!sessionToken) return this.PRESENCE_COLORS[0];
-        const hash = sessionToken.split('').reduce((acc, char) => 
+        const hash = sessionToken.split('').reduce((acc, char) =>
             acc + char.charCodeAt(0), 0);
         return this.PRESENCE_COLORS[hash % this.PRESENCE_COLORS.length];
     },
@@ -962,9 +962,9 @@ const MultiAgent = {
     // Disable agent input when locked by another session
     disableAgentInput(agentId) {
         // Try multiple possible input IDs
-        const input = document.getElementById(`agent-input-${agentId}`) || 
-                      document.getElementById(`input-${agentId}`);
-        
+        const input = document.getElementById(`agent-input-${agentId}`) ||
+            document.getElementById(`input-${agentId}`);
+
         if (input) {
             input.disabled = true;
             input.placeholder = 'This agent is locked by another user...';
@@ -975,9 +975,9 @@ const MultiAgent = {
     // Enable agent input when unlocked
     enableAgentInput(agentId) {
         // Try multiple possible input IDs
-        const input = document.getElementById(`agent-input-${agentId}`) || 
-                      document.getElementById(`input-${agentId}`);
-        
+        const input = document.getElementById(`agent-input-${agentId}`) ||
+            document.getElementById(`input-${agentId}`);
+
         if (input) {
             input.disabled = false;
             input.placeholder = 'Message AI Agent...';

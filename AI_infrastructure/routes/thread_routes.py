@@ -48,6 +48,252 @@ def get_thread_lookup_clause(thread_id):
         return ("t.thread_slug = %s", thread_id)
 
 # ============================================================
+# TEAM ID MANAGEMENT (Access Control & Filtering)
+# ============================================================
+
+@thread_bp.route('/verify-team-access/<team_id>', methods=['GET'])
+def verify_team_access(team_id):
+    """
+    Verify that current user has access to view threads for specified Team ID.
+    SECURITY: Prevents unauthorized access to other teams' data.
+    
+    Args:
+        team_id: Team ID (username) to verify access for
+        
+    Query params:
+        user_id (int): Current user ID making the request
+        
+    Returns:
+        200: User has access (is owner or is the Team ID user)
+        403: Access denied
+        404: Team ID not found
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.args.get('user_id', type=int)
+        
+        if not user_id:
+            return error_response('user_id required', 400)
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Check if user has access to this Team ID
+            # User has access if:
+            # 1. They are the parent account (parent_user_id = user_id)
+            # 2. They ARE the Team ID user (id = user_id)
+            sql, params = convert_sql_placeholders("""
+                SELECT id, username, parent_user_id, is_sub_user
+                FROM ai_infrastructure.users
+                WHERE username = %s
+                  AND is_sub_user = TRUE
+                  AND (parent_user_id = %s OR id = %s)
+            """, (team_id, user_id, user_id))
+            
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            
+            if not row:
+                # Team ID not found OR user doesn't have access
+                # Check if Team ID exists at all
+                with get_database_connection('ai_infrastructure') as verify_conn:
+                    verify_cursor = verify_conn.cursor()
+                    verify_sql, verify_params = convert_sql_placeholders(
+                        "SELECT 1 FROM ai_infrastructure.users WHERE username = %s AND is_sub_user = TRUE",
+                        (team_id,)
+                    )
+                    verify_cursor.execute(verify_sql, verify_params)
+                    exists = verify_cursor.fetchone()
+                    verify_cursor.close()
+                    verify_conn.close()
+                    
+                    if not exists:
+                        return error_response(f"Team ID '{team_id}' not found", 404)
+                    else:
+                        return error_response(f"Access denied: You do not have permission to view Team ID '{team_id}'", 403)
+            
+            # User has access
+            team_user_id = row[0] if isinstance(row, tuple) else row['id']
+            parent_id = row[2] if isinstance(row, tuple) else row['parent_user_id']
+            
+            return success_response({
+                'has_access': True,
+                'team_id': team_id,
+                'team_user_id': team_user_id,
+                'is_owner': user_id == parent_id,
+                'is_team_member': user_id == team_user_id
+            })
+            
+    except Exception as e:
+        print(f"[VERIFY TEAM ACCESS] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f"Failed to verify team access: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@thread_bp.route('/filter-by-team', methods=['GET'])
+def filter_threads_by_team():
+    """
+    Server-side filtering of threads by Team ID (single or multiple).
+    PERFORMANCE: Reduces bandwidth and improves speed for large thread lists.
+    SECURITY: Verifies user has access before returning threads.
+    
+    Query params:
+        team_id (str): Single Team ID to filter by (legacy, deprecated)
+        team_ids (str): Comma-separated Team IDs to filter by (e.g., "sales,support,dev")
+        user_id (int): Current user ID making the request
+        limit (int, optional): Max threads to return (default: 100)
+        offset (int, optional): Pagination offset (default: 0)
+        
+    Returns:
+        200: Filtered thread list
+        403: Access denied
+        404: Team ID not found
+    """
+    cursor = None
+    conn = None
+    try:
+        # Support both single and multiple Team IDs
+        team_id_param = request.args.get('team_ids') or request.args.get('team_id')
+        user_id = request.args.get('user_id', type=int)
+        limit = request.args.get('limit', type=int, default=100)
+        offset = request.args.get('offset', type=int, default=0)
+        
+        if not team_id_param or not user_id:
+            return error_response('team_id(s) and user_id required', 400)
+        
+        # Parse Team IDs (comma-separated)
+        team_ids = [tid.strip() for tid in team_id_param.split(',') if tid.strip()]
+        
+        if not team_ids:
+            return error_response('At least one valid Team ID required', 400)
+        
+        # SECURITY: Verify access for ALL Team IDs
+        with get_database_connection('ai_infrastructure') as auth_conn:
+            auth_cursor = auth_conn.cursor()
+            
+            # Build IN clause for multiple Team IDs
+            placeholders = ', '.join(['%s'] * len(team_ids))
+            auth_sql = f"""
+                SELECT username FROM ai_infrastructure.users
+                WHERE username IN ({placeholders})
+                  AND is_sub_user = TRUE
+                  AND (parent_user_id = %s OR id = %s)
+            """
+            auth_params = team_ids + [user_id, user_id]
+            auth_sql, auth_params = convert_sql_placeholders(auth_sql, auth_params)
+            
+            auth_cursor.execute(auth_sql, auth_params)
+            accessible_team_ids = {row[0] if isinstance(row, tuple) else row['username'] for row in auth_cursor.fetchall()}
+            auth_cursor.close()
+            auth_conn.close()
+            
+            # Check if user has access to all requested Team IDs
+            requested_set = set(team_ids)
+            denied_team_ids = requested_set - accessible_team_ids
+            
+            if denied_team_ids:
+                return error_response(
+                    f"Access denied: You do not have permission to view Team ID(s): {', '.join(denied_team_ids)}", 
+                    403
+                )
+        
+        # Fetch filtered threads (using IN clause for multiple Team IDs)
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            placeholders = ', '.join(['%s'] * len(team_ids))
+            sql = f"""
+                SELECT 
+                    id, thread_slug, name, user_id, team_id,
+                    location, created_at, updated_at, metadata,
+                    tags, synergy_card_id, has_files
+                FROM sessions.threads
+                WHERE team_id IN ({placeholders})
+                ORDER BY updated_at DESC
+                LIMIT %s OFFSET %s
+            """
+            params = team_ids + [limit, offset]
+            sql, params = convert_sql_placeholders(sql, params)
+            
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            
+            # Get total count
+            count_sql = f"SELECT COUNT(*) FROM sessions.threads WHERE team_id IN ({placeholders})"
+            count_sql, count_params = convert_sql_placeholders(count_sql, team_ids)
+            cursor.execute(count_sql, count_params)
+            total_count = cursor.fetchone()[0]
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+        
+        # Build thread list
+        threads = []
+        for row in rows:
+            thread = {
+                'id': row[0] if isinstance(row, tuple) else row['id'],
+                'thread_slug': row[1] if isinstance(row, tuple) else row['thread_slug'],
+                'title': row[2] if isinstance(row, tuple) else row['name'],
+                'user_id': row[3] if isinstance(row, tuple) else row['user_id'],
+                'team_id': row[4] if isinstance(row, tuple) else row['team_id'],
+                'location': row[5] if isinstance(row, tuple) else row['location'],
+                'created_at': row[6] if isinstance(row, tuple) else row['created_at'],
+                'updated_at': row[7] if isinstance(row, tuple) else row['updated_at'],
+                'metadata': json.loads(row[8]) if (isinstance(row, tuple) and row[8]) else (row.get('metadata') or {}),
+                'tags': json.loads(row[9]) if (isinstance(row, tuple) and row[9]) else (row.get('tags') or []),
+                'synergy_card_id': row[10] if isinstance(row, tuple) else row.get('synergy_card_id'),
+                'has_files': row[11] if isinstance(row, tuple) else row.get('has_files', False)
+            }
+            threads.append(thread)
+        
+        return success_response({
+            'threads': threads,
+            'total_count': total_count,
+            'limit': limit,
+            'offset': offset,
+            'team_ids': team_ids,  # Return array of filtered Team IDs
+            'has_more': (offset + limit) < total_count
+        })
+        
+    except Exception as e:
+        print(f"[FILTER BY TEAM] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f"Failed to filter threads: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================
 # AGENT MANAGEMENT (for Communication Hub integration)
 # ============================================================
 
@@ -164,10 +410,11 @@ def list_available_agents():
 @thread_bp.route('/create', methods=['POST'])
 def create_thread():
     """
-    Create a new thread with backend-generated UUID
+    Create a new thread with idempotency support
     
     Body params:
         user_id (int, required): User creating the thread
+        idempotency_key (str, optional): UUID to prevent duplicate threads on retry
         agent_id (str, optional): Agent ID (default: 'prime')
         title (str, optional): Thread title (default: 'New Chat')
         parent_thread_id (str, optional): Parent thread ID for branching
@@ -183,6 +430,7 @@ def create_thread():
         
         data = request.get_json() or {}
         user_id = data.get('user_id')
+        idempotency_key = data.get('idempotency_key')  # NEW: Idempotency support
         agent_id = data.get('agent_id', 'prime')
         title = data.get('title', 'New Chat')
         location = data.get('location', 'prime')
@@ -214,9 +462,58 @@ def create_thread():
         if not user_id:
             return error_response('user_id required', 400)
         
+        # IDEMPOTENCY CHECK: If idempotency_key provided, check for existing thread
+        if idempotency_key:
+            with get_database_connection('sessions') as check_conn:
+                check_cursor = check_conn.cursor()
+                check_sql, check_params = convert_sql_placeholders(
+                    "SELECT id, thread_slug, name FROM sessions.threads WHERE idempotency_key = %s",
+                    (idempotency_key,)
+                )
+                check_cursor.execute(check_sql, check_params)
+                existing_thread = check_cursor.fetchone()
+                check_cursor.close()
+                check_conn.close()
+                
+                if existing_thread:
+                    # Thread already exists - return cached response
+                    existing_id = existing_thread[0] if isinstance(existing_thread, tuple) else existing_thread['id']
+                    existing_slug = existing_thread[1] if isinstance(existing_thread, tuple) else existing_thread['thread_slug']
+                    existing_name = existing_thread[2] if isinstance(existing_thread, tuple) else existing_thread['name']
+                    
+                    print(f"✅ [THREAD CREATE] Idempotency hit: {idempotency_key} -> thread {existing_id}")
+                    return jsonify({
+                        'success': True,
+                        'thread_id': existing_slug,  # Return slug for frontend compatibility
+                        'database_id': existing_id,
+                        'title': existing_name,
+                        'idempotent': True,
+                        'message': 'Thread already exists (idempotency key matched)'
+                    }), 200  # 200 OK (not 201 Created)
+        
         # Generate timestamp-based ID (consistent with frontend)
         thread_id = str(int(datetime.now().timestamp() * 1000))
         created = datetime.now().isoformat()
+        
+        # NEW: Get user's Team ID if they are a sub-user
+        team_id = None
+        with get_database_connection('ai_infrastructure') as user_conn:
+            user_cursor = user_conn.cursor()
+            user_sql, user_params = convert_sql_placeholders(
+                "SELECT is_sub_user, username FROM ai_infrastructure.users WHERE id = %s",
+                (user_id,)
+            )
+            user_cursor.execute(user_sql, user_params)
+            user_row = user_cursor.fetchone()
+            
+            if user_row:
+                is_sub_user = user_row[0] if isinstance(user_row, tuple) else user_row.get('is_sub_user')
+                username = user_row[1] if isinstance(user_row, tuple) else user_row.get('username')
+                
+                # If user is a sub-user (Team ID), store their username as team_id
+                if is_sub_user:
+                    team_id = username
+                    print(f"✅ [THREAD CREATE] User is Team ID: {team_id}")
         
         with get_database_connection('sessions') as conn:
             cursor = conn.cursor()
@@ -226,9 +523,10 @@ def create_thread():
                 INSERT INTO sessions.threads (
                     thread_slug, workspace_id, name, user_id, created_at, updated_at,
                     metadata, location, tags, synergy_card_id,
-                    parent_thread_id, branch_point_message_id, branch_name
+                    parent_thread_id, branch_point_message_id, branch_name, team_id,
+                    idempotency_key
                 ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 RETURNING id
             """, (
@@ -244,7 +542,9 @@ def create_thread():
                 synergy_card_id,
                 parent_thread_id,
                 branch_point_message_id,
-                branch_name
+                branch_name,
+                team_id,
+                idempotency_key  # NEW: Store idempotency key
             ))
             
             cursor.execute(sql, params)

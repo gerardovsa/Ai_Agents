@@ -276,13 +276,16 @@ class MessageService:
             user_id: User ID to search messages for
             search_query: Search terms
             room: Filter by room (optional)
-            limit: Maximum results
+            limit: Maximum results (enforced max: 100)
         
         Returns:
             List of matching messages
         """
         if not self.db_conn:
             return []
+        
+        # ✅ PERFORMANCE OPTIMIZATION (Dec 2025): Enforce max limit to prevent OOM
+        limit = min(limit, 100)  # Max 100 results per search
         
         try:
             cursor = self.db_conn.cursor(cursor_factory=RealDictCursor)

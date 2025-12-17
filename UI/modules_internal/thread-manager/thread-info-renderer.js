@@ -142,6 +142,17 @@
                                 ${truncate(thread.id, 16)}
                             </span>
                         </div>
+                        ${thread.team_id ? `
+                            <div class="metadata-item full-width">
+                                <span class="metadata-label">Team ID:</span>
+                                <span class="metadata-value team-id-tag" 
+                                      onclick="event.stopPropagation(); filterByTeamId('${thread.team_id}')"
+                                      title="Click to filter by Team ID: ${thread.team_id}">
+                                    <i class="fas fa-users"></i>
+                                    ${thread.team_id}
+                                </span>
+                            </div>
+                        ` : ''}
                     </div>
 
                     <!-- Action Buttons -->
@@ -234,6 +245,26 @@
         }
     }
 
+    /**
+     * Filter threads by Team ID
+     * @param {string} teamId - Team ID to filter by
+     */
+    function filterByTeamId(teamId) {
+        console.log(`[ThreadInfoRenderer] Filtering by Team ID: ${teamId}`);
+
+        // Check if ThreadManager has filtering capability
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.filterByTeamId === 'function') {
+            ThreadManager.filterByTeamId(teamId);
+        } else {
+            // Fallback: Show notification
+            if (typeof showNotification === 'function') {
+                showNotification(`Filtering by Team ID: ${teamId}`, 'info');
+            } else {
+                console.info(`Team ID filter: ${teamId} (filtering not yet implemented)`);
+            }
+        }
+    }
+
     // Export to ThreadManager
     if (typeof ThreadManager !== 'undefined') {
         ThreadManager.renderThreadInfoContainer = renderThreadInfoContainer;
@@ -258,8 +289,12 @@
     // Make globally available for debugging
     window.ThreadInfoRenderer = {
         renderThreadInfoContainer,
-        moveToPrime
+        moveToPrime,
+        filterByTeamId
     };
+
+    // Also make filterByTeamId globally available for onclick handlers
+    window.filterByTeamId = filterByTeamId;
 
     console.log('✅ [ThreadInfoRenderer] Module loaded');
 })();

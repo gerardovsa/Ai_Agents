@@ -387,6 +387,16 @@ def update_platform_credential(credential_id):
                 'error': 'Credential not found'
             }), 404
         
+        # ✅ PERFORMANCE OPTIMIZATION (Dec 2025): Invalidate cache after update
+        if 'platform' in data:
+            try:
+                from AI_infrastructure.utils.cache_utils import invalidate_platform_credentials
+                invalidate_platform_credentials(user_id, data['platform'])
+                print(f"[CREDENTIALS] ⚡ Cache invalidated for user_id={user_id}, platform={data['platform']}")
+            except Exception as e:
+                # Silently fail if cache unavailable
+                pass
+        
         return jsonify({
             'success': True,
             'message': 'Credential updated successfully'

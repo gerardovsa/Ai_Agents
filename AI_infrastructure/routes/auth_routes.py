@@ -517,6 +517,880 @@ def update_display_name():
                 pass
 
 
+# ============================================================================
+# TEAM ID MANAGEMENT ENDPOINTS (Sub-User System)
+# ============================================================================
+
+@auth_bp.route('/team-ids/add', methods=['POST'])
+@require_auth
+def add_team_id():
+    """
+    Add a new Team ID (sub-user) to the authenticated user's account
+    
+    POST /api/auth/team-ids/add
+    Headers: Authorization: Bearer <token>
+    Body: {
+        "team_id": "Sarah",
+        "password": "optional_password",
+        "email": "sarah@team.local",
+        "permissions": {...},
+        "allowed_tools": [...],
+        "usage_limit_daily": 1000
+    }
+    
+    Creates a full sub-user with username = team_id
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        data = request.get_json()
+        
+        team_id = data.get('team_id', '').strip()
+        password = data.get('password', '').strip()
+        email = data.get('email', f"{team_id.lower()}@team.local").strip()
+        permissions = data.get('permissions', {})
+        allowed_tools = data.get('allowed_tools')
+        allowed_agents = data.get('allowed_agents')
+        data_access_scope = data.get('data_access_scope', 'own')
+        usage_limit_daily = data.get('usage_limit_daily', 1000)
+        
+        if not team_id or len(team_id) < 2:
+            return jsonify({'error': 'Team ID must be at least 2 characters'}), 400
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Check if Team ID already exists for this parent
+            sql, params = convert_sql_placeholders('''
+                SELECT id FROM ai_infrastructure.users 
+                WHERE username = %s AND parent_user_id = %s
+            ''', (team_id, user_id))
+            cursor.execute(sql, params)
+            
+            if cursor.fetchone():
+                cursor.close()
+                cursor = None
+                return jsonify({'error': f"Team ID '{team_id}' already exists"}), 400
+            
+            # Hash password
+            import bcrypt
+            if password:
+                password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            else:
+                # Generate random password
+                import secrets
+                random_password = secrets.token_urlsafe(16)
+                password_hash = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            # Insert Team ID as sub-user
+            import json
+            sql, params = convert_sql_placeholders('''
+                INSERT INTO ai_infrastructure.users (
+                    username, email, password_hash, role,
+                    parent_user_id, is_sub_user, display_name,
+                    permissions, allowed_tools, allowed_agents,
+                    data_access_scope, usage_limit_daily, is_active
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', [
+                team_id, email, password_hash, 'user',
+                user_id, True, team_id,
+                json.dumps(permissions) if permissions else None,
+                json.dumps(allowed_tools) if allowed_tools is not None else None,
+                json.dumps(allowed_agents) if allowed_agents is not None else None,
+                data_access_scope, usage_limit_daily, True
+            ])
+            
+            cursor.execute(sql, params)
+            conn.commit()
+            
+            cursor.close()
+            cursor = None
+        
+        print(f"✅ User {user_id} created Team ID '{team_id}'")
+        
+        return jsonify({
+            'success': True,
+            'team_id': team_id,
+            'message': f"Team ID '{team_id}' created successfully"
+        }), 201
+        
+    except Exception as e:
+        print(f"❌ Add Team ID error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/team-ids', methods=['GET'])
+@require_auth
+def list_team_ids():
+    """
+    List all Team IDs for the authenticated user
+    
+    GET /api/auth/team-ids
+    Headers: Authorization: Bearer <token>
+    
+    Returns Team IDs with their active sessions
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Get all Team IDs for this parent user
+            sql, params = convert_sql_placeholders('''
+                SELECT 
+                    id, username, email, is_active,
+                    last_active, created_at,
+                    permissions, allowed_tools, allowed_agents,
+                    data_access_scope, usage_limit_daily
+                FROM ai_infrastructure.users
+                WHERE parent_user_id = %s AND is_sub_user = TRUE
+                ORDER BY created_at DESC
+            ''', [user_id])
+            
+            cursor.execute(sql, params)
+            
+            team_ids = []
+            import json
+            for row in cursor.fetchall():
+                # Get active sessions for this Team ID
+                sql2, params2 = convert_sql_placeholders('''
+                    SELECT device_info, ip_address, last_active
+                    FROM ai_infrastructure.user_sessions
+                    WHERE user_id = %s
+                    ORDER BY last_active DESC
+                    LIMIT 5
+                ''', [row['id'] if isinstance(row, dict) else row[0]])
+                
+                cursor.execute(sql2, params2)
+                
+                sessions = []
+                for session in cursor.fetchall():
+                    device_info_raw = session['device_info'] if isinstance(session, dict) else session[0]
+                    device_info = json.loads(device_info_raw) if device_info_raw else {}
+                    sessions.append({
+                        'device': f"{device_info.get('browser', 'Unknown')} on {device_info.get('os', 'Unknown')}",
+                        'ip_address': session['ip_address'] if isinstance(session, dict) else session[1],
+                        'last_active': (session['last_active'] if isinstance(session, dict) else session[2]).isoformat() if (session['last_active'] if isinstance(session, dict) else session[2]) else None
+                    })
+                
+                team_ids.append({
+                    'id': row['id'] if isinstance(row, dict) else row[0],
+                    'team_id': row['username'] if isinstance(row, dict) else row[1],
+                    'email': row['email'] if isinstance(row, dict) else row[2],
+                    'is_active': row['is_active'] if isinstance(row, dict) else row[3],
+                    'last_active': (row['last_active'] if isinstance(row, dict) else row[4]).isoformat() if (row['last_active'] if isinstance(row, dict) else row[4]) else None,
+                    'created_at': (row['created_at'] if isinstance(row, dict) else row[5]).isoformat() if (row['created_at'] if isinstance(row, dict) else row[5]) else None,
+                    'permissions': json.loads(row['permissions'] if isinstance(row, dict) else row[6]) if (row['permissions'] if isinstance(row, dict) else row[6]) else {},
+                    'allowed_tools': json.loads(row['allowed_tools'] if isinstance(row, dict) else row[7]) if (row['allowed_tools'] if isinstance(row, dict) else row[7]) else None,
+                    'allowed_agents': json.loads(row['allowed_agents'] if isinstance(row, dict) else row[8]) if (row['allowed_agents'] if isinstance(row, dict) else row[8]) else None,
+                    'data_access_scope': row['data_access_scope'] if isinstance(row, dict) else row[9],
+                    'usage_limit_daily': row['usage_limit_daily'] if isinstance(row, dict) else row[10],
+                    'sessions': sessions
+                })
+            
+            cursor.close()
+            cursor = None
+        
+        return jsonify({'team_ids': team_ids}), 200
+        
+    except Exception as e:
+        print(f"❌ List Team IDs error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/team-ids/<team_id>', methods=['PUT'])
+@require_auth
+def update_team_id(team_id):
+    """
+    Update Team ID settings
+    
+    PUT /api/auth/team-ids/<team_id>
+    Headers: Authorization: Bearer <token>
+    Body: {
+        "password": "new_password",
+        "is_active": true,
+        "permissions": {...},
+        "usage_limit_daily": 500
+    }
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        data = request.get_json()
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Verify Team ID belongs to this user
+            sql, params = convert_sql_placeholders('''
+                SELECT id FROM ai_infrastructure.users
+                WHERE username = %s AND parent_user_id = %s AND is_sub_user = TRUE
+            ''', [team_id, user_id])
+            
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            
+            if not row:
+                cursor.close()
+                cursor = None
+                return jsonify({'error': 'Team ID not found'}), 404
+            
+            sub_user_id = row['id'] if isinstance(row, dict) else row[0]
+            
+            # Build UPDATE dynamically
+            updates = []
+            params = []
+            
+            if 'password' in data:
+                import bcrypt
+                password_hash = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                updates.append('password_hash = %s')
+                params.append(password_hash)
+            
+            if 'is_active' in data:
+                updates.append('is_active = %s')
+                params.append(data['is_active'])
+            
+            if 'permissions' in data:
+                import json
+                updates.append('permissions = %s')
+                params.append(json.dumps(data['permissions']))
+            
+            if 'allowed_tools' in data:
+                import json
+                updates.append('allowed_tools = %s')
+                params.append(json.dumps(data['allowed_tools']) if data['allowed_tools'] is not None else None)
+            
+            if 'usage_limit_daily' in data:
+                updates.append('usage_limit_daily = %s')
+                params.append(data['usage_limit_daily'])
+            
+            if not updates:
+                cursor.close()
+                cursor = None
+                return jsonify({'error': 'No fields to update'}), 400
+            
+            params.append(sub_user_id)
+            sql = f"UPDATE ai_infrastructure.users SET {', '.join(updates)} WHERE id = %s"
+            sql, params = convert_sql_placeholders(sql, params)
+            
+            cursor.execute(sql, params)
+            conn.commit()
+            
+            cursor.close()
+            cursor = None
+        
+        print(f"✅ Updated Team ID '{team_id}' for user {user_id}")
+        
+        return jsonify({'success': True, 'message': f"Team ID '{team_id}' updated"}), 200
+        
+    except Exception as e:
+        print(f"❌ Update Team ID error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/team-ids/<team_id>', methods=['DELETE'])
+@require_auth
+def delete_team_id(team_id):
+    """
+    Delete Team ID (soft delete by setting is_active = FALSE)
+    
+    DELETE /api/auth/team-ids/<team_id>
+    Headers: Authorization: Bearer <token>
+    
+    Also revokes all active sessions for this Team ID
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Verify Team ID belongs to this user
+            sql, params = convert_sql_placeholders('''
+                SELECT id FROM ai_infrastructure.users
+                WHERE username = %s AND parent_user_id = %s AND is_sub_user = TRUE
+            ''', [team_id, user_id])
+            
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            
+            if not row:
+                cursor.close()
+                cursor = None
+                return jsonify({'error': 'Team ID not found'}), 404
+            
+            sub_user_id = row['id'] if isinstance(row, dict) else row[0]
+            
+            # Soft delete
+            sql, params = convert_sql_placeholders('''
+                UPDATE ai_infrastructure.users
+                SET is_active = FALSE
+                WHERE id = %s
+            ''', [sub_user_id])
+            
+            cursor.execute(sql, params)
+            
+            # Revoke all sessions
+            sql, params = convert_sql_placeholders('''
+                DELETE FROM ai_infrastructure.user_sessions
+                WHERE user_id = %s
+            ''', [sub_user_id])
+            
+            cursor.execute(sql, params)
+            conn.commit()
+            
+            cursor.close()
+            cursor = None
+        
+        print(f"✅ Deleted Team ID '{team_id}' for user {user_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': f"Team ID '{team_id}' deleted successfully"
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Delete Team ID error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/team-ids/stats', methods=['GET'])
+@require_auth
+def get_team_ids_stats():
+    """
+    Get aggregate statistics for all Team IDs
+    
+    GET /api/auth/team-ids/stats
+    Headers: Authorization: Bearer <token>
+    
+    Returns:
+    {
+        "total_team_ids": 5,
+        "active_team_ids": 4,
+        "total_threads": 1250,
+        "total_messages": 8450,
+        "team_ids": [
+            {
+                "team_id": "sales_team",
+                "thread_count": 450,
+                "message_count": 3200,
+                "last_active": "2025-12-17T10:30:00",
+                "is_active": true
+            },
+            ...
+        ]
+    }
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Get all Team IDs with thread/message counts
+            sql, params = convert_sql_placeholders('''
+                SELECT 
+                    u.id,
+                    u.username as team_id,
+                    u.is_active,
+                    u.last_active,
+                    u.created_at,
+                    COUNT(DISTINCT t.id) as thread_count,
+                    COUNT(m.id) as message_count,
+                    MAX(t.updated_at) as last_thread_activity
+                FROM ai_infrastructure.users u
+                LEFT JOIN sessions.threads t ON t.team_id = u.username
+                LEFT JOIN sessions.messages m ON m.thread_id = t.id
+                WHERE u.parent_user_id = %s AND u.is_sub_user = TRUE
+                GROUP BY u.id, u.username, u.is_active, u.last_active, u.created_at
+                ORDER BY thread_count DESC
+            ''', [user_id])
+            
+            cursor.execute(sql, params)
+            
+            team_ids = []
+            total_threads = 0
+            total_messages = 0
+            active_count = 0
+            
+            for row in cursor.fetchall():
+                thread_count = row['thread_count'] if isinstance(row, dict) else row[5]
+                message_count = row['message_count'] if isinstance(row, dict) else row[6]
+                is_active = row['is_active'] if isinstance(row, dict) else row[2]
+                
+                total_threads += thread_count
+                total_messages += message_count
+                if is_active:
+                    active_count += 1
+                
+                last_activity = row['last_thread_activity'] if isinstance(row, dict) else row[7]
+                team_ids.append({
+                    'id': row['id'] if isinstance(row, dict) else row[0],
+                    'team_id': row['team_id'] if isinstance(row, dict) else row[1],
+                    'is_active': is_active,
+                    'thread_count': thread_count,
+                    'message_count': message_count,
+                    'last_active': last_activity.isoformat() if last_activity else None,
+                    'created_at': (row['created_at'] if isinstance(row, dict) else row[4]).isoformat() if (row['created_at'] if isinstance(row, dict) else row[4]) else None
+                })
+            
+            cursor.close()
+            cursor = None
+        
+        return jsonify({
+            'success': True,
+            'total_team_ids': len(team_ids),
+            'active_team_ids': active_count,
+            'total_threads': total_threads,
+            'total_messages': total_messages,
+            'team_ids': team_ids
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get Team IDs stats error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/team-ids/<team_id>/analytics', methods=['GET'])
+@require_auth
+def get_team_id_analytics(team_id):
+    """
+    Get detailed analytics for a specific Team ID
+    
+    GET /api/auth/team-ids/<team_id>/analytics?days=30
+    Headers: Authorization: Bearer <token>
+    
+    Returns:
+    {
+        "team_id": "sales_team",
+        "timeframe_days": 30,
+        "total_threads": 450,
+        "total_messages": 3200,
+        "avg_messages_per_thread": 7.1,
+        "daily_activity": [
+            {"date": "2025-12-17", "threads": 15, "messages": 120},
+            ...
+        ],
+        "top_agents": [
+            {"agent": "GPT-4", "usage_count": 280},
+            ...
+        ]
+    }
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        days = int(request.args.get('days', 30))
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            # Verify Team ID belongs to user
+            sql, params = convert_sql_placeholders('''
+                SELECT id FROM ai_infrastructure.users
+                WHERE username = %s AND parent_user_id = %s AND is_sub_user = TRUE
+            ''', [team_id, user_id])
+            
+            cursor.execute(sql, params)
+            if not cursor.fetchone():
+                cursor.close()
+                cursor = None
+                return jsonify({'error': 'Team ID not found'}), 404
+            
+            # Get overall stats
+            sql, params = convert_sql_placeholders('''
+                SELECT 
+                    COUNT(DISTINCT t.id) as thread_count,
+                    COUNT(m.id) as message_count
+                FROM sessions.threads t
+                LEFT JOIN sessions.messages m ON m.thread_id = t.id
+                WHERE t.team_id = %s
+                  AND t.created_at >= NOW() - INTERVAL '%s days'
+            ''', [team_id, days])
+            
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            thread_count = row['thread_count'] if isinstance(row, dict) else row[0]
+            message_count = row['message_count'] if isinstance(row, dict) else row[1]
+            avg_messages = (message_count / thread_count) if thread_count > 0 else 0
+            
+            # Get daily activity
+            sql, params = convert_sql_placeholders('''
+                SELECT 
+                    DATE(t.created_at) as date,
+                    COUNT(DISTINCT t.id) as threads,
+                    COUNT(m.id) as messages
+                FROM sessions.threads t
+                LEFT JOIN sessions.messages m ON m.thread_id = t.id
+                WHERE t.team_id = %s
+                  AND t.created_at >= NOW() - INTERVAL '%s days'
+                GROUP BY DATE(t.created_at)
+                ORDER BY date DESC
+                LIMIT 30
+            ''', [team_id, days])
+            
+            cursor.execute(sql, params)
+            daily_activity = []
+            for row in cursor.fetchall():
+                daily_activity.append({
+                    'date': (row['date'] if isinstance(row, dict) else row[0]).isoformat(),
+                    'threads': row['threads'] if isinstance(row, dict) else row[1],
+                    'messages': row['messages'] if isinstance(row, dict) else row[2]
+                })
+            
+            # Get top agents (from thread metadata)
+            sql, params = convert_sql_placeholders('''
+                SELECT 
+                    location as agent,
+                    COUNT(*) as usage_count
+                FROM sessions.threads
+                WHERE team_id = %s
+                  AND created_at >= NOW() - INTERVAL '%s days'
+                  AND location IS NOT NULL
+                GROUP BY location
+                ORDER BY usage_count DESC
+                LIMIT 10
+            ''', [team_id, days])
+            
+            cursor.execute(sql, params)
+            top_agents = []
+            for row in cursor.fetchall():
+                top_agents.append({
+                    'agent': row['agent'] if isinstance(row, dict) else row[0],
+                    'usage_count': row['usage_count'] if isinstance(row, dict) else row[1]
+                })
+            
+            cursor.close()
+            cursor = None
+        
+        return jsonify({
+            'success': True,
+            'team_id': team_id,
+            'timeframe_days': days,
+            'total_threads': thread_count,
+            'total_messages': message_count,
+            'avg_messages_per_thread': round(avg_messages, 1),
+            'daily_activity': daily_activity,
+            'top_agents': top_agents
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get Team ID analytics error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/team-ids/export', methods=['GET'])
+@require_auth
+def export_team_ids_csv():
+    """
+    Export all Team IDs to CSV
+    
+    GET /api/auth/team-ids/export
+    Headers: Authorization: Bearer <token>
+    
+    Returns CSV file with Team ID data
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders('''
+                SELECT 
+                    username as team_id,
+                    email,
+                    is_active,
+                    created_at,
+                    last_active,
+                    data_access_scope,
+                    usage_limit_daily
+                FROM ai_infrastructure.users
+                WHERE parent_user_id = %s AND is_sub_user = TRUE
+                ORDER BY created_at DESC
+            ''', [user_id])
+            
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            
+            cursor.close()
+            cursor = None
+        
+        # Generate CSV
+        import io
+        import csv
+        from flask import make_response
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Header
+        writer.writerow(['team_id', 'email', 'is_active', 'created_at', 'last_active', 'data_access_scope', 'usage_limit_daily'])
+        
+        # Data rows
+        for row in rows:
+            writer.writerow([
+                row['team_id'] if isinstance(row, dict) else row[0],
+                row['email'] if isinstance(row, dict) else row[1],
+                row['is_active'] if isinstance(row, dict) else row[2],
+                (row['created_at'] if isinstance(row, dict) else row[3]).isoformat() if (row['created_at'] if isinstance(row, dict) else row[3]) else '',
+                (row['last_active'] if isinstance(row, dict) else row[4]).isoformat() if (row['last_active'] if isinstance(row, dict) else row[4]) else '',
+                row['data_access_scope'] if isinstance(row, dict) else row[5],
+                row['usage_limit_daily'] if isinstance(row, dict) else row[6]
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = 'attachment; filename=team_ids_export.csv'
+        
+        print(f"✅ Exported {len(rows)} Team IDs to CSV for user {user_id}")
+        
+        return response
+        
+    except Exception as e:
+        print(f"❌ Export Team IDs error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/team-ids/import', methods=['POST'])
+@require_auth
+def import_team_ids_csv():
+    """
+    Import Team IDs from CSV file
+    
+    POST /api/auth/team-ids/import
+    Headers: Authorization: Bearer <token>
+    Content-Type: multipart/form-data
+    Body: file (CSV with columns: team_id, email, password)
+    
+    CSV Format:
+    team_id,email,password
+    sales_north,sales_north@team.local,password123
+    sales_south,sales_south@team.local,password456
+    
+    Returns:
+    {
+        "success": true,
+        "imported": 2,
+        "failed": 0,
+        "errors": []
+    }
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        
+        # Check if file was uploaded
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Empty filename'}), 400
+        
+        # Read CSV
+        import csv
+        import io
+        import bcrypt
+        
+        stream = io.StringIO(file.stream.read().decode('utf-8'), newline=None)
+        csv_reader = csv.DictReader(stream)
+        
+        imported = 0
+        failed = 0
+        errors = []
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            for i, row in enumerate(csv_reader, start=2):  # Start at 2 (row 1 is header)
+                try:
+                    team_id = row.get('team_id', '').strip()
+                    email = row.get('email', f"{team_id.lower()}@team.local").strip()
+                    password = row.get('password', '').strip()
+                    
+                    if not team_id or len(team_id) < 2:
+                        raise ValueError('Team ID must be at least 2 characters')
+                    
+                    # Check if already exists
+                    sql, params = convert_sql_placeholders('''
+                        SELECT id FROM ai_infrastructure.users
+                        WHERE username = %s AND parent_user_id = %s
+                    ''', [team_id, user_id])
+                    
+                    cursor.execute(sql, params)
+                    if cursor.fetchone():
+                        raise ValueError(f"Team ID '{team_id}' already exists")
+                    
+                    # Hash password
+                    if password:
+                        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    else:
+                        import secrets
+                        random_password = secrets.token_urlsafe(16)
+                        password_hash = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    
+                    # Insert
+                    sql, params = convert_sql_placeholders('''
+                        INSERT INTO ai_infrastructure.users (
+                            username, email, password_hash, role,
+                            parent_user_id, is_sub_user, display_name, is_active
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', [team_id, email, password_hash, 'user', user_id, True, team_id, True])
+                    
+                    cursor.execute(sql, params)
+                    imported += 1
+                    
+                except Exception as e:
+                    failed += 1
+                    errors.append(f"Row {i}: {str(e)}")
+                    print(f"❌ Import error on row {i}: {e}")
+            
+            conn.commit()
+            cursor.close()
+            cursor = None
+        
+        print(f"✅ Imported {imported} Team IDs (failed: {failed}) for user {user_id}")
+        
+        return jsonify({
+            'success': True,
+            'imported': imported,
+            'failed': failed,
+            'errors': errors
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Import Team IDs error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
 @auth_bp.route('/revoke-tokens', methods=['POST'])
 @require_auth
 def revoke_tokens():

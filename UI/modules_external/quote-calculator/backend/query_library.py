@@ -1514,6 +1514,134 @@ class QueryLibrary:
                 "visualization": "bar_chart",
                 "best_for": "Reviewing pricing spreads, identifying premium vs standard options, price audit",
                 "validated": True
+            },
+            
+            # CUSTOM CALCULATOR MANAGEMENT
+            
+            "list_custom_calculators": {
+                "category": "Custom Calculator Management",
+                "description": "List all custom calculators with usage statistics and status",
+                "parameters": {
+                    "category": {
+                        "type": "string",
+                        "description": "Filter by category (custom_quote, specialty_substrate, rush_job, etc.)",
+                        "default": None
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "description": "Filter by active status (True=active only, False=drafts only, None=all)",
+                        "default": None
+                    },
+                    "min_usage_count": {
+                        "type": "integer",
+                        "description": "Minimum usage count to include",
+                        "default": 0
+                    }
+                },
+                "returns": "calculator_id, name, category, usage_count, last_used_at, is_active, is_template, parameter_count, avg_calculation_time_ms",
+                "visualization": "table",
+                "best_for": "Discovering available custom calculators, monitoring usage, identifying popular calculators",
+                "validated": True
+            },
+            
+            "get_custom_calculator_detail": {
+                "category": "Custom Calculator Management",
+                "description": "Get complete details for a specific custom calculator including parameters and calculation steps",
+                "parameters": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "Calculator UUID",
+                        "required": True
+                    }
+                },
+                "returns": "calculator_id, name, description, category, json_definition, parameter_count, step_count, component_count, created_at, usage_count",
+                "visualization": "json_viewer",
+                "best_for": "Inspecting calculator structure, debugging, cloning calculators",
+                "validated": True
+            },
+            
+            "search_custom_calculators": {
+                "category": "Custom Calculator Management",
+                "description": "Search custom calculators by name, description, or tags using text search or semantic search",
+                "parameters": {
+                    "search_term": {
+                        "type": "string",
+                        "description": "Search term for name/description (partial match, case-insensitive)",
+                        "required": True
+                    },
+                    "search_tags": {
+                        "type": "list",
+                        "description": "Optional: Filter by tags (matches any)",
+                        "default": None
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum results to return",
+                        "default": 20
+                    }
+                },
+                "returns": "calculator_id, name, short_description, category, tags, usage_count, relevance_score",
+                "visualization": "table",
+                "best_for": "Finding calculators for specific jobs, discovering similar calculators, tag-based search",
+                "validated": True
+            },
+            
+            "get_calculator_parameters_used": {
+                "category": "Custom Calculator Management",
+                "description": "Show which pricing parameters are used by custom calculators - useful for impact analysis",
+                "parameters": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific calculator",
+                        "default": None
+                    },
+                    "parameter_name": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific parameter",
+                        "default": None
+                    }
+                },
+                "returns": "calculator_name, parameter_name, source_table, is_overridden, current_value, override_value, formula_variable_name",
+                "visualization": "table",
+                "best_for": "Understanding parameter dependencies, checking overrides, impact analysis before parameter changes",
+                "validated": True
+            },
+            
+            "get_calculator_usage_stats": {
+                "category": "Custom Calculator Management",
+                "description": "Get usage statistics for custom calculators over time period",
+                "parameters": {
+                    "days": {
+                        "type": "integer",
+                        "description": "Number of days to analyze (default: 30)",
+                        "default": 30
+                    },
+                    "group_by": {
+                        "type": "string",
+                        "description": "Group by: calculator, category, or day",
+                        "default": "calculator"
+                    }
+                },
+                "returns": "calculator_name, category, total_quotes, avg_quote_value, total_revenue, usage_trend",
+                "visualization": "bar_chart",
+                "best_for": "Identifying popular calculators, revenue analysis, usage trends",
+                "validated": True
+            },
+            
+            "get_custom_calculator_components": {
+                "category": "Custom Calculator Management",
+                "description": "List all components used across custom calculators - shows which logic is most reused",
+                "parameters": {
+                    "component_name": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific component",
+                        "default": None
+                    }
+                },
+                "returns": "component_name, component_type, usage_count, calculator_list, avg_performance_impact",
+                "visualization": "table",
+                "best_for": "Understanding component reuse, identifying popular patterns, performance analysis",
+                "validated": True
             }
         }
     
@@ -2097,6 +2225,20 @@ class QueryLibrary:
             return self._sql_search_product_options(parameters)
         elif query_name == "get_option_price_variance":
             return self._sql_get_option_price_variance(parameters)
+        
+        # CUSTOM CALCULATOR MANAGEMENT QUERIES (NEW - TIER 2E)
+        elif query_name == "list_custom_calculators":
+            return self._sql_list_custom_calculators(parameters)
+        elif query_name == "get_custom_calculator_detail":
+            return self._sql_get_custom_calculator_detail(parameters)
+        elif query_name == "search_custom_calculators":
+            return self._sql_search_custom_calculators(parameters)
+        elif query_name == "get_calculator_parameters_used":
+            return self._sql_get_calculator_parameters_used(parameters)
+        elif query_name == "get_calculator_usage_stats":
+            return self._sql_get_calculator_usage_stats(parameters)
+        elif query_name == "get_custom_calculator_components":
+            return self._sql_get_custom_calculator_components(parameters)
         
         else:
             raise NotImplementedError(f"SQL generator for '{query_name}' not yet implemented")
@@ -5442,6 +5584,249 @@ class QueryLibrary:
         GROUP BY po.option_id, po.option_name, po.calculator_name
         HAVING COUNT(poc.choice_id) >= {min_choices}
         ORDER BY variance_pct DESC;
+        """
+    
+    # ============================================
+    # CUSTOM CALCULATOR MANAGEMENT QUERIES (TIER 2E)
+    # ============================================
+    
+    def _sql_list_custom_calculators(self, params: Dict[str, Any]) -> str:
+        """List custom calculators with usage statistics"""
+        category = params.get('category')
+        is_active = params.get('is_active')
+        min_usage_count = params.get('min_usage_count', 0)
+        
+        filters = []
+        if category:
+            filters.append(f"category = '{category}'")
+        if is_active is not None:
+            filters.append(f"is_active = {is_active}")
+        if min_usage_count > 0:
+            filters.append(f"usage_count >= {min_usage_count}")
+        
+        where_clause = "WHERE " + " AND ".join(filters) if filters else ""
+        
+        return f"""
+        SELECT 
+            calculator_id,
+            name,
+            short_description,
+            category,
+            usage_count,
+            last_used_at,
+            is_active,
+            is_template,
+            (SELECT COUNT(*) FROM custom_calculator_parameters WHERE calculator_id = cc.calculator_id) AS parameter_count,
+            avg_calculation_time_ms,
+            created_at,
+            updated_at
+        FROM custom_calculators cc
+        {where_clause}
+        ORDER BY 
+            CASE WHEN is_active THEN 0 ELSE 1 END,
+            usage_count DESC,
+            name;
+        """
+    
+    def _sql_get_custom_calculator_detail(self, params: Dict[str, Any]) -> str:
+        """Get complete calculator details"""
+        calculator_id = params['calculator_id']
+        
+        return f"""
+        SELECT 
+            cc.calculator_id,
+            cc.name,
+            cc.description,
+            cc.short_description,
+            cc.category,
+            cc.tags,
+            cc.json_definition,
+            cc.usage_instructions,
+            cc.is_active,
+            cc.is_template,
+            cc.usage_count,
+            cc.last_used_at,
+            cc.avg_calculation_time_ms,
+            cc.created_at,
+            cc.updated_at,
+            (SELECT COUNT(*) FROM custom_calculator_parameters WHERE calculator_id = cc.calculator_id) AS parameter_count,
+            (SELECT COUNT(*) FROM jsonb_array_elements(
+                COALESCE((cc.json_definition->'calculation_steps')::jsonb, '[]'::jsonb)
+            )) AS step_count,
+            (SELECT COUNT(*) FROM custom_calculator_components WHERE calculator_id = cc.calculator_id) AS component_count,
+            (SELECT jsonb_agg(
+                jsonb_build_object(
+                    'parameter_name', ccp.parameter_name,
+                    'source_table', ccp.source_table
+                ) ORDER BY ccp.parameter_name
+            ) FROM custom_calculator_parameters ccp WHERE ccp.calculator_id = cc.calculator_id) AS parameters_used,
+            (SELECT jsonb_agg(
+                jsonb_build_object(
+                    'component_name', ccc.component_name,
+                    'usage_count', ccc.usage_count
+                ) ORDER BY ccc.component_name
+            ) FROM custom_calculator_components ccc WHERE ccc.calculator_id = cc.calculator_id) AS components_used
+        FROM custom_calculators cc
+        WHERE cc.calculator_id = '{calculator_id}';
+        """
+    
+    def _sql_search_custom_calculators(self, params: Dict[str, Any]) -> str:
+        """Search custom calculators by text or tags"""
+        search_term = params['search_term']
+        search_tags = params.get('search_tags', [])
+        limit = params.get('limit', 20)
+        
+        tag_filter = ""
+        if search_tags:
+            tag_list = "', '".join(search_tags)
+            tag_filter = f"OR tags && ARRAY['{tag_list}']"
+        
+        return f"""
+        SELECT 
+            calculator_id,
+            name,
+            short_description,
+            description,
+            category,
+            tags,
+            usage_count,
+            is_active,
+            is_template,
+            CASE 
+                WHEN name ILIKE '%{search_term}%' THEN 100
+                WHEN short_description ILIKE '%{search_term}%' THEN 75
+                WHEN description ILIKE '%{search_term}%' THEN 50
+                ELSE 25
+            END AS relevance_score
+        FROM custom_calculators
+        WHERE (
+            name ILIKE '%{search_term}%'
+            OR short_description ILIKE '%{search_term}%'
+            OR description ILIKE '%{search_term}%'
+            {tag_filter}
+        )
+        ORDER BY relevance_score DESC, usage_count DESC
+        LIMIT {limit};
+        """
+    
+    def _sql_get_calculator_parameters_used(self, params: Dict[str, Any]) -> str:
+        """Show parameters used by custom calculators with override info"""
+        calculator_id = params.get('calculator_id')
+        parameter_name = params.get('parameter_name')
+        
+        filters = []
+        if calculator_id:
+            filters.append(f"cc.calculator_id = '{calculator_id}'")
+        if parameter_name:
+            filters.append(f"ccp.parameter_name = '{parameter_name}'")
+        
+        where_clause = "WHERE " + " AND ".join(filters) if filters else ""
+        
+        return f"""
+        SELECT 
+            cc.name AS calculator_name,
+            ccp.parameter_name,
+            ccp.source_table,
+            ccp.formula_variable_name,
+            CASE 
+                WHEN cpo.value IS NOT NULL THEN TRUE
+                ELSE FALSE
+            END AS is_overridden,
+            CASE 
+                WHEN ccp.source_table = 'calculator_pricing_parameters' THEN cpp.base_value
+                ELSE NULL
+            END AS current_value,
+            cpo.value AS override_value,
+            cpo.updated_at AS override_updated_at
+        FROM custom_calculator_parameters ccp
+        INNER JOIN custom_calculators cc 
+            ON ccp.calculator_id = cc.calculator_id
+        LEFT JOIN calculator_pricing_parameters cpp 
+            ON ccp.parameter_name = cpp.parameter_name
+            AND ccp.source_table = 'calculator_pricing_parameters'
+            AND cpp.is_active = TRUE
+        LEFT JOIN calculator_parameter_overrides cpo 
+            ON cpp.parameter_id = cpo.parameter_id
+            AND cpo.custom_calculator_id = cc.calculator_id
+            AND cpo.is_active = TRUE
+        {where_clause}
+        ORDER BY cc.name, ccp.parameter_name;
+        """
+    
+    def _sql_get_calculator_usage_stats(self, params: Dict[str, Any]) -> str:
+        """Get usage statistics over time period"""
+        days = params.get('days', 30)
+        group_by = params.get('group_by', 'calculator')
+        
+        if group_by == 'calculator':
+            return f"""
+            SELECT 
+                cc.name AS calculator_name,
+                cc.category,
+                COUNT(*) AS total_quotes,
+                ROUND(AVG(qha.total_price)::numeric, 2) AS avg_quote_value,
+                ROUND(SUM(qha.total_price)::numeric, 2) AS total_revenue,
+                CASE 
+                    WHEN COUNT(*) > 1 THEN 'increasing'
+                    ELSE 'stable'
+                END AS usage_trend
+            FROM quote_history_archive qha
+            INNER JOIN custom_calculators cc 
+                ON qha.calculator_id = cc.calculator_id
+            WHERE qha.created_at >= NOW() - INTERVAL '{days} days'
+            GROUP BY cc.calculator_id, cc.name, cc.category
+            ORDER BY total_quotes DESC;
+            """
+        elif group_by == 'category':
+            return f"""
+            SELECT 
+                cc.category,
+                COUNT(DISTINCT cc.calculator_id) AS calculator_count,
+                COUNT(*) AS total_quotes,
+                ROUND(AVG(qha.total_price)::numeric, 2) AS avg_quote_value,
+                ROUND(SUM(qha.total_price)::numeric, 2) AS total_revenue
+            FROM quote_history_archive qha
+            INNER JOIN custom_calculators cc 
+                ON qha.calculator_id = cc.calculator_id
+            WHERE qha.created_at >= NOW() - INTERVAL '{days} days'
+            GROUP BY cc.category
+            ORDER BY total_revenue DESC;
+            """
+        else:  # group by day
+            return f"""
+            SELECT 
+                DATE(qha.created_at) AS quote_date,
+                COUNT(*) AS total_quotes,
+                COUNT(DISTINCT qha.calculator_id) AS unique_calculators,
+                ROUND(AVG(qha.total_price)::numeric, 2) AS avg_quote_value,
+                ROUND(SUM(qha.total_price)::numeric, 2) AS total_revenue
+            FROM quote_history_archive qha
+            WHERE qha.created_at >= NOW() - INTERVAL '{days} days'
+            GROUP BY DATE(qha.created_at)
+            ORDER BY quote_date DESC;
+            """
+    
+    def _sql_get_custom_calculator_components(self, params: Dict[str, Any]) -> str:
+        """List component usage across calculators"""
+        component_name = params.get('component_name')
+        
+        component_filter = f"WHERE ccc.component_name = '{component_name}'" if component_name else ""
+        
+        return f"""
+        SELECT 
+            ccc.component_name,
+            ccc.component_type,
+            COUNT(DISTINCT ccc.calculator_id) AS calculator_count,
+            SUM(ccc.usage_count) AS total_usage,
+            AVG(ccc.usage_count) AS avg_usage_per_calculator,
+            jsonb_agg(DISTINCT cc.name ORDER BY cc.name) AS calculator_list,
+            ROUND(AVG(cc.avg_calculation_time_ms)::numeric, 2) AS avg_performance_impact_ms
+        FROM custom_calculator_components ccc
+        INNER JOIN custom_calculators cc 
+            ON ccc.calculator_id = cc.calculator_id
+        {component_filter}
+        GROUP BY ccc.component_name, ccc.component_type
+        ORDER BY total_usage DESC, calculator_count DESC;
         """
 
 

@@ -206,6 +206,7 @@ window.ThreadManagerUI = {
     /**
      * Render individual thread card with expandable hover content
      * Uses ThreadCardTemplates if available, fallback to inline template
+     * ✅ ENHANCED: Added Team ID color coding with border-left styling
      */
     renderThreadCard(thread, currentLocation) {
         const date = new Date(thread.updated);
@@ -241,6 +242,12 @@ window.ThreadManagerUI = {
         const threadSlug = thread.thread_slug || thread.id;
         const slug = threadSlug.substring(0, 8);
 
+        // ✅ NEW: Get Team ID color for border styling
+        const teamIdColor = (thread.team_id && typeof window.getTeamIdColor === 'function')
+            ? window.getTeamIdColor(thread.team_id)
+            : 'transparent';
+        const teamIdLabel = thread.team_id ? `<span class="thread-team-id-badge" style="background: ${teamIdColor}20; color: ${teamIdColor}; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-left: 8px;">${thread.team_id}</span>` : '';
+
         // Use ThreadCardTemplates if available
         if (typeof window.ThreadCardTemplates !== 'undefined') {
             return window.ThreadCardTemplates.compactCard(thread, 'thread-history', agent, meta, slug, null, currentLocation);
@@ -254,12 +261,14 @@ window.ThreadManagerUI = {
                 draggable="true"
                 data-thread-id="${thread.id}"
                 data-current-location="${currentLocation}"
+                style="border-left: 4px solid ${teamIdColor};"
                 ondragstart="ThreadManager.handleDragStart(event)"
                 ondragend="ThreadManager.handleDragEnd(event)">
                 
                 <!-- ALWAYS VISIBLE: Title + Agent Badge + Actions -->
                 <div class="thread-item-header">
                     <span class="thread-item-title" title="${threadTitle}">${truncatedTitle}</span>
+                    ${teamIdLabel}
                 </div>
                 <div class="thread-item-header" style="margin-top: 8px;">
                     <div class="thread-item-agent-badge ${agentClass}">
