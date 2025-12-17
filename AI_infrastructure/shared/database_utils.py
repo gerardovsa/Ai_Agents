@@ -431,7 +431,22 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         
         # Set search_path and configure connection
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+        
+        # ✅ FIX: Handle schema creation errors gracefully
+        try:
+            cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+            conn.commit()
+        except psycopg2.Error as schema_err:
+            # Schema may already exist (concurrent creation) or permission denied
+            # Try to rollback and continue - connection is still usable
+            try:
+                conn.rollback()
+                print(f" [POOL] Schema creation warning for '{schema_name}': {schema_err}")
+            except Exception:
+                # If rollback fails, connection is broken - close and get new one
+                conn.close()
+                raise
+        
         cursor.execute(f"SET search_path TO {schema_name}, public")
         cursor.execute("SET statement_timeout = '60s'")
         cursor.close()
@@ -563,7 +578,20 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             
             schema_name = get_supabase_schema_name(db_name)
             with conn.cursor() as cursor:
-                cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+                # ✅ FIX: Handle schema creation errors gracefully
+                try:
+                    cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+                    conn.commit()
+                except psycopg2.Error as schema_err:
+                    # Schema may already exist (concurrent creation) - try to continue
+                    try:
+                        conn.rollback()
+                        print(f" [DB] Schema creation warning for '{schema_name}': {schema_err}")
+                    except Exception:
+                        # If rollback fails, connection is broken
+                        conn.close()
+                        raise
+                
                 cursor.execute(f"SET search_path TO {schema_name}, public")
             
             conn.commit()
