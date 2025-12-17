@@ -649,6 +649,11 @@
     <!-- ==================== COMMUNICATION HUB (CORE COMPONENT - Dec 2025) ==================== -->
     <!-- Communication Hub: Thread management, messaging, and collaboration hub -->
     <link rel="stylesheet" href="modules_internal/communication-hub/communication-hub.css?v=20251218_0302">
+
+    <!-- Communication Hub Dependencies: Attachment Processing and Email Formatting -->
+    <script src="modules_internal/communication-hub/attachment-processor.js?v=20251218_0302"></script>
+    <script src="modules_internal/communication-hub/email-ai-formatter.js?v=20251218_0302"></script>
+
     <script type="module">
         // Load Communication Hub as core component (not lazy-loaded module)
         import CommunicationHub from './modules_internal/communication-hub/communication-hub-v4-modern.js?v=20251218_0302';
@@ -17254,8 +17259,7 @@
 
         <!-- Chat Sidebar Toggle Button -->
         <button class="synergy-sidebar-toggle" id="chat-sidebar-toggle" data-side="right"
-            onclick="if(typeof ChatSidebar !== 'undefined') ChatSidebar.toggleSidebar()"
-            title="Toggle Messages (Drag to reposition)">
+            onclick="ChatSidebar.toggleSidebar()" title="Toggle Messages (Drag to reposition)">
             <i class="fas fa-comments"></i>
             <span class="chat-unread-badge" id="chat-unread-badge" style="display: none;">0</span>
         </button>

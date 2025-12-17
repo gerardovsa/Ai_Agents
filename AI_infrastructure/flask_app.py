@@ -304,26 +304,29 @@ try:
     log_success(logger, f"User authentication tables initialized at {user_auth_manager.db_path}")
     # Verify tables actually exist
     conn = get_database_connection('ai_infrastructure')
-    cursor = conn.cursor()
-    # Use is_using_supabase() to correctly detect database type
-    from shared.database_utils import is_using_supabase
-    if is_using_supabase():
-        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
-    else:
-        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
-    rows = cursor.fetchall()
-    # Handle PostgreSQL rows
-    if rows and len(rows) > 0:
-        # Try to access first element - works for both tuples and postgres rows
-        try:
-            tables = [row[0] if isinstance(row, (tuple, list)) else row['name' if 'name' in row else 'tablename'] for row in rows]
-        except (KeyError, TypeError, IndexError):
-            # Fallback: just get first item from each row
-            tables = [list(row.values())[0] if hasattr(row, 'values') else row[0] for row in rows]
-    else:
-        tables = []
-    conn.close()
-    log_success(logger, f"Database tables verified: {len(tables)} tables found")
+    try:
+        cursor = conn.cursor()
+        # Use is_using_supabase() to correctly detect database type
+        from shared.database_utils import is_using_supabase
+        if is_using_supabase():
+            cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
+        else:
+            cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
+        rows = cursor.fetchall()
+        # Handle PostgreSQL rows
+        if rows and len(rows) > 0:
+            # Try to access first element - works for both tuples and postgres rows
+            try:
+                tables = [row[0] if isinstance(row, (tuple, list)) else row['name' if 'name' in row else 'tablename'] for row in rows]
+            except (KeyError, TypeError, IndexError):
+                # Fallback: just get first item from each row
+                tables = [list(row.values())[0] if hasattr(row, 'values') else row[0] for row in rows]
+        else:
+            tables = []
+        log_success(logger, f"Database tables verified: {len(tables)} tables found")
+    finally:
+        # ✅ FIX: Always close connection, even if exception occurs
+        conn.close()
 except Exception as e:
     log_error(logger, f"Failed to initialize user authentication: {e}")
     import traceback
@@ -1707,7 +1710,7 @@ def ws_synergy_broadcast_message(data):
 
 @socketio.on('agent_message_sent', namespace='/ws/synergy')
 def ws_synergy_agent_message_sent(data):
-    """Broadcast agent message to other sessions viewing the same thread"""
+    """Broadcast agent message to other sessions based on privacy mode"""
     from flask_socketio import emit
     from flask import request as flask_request
     
@@ -1718,19 +1721,27 @@ def ws_synergy_agent_message_sent(data):
         role = data.get('role')
         content_blocks = data.get('content_blocks')
         session_token = data.get('session_token')
+        privacy_mode = data.get('privacy_mode', 'central')  # Default to central (collaborative)
+        team_id = data.get('team_id')
         
         if not thread_id or not message:
             log_warning(logger, "[WS] Invalid agent_message_sent - missing thread_id or message")
             return
         
-        # Get user_id from session or token
-        user_id = flask_session.get('user_id')
+        # Get user_id from data (WebSocket data includes user_id)
+        user_id = data.get('user_id')
         
         if not user_id:
-            log_warning(logger, "[WS] Cannot broadcast agent message - no user_id in session")
+            log_warning(logger, "[WS] Cannot broadcast agent message - no user_id in data")
             return
         
-        # Broadcast to all sessions in this user's room (except sender)
+        # Route based on privacy mode
+        if privacy_mode == 'local':
+            # Local Ops: Don't broadcast to other sessions (private to sender)
+            log_config(logger, f"[WS] Agent message LOCAL mode: thread={thread_id}, no broadcast (private)")
+            return  # Skip broadcast
+        
+        # Central HQ: Broadcast to all sessions with same user_id (team collaboration)
         emit('agent_message_received', {
             'source': 'socket.io',
             'thread_id': thread_id,
@@ -1739,10 +1750,11 @@ def ws_synergy_agent_message_sent(data):
             'role': role,
             'content_blocks': content_blocks,
             'session_token': session_token,
+            'privacy_mode': privacy_mode,
             'timestamp': datetime.now().isoformat()
         }, room=f'user_{user_id}', skip_sid=flask_request.sid)
         
-        log_config(logger, f"[WS] Agent message broadcast: thread={thread_id}, agent={agent_id}, role={role}")
+        log_config(logger, f"[WS] Agent message CENTRAL broadcast: thread={thread_id}, agent={agent_id}, role={role}, mode={privacy_mode}")
         
     except Exception as e:
         log_error(logger, f"[WS ERROR] agent_message_sent failed: {e}")

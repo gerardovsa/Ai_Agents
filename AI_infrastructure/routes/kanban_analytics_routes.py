@@ -57,7 +57,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.database_utils import get_database_connection
 
 def get_db_connection():
-    """Get Supabase database connection to kanban_analytics schema"""
+    """
+    DEPRECATED: Use context manager instead: with get_database_connection('kanban_analytics') as conn:
+    
+    Get Supabase database connection to kanban_analytics schema
+    
+    WARNING: Caller MUST close connection to avoid pool exhaustion!
+    """
+    # ⚠️  CONNECTION LEAK RISK: This pattern returns connection without closing
+    # TODO: Refactor all callers to use context managers instead
     conn = get_database_connection('kanban_analytics')
     if hasattr(conn, 'row_factory'):  # SQLite compatibility
                 conn.row_factory = psycopg2.extras.RealDictRow

@@ -3791,9 +3791,11 @@ async function sendAgentMessage(agentId) {
             agent_id: agentId,
             message: displayMessage,
             role: 'user',
-            session_token: window.SynergyRealtime.sessionToken
+            session_token: window.SynergyRealtime.sessionToken,
+            privacy_mode: window.SynergyRealtime.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central',
+            team_id: window.SynergyRealtime._getTeamId ? window.SynergyRealtime._getTeamId() : null
         });
-        console.log(`📡 [Agent ${agentId}] Broadcasted user message to other sessions`);
+        console.log(`📡 [Agent ${agentId}] Broadcasted user message to other sessions (mode: ${window.SynergyRealtime.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central'})`);
     }
 
     // ✅ APPLY VIEW MODE TO USER MESSAGE
@@ -4878,9 +4880,11 @@ async function sendAgentMessage(agentId) {
                     message: fullResponse,
                     role: 'assistant',
                     content_blocks: fullContent,
-                    session_token: window.SynergyRealtime.sessionToken
+                    session_token: window.SynergyRealtime.sessionToken,
+                    privacy_mode: window.SynergyRealtime.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central',
+                    team_id: window.SynergyRealtime._getTeamId ? window.SynergyRealtime._getTeamId() : null
                 });
-                console.log(`📡 [Agent ${agentId}] Broadcasted AI response to other sessions`);
+                console.log(`📡 [Agent ${agentId}] Broadcasted AI response to other sessions (mode: ${window.SynergyRealtime.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central'})`);
             }
 
             // Update thread timestamp to NOW (actual last activity)

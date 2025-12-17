@@ -1789,11 +1789,16 @@ export default {
             if (fullEmail.attachments && fullEmail.attachments.length > 0) {
                 this.log.info(`📎 Processing ${fullEmail.attachments.length} attachment(s)...`);
 
-                processedAttachments = await AttachmentProcessor.processAttachmentsForAI(
-                    emailId,
-                    fullEmail.attachments,
-                    this
-                );
+                if (typeof AttachmentProcessor === 'undefined') {
+                    this.log.error('❌ AttachmentProcessor not loaded! Skipping attachment processing.');
+                    this.showError('Attachment processor not loaded. Please refresh the page.');
+                } else {
+                    processedAttachments = await AttachmentProcessor.processAttachmentsForAI(
+                        emailId,
+                        fullEmail.attachments,
+                        this
+                    );
+                }
 
                 const imageCount = processedAttachments.filter(a =>
                     a.detected_type === 'image' && a.image_data
@@ -1862,6 +1867,15 @@ export default {
             };
 
             // Create thread in sessions.threads with location
+            this.log.info('🔧 Creating thread with data:', {
+                user_id: userId,
+                title: `Email: ${fullEmail.subject || 'No Subject'}`,
+                context_type: 'email',
+                location: location,
+                tags: ['email', fullEmail.provider, 'assigned'],
+                metadata: metadata
+            });
+
             const threadResponse = await this.api.post('/api/threads/create', {
                 user_id: userId,
                 title: `Email: ${fullEmail.subject || 'No Subject'}`,
@@ -1871,7 +1885,10 @@ export default {
                 metadata: metadata
             });
 
+            this.log.info('📥 Thread creation response:', threadResponse);
+
             if (!threadResponse || !threadResponse.thread_slug) {
+                this.log.error('❌ Thread creation failed - no thread_slug in response:', threadResponse);
                 throw new Error('Failed to create thread');
             }
 

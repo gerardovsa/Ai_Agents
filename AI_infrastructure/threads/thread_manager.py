@@ -103,19 +103,18 @@ class ThreadManager:
     
     def _ensure_unique_slug(self, slug: str) -> str:
         """Ensure thread slug is unique, regenerate if collision"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        max_attempts = 10
-        for attempt in range(max_attempts):
-            cursor.execute("SELECT id FROM sessions.threads WHERE thread_slug = %s", (slug,))
-            if cursor.fetchone() is None:
-                conn.close()
-                return slug
-            slug = self._generate_thread_slug()
-        
-        conn.close()
-        raise DuplicateThreadError(slug)
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            max_attempts = 10
+            for attempt in range(max_attempts):
+                cursor.execute("SELECT id FROM sessions.threads WHERE thread_slug = %s", (slug,))
+                if cursor.fetchone() is None:
+                    return slug
+                slug = self._generate_thread_slug()
+            
+            # If we get here, all attempts failed
+            raise DuplicateThreadError(slug)
     
     def create_thread(self, thread_data: ThreadCreate) -> Thread:
         """
@@ -132,73 +131,70 @@ class ThreadManager:
             DuplicateThreadError: If slug collision occurs
             DatabaseError: If database operation fails
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            # Generate unique slug
-            thread_slug = self._generate_thread_slug()
-            thread_slug = self._ensure_unique_slug(thread_slug)
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
             
-            # Verify workspace exists (from ai_infrastructure.db)
-            # TODO: Add workspace validation once workspace module is complete
-            
-            # Generate embedding for thread title (async background job)
-            name_embedding = None
             try:
-                from tools.implementations.conversation_memory import generate_embedding
-                # Embed thread name for semantic search
-                if thread_data.name and len(thread_data.name.strip()) > 3:
-                    # Combine name + description for richer embedding
-                    embed_text = thread_data.name
-                    if thread_data.description:
-                        embed_text += f". {thread_data.description}"
-                    name_embedding = generate_embedding(embed_text[:2000])  # Limit to 2K chars
-            except Exception as e:
-                # Non-blocking: Continue even if embedding fails
-                logger.warning(f"Failed to generate thread embedding: {e}")
-            
-            # Insert thread
-            now = datetime.utcnow().isoformat()
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO threads (
-                    thread_slug, name, description, workspace_id, user_id,
-                    agent_id, status, visibility, created_at, updated_at, name_embedding
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                thread_slug,
-                thread_data.name,
-                thread_data.description,
-                thread_data.workspace_id,
-                thread_data.user_id,
-                thread_data.agent_id or "1",
-                thread_data.status.value,
-                thread_data.visibility.value,
-                now,
-                now,
-                name_embedding
-            ))
+                # Generate unique slug
+                thread_slug = self._generate_thread_slug()
+                thread_slug = self._ensure_unique_slug(thread_slug)
+                
+                # Verify workspace exists (from ai_infrastructure.db)
+                # TODO: Add workspace validation once workspace module is complete
+                
+                # Generate embedding for thread title (async background job)
+                name_embedding = None
+                try:
+                    from tools.implementations.conversation_memory import generate_embedding
+                    # Embed thread name for semantic search
+                    if thread_data.name and len(thread_data.name.strip()) > 3:
+                        # Combine name + description for richer embedding
+                        embed_text = thread_data.name
+                        if thread_data.description:
+                            embed_text += f". {thread_data.description}"
+                        name_embedding = generate_embedding(embed_text[:2000])  # Limit to 2K chars
+                except Exception as e:
+                    # Non-blocking: Continue even if embedding fails
+                    logger.warning(f"Failed to generate thread embedding: {e}")
+                
+                # Insert thread
+                now = datetime.utcnow().isoformat()
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO threads (
+                        thread_slug, name, description, workspace_id, user_id,
+                        agent_id, status, visibility, created_at, updated_at, name_embedding
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    thread_slug,
+                    thread_data.name,
+                    thread_data.description,
+                    thread_data.workspace_id,
+                    thread_data.user_id,
+                    thread_data.agent_id or "1",
+                    thread_data.status.value,
+                    thread_data.visibility.value,
+                    now,
+                    now,
+                    name_embedding
+                ))
 
-            cursor.execute(sql, params)
-            
-            thread_id = cursor.lastrowid
-            conn.commit()
-            
-            # Fetch created thread
-            thread = self.get_thread(thread_id=thread_id)
-            conn.close()
-            
-            return thread
-            
-        except IntegrityError as e:
-            conn.rollback()
-            conn.close()
-            raise DuplicateThreadError(thread_slug)
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("create_thread", str(e))
+                cursor.execute(sql, params)
+                
+                thread_id = cursor.lastrowid
+                conn.commit()
+                
+                # Fetch created thread
+                thread = self.get_thread(thread_id=thread_id)
+                
+                return thread
+                
+            except IntegrityError as e:
+                conn.rollback()
+                raise DuplicateThreadError(thread_slug)
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("create_thread", str(e))
     
     def get_thread(
         self,
@@ -226,62 +222,58 @@ class ThreadManager:
         if not thread_id and not thread_slug:
             raise ValueError("Must provide either thread_id or thread_slug")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Query thread
-        if thread_id:
-            cursor.execute("SELECT * FROM sessions.threads WHERE id = %s", (thread_id,))
-        else:
-            cursor.execute("SELECT * FROM sessions.threads WHERE thread_slug = %s", (thread_slug,))
-        
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            raise ThreadNotFoundError(thread_id=thread_id, thread_slug=thread_slug)
-        
-        # Check permissions if requested
-        if check_permissions and user_id:
-            if not self.check_permission(row['id'], user_id, SharePermission.VIEW):
-                conn.close()
-                raise ThreadPermissionError(user_id, row['id'], SharePermission.VIEW.value)
-        
-        # Get message count
-        cursor.execute("SELECT COUNT(*) FROM sessions.messages WHERE thread_id = %s", (row['id'],))
-        message_count = cursor.fetchone()[0]
-        
-        # Get last message time
-        sql, params = convert_sql_placeholders("""
-            SELECT created_at FROM sessions.messages 
-            WHERE thread_id = %s 
-            ORDER BY id DESC LIMIT 1
-        """, (row['id'],))
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Query thread
+            if thread_id:
+                cursor.execute("SELECT * FROM sessions.threads WHERE id = %s", (thread_id,))
+            else:
+                cursor.execute("SELECT * FROM sessions.threads WHERE thread_slug = %s", (thread_slug,))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                raise ThreadNotFoundError(thread_id=thread_id, thread_slug=thread_slug)
+            
+            # Check permissions if requested
+            if check_permissions and user_id:
+                if not self.check_permission(row['id'], user_id, SharePermission.VIEW):
+                    raise ThreadPermissionError(user_id, row['id'], SharePermission.VIEW.value)
+            
+            # Get message count
+            cursor.execute("SELECT COUNT(*) FROM sessions.messages WHERE thread_id = %s", (row['id'],))
+            message_count = cursor.fetchone()[0]
+            
+            # Get last message time
+            sql, params = convert_sql_placeholders("""
+                SELECT created_at FROM sessions.messages 
+                WHERE thread_id = %s 
+                ORDER BY id DESC LIMIT 1
+            """, (row['id'],))
 
-        cursor.execute(sql, params)
-        last_msg = cursor.fetchone()
-        last_message_at = last_msg[0] if last_msg else None
-        
-        conn.close()
-        
-        # Build Thread object
-        return Thread(
-            id=row['id'],
-            thread_slug=row['thread_slug'],
-            name=row['name'],
-            description=row['description'],
-            workspace_id=row['workspace_id'],
-            user_id=row['user_id'],
-            agent_id=row['agent_id'],
-            status=ThreadStatus(row['status']),
-            visibility=ThreadVisibility(row['visibility']),
-            message_count=message_count,
-            last_message_at=last_message_at,
-            created_at=datetime.fromisoformat(row['created_at']),
-            updated_at=datetime.fromisoformat(row['updated_at']),
-            archived_at=datetime.fromisoformat(row['archived_at']) if row['archived_at'] else None,
-            deleted_at=datetime.fromisoformat(row['deleted_at']) if row['deleted_at'] else None
-        )
+            cursor.execute(sql, params)
+            last_msg = cursor.fetchone()
+            last_message_at = last_msg[0] if last_msg else None
+            
+            # Build Thread object
+            return Thread(
+                id=row['id'],
+                thread_slug=row['thread_slug'],
+                name=row['name'],
+                description=row['description'],
+                workspace_id=row['workspace_id'],
+                user_id=row['user_id'],
+                agent_id=row['agent_id'],
+                status=ThreadStatus(row['status']),
+                visibility=ThreadVisibility(row['visibility']),
+                message_count=message_count,
+                last_message_at=last_message_at,
+                created_at=datetime.fromisoformat(row['created_at']),
+                updated_at=datetime.fromisoformat(row['updated_at']),
+                archived_at=datetime.fromisoformat(row['archived_at']) if row['archived_at'] else None,
+                deleted_at=datetime.fromisoformat(row['deleted_at']) if row['deleted_at'] else None
+            )
     
     def update_thread(
         self,

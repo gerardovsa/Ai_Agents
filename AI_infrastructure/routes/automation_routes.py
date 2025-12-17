@@ -72,12 +72,18 @@ automation_bp = Blueprint('automation', __name__, url_prefix='/api/automation')
 
 def get_db_connection():
     """
+    DEPRECATED: Use context manager instead: with get_database_connection('ai_infrastructure') as conn:
+    
     Get database connection using centralized utility (supports Supabase + SQLite)
     Uses centralized database_utils for automatic environment detection
     
     Returns:
         Database connection with row_factory for dict-like access
+        
+    WARNING: Caller MUST close connection to avoid pool exhaustion!
     """
+    # ⚠️  CONNECTION LEAK RISK: This pattern returns connection without closing
+    # TODO: Refactor all callers to use context managers instead
     conn = get_database_connection('ai_infrastructure')
     return conn
 

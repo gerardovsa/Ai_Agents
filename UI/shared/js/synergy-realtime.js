@@ -577,7 +577,9 @@ window.SynergyRealtime = {
             device: this._getDeviceInfo(),
             session_token: this._generateSessionToken(),
             room: this.presenceContext?.room || this.config.room,
-            scope: this.presenceContext?.scope || null
+            scope: this.presenceContext?.scope || null,
+            privacy_mode: this.getPrivacyMode(),  // 'central' or 'local'
+            team_id: this._getTeamId()  // For team-based privacy routing
         };
 
         this._log('Announcing presence:', presenceData);
@@ -910,6 +912,47 @@ window.SynergyRealtime = {
             badgeContainer.style.display = data.active_scope_session_count > 1 ? 'inline-flex' : 'none';
             badgeContainer.title = `${data.active_scope_session_count} active session${data.active_scope_session_count !== 1 ? 's' : ''}`;
         }
+    },
+
+    // ========================================
+    // PRIVACY MODE (Central HQ / Local Ops)
+    // ========================================
+
+    /**
+     * Get current privacy mode from localStorage
+     * @returns {string} 'central' or 'local'
+     */
+    getPrivacyMode() {
+        return localStorage.getItem('privacy_mode') || 'central';
+    },
+
+    /**
+     * Set privacy mode and save to localStorage
+     * @param {string} mode - 'central' or 'local'
+     */
+    setPrivacyMode(mode) {
+        if (mode !== 'central' && mode !== 'local') {
+            console.warn('[REALTIME] Invalid privacy mode:', mode);
+            return;
+        }
+
+        localStorage.setItem('privacy_mode', mode);
+        this._log('Privacy mode set to:', mode);
+
+        // Re-announce presence with new privacy mode
+        if (this.isConnected()) {
+            this._announcePresence();
+        }
+    },
+
+    /**
+     * Get team ID for privacy mode (user_id for team sharing)
+     */
+    _getTeamId() {
+        if (window.UserAuth && window.UserAuth.user) {
+            return window.UserAuth.user.id || window.UserAuth.user.username || 'unknown';
+        }
+        return 'unknown';
     },
 
     _log(...args) {

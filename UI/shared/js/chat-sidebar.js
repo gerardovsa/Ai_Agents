@@ -10,6 +10,7 @@ window.ChatSidebar = {
     activeConversation: null,
     conversations: new Map(),
     unreadCount: 0,
+    currentSide: localStorage.getItem('chat-sidebar-side') || 'right', // 'left' or 'right'
 
     // Voice call state
     currentCall: null,
@@ -30,6 +31,12 @@ window.ChatSidebar = {
      */
     init() {
         console.log('[CHAT SIDEBAR] Initializing...');
+
+        // Apply saved side preference
+        this.applySidePreference();
+
+        // Setup drag listeners for toggle button
+        this.setupDragListeners();
 
         // Wait for WebSocket connection
         if (typeof SynergyRealtime !== 'undefined' && SynergyRealtime.isConnected()) {
@@ -149,14 +156,10 @@ window.ChatSidebar = {
     },
 
     /**
-     * Toggle sidebar open/close
+     * Toggle sidebar open/close (backwards compatibility)
      */
     toggle() {
-        if (this.isOpen) {
-            this.close();
-        } else {
-            this.open();
-        }
+        this.toggleSidebar();
     },
 
     /**
@@ -869,6 +872,192 @@ window.ChatSidebar = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    // ==================== SIDEBAR SIDE MANAGEMENT ====================
+
+    /**
+     * Apply saved side preference
+     */
+    applySidePreference() {
+        const sidebar = document.getElementById('chat-sidebar');
+        const toggle = document.getElementById('chat-sidebar-toggle');
+
+        if (sidebar && toggle) {
+            sidebar.setAttribute('data-side', this.currentSide);
+            toggle.setAttribute('data-side', this.currentSide);
+            console.log(`[CHAT SIDEBAR] Applied side preference: ${this.currentSide}`);
+        }
+    },
+
+    /**
+     * Set sidebar side (left or right)
+     */
+    setSide(side) {
+        if (side !== 'left' && side !== 'right') {
+            console.error(`[CHAT SIDEBAR] Invalid side: ${side}`);
+            return;
+        }
+
+        this.currentSide = side;
+        localStorage.setItem('chat-sidebar-side', side);
+
+        const sidebar = document.getElementById('chat-sidebar');
+        const toggle = document.getElementById('chat-sidebar-toggle');
+
+        if (sidebar) {
+            sidebar.setAttribute('data-side', side);
+        }
+
+        if (toggle) {
+            toggle.setAttribute('data-side', side);
+        }
+
+        console.log(`[CHAT SIDEBAR] Switched to ${side} side`);
+    },
+
+    /**
+     * Toggle sidebar (new method for consistency with Synergy)
+     */
+    toggleSidebar() {
+        if (this.isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
+    },
+
+    // ==================== DRAG TO REPOSITION ====================
+
+    /**
+     * Setup drag listeners for toggle button
+     */
+    setupDragListeners() {
+        const toggle = document.getElementById('chat-sidebar-toggle');
+        if (!toggle) {
+            console.warn('[CHAT SIDEBAR] Toggle button not found, skipping drag setup');
+            return;
+        }
+
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let currentY = 0;
+
+        // Load saved Y position
+        const savedY = localStorage.getItem('chat-sidebar-toggle-y');
+        if (savedY) {
+            currentY = parseInt(savedY);
+            toggle.style.top = `${currentY}px`;
+        }
+
+        toggle.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('chat-unread-badge')) return;
+
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY - currentY;
+
+            toggle.classList.add('dragging');
+            toggle.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            currentY = e.clientY - startY;
+
+            const minY = 60;
+            const maxY = window.innerHeight - 64;
+            currentY = Math.max(minY, Math.min(currentY, maxY));
+
+            toggle.style.top = `${currentY}px`;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+
+            isDragging = false;
+            toggle.classList.remove('dragging');
+            toggle.style.cursor = 'grab';
+
+            const viewportMidpoint = window.innerWidth / 2;
+            const targetSide = e.clientX < viewportMidpoint ? 'left' : 'right';
+
+            if (this.currentSide !== targetSide) {
+                this.setSide(targetSide);
+
+                if (this.isOpen) {
+                    setTimeout(() => {
+                        const sidebar = document.getElementById('chat-sidebar');
+                        if (sidebar) {
+                            sidebar.classList.remove('collapsed');
+                        }
+                    }, 100);
+                }
+            }
+
+            localStorage.setItem('chat-sidebar-toggle-y', currentY);
+            e.preventDefault();
+        });
+
+        // Touch support
+        toggle.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('chat-unread-badge')) return;
+
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY - currentY;
+
+            toggle.classList.add('dragging');
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+
+            const touch = e.touches[0];
+            currentY = touch.clientY - startY;
+
+            const minY = 60;
+            const maxY = window.innerHeight - 64;
+            currentY = Math.max(minY, Math.min(currentY, maxY));
+
+            toggle.style.top = `${currentY}px`;
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+
+            isDragging = false;
+            toggle.classList.remove('dragging');
+
+            const touch = e.changedTouches[0];
+            const viewportMidpoint = window.innerWidth / 2;
+            const targetSide = touch.clientX < viewportMidpoint ? 'left' : 'right';
+
+            if (this.currentSide !== targetSide) {
+                this.setSide(targetSide);
+
+                if (this.isOpen) {
+                    setTimeout(() => {
+                        const sidebar = document.getElementById('chat-sidebar');
+                        if (sidebar) {
+                            sidebar.classList.remove('collapsed');
+                        }
+                    }, 100);
+                }
+            }
+
+            localStorage.setItem('chat-sidebar-toggle-y', currentY);
+            e.preventDefault();
+        });
+
+        console.log('[CHAT SIDEBAR] Drag listeners initialized');
     }
 };
 

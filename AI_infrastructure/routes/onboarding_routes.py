@@ -252,6 +252,8 @@ def complete_step():
             
             row = cursor.fetchone()
             if not row:
+                cursor.close()
+                conn.close()
                 return jsonify({
                     'success': False,
                     'error': 'User training record not found'
