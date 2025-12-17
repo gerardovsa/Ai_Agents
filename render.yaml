@@ -14,15 +14,13 @@ services:
     region: singapore  # 🇸🇬 CLOSEST TO AUSTRALIA (~100-150ms latency)
     plan: starter  # $7/month (can downgrade to free after testing)
     
-    # Use pre-built Docker image from GitHub Container Registry
-    # Images are built automatically on git push via GitHub Actions
-    # This reduces deployment time from 10 minutes to 1-2 minutes
-    image:
-      url: ghcr.io/gerardovsa/ai_agents:v10
-      # Alternatively use latest:
-      # url: ghcr.io/gerardovsa/ai_agents:latest
-    
-    # Repository configuration (for reference only, image is pre-built)
+    # Build Docker image directly on Render from repository
+    # Layer caching optimization reduces build time: 30min → 5-10min
+    # Dockerfile uses multi-layer caching:
+    #   Layer 1: System deps (cached)
+    #   Layer 2: Python deps (cached unless requirements.txt changes)
+    #   Layer 3: Node deps (cached unless package.json changes)
+    #   Layer 4: App code (rebuilds on every push)
     repo: https://github.com/gerardovsa/AI_agents
     branch: v10  # ✅ Updated to v10 branch
     
