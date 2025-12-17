@@ -30,8 +30,6 @@ window.ChatSidebar = {
      * Initialize chat sidebar
      */
     init() {
-        console.log('[CHAT SIDEBAR] Initializing...');
-
         // Apply saved side preference
         this.applySidePreference();
 
@@ -52,8 +50,6 @@ window.ChatSidebar = {
 
         // Setup UI event listeners
         this.setupUIListeners();
-
-        console.log('[CHAT SIDEBAR] Initialized');
     },
 
     /**
@@ -236,7 +232,8 @@ window.ChatSidebar = {
      */
     async loadConversationMessages(userId) {
         try {
-            const response = await fetch(`/api/messages/history?user_id=${userId}&limit=50`);
+            const currentUserId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/messages/conversation/${userId}?user_id=${currentUserId}&limit=50`);
             const data = await response.json();
 
             const messagesContainer = document.getElementById('chat-messages-container');
@@ -381,7 +378,8 @@ window.ChatSidebar = {
         if (!confirm('Delete this message?')) return;
 
         try {
-            const response = await fetch(`/api/messages/${messageId}`, {
+            const userId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/messages/delete/${messageId}?user_id=${userId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -469,7 +467,10 @@ window.ChatSidebar = {
      */
     async refreshChatList() {
         try {
-            const response = await fetch('/api/messages/conversations');
+            const userId = localStorage.getItem('user_id');
+            if (!userId) return;
+
+            const response = await fetch(`/api/messages/conversations?user_id=${userId}`);
             const data = await response.json();
 
             const listContainer = document.getElementById('chat-list-container');
@@ -532,7 +533,10 @@ window.ChatSidebar = {
      */
     async loadConversationHistory() {
         try {
-            const response = await fetch('/api/messages/all-conversations');
+            const userId = localStorage.getItem('user_id');
+            if (!userId) return;
+
+            const response = await fetch(`/api/messages/conversations?user_id=${userId}`);
             const data = await response.json();
 
             if (data.conversations) {
@@ -886,7 +890,6 @@ window.ChatSidebar = {
         if (sidebar && toggle) {
             sidebar.setAttribute('data-side', this.currentSide);
             toggle.setAttribute('data-side', this.currentSide);
-            console.log(`[CHAT SIDEBAR] Applied side preference: ${this.currentSide}`);
         }
     },
 
@@ -1056,8 +1059,6 @@ window.ChatSidebar = {
             localStorage.setItem('chat-sidebar-toggle-y', currentY);
             e.preventDefault();
         });
-
-        console.log('[CHAT SIDEBAR] Drag listeners initialized');
     }
 };
 
