@@ -70,22 +70,8 @@ def get_user_from_token(auth_header):
 automation_bp = Blueprint('automation', __name__, url_prefix='/api/automation')
 
 
-def get_db_connection():
-    """
-    DEPRECATED: Use context manager instead: with get_database_connection('ai_infrastructure') as conn:
-    
-    Get database connection using centralized utility (supports Supabase + SQLite)
-    Uses centralized database_utils for automatic environment detection
-    
-    Returns:
-        Database connection with row_factory for dict-like access
-        
-    WARNING: Caller MUST close connection to avoid pool exhaustion!
-    """
-    # ⚠️  CONNECTION LEAK RISK: This pattern returns connection without closing
-    # TODO: Refactor all callers to use context managers instead
-    conn = get_database_connection('ai_infrastructure')
-    return conn
+# DEPRECATED FUNCTION REMOVED - All callers now use get_database_connection('ai_infrastructure') directly
+# Previous helper: get_db_connection() - removed to prevent connection leak patterns
 
 
 def init_automation_tables():
@@ -349,7 +335,7 @@ def save_automation():
         ui_json_str = json.dumps(ui_json)
         execution_json_str = json.dumps(data.get('execution_json', {}))
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             from shared.database_utils import is_using_supabase
@@ -463,7 +449,7 @@ def update_workflow():
         if not has_update:
             return jsonify({'error': 'At least one update operation required'}), 400
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             # Get existing workflow
@@ -634,7 +620,7 @@ def list_automations():
         slug = request.args.get('slug')
         limit = int(request.args.get('limit', 50))
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             placeholder = '%s'
@@ -859,7 +845,7 @@ def list_production_workflows():
         enabled = request.args.get('enabled')
         limit = int(request.args.get('limit', 50))
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             placeholder = '%s'
@@ -969,7 +955,7 @@ def get_automation(automation_id):
         
         automation = None
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1125,7 +1111,7 @@ def delete_automation(automation_id):
         
         scheduler_task_id = None
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1184,7 +1170,7 @@ def activate_automation(automation_id):
         data = request.json
         row = None
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1280,7 +1266,7 @@ def deactivate_automation(automation_id):
         
         scheduler_task_id = None
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1340,7 +1326,7 @@ def toggle_automation_enabled(workflow_identifier):
         data = request.get_json()
         enabled = data.get('enabled', False)
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1388,7 +1374,7 @@ def toggle_automation(automation_id):
         current_status = None
         new_status = None
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1450,7 +1436,7 @@ def convert_to_automation(automation_id):
         if not user_id:
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1508,7 +1494,7 @@ def test_automation(automation_id):
         
         execution_id = None
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1590,7 +1576,7 @@ def schedule_automation(automation_id):
         if not cron_expression:
             return jsonify({'error': 'schedule_cron is required'}), 400
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1648,7 +1634,7 @@ def get_execution_history(automation_id):
         
         limit = int(request.args.get('limit', 10))
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1703,7 +1689,7 @@ def export_automation(automation_id):
         
         format_type = request.args.get('format', 'detailed')
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1778,7 +1764,7 @@ def publish_workflow(slug):
         next_run = None
         task_id = None
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1924,7 +1910,7 @@ def link_workflow_to_thread():
         automation_slug = data.get('automation_slug')
         automation_title = data.get('automation_title')
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             update_fields = ['workflow_slug = %s', 'workflow_title = %s', 'updated_at = CURRENT_TIMESTAMP']
@@ -1992,7 +1978,7 @@ def get_workflow_status(slug):
         if not user_id:
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
-        with get_db_connection() as conn:
+        with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             # Query 1: Get workflow

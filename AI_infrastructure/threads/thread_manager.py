@@ -305,76 +305,74 @@ class ThreadManager:
         if thread.status == ThreadStatus.ARCHIVED:
             raise ThreadArchivedError(thread_id)
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            # Build update query
-            updates = []
-            params = []
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
             
-            # Track if we need to regenerate embedding
-            regenerate_embedding = False
-            
-            if update_data.name is not None:
-                updates.append("name = ?")
-                params.append(update_data.name)
-                regenerate_embedding = True
-            
-            if update_data.description is not None:
-                updates.append("description = ?")
-                params.append(update_data.description)
-                regenerate_embedding = True
-            
-            # Regenerate embedding if name/description changed
-            if regenerate_embedding:
-                try:
-                    from tools.implementations.conversation_memory import generate_embedding
-                    embed_text = update_data.name or thread.name
-                    if update_data.description or thread.description:
-                        embed_text += f". {update_data.description or thread.description}"
-                    name_embedding = generate_embedding(embed_text[:2000])
-                    updates.append("name_embedding = ?")
-                    params.append(name_embedding)
-                except Exception as e:
-                    logger.warning(f"Failed to update thread embedding: {e}")
-            
-            if update_data.status is not None:
-                updates.append("status = ?")
-                params.append(update_data.status.value)
+            try:
+                # Build update query
+                updates = []
+                params = []
                 
-                # Set archived_at if archiving
-                if update_data.status == ThreadStatus.ARCHIVED:
-                    updates.append("archived_at = ?")
-                    params.append(datetime.utcnow().isoformat())
-            
-            if update_data.visibility is not None:
-                updates.append("visibility = ?")
-                params.append(update_data.visibility.value)
-            
-            # Always update updated_at
-            updates.append("updated_at = ?")
-            params.append(datetime.utcnow().isoformat())
-            
-            params.append(thread_id)
-            
-            # Execute update
-            cursor.execute(f"""
-                UPDATE sessions.threads 
-                SET {', '.join(updates)}
-                WHERE id = %s
-            """, params)
-            
-            conn.commit()
-            conn.close()
-            
-            # Return updated thread
-            return self.get_thread(thread_id=thread_id)
-            
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("update_thread", str(e))
+                # Track if we need to regenerate embedding
+                regenerate_embedding = False
+                
+                if update_data.name is not None:
+                    updates.append("name = ?")
+                    params.append(update_data.name)
+                    regenerate_embedding = True
+                
+                if update_data.description is not None:
+                    updates.append("description = ?")
+                    params.append(update_data.description)
+                    regenerate_embedding = True
+                
+                # Regenerate embedding if name/description changed
+                if regenerate_embedding:
+                    try:
+                        from tools.implementations.conversation_memory import generate_embedding
+                        embed_text = update_data.name or thread.name
+                        if update_data.description or thread.description:
+                            embed_text += f". {update_data.description or thread.description}"
+                        name_embedding = generate_embedding(embed_text[:2000])
+                        updates.append("name_embedding = ?")
+                        params.append(name_embedding)
+                    except Exception as e:
+                        logger.warning(f"Failed to update thread embedding: {e}")
+                
+                if update_data.status is not None:
+                    updates.append("status = ?")
+                    params.append(update_data.status.value)
+                    
+                    # Set archived_at if archiving
+                    if update_data.status == ThreadStatus.ARCHIVED:
+                        updates.append("archived_at = ?")
+                        params.append(datetime.utcnow().isoformat())
+                
+                if update_data.visibility is not None:
+                    updates.append("visibility = ?")
+                    params.append(update_data.visibility.value)
+                
+                # Always update updated_at
+                updates.append("updated_at = ?")
+                params.append(datetime.utcnow().isoformat())
+                
+                params.append(thread_id)
+                
+                # Execute update
+                cursor.execute(f"""
+                    UPDATE sessions.threads 
+                    SET {', '.join(updates)}
+                    WHERE id = %s
+                """, params)
+                
+                conn.commit()
+                
+                # Return updated thread
+                return self.get_thread(thread_id=thread_id)
+                
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("update_thread", str(e))
     
     def delete_thread(self, thread_id: int, user_id: int, hard_delete: bool = False) -> dict:
         """
@@ -398,35 +396,33 @@ class ThreadManager:
             if not self.check_permission(thread_id, user_id, SharePermission.ADMIN):
                 raise ThreadPermissionError(user_id, thread_id, SharePermission.ADMIN.value)
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            if hard_delete:
-                # Permanently delete thread and messages
-                cursor.execute("DELETE FROM sessions.messages WHERE thread_id = %s", (thread_id,))
-                cursor.execute("DELETE FROM sessions.thread_shares WHERE thread_id = %s", (thread_id,))
-                cursor.execute("DELETE FROM sessions.threads WHERE id = %s", (thread_id,))
-            else:
-                # Soft delete
-                now = datetime.utcnow().isoformat()
-                sql, params = convert_sql_placeholders("""
-                    UPDATE sessions.threads 
-                    SET status = %s, deleted_at = %s, updated_at = %s
-                    WHERE id = %s
-                """, (ThreadStatus.DELETED.value, now, now, thread_id))
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            try:
+                if hard_delete:
+                    # Permanently delete thread and messages
+                    cursor.execute("DELETE FROM sessions.messages WHERE thread_id = %s", (thread_id,))
+                    cursor.execute("DELETE FROM sessions.thread_shares WHERE thread_id = %s", (thread_id,))
+                    cursor.execute("DELETE FROM sessions.threads WHERE id = %s", (thread_id,))
+                else:
+                    # Soft delete
+                    now = datetime.utcnow().isoformat()
+                    sql, params = convert_sql_placeholders("""
+                        UPDATE sessions.threads 
+                        SET status = %s, deleted_at = %s, updated_at = %s
+                        WHERE id = %s
+                    """, (ThreadStatus.DELETED.value, now, now, thread_id))
 
-                cursor.execute(sql, params)
-            
-            conn.commit()
-            conn.close()
-            
-            return {"success": True, "message": SUCCESS_THREAD_DELETED}
-            
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("delete_thread", str(e))
+                    cursor.execute(sql, params)
+                
+                conn.commit()
+                
+                return {"success": True, "message": SUCCESS_THREAD_DELETED}
+                
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("delete_thread", str(e))
     
     def archive_thread(self, thread_id: int, user_id: int) -> dict:
         """
@@ -454,28 +450,26 @@ class ThreadManager:
         Returns:
             Thread: Restored thread
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            now = datetime.utcnow().isoformat()
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads 
-                SET status = %s, archived_at = NULL, deleted_at = NULL, updated_at = %s
-                WHERE id = %s
-            """, (ThreadStatus.ACTIVE.value, now, thread_id))
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            try:
+                now = datetime.utcnow().isoformat()
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET status = %s, archived_at = NULL, deleted_at = NULL, updated_at = %s
+                    WHERE id = %s
+                """, (ThreadStatus.ACTIVE.value, now, thread_id))
 
-            cursor.execute(sql, params)
-            
-            conn.commit()
-            conn.close()
-            
-            return self.get_thread(thread_id=thread_id)
-            
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("restore_thread", str(e))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+                
+                return self.get_thread(thread_id=thread_id)
+                
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("restore_thread", str(e))
     
     def list_threads(self, params: ThreadListParams) -> ThreadListResponse:
         """
@@ -487,53 +481,52 @@ class ThreadManager:
         Returns:
             ThreadListResponse: Paginated thread list
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Build WHERE clause
-        where_clauses = []
-        query_params = []
-        
-        if params.workspace_id:
-            where_clauses.append("workspace_id = %s")
-            query_params.append(params.workspace_id)
-        
-        if params.user_id:
-            where_clauses.append("user_id = %s")
-            query_params.append(params.user_id)
-        
-        if params.status:
-            where_clauses.append("status = %s")
-            query_params.append(params.status.value)
-        
-        if params.visibility:
-            where_clauses.append("visibility = %s")
-            query_params.append(params.visibility.value)
-        
-        if params.search:
-            where_clauses.append("(name LIKE %s OR description LIKE %s)")
-            search_term = f"%{params.search}%"
-            query_params.extend([search_term, search_term])
-        
-        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
-        
-        # Get total count
-        cursor.execute(f"SELECT COUNT(*) FROM sessions.threads WHERE {where_sql}", query_params)
-        total = cursor.fetchone()[0]
-        
-        # Get paginated results
-        offset = (params.page - 1) * params.page_size
-        sort_order = "ASC" if params.sort_order.lower() == "asc" else "DESC"
-        
-        cursor.execute(f"""
-            SELECT * FROM sessions.threads 
-            WHERE {where_sql}
-            ORDER BY {params.sort_by} {sort_order}
-            LIMIT %s OFFSET %s
-        """, query_params + [params.page_size, offset])
-        
-        rows = cursor.fetchall()
-        conn.close()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Build WHERE clause
+            where_clauses = []
+            query_params = []
+            
+            if params.workspace_id:
+                where_clauses.append("workspace_id = %s")
+                query_params.append(params.workspace_id)
+            
+            if params.user_id:
+                where_clauses.append("user_id = %s")
+                query_params.append(params.user_id)
+            
+            if params.status:
+                where_clauses.append("status = %s")
+                query_params.append(params.status.value)
+            
+            if params.visibility:
+                where_clauses.append("visibility = %s")
+                query_params.append(params.visibility.value)
+            
+            if params.search:
+                where_clauses.append("(name LIKE %s OR description LIKE %s)")
+                search_term = f"%{params.search}%"
+                query_params.extend([search_term, search_term])
+            
+            where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+            
+            # Get total count
+            cursor.execute(f"SELECT COUNT(*) FROM sessions.threads WHERE {where_sql}", query_params)
+            total = cursor.fetchone()[0]
+            
+            # Get paginated results
+            offset = (params.page - 1) * params.page_size
+            sort_order = "ASC" if params.sort_order.lower() == "asc" else "DESC"
+            
+            cursor.execute(f"""
+                SELECT * FROM sessions.threads 
+                WHERE {where_sql}
+                ORDER BY {params.sort_by} {sort_order}
+                LIMIT %s OFFSET %s
+            """, query_params + [params.page_size, offset])
+            
+            rows = cursor.fetchall()
         
         # Convert to Thread objects
         threads = []
@@ -577,52 +570,50 @@ class ThreadManager:
         if self.check_permission(share_data.thread_id, share_data.user_id, SharePermission.VIEW):
             raise DuplicateShareError(share_data.user_id, share_data.thread_id)
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            now = datetime.utcnow().isoformat()
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO thread_shares (
-                    thread_id, user_id, permission, shared_by, message, created_at
-                )
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (
-                share_data.thread_id,
-                share_data.user_id,
-                share_data.permission.value,
-                share_data.shared_by,
-                share_data.message,
-                now
-            ))
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            try:
+                now = datetime.utcnow().isoformat()
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO thread_shares (
+                        thread_id, user_id, permission, shared_by, message, created_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (
+                    share_data.thread_id,
+                    share_data.user_id,
+                    share_data.permission.value,
+                    share_data.shared_by,
+                    share_data.message,
+                    now
+                ))
 
-            cursor.execute(sql, params)
-            
-            share_id = cursor.lastrowid
-            conn.commit()
-            
-            # Fetch created share
-            cursor.execute("SELECT * FROM sessions.thread_shares WHERE id = %s", (share_id,))
-            row = cursor.fetchone()
-            conn.close()
-            
-            return ThreadShare(
-                id=row['id'],
-                thread_id=row['thread_id'],
-                user_id=row['user_id'],
-                permission=SharePermission(row['permission']),
-                shared_by=row['shared_by'],
-                message=row['message'],
-                accepted=bool(row['accepted']),
-                accepted_at=datetime.fromisoformat(row['accepted_at']) if row['accepted_at'] else None,
-                created_at=datetime.fromisoformat(row['created_at']),
-                revoked_at=datetime.fromisoformat(row['revoked_at']) if row['revoked_at'] else None
-            )
-            
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("share_thread", str(e))
+                cursor.execute(sql, params)
+                
+                share_id = cursor.lastrowid
+                conn.commit()
+                
+                # Fetch created share
+                cursor.execute("SELECT * FROM sessions.thread_shares WHERE id = %s", (share_id,))
+                row = cursor.fetchone()
+                
+                return ThreadShare(
+                    id=row['id'],
+                    thread_id=row['thread_id'],
+                    user_id=row['user_id'],
+                    permission=SharePermission(row['permission']),
+                    shared_by=row['shared_by'],
+                    message=row['message'],
+                    accepted=bool(row['accepted']),
+                    accepted_at=datetime.fromisoformat(row['accepted_at']) if row['accepted_at'] else None,
+                    created_at=datetime.fromisoformat(row['created_at']),
+                    revoked_at=datetime.fromisoformat(row['revoked_at']) if row['revoked_at'] else None
+                )
+                
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("share_thread", str(e))
     
     def check_permission(
         self,
@@ -641,49 +632,46 @@ class ThreadManager:
         Returns:
             bool: True if user has permission
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Check if owner
-        cursor.execute("SELECT user_id, visibility FROM sessions.threads WHERE id = %s", (thread_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return False
-        
-        # Owner has all permissions
-        if row['user_id'] == user_id:
-            conn.close()
-            return True
-        
-        # Check workspace visibility
-        # TODO: Implement workspace membership check
-        
-        # Check explicit share
-        sql, params = convert_sql_placeholders("""
-            SELECT permission FROM sessions.thread_shares 
-            WHERE thread_id = %s AND user_id = %s AND revoked_at IS NULL
-        """, (thread_id, user_id))
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Check if owner
+            cursor.execute("SELECT user_id, visibility FROM sessions.threads WHERE id = %s", (thread_id,))
+            row = cursor.fetchone()
+            
+            if not row:
+                return False
+            
+            # Owner has all permissions
+            if row['user_id'] == user_id:
+                return True
+            
+            # Check workspace visibility
+            # TODO: Implement workspace membership check
+            
+            # Check explicit share
+            sql, params = convert_sql_placeholders("""
+                SELECT permission FROM sessions.thread_shares 
+                WHERE thread_id = %s AND user_id = %s AND revoked_at IS NULL
+            """, (thread_id, user_id))
 
-        cursor.execute(sql, params)
-        
-        share_row = cursor.fetchone()
-        conn.close()
-        
-        if not share_row:
-            return False
-        
-        # Permission hierarchy: VIEW < COMMENT < EDIT < ADMIN
-        permission_levels = {
-            SharePermission.VIEW: 1,
-            SharePermission.COMMENT: 2,
-            SharePermission.EDIT: 3,
-            SharePermission.ADMIN: 4
-        }
-        
-        user_level = permission_levels.get(SharePermission(share_row['permission']), 0)
-        required_level = permission_levels.get(required_permission, 0)
-        
-        return user_level >= required_level
+            cursor.execute(sql, params)
+            
+            share_row = cursor.fetchone()
+            
+            if not share_row:
+                return False
+            
+            # Permission hierarchy: VIEW < COMMENT < EDIT < ADMIN
+            permission_levels = {
+                SharePermission.VIEW: 1,
+                SharePermission.COMMENT: 2,
+                SharePermission.EDIT: 3,
+                SharePermission.ADMIN: 4
+            }
+            
+            user_level = permission_levels.get(SharePermission(share_row['permission']), 0)
+            required_level = permission_levels.get(required_permission, 0)
+            
+            return user_level >= required_level
 

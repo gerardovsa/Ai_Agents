@@ -2954,7 +2954,7 @@ def get_conversation(other_user_id):
 
 
 @app.route('/api/messages/send', methods=['POST'])
-def send_message():
+def send_direct_message():
     """
     Send a direct message (REST fallback for WebSocket)
     
