@@ -16,7 +16,9 @@ anthropic>=0.40.0
 openai==1.35.0
 requests==2.31.0
 
-# Voice Transcription (Local Whisper Model)
+# Voice Transcription - Local Whisper (PyTorch)
+# Adds ~10-15 min to Docker build but provides accurate server-side transcription
+# Browser Speech Recognition also available as alternative (no conflict)
 openai-whisper>=20231117
 torch>=2.0.0
 torchaudio>=2.0.0

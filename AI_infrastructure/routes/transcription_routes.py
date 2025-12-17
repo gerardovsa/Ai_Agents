@@ -1,7 +1,19 @@
 """
 /AI_infrastructure/routes/transcription_routes.py
 Transcription Routes - Voice/Audio Transcription with Whisper API
-FULLY FIXED VERSION - Production Ready
+
+✅ LOCAL WHISPER (PyTorch) ENABLED - Server-side transcription for better accuracy
+
+HOW IT WORKS:
+- Frontend can use EITHER Browser Speech Recognition OR Local Whisper
+- Browser STT: Instant, free, works in Chrome (webkitSpeechRecognition)
+- Local Whisper: More accurate, works with audio files, supports multiple languages
+- No conflict: Browser STT uses real-time API, Whisper uses file upload
+
+USAGE:
+- Browser STT: For instant voice-to-text in chat (no backend call)
+- Local Whisper: For transcribing audio files or better quality (calls /api/transcribe)
+- UI can toggle between modes based on user preference
 
 ⚠️ CURSOR MANAGEMENT FIXES (Nov 26, 2024):
    - ✅ All cursors properly closed before connections
@@ -10,18 +22,19 @@ FULLY FIXED VERSION - Production Ready
    - ✅ Cursor closed before conn.close()
 
 Endpoints:
-- POST /api/transcribe - Audio transcription with streaming support
+- POST /api/transcribe - Audio transcription (DISABLED - Whisper not installed)
 - GET /api/system/check - System health check
 - POST /api/transcriptions/save - Save transcription to database (requires auth)
 - GET /api/transcriptions/history - Get user transcription history (requires auth)
 
 Features:
-- OpenAI Whisper API integration for audio-to-text
+- OpenAI Whisper API integration for audio-to-text (if re-enabled)
 - Streaming transcription results
 - Audio format validation
 - Error handling and logging
+- Graceful degradation if Whisper not available
 
-LAST MODIFIED: 2025-12-07 - Fixed cursor management
+LAST MODIFIED: 2025-12-18 - Disabled PyTorch/Whisper to optimize Docker builds (30min → 15min)
 """
 
 from flask import Blueprint, request, jsonify, Response

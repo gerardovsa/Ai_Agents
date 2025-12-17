@@ -26498,12 +26498,13 @@
         let sttModule = null;
 
         function initializeSTTModule() {
-            console.log('[TRANSCRIPTION] ❌ STTModule DISABLED - Using SharedTranscriptionState only');
-            console.log('[TRANSCRIPTION] Do NOT initialize STTModule - causes audio-capture errors');
-            // CRITICAL: STTModule MediaRecorder conflicts with SharedTranscriptionState browserRecognition
-            // Browser only allows ONE audio consumer at a time
-            // SharedTranscriptionState provides instant streaming via Web Speech API
-            return; // ← EXIT IMMEDIATELY - DO NOT CREATE STTMODULE
+            console.log('[TRANSCRIPTION] ℹ️ Using Browser Speech Recognition (SharedTranscriptionState)');
+            console.log('[TRANSCRIPTION] Local Whisper available at /api/transcribe for file uploads');
+            // NOTE: Two transcription modes available:
+            // 1. Browser Speech Recognition (current): Real-time, instant, no backend
+            // 2. Local Whisper (/api/transcribe): For audio file uploads, better quality
+            // No conflict: Browser STT uses microphone directly, Whisper uses file upload
+            return; // ← Browser STT is sufficient for chat - Whisper available for file transcription
 
             /* ❌❌❌ NEVER UNCOMMENT THIS - CAUSES AUDIO-CAPTURE ERRORS ❌❌❌
             if (sttModule) return;
