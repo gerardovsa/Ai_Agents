@@ -150,6 +150,19 @@ def get_connection_pool(schema_name: str):
                 cprint(f"[WARNING] [POOL] Transaction pooler not configured, using Session Mode fallback", Colors.WARNING)
             
             if not db_url:
+                # Final fallback to legacy SUPABASE_DB_URL variable (backward compatibility)
+                db_url = os.getenv('SUPABASE_DB_URL')
+                if db_url:
+                    # Auto-detect port from URL to determine mode
+                    if ':6543/' in db_url:
+                        connection_mode = 'Legacy SUPABASE_DB_URL (Transaction Mode detected)'
+                    elif ':5432/' in db_url:
+                        connection_mode = 'Legacy SUPABASE_DB_URL (Session Mode detected)'
+                    else:
+                        connection_mode = 'Legacy SUPABASE_DB_URL (unknown port)'
+                    cprint(f"[WARNING] [POOL] Using legacy SUPABASE_DB_URL variable - please migrate to SUPABASE_DB_URL_POOLER", Colors.WARNING)
+            
+            if not db_url:
                 raise ValueError(
                     "No Supabase connection URL found. Set either:\n"
                     "  - SUPABASE_DB_URL_POOLER (Transaction Mode, port 6543) - RECOMMENDED\n"

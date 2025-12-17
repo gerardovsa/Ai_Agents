@@ -132,8 +132,14 @@ services:
       - key: SUPABASE_SERVICE_KEY
         sync: false  # Add manually from Supabase dashboard
       
-      - key: SUPABASE_DB_URL
-        sync: false  # Add manually: Connection pooler URL (port 6543)
+      # ✅ CRITICAL FIX: Two connection modes for Supabase pooler
+      # Transaction Mode (port 6543) - Best for Flask/serverless
+      - key: SUPABASE_DB_URL_POOLER
+        sync: false  # Add manually: postgresql://postgres.PROJECT:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres
+      
+      # Session Mode (port 5432) - Fallback for long-running connections
+      - key: SUPABASE_DB_URL_SESSION
+        sync: false  # Add manually: postgresql://postgres.PROJECT:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
       
       # SQLite Fallback (if Supabase disabled)
       - key: DATABASE_PATH
