@@ -2749,6 +2749,524 @@ def cleanup_sessions():
 
 
 # ============================================================================
+# CHAT/MESSAGING REST API ENDPOINTS
+# ============================================================================
+# REST endpoints for chat sidebar - complements WebSocket real-time messaging
+# Uses MessageService for database operations with proper connection handling
+
+@app.route('/api/messages/conversations', methods=['GET'])
+def get_conversations():
+    """
+    Get list of conversations with unread counts for current user
+    
+    Query params:
+        - user_id: Current user's ID (required)
+    
+    Returns:
+        List of conversations with metadata (last message, unread count, timestamp)
+    """
+    try:
+        user_id = request.args.get('user_id', type=int)
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        
+        if not message_service:
+            return jsonify({'error': 'Message service not available'}), 503
+        
+        # Get all messages for user (direct messages only)
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Get conversations with last message and unread count
+            cursor.execute("""
+                WITH user_messages AS (
+                    SELECT 
+                        CASE 
+                            WHEN sender_user_id = %s THEN recipient_user_id
+                            ELSE sender_user_id
+                        END AS other_user_id,
+                        message_text,
+                        created_at,
+                        read_by,
+                        sender_user_id
+                    FROM ai_infrastructure.realtime_messages
+                    WHERE (sender_user_id = %s OR recipient_user_id = %s)
+                    AND message_type = 'direct'
+                ),
+                latest_messages AS (
+                    SELECT 
+                        other_user_id,
+                        message_text AS last_message,
+                        created_at AS last_message_time,
+                        sender_user_id AS last_sender_id
+                    FROM user_messages
+                    WHERE (other_user_id, created_at) IN (
+                        SELECT other_user_id, MAX(created_at)
+                        FROM user_messages
+                        GROUP BY other_user_id
+                    )
+                ),
+                unread_counts AS (
+                    SELECT 
+                        sender_user_id AS other_user_id,
+                        COUNT(*) AS unread_count
+                    FROM ai_infrastructure.realtime_messages
+                    WHERE recipient_user_id = %s
+                    AND message_type = 'direct'
+                    AND NOT (%s = ANY(read_by))
+                    GROUP BY sender_user_id
+                )
+                SELECT 
+                    lm.other_user_id,
+                    lm.last_message,
+                    lm.last_message_time,
+                    lm.last_sender_id,
+                    COALESCE(uc.unread_count, 0) AS unread_count
+                FROM latest_messages lm
+                LEFT JOIN unread_counts uc ON lm.other_user_id = uc.other_user_id
+                ORDER BY lm.last_message_time DESC
+            """, (user_id, user_id, user_id, user_id, user_id))
+            
+            rows = cursor.fetchall()
+            
+            conversations = []
+            for row in rows:
+                conversations.append({
+                    'user_id': row[0],
+                    'last_message': row[1],
+                    'last_message_time': row[2].isoformat() if row[2] else None,
+                    'last_sender_id': row[3],
+                    'unread_count': int(row[4])
+                })
+            
+            return jsonify({
+                'status': 'success',
+                'conversations': conversations
+            })
+            
+        except Exception as e:
+            log_error(logger, f"[CHAT API] get_conversations failed: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] get_conversations error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/messages/conversation/<int:other_user_id>', methods=['GET'])
+def get_conversation(other_user_id):
+    """
+    Get message history between current user and another user
+    
+    Path params:
+        - other_user_id: The other user's ID
+    
+    Query params:
+        - user_id: Current user's ID (required)
+        - limit: Max messages to return (default: 50, max: 100)
+        - offset: Pagination offset (default: 0)
+    
+    Returns:
+        List of messages with metadata
+    """
+    try:
+        user_id = request.args.get('user_id', type=int)
+        limit = min(int(request.args.get('limit', 50)), 100)
+        offset = int(request.args.get('offset', 0))
+        
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        
+        if not message_service:
+            return jsonify({'error': 'Message service not available'}), 503
+        
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Get messages between two users
+            cursor.execute("""
+                SELECT 
+                    message_id,
+                    sender_user_id,
+                    recipient_user_id,
+                    message_text,
+                    created_at,
+                    delivered_to,
+                    read_by,
+                    message_metadata
+                FROM ai_infrastructure.realtime_messages
+                WHERE (
+                    (sender_user_id = %s AND recipient_user_id = %s)
+                    OR (sender_user_id = %s AND recipient_user_id = %s)
+                )
+                AND message_type = 'direct'
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+            """, (user_id, other_user_id, other_user_id, user_id, limit, offset))
+            
+            rows = cursor.fetchall()
+            
+            messages = []
+            for row in rows:
+                messages.append({
+                    'message_id': row[0],
+                    'sender_user_id': row[1],
+                    'recipient_user_id': row[2],
+                    'message_text': row[3],
+                    'created_at': row[4].isoformat() if row[4] else None,
+                    'delivered': user_id in (row[5] or []),
+                    'read': user_id in (row[6] or []),
+                    'metadata': row[7]
+                })
+            
+            return jsonify({
+                'status': 'success',
+                'messages': messages,
+                'limit': limit,
+                'offset': offset
+            })
+            
+        except Exception as e:
+            log_error(logger, f"[CHAT API] get_conversation failed: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] get_conversation error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/messages/send', methods=['POST'])
+def send_message():
+    """
+    Send a direct message (REST fallback for WebSocket)
+    
+    Body:
+        - sender_user_id: Sender's user ID
+        - recipient_user_id: Recipient's user ID
+        - message_text: Message content
+        - metadata: Optional metadata dict
+    
+    Returns:
+        Message ID and delivery status
+    """
+    try:
+        data = request.get_json()
+        
+        sender_user_id = data.get('sender_user_id')
+        recipient_user_id = data.get('recipient_user_id')
+        message_text = data.get('message_text')
+        metadata = data.get('metadata', {})
+        
+        if not all([sender_user_id, recipient_user_id, message_text]):
+            return jsonify({'error': 'sender_user_id, recipient_user_id, and message_text required'}), 400
+        
+        if not message_service:
+            return jsonify({'error': 'Message service not available'}), 503
+        
+        # Save message to database
+        message_id = message_service.save_message(
+            sender_user_id=sender_user_id,
+            message_text=message_text,
+            message_type='direct',
+            recipient_user_id=recipient_user_id,
+            room='synergy_board',
+            metadata={'source': 'rest_api', **metadata}
+        )
+        
+        if message_id:
+            # Try to deliver via WebSocket if recipient is online
+            delivered = False
+            if recipient_user_id in active_users:
+                try:
+                    from flask_socketio import emit
+                    for session_token, session_info in active_users[recipient_user_id].items():
+                        client_id = session_info.get('client_id')
+                        if client_id:
+                            emit('direct_message_received', {
+                                'source': 'rest_api',
+                                'message_id': message_id,
+                                'from_user_id': sender_user_id,
+                                'message': message_text,
+                                'timestamp': datetime.now().isoformat()
+                            }, room=client_id, namespace='/ws/synergy')
+                            delivered = True
+                            
+                            # Mark as delivered
+                            message_service.mark_delivered(message_id, recipient_user_id)
+                except Exception as ws_error:
+                    log_warning(logger, f"[CHAT API] WebSocket delivery failed: {ws_error}")
+            
+            return jsonify({
+                'status': 'success',
+                'message_id': message_id,
+                'delivered': delivered,
+                'recipient_online': recipient_user_id in active_users
+            })
+        else:
+            return jsonify({'error': 'Failed to save message'}), 500
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] send_message error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/messages/mark-read', methods=['POST'])
+def mark_messages_read():
+    """
+    Mark messages as read for a conversation
+    
+    Body:
+        - user_id: Current user's ID
+        - other_user_id: The other user's ID
+        - message_ids: Optional list of specific message IDs (if empty, marks all unread)
+    
+    Returns:
+        Number of messages marked as read
+    """
+    try:
+        data = request.get_json()
+        
+        user_id = data.get('user_id')
+        other_user_id = data.get('other_user_id')
+        message_ids = data.get('message_ids', [])
+        
+        if not all([user_id, other_user_id]):
+            return jsonify({'error': 'user_id and other_user_id required'}), 400
+        
+        if not message_service:
+            return jsonify({'error': 'Message service not available'}), 503
+        
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            if message_ids:
+                # Mark specific messages as read
+                cursor.execute("""
+                    UPDATE ai_infrastructure.realtime_messages
+                    SET read_by = array_append(read_by, %s)
+                    WHERE message_id = ANY(%s)
+                    AND recipient_user_id = %s
+                    AND NOT (%s = ANY(read_by))
+                """, (user_id, message_ids, user_id, user_id))
+            else:
+                # Mark all unread messages from other_user_id as read
+                cursor.execute("""
+                    UPDATE ai_infrastructure.realtime_messages
+                    SET read_by = array_append(read_by, %s)
+                    WHERE sender_user_id = %s
+                    AND recipient_user_id = %s
+                    AND message_type = 'direct'
+                    AND NOT (%s = ANY(read_by))
+                """, (user_id, other_user_id, user_id, user_id))
+            
+            marked_count = cursor.rowcount
+            conn.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'marked_count': marked_count
+            })
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            log_error(logger, f"[CHAT API] mark_messages_read failed: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] mark_messages_read error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/messages/delete/<int:message_id>', methods=['DELETE'])
+def delete_message(message_id):
+    """
+    Soft delete a message (marks as deleted, doesn't remove from DB)
+    
+    Path params:
+        - message_id: Message ID to delete
+    
+    Query params:
+        - user_id: Current user's ID (required for authorization)
+    
+    Returns:
+        Success status
+    """
+    try:
+        user_id = request.args.get('user_id', type=int)
+        
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        
+        if not message_service:
+            return jsonify({'error': 'Message service not available'}), 503
+        
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Check if user is sender or recipient
+            cursor.execute("""
+                SELECT sender_user_id, recipient_user_id, message_metadata
+                FROM ai_infrastructure.realtime_messages
+                WHERE message_id = %s
+            """, (message_id,))
+            
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'error': 'Message not found'}), 404
+            
+            sender_id, recipient_id, metadata = row
+            
+            # Authorization check
+            if user_id not in [sender_id, recipient_id]:
+                return jsonify({'error': 'Unauthorized'}), 403
+            
+            # Soft delete by adding deleted flag to metadata
+            import json
+            meta = metadata or {}
+            if isinstance(meta, str):
+                meta = json.loads(meta)
+            meta['deleted_by'] = user_id
+            meta['deleted_at'] = datetime.now().isoformat()
+            
+            cursor.execute("""
+                UPDATE ai_infrastructure.realtime_messages
+                SET message_metadata = %s
+                WHERE message_id = %s
+            """, (json.dumps(meta), message_id))
+            
+            conn.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Message deleted'
+            })
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            log_error(logger, f"[CHAT API] delete_message failed: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] delete_message error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/users/<int:user_id>/info', methods=['GET'])
+def get_user_info(user_id):
+    """
+    Get user information including online status
+    
+    Path params:
+        - user_id: User ID to get info for
+    
+    Returns:
+        User info with online status and last seen
+    """
+    try:
+        # Check if user is online
+        is_online = user_id in active_users
+        session_count = len(active_users.get(user_id, {}))
+        
+        # Get last seen from most recent session
+        last_seen = None
+        if is_online:
+            sessions = active_users.get(user_id, {})
+            for session_token, session_info in sessions.items():
+                last_heartbeat = session_info.get('last_heartbeat')
+                if last_heartbeat:
+                    if not last_seen or last_heartbeat > last_seen:
+                        last_seen = last_heartbeat
+        
+        # Get user details from database
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT username, email, created_at
+                FROM ai_infrastructure.users
+                WHERE user_id = %s
+            """, (user_id,))
+            
+            row = cursor.fetchone()
+            
+            if row:
+                return jsonify({
+                    'status': 'success',
+                    'user_id': user_id,
+                    'username': row[0],
+                    'email': row[1],
+                    'is_online': is_online,
+                    'session_count': session_count,
+                    'last_seen': last_seen,
+                    'member_since': row[2].isoformat() if row[2] else None
+                })
+            else:
+                return jsonify({'error': 'User not found'}), 404
+                
+        except Exception as e:
+            log_error(logger, f"[CHAT API] get_user_info database query failed: {e}")
+            # Return basic info even if database query fails
+            return jsonify({
+                'status': 'success',
+                'user_id': user_id,
+                'is_online': is_online,
+                'session_count': session_count,
+                'last_seen': last_seen
+            })
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] get_user_info error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # STATIC FILES (Frontend)
 # ============================================================================
 # NOTE: Template serving moved to top of file (after health check)

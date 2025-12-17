@@ -84,6 +84,7 @@ class MessageService:
             print("[MESSAGE SERVICE] No database connection")
             return None
         
+        cursor = None
         try:
             cursor = self.db_conn.cursor()
             
@@ -129,6 +130,9 @@ class MessageService:
             if self.db_conn:
                 self.db_conn.rollback()
             return None
+        finally:
+            if cursor:
+                cursor.close()
     
     def mark_delivered(self, message_id: int, user_id: int) -> bool:
         """
@@ -144,6 +148,7 @@ class MessageService:
         if not self.db_conn:
             return False
         
+        cursor = None
         try:
             cursor = self.db_conn.cursor()
             
@@ -162,6 +167,9 @@ class MessageService:
             if self.db_conn:
                 self.db_conn.rollback()
             return False
+        finally:
+            if cursor:
+                cursor.close()
     
     def mark_read(self, message_id: int, user_id: int) -> bool:
         """
@@ -177,6 +185,7 @@ class MessageService:
         if not self.db_conn:
             return False
         
+        cursor = None
         try:
             cursor = self.db_conn.cursor()
             
@@ -195,6 +204,9 @@ class MessageService:
             if self.db_conn:
                 self.db_conn.rollback()
             return False
+        finally:
+            if cursor:
+                cursor.close()
     
     def get_message_history(
         self,
@@ -220,6 +232,7 @@ class MessageService:
         if not self.db_conn:
             return []
         
+        cursor = None
         try:
             cursor = self.db_conn.cursor(cursor_factory=RealDictCursor)
             
@@ -261,6 +274,9 @@ class MessageService:
         except Exception as e:
             print(f"[MESSAGE SERVICE ERROR] get_message_history failed: {e}")
             return []
+        finally:
+            if cursor:
+                cursor.close()
     
     def search_messages(
         self,
@@ -287,6 +303,7 @@ class MessageService:
         # ✅ PERFORMANCE OPTIMIZATION (Dec 2025): Enforce max limit to prevent OOM
         limit = min(limit, 100)  # Max 100 results per search
         
+        cursor = None
         try:
             cursor = self.db_conn.cursor(cursor_factory=RealDictCursor)
             
@@ -325,6 +342,9 @@ class MessageService:
         except Exception as e:
             print(f"[MESSAGE SERVICE ERROR] search_messages failed: {e}")
             return []
+        finally:
+            if cursor:
+                cursor.close()
     
     def cleanup_old_messages(self, days: int = 30) -> int:
         """
@@ -339,6 +359,7 @@ class MessageService:
         if not self.db_conn:
             return 0
         
+        cursor = None
         try:
             cursor = self.db_conn.cursor()
             
@@ -360,6 +381,9 @@ class MessageService:
             if self.db_conn:
                 self.db_conn.rollback()
             return 0
+        finally:
+            if cursor:
+                cursor.close()
     
     def close(self):
         """Close database connection if owned by this service"""
