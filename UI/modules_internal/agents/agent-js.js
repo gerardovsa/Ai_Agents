@@ -104,6 +104,18 @@ const MultiAgent = {
         'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa',
         'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'X-ray', 'Yankee', 'Zulu'],
 
+    // Rainbow color palette for session presence
+    PRESENCE_COLORS: [
+        '#3b82f6', // blue
+        '#10b981', // green
+        '#f59e0b', // orange
+        '#ef4444', // red
+        '#8b5cf6', // purple
+        '#ec4899', // pink
+        '#14b8a6', // teal
+        '#f97316'  // dark orange
+    ],
+
     // Semantic icon mapping - icons represent the NATO phonetic word itself
     agentIcons: [
         'fa-crosshairs',        // Alpha-1 (precision)
@@ -827,13 +839,20 @@ const MultiAgent = {
 
             if (column) {
                 column.classList.remove('other-session-viewing');
+                column.style.border = '';
+                column.style.boxShadow = '';
             }
             console.log(`[Agent ${agentId}] 👥 No other sessions viewing`);
             return;
         }
 
+        // Get rainbow color for this session
+        const sessionColor = this.getSessionColor(sessions[0].session_token);
+
         if (column) {
             column.classList.add('other-session-viewing');
+            column.style.border = `3px solid ${sessionColor}`;
+            column.style.boxShadow = `0 0 0 4px ${sessionColor}33`; // 20% opacity for outer glow
         }
 
         // Show indicator for multiple sessions
@@ -843,7 +862,7 @@ const MultiAgent = {
         if (sessions.length === 1) {
             const session = sessions[0];
             const displayName = session.display_name || session.user_name;
-            
+
             if (session.isYourOtherSession) {
                 // Your other device/session - show device label
                 const deviceLabel = this.getDeviceLabel(session.device);
@@ -890,6 +909,80 @@ const MultiAgent = {
         if (deviceStr.includes('Desktop')) return 'PC';
         if (deviceStr.includes('Phone') || deviceStr.includes('Mobile')) return 'Mobile';
         return 'PC';
+    },
+
+    // Get color for session based on hash of session token
+    getSessionColor(sessionToken) {
+        if (!sessionToken) return this.PRESENCE_COLORS[0];
+        const hash = sessionToken.split('').reduce((acc, char) => 
+            acc + char.charCodeAt(0), 0);
+        return this.PRESENCE_COLORS[hash % this.PRESENCE_COLORS.length];
+    },
+
+    // Show lock banner when agent is locked by another session
+    showLockBanner(agentId, lockedByDisplayName) {
+        const column = document.getElementById(`agent-column-${agentId}`);
+        if (!column) return;
+
+        // Add locked state
+        column.classList.add('locked-by-other');
+
+        // Create lock banner if it doesn't exist
+        let banner = column.querySelector('.agent-lock-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.className = 'agent-lock-banner';
+            banner.innerHTML = `<i class="fas fa-lock"></i> Locked by ${lockedByDisplayName || 'another user'}`;
+            column.appendChild(banner);
+        } else {
+            banner.innerHTML = `<i class="fas fa-lock"></i> Locked by ${lockedByDisplayName || 'another user'}`;
+            banner.style.display = 'flex';
+        }
+
+        console.log(`🔒 [Agent ${agentId}] Locked by ${lockedByDisplayName}`);
+    },
+
+    // Hide lock banner when agent is unlocked
+    hideLockBanner(agentId) {
+        const column = document.getElementById(`agent-column-${agentId}`);
+        if (!column) return;
+
+        // Remove locked state
+        column.classList.remove('locked-by-other');
+
+        // Hide banner
+        const banner = column.querySelector('.agent-lock-banner');
+        if (banner) {
+            banner.style.display = 'none';
+        }
+
+        console.log(`🔓 [Agent ${agentId}] Unlocked`);
+    },
+
+    // Disable agent input when locked by another session
+    disableAgentInput(agentId) {
+        // Try multiple possible input IDs
+        const input = document.getElementById(`agent-input-${agentId}`) || 
+                      document.getElementById(`input-${agentId}`);
+        
+        if (input) {
+            input.disabled = true;
+            input.placeholder = 'This agent is locked by another user...';
+            console.log(`⛔ [Agent ${agentId}] Input disabled`);
+        }
+    },
+
+    // Enable agent input when unlocked
+    enableAgentInput(agentId) {
+        // Try multiple possible input IDs
+        const input = document.getElementById(`agent-input-${agentId}`) || 
+                      document.getElementById(`input-${agentId}`);
+        
+        if (input) {
+            input.disabled = false;
+            input.placeholder = 'Message AI Agent...';
+            console.log(`✅ [Agent ${agentId}] Input enabled`);
+        }
     },
 
     // Legacy method - kept for backwards compatibility but redirects to new method
@@ -2603,6 +2696,169 @@ async function initMultiAgent() {
         }, 500);
     }
 
+    // Setup Socket.IO event listeners for real-time lock state changes
+    if (window.SynergyRealtime && window.SynergyRealtime.socket) {
+        const socket = window.SynergyRealtime.socket;
+        const mySessionToken = window.SynergyRealtime.sessionToken;
+
+        // Listen for thread lock events
+        socket.on('thread_locked', (data) => {
+            console.log('🔒 [Socket.IO] Received thread_locked event:', data);
+
+            // Don't show lock UI to the user who locked it
+            if (data.session_token === mySessionToken) {
+                console.log('🔒 [Socket.IO] This is my lock, skipping UI update');
+                return;
+            }
+
+            // Find which agent has this thread
+            const agentId = Object.keys(MultiAgent.loadedThreads).find(agentIdKey => {
+                const threadInfo = MultiAgent.loadedThreads[agentIdKey];
+                return threadInfo && threadInfo.threadId === data.thread_id;
+            });
+
+            if (agentId) {
+                const displayName = data.locked_by || 'another user';
+                MultiAgent.showLockBanner(parseInt(agentId), displayName);
+                MultiAgent.disableAgentInput(parseInt(agentId));
+                console.log(`🔒 [Socket.IO] Agent ${agentId} locked by ${displayName}`);
+            }
+        });
+
+        // Listen for thread unlock events
+        socket.on('thread_unlocked', (data) => {
+            console.log('🔓 [Socket.IO] Received thread_unlocked event:', data);
+
+            // Find which agent has this thread
+            const agentId = Object.keys(MultiAgent.loadedThreads).find(agentIdKey => {
+                const threadInfo = MultiAgent.loadedThreads[agentIdKey];
+                return threadInfo && threadInfo.threadId === data.thread_id;
+            });
+
+            if (agentId) {
+                MultiAgent.hideLockBanner(parseInt(agentId));
+                MultiAgent.enableAgentInput(parseInt(agentId));
+                console.log(`🔓 [Socket.IO] Agent ${agentId} unlocked`);
+            }
+        });
+
+        // Listen for real-time messages from other sessions
+        socket.on('agent_message_received', (data) => {
+            console.log('💬 [Socket.IO] Received agent_message_received event:', data);
+
+            // Don't render message if it's from this session (already rendered)
+            if (data.session_token === mySessionToken) {
+                console.log('💬 [Socket.IO] Message from my session, skipping');
+                return;
+            }
+
+            // Find which agent has this thread
+            const agentId = Object.keys(MultiAgent.loadedThreads).find(agentIdKey => {
+                const threadInfo = MultiAgent.loadedThreads[agentIdKey];
+                return threadInfo && threadInfo.threadId === data.thread_id;
+            });
+
+            if (agentId) {
+                const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+                if (!messagesContainer) {
+                    console.warn(`💬 [Socket.IO] Messages container not found for agent ${agentId}`);
+                    return;
+                }
+
+                // Render the message
+                const messageDiv = UnifiedMessageRenderer.render(
+                    `#agent-messages-${agentId}`,
+                    data.role,
+                    data.message,
+                    {
+                        threadId: data.thread_id,
+                        syncToBackend: false,
+                        contentBlocks: data.content_blocks
+                    }
+                );
+
+                if (messageDiv && typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
+                    AgentColumn.applyViewModeToMessage(parseInt(agentId), messageDiv);
+                }
+
+                scrollAgentToBottom(parseInt(agentId));
+                console.log(`💬 [Socket.IO] Rendered message in Agent ${agentId} from other session`);
+            } else {
+                console.log(`💬 [Socket.IO] Thread ${data.thread_id} not loaded in any agent`);
+            }
+        });
+
+        // Store Prime thread ID for lock checking (updated when Prime loads a thread)
+        window._primeThreadId = assignments['prime-loaded'] || null;
+
+        // Listen for Prime AI lock/unlock events
+        socket.on('thread_locked', (data) => {
+            if (data.session_token === mySessionToken) return;
+
+            // Check if Prime has this thread
+            if (window._primeThreadId && window._primeThreadId === data.thread_id) {
+                const displayName = data.locked_by || 'another user';
+                if (typeof PrimeAI !== 'undefined') {
+                    PrimeAI.showLockBanner(displayName);
+                    PrimeAI.disableInput();
+                    console.log(`🔒 [Socket.IO] Prime locked by ${displayName}`);
+                }
+            }
+        });
+
+        socket.on('thread_unlocked', (data) => {
+            if (data.session_token === mySessionToken) return;
+
+            // Check if Prime has this thread
+            if (window._primeThreadId && window._primeThreadId === data.thread_id) {
+                if (typeof PrimeAI !== 'undefined') {
+                    PrimeAI.hideLockBanner();
+                    PrimeAI.enableInput();
+                    console.log(`🔓 [Socket.IO] Prime unlocked`);
+                }
+            }
+        });
+
+        // Listen for Prime AI messages from other sessions
+        socket.on('agent_message_received', (data) => {
+            if (data.session_token === mySessionToken) return;
+
+            // Check if Prime has this thread
+            if (window._primeThreadId && window._primeThreadId === data.thread_id) {
+                const messagesContainer = document.getElementById('ai-chat-messages');
+                if (!messagesContainer) {
+                    console.warn(`💬 [Socket.IO] Prime messages container not found`);
+                    return;
+                }
+
+                // Render the message in Prime
+                const messageDiv = UnifiedMessageRenderer.render(
+                    '#ai-chat-messages',
+                    data.role,
+                    data.message,
+                    {
+                        threadId: data.thread_id,
+                        syncToBackend: false,
+                        contentBlocks: data.content_blocks
+                    }
+                );
+
+                if (messageDiv && typeof PrimeAI !== 'undefined' && typeof PrimeAI.applyViewModeToMessage === 'function') {
+                    PrimeAI.applyViewModeToMessage(messageDiv);
+                }
+
+                if (typeof PrimeChat !== 'undefined' && typeof PrimeChat.scrollToBottom === 'function') {
+                    PrimeChat.scrollToBottom();
+                }
+                console.log(`💬 [Socket.IO] Rendered message in Prime from other session`);
+            }
+        });
+
+        console.log('✅ [Socket.IO] Lock and message event listeners registered (Agents + Prime)');
+    } else {
+        console.warn('⚠️ [Socket.IO] SynergyRealtime not available, real-time features will not work');
+    }
+
     // [LOCK] FINAL WIDTH ENFORCEMENT: Ensure ALL columns (especially Delta+) load at default 400px
     // This runs AFTER thread restorations complete (1000ms delay covers all setTimeout operations)
     setTimeout(() => {
@@ -3527,6 +3783,18 @@ async function sendAgentMessage(agentId) {
         }
     );
     console.log(`[Agent ${agentId}] User message rendered`);
+
+    // ✅ BROADCAST: Emit message to other sessions
+    if (window.SynergyRealtime && window.SynergyRealtime.socket) {
+        window.SynergyRealtime.socket.emit('agent_message_sent', {
+            thread_id: currentThread.id,
+            agent_id: agentId,
+            message: displayMessage,
+            role: 'user',
+            session_token: window.SynergyRealtime.sessionToken
+        });
+        console.log(`📡 [Agent ${agentId}] Broadcasted user message to other sessions`);
+    }
 
     // ✅ APPLY VIEW MODE TO USER MESSAGE
     if (userMessageDiv && typeof AgentColumn !== 'undefined' && typeof AgentColumn.applyViewModeToMessage === 'function') {
@@ -4601,6 +4869,19 @@ async function sendAgentMessage(agentId) {
             // ========================================================================
             console.log(`[Agent ${agentId}] ✅ [SYNC] Message already synced via conversation_sync event`);
             console.log(`[Agent ${agentId}] 📊 Stream summary: ${toolsUsed.length} tools, thinking: ${fullThinkingContent ? 'yes' : 'no'}, text length: ${fullResponse.length}`);
+
+            // ✅ BROADCAST: Emit AI response to other sessions
+            if (window.SynergyRealtime && window.SynergyRealtime.socket) {
+                window.SynergyRealtime.socket.emit('agent_message_sent', {
+                    thread_id: threadForSaving.id,
+                    agent_id: agentId,
+                    message: fullResponse,
+                    role: 'assistant',
+                    content_blocks: fullContent,
+                    session_token: window.SynergyRealtime.sessionToken
+                });
+                console.log(`📡 [Agent ${agentId}] Broadcasted AI response to other sessions`);
+            }
 
             // Update thread timestamp to NOW (actual last activity)
             threadForSaving.updated = new Date().toISOString();

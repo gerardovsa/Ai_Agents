@@ -22,6 +22,32 @@ from utils.database_helpers import DatabaseConnectionError
 thread_bp = Blueprint('threads', __name__, url_prefix='/api/threads')
 
 # ============================================================
+# HELPER: Thread ID/Slug Lookup
+# ============================================================
+
+def get_thread_lookup_clause(thread_id):
+    """
+    Convert thread_id to appropriate WHERE clause and value.
+    Handles both new integer IDs and legacy timestamp-based slugs.
+    
+    Args:
+        thread_id: Thread identifier (int, str, or numeric string)
+        
+    Returns:
+        tuple: (where_clause, lookup_value)
+    """
+    try:
+        thread_id_int = int(thread_id)
+        # Large timestamp-like numbers (> 1 trillion) are legacy slugs
+        if thread_id_int > 1000000000000:
+            return ("t.thread_slug = %s", str(thread_id))
+        else:
+            return ("t.id = %s", thread_id_int)
+    except (ValueError, TypeError):
+        # Non-numeric string, use as slug
+        return ("t.thread_slug = %s", thread_id)
+
+# ============================================================
 # AGENT MANAGEMENT (for Communication Hub integration)
 # ============================================================
 
@@ -2008,26 +2034,26 @@ def get_messages():
         with get_database_connection('sessions') as conn:
             cursor = conn.cursor()
             
-            # Get total message count
-            # Support both thread_slug (string) and thread_id (integer)
-            # Try as integer first, fallback to slug
-            try:
-                thread_id_int = int(thread_id)
-                where_clause = "t.id = %s"
-            except (ValueError, TypeError):
-                thread_id_int = thread_id
-                where_clause = "t.thread_slug = %s"
+            # Get WHERE clause for thread lookup (handles both ID and slug)
+            where_clause, lookup_value = get_thread_lookup_clause(thread_id)
+            print(f"[THREAD MESSAGES] thread_id={thread_id} -> WHERE {where_clause}, value={lookup_value} (type: {type(lookup_value)})")
             
+            # Get total message count
             sql, params = convert_sql_placeholders(f"""
                 SELECT COUNT(m.id) as total
                 FROM sessions.messages m
                 JOIN sessions.threads t ON m.thread_id = t.id
                 WHERE {where_clause}
-            """, (thread_id_int,))
+            """, (lookup_value,))
+            
+            print(f"[THREAD MESSAGES] SQL: {sql}")
+            print(f"[THREAD MESSAGES] Params: {params}")
             
             cursor.execute(sql, params)
             result = cursor.fetchone()
             total_count = result['total'] if isinstance(result, dict) else result[0]
+            
+            print(f"[THREAD MESSAGES] Total count: {total_count}")
             
             # Query messages
             if limit:
@@ -2045,7 +2071,7 @@ def get_messages():
                     WHERE {where_clause}
                     ORDER BY m.created_at DESC
                     LIMIT %s OFFSET %s
-                """, (thread_id_int, limit, offset))
+                """, (lookup_value, limit, offset))
             else:
                 sql, params = convert_sql_placeholders(f"""
                     SELECT 
@@ -2060,7 +2086,7 @@ def get_messages():
                     JOIN sessions.threads t ON m.thread_id = t.id
                     WHERE {where_clause}
                     ORDER BY m.created_at ASC
-                """, (thread_id_int,))
+                """, (lookup_value,))
             
             cursor.execute(sql, params)
             rows = cursor.fetchall()

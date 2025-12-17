@@ -1359,6 +1359,161 @@ class QueryLibrary:
                 "visualization": "line_chart",
                 "best_for": "Cost monitoring, supplier negotiation, budget planning",
                 "validated": False
+            },
+            
+            # ============================================
+            # CALCULATOR PRICING MANAGEMENT
+            # ============================================
+            "get_pricing_constant": {
+                "category": "Calculator Pricing Management",
+                "description": "Get complete details for a pricing parameter including base value, all calculator overrides, and variance statistics",
+                "parameters": {
+                    "parameter_name": {
+                        "type": "string",
+                        "description": "Name of the pricing parameter (e.g., 'impos_setup', 'markup_multiplier')",
+                        "required": True
+                    },
+                    "calculator_name": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific calculator (e.g., 'BollardSigns', 'BusinessCards')",
+                        "default": None
+                    }
+                },
+                "returns": "parameter_name, base_value, data_type, override_count, calculator_name, override_value, variance_pct, min_value, max_value, mean_value, median_value",
+                "visualization": "table_with_stats",
+                "best_for": "Understanding parameter pricing across calculators, identifying price variations, checking override values before updates",
+                "validated": True
+            },
+            
+            "get_calculator_config": {
+                "category": "Calculator Pricing Management",
+                "description": "Get complete pricing configuration for a calculator including all parameters used, active overrides, and product options",
+                "parameters": {
+                    "calculator_name": {
+                        "type": "string",
+                        "description": "Name of calculator (e.g., 'BollardSigns', 'BusinessCards', 'PerfectBoundBooks')",
+                        "required": True
+                    },
+                    "include_product_options": {
+                        "type": "boolean",
+                        "description": "Include product options with choices (default: true)",
+                        "default": True
+                    }
+                },
+                "returns": "calculator_name, calculator_file, parameters_used, active_overrides, product_options, option_choices",
+                "visualization": "nested_table",
+                "best_for": "Full calculator audit, verifying configuration, preparing for calculator updates, debugging pricing issues",
+                "validated": True
+            },
+            
+            "get_product_options_for_calculator": {
+                "category": "Calculator Pricing Management",
+                "description": "Get all product options with choices for a specific calculator, including prices and price types",
+                "parameters": {
+                    "calculator_name": {
+                        "type": "string",
+                        "description": "Name of calculator",
+                        "required": True
+                    },
+                    "include_inactive": {
+                        "type": "boolean",
+                        "description": "Include inactive options (default: false)",
+                        "default": False
+                    }
+                },
+                "returns": "option_name, option_type, choice_value, choice_label, price, price_type, is_default, display_order",
+                "visualization": "grouped_table",
+                "best_for": "Reviewing customer-facing options, checking option prices, verifying product configurations",
+                "validated": True
+            },
+            
+            "find_high_variance_parameters": {
+                "category": "Calculator Pricing Management",
+                "description": "Find pricing parameters with high variance across calculators (indicates significant price differences)",
+                "parameters": {
+                    "variance_threshold": {
+                        "type": "float",
+                        "description": "Minimum variance percentage to include (default: 100)",
+                        "default": 100.0
+                    },
+                    "min_calculators": {
+                        "type": "integer",
+                        "description": "Minimum number of calculators using parameter (default: 3)",
+                        "default": 3
+                    }
+                },
+                "returns": "parameter_name, base_value, variance_pct, min_value, max_value, calculator_count, calculators_list",
+                "visualization": "bar_chart",
+                "best_for": "Identifying pricing inconsistencies, finding parameters needing standardization, audit review",
+                "validated": True
+            },
+            
+            "get_parameter_usage_map": {
+                "category": "Calculator Pricing Management",
+                "description": "Show which calculators use which pricing parameters - useful for impact analysis before parameter changes",
+                "parameters": {
+                    "parameter_name": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific parameter",
+                        "default": None
+                    },
+                    "min_calculators": {
+                        "type": "integer",
+                        "description": "Minimum number of calculators to include (default: 2)",
+                        "default": 2
+                    }
+                },
+                "returns": "parameter_name, calculator_count, calculator_names, has_overrides, override_count",
+                "visualization": "network_graph",
+                "best_for": "Impact analysis before changes, understanding parameter dependencies, finding shared parameters",
+                "validated": True
+            },
+            
+            "search_product_options": {
+                "category": "Calculator Pricing Management",
+                "description": "Search product options by name, type, or calculator - useful for finding specific options across all calculators",
+                "parameters": {
+                    "search_term": {
+                        "type": "string",
+                        "description": "Search term for option name (partial match, case-insensitive)",
+                        "default": None
+                    },
+                    "calculator_name": {
+                        "type": "string",
+                        "description": "Filter to specific calculator",
+                        "default": None
+                    },
+                    "option_type": {
+                        "type": "string",
+                        "description": "Filter by option type (select, radio, checkbox, etc.)",
+                        "default": None
+                    }
+                },
+                "returns": "option_name, option_type, calculator_name, choice_count, has_prices, price_range",
+                "visualization": "table",
+                "best_for": "Finding options across calculators, discovering similar configurations, bulk option analysis",
+                "validated": True
+            },
+            
+            "get_option_price_variance": {
+                "category": "Calculator Pricing Management",
+                "description": "Find product options with high price variance across choices - identifies options with wide price ranges",
+                "parameters": {
+                    "calculator_name": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific calculator",
+                        "default": None
+                    },
+                    "min_choices": {
+                        "type": "integer",
+                        "description": "Minimum number of choices (default: 3)",
+                        "default": 3
+                    }
+                },
+                "returns": "option_name, calculator_name, choice_count, min_price, max_price, avg_price, price_range, variance_pct",
+                "visualization": "bar_chart",
+                "best_for": "Reviewing pricing spreads, identifying premium vs standard options, price audit",
+                "validated": True
             }
         }
     
@@ -1926,6 +2081,22 @@ class QueryLibrary:
             else:
                 months = parameters.get('months', 6)
             return self._sql_stock_pricing_profitability(months=months)
+        
+        # CALCULATOR PRICING MANAGEMENT QUERIES (NEW - SUPABASE POSTGRESQL)
+        elif query_name == "get_pricing_constant":
+            return self._sql_get_pricing_constant(parameters)
+        elif query_name == "get_calculator_config":
+            return self._sql_get_calculator_config(parameters)
+        elif query_name == "get_product_options_for_calculator":
+            return self._sql_get_product_options_for_calculator(parameters)
+        elif query_name == "find_high_variance_parameters":
+            return self._sql_find_high_variance_parameters(parameters)
+        elif query_name == "get_parameter_usage_map":
+            return self._sql_get_parameter_usage_map(parameters)
+        elif query_name == "search_product_options":
+            return self._sql_search_product_options(parameters)
+        elif query_name == "get_option_price_variance":
+            return self._sql_get_option_price_variance(parameters)
         
         else:
             raise NotImplementedError(f"SQL generator for '{query_name}' not yet implemented")
@@ -4912,6 +5083,366 @@ class QueryLibrary:
             'validation_rate': f"{validated/total*100:.1f}%",
             'categories': categories
         }
+    
+    # ============================================
+    # CALCULATOR PRICING MANAGEMENT SQL GENERATORS
+    # ============================================
+    
+    def _sql_get_pricing_constant(self, params: Dict[str, Any]) -> str:
+        """Get pricing parameter with all overrides and statistics"""
+        parameter_name = params['parameter_name']
+        calculator_name = params.get('calculator_name')
+        
+        if calculator_name:
+            # Filter to specific calculator
+            return f"""
+            SELECT 
+                p.parameter_name,
+                p.base_value,
+                p.data_type,
+                (p.value_statistics->>'variance_pct')::numeric AS variance_pct,
+                (p.value_statistics->>'min')::numeric AS min_value,
+                (p.value_statistics->>'max')::numeric AS max_value,
+                (p.value_statistics->>'mean')::numeric AS mean_value,
+                (p.value_statistics->>'median')::numeric AS median_value,
+                o.calculator_name,
+                o.value AS override_value,
+                o.updated_at AS override_updated_at
+            FROM calculator_pricing_parameters p
+            LEFT JOIN calculator_parameter_overrides o 
+                ON p.parameter_id = o.parameter_id 
+                AND o.is_active = TRUE
+            WHERE p.parameter_name = '{parameter_name}'
+                AND p.is_active = TRUE
+                AND (o.calculator_name = '{calculator_name}' OR o.calculator_name IS NULL)
+            ORDER BY o.calculator_name NULLS FIRST;
+            """
+        else:
+            # Show all calculator overrides
+            return f"""
+            SELECT 
+                p.parameter_name,
+                p.base_value,
+                p.data_type,
+                (p.value_statistics->>'variance_pct')::numeric AS variance_pct,
+                (p.value_statistics->>'min')::numeric AS min_value,
+                (p.value_statistics->>'max')::numeric AS max_value,
+                (p.value_statistics->>'mean')::numeric AS mean_value,
+                (p.value_statistics->>'median')::numeric AS median_value,
+                COALESCE(
+                    (SELECT COUNT(*) FROM calculator_parameter_overrides 
+                     WHERE parameter_id = p.parameter_id AND is_active = TRUE),
+                    0
+                ) AS override_count,
+                o.calculator_name,
+                o.value AS override_value,
+                o.updated_at AS override_updated_at
+            FROM calculator_pricing_parameters p
+            LEFT JOIN calculator_parameter_overrides o 
+                ON p.parameter_id = o.parameter_id 
+                AND o.is_active = TRUE
+            WHERE p.parameter_name = '{parameter_name}'
+                AND p.is_active = TRUE
+            ORDER BY o.calculator_name;
+            """
+    
+    def _sql_get_calculator_config(self, params: Dict[str, Any]) -> str:
+        """Get complete calculator configuration"""
+        calculator_name = params['calculator_name']
+        include_product_options = params.get('include_product_options', True)
+        
+        if include_product_options:
+            return f"""
+            WITH calculator_params AS (
+                SELECT 
+                    c.calculator_name,
+                    c.calculator_file,
+                    jsonb_agg(DISTINCT p.parameter_name) AS parameters_used,
+                    COUNT(DISTINCT p.parameter_id) AS parameter_count
+                FROM calculators_registry c
+                LEFT JOIN calculator_pricing_parameters p 
+                    ON c.calculator_name = ANY(
+                        SELECT jsonb_array_elements_text(p.used_by_calculators)
+                    )
+                WHERE c.calculator_name = '{calculator_name}'
+                    AND c.is_active = TRUE
+                GROUP BY c.calculator_name, c.calculator_file
+            ),
+            calculator_overrides AS (
+                SELECT 
+                    c.calculator_name,
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'parameter_name', p.parameter_name,
+                            'override_value', o.value,
+                            'base_value', p.base_value,
+                            'updated_at', o.updated_at
+                        ) ORDER BY p.parameter_name
+                    ) AS active_overrides,
+                    COUNT(*) AS override_count
+                FROM calculators_registry c
+                INNER JOIN calculator_parameter_overrides o 
+                    ON c.calculator_name = o.calculator_name
+                INNER JOIN calculator_pricing_parameters p 
+                    ON o.parameter_id = p.parameter_id
+                WHERE c.calculator_name = '{calculator_name}'
+                    AND o.is_active = TRUE
+                    AND p.is_active = TRUE
+                GROUP BY c.calculator_name
+            ),
+            calculator_options AS (
+                SELECT 
+                    c.calculator_name,
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'option_name', po.option_name,
+                            'option_type', po.option_type,
+                            'choice_count', (
+                                SELECT COUNT(*) 
+                                FROM product_option_choices poc 
+                                WHERE poc.option_id = po.option_id 
+                                AND poc.is_active = TRUE
+                            )
+                        ) ORDER BY po.option_name
+                    ) AS product_options,
+                    COUNT(*) AS option_count
+                FROM calculators_registry c
+                INNER JOIN product_options po 
+                    ON c.calculator_name = po.calculator_name
+                WHERE c.calculator_name = '{calculator_name}'
+                    AND po.is_active = TRUE
+                GROUP BY c.calculator_name
+            )
+            SELECT 
+                cp.calculator_name,
+                cp.calculator_file,
+                cp.parameters_used,
+                cp.parameter_count,
+                COALESCE(co.active_overrides, '[]'::jsonb) AS active_overrides,
+                COALESCE(co.override_count, 0) AS override_count,
+                COALESCE(copt.product_options, '[]'::jsonb) AS product_options,
+                COALESCE(copt.option_count, 0) AS option_count
+            FROM calculator_params cp
+            LEFT JOIN calculator_overrides co ON cp.calculator_name = co.calculator_name
+            LEFT JOIN calculator_options copt ON cp.calculator_name = copt.calculator_name;
+            """
+        else:
+            return f"""
+            WITH calculator_params AS (
+                SELECT 
+                    c.calculator_name,
+                    c.calculator_file,
+                    jsonb_agg(DISTINCT p.parameter_name) AS parameters_used,
+                    COUNT(DISTINCT p.parameter_id) AS parameter_count
+                FROM calculators_registry c
+                LEFT JOIN calculator_pricing_parameters p 
+                    ON c.calculator_name = ANY(
+                        SELECT jsonb_array_elements_text(p.used_by_calculators)
+                    )
+                WHERE c.calculator_name = '{calculator_name}'
+                    AND c.is_active = TRUE
+                GROUP BY c.calculator_name, c.calculator_file
+            ),
+            calculator_overrides AS (
+                SELECT 
+                    c.calculator_name,
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'parameter_name', p.parameter_name,
+                            'override_value', o.value,
+                            'base_value', p.base_value
+                        ) ORDER BY p.parameter_name
+                    ) AS active_overrides,
+                    COUNT(*) AS override_count
+                FROM calculators_registry c
+                INNER JOIN calculator_parameter_overrides o 
+                    ON c.calculator_name = o.calculator_name
+                INNER JOIN calculator_pricing_parameters p 
+                    ON o.parameter_id = p.parameter_id
+                WHERE c.calculator_name = '{calculator_name}'
+                    AND o.is_active = TRUE
+                    AND p.is_active = TRUE
+                GROUP BY c.calculator_name
+            )
+            SELECT 
+                cp.calculator_name,
+                cp.calculator_file,
+                cp.parameters_used,
+                cp.parameter_count,
+                COALESCE(co.active_overrides, '[]'::jsonb) AS active_overrides,
+                COALESCE(co.override_count, 0) AS override_count
+            FROM calculator_params cp
+            LEFT JOIN calculator_overrides co ON cp.calculator_name = co.calculator_name;
+            """
+    
+    def _sql_get_product_options_for_calculator(self, params: Dict[str, Any]) -> str:
+        """Get product options with choices for calculator"""
+        calculator_name = params['calculator_name']
+        include_inactive = params.get('include_inactive', False)
+        
+        active_filter = "" if include_inactive else "AND po.is_active = TRUE AND poc.is_active = TRUE"
+        
+        return f"""
+        SELECT 
+            po.option_name,
+            po.option_type,
+            poc.choice_value,
+            poc.choice_label,
+            poc.price,
+            poc.price_type,
+            poc.is_default,
+            poc.display_order,
+            po.created_at AS option_created,
+            poc.created_at AS choice_created
+        FROM product_options po
+        INNER JOIN product_option_choices poc 
+            ON po.option_id = poc.option_id
+        WHERE po.calculator_name = '{calculator_name}'
+            {active_filter}
+        ORDER BY po.option_name, poc.display_order, poc.choice_value;
+        """
+    
+    def _sql_find_high_variance_parameters(self, params: Dict[str, Any]) -> str:
+        """Find parameters with high price variance"""
+        variance_threshold = params.get('variance_threshold', 100.0)
+        min_calculators = params.get('min_calculators', 3)
+        
+        return f"""
+        SELECT 
+            p.parameter_name,
+            p.base_value,
+            (p.value_statistics->>'variance_pct')::numeric AS variance_pct,
+            (p.value_statistics->>'min')::numeric AS min_value,
+            (p.value_statistics->>'max')::numeric AS max_value,
+            (p.value_statistics->>'mean')::numeric AS mean_value,
+            jsonb_array_length(p.used_by_calculators) AS calculator_count,
+            p.used_by_calculators AS calculators_list
+        FROM calculator_pricing_parameters p
+        WHERE p.is_active = TRUE
+            AND (p.value_statistics->>'variance_pct')::numeric >= {variance_threshold}
+            AND jsonb_array_length(p.used_by_calculators) >= {min_calculators}
+        ORDER BY (p.value_statistics->>'variance_pct')::numeric DESC;
+        """
+    
+    def _sql_get_parameter_usage_map(self, params: Dict[str, Any]) -> str:
+        """Show parameter usage across calculators"""
+        parameter_name = params.get('parameter_name')
+        min_calculators = params.get('min_calculators', 2)
+        
+        if parameter_name:
+            return f"""
+            SELECT 
+                p.parameter_name,
+                jsonb_array_length(p.used_by_calculators) AS calculator_count,
+                p.used_by_calculators AS calculator_names,
+                EXISTS(
+                    SELECT 1 FROM calculator_parameter_overrides o 
+                    WHERE o.parameter_id = p.parameter_id 
+                    AND o.is_active = TRUE
+                ) AS has_overrides,
+                (
+                    SELECT COUNT(*) FROM calculator_parameter_overrides o 
+                    WHERE o.parameter_id = p.parameter_id 
+                    AND o.is_active = TRUE
+                ) AS override_count
+            FROM calculator_pricing_parameters p
+            WHERE p.parameter_name = '{parameter_name}'
+                AND p.is_active = TRUE;
+            """
+        else:
+            return f"""
+            SELECT 
+                p.parameter_name,
+                jsonb_array_length(p.used_by_calculators) AS calculator_count,
+                p.used_by_calculators AS calculator_names,
+                EXISTS(
+                    SELECT 1 FROM calculator_parameter_overrides o 
+                    WHERE o.parameter_id = p.parameter_id 
+                    AND o.is_active = TRUE
+                ) AS has_overrides,
+                (
+                    SELECT COUNT(*) FROM calculator_parameter_overrides o 
+                    WHERE o.parameter_id = p.parameter_id 
+                    AND o.is_active = TRUE
+                ) AS override_count
+            FROM calculator_pricing_parameters p
+            WHERE p.is_active = TRUE
+                AND jsonb_array_length(p.used_by_calculators) >= {min_calculators}
+            ORDER BY jsonb_array_length(p.used_by_calculators) DESC;
+            """
+    
+    def _sql_search_product_options(self, params: Dict[str, Any]) -> str:
+        """Search product options across calculators"""
+        search_term = params.get('search_term')
+        calculator_name = params.get('calculator_name')
+        option_type = params.get('option_type')
+        
+        filters = []
+        if search_term:
+            filters.append(f"po.option_name ILIKE '%{search_term}%'")
+        if calculator_name:
+            filters.append(f"po.calculator_name = '{calculator_name}'")
+        if option_type:
+            filters.append(f"po.option_type = '{option_type}'")
+        
+        where_clause = "WHERE po.is_active = TRUE"
+        if filters:
+            where_clause += " AND " + " AND ".join(filters)
+        
+        return f"""
+        SELECT 
+            po.option_name,
+            po.option_type,
+            po.calculator_name,
+            COUNT(poc.choice_id) AS choice_count,
+            BOOL_OR(poc.price IS NOT NULL AND poc.price > 0) AS has_prices,
+            CASE 
+                WHEN MIN(poc.price) IS NOT NULL 
+                THEN CONCAT('$', ROUND(MIN(poc.price)::numeric, 2), ' - $', ROUND(MAX(poc.price)::numeric, 2))
+                ELSE 'No prices'
+            END AS price_range
+        FROM product_options po
+        LEFT JOIN product_option_choices poc 
+            ON po.option_id = poc.option_id 
+            AND poc.is_active = TRUE
+        {where_clause}
+        GROUP BY po.option_id, po.option_name, po.option_type, po.calculator_name
+        ORDER BY po.option_name;
+        """
+    
+    def _sql_get_option_price_variance(self, params: Dict[str, Any]) -> str:
+        """Find product options with high price variance"""
+        calculator_name = params.get('calculator_name')
+        min_choices = params.get('min_choices', 3)
+        
+        calculator_filter = f"AND po.calculator_name = '{calculator_name}'" if calculator_name else ""
+        
+        return f"""
+        SELECT 
+            po.option_name,
+            po.calculator_name,
+            COUNT(poc.choice_id) AS choice_count,
+            MIN(poc.price) AS min_price,
+            MAX(poc.price) AS max_price,
+            AVG(poc.price) AS avg_price,
+            MAX(poc.price) - MIN(poc.price) AS price_range,
+            CASE 
+                WHEN AVG(poc.price) > 0 
+                THEN ROUND((STDDEV(poc.price) / AVG(poc.price) * 100)::numeric, 1)
+                ELSE 0
+            END AS variance_pct
+        FROM product_options po
+        INNER JOIN product_option_choices poc 
+            ON po.option_id = poc.option_id
+        WHERE po.is_active = TRUE
+            AND poc.is_active = TRUE
+            AND poc.price IS NOT NULL
+            AND poc.price > 0
+            {calculator_filter}
+        GROUP BY po.option_id, po.option_name, po.calculator_name
+        HAVING COUNT(poc.choice_id) >= {min_choices}
+        ORDER BY variance_pct DESC;
+        """
 
 
 # ============================================

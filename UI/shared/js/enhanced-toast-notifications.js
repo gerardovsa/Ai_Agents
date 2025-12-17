@@ -102,7 +102,7 @@ window.EnhancedToast = {
 
         // Add to notification sidebar
         this._addToNotificationSidebar(messageData, type, messageId);
-        
+
         // Mark message as read (auto-read on display)
         this._markMessageAsRead(messageId);
     },
@@ -525,13 +525,13 @@ toastStyles.textContent = `
 document.head.appendChild(toastStyles);
 
 // Add helper methods to EnhancedToast
-EnhancedToast._markMessageAsRead = function(messageId) {
+EnhancedToast._markMessageAsRead = function (messageId) {
     /**
      * Mark message as read via WebSocket
      * Called automatically when toast is displayed
      */
     if (!messageId) return;
-    
+
     if (window.SynergyRealtime && SynergyRealtime.isConnected()) {
         const userId = SynergyRealtime._getUserId();
         if (userId) {
@@ -539,7 +539,7 @@ EnhancedToast._markMessageAsRead = function(messageId) {
                 message_id: messageId,
                 user_id: userId
             });
-            
+
             console.log(`[TOAST] Marked message ${messageId} as read`);
         }
     }

@@ -1705,6 +1705,48 @@ def ws_synergy_broadcast_message(data):
     except Exception as e:
         log_error(logger, f"[WS ERROR] broadcast_message failed: {e}")
 
+@socketio.on('agent_message_sent', namespace='/ws/synergy')
+def ws_synergy_agent_message_sent(data):
+    """Broadcast agent message to other sessions viewing the same thread"""
+    from flask_socketio import emit
+    from flask import request as flask_request
+    
+    try:
+        thread_id = data.get('thread_id')
+        agent_id = data.get('agent_id')
+        message = data.get('message')
+        role = data.get('role')
+        content_blocks = data.get('content_blocks')
+        session_token = data.get('session_token')
+        
+        if not thread_id or not message:
+            log_warning(logger, "[WS] Invalid agent_message_sent - missing thread_id or message")
+            return
+        
+        # Get user_id from session or token
+        user_id = flask_session.get('user_id')
+        
+        if not user_id:
+            log_warning(logger, "[WS] Cannot broadcast agent message - no user_id in session")
+            return
+        
+        # Broadcast to all sessions in this user's room (except sender)
+        emit('agent_message_received', {
+            'source': 'socket.io',
+            'thread_id': thread_id,
+            'agent_id': agent_id,
+            'message': message,
+            'role': role,
+            'content_blocks': content_blocks,
+            'session_token': session_token,
+            'timestamp': datetime.now().isoformat()
+        }, room=f'user_{user_id}', skip_sid=flask_request.sid)
+        
+        log_config(logger, f"[WS] Agent message broadcast: thread={thread_id}, agent={agent_id}, role={role}")
+        
+    except Exception as e:
+        log_error(logger, f"[WS ERROR] agent_message_sent failed: {e}")
+
 @socketio.on('typing_start', namespace='/ws/synergy')
 def ws_synergy_typing_start(data):
     """User started typing"""

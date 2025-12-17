@@ -28,6 +28,26 @@ from shared.database_utils import get_database_connection, convert_sql_placehold
 import json
 from datetime import datetime
 
+# ============================================================
+# HELPER: Thread ID/Slug Lookup
+# ============================================================
+
+def get_thread_lookup_clause(thread_id):
+    """
+    Convert thread_id to appropriate WHERE clause and value.
+    Handles both new integer IDs and legacy timestamp-based slugs.
+    """
+    try:
+        thread_id_int = int(thread_id)
+        # Large timestamp-like numbers (> 1 trillion) are legacy slugs
+        if thread_id_int > 1000000000000:
+            return ("t.thread_slug = %s", str(thread_id))
+        else:
+            return ("t.id = %s", thread_id_int)
+    except (ValueError, TypeError):
+        # Non-numeric string, use as slug
+        return ("t.thread_slug = %s", thread_id)
+
 message_ops_bp = Blueprint('message_ops', __name__, url_prefix='/api/messages')
 
 def success_response(data, message="Success"):
@@ -514,10 +534,13 @@ def export_thread():
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
+        # Get WHERE clause for thread lookup (handles both ID and slug)
+        where_clause, lookup_value = get_thread_lookup_clause(thread_id)
+        
         # Get thread
         sql, params = convert_sql_placeholders(
-            "SELECT * FROM sessions.threads WHERE id = %s",
-            (thread_id,)
+            f"SELECT * FROM sessions.threads t WHERE {where_clause}",
+            (lookup_value,)
         )
         cursor.execute(sql, params)
         thread = cursor.fetchone()
@@ -529,12 +552,15 @@ def export_thread():
             conn = None
             return error_response("Thread not found", 404)
         
+        # Use actual thread.id for messages lookup (not the slug)
+        actual_thread_id = thread['id']
+        
         # Get messages
         sql, params = convert_sql_placeholders("""
             SELECT * FROM sessions.messages 
             WHERE thread_id = %s 
             ORDER BY created_at ASC
-        """, (thread_id,))
+        """, (actual_thread_id,))
         cursor.execute(sql, params)
         messages = cursor.fetchall()
         

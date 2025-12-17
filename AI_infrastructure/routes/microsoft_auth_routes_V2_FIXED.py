@@ -512,7 +512,7 @@ def microsoft_login():
             if is_using_supabase():
                 # PostgreSQL: CURRENT_TIMESTAMP and INTERVAL
                 sql = """
-                    INSERT INTO oauth_states (state, platform, created_at, expires_at)
+                    INSERT INTO ai_infrastructure.oauth_states (state, platform, created_at, expires_at)
                     VALUES (%s, 'microsoft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
                 """
                 sql, params = convert_sql_placeholders(sql, (state,))
@@ -579,7 +579,7 @@ def microsoft_login():
             cursor2 = conn2.cursor()
             
             sql, params = convert_sql_placeholders(
-                "UPDATE oauth_states SET return_url = %s WHERE state = %s",
+                "UPDATE ai_infrastructure.oauth_states SET return_url = %s WHERE state = %s",
                 (return_url, state)
             )
             
@@ -676,7 +676,7 @@ def microsoft_callback():
             if is_using_supabase():
                 # PostgreSQL: CURRENT_TIMESTAMP
                 sql = """
-                    SELECT state, return_url, expires_at FROM oauth_states 
+                    SELECT state, return_url, expires_at FROM ai_infrastructure.oauth_states 
                     WHERE state = %s AND platform = 'microsoft'
                     AND expires_at > CURRENT_TIMESTAMP
                 """
@@ -699,7 +699,7 @@ def microsoft_callback():
                 
                 # Delete used state
                 delete_sql, delete_params = convert_sql_placeholders(
-                    "DELETE FROM oauth_states WHERE state = %s", (state,)
+                    "DELETE FROM ai_infrastructure.oauth_states WHERE state = %s", (state,)
                 )
                 cursor.execute(delete_sql, delete_params)
             

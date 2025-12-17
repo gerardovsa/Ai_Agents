@@ -38,6 +38,9 @@ const DeviceLockManager = {
 
         console.log('[Device Lock] Initialized:', { deviceId: this.deviceId, deviceName: this.deviceName });
 
+        // ✅ NEW: Listen for realtime lock/unlock events from Socket.IO
+        this.setupRealtimeLockListeners();
+
         // Dispatch ready event for other modules (e.g., thread-lock-toggle.js)
         window.dispatchEvent(new CustomEvent('devicelockmanager-ready', {
             detail: {
@@ -45,6 +48,64 @@ const DeviceLockManager = {
                 deviceName: this.deviceName
             }
         }));
+    },
+
+    // ✅ NEW: Setup Socket.IO listeners for lock events
+    setupRealtimeLockListeners() {
+        // Prevent infinite retry loop
+        if (this._realtimeListenersSetup) {
+            return;
+        }
+
+        if (!window.SynergyRealtime || !window.SynergyRealtime.socket) {
+            // Max 10 retries (10 seconds)
+            this._retryCount = (this._retryCount || 0) + 1;
+            if (this._retryCount > 10) {
+                console.warn('[Device Lock] SynergyRealtime not available after 10 retries - giving up');
+                return;
+            }
+            setTimeout(() => this.setupRealtimeLockListeners(), 1000);
+            return;
+        }
+
+        this._realtimeListenersSetup = true;
+
+        const socket = window.SynergyRealtime.socket;
+
+        // Listen for thread_locked events
+        socket.on('thread_locked', (data) => {
+            console.log('[Device Lock] Thread locked by another session:', data);
+
+            const { thread_id, locked_by, session_token } = data;
+            const isCurrentSession = session_token === window.SynergyRealtime.sessionToken;
+
+            if (isCurrentSession) {
+                // This session locked it - show unlock button
+                this.showUnlockButton(thread_id);
+                this.hideLockBanner();
+            } else {
+                // Another session locked it - show locked status
+                this.showLockedStatus(thread_id, locked_by);
+                this.disableChatInput();
+                this.showLockBanner(locked_by);
+            }
+        });
+
+        // Listen for thread_unlocked events
+        socket.on('thread_unlocked', (data) => {
+            console.log('[Device Lock] Thread unlocked:', data);
+
+            const { thread_id } = data;
+            this.showLockButton(thread_id);
+            this.enableChatInput();
+            this.hideLockBanner();
+
+            // Remove locked class from thread cards
+            const threadCards = document.querySelectorAll(`[data-thread-id="${thread_id}"]`);
+            threadCards.forEach(card => card.classList.remove('locked'));
+        });
+
+        console.log('[Device Lock] Realtime listeners setup complete');
     },
 
     generateDeviceId() {
@@ -195,12 +256,18 @@ const DeviceLockManager = {
         try {
             console.log(`[Device Lock] Locking thread ${threadId}...`);
 
-            const response = await fetch(`${API_BASE_URL}/api/threads/${threadId}/lock`, {
+            // Get display name from localStorage
+            const displayName = localStorage.getItem('session_display_name') || this.deviceName;
+            const sessionToken = window.SynergyRealtime?.sessionToken;
+
+            const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}/lock`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     device_id: this.deviceId,
-                    user_id: UserAuth.user?.user_id || UserAuth.user?.id || 1
+                    user_id: UserAuth.user?.user_id || UserAuth.user?.id || 1,
+                    display_name: displayName,  // NEW: Send display name
+                    session_token: sessionToken  // NEW: Send session token
                 })
             });
 
@@ -222,7 +289,7 @@ const DeviceLockManager = {
                     lockStatus.style.display = 'none';
                 }
 
-                this.showNotification(`Thread locked to ${this.deviceName}`, 'success');
+                this.showNotification(`Thread locked to ${displayName}`, 'success');
             } else {
                 console.error('[Device Lock] Lock failed:', result.error);
                 this.showNotification(`Failed to lock: ${result.error}`, 'error');
@@ -237,12 +304,15 @@ const DeviceLockManager = {
         try {
             console.log(`[Device Lock] Unlocking thread ${threadId}...`);
 
-            const response = await fetch(`${API_BASE_URL}/api/threads/${threadId}/unlock`, {
+            const sessionToken = window.SynergyRealtime?.sessionToken;
+
+            const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}/unlock`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     device_id: this.deviceId,
-                    user_id: UserAuth.user?.user_id || UserAuth.user?.id || 1
+                    user_id: UserAuth.user?.user_id || UserAuth.user?.id || 1,
+                    session_token: sessionToken  // NEW: Send session token
                 })
             });
 
@@ -273,6 +343,22 @@ const DeviceLockManager = {
         } catch (error) {
             console.error('[Device Lock] Unlock error:', error);
             this.showNotification('Failed to unlock thread', 'error');
+        }
+    },
+
+    showLockBanner(displayName) {
+        const banner = document.getElementById('threadLockBanner');
+        const userEl = document.getElementById('threadLockBannerUser');
+        if (banner && userEl) {
+            userEl.textContent = displayName || 'Another user';
+            banner.style.display = 'block';
+        }
+    },
+
+    hideLockBanner() {
+        const banner = document.getElementById('threadLockBanner');
+        if (banner) {
+            banner.style.display = 'none';
         }
     },
 

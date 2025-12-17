@@ -2837,7 +2837,66 @@ const PrimeAI = {
     toggleThinkingToolBubbles: toggleThinkingToolBubblesPrime,
     toggleViewModeMenu: toggleViewModeMenuPrime,
     setViewMode: setViewModePrime,
-    unloadThread: unloadThreadFromPrime
+    unloadThread: unloadThreadFromPrime,
+    
+    // Lock system methods
+    showLockBanner(lockedByDisplayName) {
+        const panel = document.getElementById('ai-chat-panel');
+        const messagesContainer = document.getElementById('ai-chat-messages');
+        if (!panel || !messagesContainer) return;
+
+        // Add locked state to panel
+        panel.classList.add('locked-by-other');
+
+        // Create lock banner if it doesn't exist
+        let banner = messagesContainer.querySelector('.prime-lock-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.className = 'prime-lock-banner';
+            banner.innerHTML = `<i class="fas fa-lock"></i> Locked by ${lockedByDisplayName || 'another user'}`;
+            messagesContainer.appendChild(banner);
+        } else {
+            banner.innerHTML = `<i class="fas fa-lock"></i> Locked by ${lockedByDisplayName || 'another user'}`;
+            banner.style.display = 'flex';
+        }
+
+        console.log(`🔒 [Prime] Locked by ${lockedByDisplayName}`);
+    },
+
+    hideLockBanner() {
+        const panel = document.getElementById('ai-chat-panel');
+        const messagesContainer = document.getElementById('ai-chat-messages');
+        if (!panel || !messagesContainer) return;
+
+        // Remove locked state
+        panel.classList.remove('locked-by-other');
+
+        // Hide banner
+        const banner = messagesContainer.querySelector('.prime-lock-banner');
+        if (banner) {
+            banner.style.display = 'none';
+        }
+
+        console.log(`🔓 [Prime] Unlocked`);
+    },
+
+    disableInput() {
+        const input = document.getElementById('ai-chat-input');
+        if (input) {
+            input.disabled = true;
+            input.placeholder = 'This chat is locked by another user...';
+            console.log(`⛔ [Prime] Input disabled`);
+        }
+    },
+
+    enableInput() {
+        const input = document.getElementById('ai-chat-input');
+        if (input) {
+            input.disabled = false;
+            input.placeholder = 'Message AI...';
+            console.log(`✅ [Prime] Input enabled`);
+        }
+    }
 };
 
 // ==================== SCROLL CONTROLS VISIBILITY ====================

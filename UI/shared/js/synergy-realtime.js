@@ -516,19 +516,11 @@ window.SynergyRealtime = {
             return stored;
         }
 
-        // Prompt user for their name (for shared account collaboration)
+        // Use username as default
         const defaultName = this._getUserName();
-        const displayName = prompt(
-            `Multiple people can work in this Command Center simultaneously.\n\n` +
-            `What name should appear when others see you viewing an agent?\n\n` +
-            `Examples: "Sarah", "John (Marketing)", "Alex - Design Team"`,
-            defaultName
-        );
-
-        const finalName = (displayName && displayName.trim()) || defaultName;
-        this.sessionDisplayName = finalName;
-        localStorage.setItem('session_display_name', finalName);
-        return finalName;
+        this.sessionDisplayName = defaultName;
+        localStorage.setItem('session_display_name', defaultName);
+        return defaultName;
     },
 
     _getUserId() {
@@ -556,12 +548,12 @@ window.SynergyRealtime = {
 
     _getDeviceInfo() {
         const ua = navigator.userAgent;
-        if (/iPhone|iPad|iPod/.test(ua)) return '📱 iPhone';
-        if (/Android/.test(ua)) return '📱 Android';
-        if (/Mac/.test(ua)) return '💻 Mac';
-        if (/Windows/.test(ua)) return '💻 Windows';
-        if (/Linux/.test(ua)) return '💻 Linux';
-        return '💻 Desktop';
+        if (/iPhone|iPad|iPod/.test(ua)) return 'iPhone';
+        if (/Android/.test(ua)) return 'Android';
+        if (/Mac/.test(ua)) return 'Mac';
+        if (/Windows/.test(ua)) return 'Windows';
+        if (/Linux/.test(ua)) return 'Linux';
+        return 'Desktop';
     },
 
     async _announcePresence() {

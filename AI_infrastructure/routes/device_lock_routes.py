@@ -29,6 +29,32 @@ AI_DB_PATH = 'ai_infrastructure'  # Schema name
 SESSIONS_DB_PATH = 'sessions'  # Schema name
 
 # ============================================================================
+# THREAD IDENTIFIER RESOLUTION
+# ============================================================================
+
+def resolve_thread_identifier(thread_id):
+    """
+    Convert thread_id to appropriate WHERE clause and value.
+    Handles both new integer IDs and legacy timestamp-based slugs.
+    
+    Args:
+        thread_id: Thread identifier (int, str, or numeric string)
+        
+    Returns:
+        tuple: (where_clause, lookup_value)
+    """
+    try:
+        thread_id_int = int(thread_id)
+        # Large timestamp-like numbers (> 1 trillion) are legacy slugs
+        if thread_id_int > 1000000000000:
+            return ("thread_slug = %s", str(thread_id))
+        else:
+            return ("id = %s", thread_id_int)
+    except (ValueError, TypeError):
+        # Non-numeric string, use as slug
+        return ("thread_slug = %s", thread_id)
+
+# ============================================================================
 # HELPER FUNCTIONS - FIXED CURSOR MANAGEMENT
 # ============================================================================
 
@@ -204,29 +230,40 @@ def register_device():
 # ENDPOINT 2: LOCK THREAD
 # ============================================================================
 
-@device_lock_bp.route('/api/thread/<int:thread_id>/lock', methods=['POST'])
+@device_lock_bp.route('/api/thread/<thread_id>/lock', methods=['POST'])
 def lock_thread(thread_id):
     """
-    Lock thread to current device
+    Lock thread to current session (UPDATED: uses display_name + Socket.IO broadcast)
     
     ✅ FIXED: Uses fixed helper functions with proper cursor management
+    ✅ NEW: Integrated with realtime presence system
+    ✅ FIXED: Handles both integer IDs and timestamp-based slugs
     """
     try:
         data = request.json
         device_id = data.get('device_id')
         user_id = data.get('user_id')
+        display_name = data.get('display_name')  # NEW: Get display name from request
+        session_token = data.get('session_token')  # NEW: Get session token
+        
+        # Resolve thread identifier
+        where_clause, lookup_value = resolve_thread_identifier(thread_id)
         
         # Verify thread belongs to user
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
-            "SELECT user_id FROM sessions.threads WHERE id = %s",
-            (thread_id,)
+            f"SELECT id, user_id FROM sessions.threads WHERE {where_clause}",
+            (lookup_value,)
         )
         
         if not thread or thread[0]['user_id'] != user_id:
             return jsonify({'success': False, 'error': 'Thread not found'}), 404
         
-        # Lock the thread
+        # Get the actual thread ID (whether we looked up by id or slug)
+        actual_thread_id = thread[0]['id']
+        
+        # Lock the thread with display name (store session_token as device_id for realtime integration)
+        lock_identifier = session_token or device_id  # Prefer session_token
         execute_sqlite_update(
             str(SESSIONS_DB_PATH),
             """UPDATE sessions.threads 
@@ -234,29 +271,38 @@ def lock_thread(thread_id):
                    locked_at = CURRENT_TIMESTAMP,
                    lock_mode = 'locked'
                WHERE id = %s""",
-            (device_id, thread_id)
+            (lock_identifier, actual_thread_id)
         )
         
-        # Get device name
-        device = execute_sqlite_query(
-            str(AI_DB_PATH),
-            "SELECT device_name FROM ai_infrastructure.device_registry WHERE device_id = %s",
-            (device_id,)
-        )
-        
-        device_name = device[0]['device_name'] if device else 'Unknown Device'
+        # Use display name if provided, fallback to device name
+        lock_display_name = display_name or device_id
         
         # Log lock event
         execute_sqlite_update(
             str(AI_DB_PATH),
             """INSERT INTO ai_infrastructure.thread_lock_history (thread_id, device_id, action)
                VALUES (%s, %s, 'locked')""",
-            (thread_id, device_id)
+            (actual_thread_id, lock_identifier)
         )
+        
+        # ✅ NEW: Broadcast lock event via Socket.IO to all sessions of this user
+        try:
+            from flask_socketio import emit
+            from flask_app import socketio
+            
+            emit('thread_locked', {
+                'thread_id': str(thread_id),  # Use original ID for frontend
+                'locked_by': lock_display_name,
+                'session_token': session_token,
+                'locked_at': datetime.now().isoformat(),
+                'user_id': user_id
+            }, namespace='/ws/synergy', room=f'user_{user_id}', skip_sid=None)
+        except Exception as emit_error:
+            print(f'[LOCK] Socket.IO broadcast failed: {emit_error}')
         
         return jsonify({
             'success': True,
-            'locked_to': device_name,
+            'locked_to': lock_display_name,
             'locked_at': datetime.now().isoformat()
         })
         
@@ -268,37 +314,45 @@ def lock_thread(thread_id):
 # ENDPOINT 3: UNLOCK THREAD
 # ============================================================================
 
-@device_lock_bp.route('/api/thread/<int:thread_id>/unlock', methods=['POST'])
+@device_lock_bp.route('/api/thread/<thread_id>/unlock', methods=['POST'])
 def unlock_thread(thread_id):
     """
-    Unlock thread (make available to all devices)
+    Unlock thread (UPDATED: broadcasts via Socket.IO)
     
     ✅ FIXED: Uses fixed helper functions with proper cursor management
+    ✅ NEW: Integrated with realtime presence system
+    ✅ FIXED: Handles both integer IDs and timestamp-based slugs
     """
     try:
         data = request.json
         device_id = data.get('device_id')
         user_id = data.get('user_id')
+        session_token = data.get('session_token')  # NEW
         
-        # Verify thread is locked by this device OR user owns thread
+        # Resolve thread identifier
+        where_clause, lookup_value = resolve_thread_identifier(thread_id)
+        
+        # Verify thread is locked by this session OR user owns thread
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
-            """SELECT locked_to_device_id, user_id 
-               FROM sessions.threads WHERE id = %s""",
-            (thread_id,)
+            f"""SELECT id, locked_to_device_id, user_id 
+               FROM sessions.threads WHERE {where_clause}""",
+            (lookup_value,)
         )
         
         if not thread:
             return jsonify({'success': False, 'error': 'Thread not found'}), 404
         
-        locked_device = thread[0]['locked_to_device_id']
+        actual_thread_id = thread[0]['id']
+        locked_identifier = thread[0]['locked_to_device_id']
         thread_user = thread[0]['user_id']
         
-        # Only allow unlock if locked to this device OR user owns thread
-        if locked_device != device_id and thread_user != user_id:
+        # Allow unlock if locked to this session OR user owns thread
+        current_identifier = session_token or device_id
+        if locked_identifier != current_identifier and thread_user != user_id:
             return jsonify({
                 'success': False,
-                'error': 'Cannot unlock thread locked by another device'
+                'error': 'Cannot unlock thread locked by another session'
             }), 403
         
         # Unlock the thread
@@ -309,7 +363,7 @@ def unlock_thread(thread_id):
                    locked_at = NULL,
                    lock_mode = 'unlocked'
                WHERE id = %s""",
-            (thread_id,)
+            (actual_thread_id,)
         )
         
         # Log unlock event
@@ -317,8 +371,20 @@ def unlock_thread(thread_id):
             str(AI_DB_PATH),
             """INSERT INTO ai_infrastructure.thread_lock_history (thread_id, device_id, action)
                VALUES (%s, %s, 'unlocked')""",
-            (thread_id, device_id)
+            (actual_thread_id, current_identifier)
         )
+        
+        # ✅ NEW: Broadcast unlock event via Socket.IO
+        try:
+            from flask_socketio import emit
+            from flask_app import socketio
+            
+            emit('thread_unlocked', {
+                'thread_id': str(thread_id),  # Use original ID for frontend
+                'user_id': user_id
+            }, namespace='/ws/synergy', room=f'user_{user_id}', skip_sid=None)
+        except Exception as emit_error:
+            print(f'[UNLOCK] Socket.IO broadcast failed: {emit_error}')
         
         return jsonify({
             'success': True,
@@ -333,24 +399,28 @@ def unlock_thread(thread_id):
 # ENDPOINT 4: GET LOCK STATUS
 # ============================================================================
 
-@device_lock_bp.route('/api/thread/<int:thread_id>/lock-status', methods=['GET'])
+@device_lock_bp.route('/api/thread/<thread_id>/lock-status', methods=['GET'])
 def get_lock_status(thread_id):
     """
     Get lock status for thread
     
     ✅ FIXED: Uses fixed helper functions with proper cursor management
+    ✅ FIXED: Handles both integer IDs and timestamp-based slugs
     """
     try:
         device_id = request.args.get('device_id')
         user_id = request.args.get('user_id')
         
+        # Resolve thread identifier
+        where_clause, lookup_value = resolve_thread_identifier(thread_id)
+        
         # Get thread lock status (JOIN across two databases - need to query separately)
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
-            """SELECT locked_to_device_id, locked_at, lock_mode, user_id
+            f"""SELECT id, locked_to_device_id, locked_at, lock_mode, user_id
                FROM sessions.threads
-               WHERE id = %s""",
-            (thread_id,)
+               WHERE {where_clause}""",
+            (lookup_value,)
         )
         
         if not thread:

@@ -95,6 +95,10 @@ Object.assign(window.ThreadManager, {
         await this.assignThread(threadId, 'prime-loaded', true);
         console.log(`✅ [Interactions] Thread assigned to prime-loaded: ${threadId}`);
 
+        // Update global Prime thread ID for lock system
+        window._primeThreadId = threadId;
+        console.log(`✅ [Interactions] Updated window._primeThreadId: ${threadId}`);
+
         this.currentThreadId = threadId;
 
         // ✅ FIX: Sync AppState.currentThreadId so autoLoadPrimeThread() knows thread is loaded

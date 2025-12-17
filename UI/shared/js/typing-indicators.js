@@ -20,7 +20,7 @@
 window.TypingIndicators = {
     indicators: new Map(), // Map<agentId|'global', Set<userName>>
     timeouts: new Map(),   // Map<userName+agentId, timeoutId>
-    
+
     /**
      * Show typing indicator for user
      * @param {string} userName - Name of user typing
@@ -28,32 +28,32 @@ window.TypingIndicators = {
      */
     show(userName, agentId = null) {
         const key = agentId || 'global';
-        
+
         // Get or create user set for this location
         if (!this.indicators.has(key)) {
             this.indicators.set(key, new Set());
         }
-        
+
         const users = this.indicators.get(key);
         users.add(userName);
-        
+
         // Render indicator
         this._render(key);
-        
+
         // Clear existing timeout
         const timeoutKey = `${userName}:${key}`;
         if (this.timeouts.has(timeoutKey)) {
             clearTimeout(this.timeouts.get(timeoutKey));
         }
-        
+
         // Auto-hide after 10 seconds
         const timeoutId = setTimeout(() => {
             this.hide(userName, agentId);
         }, 10000);
-        
+
         this.timeouts.set(timeoutKey, timeoutId);
     },
-    
+
     /**
      * Hide typing indicator for user
      * @param {string} userName - Name of user
@@ -61,30 +61,30 @@ window.TypingIndicators = {
      */
     hide(userName, agentId = null) {
         const key = agentId || 'global';
-        
+
         if (!this.indicators.has(key)) {
             return;
         }
-        
+
         const users = this.indicators.get(key);
         users.delete(userName);
-        
+
         // Clear timeout
         const timeoutKey = `${userName}:${key}`;
         if (this.timeouts.has(timeoutKey)) {
             clearTimeout(this.timeouts.get(timeoutKey));
             this.timeouts.delete(timeoutKey);
         }
-        
+
         // Remove set if empty
         if (users.size === 0) {
             this.indicators.delete(key);
         }
-        
+
         // Re-render
         this._render(key);
     },
-    
+
     /**
      * Clear all typing indicators
      */
@@ -92,27 +92,27 @@ window.TypingIndicators = {
         // Clear all timeouts
         this.timeouts.forEach(timeoutId => clearTimeout(timeoutId));
         this.timeouts.clear();
-        
+
         // Clear all indicators
         this.indicators.forEach((users, key) => {
             this._render(key); // Remove UI
         });
-        
+
         this.indicators.clear();
     },
-    
+
     /**
      * Render typing indicator for location
      * @param {string} key - Location key (agentId or 'global')
      */
     _render(key) {
         const users = this.indicators.get(key);
-        const containerId = key === 'global' 
-            ? 'typing-indicator-global' 
+        const containerId = key === 'global'
+            ? 'typing-indicator-global'
             : `typing-indicator-${key}`;
-        
+
         let container = document.getElementById(containerId);
-        
+
         // Remove if no users typing
         if (!users || users.size === 0) {
             if (container) {
@@ -120,13 +120,13 @@ window.TypingIndicators = {
             }
             return;
         }
-        
+
         // Create container if doesn't exist
         if (!container) {
             container = document.createElement('div');
             container.id = containerId;
             container.className = 'typing-indicator';
-            
+
             // Find target location to insert
             const target = this._findInsertTarget(key);
             if (target) {
@@ -136,11 +136,11 @@ window.TypingIndicators = {
                 return;
             }
         }
-        
+
         // Generate text
         const userArray = Array.from(users);
         let text;
-        
+
         if (userArray.length === 1) {
             text = `${userArray[0]} is typing...`;
         } else if (userArray.length === 2) {
@@ -148,7 +148,7 @@ window.TypingIndicators = {
         } else {
             text = `${userArray[0]} and ${userArray.length - 1} others are typing...`;
         }
-        
+
         // Update content
         container.innerHTML = `
             <div class="typing-dots">
@@ -157,7 +157,7 @@ window.TypingIndicators = {
             <span class="typing-text">${text}</span>
         `;
     },
-    
+
     /**
      * Find DOM target to insert typing indicator before
      * @param {string} key - Location key
@@ -166,7 +166,7 @@ window.TypingIndicators = {
     _findInsertTarget(key) {
         if (key === 'global') {
             // Insert above global chat input area
-            return document.getElementById('chat-input-area') 
+            return document.getElementById('chat-input-area')
                 || document.querySelector('.chat-input-container')
                 || document.querySelector('textarea[placeholder*="message"]');
         } else {
@@ -186,19 +186,19 @@ if (typeof SynergyRealtime !== 'undefined') {
             setTimeout(initListeners, 100);
             return;
         }
-        
+
         // Listen for typing events
         SynergyRealtime.socket.on('user_typing', (data) => {
             TypingIndicators.show(data.user_name, data.agent_id);
         });
-        
+
         SynergyRealtime.socket.on('user_stopped_typing', (data) => {
             TypingIndicators.hide(data.user_name, data.agent_id);
         });
-        
+
         console.log('[TYPING] Event listeners initialized');
     };
-    
+
     initListeners();
 }
 

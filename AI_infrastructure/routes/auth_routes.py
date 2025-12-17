@@ -276,37 +276,40 @@ def get_profile():
         with get_database_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
-            # Query 1: Get user password hash to determine auth platform
+            # Query 1: Get user data including display_name
             sql, params = convert_sql_placeholders(
-                'SELECT password_hash FROM ai_infrastructure.users WHERE id = %s',
+                'SELECT password_hash, display_name FROM ai_infrastructure.users WHERE id = %s',
                 (user_id,)
             )
             cursor.execute(sql, params)
             user_row = cursor.fetchone()
             
             auth_platform = None
-            if user_row and user_row['password_hash']:
-                password_hash = user_row['password_hash']
-                if password_hash == 'oauth_google':
-                    auth_platform = 'google'
-                elif password_hash == 'oauth_microsoft' or password_hash == 'OAUTH_USER_NO_PASSWORD':
-                    # Support both 'oauth_microsoft' (new) and 'OAUTH_USER_NO_PASSWORD' (legacy)
-                    # Check OAuth tokens to determine which platform
-                    bool_true = True if is_using_supabase() else 1
-                    
-                    # Query 2: Check OAuth platform
-                    sql2, params2 = convert_sql_placeholders('''
-                        SELECT platform FROM ai_infrastructure.oauth_tokens 
-                        WHERE user_id = %s AND is_active = %s
-                        ORDER BY created_at DESC LIMIT 1
-                    ''', (user_id, bool_true))
-                    cursor.execute(sql2, params2)
-                    token_row = cursor.fetchone()
-                    if token_row:
-                        auth_platform = token_row['platform']  # 'google' or 'microsoft'
-                    else:
-                        # Default to microsoft for OAUTH_USER_NO_PASSWORD
-                        auth_platform = 'microsoft'
+            display_name = None
+            if user_row:
+                display_name = user_row.get('display_name')
+                password_hash = user_row.get('password_hash')
+                if password_hash:
+                    if password_hash == 'oauth_google':
+                        auth_platform = 'google'
+                    elif password_hash == 'oauth_microsoft' or password_hash == 'OAUTH_USER_NO_PASSWORD':
+                        # Support both 'oauth_microsoft' (new) and 'OAUTH_USER_NO_PASSWORD' (legacy)
+                        # Check OAuth tokens to determine which platform
+                        bool_true = True if is_using_supabase() else 1
+                        
+                        # Query 2: Check OAuth platform
+                        sql2, params2 = convert_sql_placeholders('''
+                            SELECT platform FROM ai_infrastructure.oauth_tokens 
+                            WHERE user_id = %s AND is_active = %s
+                            ORDER BY created_at DESC LIMIT 1
+                        ''', (user_id, bool_true))
+                        cursor.execute(sql2, params2)
+                        token_row = cursor.fetchone()
+                        if token_row:
+                            auth_platform = token_row['platform']  # 'google' or 'microsoft'
+                        else:
+                            # Default to microsoft for OAUTH_USER_NO_PASSWORD
+                            auth_platform = 'microsoft'
             
             # Check if user has active OAuth tokens in user_platform_credentials
             # CRITICAL FIX: Check OAuth credentials for ALL users, not just OAuth-created accounts
@@ -357,6 +360,7 @@ def get_profile():
             'profile': {
                 **request.user,
                 'id': request.user['user_id'],  # ✅ FIX: Add 'id' alias for frontend compatibility
+                'display_name': display_name,  # For multi-person collaboration
                 'gmail_accounts': gmail_accounts,
                 'workspace_id': workspace_id,
                 'auth_platform': auth_platform,  # 'google' | 'microsoft' | None
@@ -438,6 +442,69 @@ def check_credentials():
     
     finally:
         # ✅ CRITICAL: Guaranteed cleanup
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@auth_bp.route('/update-display-name', methods=['POST'])
+@require_auth
+def update_display_name():
+    """
+    Update user's display name for multi-person collaboration
+    
+    POST /api/auth/update-display-name
+    Headers: Authorization: Bearer <token>
+    Body: { "display_name": "Sarah" }
+    
+    Stores display_name in users table for persistence across devices
+    """
+    cursor = None
+    conn = None
+    try:
+        user_id = request.user['user_id']
+        data = request.get_json()
+        
+        if not data or 'display_name' not in data:
+            return jsonify({'success': False, 'error': 'Missing display_name'}), 400
+        
+        display_name = str(data['display_name']).strip()[:50]  # Sanitize max 50 chars
+        
+        if not display_name:
+            return jsonify({'success': False, 'error': 'Display name cannot be empty'}), 400
+        
+        with get_database_connection('ai_infrastructure') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders('''
+                UPDATE ai_infrastructure.users 
+                SET display_name = %s
+                WHERE id = %s
+            ''', (display_name, user_id))
+            
+            cursor.execute(sql, params)
+            conn.commit()
+            
+            cursor.close()
+            cursor = None
+        
+        return jsonify({
+            'success': True,
+            'display_name': display_name
+        })
+        
+    except Exception as e:
+        print(f"❌ Update display name error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
         if cursor:
             try:
                 cursor.close()

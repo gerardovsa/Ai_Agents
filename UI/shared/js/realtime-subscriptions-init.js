@@ -324,7 +324,7 @@ window.RealtimeSubscriptionsInit = (function () {
                             for (const [agentId, threadInfo] of Object.entries(window.MultiAgent.loadedThreads)) {
                                 if (threadInfo.threadId === threadId) {
                                     console.log(`📥 [Messages] Rendering new message in agent-${agentId} column`);
-                                    
+
                                     // Get messages container
                                     const messagesDiv = document.getElementById(`agent-messages-${agentId}`);
                                     if (messagesDiv && window.UnifiedMessageRenderer) {
