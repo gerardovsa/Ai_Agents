@@ -221,162 +221,35 @@ const NotificationCenter = {
             }
         }
 
-        // Get selected sound type and volume
-        const soundType = localStorage.getItem('notificationSoundType') || 'soft';
+        // Get sound type for this category (per-type sound assignment)
+        let soundType;
+        if (category) {
+            soundType = localStorage.getItem(`notif_${category}_sound`) || null;
+        }
+        // Fallback to global sound type if no category-specific sound is set
+        if (!soundType || soundType === 'true' || soundType === 'false') {
+            soundType = localStorage.getItem('notificationSoundType') || 'soft';
+        }
+
         const volume = (parseInt(localStorage.getItem('notificationVolume')) || 50) / 100;
 
-        // Sound frequencies for different severities
-        const frequencies = {
-            info: { primary: 600, secondary: 800 },
-            success: { primary: 800, secondary: 1000 },
-            warning: { primary: 500, secondary: 700 },
-            error: { primary: 400, secondary: 500 }
-        };
+        // Use NotificationSounds library if available
+        if (typeof NotificationSounds !== 'undefined' && NotificationSounds.isReady()) {
+            NotificationSounds.play(soundType, volume);
+            return;
+        }
 
-        const freq = frequencies[severity] || frequencies.info;
+        // Fallback: Use NotificationSounds Web Audio API fallback
+        console.log('[NotificationCenter] Using NotificationSounds Web Audio fallback');
 
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            // Set sound type characteristics
-            if (soundType === 'soft') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.1 * volume;
-            } else if (soundType === 'classic') {
-                oscillator.type = 'square';
-                gainNode.gain.value = 0.05 * volume;
-            } else if (soundType === 'alert') {
-                oscillator.type = 'triangle';
-                gainNode.gain.value = 0.15 * volume;
-            } else if (soundType === 'chime') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.12 * volume;
-                // Higher frequency for chime
-                freq.primary = freq.primary * 1.5;
-                freq.secondary = freq.secondary * 1.5;
-            } else if (soundType === 'ping') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.08 * volume;
-                // Very short, high pitch
-                freq.primary = 1200;
-            } else if (soundType === 'bell') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.13 * volume;
-                // Bell-like frequency pattern
-                freq.primary = 880;
-                freq.secondary = 1320;
-            } else if (soundType === 'bubble') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.09 * volume;
-                // Ascending bubble sound
-                freq.primary = 400;
-                freq.secondary = 800;
-            } else if (soundType === 'chirp') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.11 * volume;
-                // Quick ascending chirp
-                freq.primary = 800;
-                freq.secondary = 1200;
-            } else if (soundType === 'pluck') {
-                oscillator.type = 'triangle';
-                gainNode.gain.value = 0.14 * volume;
-                // Sharp pluck sound
-                freq.primary = 1000;
-                freq.secondary = 200;
-            } else if (soundType === 'drop') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.12 * volume;
-                // Descending drop
-                freq.primary = 900;
-                freq.secondary = 300;
-            } else if (soundType === 'rise') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.10 * volume;
-                // Ascending rise
-                freq.primary = 300;
-                freq.secondary = 1100;
-            } else if (soundType === 'wobble') {
-                oscillator.type = 'sawtooth';
-                gainNode.gain.value = 0.07 * volume;
-                // Wobble effect
-                freq.primary = 600;
-                freq.secondary = 750;
-            } else if (soundType === 'beep') {
-                oscillator.type = 'square';
-                gainNode.gain.value = 0.09 * volume;
-                // Classic beep
-                freq.primary = 800;
-            } else if (soundType === 'boop') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.11 * volume;
-                // Lower boop
-                freq.primary = 350;
-            } else if (soundType === 'click') {
-                oscillator.type = 'square';
-                gainNode.gain.value = 0.06 * volume;
-                // Very short click
-                freq.primary = 1500;
-            } else if (soundType === 'pop') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.15 * volume;
-                // Quick pop
-                freq.primary = 150;
-                freq.secondary = 100;
-            } else if (soundType === 'whoosh') {
-                oscillator.type = 'sawtooth';
-                gainNode.gain.value = 0.08 * volume;
-                // Swoosh effect
-                freq.primary = 200;
-                freq.secondary = 1400;
-            } else if (soundType === 'ding') {
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.13 * volume;
-                // High ding
-                freq.primary = 1568;
-                freq.secondary = 2093;
-            }
-
-            oscillator.frequency.value = freq.primary;
-
-            // Fade in/out (shorter for ping)
-            const now = audioContext.currentTime;
-            const duration = soundType === 'ping' ? 0.08 : 0.15;
-
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(gainNode.gain.value, now + 0.05);
-            gainNode.gain.linearRampToValueAtTime(0, now + duration);
-
-            oscillator.start(now);
-            oscillator.stop(now + duration);
-
-            // Play second tone for some severities (except ping)
-            if ((severity === 'success' || severity === 'warning') && soundType !== 'ping') {
-                setTimeout(() => {
-                    const osc2 = audioContext.createOscillator();
-                    const gain2 = audioContext.createGain();
-                    osc2.connect(gain2);
-                    gain2.connect(audioContext.destination);
-
-                    osc2.type = oscillator.type;
-                    osc2.frequency.value = freq.secondary;
-                    gain2.gain.value = gainNode.gain.value;
-
-                    const now2 = audioContext.currentTime;
-                    gain2.gain.setValueAtTime(0, now2);
-                    gain2.gain.linearRampToValueAtTime(gain2.gain.value, now2 + 0.05);
-                    gain2.gain.linearRampToValueAtTime(0, now2 + 0.15);
-
-                    osc2.start(now2);
-                    osc2.stop(now2 + 0.15);
-                }, 100);
+            if (typeof NotificationSounds !== 'undefined' && NotificationSounds.playWithWebAudio) {
+                NotificationSounds.playWithWebAudio(soundType, volume);
+            } else {
+                console.warn('[NotificationCenter] NotificationSounds not available - no sound played');
             }
         } catch (error) {
-            console.warn('[NotificationCenter] Sound playback failed:', error);
+            console.error('[NotificationCenter] Fallback sound playback failed:', error);
         }
     },
 

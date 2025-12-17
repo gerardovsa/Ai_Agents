@@ -38,6 +38,7 @@ from pathlib import Path
 from dotenv import dotenv_values
 import random
 import sys
+import psycopg2.extras  # Required for RealDictRow
 
 # CRITICAL: Add parent directory to path for imports (Render compatibility)
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -872,21 +873,29 @@ def google_callback():
         return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=connected')
         
     except requests.exceptions.HTTPError as e:
-        print(f'❌ [GOOGLE OAUTH] HTTP error: {str(e)}')
-        print(f'   Response: {e.response.text if hasattr(e, "response") else "No response"}')
+        error_details = f'HTTP error: {str(e)}'
+        response_text = e.response.text if hasattr(e, 'response') else 'No response'
+        print(f'❌ [GOOGLE OAUTH] {error_details}')
+        print(f'   Response: {response_text}')
         
         # SMART URL DETECTION: Automatically detect frontend URL
         frontend_url = get_frontend_url(request, session)
-        return redirect(f'{frontend_url}/?error=http_error')
+        from urllib.parse import quote
+        error_msg = quote(f'{error_details}. Response: {response_text[:100]}')
+        return redirect(f'{frontend_url}/?error=http_error&message={error_msg}')
     
     except Exception as e:
-        print(f'❌ [GOOGLE OAUTH] Unexpected error: {str(e)}')
+        error_type = type(e).__name__
+        error_details = str(e)
+        print(f'❌ [GOOGLE OAUTH] {error_type}: {error_details}')
         import traceback
         traceback.print_exc()
         
         # SMART URL DETECTION: Automatically detect frontend URL
         frontend_url = get_frontend_url(request, session)
-        return redirect(f'{frontend_url}/?error=oauth_failed')
+        from urllib.parse import quote
+        error_msg = quote(f'{error_type}: {error_details[:200]}')
+        return redirect(f'{frontend_url}/?error=oauth_failed&message={error_msg}')
     finally:
         if cursor:
             try:

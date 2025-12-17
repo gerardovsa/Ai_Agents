@@ -581,10 +581,16 @@ const AgentInput = (function () {
             state.attachedFiles.push(file);
         }
 
+        // ✅ BRIDGE: Sync with legacy window.agentAttachedFiles for sendAgentMessage compatibility
+        if (!window.agentAttachedFiles) {
+            window.agentAttachedFiles = {};
+        }
+        window.agentAttachedFiles[agentId] = state.attachedFiles;
+
         // Update UI
         updateAttachedFilesUI(agentId);
 
-        console.log(`[AgentInput] Agent-${agentId} attached ${files.length} file(s)`);
+        console.log(`[AgentInput] Agent-${agentId} attached ${files.length} file(s), synced to window.agentAttachedFiles`);
     }
 
     /**
@@ -619,6 +625,12 @@ const AgentInput = (function () {
             // Remove file on click
             chip.querySelector('.agent-file-chip-remove').addEventListener('click', () => {
                 state.attachedFiles.splice(index, 1);
+
+                // ✅ BRIDGE: Sync with legacy window.agentAttachedFiles
+                if (window.agentAttachedFiles && window.agentAttachedFiles[agentId]) {
+                    window.agentAttachedFiles[agentId] = state.attachedFiles;
+                }
+
                 updateAttachedFilesUI(agentId);
             });
 
@@ -633,6 +645,12 @@ const AgentInput = (function () {
     function clearFiles(agentId) {
         const state = getState(agentId);
         state.attachedFiles = [];
+
+        // ✅ BRIDGE: Sync with legacy window.agentAttachedFiles
+        if (window.agentAttachedFiles && window.agentAttachedFiles[agentId]) {
+            window.agentAttachedFiles[agentId] = [];
+        }
+
         updateAttachedFilesUI(agentId);
         console.log(`[AgentInput] Agent-${agentId} cleared attached files`);
     }

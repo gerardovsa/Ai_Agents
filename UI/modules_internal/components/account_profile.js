@@ -2430,6 +2430,15 @@ async function initializeApp() {
                     message = 'Login was cancelled or access was denied.';
                 } else if (error === 'invalid_token') {
                     message = 'Invalid authentication token. Please try signing in again.';
+                } else if (error === 'oauth_failed' || error === 'http_error') {
+                    // Show detailed error message from backend
+                    const detailedMsg = urlParams.get('message');
+                    if (detailedMsg) {
+                        message = `OAuth login failed: ${decodeURIComponent(detailedMsg)}`;
+                        console.error('🚨 [OAUTH ERROR DETAILS]:', decodeURIComponent(detailedMsg));
+                    } else {
+                        message = `OAuth login failed (${error}). Check browser console for details.`;
+                    }
                 } else {
                     message = `OAuth login failed: ${decodeURIComponent(message)}`;
                 }

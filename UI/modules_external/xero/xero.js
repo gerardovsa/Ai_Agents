@@ -58,6 +58,13 @@ class XeroModule extends BaseModule {
         this.charts = {};
         this.subTabs = new Map(); // Initialize Map for sub-tabs
         this.container = null; // Will be set when module is loaded
+        // Selection tracking
+        this.selectedItems = {
+            invoices: new Set(),
+            contacts: new Set(),
+            payments: new Set(),
+            accounts: new Set()
+        };
     }
 
     /**
@@ -584,6 +591,28 @@ class XeroModule extends BaseModule {
                         </select>
                     </div>
                 </div>
+                <!-- Bulk Actions Toolbar -->
+                <div class="xero-bulk-actions" id="xero-invoice-bulk-actions" style="display: none;">
+                    <div class="xero-bulk-left">
+                        <span class="xero-selection-count" id="xero-invoice-selection-count">0 selected</span>
+                    </div>
+                    <div class="xero-bulk-right">
+                        <div class="xero-btn-group">
+                            <button class="xero-btn xero-btn-sm" id="xero-export-invoices-dropdown">
+                                <i class="fas fa-download"></i> Export
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="xero-dropdown-menu" id="xero-export-invoices-menu" style="display: none;">
+                                <a href="#" data-format="xlsx">Export to Excel</a>
+                                <a href="#" data-format="csv">Export to CSV</a>
+                                <a href="#" data-format="pdf">Export to PDF</a>
+                            </div>
+                        </div>
+                        <button class="xero-btn xero-btn-sm xero-btn-danger" id="xero-delete-invoices">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
                 <div id="xero-invoices-table"></div>
             </div>
         `;
@@ -598,6 +627,36 @@ class XeroModule extends BaseModule {
         if (refreshBtn) refreshBtn.addEventListener('click', () => this.loadInvoices());
         if (searchInput) searchInput.addEventListener('input', (e) => this.filterInvoices(e.target.value));
         if (statusFilter) statusFilter.addEventListener('change', (e) => this.filterInvoicesByStatus(e.target.value));
+
+        // Bulk actions
+        const exportBtn = container.querySelector('#xero-export-invoices-dropdown');
+        const exportMenu = container.querySelector('#xero-export-invoices-menu');
+        const deleteBtn = container.querySelector('#xero-delete-invoices');
+
+        if (exportBtn && exportMenu) {
+            exportBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportMenu.style.display = exportMenu.style.display === 'none' ? 'block' : 'none';
+            });
+
+            exportMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const format = e.target.dataset.format;
+                    this.exportInvoices(format);
+                    exportMenu.style.display = 'none';
+                });
+            });
+
+            // Close dropdown on outside click
+            document.addEventListener('click', () => {
+                exportMenu.style.display = 'none';
+            });
+        }
+
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => this.deleteSelectedInvoices());
+        }
     }
 
     async loadInvoices() {
@@ -632,11 +691,23 @@ class XeroModule extends BaseModule {
 
         this.tables.invoices = new Tabulator(container, {
             data: this.data.invoices,
-            layout: 'fitColumns',
+            layout: 'fitDataStretch',
             responsiveLayout: 'collapse',
-            pagination: 'local',
+            pagination: true,
             paginationSize: 50,
+            selectable: true,
+            selectableRangeMode: 'click',
             columns: [
+                {
+                    formatter: 'rowSelection',
+                    titleFormatter: 'rowSelection',
+                    hozAlign: 'center',
+                    headerSort: false,
+                    width: 40,
+                    cellClick: function (e, cell) {
+                        cell.getRow().toggleSelect();
+                    }
+                },
                 {
                     title: 'Invoice #',
                     field: 'invoice_number',
@@ -698,6 +769,12 @@ class XeroModule extends BaseModule {
                 }
             ]
         });
+
+        // Handle row selection
+        this.tables.invoices.on('rowSelectionChanged', (data, rows) => {
+            this.selectedItems.invoices = new Set(rows.map(r => r.getData().invoice_id));
+            this.updateSelectionCount('invoices', rows.length);
+        });
     }
 
     // ========================================================================
@@ -724,6 +801,28 @@ class XeroModule extends BaseModule {
                                placeholder="Search contacts...">
                     </div>
                 </div>
+                <!-- Bulk Actions Toolbar -->
+                <div class="xero-bulk-actions" id="xero-contacts-bulk-actions" style="display: none;">
+                    <div class="xero-bulk-left">
+                        <span class="xero-selection-count" id="xero-contacts-selection-count">0 selected</span>
+                    </div>
+                    <div class="xero-bulk-right">
+                        <div class="xero-btn-group">
+                            <button class="xero-btn xero-btn-sm" id="xero-export-contacts-dropdown">
+                                <i class="fas fa-download"></i> Export
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="xero-dropdown-menu" id="xero-export-contacts-menu" style="display: none;">
+                                <a href="#" data-format="xlsx">Export to Excel</a>
+                                <a href="#" data-format="csv">Export to CSV</a>
+                                <a href="#" data-format="pdf">Export to PDF</a>
+                            </div>
+                        </div>
+                        <button class="xero-btn xero-btn-sm xero-btn-danger" id="xero-delete-contacts">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
                 <div id="xero-contacts-table"></div>
             </div>
         `;
@@ -736,6 +835,35 @@ class XeroModule extends BaseModule {
         if (createBtn) createBtn.addEventListener('click', () => this.showCreateContactModal());
         if (refreshBtn) refreshBtn.addEventListener('click', () => this.loadContacts());
         if (searchInput) searchInput.addEventListener('input', (e) => this.filterContacts(e.target.value));
+
+        // Bulk actions for contacts
+        const exportBtn = container.querySelector('#xero-export-contacts-dropdown');
+        const exportMenu = container.querySelector('#xero-export-contacts-menu');
+        const deleteBtn = container.querySelector('#xero-delete-contacts');
+
+        if (exportBtn && exportMenu) {
+            exportBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportMenu.style.display = exportMenu.style.display === 'none' ? 'block' : 'none';
+            });
+
+            exportMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const format = e.target.dataset.format;
+                    this.exportContacts(format);
+                    exportMenu.style.display = 'none';
+                });
+            });
+
+            document.addEventListener('click', () => {
+                exportMenu.style.display = 'none';
+            });
+        }
+
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => this.deleteSelectedContacts());
+        }
     }
 
     async loadContacts() {
@@ -770,11 +898,23 @@ class XeroModule extends BaseModule {
 
         this.tables.contacts = new Tabulator(container, {
             data: this.data.contacts,
-            layout: 'fitColumns',
+            layout: 'fitDataStretch',
             responsiveLayout: 'collapse',
-            pagination: 'local',
+            pagination: true,
             paginationSize: 50,
+            selectable: true,
+            selectableRangeMode: 'click',
             columns: [
+                {
+                    formatter: 'rowSelection',
+                    titleFormatter: 'rowSelection',
+                    hozAlign: 'center',
+                    headerSort: false,
+                    width: 40,
+                    cellClick: function (e, cell) {
+                        cell.getRow().toggleSelect();
+                    }
+                },
                 { title: 'Name', field: 'name', width: 250 },
                 { title: 'Email', field: 'email', width: 200 },
                 { title: 'Phone', field: 'phone', width: 150 },
@@ -805,6 +945,12 @@ class XeroModule extends BaseModule {
                     }
                 }
             ]
+        });
+
+        // Handle row selection
+        this.tables.contacts.on('rowSelectionChanged', (data, rows) => {
+            this.selectedItems.contacts = new Set(rows.map(r => r.getData().contact_id));
+            this.updateSelectionCount('contacts', rows.length);
         });
     }
 
@@ -1112,6 +1258,103 @@ class XeroModule extends BaseModule {
                 { field: 'code', type: 'like', value: searchTerm },
                 { field: 'name', type: 'like', value: searchTerm }
             ]);
+        }
+    }
+
+    // ========================================================================
+    // BULK ACTIONS
+    // ========================================================================
+
+    updateSelectionCount(type, count) {
+        const countElement = document.getElementById(`xero-${type}-selection-count`);
+        const bulkActionsBar = document.getElementById(`xero-${type}-bulk-actions`);
+
+        if (countElement) {
+            countElement.textContent = `${count} selected`;
+        }
+
+        if (bulkActionsBar) {
+            bulkActionsBar.style.display = count > 0 ? 'flex' : 'none';
+        }
+    }
+
+    exportInvoices(format) {
+        if (!this.tables.invoices) return;
+
+        const filename = `xero_invoices_${Date.now()}`;
+
+        try {
+            switch (format) {
+                case 'xlsx':
+                    this.tables.invoices.download('xlsx', `${filename}.xlsx`, {
+                        sheetName: 'Invoices'
+                    });
+                    break;
+                case 'csv':
+                    this.tables.invoices.download('csv', `${filename}.csv`);
+                    break;
+                case 'pdf':
+                    this.tables.invoices.download('pdf', `${filename}.pdf`, {
+                        orientation: 'landscape',
+                        title: 'Xero Invoices'
+                    });
+                    break;
+            }
+            console.log(`✅ Exported ${this.selectedItems.invoices.size} invoices as ${format}`);
+        } catch (error) {
+            console.error('Export failed:', error);
+            this.showError('Export failed', error.message, 'error');
+        }
+    }
+
+    exportContacts(format) {
+        if (!this.tables.contacts) return;
+
+        const filename = `xero_contacts_${Date.now()}`;
+
+        try {
+            switch (format) {
+                case 'xlsx':
+                    this.tables.contacts.download('xlsx', `${filename}.xlsx`, {
+                        sheetName: 'Contacts'
+                    });
+                    break;
+                case 'csv':
+                    this.tables.contacts.download('csv', `${filename}.csv`);
+                    break;
+                case 'pdf':
+                    this.tables.contacts.download('pdf', `${filename}.pdf`, {
+                        orientation: 'landscape',
+                        title: 'Xero Contacts'
+                    });
+                    break;
+            }
+            console.log(`✅ Exported ${this.selectedItems.contacts.size} contacts as ${format}`);
+        } catch (error) {
+            console.error('Export failed:', error);
+            this.showError('Export failed', error.message, 'error');
+        }
+    }
+
+    deleteSelectedInvoices() {
+        const count = this.selectedItems.invoices.size;
+        if (count === 0) return;
+
+        if (confirm(`Are you sure you want to delete ${count} invoice(s)?`)) {
+            console.log('Deleting invoices:', Array.from(this.selectedItems.invoices));
+            // TODO: Implement actual delete API call
+            this.showWarning(`Delete functionality will be implemented in next update. Would delete ${count} invoices.`);
+        }
+    }
+
+    deleteSelectedContacts() {
+        const count = this.selectedItems.contacts.size;
+        if (count === 0) return;
+
+        if (confirm(`Are you sure you want to delete ${count} contact(s)?`)) {
+            console.log('Deleting contacts:', Array.from(this.selectedItems.contacts));
+            // TODO: Implement actual delete API call
+            this.showWarning(`Delete functionality will be implemented in next update. Would delete ${count} contacts.`);
         }
     }
 

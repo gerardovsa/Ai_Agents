@@ -1784,6 +1784,28 @@ export default {
             const emailData = cell.getRow().getData();
             const fullEmail = await this.fetchEmailContent(emailId);
 
+            // Process all attachments (images, PDFs, etc.)
+            let processedAttachments = [];
+            if (fullEmail.attachments && fullEmail.attachments.length > 0) {
+                this.log.info(`📎 Processing ${fullEmail.attachments.length} attachment(s)...`);
+
+                processedAttachments = await AttachmentProcessor.processAttachmentsForAI(
+                    emailId,
+                    fullEmail.attachments,
+                    this
+                );
+
+                const imageCount = processedAttachments.filter(a =>
+                    a.detected_type === 'image' && a.image_data
+                ).length;
+
+                const docCount = processedAttachments.filter(a =>
+                    a.detected_type === 'pdf' && a.document_data
+                ).length;
+
+                this.log.success(`✅ Processed ${processedAttachments.length} attachments: ${imageCount} images, ${docCount} PDFs`);
+            }
+
             // If "Create New Thread" selected, find next available agent slot
             let location = agentId;
             if (agentId === 'new' || agentId === null) {
@@ -1824,6 +1846,21 @@ export default {
                 }
             }
 
+            // Enhanced metadata with attachment info
+            const metadata = {
+                email_id: emailId,
+                email_subject: fullEmail.subject,
+                email_from: fullEmail.from,
+                email_to: fullEmail.to,
+                email_date: fullEmail.date,
+                email_provider: fullEmail.provider,
+                assigned_agent: agentName,
+                assigned_at: new Date().toISOString(),
+                attachments_count: processedAttachments.length,
+                has_images: processedAttachments.some(a => a.detected_type === 'image' && a.image_data),
+                has_documents: processedAttachments.some(a => a.detected_type === 'pdf' && a.document_data)
+            };
+
             // Create thread in sessions.threads with location
             const threadResponse = await this.api.post('/api/threads/create', {
                 user_id: userId,
@@ -1831,16 +1868,7 @@ export default {
                 context_type: 'email',
                 location: location,
                 tags: ['email', fullEmail.provider, 'assigned'],
-                metadata: {
-                    email_id: emailId,
-                    email_subject: fullEmail.subject,
-                    email_from: fullEmail.from,
-                    email_to: fullEmail.to,
-                    email_date: fullEmail.date,
-                    email_provider: fullEmail.provider,
-                    assigned_agent: agentName,
-                    assigned_at: new Date().toISOString()
-                }
+                metadata: metadata
             });
 
             if (!threadResponse || !threadResponse.thread_slug) {
@@ -1926,13 +1954,25 @@ export default {
                 this.log.warn('⚠️ AgentColumn.loadThreadIntoAgent not available');
             }
 
-            // Step 4: Auto-trigger AI with email context message
-            const initialMessage = `Analyze this email and provide a summary of key points and suggested actions:\n\nFrom: ${emailData.from}\nSubject: ${emailData.subject}\nDate: ${emailData.date}`;
+            // Step 4: Generate enhanced AI prompt with attachments
+            const textPrompt = EmailAIFormatter.generateEnhancedPrompt(emailData, 'analyze');
+
+            // Add attachment summary
+            const attachmentSummary = AttachmentProcessor.generateAttachmentSummary(processedAttachments);
+            const completeTextPrompt = textPrompt + attachmentSummary;
+
+            // Generate message content (string for text-only, array for multimodal)
+            const messageContent = EmailAIFormatter.generateClaudeMessageContent(
+                completeTextPrompt,
+                processedAttachments
+            );
+
+            this.log.info(`📧 Message prepared: ${typeof messageContent === 'string' ? 'text-only' : `multimodal (${messageContent.length} blocks)`}`);
 
             // Send message to trigger AI processing (use MultiAgent for agent columns, not PrimeAI)
             if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.sendMessage === 'function') {
                 this.log.info('🤖 Triggering AI response...');
-                await MultiAgent.sendMessage(agentId, initialMessage);
+                await MultiAgent.sendMessage(agentId, messageContent);
                 this.log.success('✅ AI processing started automatically');
             } else {
                 this.log.warn('⚠️ MultiAgent.sendMessage not available - manual trigger required');

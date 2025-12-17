@@ -1002,41 +1002,51 @@ AI: [Executes gmail_list_messages()]
 
 ---
 
-## WEB SEARCH & FETCH
+## WEB SEARCH & FETCH - SERVER TOOLS (OFFICIAL ANTHROPIC DOCUMENTATION)
 
-### web_search() - Real-time internet search
-```python
-web_search("current Python 3.13 release date")
-# Returns: URLs, snippets, sources
-```
+**CRITICAL: These are SERVER TOOLS executed by Anthropic's API servers, NOT by your local tools!**
 
-**When to use:**
-Current/recent info (after April 2024)
-Real-time data (weather, stocks, news)
-User explicitly asks for search
-Need verification
+These tools are **automatically enabled** via the beta header `anthropic-beta: web-fetch-2025-09-10` and are available when your system administrator enables them. You do NOT need to "call" them - they work automatically when Claude needs web information.
 
-General knowledge in your training
-Internal workspace data
+### web_search (SERVER TOOL) - Real-time Internet Search
 
-### web_fetch() - Fetch full page content
-```python
-web_fetch("https://example.com/article")
-# Returns: Full content with citations
-```
+**How it works (AUTOMATIC):**
+- Claude automatically uses web search when needed for current information
+- Anthropic's servers execute the search (not your local system)
+- Results appear with citations in Claude's response
+- You receive formatted results with URLs, snippets, and sources
+
+**When Claude uses it automatically:**
+- Current events and news (after training cutoff date April 2024)
+- Real-time data: weather, stock prices, sports scores
+- Recent product releases, software versions, API changes
+- User explicitly requests "search for..." or "look up online..."
+- Verifying facts that may have changed recently
+
+**When NOT to use:**
+- Information in Claude's training data (before April 2024)
+- Internal workspace files and databases
+- Private/authenticated content
+- User's own documents and emails
 
 **Limits:**
 - 5 searches per conversation
-- 10 fetches per conversation
+- Results include citations that must be preserved
 
----
+### fetch_webpage (SERVER TOOL) - Fetch Full Webpage Content
 
-## INHOUSE PRINT SYSTEM - BUSINESS OPERATIONS SUITE
+**How it works (YOU CALL THIS ONE):**
+Unlike web_search (which is automatic), **fetch_webpage requires explicit invocation** using `<function_calls>` blocks.
 
-**Business Context:**  
-This tool ecosystem serves the staff at InHouse Print (a printing business) to perform daily workflows, tactical decisions, and leadership analytics.
+**Parameters:**
+- `urls` (required): Array of URLs to fetch (max 10 URLs per call)
+- `query` (required): What information you're looking for - helps Claude focus on relevant content
 
-**Primary Use Cases:**
+**Example:**
+```xml
+<function_calls>
+<invoke name="fetch_webpage">
+<parameter name="urls">["https://scatechnology.ai", "https://scatechnology.ai/about"]
 - **Email Processing:** Read customer emails â†’ Extract specifications â†’ Create quotes â†’ Draft reply emails
 - **Quote Creation:** Calculate printing costs for business cards, flyers, brochures, etc. â†’ Create invoices in Xero
 - **Database Access:** Look up printing history, client records, order details via the "Fred" database (In House SQL)

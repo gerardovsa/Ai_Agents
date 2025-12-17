@@ -51,8 +51,14 @@ from pathlib import Path
 import subprocess
 import json
 
-# Import global utilities
-from AI_infrastructure.utils.document_parser import DocumentParser
+# Import global utilities with fallback
+try:
+    from AI_infrastructure.utils.document_parser import DocumentParser
+    HAS_DOCUMENT_PARSER = True
+except ImportError:
+    HAS_DOCUMENT_PARSER = False
+    logger = logging.getLogger(__name__)
+    logger.warning("[VERIFICATION] DocumentParser not available - parse_resume will be limited")
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +84,12 @@ def parse_resume(
         Parsed resume data with structured fields
     """
     logger.info(f"[PARSE_RESUME] Processing {file_path} for user {_user_id}")
+    
+    if not HAS_DOCUMENT_PARSER:
+        return {
+            'success': False,
+            'error': 'DocumentParser not available. Install AI_infrastructure module or use extract_contact_info for basic parsing.'
+        }
     
     try:
         parser = DocumentParser()

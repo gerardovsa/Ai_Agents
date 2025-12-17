@@ -153,6 +153,26 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
     for msg in cleaned_messages:
         if final_messages and final_messages[-1].get('role') == msg.get('role'):
             cprint(f"{log_prefix} ⚠️ Found consecutive {msg['role']} messages", Colors.WARNING)
+            
+            # Check if either message has thinking blocks
+            prev_has_thinking = False
+            curr_has_thinking = False
+            if msg.get('role') == 'assistant':
+                prev_content = final_messages[-1].get('content', [])
+                curr_content = msg.get('content', [])
+                
+                if isinstance(prev_content, list):
+                    prev_has_thinking = any(b.get('type') in ('thinking', 'redacted_thinking') for b in prev_content if isinstance(b, dict))
+                if isinstance(curr_content, list):
+                    curr_has_thinking = any(b.get('type') in ('thinking', 'redacted_thinking') for b in curr_content if isinstance(b, dict))
+                
+                if prev_has_thinking or curr_has_thinking:
+                    print(f"{log_prefix} 🚫 CRITICAL: Cannot have consecutive assistant messages with thinking blocks")
+                    print(f"{log_prefix}    Previous message has thinking: {prev_has_thinking}")
+                    print(f"{log_prefix}    Current message has thinking: {curr_has_thinking}")
+                    print(f"{log_prefix} 🔧 Keeping only the first assistant message (removing consecutive one)")
+                    continue  # Skip current message
+            
             # Merge content if both are same role
             if msg.get('role') == 'user':
                 prev_content = final_messages[-1].get('content', [])
@@ -2528,26 +2548,52 @@ def execute_streaming_request(
                             print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks (thinking preserved)")
                             messages[idx]['content'] = cleaned_content
         
-        # CRITICAL FIX (Dec 10, 2025): Prevent "thinking blocks cannot be modified" error
-        # Anthropic API forbids resending thinking blocks from previous API responses
-        # If conversation contains thinking blocks in assistant messages, we must ensure
-        # the last message is a USER message (so Claude generates new thinking, not reuses old)
-        print(f"{log_prefix} 🔍 Checking for thinking blocks in conversation history...")
-        has_thinking_blocks = False
+        # CRITICAL FIX (Dec 18, 2025): Prevent "thinking blocks cannot be modified" error
+        # Anthropic API forbids:
+        # 1. Resending thinking blocks from previous API responses
+        # 2. Having consecutive assistant messages when thinking blocks are present
+        # 3. Modifying thinking blocks in any way (even just passing them through)
+        print(f"{log_prefix} 🔍 Checking for thinking blocks and consecutive assistant messages...")
+        
+        # STEP 1: Find all assistant messages with thinking blocks
+        assistant_messages_with_thinking = []
         for idx, msg in enumerate(messages):
             if msg.get('role') == 'assistant':
                 content = msg.get('content', [])
                 if isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get('type') in ('thinking', 'redacted_thinking'):
-                            has_thinking_blocks = True
-                            print(f"{log_prefix}   Found thinking block in message [{idx}]")
-                            break
-                if has_thinking_blocks:
-                    break
+                    has_thinking = any(
+                        isinstance(block, dict) and block.get('type') in ('thinking', 'redacted_thinking')
+                        for block in content
+                    )
+                    if has_thinking:
+                        assistant_messages_with_thinking.append(idx)
+                        print(f"{log_prefix}   Message [{idx}] (assistant): Has thinking blocks")
         
-        if has_thinking_blocks:
-            # Ensure last message is user (requirement for Extended Thinking)
+        # STEP 2: Check for consecutive assistant messages
+        consecutive_assistant_indices = []
+        for i in range(len(messages) - 1):
+            if messages[i].get('role') == 'assistant' and messages[i+1].get('role') == 'assistant':
+                consecutive_assistant_indices.extend([i, i+1])
+                print(f"{log_prefix}  WARNING: Consecutive assistant messages at [{i}] and [{i+1}]")
+        
+        # STEP 3: If we have both thinking blocks AND consecutive assistant messages, fix it
+        if assistant_messages_with_thinking and consecutive_assistant_indices:
+            # Find the earliest assistant message that has both thinking AND is part of consecutive pair
+            problematic_indices = set(assistant_messages_with_thinking) & set(consecutive_assistant_indices)
+            if problematic_indices:
+                # Remove ALL consecutive assistant messages to ensure clean conversation
+                print(f"{log_prefix} CRITICAL: Thinking blocks + consecutive assistant messages detected")
+                print(f"{log_prefix} 🔧 FIX: Truncating conversation at first problematic assistant message")
+                
+                first_problem_idx = min(problematic_indices)
+                print(f"{log_prefix}    Truncating at message [{first_problem_idx}]")
+                print(f"{log_prefix}    Removing {len(messages) - first_problem_idx} messages")
+                
+                messages = messages[:first_problem_idx]
+                print(f"{log_prefix} ✅ Truncated to {len(messages)} messages")
+        
+        # STEP 4: Always ensure last message is user when thinking blocks present
+        if assistant_messages_with_thinking:
             if messages and messages[-1].get('role') != 'user':
                 print(f"{log_prefix} ⚠️  WARNING: Last message is assistant with thinking blocks")
                 print(f"{log_prefix} ℹ️  This will cause 400 error: 'thinking blocks cannot be modified'")
@@ -2634,12 +2680,19 @@ def execute_streaming_request(
                 stop_reason = final_message.stop_reason
                 all_content_blocks = final_message.content
                 
-                # Parse tool inputs
+                # Parse tool inputs (SKIP server tools - they're executed by Anthropic API)
                 tool_uses = []
                 for block in all_content_blocks:
-                    if hasattr(block, 'type') and block.type == 'tool_use':
-                        tool_uses.append({'id': block.id, 'name': block.name, 'input': block.input})
-                        yield {'type': 'tool_input_complete', 'tool_name': block.name, 'tool_id': block.id, 'tool_input': block.input}
+                    if hasattr(block, 'type'):
+                        # CRITICAL: Skip server_tool_use blocks (web_search, web_fetch)
+                        # These are executed by Anthropic's API, not by our registry
+                        if block.type == 'server_tool_use':
+                            print(f"{log_prefix} ℹ️  Skipping server tool: {block.name} (executed by Anthropic API)")
+                            continue
+                        
+                        if block.type == 'tool_use':
+                            tool_uses.append({'id': block.id, 'name': block.name, 'input': block.input})
+                            yield {'type': 'tool_input_complete', 'tool_name': block.name, 'tool_id': block.id, 'tool_input': block.input}
         
         # Serialize content blocks
         serialized_content = []

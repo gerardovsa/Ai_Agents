@@ -57,6 +57,121 @@
 }
 
 /* ============================================================================
+   BULK ACTIONS TOOLBAR
+   ============================================================================ */
+.xero-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(19, 181, 234, 0.1) 0%, rgba(19, 181, 234, 0.05) 100%);
+    border: 1px solid rgba(19, 181, 234, 0.3);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.xero-bulk-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.xero-selection-count {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--xero-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.xero-selection-count::before {
+    content: "✓";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: var(--xero-primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.xero-bulk-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.xero-btn-group {
+    position: relative;
+    display: inline-block;
+}
+
+.xero-btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.xero-btn-danger {
+    background: var(--xero-danger);
+    color: white;
+}
+
+.xero-btn-danger:hover {
+    background: #dc2626;
+}
+
+.xero-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.xero-dropdown-menu a {
+    display: block;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.xero-dropdown-menu a:hover {
+    background: var(--xero-primary);
+    color: white;
+}
+
+.xero-dropdown-menu a i {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+/* ============================================================================
    DASHBOARD
    ============================================================================ */
 .xero-dashboard {
