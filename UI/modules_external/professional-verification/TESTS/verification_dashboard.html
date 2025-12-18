@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Verification Dashboard - Live Computer Use Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-idle { background: #e0e0e0; color: #666; }
+        .status-running { background: #4caf50; color: white; animation: pulse 2s infinite; }
+        .status-error { background: #f44336; color: white; }
+        .status-complete { background: #2196f3; color: white; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .panel-header h2 {
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .panel-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .subject-panel {
+            grid-column: 1 / -1;
+        }
+
+        .subject-panel .panel-content {
+            max-height: 150px;
+        }
+
+        .vnc-panel {
+            grid-column: 1 / -1;
+        }
+
+        .vnc-panel .panel-content {
+            padding: 0;
+            max-height: 600px;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .subject-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .log-entry {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            border-left: 4px solid #ccc;
+            background: #f8f9fa;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-info { border-left-color: #2196f3; }
+        .log-success { border-left-color: #4caf50; }
+        .log-warning { border-left-color: #ff9800; }
+        .log-error { border-left-color: #f44336; }
+        .log-command { border-left-color: #9c27b0; background: #f3e5f5; }
+
+        .log-timestamp {
+            color: #999;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        .reasoning-block {
+            background: #fff9e6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ffc107;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .reasoning-header {
+            font-weight: bold;
+            color: #f57c00;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reasoning-text {
+            color: #333;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .command-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .command-header {
+            color: #4ec9b0;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .command-text {
+            color: #ce9178;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+        }
+
+        .output-text {
+            color: #b5cea8;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .result-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .result-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .result-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .findings-list {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .finding-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .finding-item:last-child {
+            border-bottom: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -100% 0; }
+            100% { background-position: 100% 0; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .iteration-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .vnc-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            min-height: 600px;
+        }
+
+        .vnc-controls {
+            padding: 15px;
+            background: #2c2c2c;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            padding: 10px 0;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Scrollbar styling */
+        .panel-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .panel-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .panel-content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .panel-content::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span>🤖</span>
+                AI Verification Dashboard
+            </h1>
+            <div class="controls">
+                <span id="statusBadge" class="status-badge status-idle">
+                    <span>●</span>
+                    <span id="statusText">Idle</span>
+                </span>
+                <button class="btn btn-primary" onclick="startVerification()">
+                    ▶️ Start Verification
+                </button>
+                <button class="btn btn-secondary" onclick="clearDashboard()">
+                    🗑️ Clear
+                </button>
+                <button class="btn btn-danger" onclick="stopVerification()">
+                    ⏹️ Stop
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="panel" style="margin-bottom: 20px;">
+            <div class="panel-content" style="max-height: none;">
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-value" id="iterationCount">0</div>
+                        <div class="stat-label">Iterations</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="commandCount">0</div>
+                        <div class="stat-label">Commands</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tokenCount">0</div>
+                        <div class="stat-label">Tokens</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="elapsedTime">0s</div>
+                        <div class="stat-label">Elapsed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="confidenceScore">-</div>
+                        <div class="stat-label">Confidence</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subject Information Panel -->
+        <div class="panel subject-panel">
+            <div class="panel-header">
+                <h2>📋 Subject Information</h2>
+                <span class="panel-badge">Current Target</span>
+            </div>
+            <div class="panel-content">
+                <div class="subject-info" id="subjectInfo">
+                    <div class="info-card">
+                        <div class="info-label">Name</div>
+                        <div class="info-value">Gregory Dutton</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Company</div>
+                        <div class="info-value">Institute of Sustainable Biodiversity</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">gregory.dutton@isb.eco</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Domain</div>
+                        <div class="info-value">isb.eco</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">+61 461 357 358</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid-container">
+            <!-- AI Reasoning Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>🧠 AI Reasoning</h2>
+                    <span class="panel-badge" id="reasoningCount">0 thoughts</span>
+                </div>
+                <div class="panel-content" id="reasoningPanel">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🧠</div>
+                        <div>Waiting for AI to start thinking...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Command Execution Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>⚡ Command Execution</h2>
+                    <span class="panel-badge" id="commandBadge">0 commands</span>
+                </div>
+                <div class="panel-content" id="commandPanel">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚡</div>
+                        <div>No commands executed yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Logs Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📝 System Logs</h2>
+                    <span class="panel-badge" id="logBadge">0 entries</span>
+                </div>
+                <div class="panel-content" id="logPanel">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div>No logs yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📊 Verification Results</h2>
+                    <span class="panel-badge" id="resultsBadge">Pending</span>
+                </div>
+                <div class="panel-content" id="resultsPanel">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div>Results will appear here when verification completes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VNC Browser View Panel -->
+        <div class="panel vnc-panel">
+            <div class="panel-header">
+                <h2>🖥️ Live Browser View (VNC)</h2>
+                <span class="panel-badge">localhost:5900</span>
+            </div>
+            <div class="vnc-controls">
+                <button class="btn btn-secondary" onclick="connectVNC()">🔌 Connect VNC</button>
+                <button class="btn btn-secondary" onclick="refreshVNC()">🔄 Refresh</button>
+                <button class="btn btn-secondary" onclick="disconnectVNC()">❌ Disconnect</button>
+                <span style="color: #999; margin-left: 20px;">Use noVNC client or VNC viewer to connect to localhost:5900</span>
+            </div>
+            <div class="panel-content" id="vncPanel">
+                <div style="color: #999; text-align: center; padding: 40px;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">🖥️</div>
+                    <div>VNC connection: localhost:5900</div>
+                    <div style="font-size: 12px; margin-top: 10px;">Password: computeruse</div>
+                    <div style="font-size: 12px; margin-top: 10px;">Install a VNC client or use noVNC web viewer</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let iterationCount = 0;
+        let commandCount = 0;
+        let tokenCount = 0;
+        let startTime = null;
+        let timerInterval = null;
+        let ws = null;
+
+        // Update status
+        function updateStatus(status, text) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            
+            badge.className = `status-badge status-${status}`;
+            statusText.textContent = text;
+        }
+
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const panel = document.getElementById('logPanel');
+            const badge = document.getElementById('logBadge');
+            
+            // Remove empty state
+            if (panel.querySelector('.empty-state')) {
+                panel.innerHTML = '';
+            }
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span>${message}</span>
+            `;
+            
+            panel.insertBefore(entry, panel.firstChild);
+            
+            // Update badge
+            const count = panel.querySelectorAll('.log-entry').length;
+            badge.textContent = `${count} entries`;
+            
+            // Auto-scroll to top
+            panel.scrollTop = 0;
+        }
+
+        // Add reasoning
+        function addReasoning(iteration, text) {
+            const panel = document.getElementById('reasoningPanel');
+            const badge = document.getElementById('reasoningCount');
+            
+            // Remove empty state
+            if (panel.querySelector('.empty-state')) {
+                panel.innerHTML = '';
+            }
+
+            const block = document.createElement('div');
+            block.className = 'reasoning-block';
+            block.innerHTML = `
+                <div class="reasoning-header">
+                    🤔 Iteration ${iteration}
+                    <span class="iteration-badge">Step ${iteration}</span>
+                </div>
+                <div class="reasoning-text">${text}</div>
+            `;
+            
+            panel.insertBefore(block, panel.firstChild);
+            
+            // Update badge
+            const count = panel.querySelectorAll('.reasoning-block').length;
+            badge.textContent = `${count} thoughts`;
+            
+            panel.scrollTop = 0;
+        }
+
+        // Add command execution
+        function addCommand(command, output = '') {
+            const panel = document.getElementById('commandPanel');
+            const badge = document.getElementById('commandBadge');
+            
+            // Remove empty state
+            if (panel.querySelector('.empty-state')) {
+                panel.innerHTML = '';
+            }
+
+            const block = document.createElement('div');
+            block.className = 'command-block';
+            block.innerHTML = `
+                <div class="command-header">
+                    💻 Command Executed
+                </div>
+                <div class="command-text">$ ${command}</div>
+                ${output ? `<div class="output-text">${output}</div>` : ''}
+            `;
+            
+            panel.insertBefore(block, panel.firstChild);
+            
+            // Update stats
+            commandCount++;
+            document.getElementById('commandCount').textContent = commandCount;
+            badge.textContent = `${commandCount} commands`;
+            
+            panel.scrollTop = 0;
+        }
+
+        // Show results
+        function showResults(results) {
+            const panel = document.getElementById('resultsPanel');
+            const badge = document.getElementById('resultsBadge');
+            
+            panel.innerHTML = `
+                <div class="result-card">
+                    <div class="result-header">
+                        ${results.verification_status === 'VERIFIED' ? '✅' : 
+                          results.verification_status === 'SUSPICIOUS' ? '🚩' : '⚠️'}
+                        ${results.verification_status}
+                    </div>
+                    
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <div class="result-label">Confidence Score</div>
+                            <div class="result-value">${results.confidence_score}/100</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Recommendation</div>
+                            <div class="result-value">${results.recommendation}</div>
+                        </div>
+                    </div>
+                    
+                    ${results.findings ? `
+                        <div class="findings-list">
+                            <div style="font-weight: bold; margin-bottom: 10px;">📋 Findings:</div>
+                            ${Object.entries(results.findings).map(([key, value]) => `
+                                <div class="finding-item">
+                                    <span>${key.replace(/_/g, ' ')}</span>
+                                    <span>${value ? '✅' : '❌'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    ${results.summary ? `
+                        <div style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                            <strong>Summary:</strong> ${results.summary}
+                        </div>
+                    ` : ''}
+                    
+                    ${results.red_flags && results.red_flags.length > 0 ? `
+                        <div style="margin-top: 15px; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 8px;">
+                            <strong>🚩 Red Flags:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${results.red_flags.map(flag => `<li>${flag}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    ${results.legitimacy_indicators && results.legitimacy_indicators.length > 0 ? `
+                        <div style="margin-top: 15px; padding: 15px; background: rgba(0,255,0,0.1); border-radius: 8px;">
+                            <strong>✅ Legitimacy Indicators:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${results.legitimacy_indicators.map(ind => `<li>${ind}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            badge.textContent = 'Complete';
+            badge.style.background = '#4caf50';
+            
+            // Update confidence stat
+            document.getElementById('confidenceScore').textContent = `${results.confidence_score}%`;
+        }
+
+        // Start timer
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('elapsedTime').textContent = `${elapsed}s`;
+            }, 1000);
+        }
+
+        // Stop timer
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        // Start verification
+        async function startVerification() {
+            // Reset state
+            iterationCount = 0;
+            commandCount = 0;
+            tokenCount = 0;
+            document.getElementById('iterationCount').textContent = '0';
+            document.getElementById('commandCount').textContent = '0';
+            document.getElementById('tokenCount').textContent = '0';
+            document.getElementById('confidenceScore').textContent = '-';
+            
+            updateStatus('running', 'Running');
+            addLog('Starting verification process...', 'info');
+            startTimer();
+            
+            // Connect WebSocket
+            try {
+                ws = new WebSocket('ws://localhost:5555');
+                
+                ws.onopen = () => {
+                    addLog('WebSocket connected to verification server', 'success');
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                };
+                
+                ws.onerror = () => {
+                    addLog('WebSocket connection error - using simulation mode', 'warning');
+                    runSimulation();
+                };
+                
+                ws.onclose = () => {
+                    addLog('WebSocket disconnected', 'info');
+                };
+                
+                // If WebSocket doesn't connect in 2 seconds, use simulation
+                setTimeout(() => {
+                    if (ws.readyState !== WebSocket.OPEN) {
+                        addLog('WebSocket timeout - starting simulation mode', 'warning');
+                        runSimulation();
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                addLog('Could not connect to server - using simulation', 'warning');
+                runSimulation();
+            }
+        }
+
+        // Handle WebSocket messages
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'iteration':
+                    iterationCount = data.iteration;
+                    document.getElementById('iterationCount').textContent = iterationCount;
+                    addLog(`Iteration ${iterationCount}: ${data.stop_reason}`, 'info');
+                    break;
+                    
+                case 'reasoning':
+                    addReasoning(data.iteration, data.text);
+                    break;
+                    
+                case 'command':
+                    addCommand(data.command, data.output);
+                    addLog(`Executed: ${data.command}`, 'command');
+                    break;
+                    
+                case 'tokens':
+                    tokenCount = data.count;
+                    document.getElementById('tokenCount').textContent = tokenCount;
+                    break;
+                    
+                case 'results':
+                    showResults(data.results);
+                    addLog('Verification complete!', 'success');
+                    updateStatus('complete', 'Complete');
+                    stopTimer();
+                    break;
+                    
+                case 'error':
+                    addLog(`Error: ${data.message}`, 'error');
+                    updateStatus('error', 'Error');
+                    stopTimer();
+                    break;
+            }
+        }
+
+        // Simulation mode (when server not available)
+        async function runSimulation() {
+            // Simulate verification process
+            await sleep(1000);
+            
+            // Iteration 1
+            iterationCount = 1;
+            document.getElementById('iterationCount').textContent = '1';
+            addLog('Iteration 1: tool_use', 'info');
+            addReasoning(1, 'I need to verify the domain isb.eco is accessible and has valid SSL. Let me start by checking if the domain resolves.');
+            
+            await sleep(1500);
+            addCommand('curl -I https://isb.eco', 'HTTP/2 200\nserver: nginx\ncontent-type: text/html');
+            addLog('Domain check: Success', 'success');
+            
+            await sleep(2000);
+            
+            // Iteration 2
+            iterationCount = 2;
+            document.getElementById('iterationCount').textContent = '2';
+            addLog('Iteration 2: tool_use', 'info');
+            addReasoning(2, 'Domain is accessible with valid SSL. Now checking DNS records to verify proper configuration.');
+            
+            await sleep(1500);
+            addCommand('nslookup isb.eco', 'Server: 8.8.8.8\nAddress: 192.0.2.1');
+            addLog('DNS check: Success', 'success');
+            
+            await sleep(2000);
+            
+            // Iteration 3
+            iterationCount = 3;
+            document.getElementById('iterationCount').textContent = '3';
+            addLog('Iteration 3: tool_use', 'info');
+            addReasoning(3, 'DNS is configured correctly. Checking email domain MX records for gregory.dutton@isb.eco.');
+            
+            await sleep(1500);
+            addCommand('nslookup -type=mx isb.eco', 'isb.eco mail exchanger = 10 mx.isb.eco');
+            addLog('Email verification: Valid MX records found', 'success');
+            
+            await sleep(2000);
+            
+            // Iteration 4
+            iterationCount = 4;
+            document.getElementById('iterationCount').textContent = '4';
+            addLog('Iteration 4: tool_use', 'info');
+            addReasoning(4, 'Email domain matches company domain. Checking historical web presence via archive.org.');
+            
+            await sleep(1500);
+            addCommand('curl -s "http://archive.org/wayback/available?url=isb.eco"', '{"archived_snapshots": {"closest": {"available": true, "url": "...", "timestamp": "20240115"}}}');
+            addLog('Historical data: Found archived snapshots', 'success');
+            
+            await sleep(2000);
+            
+            // Final iteration
+            iterationCount = 5;
+            document.getElementById('iterationCount').textContent = '5';
+            addLog('Iteration 5: end_turn', 'info');
+            addReasoning(5, 'All checks complete. The subject appears legitimate with valid domain, SSL, email configuration, and historical presence. Generating final report.');
+            
+            await sleep(1500);
+            
+            // Show results
+            showResults({
+                verification_status: 'VERIFIED',
+                confidence_score: 85,
+                recommendation: 'APPROVE',
+                findings: {
+                    domain_active: true,
+                    ssl_valid: true,
+                    historical_snapshots: 15,
+                    email_domain_matches: true,
+                    mx_records_found: true,
+                    website_accessible: true
+                },
+                legitimacy_indicators: [
+                    'Active domain with valid SSL certificate',
+                    'Professional email domain matches company domain',
+                    'Historical web presence dating back 2+ years',
+                    'Proper DNS and MX records configured'
+                ],
+                red_flags: [],
+                summary: 'Gregory Dutton from Institute of Sustainable Biodiversity appears to be a legitimate professional. All verification checks passed successfully with no red flags detected.'
+            });
+            
+            updateStatus('complete', 'Complete');
+            stopTimer();
+            
+            // Update token count
+            tokenCount = 1247;
+            document.getElementById('tokenCount').textContent = tokenCount;
+        }
+
+        // Stop verification
+        function stopVerification() {
+            if (ws) {
+                ws.close();
+            }
+            updateStatus('idle', 'Stopped');
+            stopTimer();
+            addLog('Verification stopped by user', 'warning');
+        }
+
+        // Clear dashboard
+        function clearDashboard() {
+            document.getElementById('reasoningPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><div>Waiting for AI to start thinking...</div></div>';
+            document.getElementById('commandPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚡</div><div>No commands executed yet</div></div>';
+            document.getElementById('logPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div>No logs yet</div></div>';
+            document.getElementById('resultsPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div>Results will appear here when verification completes</div></div>';
+            
+            document.getElementById('reasoningCount').textContent = '0 thoughts';
+            document.getElementById('commandBadge').textContent = '0 commands';
+            document.getElementById('logBadge').textContent = '0 entries';
+            document.getElementById('resultsBadge').textContent = 'Pending';
+            
+            iterationCount = 0;
+            commandCount = 0;
+            tokenCount = 0;
+            document.getElementById('iterationCount').textContent = '0';
+            document.getElementById('commandCount').textContent = '0';
+            document.getElementById('tokenCount').textContent = '0';
+            document.getElementById('elapsedTime').textContent = '0s';
+            document.getElementById('confidenceScore').textContent = '-';
+            
+            updateStatus('idle', 'Idle');
+            stopTimer();
+        }
+
+        // VNC functions
+        function connectVNC() {
+            addLog('VNC: Use a VNC client to connect to localhost:5900', 'info');
+            addLog('VNC: Password is "computeruse"', 'info');
+        }
+
+        function refreshVNC() {
+            addLog('VNC: Refresh your VNC client viewer', 'info');
+        }
+
+        function disconnectVNC() {
+            addLog('VNC: Disconnect your VNC client', 'info');
+        }
+
+        // Helper
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('Dashboard initialized', 'success');
+            addLog('Ready to start verification', 'info');
+        });
+    </script>
+</body>
+</html>

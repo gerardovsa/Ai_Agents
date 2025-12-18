@@ -417,7 +417,11 @@ const ThreadManager = {
                         tags: thread.tags || [],
                         synergy_card_id: thread.synergy_card_id || null,
                         workflow_slug: thread.workflow_slug || null,
-                        workflow_title: thread.workflow_title || null
+                        workflow_title: thread.workflow_title || null,
+                        // ✅ Email metadata fields
+                        email_thread_id: thread.email_thread_id || null,
+                        email_subject: thread.email_subject || null,
+                        email_participants: thread.email_participants || null
                     };
                 });
 

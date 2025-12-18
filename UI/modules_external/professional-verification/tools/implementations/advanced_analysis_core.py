@@ -113,7 +113,7 @@ Respond in JSON format with scores and detailed explanations."""
                 client = Anthropic(api_key=anthropic_key)
                 
                 response = client.messages.create(
-                    model="claude-3-5-sonnet-20241022",
+                    model="claude-sonnet-4-5",  # Claude 4.5 Sonnet - latest model
                     max_tokens=1500,
                     messages=[{
                         "role": "user",

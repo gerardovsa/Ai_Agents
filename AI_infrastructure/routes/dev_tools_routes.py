@@ -745,3 +745,75 @@ def get_templates():
     ]
     
     return jsonify({'templates': templates})
+
+
+# ================================================================
+# DATABASE CONNECTION AUDIT
+# ================================================================
+
+@dev_tools_bp.route('/audit-connections', methods=['GET'])
+def audit_database_connections():
+    """
+    Run database connection leak audit tool.
+    
+    Returns:
+        JSON with audit results including:
+        - total_leaks: Number of potential leaks found
+        - files_checked: Number of files scanned
+        - leaks_by_file: Dictionary of filename -> leak count
+        - details: List of leak details with file, line, function, issue
+    """
+    import subprocess
+    import sys
+    
+    try:
+        # Path to audit script
+        audit_script = BASE_DIR / 'AI_infrastructure' / 'tools' / 'audit_connection_leaks.py'
+        
+        if not audit_script.exists():
+            return jsonify({
+                'success': False,
+                'error': f'Audit script not found at {audit_script}'
+            }), 404
+        
+        # Run audit script and capture output
+        result = subprocess.run(
+            [sys.executable, str(audit_script)],
+            capture_output=True,
+            text=True,
+            cwd=str(BASE_DIR)
+        )
+        
+        # Parse output (simplified - assumes specific output format)
+        output = result.stdout
+        
+        # Extract summary stats
+        import re
+        total_match = re.search(r'TOTAL:\s*(\d+)\s*potential leaks', output)
+        total_leaks = int(total_match.group(1)) if total_match else 0
+        
+        # Parse file-level results
+        leaks_by_file = {}
+        files_section = False
+        for line in output.split('\n'):
+            if '[FILE]' in line:
+                file_match = re.search(r'\[FILE\]\s+(\S+)\s+\((\d+)\s+potential', line)
+                if file_match:
+                    filename = file_match.group(1)
+                    count = int(file_match.group(2))
+                    leaks_by_file[filename] = count
+        
+        return jsonify({
+            'success': True,
+            'total_leaks': total_leaks,
+            'files_checked': len(leaks_by_file),
+            'leaks_by_file': leaks_by_file,
+            'raw_output': output,
+            'note': 'Many "leaks" may be false positives if using context managers (with statements). See database_utils.py for PooledConnection auto-return failsafe.'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  computer-use:
+    build:
+      context: .
+      dockerfile: Dockerfile.computer-use
+    image: computer-use-test:latest
+    container_name: computer-use-test
+    ports:
+      - "5900:5900"  # VNC port for debugging
+    environment:
+      - DISPLAY=:1
+    shm_size: '2gb'  # Shared memory for Chrome
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "Xvfb"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

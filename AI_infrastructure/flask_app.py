@@ -3880,9 +3880,10 @@ if __name__ == '__main__':
     
     # 🚀 PRE-EMPTIVE SEMANTIC SEARCH INITIALIZATION
     # Initialize BEFORE server starts to ensure embeddings are ready for first request
-    print("[STARTUP] Initializing semantic search (this will take ~30 seconds)...")
-    print("[STARTUP] Server will start accepting requests after initialization completes.\n")
-    initialize_semantic_search_on_startup()
+    # TEMPORARILY DISABLED FOR XERO TESTING (re-enable after debugging)
+    # print("[STARTUP] Initializing semantic search (this will take ~30 seconds)...")
+    # print("[STARTUP] Server will start accepting requests after initialization completes.\n")
+    # initialize_semantic_search_on_startup()
     
     if USE_SOCKETIO:
         # Use SocketIO server (supports WebSockets + HTTP)

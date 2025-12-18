@@ -29,11 +29,46 @@ Updated: December 7, 2025 - Fixed cursor management in _get_credentials_from_db(
 import sys
 import os
 import traceback
+import re
 from datetime import datetime, timedelta
 from flask import jsonify, request
 from flask_cors import cross_origin
 from pathlib import Path
 import requests
+
+
+def parse_xero_date(date_str):
+    """
+    Parse Xero date formats (.NET format and ISO format).
+    
+    Xero API returns dates in two formats:
+    - .NET format: /Date(1749686400000+0000)/
+    - ISO format: 2025-01-01T00:00:00
+    
+    Args:
+        date_str: Date string from Xero API
+        
+    Returns:
+        datetime object or None if parsing fails
+    """
+    if not date_str:
+        return None
+    
+    try:
+        # Handle .NET date format: /Date(1749686400000+0000)/
+        if date_str.startswith('/Date('):
+            # Extract timestamp in milliseconds
+            match = re.match(r'/Date\((\d+)([+-]\d{4})?\)/', date_str)
+            if match:
+                timestamp_ms = int(match.group(1))
+                # Convert milliseconds to seconds
+                return datetime.fromtimestamp(timestamp_ms / 1000)
+        
+        # Handle ISO format
+        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+    except Exception as e:
+        print(f"[XERO] Failed to parse date '{date_str}': {e}")
+        return None
 
 # Xero API Configuration
 XERO_TOKEN_URL = "https://identity.xero.com/connect/token"
@@ -393,12 +428,12 @@ def xero_dashboard():
         overdue_amount = sum(
             inv.get('AmountDue', 0) for inv in invoices 
             if inv.get('Status') == 'AUTHORISED' and inv.get('DueDate') and 
-            datetime.fromisoformat(inv['DueDate'].replace('Z', '+00:00')) < datetime.now()
+            parse_xero_date(inv['DueDate']) and parse_xero_date(inv['DueDate']) < datetime.now()
         )
         overdue_count = len([
             inv for inv in invoices 
             if inv.get('Status') == 'AUTHORISED' and inv.get('DueDate') and 
-            datetime.fromisoformat(inv['DueDate'].replace('Z', '+00:00')) < datetime.now()
+            parse_xero_date(inv['DueDate']) and parse_xero_date(inv['DueDate']) < datetime.now()
         ])
         total_invoices = len(invoices)
         paid_invoices = len([inv for inv in invoices if inv.get('Status') == 'PAID'])
@@ -434,7 +469,7 @@ def xero_dashboard():
             day_revenue = sum(
                 inv.get('Total', 0) for inv in invoices
                 if inv.get('Status') == 'PAID' and inv.get('Date') and
-                datetime.fromisoformat(inv['Date'].replace('Z', '+00:00')).date() == date
+                parse_xero_date(inv['Date']) and parse_xero_date(inv['Date']).date() == date
             )
             if day_revenue > 0:
                 revenue_timeline.append({

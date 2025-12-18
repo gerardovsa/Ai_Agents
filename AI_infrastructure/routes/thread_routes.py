@@ -950,6 +950,9 @@ def list_threads():
                     t.workflow_title,
                     t.internal_doc_slug,
                     t.internal_doc_title,
+                    t.email_thread_id,
+                    t.email_subject,
+                    t.email_participants,
                     COUNT(CASE 
                         WHEN m.role = 'user' AND (
                             m.metadata IS NULL 
@@ -967,7 +970,8 @@ def list_threads():
                 GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
                          t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
                          t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
-                         t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title
+                         t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title,
+                         t.email_thread_id, t.email_subject, t.email_participants
                 ORDER BY t.updated_at DESC
                 LIMIT %s
             """
@@ -1011,6 +1015,9 @@ def list_threads():
                     'workflow_title': row.get('workflow_title'),
                     'internal_doc_slug': row.get('internal_doc_slug'),
                     'internal_doc_title': row.get('internal_doc_title'),
+                    'email_thread_id': row.get('email_thread_id'),
+                    'email_subject': row.get('email_subject'),
+                    'email_participants': row.get('email_participants'),
                     'message_count': row.get('message_count') or 0,
                     'last_message_time': row.get('last_message_time'),
                     'last_message_role': row.get('last_message_role'),
@@ -2721,3 +2728,74 @@ def get_lock_status(thread_id):
                 cursor.close()
             except:
                 pass
+
+# ============================================================
+# ENDPOINT: Update Thread Location (CASCADE/Unload Support)
+# ============================================================
+
+@thread_bp.route('/update-location', methods=['POST'])
+def update_thread_location():
+    """
+    Update a thread's location field for CASCADE rule enforcement and unload operations.
+    Supports moving threads between prime, prime-loaded, and agent-N locations.
+    
+    Request Body:
+        - thread_slug (str): Thread ID to update
+        - new_location (str): New location (prime, prime-loaded, agent-1, etc.)
+        - user_id (int): User ID for ownership verification
+        
+    Returns:
+        200: Thread location updated successfully
+        400: Invalid parameters
+        404: Thread not found
+        500: Database error
+    """
+    try:
+        data = request.get_json()
+        thread_slug = data.get('thread_slug')
+        new_location = data.get('new_location')
+        user_id = data.get('user_id')
+        
+        if not thread_slug or not new_location:
+            return error_response('Missing thread_slug or new_location', 400)
+        
+        # Get database connection
+        conn = get_database_connection('sessions')
+        if not conn:
+            return error_response('Failed to connect to database', 500)
+        
+        cursor = conn.cursor()
+        
+        # Update thread location
+        sql = """
+            UPDATE sessions.threads
+            SET location = %s,
+                last_message_at = CURRENT_TIMESTAMP
+            WHERE thread_slug = %s
+        """
+        params = [new_location, thread_slug]
+        
+        # Add user_id filter if provided
+        if user_id:
+            sql += " AND user_id = %s"
+            params.append(user_id)
+        
+        cursor.execute(sql, tuple(params))
+        rows_affected = cursor.rowcount
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        if rows_affected == 0:
+            return error_response('Thread not found or access denied', 404)
+        
+        return success_response({
+            'thread_slug': thread_slug,
+            'new_location': new_location,
+            'updated': True
+        })
+        
+    except Exception as e:
+        print(f"[UPDATE LOCATION ERROR] {str(e)}")
+        return error_response(f'Failed to update location: {str(e)}', 500)

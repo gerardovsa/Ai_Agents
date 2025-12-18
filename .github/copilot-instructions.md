@@ -18,6 +18,7 @@ Multi-tenant AI agent system with Flask backend, custom HTML/JavaScript frontend
 - `shared/supabase_client.py` - Supabase connection setup
 - `migrations/` - Database schema migrations (idempotent SQL)
 - `logs/` - Application logs (flask_app.log)
+- `tools/audit_connection_leaks.py` - **Database connection audit tool** - scans route files for potential connection leaks
 
 **tools/** - Tool system core
 - `registry_v3.py` - Tool discovery, registration, execution (@tool_executor decorator)
@@ -209,6 +210,13 @@ Get-Content AI_infrastructure/flask_app.log -Tail 50
 ```bash
 python AI_infrastructure/migrations/run_my_migration.py
 # Should run twice without errors
+```
+
+### **Audit database connections:**
+```powershell
+python AI_infrastructure/tools/audit_connection_leaks.py
+# Scans all route files for missing conn.close() or context managers
+# Note: Flags "No finally block" but context managers (with statements) are safe
 ```
 
 ---

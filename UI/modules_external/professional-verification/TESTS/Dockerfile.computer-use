@@ -1,0 +1,69 @@
+# Mini Docker for Computer Use Testing
+# Lightweight Ubuntu + Chrome + VNC for Anthropic Computer Use API
+# 
+# BUILD:
+#   docker build -f Dockerfile.computer-use -t computer-use-test:latest .
+#
+# RUN:
+#   docker run -d -p 5900:5900 --name computer-use-test computer-use-test:latest
+
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV DISPLAY=:1
+
+# Install ALL verification tools + browser
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    x11vnc \
+    fluxbox \
+    chromium-browser \
+    chromium-chromedriver \
+    curl \
+    wget \
+    unzip \
+    dnsutils \
+    whois \
+    netcat-openbsd \
+    iputils-ping \
+    traceroute \
+    openssl \
+    ca-certificates \
+    git \
+    python3 \
+    python3-pip \
+    jq \
+    xdotool \
+    scrot \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -s /bin/bash computeruse && \
+    mkdir -p /home/computeruse/.vnc
+
+# Set up VNC password (optional, for debugging)
+RUN echo "computeruse" | x11vnc -storepasswd /home/computeruse/.vnc/passwd
+
+# Create display directory
+RUN mkdir -p /tmp/.X11-unix && \
+    chmod 1777 /tmp/.X11-unix && \
+    chown -R computeruse:computeruse /home/computeruse
+
+# Switch to non-root user
+USER computeruse
+WORKDIR /home/computeruse
+
+# Expose VNC port
+EXPOSE 5900
+
+# Start script
+COPY --chown=computeruse:computeruse start-browser.sh /home/computeruse/
+RUN chmod +x /home/computeruse/start-browser.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD pgrep -x Xvfb > /dev/null || exit 1
+
+CMD ["/home/computeruse/start-browser.sh"]
