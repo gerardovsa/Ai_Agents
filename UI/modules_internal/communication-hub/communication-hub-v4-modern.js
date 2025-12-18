@@ -2055,6 +2055,24 @@ export default {
                 }
             }
 
+            // 🔒 CRITICAL: Clear previous assignment if email was already assigned
+            if (this.state.emailThreads && this.state.emailThreads[emailId]) {
+                const previousThreadSlug = this.state.emailThreads[emailId];
+                this.log.info(`🔄 Email ${emailId} was previously assigned to thread ${previousThreadSlug}, clearing old assignment`);
+                
+                // Find and update previous row
+                if (this.table) {
+                    const allRows = this.table.getData();
+                    for (const row of allRows) {
+                        if (row.id === emailId && row.assigned_agent) {
+                            this.log.info(`✨ Clearing agent name from previous row: ${row.assigned_agent}`);
+                            this.table.updateData([{ id: emailId, assigned_agent: '' }]);
+                            break;
+                        }
+                    }
+                }
+            }
+
             // Update local state
             if (!this.state.emailThreads) {
                 this.state.emailThreads = {};
