@@ -905,35 +905,80 @@ class TranscriptionSidebarController {
     }
 
     handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (file) {
-            this.processUploadedFile(file);
+        const files = Array.from(event.target.files);
+        if (files.length > 0) {
+            console.log(`[TRANSCRIPTION SIDEBAR] Processing ${files.length} file(s)`);
+            this.processMultipleFiles(files);
         }
     }
 
-    async processUploadedFile(file) {
-        console.log('[TRANSCRIPTION SIDEBAR] Processing file:', file.name, file.type, file.size);
+    async processMultipleFiles(files) {
+        const panel = document.getElementById('upload-status-panel');
+        const queueDiv = document.getElementById('upload-file-queue');
+        
+        if (panel) panel.style.display = 'block';
+        
+        // Show file queue
+        if (queueDiv) {
+            queueDiv.innerHTML = files.map((f, i) => `
+                <div id="file-queue-${i}" style="padding: 6px; background: #161b22; border-radius: 4px; margin-bottom: 4px; font-size: 12px;">
+                    <i class="fas fa-file-audio" style="color: #58a6ff;"></i>
+                    <span style="color: #c9d1d9;">${f.name}</span>
+                    <span style="color: #6e7681; float: right;" id="file-queue-status-${i}">Waiting...</span>
+                </div>
+            `).join('');
+        }
+        
+        // Process files sequentially
+        for (let i = 0; i < files.length; i++) {
+            const statusSpan = document.getElementById(`file-queue-status-${i}`);
+            if (statusSpan) statusSpan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing';
+            
+            try {
+                await this.processUploadedFile(files[i], i + 1, files.length);
+                if (statusSpan) statusSpan.innerHTML = '<i class="fas fa-check" style="color: #3fb950;"></i> Done';
+            } catch (error) {
+                if (statusSpan) statusSpan.innerHTML = '<i class="fas fa-times" style="color: #f85149;"></i> Error';
+            }
+        }
+        
+        // Clear queue after delay
+        setTimeout(() => {
+            if (queueDiv) queueDiv.innerHTML = '';
+            if (panel) panel.style.display = 'none';
+        }, 3000);
+    }
+
+    async processUploadedFile(file, currentFile = 1, totalFiles = 1) {
+        console.log(`[TRANSCRIPTION SIDEBAR] Processing file ${currentFile}/${totalFiles}:`, file.name, file.type, file.size);
 
         // Validate file type
         if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
             alert('Invalid file type. Please upload an audio or video file.');
-            return;
+            throw new Error('Invalid file type');
         }
 
         // Validate file size (25MB limit)
         const maxSize = 25 * 1024 * 1024;
         if (file.size > maxSize) {
             alert('File too large. Maximum size is 25MB.');
-            return;
+            throw new Error('File too large');
         }
 
         // Show progress
-        const progressDiv = document.getElementById('transcription-upload-progress');
+        const progressDiv = document.getElementById('upload-status-panel');
         const statusSpan = document.getElementById('upload-status');
         const progressBar = document.getElementById('upload-progress-bar');
+        const progressText = document.getElementById('upload-progress-text');
+        const languageDisplay = document.getElementById('upload-language-display');
+        const durationDisplay = document.getElementById('upload-duration-display');
+        
         if (progressDiv) progressDiv.style.display = 'block';
-        if (statusSpan) statusSpan.textContent = 'Processing audio...';
-        if (progressBar) progressBar.style.width = '20%';
+        if (statusSpan) statusSpan.textContent = `Processing ${currentFile}/${totalFiles}: ${file.name}`;
+        if (progressBar) progressBar.style.width = '10%';
+        if (progressText) progressText.textContent = '10%';
+
+        const startTime = Date.now();
 
         try {
             // Extract audio if video file
@@ -941,22 +986,52 @@ class TranscriptionSidebarController {
             if (file.type.startsWith('video/')) {
                 if (statusSpan) statusSpan.textContent = 'Extracting audio from video...';
                 audioBlob = await this.extractAudioFromVideo(file);
-                if (progressBar) progressBar.style.width = '40%';
+                if (progressBar) progressBar.style.width = '30%';
+                if (progressText) progressText.textContent = '30%';
             }
 
-            // Send to Whisper
-            if (statusSpan) statusSpan.textContent = 'Transcribing with Whisper...';
-            const transcript = await this.sendFileToWhisper(audioBlob, file.name);
-            if (progressBar) progressBar.style.width = '100%';
+            // Get duration
+            const duration = await this.getAudioDuration(audioBlob);
+            if (durationDisplay) {
+                durationDisplay.style.display = 'block';
+                const durationSpan = document.getElementById('audio-duration');
+                if (durationSpan) durationSpan.textContent = this.formatDuration(duration);
+            }
 
-            // Display transcript
-            if (transcript && transcript.trim()) {
-                this.displayFileTranscript(transcript, file.name);
-                this.addSTTTranscript(transcript, 'file-upload');
-                // Persist upload record with file metadata
+            // Send to Whisper with language preference
+            if (statusSpan) statusSpan.textContent = 'Transcribing with Local Whisper AI...';
+            if (progressBar) progressBar.style.width = '50%';
+            if (progressText) progressText.textContent = '50%';
+            
+            const result = await this.sendFileToWhisper(audioBlob, file.name);
+            
+            if (progressBar) progressBar.style.width = '90%';
+            if (progressText) progressText.textContent = '90%';
+
+            // Display detected language
+            if (result.language && languageDisplay) {
+                languageDisplay.style.display = 'block';
+                const langSpan = document.getElementById('detected-language');
+                if (langSpan) langSpan.textContent = this.getLanguageName(result.language);
+            }
+
+            const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            // Display transcript with metadata
+            if (result.transcript && result.transcript.trim()) {
+                this.displayFileTranscript(result.transcript, file.name, {
+                    language: result.language,
+                    duration: duration,
+                    processingTime: processingTime,
+                    confidence: result.confidence
+                });
+                
+                this.addSTTTranscript(result.transcript, 'file-upload');
+                
+                // Save to server with full metadata
                 try {
-                    this.saveTranscriptionToServer({
-                        transcript: transcript,
+                    await this.saveTranscriptionToServer({
+                        transcript: result.transcript,
                         source_type: 'upload',
                         file_info: {
                             filename: file.name,
@@ -964,21 +1039,31 @@ class TranscriptionSidebarController {
                             format: file.name.split('.').pop(),
                             mime_type: file.type
                         },
-                        model_used: null,
-                        confidence: null,
-                        language: null,
-                        duration_seconds: null,
-                        metadata: { origin: 'upload' }
+                        model_used: 'whisper-base',
+                        confidence: result.confidence,
+                        language: result.language,
+                        duration_seconds: duration,
+                        metadata: { 
+                            origin: 'upload',
+                            processing_time: processingTime
+                        }
                     });
                 } catch (err) {
                     console.warn('[TRANSCRIPTION] Failed to save uploaded transcription:', err);
                 }
-                if (statusSpan) statusSpan.textContent = 'Complete!';
+                
+                if (statusSpan) statusSpan.textContent = `Complete! (${processingTime}s)`;
+                if (progressBar) progressBar.style.width = '100%';
+                if (progressText) progressText.textContent = '100%';
 
-                setTimeout(() => {
-                    if (progressDiv) progressDiv.style.display = 'none';
-                    if (progressBar) progressBar.style.width = '0%';
-                }, 2000);
+                if (totalFiles === 1) {
+                    setTimeout(() => {
+                        if (progressDiv) progressDiv.style.display = 'none';
+                        if (progressBar) progressBar.style.width = '0%';
+                        if (languageDisplay) languageDisplay.style.display = 'none';
+                        if (durationDisplay) durationDisplay.style.display = 'none';
+                    }, 2000);
+                }
             } else {
                 throw new Error('No transcript received from Whisper');
             }
@@ -987,16 +1072,21 @@ class TranscriptionSidebarController {
             console.error('[TRANSCRIPTION SIDEBAR] File processing error:', error);
             if (statusSpan) statusSpan.textContent = 'Error: ' + error.message;
             if (progressBar) progressBar.style.width = '0%';
-            alert('Failed to transcribe file: ' + error.message);
-
-            setTimeout(() => {
-                if (progressDiv) progressDiv.style.display = 'none';
-            }, 3000);
+            if (progressText) progressText.textContent = 'Failed';
+            
+            if (totalFiles === 1) {
+                alert('Failed to transcribe file: ' + error.message);
+                setTimeout(() => {
+                    if (progressDiv) progressDiv.style.display = 'none';
+                }, 3000);
+            }
+            
+            throw error; // Re-throw for queue handling
         }
 
         // Reset file input
         const fileInput = document.getElementById('transcription-file-input');
-        if (fileInput) fileInput.value = '';
+        if (fileInput && totalFiles === currentFile) fileInput.value = '';
     }
 
     async extractAudioFromVideo(videoFile) {
@@ -1049,13 +1139,16 @@ class TranscriptionSidebarController {
 
     async sendFileToWhisper(audioBlob, filename) {
         const settings = this.getSTTSettings();
-
-        // Use configured endpoint or default API route
         const endpoint = settings.whisperEndpoint || '/api/transcribe';
 
         const formData = new FormData();
-        // Backend accepts 'file' (and older 'audio') field names
         formData.append('file', audioBlob, filename);
+        
+        // Add language preference if set (Whisper supports 50+ languages)
+        const languageSelect = document.getElementById('whisper-language-select');
+        if (languageSelect && languageSelect.value !== 'auto') {
+            formData.append('language', languageSelect.value);
+        }
 
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -1063,14 +1156,22 @@ class TranscriptionSidebarController {
         });
 
         if (!response.ok) {
-            throw new Error(`Whisper API error: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(`Whisper API error: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
-        return result.transcript || result.text || '';
+        
+        // Return full result with metadata (transcript, language, confidence)
+        return {
+            transcript: result.transcript || result.text || '',
+            language: result.language || 'unknown',
+            confidence: result.confidence || null,
+            duration: result.duration || null
+        };
     }
 
-    displayFileTranscript(transcript, filename) {
+    displayFileTranscript(transcript, filename, metadata = {}) {
         const liveDisplay = document.getElementById('transcription-live-display');
         if (!liveDisplay) return;
 
@@ -1078,28 +1179,52 @@ class TranscriptionSidebarController {
         const placeholder = liveDisplay.querySelector('.transcription-placeholder');
         if (placeholder) placeholder.remove();
 
-        // Add file header
+        // Add file header with metadata badges
         const headerDiv = document.createElement('div');
         headerDiv.style.cssText = `
-            padding: 8px 12px;
-            background: rgba(88, 166, 255, 0.1);
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(88, 166, 255, 0.05));
             border-left: 3px solid #58a6ff;
-            border-radius: 4px;
+            border-radius: 6px;
             margin-bottom: 12px;
-            font-size: 12px;
-            color: #58a6ff;
         `;
-        headerDiv.innerHTML = `<i class="fas fa-file-audio"></i> ${filename}`;
+        
+        let badgesHTML = '';
+        if (metadata.language) {
+            badgesHTML += `<span style="background: #238636; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">
+                <i class="fas fa-language"></i> ${this.getLanguageName(metadata.language)}
+            </span>`;
+        }
+        if (metadata.duration) {
+            badgesHTML += `<span style="background: #1f6feb; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">
+                <i class="fas fa-clock"></i> ${this.formatDuration(metadata.duration)}
+            </span>`;
+        }
+        if (metadata.processingTime) {
+            badgesHTML += `<span style="background: #8957e5; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">
+                <i class="fas fa-bolt"></i> ${metadata.processingTime}s
+            </span>`;
+        }
+        
+        headerDiv.innerHTML = `
+            <div style="font-size: 13px; color: #58a6ff; margin-bottom: 6px;">
+                <i class="fas fa-file-audio"></i> ${filename}
+            </div>
+            <div>${badgesHTML}</div>
+        `;
         liveDisplay.appendChild(headerDiv);
 
-        // Add transcript
+        // Add transcript with better formatting
         const transcriptDiv = document.createElement('div');
         transcriptDiv.className = 'final';
         transcriptDiv.style.cssText = `
             color: var(--text-primary, #c9d1d9);
-            padding: 8px 0;
-            line-height: 1.6;
+            padding: 12px;
+            line-height: 1.8;
             white-space: pre-wrap;
+            background: rgba(13, 17, 23, 0.5);
+            border-radius: 6px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         `;
         transcriptDiv.textContent = transcript;
         liveDisplay.appendChild(transcriptDiv);
@@ -1117,24 +1242,31 @@ class TranscriptionSidebarController {
 
         actionsDiv.innerHTML = `
             <button onclick="TranscriptionSidebar.sendLiveTranscriptToChat()" 
-                    style="flex: 1; padding: 8px 12px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                    style="flex: 1; padding: 10px 16px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;"
                     onmouseover="this.style.background='#2ea043'"
                     onmouseout="this.style.background='#238636'">
                 <i class="fas fa-paper-plane"></i>
                 <span>Send to Chat</span>
             </button>
             <button onclick="TranscriptionSidebar.copyLiveTranscript()" 
-                    style="padding: 8px 12px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
+                    style="padding: 10px 16px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
                     onmouseover="this.style.background='#30363d'"
                     onmouseout="this.style.background='#21262d'"
-                    title="Copy">
+                    title="Copy to clipboard">
                 <i class="fas fa-copy"></i>
             </button>
-            <button onclick="TranscriptionSidebar.clearLiveTranscript()" 
-                    style="padding: 8px 12px; background: #21262d; color: #f85149; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
+            <button onclick="TranscriptionSidebar.downloadTranscript('${filename}')" 
+                    style="padding: 10px 16px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
                     onmouseover="this.style.background='#30363d'"
                     onmouseout="this.style.background='#21262d'"
-                    title="Clear">
+                    title="Download as text file">
+                <i class="fas fa-download"></i>
+            </button>
+            <button onclick="TranscriptionSidebar.clearLiveTranscript()" 
+                    style="padding: 10px 16px; background: #21262d; color: #f85149; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
+                    onmouseover="this.style.background='#30363d'"
+                    onmouseout="this.style.background='#21262d'"
+                    title="Clear transcript">
                 <i class="fas fa-eraser"></i>
             </button>
         `;
@@ -1142,7 +1274,7 @@ class TranscriptionSidebarController {
         liveDisplay.appendChild(actionsDiv);
         liveDisplay.scrollTop = liveDisplay.scrollHeight;
 
-        console.log('[TRANSCRIPTION SIDEBAR] File transcript displayed');
+        console.log('[TRANSCRIPTION SIDEBAR] File transcript displayed with metadata:', metadata);
     }
 
     /**
@@ -2953,6 +3085,78 @@ class TranscriptionSidebarController {
         const envLabel = config.environment === 'local' ? 'Local Development' : 'Production (Render)';
         console.log('[TRANSCRIPTION SIDEBAR] Auto-detected backend URL:', detectedUrl);
         alert(`Detected ${envLabel} backend:\n${detectedUrl}\n\nUsing global API_BASE_URL: ${config.globalApiBaseUrl}`);
+    }
+
+    /**
+     * Helper: Get language name from code
+     */
+    getLanguageName(code) {
+        const languages = {
+            'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German',
+            'it': 'Italian', 'pt': 'Portuguese', 'nl': 'Dutch', 'ru': 'Russian',
+            'zh': 'Chinese', 'ja': 'Japanese', 'ko': 'Korean', 'ar': 'Arabic',
+            'hi': 'Hindi', 'pl': 'Polish', 'tr': 'Turkish', 'vi': 'Vietnamese',
+            'th': 'Thai', 'sv': 'Swedish', 'no': 'Norwegian', 'da': 'Danish',
+            'fi': 'Finnish', 'uk': 'Ukrainian', 'el': 'Greek', 'cs': 'Czech'
+        };
+        return languages[code] || code.toUpperCase();
+    }
+
+    /**
+     * Helper: Format duration in seconds to MM:SS
+     */
+    formatDuration(seconds) {
+        if (!seconds || isNaN(seconds)) return '--';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    /**
+     * Helper: Get audio duration from blob
+     */
+    async getAudioDuration(audioBlob) {
+        return new Promise((resolve) => {
+            const audio = new Audio();
+            audio.addEventListener('loadedmetadata', () => {
+                resolve(audio.duration);
+            });
+            audio.addEventListener('error', () => {
+                resolve(null);
+            });
+            audio.src = URL.createObjectURL(audioBlob);
+        });
+    }
+
+    /**
+     * Helper: Download transcript as text file
+     */
+    downloadTranscript(filename) {
+        const liveDisplay = document.getElementById('transcription-live-display');
+        if (!liveDisplay) return;
+
+        const transcripts = liveDisplay.querySelectorAll('.final');
+        if (transcripts.length === 0) {
+            alert('No transcript to download');
+            return;
+        }
+
+        let text = '';
+        transcripts.forEach(t => {
+            text += t.textContent + '\n\n';
+        });
+
+        const blob = new Blob([text.trim()], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.replace(/\.[^.]+$/, '') + '_transcript.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('[TRANSCRIPTION SIDEBAR] Transcript downloaded:', a.download);
     }
 
     /**

@@ -1887,26 +1887,73 @@ export default {
 
             this.log.info('📥 Thread creation response:', threadResponse);
 
-            if (!threadResponse || !threadResponse.thread_slug) {
+            // ✅ FIX: Backend wraps response in { success: true, data: {...}, message: '...' }
+            // Extract thread_slug from either root level OR data object
+            let threadSlug = null;
+            if (threadResponse.thread_slug) {
+                threadSlug = threadResponse.thread_slug;
+            } else if (threadResponse.data && threadResponse.data.thread_slug) {
+                threadSlug = threadResponse.data.thread_slug;
+            } else if (threadResponse.data && threadResponse.data.thread && threadResponse.data.thread.slug) {
+                threadSlug = threadResponse.data.thread.slug;
+            }
+
+            if (!threadSlug) {
                 this.log.error('❌ Thread creation failed - no thread_slug in response:', threadResponse);
                 throw new Error('Failed to create thread');
             }
 
-            const threadSlug = threadResponse.thread_slug;
             this.log.success(`📧 Thread created: ${threadSlug}`);
+
+            // ⏱️ Small delay to ensure thread is committed to database
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // CRITICAL: Link email to thread - updates email_thread_id, email_subject, email_participants columns
             // This makes the email badge appear in thread info area (like synergy sessions)
+
+            // ✅ FIX: Safely extract email participants (handle various formats)
+            let emailParticipants = [];
+            if (typeof fullEmail.from === 'string') {
+                emailParticipants = [fullEmail.from];
+            } else if (Array.isArray(fullEmail.from)) {
+                emailParticipants = fullEmail.from;
+            } else if (fullEmail.from && fullEmail.from.email) {
+                emailParticipants = [fullEmail.from.email];
+            }
+
+            // Add 'to' recipients if available
+            if (fullEmail.to) {
+                if (typeof fullEmail.to === 'string') {
+                    emailParticipants.push(fullEmail.to);
+                } else if (Array.isArray(fullEmail.to)) {
+                    emailParticipants = [...emailParticipants, ...fullEmail.to];
+                }
+            }
+
+            const emailSubject = fullEmail.subject || fullEmail.title || 'No Subject';
+
+            this.log.info('🔗 Linking email to thread with data:', {
+                user_id: userId,
+                thread_slug: threadSlug,
+                email_thread_id: emailId,
+                email_subject: emailSubject,
+                email_participants: emailParticipants,
+                fullEmail_keys: Object.keys(fullEmail)
+            });
+
             const linkResponse = await this.api.post('/api/thread-assignments/email', {
                 user_id: userId,
                 thread_slug: threadSlug,
                 email_thread_id: emailId,
-                email_subject: fullEmail.subject,
-                email_participants: fullEmail.from
+                email_subject: emailSubject,
+                email_participants: emailParticipants
             });
 
+            this.log.info('📥 Email link response:', linkResponse);
+
             if (!linkResponse || !linkResponse.success) {
-                this.log.warn('⚠️ Email link may not have been created properly');
+                this.log.error('❌ Email link failed:', linkResponse);
+                this.log.warn('⚠️ Email link may not have been created properly - thread will not show email badge');
             } else {
                 this.log.success(`📎 Email linked to thread - will show in thread info area`);
             }
@@ -1924,7 +1971,7 @@ export default {
             this.log.success(`Email ${emailId} assigned to agent ${agentName} in thread ${threadSlug}`);
 
             // ✅ CRITICAL: Load thread into AI agent column and trigger AI response
-            await this.loadThreadIntoAgentAndTrigger(threadSlug, location, fullEmail);
+            await this.loadThreadIntoAgentAndTrigger(threadSlug, location, fullEmail, processedAttachments);
 
         } catch (error) {
             this.log.error('Failed to assign email to agent:', error);
@@ -1938,7 +1985,7 @@ export default {
      * @param {string} location - Agent location (e.g., 'agent-9')
      * @param {object} emailData - Email data for context
      */
-    async loadThreadIntoAgentAndTrigger(threadSlug, location, emailData) {
+    async loadThreadIntoAgentAndTrigger(threadSlug, location, emailData, processedAttachments = []) {
         try {
             this.log.info(`🔄 Loading thread ${threadSlug} into ${location}...`);
 
@@ -1974,14 +2021,14 @@ export default {
             // Step 4: Generate enhanced AI prompt with attachments
             const textPrompt = EmailAIFormatter.generateEnhancedPrompt(emailData, 'analyze');
 
-            // Add attachment summary
-            const attachmentSummary = AttachmentProcessor.generateAttachmentSummary(processedAttachments);
+            // Add attachment summary (safe - processedAttachments may be empty)
+            const attachmentSummary = AttachmentProcessor.generateAttachmentSummary(processedAttachments || []);
             const completeTextPrompt = textPrompt + attachmentSummary;
 
             // Generate message content (string for text-only, array for multimodal)
             const messageContent = EmailAIFormatter.generateClaudeMessageContent(
                 completeTextPrompt,
-                processedAttachments
+                processedAttachments || []
             );
 
             this.log.info(`📧 Message prepared: ${typeof messageContent === 'string' ? 'text-only' : `multimodal (${messageContent.length} blocks)`}`);
@@ -2175,12 +2222,17 @@ export default {
                 }
             });
 
-            if (response.success && response.thread_slug) {
-                this.log.success(`Thread created: ${response.thread_slug}`);
+            // ✅ FIX: Extract thread_slug from response (handles wrapped response format)
+            const threadSlug = response.thread_slug ||
+                (response.data && response.data.thread_slug) ||
+                (response.data && response.data.thread && response.data.thread.slug);
+
+            if (response.success && threadSlug) {
+                this.log.success(`Thread created: ${threadSlug}`);
 
                 // Assign all selected emails to the new thread
                 for (const emailId of this.state.selectedEmails) {
-                    await this.assignEmailToThread(emailId, response.thread_slug);
+                    await this.assignEmailToThread(emailId, threadSlug);
                 }
 
                 // Refresh thread view if on that tab
@@ -2195,7 +2247,7 @@ export default {
 
                 // Emit event to open the thread in sidebar
                 this.events.emit('open-thread', {
-                    thread_slug: response.thread_slug,
+                    thread_slug: threadSlug,
                     location: destinationId
                 });
 
@@ -2562,7 +2614,15 @@ export default {
                 }
             });
 
-            const threadSlug = threadResponse.thread_slug;
+            // ✅ FIX: Extract thread_slug from response (handles wrapped response format)
+            const threadSlug = threadResponse.thread_slug ||
+                (threadResponse.data && threadResponse.data.thread_slug) ||
+                (threadResponse.data && threadResponse.data.thread && threadResponse.data.thread.slug);
+
+            if (!threadSlug) {
+                throw new Error('Thread created but no thread_slug returned');
+            }
+
             this.log.success(`Thread created: ${threadSlug}`);
 
             // Link email to thread

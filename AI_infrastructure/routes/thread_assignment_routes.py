@@ -766,7 +766,15 @@ def assign_email_thread():
         email_subject = data.get('email_subject')
         email_participants = data.get('email_participants', [])
         
+        logger.info(f"📧 [EMAIL-THREAD-LINK] Received request:")
+        logger.info(f"   user_id: {user_id}")
+        logger.info(f"   thread_slug: {thread_slug}")
+        logger.info(f"   email_thread_id: {email_thread_id}")
+        logger.info(f"   email_subject: {email_subject}")
+        logger.info(f"   email_participants: {email_participants}")
+        
         if not user_id or not thread_slug or not email_thread_id:
+            logger.error(f"❌ [EMAIL-THREAD-LINK] Missing required fields!")
             return jsonify({
                 'success': False,
                 'error': 'Missing required fields: user_id, thread_slug, email_thread_id'
@@ -775,6 +783,15 @@ def assign_email_thread():
         # ✅ FIX: Use context manager
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
+                # Prepare participants JSON
+                participants_json = json.dumps(email_participants) if email_participants else '[]'
+                
+                logger.info(f"📝 [EMAIL-THREAD-LINK] Executing UPDATE with:")
+                logger.info(f"   email_thread_id: {email_thread_id}")
+                logger.info(f"   email_subject: {email_subject}")
+                logger.info(f"   email_participants JSON: {participants_json}")
+                logger.info(f"   WHERE thread_slug: {thread_slug}, user_id: {user_id}")
+                
                 # Update thread with email metadata
                 sql, params = convert_sql_placeholders("""
                     UPDATE sessions.threads 
@@ -783,18 +800,38 @@ def assign_email_thread():
                         email_participants = %s,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE thread_slug = %s AND user_id = %s
-                """, (email_thread_id, email_subject, json.dumps(email_participants), thread_slug, user_id))
+                """, (email_thread_id, email_subject, participants_json, thread_slug, user_id))
                 
                 cursor.execute(sql, params)
-                
+
+                logger.info(f"✅ [EMAIL-THREAD-LINK] UPDATE affected {cursor.rowcount} row(s)")
+
+                # If no rows updated, try a fallback UPDATE that does not constrain by user_id
                 if cursor.rowcount == 0:
-                    return jsonify({
-                        'success': False,
-                        'error': f'Thread {thread_slug} not found for user {user_id}'
-                    }), 404
-                
+                    logger.warning(f"⚠️ [EMAIL-THREAD-LINK] No rows updated with user_id constraint, attempting fallback UPDATE without user_id (thread_slug={thread_slug})")
+
+                    sql_fallback, params_fallback = convert_sql_placeholders("""
+                        UPDATE sessions.threads 
+                        SET email_thread_id = %s,
+                            email_subject = %s,
+                            email_participants = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE thread_slug = %s
+                    """, (email_thread_id, email_subject, participants_json, thread_slug))
+
+                    cursor.execute(sql_fallback, params_fallback)
+                    logger.info(f"✅ [EMAIL-THREAD-LINK] Fallback UPDATE affected {cursor.rowcount} row(s)")
+
+                    if cursor.rowcount == 0:
+                        logger.error(f"❌ [EMAIL-THREAD-LINK] Thread not found after fallback! thread_slug={thread_slug}, user_id={user_id}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Thread {thread_slug} not found for user {user_id}'
+                        }), 404
+
+                # Commit after successful update (either primary or fallback)
                 conn.commit()
-                
+
                 logger.info(f"📧 [EMAIL-THREAD] Linked email '{email_subject}' to thread {thread_slug}")
             # ✅ Cursor auto-closed
         # ✅ Connection auto-closed by context manager

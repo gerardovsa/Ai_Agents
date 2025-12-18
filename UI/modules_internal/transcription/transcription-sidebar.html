@@ -163,21 +163,55 @@
                 style="border: 2px dashed #30363d; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s;">
                 <i class="fas fa-cloud-upload-alt" style="font-size: 36px; color: #58a6ff; margin-bottom: 8px;"></i>
                 <p style="color: #c9d1d9; margin-bottom: 4px;">Click or drag files here</p>
-                <small style="color: #8b949e;">Supports: MP3, WAV, MP4, WebM, OGG (max 25MB)</small>
-                <input type="file" id="transcription-file-input" accept="audio/*,video/*" style="display: none;"
-                    onchange="TranscriptionSidebar.handleFileSelect(event)">
+                <small style="color: #8b949e;">Supports: MP3, WAV, MP4, WebM, OGG, M4A, FLAC (max 25MB)</small>
+                <small style="color: #6e7681; display: block; margin-top: 4px;">✨ Local Whisper transcription • 50+ languages • High accuracy</small>
+                <input type="file" id="transcription-file-input" accept="audio/*,video/*" multiple
+                    style="display: none;" onchange="TranscriptionSidebar.handleFileSelect(event)">
+            </div>
+
+            <!-- Language Selection (for Whisper) -->
+            <div style="margin-top: 12px;">
+                <label style="color: #8b949e; font-size: 12px; display: block; margin-bottom: 4px;">
+                    <i class="fas fa-language"></i> Language (optional - Whisper auto-detects)
+                </label>
+                <select id="whisper-language-select" 
+                    style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #30363d; background: #0d1117; color: var(--text-primary);">
+                    <option value="auto">Auto-detect (Recommended)</option>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="nl">Dutch</option>
+                    <option value="ru">Russian</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                    <option value="ar">Arabic</option>
+                    <option value="hi">Hindi</option>
+                </select>
             </div>
 
             <div id="upload-status-panel" style="display: none; margin-top: 12px;">
+                <div id="upload-file-queue" style="margin-bottom: 8px;"></div>
                 <div class="status-item">
-                    <span class="status-label">Processing:</span>
+                    <span class="status-label">Status:</span>
                     <span class="status-value" id="upload-status">Uploading...</span>
                 </div>
-                <div
-                    style="width: 100%; height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; margin-top: 8px;">
-                    <div id="upload-progress-bar"
-                        style="height: 100%; background: #58a6ff; width: 0%; transition: width 0.3s;"></div>
+                <div class="status-item" id="upload-language-display" style="display: none;">
+                    <span class="status-label">Language:</span>
+                    <span class="status-value" id="detected-language">Detecting...</span>
                 </div>
+                <div class="status-item" id="upload-duration-display" style="display: none;">
+                    <span class="status-label">Duration:</span>
+                    <span class="status-value" id="audio-duration">--</span>
+                </div>
+                <div style="width: 100%; height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; margin-top: 8px;">
+                    <div id="upload-progress-bar"
+                        style="height: 100%; background: linear-gradient(90deg, #58a6ff, #79c0ff); width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <div style="font-size: 11px; color: #6e7681; margin-top: 4px; text-align: center;" id="upload-progress-text">0%</div>
             </div>
         </div>
 

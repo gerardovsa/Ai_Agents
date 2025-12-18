@@ -109,10 +109,11 @@ def transcribe_audio():
     
     Request:
     - file: Audio file (multipart/form-data)
+    - language: Optional language code (en, es, fr, etc.) for Whisper
     - session_id: Session identifier (optional)
     
     Response:
-    - JSON with transcript text
+    - JSON with transcript text, detected language, confidence, and duration
     - Streaming chunks if streaming enabled
     """
     if request.method == 'OPTIONS':
@@ -135,10 +136,11 @@ def transcribe_audio():
             logger.error(f'[TRANSCRIPTION] Invalid file type: {file.filename}')
             return jsonify({'error': f'Invalid file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
         
-        # Get session ID
+        # Get optional parameters
         session_id = request.form.get('session_id', 'unknown')
+        language_hint = request.form.get('language', None)  # Optional language hint
         
-        logger.info(f'[TRANSCRIPTION] Processing file: {file.filename} (session: {session_id})')
+        logger.info(f'[TRANSCRIPTION] Processing file: {file.filename} (session: {session_id}, language: {language_hint or "auto"})')
         
         # Save file temporarily
         filename = secure_filename(file.filename)
@@ -151,6 +153,9 @@ def transcribe_audio():
         logger.info(f'[TRANSCRIPTION] File saved: {temp_path} ({file_size} bytes)')
         
         transcript_text = ''
+        detected_language = None
+        confidence_score = None
+        duration_seconds = None
 
         # Try to transcribe using whisper if available (lazy-loaded)
         if file_size == 0:
@@ -164,19 +169,47 @@ def transcribe_audio():
             else:
                 try:
                     logger.info('[TRANSCRIPTION] Transcribing with local Whisper model...')
-                    result = model.transcribe(temp_path)
-                    transcript_text = result.get('text', '').strip()
-                    logger.info(f'[TRANSCRIPTION] Success: {len(transcript_text)} chars')
-                    logger.info(f'[TRANSCRIPTION] Language detected: {result.get("language", "unknown")}')
+                    
+                    # Build Whisper parameters
+                    whisper_params = {}
+                    if language_hint and language_hint != 'auto':
+                        whisper_params['language'] = language_hint
+                        logger.info(f'[TRANSCRIPTION] Using language hint: {language_hint}')
+                    
+                    # Transcribe with Whisper (returns full result dict)
+                    result_dict = model.transcribe(temp_path, **whisper_params)
+                    
+                    transcript_text = result_dict.get('text', '').strip()
+                    detected_language = result_dict.get('language', 'unknown')
+                    
+                    # Calculate average confidence from segments (if available)
+                    segments = result_dict.get('segments', [])
+                    if segments:
+                        # Some Whisper versions have 'no_speech_prob' or 'avg_logprob'
+                        avg_logprobs = [s.get('avg_logprob', 0) for s in segments if 'avg_logprob' in s]
+                        if avg_logprobs:
+                            # Convert log probability to approximate confidence (0-1)
+                            avg_logprob = sum(avg_logprobs) / len(avg_logprobs)
+                            confidence_score = max(0, min(1, 1 + (avg_logprob / 10)))  # Rough mapping
+                    
+                    # Get duration from segments or result
+                    if segments:
+                        duration_seconds = segments[-1].get('end', None) if segments else None
+                    
+                    logger.info(f'[TRANSCRIPTION] Success: {len(transcript_text)} chars, language: {detected_language}, confidence: {confidence_score:.2f if confidence_score else "N/A"}, duration: {duration_seconds:.1f}s' if duration_seconds else f'{len(transcript_text)} chars')
+                    
                 except Exception as e:
                     logger.error(f'[TRANSCRIPTION] Whisper error: {str(e)}', exc_info=True)
                     transcript_text = f'[Error: {str(e)}]'
         
-        # Build result
+        # Build result with enhanced metadata
         result = {
             'success': bool(transcript_text and not transcript_text.startswith('[Error')),
             'transcript': transcript_text,
-            'text': transcript_text,
+            'text': transcript_text,  # Backward compatibility
+            'language': detected_language,
+            'confidence': confidence_score,
+            'duration': duration_seconds,
             'session_id': session_id,
             'file_info': {
                 'filename': filename,
@@ -191,7 +224,7 @@ def transcribe_audio():
         except Exception as e:
             logger.warning(f'[TRANSCRIPTION] Failed to remove temp file: {e}')
         
-        logger.info(f'[TRANSCRIPTION] Success: {len(result["transcript"])} chars')
+        logger.info(f'[TRANSCRIPTION] Response: {len(result["transcript"])} chars, lang={detected_language}')
         
         return jsonify(result), 200
         
