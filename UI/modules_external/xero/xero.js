@@ -1300,7 +1300,7 @@ class XeroModule extends BaseModule {
                     });
                     break;
             }
-            console.log(`✅ Exported ${this.selectedItems.invoices.size} invoices as ${format}`);
+            console.log(`Exported ${this.selectedItems.invoices.size} invoices as ${format}`);
         } catch (error) {
             console.error('Export failed:', error);
             this.showError('Export failed', error.message, 'error');
@@ -1329,7 +1329,7 @@ class XeroModule extends BaseModule {
                     });
                     break;
             }
-            console.log(`✅ Exported ${this.selectedItems.contacts.size} contacts as ${format}`);
+            console.log(`Exported ${this.selectedItems.contacts.size} contacts as ${format}`);
         } catch (error) {
             console.error('Export failed:', error);
             this.showError('Export failed', error.message, 'error');

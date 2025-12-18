@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +28,7 @@
             background: white;
             padding: 20px 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
@@ -52,14 +53,37 @@
             gap: 8px;
         }
 
-        .status-idle { background: #e0e0e0; color: #666; }
-        .status-running { background: #4caf50; color: white; animation: pulse 2s infinite; }
-        .status-error { background: #f44336; color: white; }
-        .status-complete { background: #2196f3; color: white; }
+        .status-idle {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .status-running {
+            background: #4caf50;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-error {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-complete {
+            background: #2196f3;
+            color: white;
+        }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
 
         .controls {
@@ -80,7 +104,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .btn-primary {
@@ -109,7 +133,7 @@
         .panel {
             background: white;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -133,7 +157,7 @@
         }
 
         .panel-badge {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 12px;
@@ -214,17 +238,33 @@
                 opacity: 0;
                 transform: translateX(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(0);
             }
         }
 
-        .log-info { border-left-color: #2196f3; }
-        .log-success { border-left-color: #4caf50; }
-        .log-warning { border-left-color: #ff9800; }
-        .log-error { border-left-color: #f44336; }
-        .log-command { border-left-color: #9c27b0; background: #f3e5f5; }
+        .log-info {
+            border-left-color: #2196f3;
+        }
+
+        .log-success {
+            border-left-color: #4caf50;
+        }
+
+        .log-warning {
+            border-left-color: #ff9800;
+        }
+
+        .log-error {
+            border-left-color: #f44336;
+        }
+
+        .log-command {
+            border-left-color: #9c27b0;
+            background: #f3e5f5;
+        }
 
         .log-timestamp {
             color: #999;
@@ -242,8 +282,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .reasoning-header {
@@ -285,14 +330,14 @@
             color: #ce9178;
             margin-bottom: 8px;
             padding: 8px;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
         }
 
         .output-text {
             color: #b5cea8;
             padding: 8px;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 4px;
             max-height: 150px;
             overflow-y: auto;
@@ -323,7 +368,7 @@
         }
 
         .result-item {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             padding: 12px;
             border-radius: 8px;
         }
@@ -340,14 +385,14 @@
         }
 
         .findings-list {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 8px;
         }
 
         .finding-item {
             padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
         }
@@ -373,8 +418,13 @@
         }
 
         @keyframes shimmer {
-            0% { background-position: -100% 0; }
-            100% { background-position: 100% 0; }
+            0% {
+                background-position: -100% 0;
+            }
+
+            100% {
+                background-position: 100% 0;
+            }
         }
 
         .empty-state {
@@ -390,7 +440,7 @@
         }
 
         .iteration-badge {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 11px;
@@ -466,6 +516,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="dashboard">
         <!-- Header -->
@@ -620,7 +671,8 @@
                 <button class="btn btn-secondary" onclick="connectVNC()">🔌 Connect VNC</button>
                 <button class="btn btn-secondary" onclick="refreshVNC()">🔄 Refresh</button>
                 <button class="btn btn-secondary" onclick="disconnectVNC()">❌ Disconnect</button>
-                <span style="color: #999; margin-left: 20px;">Use noVNC client or VNC viewer to connect to localhost:5900</span>
+                <span style="color: #999; margin-left: 20px;">Use noVNC client or VNC viewer to connect to
+                    localhost:5900</span>
             </div>
             <div class="panel-content" id="vncPanel">
                 <div style="color: #999; text-align: center; padding: 40px;">
@@ -646,7 +698,7 @@
         function updateStatus(status, text) {
             const badge = document.getElementById('statusBadge');
             const statusText = document.getElementById('statusText');
-            
+
             badge.className = `status-badge status-${status}`;
             statusText.textContent = text;
         }
@@ -655,7 +707,7 @@
         function addLog(message, type = 'info') {
             const panel = document.getElementById('logPanel');
             const badge = document.getElementById('logBadge');
-            
+
             // Remove empty state
             if (panel.querySelector('.empty-state')) {
                 panel.innerHTML = '';
@@ -663,19 +715,19 @@
 
             const entry = document.createElement('div');
             entry.className = `log-entry log-${type}`;
-            
+
             const timestamp = new Date().toLocaleTimeString();
             entry.innerHTML = `
                 <span class="log-timestamp">[${timestamp}]</span>
                 <span>${message}</span>
             `;
-            
+
             panel.insertBefore(entry, panel.firstChild);
-            
+
             // Update badge
             const count = panel.querySelectorAll('.log-entry').length;
             badge.textContent = `${count} entries`;
-            
+
             // Auto-scroll to top
             panel.scrollTop = 0;
         }
@@ -684,7 +736,7 @@
         function addReasoning(iteration, text) {
             const panel = document.getElementById('reasoningPanel');
             const badge = document.getElementById('reasoningCount');
-            
+
             // Remove empty state
             if (panel.querySelector('.empty-state')) {
                 panel.innerHTML = '';
@@ -699,13 +751,13 @@
                 </div>
                 <div class="reasoning-text">${text}</div>
             `;
-            
+
             panel.insertBefore(block, panel.firstChild);
-            
+
             // Update badge
             const count = panel.querySelectorAll('.reasoning-block').length;
             badge.textContent = `${count} thoughts`;
-            
+
             panel.scrollTop = 0;
         }
 
@@ -713,7 +765,7 @@
         function addCommand(command, output = '') {
             const panel = document.getElementById('commandPanel');
             const badge = document.getElementById('commandBadge');
-            
+
             // Remove empty state
             if (panel.querySelector('.empty-state')) {
                 panel.innerHTML = '';
@@ -728,14 +780,14 @@
                 <div class="command-text">$ ${command}</div>
                 ${output ? `<div class="output-text">${output}</div>` : ''}
             `;
-            
+
             panel.insertBefore(block, panel.firstChild);
-            
+
             // Update stats
             commandCount++;
             document.getElementById('commandCount').textContent = commandCount;
             badge.textContent = `${commandCount} commands`;
-            
+
             panel.scrollTop = 0;
         }
 
@@ -743,12 +795,12 @@
         function showResults(results) {
             const panel = document.getElementById('resultsPanel');
             const badge = document.getElementById('resultsBadge');
-            
+
             panel.innerHTML = `
                 <div class="result-card">
                     <div class="result-header">
-                        ${results.verification_status === 'VERIFIED' ? '✅' : 
-                          results.verification_status === 'SUSPICIOUS' ? '🚩' : '⚠️'}
+                        ${results.verification_status === 'VERIFIED' ? '✅' :
+                    results.verification_status === 'SUSPICIOUS' ? '🚩' : '⚠️'}
                         ${results.verification_status}
                     </div>
                     
@@ -800,10 +852,10 @@
                     ` : ''}
                 </div>
             `;
-            
+
             badge.textContent = 'Complete';
             badge.style.background = '#4caf50';
-            
+
             // Update confidence stat
             document.getElementById('confidenceScore').textContent = `${results.confidence_score}%`;
         }
@@ -835,33 +887,33 @@
             document.getElementById('commandCount').textContent = '0';
             document.getElementById('tokenCount').textContent = '0';
             document.getElementById('confidenceScore').textContent = '-';
-            
+
             updateStatus('running', 'Running');
             addLog('Starting verification process...', 'info');
             startTimer();
-            
+
             // Connect WebSocket
             try {
                 ws = new WebSocket('ws://localhost:5555');
-                
+
                 ws.onopen = () => {
                     addLog('WebSocket connected to verification server', 'success');
                 };
-                
+
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
                     handleWebSocketMessage(data);
                 };
-                
+
                 ws.onerror = () => {
                     addLog('WebSocket connection error - using simulation mode', 'warning');
                     runSimulation();
                 };
-                
+
                 ws.onclose = () => {
                     addLog('WebSocket disconnected', 'info');
                 };
-                
+
                 // If WebSocket doesn't connect in 2 seconds, use simulation
                 setTimeout(() => {
                     if (ws.readyState !== WebSocket.OPEN) {
@@ -869,7 +921,7 @@
                         runSimulation();
                     }
                 }, 2000);
-                
+
             } catch (error) {
                 addLog('Could not connect to server - using simulation', 'warning');
                 runSimulation();
@@ -884,28 +936,28 @@
                     document.getElementById('iterationCount').textContent = iterationCount;
                     addLog(`Iteration ${iterationCount}: ${data.stop_reason}`, 'info');
                     break;
-                    
+
                 case 'reasoning':
                     addReasoning(data.iteration, data.text);
                     break;
-                    
+
                 case 'command':
                     addCommand(data.command, data.output);
                     addLog(`Executed: ${data.command}`, 'command');
                     break;
-                    
+
                 case 'tokens':
                     tokenCount = data.count;
                     document.getElementById('tokenCount').textContent = tokenCount;
                     break;
-                    
+
                 case 'results':
                     showResults(data.results);
                     addLog('Verification complete!', 'success');
                     updateStatus('complete', 'Complete');
                     stopTimer();
                     break;
-                    
+
                 case 'error':
                     addLog(`Error: ${data.message}`, 'error');
                     updateStatus('error', 'Error');
@@ -918,63 +970,63 @@
         async function runSimulation() {
             // Simulate verification process
             await sleep(1000);
-            
+
             // Iteration 1
             iterationCount = 1;
             document.getElementById('iterationCount').textContent = '1';
             addLog('Iteration 1: tool_use', 'info');
             addReasoning(1, 'I need to verify the domain isb.eco is accessible and has valid SSL. Let me start by checking if the domain resolves.');
-            
+
             await sleep(1500);
             addCommand('curl -I https://isb.eco', 'HTTP/2 200\nserver: nginx\ncontent-type: text/html');
             addLog('Domain check: Success', 'success');
-            
+
             await sleep(2000);
-            
+
             // Iteration 2
             iterationCount = 2;
             document.getElementById('iterationCount').textContent = '2';
             addLog('Iteration 2: tool_use', 'info');
             addReasoning(2, 'Domain is accessible with valid SSL. Now checking DNS records to verify proper configuration.');
-            
+
             await sleep(1500);
             addCommand('nslookup isb.eco', 'Server: 8.8.8.8\nAddress: 192.0.2.1');
             addLog('DNS check: Success', 'success');
-            
+
             await sleep(2000);
-            
+
             // Iteration 3
             iterationCount = 3;
             document.getElementById('iterationCount').textContent = '3';
             addLog('Iteration 3: tool_use', 'info');
             addReasoning(3, 'DNS is configured correctly. Checking email domain MX records for gregory.dutton@isb.eco.');
-            
+
             await sleep(1500);
             addCommand('nslookup -type=mx isb.eco', 'isb.eco mail exchanger = 10 mx.isb.eco');
             addLog('Email verification: Valid MX records found', 'success');
-            
+
             await sleep(2000);
-            
+
             // Iteration 4
             iterationCount = 4;
             document.getElementById('iterationCount').textContent = '4';
             addLog('Iteration 4: tool_use', 'info');
             addReasoning(4, 'Email domain matches company domain. Checking historical web presence via archive.org.');
-            
+
             await sleep(1500);
             addCommand('curl -s "http://archive.org/wayback/available?url=isb.eco"', '{"archived_snapshots": {"closest": {"available": true, "url": "...", "timestamp": "20240115"}}}');
             addLog('Historical data: Found archived snapshots', 'success');
-            
+
             await sleep(2000);
-            
+
             // Final iteration
             iterationCount = 5;
             document.getElementById('iterationCount').textContent = '5';
             addLog('Iteration 5: end_turn', 'info');
             addReasoning(5, 'All checks complete. The subject appears legitimate with valid domain, SSL, email configuration, and historical presence. Generating final report.');
-            
+
             await sleep(1500);
-            
+
             // Show results
             showResults({
                 verification_status: 'VERIFIED',
@@ -997,10 +1049,10 @@
                 red_flags: [],
                 summary: 'Gregory Dutton from Institute of Sustainable Biodiversity appears to be a legitimate professional. All verification checks passed successfully with no red flags detected.'
             });
-            
+
             updateStatus('complete', 'Complete');
             stopTimer();
-            
+
             // Update token count
             tokenCount = 1247;
             document.getElementById('tokenCount').textContent = tokenCount;
@@ -1022,12 +1074,12 @@
             document.getElementById('commandPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚡</div><div>No commands executed yet</div></div>';
             document.getElementById('logPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div>No logs yet</div></div>';
             document.getElementById('resultsPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div>Results will appear here when verification completes</div></div>';
-            
+
             document.getElementById('reasoningCount').textContent = '0 thoughts';
             document.getElementById('commandBadge').textContent = '0 commands';
             document.getElementById('logBadge').textContent = '0 entries';
             document.getElementById('resultsBadge').textContent = 'Pending';
-            
+
             iterationCount = 0;
             commandCount = 0;
             tokenCount = 0;
@@ -1036,7 +1088,7 @@
             document.getElementById('tokenCount').textContent = '0';
             document.getElementById('elapsedTime').textContent = '0s';
             document.getElementById('confidenceScore').textContent = '-';
-            
+
             updateStatus('idle', 'Idle');
             stopTimer();
         }
@@ -1067,4 +1119,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Diagnostics - AI Agents Platform</title>
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
         * {
             margin: 0;
@@ -232,7 +233,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .grid-stats {
@@ -263,10 +266,64 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1><i class="fas fa-stethoscope"></i> System Diagnostics</h1>
         <p>Development tools for monitoring database connections and system health</p>
+    </div>
+
+    <!-- Real-Time Connection Monitor -->
+    <div class="diagnostic-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-heartbeat"></i>
+                <span>Real-Time Connection Monitor</span>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div id="monitorStatus"
+                    style="padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                    <i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i>
+                    <span>CHECKING...</span>
+                </div>
+                <button class="run-button" onclick="refreshMonitorStatus()">
+                    <i class="fas fa-sync"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid-stats">
+            <div class="stat-box">
+                <div class="stat-value" id="currentLeaked" style="color: #10b981;">-</div>
+                <div class="stat-label">Current Leaks</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalAcquired" style="color: #667eea;">-</div>
+                <div class="stat-label">Connections Acquired</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalReturned" style="color: #667eea;">-</div>
+                <div class="stat-label">Connections Returned</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="poolHits" style="color: #667eea;">-</div>
+                <div class="stat-label">Pool Hits</div>
+            </div>
+        </div>
+
+        <div class="info-banner" style="margin-top: 20px;">
+            <i class="fas fa-info-circle"></i>
+            <div class="info-banner-content">
+                <div class="info-banner-title">Background Monitoring</div>
+                <div class="info-banner-text">
+                    A background thread monitors connection pools every 60 seconds.
+                    Full audits run every 30 minutes. Events are logged to
+                    <code>logs/connection_monitor.log</code>. Alerts trigger when
+                    leaked connections exceed thresholds (3=warning, 5=critical).
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Database Connection Audit -->
@@ -303,10 +360,10 @@
                 <div class="info-banner-content">
                     <div class="info-banner-title">About This Audit</div>
                     <div class="info-banner-text">
-                        This tool scans route files for potential database connection leaks. 
-                        <strong>Many "leaks" are false positives</strong> if using context managers 
-                        (<code>with get_database_connection() as conn:</code>). The 
-                        <code>PooledConnection</code> wrapper has built-in failsafes that 
+                        This tool scans route files for potential database connection leaks.
+                        <strong>Many "leaks" are false positives</strong> if using context managers
+                        (<code>with get_database_connection() as conn:</code>). The
+                        <code>PooledConnection</code> wrapper has built-in failsafes that
                         automatically return connections to the pool.
                     </div>
                 </div>
@@ -322,36 +379,86 @@
     </div>
 
     <script>
+        // Auto-refresh monitor status on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshMonitorStatus();
+            // Auto-refresh every 30 seconds
+            setInterval(refreshMonitorStatus, 30000);
+        });
+
+        async function refreshMonitorStatus() {
+            try {
+                const response = await fetch('/api/dev-tools/monitor-status');
+                const data = await response.json();
+
+                if (data.success) {
+                    const monitor = data.monitor;
+                    const leaked = data.current_leaked;
+                    const stats = data.pool_stats._global || {};
+
+                    // Update status badge
+                    const statusBadge = document.getElementById('monitorStatus');
+                    if (monitor.running) {
+                        statusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+                        statusBadge.style.color = '#10b981';
+                        statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i><span>ACTIVE</span>';
+                    } else {
+                        statusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+                        statusBadge.style.color = '#ef4444';
+                        statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i><span>STOPPED</span>';
+                    }
+
+                    // Update current leaks
+                    const leakedEl = document.getElementById('currentLeaked');
+                    leakedEl.textContent = leaked;
+                    leakedEl.className = `stat-value ${leaked === 0 ? 'success' : leaked > 5 ? 'error' : 'warning'}`;
+
+                    // Update stats
+                    document.getElementById('totalAcquired').textContent = stats.connections_acquired || 0;
+                    document.getElementById('totalReturned').textContent = stats.connections_returned || 0;
+                    document.getElementById('poolHits').textContent = stats.pool_hits || 0;
+                } else {
+                    console.error('Monitor status error:', data.error);
+                }
+            } catch (error) {
+                console.error('Failed to fetch monitor status:', error);
+                const statusBadge = document.getElementById('monitorStatus');
+                statusBadge.style.background = 'rgba(156, 163, 175, 0.2)';
+                statusBadge.style.color = '#9ca3af';
+                statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i><span>OFFLINE</span>';
+            }
+        }
+
         async function runConnectionAudit() {
             const btn = document.getElementById('runAuditBtn');
             const results = document.getElementById('auditResults');
-            
+
             // Show loading state
             btn.disabled = true;
             btn.innerHTML = '<span class="loading-spinner"></span><span>Running...</span>';
             results.classList.add('show');
-            
+
             try {
                 const response = await fetch('/api/dev-tools/audit-connections');
                 const data = await response.json();
-                
+
                 if (data.success) {
                     // Update stats
                     document.getElementById('totalLeaks').textContent = data.total_leaks;
-                    document.getElementById('totalLeaks').className = 
+                    document.getElementById('totalLeaks').className =
                         `stat-value ${data.total_leaks === 0 ? 'success' : data.total_leaks > 20 ? 'error' : 'warning'}`;
-                    
+
                     document.getElementById('filesChecked').textContent = data.files_checked;
-                    
+
                     // Show leaks by file
                     const leaksByFileDiv = document.getElementById('leaksByFile');
                     if (data.total_leaks > 0) {
                         leaksByFileDiv.innerHTML = '<div class="result-label">Leaks by File</div>';
-                        
+
                         // Sort by leak count (highest first)
                         const sortedFiles = Object.entries(data.leaks_by_file)
                             .sort((a, b) => b[1] - a[1]);
-                        
+
                         sortedFiles.forEach(([file, count]) => {
                             const leakItem = document.createElement('div');
                             leakItem.className = count > 5 ? 'leak-item' : 'leak-item warning';
@@ -372,7 +479,7 @@
                             </div>
                         `;
                     }
-                    
+
                     // Show raw output
                     document.getElementById('rawOutput').textContent = data.raw_output;
                 } else {
@@ -405,4 +512,5 @@
         }
     </script>
 </body>
+
 </html>

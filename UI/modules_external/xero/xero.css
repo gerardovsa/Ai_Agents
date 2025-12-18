@@ -99,7 +99,7 @@
 }
 
 .xero-selection-count::before {
-    content: "✓";
+    content: "";
     display: inline-flex;
     align-items: center;
     justify-content: center;

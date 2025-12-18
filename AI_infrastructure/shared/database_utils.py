@@ -223,6 +223,37 @@ def get_pool_stats():
     return dict(_pool_stats)
 
 
+def get_all_pool_stats():
+    """
+    Get statistics for all connection pools by schema.
+    
+    Returns:
+        dict: Schema name -> pool stats
+    """
+    global _connection_pools, _pool_stats
+    
+    all_stats = {}
+    
+    # Add global stats
+    all_stats['_global'] = get_pool_stats()
+    
+    # Add per-pool stats if available
+    for schema_name, pool in _connection_pools.items():
+        # Get pool-specific stats (if tracked separately in future)
+        # For now, just note which pools exist
+        all_stats[schema_name] = {
+            'pool_exists': True,
+            'minconn': getattr(pool, 'minconn', 4),
+            'maxconn': getattr(pool, 'maxconn', 12),
+            'connections_acquired': _pool_stats['connections_acquired'],
+            'connections_returned': _pool_stats['connections_returned'],
+            'pool_hits': _pool_stats['pool_hits'],
+            'pool_misses': _pool_stats['pool_misses']
+        }
+    
+    return all_stats
+
+
 def log_pool_usage():
     """
     Log current connection pool usage (for monitoring)

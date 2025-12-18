@@ -751,6 +751,46 @@ def get_templates():
 # DATABASE CONNECTION AUDIT
 # ================================================================
 
+@dev_tools_bp.route('/monitor-status', methods=['GET'])
+def get_monitor_status():
+    """
+    Get real-time connection monitor status.
+    
+    Returns:
+        JSON with:
+        - running: Whether monitor is active
+        - leak_history: Recent leak counts (last 10 checks)
+        - last_audit: Timestamp of last full audit
+        - current_stats: Current connection pool statistics
+    """
+    try:
+        from tools.connection_monitor import get_monitor_status
+        from shared.database_utils import get_all_pool_stats
+        
+        monitor_status = get_monitor_status()
+        pool_stats = get_all_pool_stats()
+        
+        # Calculate current leaks
+        global_stats = pool_stats.get('_global', {})
+        current_leaked = (
+            global_stats.get('connections_acquired', 0) - 
+            global_stats.get('connections_returned', 0)
+        )
+        
+        return jsonify({
+            'success': True,
+            'monitor': monitor_status,
+            'current_leaked': current_leaked,
+            'pool_stats': pool_stats
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @dev_tools_bp.route('/audit-connections', methods=['GET'])
 def audit_database_connections():
     """

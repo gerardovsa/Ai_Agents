@@ -73,7 +73,8 @@ if ($dockerService.Status -ne "Running") {
         Write-Host "   Please start Docker Desktop manually and run this script again" -ForegroundColor Yellow
         exit 1
     }
-} else {
+}
+else {
     Write-Host "✅ Docker Desktop is running" -ForegroundColor Green
 }
 
@@ -98,7 +99,8 @@ $buildOutput = docker build -f Dockerfile.computer-use -t computer-use-verificat
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "   ✅ Docker container built successfully!" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "   ⚠️  Docker build had warnings, but may still work" -ForegroundColor Yellow
     # Show last 10 lines of build output
     Write-Host "   Last 10 lines of output:" -ForegroundColor Gray
@@ -116,18 +118,21 @@ if (Test-Path $envFile) {
     $apiKey = Get-Content $envFile | Select-String "ANTHROPIC_API_KEY" | ForEach-Object { $_ -replace ".*=", "" }
     if ($apiKey -and $apiKey.Length -gt 20) {
         Write-Host "   ✅ API key found: $($apiKey.Substring(0, 20))..." -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "   ❌ API key not found or invalid in .env" -ForegroundColor Red
         Write-Host "   Please add ANTHROPIC_API_KEY to: $envFile" -ForegroundColor Yellow
         exit 1
     }
-} else {
+}
+else {
     Write-Host "   ⚠️  .env file not found at: $envFile" -ForegroundColor Yellow
     Write-Host "   Checking environment variable..." -ForegroundColor Yellow
     
     if ($env:ANTHROPIC_API_KEY) {
         Write-Host "   ✅ API key found in environment" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "   ❌ No API key found" -ForegroundColor Red
         exit 1
     }
@@ -157,7 +162,8 @@ $containerOutput = docker run -d `
 if ($LASTEXITCODE -eq 0) {
     Write-Host "   ✅ Container started!" -ForegroundColor Green
     Write-Host "   Container ID: $($containerOutput.Substring(0, 12))" -ForegroundColor Gray
-} else {
+}
+else {
     Write-Host "   ⚠️  Container may already be running or port in use" -ForegroundColor Yellow
 }
 
@@ -223,7 +229,8 @@ if ($keep -eq "N" -or $keep -eq "n") {
     docker stop computer-use-verification 2>&1 | Out-Null
     docker rm computer-use-verification 2>&1 | Out-Null
     Write-Host "✅ Container removed" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host ""
     Write-Host "✅ Container left running for additional verifications" -ForegroundColor Green
 }

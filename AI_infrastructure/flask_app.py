@@ -3863,6 +3863,15 @@ if __name__ == '__main__':
     is_production = os.environ.get('RENDER', 'false').lower() == 'true'
     debug_mode = not is_production
     
+    # 🔍 START CONNECTION MONITOR (Background monitoring thread)
+    try:
+        from tools.connection_monitor import start_connection_monitor
+        connection_monitor = start_connection_monitor()
+        print("\n✅ Connection monitor started (background thread)")
+        print(f"   Log file: AI_infrastructure/logs/connection_monitor.log\n")
+    except Exception as e:
+        print(f"\n⚠️  Failed to start connection monitor: {e}\n")
+    
     # CRITICAL: Must use socketio.run() when WebSockets are enabled
     # Waitress does NOT support WebSockets - causes "Cannot obtain socket from WSGI environment" error
     USE_SOCKETIO = True  # Always use SocketIO server (supports WebSockets)

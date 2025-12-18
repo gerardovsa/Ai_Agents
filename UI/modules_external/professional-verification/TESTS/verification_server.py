@@ -1,8 +1,12 @@
 """
-Real-Time Verification Server with WebSocket
-============================================
+Enhanced Verification Server with Comprehensive Risk Assessment
+================================================================
 
-Runs verification and broadcasts live updates to dashboard UI.
+Runs verification with:
+- Multiple search variations and objective scrutiny
+- Risk management analysis and mitigation strategies
+- Comprehensive markdown reports with appendix
+- Real-time dashboard updates
 
 RUN:
     python verification_server.py
@@ -21,6 +25,7 @@ from pathlib import Path
 from datetime import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
+import re
 
 # Fix encoding
 if sys.platform == 'win32':
@@ -59,10 +64,10 @@ async def broadcast(message):
 
 async def run_verification_with_updates(subject_data):
     """
-    Run verification and send real-time updates to dashboard
+    Run ENHANCED verification with comprehensive risk assessment and markdown reporting
     """
     
-    print("\n🚀 Starting verification with live updates...")
+    print("\n🚀 Starting ENHANCED verification with comprehensive analysis...")
     
     # Get API key
     api_key = os.environ.get('ANTHROPIC_API_KEY')
@@ -84,92 +89,325 @@ async def run_verification_with_updates(subject_data):
         })
         return
     
-    # Import ALL verification tools from the platform
-    try:
-        sys.path.insert(0, str(Path(__file__).parent.parent / 'tools' / 'implementations'))
-        from web_scraping_wrapper import (
-            scrape_website_content,
-            analyze_website_structure,
-            extract_ssl_certificate_info,
-            check_dns_records,
-            extract_whois_info
-        )
-        from advanced_analysis_wrapper import (
-            analyze_content_with_ai,
-            estimate_web_traffic,
-            analyze_backlinks
-        )
-        from image_verification_wrapper import (
-            verify_profile_image_consistency,
-            detect_ai_generated_image,
-            check_image_metadata
-        )
-        tools_available = True
-    except Exception as e:
-        print(f"⚠️  Could not import verification tools: {e}")
-        tools_available = False
-    
-    # Build verification task using PLATFORM TOOLS
+    # Build COMPREHENSIVE verification prompt with markdown reporting
     verification_task = f"""
-I need you to comprehensively verify this person's professional identity and digital footprint:
+You are a professional verification specialist conducting a comprehensive risk assessment. You must be OBJECTIVE, THOROUGH, and execute MULTIPLE search variations.
 
-SUBJECT:
-- Name: {subject_data['name']}
-- Company: {subject_data['company']}
-- Email: {subject_data['email']}
-- Domain: {subject_data['domain']}
-- Phone: {subject_data.get('phone', 'N/A')}
+# SUBJECT TO VERIFY
 
-YOU HAVE ACCESS TO THESE POWERFUL VERIFICATION TOOLS (use Python function calls):
+**Name:** {subject_data['name']}
+**Company:** {subject_data['company']}
+**Email:** {subject_data['email']}
+**Domain:** {subject_data['domain']}
+**Phone:** {subject_data.get('phone', 'N/A')}
 
-**Web Scraping & Structure (FREE tools)**:
-1. scrape_website_content(url="{subject_data['domain']}") - Extract ALL website content, metadata, contacts
-2. analyze_website_structure(url="{subject_data['domain']}") - Check robots.txt, sitemap, security headers
-3. extract_ssl_certificate_info(domain="{subject_data['domain']}") - SSL validity, expiry, issuer
-4. check_dns_records(domain="{subject_data['domain']}") - Full DNS analysis
-5. extract_whois_info(domain="{subject_data['domain']}") - Domain registration data
+# COMPREHENSIVE VERIFICATION PROTOCOL
 
-**AI Analysis Tools**:
-6. analyze_content_with_ai(content=..., domain="{subject_data['domain']}") - AI legitimacy analysis with Claude
-7. estimate_web_traffic(domain="{subject_data['domain']}") - Traffic estimates
-8. analyze_backlinks(domain="{subject_data['domain']}") - Backlink profile analysis
+Execute ALL these checks using bash commands. DO NOT skip any. Be thorough and skeptical.
 
-**Image Verification Tools**:
-9. verify_profile_image_consistency(...) - Compare images across platforms
-10. detect_ai_generated_image(...) - Detect AI-generated or manipulated images
-11. check_image_metadata(...) - Extract EXIF data and manipulation detection
+## Phase 1: Domain & Infrastructure (Multiple Methods)
 
-YOUR TASK:
-1. Call scrape_website_content() to get full website data
-2. Call extract_ssl_certificate_info() to verify SSL
-3. Call check_dns_records() for DNS validation
-4. Call extract_whois_info() for domain age/registration
-5. Call analyze_content_with_ai() to get AI legitimacy scoring
-6. Call analyze_website_structure() for security assessment
-7. Analyze results and generate comprehensive report
+1. **Domain Resolution** - Try ALL these:
+   ```bash
+   curl -I https://{subject_data['domain']}
+   curl -I https://www.{subject_data['domain']}
+   curl -I http://{subject_data['domain']}
+   nslookup {subject_data['domain']}
+   nslookup {subject_data['domain']} 8.8.8.8
+   ping -c 2 {subject_data['domain']}
+   ```
 
-After running these TOOL CALLS, provide analysis in this JSON format:
+2. **SSL Deep Analysis**:
+   ```bash
+   openssl s_client -connect {subject_data['domain']}:443 </dev/null 2>&1 | head -n 30
+   echo | openssl s_client -connect {subject_data['domain']}:443 2>/dev/null | openssl x509 -noout -dates
+   echo | openssl s_client -connect {subject_data['domain']}:443 2>/dev/null | openssl x509 -noout -issuer
+   ```
 
-{{
-    "verification_status": "VERIFIED/UNCERTAIN/SUSPICIOUS",
-    "confidence_score": 0-100,
-    "findings": {{
-        "domain_active": true/false,
-        "ssl_valid": true/false,
-        "historical_snapshots": number,
-        "email_domain_matches": true/false,
-        "mx_records_found": true/false,
-        "website_accessible": true/false,
-        "security_score": 0-100,
-        "ai_legitimacy_score": 0-100
-    }},
-    "red_flags": ["list any concerns"],
-    "legitimacy_indicators": ["list positive signals"],
-    "recommendation": "APPROVE/MANUAL_REVIEW/DENY",
-    "summary": "2-3 sentence summary of findings"
-}}
+3. **Email Infrastructure**:
+   ```bash
+   nslookup -type=mx {subject_data['email'].split('@')[1]}
+   nslookup -type=txt {subject_data['email'].split('@')[1]} | grep -i spf
+   ```
 
-Use the Python verification tools - they're much more powerful than bash commands!
+## Phase 2: Web Presence (Multiple Pages)
+
+4. **Website Content**:
+   ```bash
+   curl -s https://{subject_data['domain']} | head -n 100
+   curl -s https://{subject_data['domain']}/about | head -n 50
+   curl -s https://{subject_data['domain']}/team | head -n 50
+   curl -s https://{subject_data['domain']}/contact | head -n 50
+   curl -s https://{subject_data['domain']}/robots.txt
+   curl -s https://{subject_data['domain']}/sitemap.xml | head -n 50
+   ```
+
+5. **Historical Data**:
+   ```bash
+   curl -s "http://archive.org/wayback/available?url={subject_data['domain']}"
+   curl -s "http://web.archive.org/cdx/search/cdx?url={subject_data['domain']}&output=json" | head -n 20
+   ```
+
+## Phase 3: CRITICAL - Multiple Search Variations
+
+DO MULTIPLE searches, not just one! Try these variations:
+
+6. **Name Searches** (simulate or note what to search):
+   - "{subject_data['name']}" "{subject_data['company']}"
+   - "{subject_data['name']}" LinkedIn
+   - "{subject_data['name']}" "{subject_data['domain']}"
+   - "{subject_data['name']}" professional bio
+   - "{subject_data['name']}" research
+   - "{subject_data['name']}" contact
+
+7. **Company Searches**:
+   - "{subject_data['company']}" official
+   - "{subject_data['company']}" registration
+   - "{subject_data['company']}" LinkedIn
+   - "{subject_data['company']}" news
+
+## Phase 4: Cross-Reference
+
+8. **Consistency Checks**:
+   - Email matches domain?
+   - Phone country code matches location?
+   - Website claims match searches?
+
+# OUTPUT: COMPREHENSIVE MARKDOWN REPORT
+
+After executing ALL checks above, generate a complete markdown report with this EXACT structure:
+
+```markdown
+# Professional Identity Verification Report
+
+**Subject:** {subject_data['name']}  
+**Organization:** {subject_data['company']}  
+**Verification Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+**Report ID:** VER-{datetime.now().strftime('%Y%m%d-%H%M%S')}
+
+---
+
+## Executive Summary
+
+[3-4 sentences: What you found, overall risk level, key concerns]
+
+**Overall Risk:** [CRITICAL/HIGH/MEDIUM/LOW]  
+**Confidence:** [0-100]%  
+**Recommendation:** [APPROVE/MANUAL_REVIEW/DENY]
+
+---
+
+## 1. Subject Information Verification
+
+| Field | Value | Status | Notes |
+|-------|-------|--------|-------|
+| Name | {subject_data['name']} | ✓/⚠/✗ | [Found in X sources / Not found] |
+| Organization | {subject_data['company']} | ✓/⚠/✗ | [Verified via Y / Claims only] |
+| Email | {subject_data['email']} | ✓/⚠/✗ | [Domain matches / Suspicious] |
+| Domain | {subject_data['domain']} | ✓/⚠/✗ | [Active / Inactive / Issues] |
+| Phone | {subject_data.get('phone')} | ✓/⚠/✗ | [Format valid / Unverified] |
+
+---
+
+## 2. Technical Infrastructure Analysis
+
+### 2.1 Domain Status
+**Finding:** [Explain what you discovered]  
+**Evidence:** [Results from curl, nslookup commands]  
+**Risk Level:** [LOW/MEDIUM/HIGH]
+
+### 2.2 SSL Certificate
+**Finding:** [Valid/Invalid/Expired - details]  
+**Issuer:** [Certificate authority]  
+**Expiry:** [Date]  
+**Risk Level:** [LOW/MEDIUM/HIGH]
+
+### 2.3 Email Infrastructure
+**MX Records:** [Found/Not found]  
+**SPF:** [Configured/Missing]  
+**Match:** [Email domain matches company domain? Yes/No]  
+**Risk Level:** [LOW/MEDIUM/HIGH]
+
+### 2.4 Website Security
+**HTTPS:** [Enabled/Disabled]  
+**Headers:** [Security headers present]  
+**Content:** [Professional/Amateur/Suspicious]  
+**Risk Level:** [LOW/MEDIUM/HIGH]
+
+---
+
+## 3. Historical & Digital Footprint
+
+### 3.1 Web Archive History
+**Snapshots Found:** [Number]  
+**First Recorded:** [Date or "Not found"]  
+**Last Activity:** [Date]  
+**Analysis:** [Legitimate history / Recent creation / Gaps / Suspicious]
+
+### 3.2 Search Presence Analysis
+
+Document EACH search variation you tried:
+
+#### Search: "{subject_data['name']} {subject_data['company']}"
+- **Results:** [Found/Limited/None]
+- **Quality:** [Professional/Personal/Suspicious]
+- **Consistency:** [Matches claimed identity / Contradicts / Unclear]
+
+#### Search: "{subject_data['name']} LinkedIn"
+- **Profile Found:** [Yes/No]
+- **Details:** [Job title, connections, activity level]
+- **Verification:** [Matches/Doesn't match]
+
+#### Search: "{subject_data['name']} {subject_data['domain']}"
+- **Results:** [Found/Not found]
+- **Context:** [Official listings / News / Other]
+
+[Continue for ALL search variations performed...]
+
+**Overall Digital Footprint:** [Strong/Moderate/Weak/Absent/Suspicious]
+
+---
+
+## 4. Risk Assessment
+
+### 4.1 CRITICAL Risks 🔴
+[List any immediate red flags]
+- **[Risk Name]:** [Description]
+  - **Impact:** [Why this matters]
+  - **Evidence:** [What triggered this]
+  - **Mitigation:** [What to do about it]
+
+### 4.2 HIGH Risks 🟠
+[Significant concerns]
+- **[Risk Name]:** [Description + Impact + Evidence]
+
+### 4.3 MEDIUM Risks 🟡
+[Moderate concerns to monitor]
+
+### 4.4 LOW Risks 🟢
+[Minor notes]
+
+### 4.5 Positive Indicators ✅
+[Evidence supporting legitimacy]
+- **[Indicator]:** [Description and supporting evidence]
+
+---
+
+## 5. Mitigation Strategies
+
+### If CRITICAL/HIGH Risks Exist:
+
+**Immediate Actions:**
+1. **[Action]:** [What to do, why, when]
+2. **[Action]:** [Details]
+
+**Additional Verification:**
+1. **[Step]:** [How to further verify]
+2. **[Step]:** [Resources needed]
+
+**Monitoring Plan:**
+- **[What to monitor]:** [Frequency, what to watch for]
+
+---
+
+## 6. Methodology Explanation
+
+### What I Did and Why
+
+**Approach:** [Explain your verification strategy]
+
+**Commands Executed:** [Total count]
+- Domain checks: [Number] variations
+- SSL analysis: [Number] methods
+- Email verification: [Number] checks  
+- Web searches: [Number] variations
+- Historical analysis: [Number] sources
+
+**Why Multiple Searches:** [Explain importance of not taking things at face value]
+
+**Objective Scrutiny:** [How you remained unbiased]
+
+---
+
+## 7. Final Recommendation
+
+**Decision:** [APPROVE / MANUAL_REVIEW / DENY]
+
+**Justification:**
+[Detailed explanation referencing specific findings. Be clear about:
+- What was verified
+- What couldn't be verified
+- What raised concerns
+- Why this recommendation makes sense]
+
+**Confidence:** [0-100]%
+
+**Next Steps:**
+1. [Specific action if approved]
+2. [Specific action if denied]
+3. [What to monitor ongoing]
+
+---
+
+## Appendix A: Raw Command Outputs
+
+### Domain Resolution
+```bash
+# Command: curl -I https://{subject_data['domain']}
+[Paste actual output]
+
+# Command: nslookup {subject_data['domain']}
+[Paste actual output]
+```
+
+### SSL Certificate
+```
+[Full SSL output]
+```
+
+### Email Infrastructure
+```
+[MX records output]
+[SPF/DMARC results]
+```
+
+### Website Content Samples
+```
+[Relevant excerpts]
+```
+
+### Historical Data
+```json
+[Archive.org responses]
+```
+
+---
+
+## Appendix B: Search Results Summary
+
+| Search Query | Found | Quality | Notes |
+|--------------|-------|---------|-------|
+| [Query 1] | Y/N | [Rating] | [Brief note] |
+| [Query 2] | Y/N | [Rating] | [Brief note] |
+[All searches...]
+
+---
+
+## Document Control
+
+**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+**Analyst:** Claude AI Verification System v2.0  
+**Protocol:** Enhanced Multi-Source Validation  
+**Iterations:** [Count]  
+**Commands:** [Count]  
+**Confidential:** Yes
+
+---
+
+*This automated verification should be reviewed by qualified personnel before final decisions.*
+```
+
+CRITICAL: Fill in EVERY section. Include ALL raw outputs in appendix. Be thorough, objective, and explain your reasoning
 """
     
     messages = [{
@@ -287,7 +525,7 @@ Use the Python verification tools - they're much more powerful than bash command
             
             # Check if done
             if response.stop_reason == "end_turn":
-                # Extract final analysis
+                # Extract final report/analysis
                 final_text = ""
                 for block in response.content:
                     if hasattr(block, 'text'):
@@ -300,16 +538,38 @@ Use the Python verification tools - they're much more powerful than bash command
                             'text': block.text
                         })
                 
-                # Try to extract JSON from response
+                # Save markdown report to file
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                report_filename = f"VERIFICATION_REPORT_{subject_data['name'].replace(' ', '_')}_{timestamp}.md"
+                report_path = Path(__file__).parent / report_filename
+                
                 try:
-                    import re
+                    with open(report_path, 'w', encoding='utf-8') as f:
+                        f.write(final_text)
+                    
+                    print(f"\n✅ Markdown report saved: {report_filename}")
+                    
+                    await broadcast({
+                        'type': 'report_saved',
+                        'filename': report_filename,
+                        'path': str(report_path)
+                    })
+                except Exception as e:
+                    print(f"\n⚠️  Could not save report: {e}")
+                
+                # Try to extract JSON from response (for dashboard display)
+                try:
                     json_match = re.search(r'\{[\s\S]*"verification_status"[\s\S]*\}', final_text)
                     if json_match:
                         analysis = json.loads(json_match.group(0))
                     else:
+                        # Extract confidence from markdown if present
+                        confidence_match = re.search(r'\*\*Confidence:\*\*.*?(\d+)%', final_text)
+                        confidence = int(confidence_match.group(1)) if confidence_match else 50
+                        
                         analysis = {
-                            "verification_status": "UNCERTAIN",
-                            "confidence_score": 50,
+                            "verification_status": "REPORT_GENERATED",
+                            "confidence_score": confidence,
                             "summary": final_text[:500]
                         }
                 except:
