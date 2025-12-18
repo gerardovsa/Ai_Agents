@@ -66,6 +66,24 @@ from google_workspace.gmail import (
 from utils.logger_config import setup_logger, log_warning, log_init
 logger = setup_logger('routes.communication_routes')
 
+# 🔒 Circuit breaker to prevent cascading failures
+from AI_infrastructure.shared.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
+
+# Create circuit breakers for each OAuth provider
+gmail_circuit = CircuitBreaker(
+    name='gmail_oauth_check',
+    failure_threshold=3,      # Open after 3 failures (prevents pool exhaustion)
+    recovery_timeout=30,      # Try again after 30 seconds
+    expected_exception=Exception
+)
+
+outlook_circuit = CircuitBreaker(
+    name='outlook_oauth_check',
+    failure_threshold=3,
+    recovery_timeout=30,
+    expected_exception=Exception
+)
+
 # Microsoft Outlook imports
 try:
     from tools.implementations.microsoft_outlook_tools import (
@@ -186,23 +204,41 @@ def list_emails():
     
     print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}")
     
-    # ✅ FIRST: Check which accounts user has connected
+    # ✅ FIRST: Check which accounts user has connected (with circuit breaker protection)
     has_google = False
     has_microsoft = False
     
+    # 🔒 Check Google OAuth with circuit breaker
     try:
-        google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
+        @gmail_circuit.call
+        def check_google_oauth():
+            return auth_manager.get_user_google_oauth_credentials(user_id)
+        
+        google_creds = check_google_oauth()
         has_google = google_creds is not None
         print(f"[Communication Hub] 🔍 User {user_id} has Google OAuth: {has_google}")
+    except CircuitBreakerOpenError as e:
+        print(f"[Communication Hub] 🚫 Gmail circuit breaker OPEN: {e}")
+        has_google = False
     except Exception as e:
         print(f"[Communication Hub] ⚠️  Error checking Google OAuth: {e}")
+        has_google = False
     
+    # 🔒 Check Microsoft OAuth with circuit breaker
     try:
-        microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
+        @outlook_circuit.call
+        def check_microsoft_oauth():
+            return auth_manager.get_user_microsoft_oauth_credentials(user_id)
+        
+        microsoft_creds = check_microsoft_oauth()
         has_microsoft = microsoft_creds is not None
         print(f"[Communication Hub] 🔍 User {user_id} has Microsoft OAuth: {has_microsoft}")
+    except CircuitBreakerOpenError as e:
+        print(f"[Communication Hub] 🚫 Outlook circuit breaker OPEN: {e}")
+        has_microsoft = False
     except Exception as e:
         print(f"[Communication Hub] ⚠️  Error checking Microsoft OAuth: {e}")
+        has_microsoft = False
     
     emails = []
     
@@ -210,10 +246,14 @@ def list_emails():
     if account in ['all', 'gmail'] and has_google:
         try:
             print(f"[Communication Hub] 📧 Fetching Gmail messages for user {user_id}...")
+            
+            # 🔒 CRITICAL FIX: Retrieve credentials ONCE before parallel operations
+            # This prevents connection pool exhaustion from 50+ parallel credential retrievals
+            gmail_credentials = google_creds  # Already retrieved above with circuit breaker
+            
             gmail_result = gmail_list_messages(
                 max_results=limit,
-                _user_id=user_id,
-                _injected_credentials=True
+                _credentials=gmail_credentials
             )
             
             # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
@@ -226,14 +266,14 @@ def list_emails():
                 from concurrent.futures import ThreadPoolExecutor, as_completed
                 import time
                 
-                def fetch_single_message(msg_summary):
-                    """Fetch a single message metadata"""
+                # 🔒 CRITICAL: Pass credentials to avoid repeated DB queries in parallel workers
+                def fetch_single_message(msg_summary, creds):
+                    """Fetch a single message metadata with pre-fetched credentials"""
                     try:
                         msg = gmail_get_message(
                             message_id=msg_summary['id'],
                             format='metadata',
-                            _user_id=user_id,
-                            _injected_credentials=True
+                            _credentials=creds  # Use pre-fetched credentials, not _injected_credentials
                         )
                         
                         # Parse message headers
@@ -254,11 +294,11 @@ def list_emails():
                         print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
                         return None
                 
-                # Execute all fetches in parallel (max 20 workers for faster loading)
+                # Execute all fetches in parallel (max 10 workers to respect connection pool limits)
                 start_time = time.time()
-                with ThreadPoolExecutor(max_workers=20) as executor:
-                    # Submit all tasks at once
-                    future_to_msg = {executor.submit(fetch_single_message, msg): msg for msg in gmail_result.get('messages', [])}
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    # Submit all tasks at once with credentials
+                    future_to_msg = {executor.submit(fetch_single_message, msg, gmail_credentials): msg for msg in gmail_result.get('messages', [])}
                     
                     # Collect results as they complete
                     for future in as_completed(future_to_msg):
