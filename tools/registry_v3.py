@@ -910,6 +910,22 @@ class RegistryV3:
         return anthropic_tools
 
 
+def tool_executor():
+    """
+    Compatibility decorator used by legacy wrappers.
+
+    Many wrapper modules import `tool_executor` from `tools.registry_v3`.
+    Provide a small no-op decorator to maintain backward compatibility
+    and avoid import-time failures. This decorator intentionally does
+    not register functions (registration happens via the module plugin
+    loader or the registry singleton) to prevent side effects during
+    import.
+    """
+    def _decorator(func):
+        return func
+    return _decorator
+
+
 # Singleton instance for module-level access
 _registry_instance = None
 

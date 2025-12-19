@@ -6,8 +6,14 @@ This is the NEW clean Flask app that replaces flask_triple_agent_app.py
 Run on port 5001 for testing, then swap to port 5000 when ready
 """
 
-import os
+# Fix Windows console encoding FIRST (before any prints or logging)
 import sys
+import io
+if sys.platform == 'win32' and sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+import os
 from pathlib import Path
 
 # Configure AI_agents paths ONLY - Standalone project
@@ -773,6 +779,17 @@ try:
 except Exception as e:
     message_service = None
     log_warning(logger, f"[MESSAGE SERVICE] Failed to initialize: {e}")
+
+# ============================================================================
+# PROFESSIONAL VERIFICATION SYSTEM
+# ============================================================================
+# Register verification dashboard and WebSocket handlers (AFTER socketio init)
+try:
+    from routes.verification_routes import register_verification_routes
+    register_verification_routes(app, socketio)
+except Exception as e:
+    log_error(logger, f"Failed to register verification routes: {e}")
+    print(f"⚠️  Verification system not available: {e}")
 
 def cleanup_stale_sessions():
     """Remove sessions that haven't sent heartbeat within TTL"""
@@ -3865,7 +3882,7 @@ if __name__ == '__main__':
     
     # 🔍 START CONNECTION MONITOR (Background monitoring thread)
     try:
-        from tools.connection_monitor import start_connection_monitor
+        from AI_infrastructure.tools.connection_monitor import start_connection_monitor
         connection_monitor = start_connection_monitor()
         print("\n✅ Connection monitor started (background thread)")
         print(f"   Log file: AI_infrastructure/logs/connection_monitor.log\n")

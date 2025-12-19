@@ -22,6 +22,14 @@ from pathlib import Path
 from dotenv import dotenv_values
 import sys
 
+# Fix Windows console encoding for emoji support
+if sys.platform == 'win32':
+    import io
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    if sys.stderr.encoding != 'utf-8':
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 # Setup paths for imports
 ai_infrastructure_path = Path(__file__).parent.parent
 if str(ai_infrastructure_path) not in sys.path:
@@ -132,7 +140,7 @@ class UserAuthManager:
                 'app_password': None
             })
         
-        print(f"📧 Loaded {len(accounts)} Gmail accounts from .env:")
+        print(f"[EMAIL] Loaded {len(accounts)} Gmail accounts from .env:")
         for acc in accounts:
             print(f"   - {acc['email']} ({acc['display_name']})")
         
@@ -1584,8 +1592,17 @@ class UserAuthManager:
     def get_user_microsoft_oauth_credentials(self, user_id: int) -> Optional[Dict]:
         """Get Microsoft 365 OAuth credentials for user from oauth_tokens table"""
         cursor = None
+        conn = None
         try:
-            with get_connection('ai_infrastructure') as conn:
+            # 🔒 LEAK FIX: Defensive connection handling to prevent cascading failures
+            # If pool is exhausted, return None gracefully instead of leaking
+            try:
+                conn = get_connection('ai_infrastructure')
+            except Exception as conn_err:
+                logger.warning(f"[AUTH] Connection pool exhausted for user {user_id} Microsoft OAuth check: {conn_err}")
+                return None
+            
+            with conn:
                 cursor = conn.cursor()
                 
                 cursor.execute('''

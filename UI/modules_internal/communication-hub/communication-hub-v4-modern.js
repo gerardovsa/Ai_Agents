@@ -1393,7 +1393,7 @@ export default {
                     formatter: (cell) => {
                         const emailId = cell.getRow().getData().id;
                         const threadSlug = this.state.emailThreads?.[emailId];
-                        
+
                         // Check if email has an assigned thread
                         if (!threadSlug) {
                             // NOT ASSIGNED - Show dropdown button
@@ -1407,16 +1407,16 @@ export default {
                                 </div>
                             `;
                         }
-                        
+
                         // IS ASSIGNED - Show agent badge + thread info
                         const thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
                         if (!thread) {
                             return `<span style="color: #9ca3af; font-size: 10px;">Loading...</span>`;
                         }
-                        
+
                         const location = thread.location || 'prime';
                         let badgeColor, badgeText, badgeIcon;
-                        
+
                         if (location === 'prime') {
                             // Unassigned state
                             return `
@@ -1443,9 +1443,9 @@ export default {
                             badgeText = 'Unknown';
                             badgeIcon = 'fa-question';
                         }
-                        
+
                         const threadShort = threadSlug.substring(0, 8);
-                        
+
                         return `
                             <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
                                 <span class="agent-badge" style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
@@ -1905,10 +1905,10 @@ export default {
             if (location && location.startsWith('agent-')) {
                 const targetAgentId = parseInt(location.replace('agent-', ''));
                 const currentThread = ThreadManager.getThreadByAgent?.(location);
-                
+
                 if (currentThread) {
                     this.log.warn(`⚠️ Agent ${agentName} already has thread ${currentThread.id} - cascading to prime`);
-                    
+
                     // Move old thread to prime
                     try {
                         await this.api.post('/api/threads/update-location', {
@@ -1916,19 +1916,19 @@ export default {
                             new_location: 'prime',
                             user_id: userId
                         });
-                        
+
                         // Unload from agent UI
                         if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.unloadThread === 'function') {
                             AgentColumn.unloadThread(targetAgentId);
                         }
-                        
+
                         // Update local state
                         currentThread.location = 'prime';
-                        
+
                         if (typeof showToast === 'function') {
                             showToast(`📤 Previous thread moved to Prime`, 'info', 2500);
                         }
-                        
+
                         this.log.success(`✅ Cascaded old thread ${currentThread.id} to prime`);
                     } catch (cascadeError) {
                         this.log.error('❌ Failed to cascade old thread:', cascadeError);
@@ -1972,7 +1972,7 @@ export default {
             });
 
             this.log.info('📥 Thread creation response:', threadResponse);
-            
+
             // Toast: Thread created
             if (typeof showToast === 'function') {
                 showToast('📝 Thread created', 'success', 2000);
@@ -2059,7 +2059,7 @@ export default {
             if (this.state.emailThreads && this.state.emailThreads[emailId]) {
                 const previousThreadSlug = this.state.emailThreads[emailId];
                 this.log.info(`🔄 Email ${emailId} was previously assigned to thread ${previousThreadSlug}, clearing old assignment`);
-                
+
                 // Find and update previous row
                 if (this.table) {
                     const allRows = this.table.getData();
@@ -2086,12 +2086,12 @@ export default {
             if (typeof showToast === 'function') {
                 showToast(`📧 Assigning to ${agentName}...`, 'info', 2000);
             }
-            
+
             this.log.success(`Email ${emailId} assigned to agent ${agentName} in thread ${threadSlug}`);
 
             // ✅ CRITICAL: Load thread into AI agent column and trigger AI response
             await this.loadThreadIntoAgentAndTrigger(threadSlug, location, fullEmail, processedAttachments);
-            
+
             // Final success notification
             this.showSuccess(`✅ Email assigned to ${agentName}`);
 
@@ -2170,12 +2170,12 @@ export default {
             // Step 3.6: Insert email content as first message in thread
             const userId = window.UserAuth?.user?.id || 1;
             const emailMessageContent = this.formatEmailForMessage(emailData, processedAttachments);
-            
+
             try {
                 // Save to database
                 const messageResponse = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/messages/create`, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
                     },
@@ -2191,23 +2191,23 @@ export default {
                         })
                     })
                 });
-                
+
                 if (messageResponse.ok) {
                     this.log.success('✅ Email content inserted as first message');
-                    
+
                     // Render in UI
                     if (typeof UnifiedMessageRenderer !== 'undefined') {
                         UnifiedMessageRenderer.render(
                             `#agent-messages-${agentId}`,
                             'user',
                             emailMessageContent,
-                            { 
+                            {
                                 threadId: threadSlug,
                                 syncToBackend: false // Already saved above
                             }
                         );
                     }
-                    
+
                     if (typeof showToast === 'function') {
                         showToast('📧 Email loaded into chat', 'success', 2000);
                     }
@@ -2240,16 +2240,16 @@ export default {
             // Programmatically populate input and trigger send
             const inputId = `agent-input-${agentId}`;
             const inputElement = document.getElementById(inputId);
-            
+
             if (inputElement && typeof sendAgentMessage === 'function') {
                 this.log.info('🤖 Populating agent input and triggering AI response...');
-                
+
                 // Set the input value (sendAgentMessage will read from it)
                 inputElement.value = typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent);
-                
+
                 // Trigger the send function
                 await sendAgentMessage(agentId);
-                
+
                 this.log.success('✅ AI processing started automatically');
                 if (typeof showToast === 'function') {
                     showToast('🤖 AI agent analyzing email...', 'info', 3000);
@@ -2276,13 +2276,13 @@ export default {
         const subject = emailData.subject || emailData.title || 'No Subject';
         const date = emailData.date || new Date().toISOString();
         const body = emailData.body || emailData.snippet || 'No content';
-        
+
         let message = `📧 **Email from ${from}**\n`;
         message += `**Subject:** ${subject}\n`;
         message += `**Date:** ${date}\n`;
         message += `\n---\n\n`;
         message += body;
-        
+
         if (attachments && attachments.length > 0) {
             message += `\n\n---\n\n📎 **Attachments (${attachments.length}):**\n`;
             attachments.forEach((att, idx) => {
@@ -2291,7 +2291,7 @@ export default {
                 message += `${idx + 1}. ${icon} ${att.filename || `Attachment ${idx + 1}`}\n`;
             });
         }
-        
+
         return message;
     },
 
@@ -4030,31 +4030,31 @@ export default {
      */
     async unloadEmailFromAgent(emailId, event) {
         event?.stopPropagation();
-        
+
         const threadSlug = this.state.emailThreads?.[emailId];
         if (!threadSlug) {
             this.log.warn('No thread found for email:', emailId);
             return;
         }
-        
+
         const thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
         if (!thread) {
             this.log.warn('Thread not found in ThreadManager:', threadSlug);
             return;
         }
-        
+
         const userId = window.UserAuth?.user?.id || 1;
-        
+
         try {
             this.log.info(`🔄 Unloading thread ${threadSlug} from ${thread.location} to prime`);
-            
+
             // Update location to prime
             await this.api.post('/api/threads/update-location', {
                 thread_slug: threadSlug,
                 new_location: 'prime',
                 user_id: userId
             });
-            
+
             // Unload from agent UI if loaded
             if (thread.location && thread.location.startsWith('agent-')) {
                 const agentId = parseInt(thread.location.replace('agent-', ''));
@@ -4063,21 +4063,21 @@ export default {
                     this.log.success(`✅ Unloaded from agent column ${agentId}`);
                 }
             }
-            
+
             // Update local state
             thread.location = 'prime';
-            
+
             // Refresh table to show "Assign Agent" button again
             if (this.state.tabulatorTable) {
                 this.state.tabulatorTable.updateData([{ id: emailId, assigned_agent: null }]);
             }
-            
+
             if (typeof showToast === 'function') {
                 showToast('✅ Thread unloaded to Prime', 'success', 2000);
             }
-            
+
             this.log.success(`✅ Thread ${threadSlug} unloaded to prime`);
-            
+
         } catch (error) {
             this.log.error('Failed to unload thread:', error);
             if (typeof showToast === 'function') {

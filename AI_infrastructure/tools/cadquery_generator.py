@@ -379,7 +379,8 @@ result = (cq.Workplane("XY")
             
             return {
                 'success': True,
-                'result': result,
+                # DO NOT return 'result' CadQuery object - not JSON serializable
+                # 'result': result,  # REMOVED - causes "Workplane is not JSON serializable" error
                 'step_file': str(step_file),
                 'stl_file': str(stl_file),
                 'vertices': vertices,
@@ -388,7 +389,8 @@ result = (cq.Workplane("XY")
                 'volume': volume,
                 'bounding_box': bounding_box,
                 'stdout': stdout_value,
-                'stderr': stderr_value
+                'stderr': stderr_value,
+                'description': description
             }
             
         except Exception as e:

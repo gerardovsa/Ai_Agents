@@ -44,7 +44,8 @@ try {
     }
     
     Write-Host "   ✅ All dependencies installed" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "   ⚠️  Could not check dependencies" -ForegroundColor Yellow
 }
 
@@ -71,14 +72,17 @@ if ($null -ne $dockerService -and $dockerService.Status -eq "Running") {
             docker start computer-use-verification 2>&1 | Out-Null
             Start-Sleep -Seconds 2
             Write-Host "   ✅ Container started" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "   ✅ Container already running" -ForegroundColor Green
         }
-    } else {
+    }
+    else {
         Write-Host "   ⚠️  Container not built yet" -ForegroundColor Yellow
         Write-Host "      Run: .\run_complete_verification.ps1 to build" -ForegroundColor Gray
     }
-} else {
+}
+else {
     Write-Host "   ⚠️  Docker not running (bash commands will be simulated)" -ForegroundColor Yellow
 }
 
@@ -111,7 +115,7 @@ Write-Host "====================================================================
 Write-Host "✅ DASHBOARD READY" -ForegroundColor Green
 Write-Host "===============================================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "   🌐 Dashboard URL: http://localhost:8080/verification_dashboard.html" -ForegroundColor Cyan
+Write-Host "   🌐 Dashboard URL: http://localhost:9000/verification_dashboard.html" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "   📊 Features Available:" -ForegroundColor Yellow
 Write-Host "      ✅ Real-time AI reasoning panel" -ForegroundColor Gray
@@ -133,7 +137,7 @@ Write-Host ""
 Start-Sleep -Seconds 2
 
 Write-Host "   Opening dashboard in browser..." -ForegroundColor Yellow
-Start-Process "http://localhost:8080/verification_dashboard.html"
+Start-Process "http://localhost:9000/verification_dashboard.html"
 
 Write-Host ""
 Write-Host "   ⚡ Starting server..." -ForegroundColor Yellow

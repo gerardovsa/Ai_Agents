@@ -62,6 +62,658 @@ async def broadcast(message):
         active_connections.difference_update(disconnected)
 
 
+async def run_verification_with_freeform_text(subject_text):
+    """
+    Run ENHANCED verification with FREE-FORM text input
+    AI will extract relevant information and conduct comprehensive analysis
+    """
+    
+    print("\n🚀 Starting ENHANCED verification with free-form text analysis...")
+    print(f"📝 Subject text length: {len(subject_text)} characters")
+    
+    # Get API key
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        await broadcast({
+            'type': 'error',
+            'message': 'No ANTHROPIC_API_KEY found in environment variables'
+        })
+        return
+    
+    # Import Anthropic
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key)
+    except Exception as e:
+        await broadcast({
+            'type': 'error',
+            'message': f'Failed to initialize Anthropic client: {e}'
+        })
+        return
+    
+    # Build COMPREHENSIVE verification prompt with markdown reporting
+    verification_task = f"""
+You are a PROFESSIONAL VERIFICATION SPECIALIST conducting a COMPREHENSIVE RISK ASSESSMENT AND DUE DILIGENCE investigation.
+
+# CRITICAL CONTEXT - HIGH RISK SCENARIO
+
+The user has provided the following information about subjects requesting EXTREMELY sensitive access:
+
+{subject_text}
+
+# YOUR MISSION
+
+Conduct a FULL, EXTENSIVE, DEEP-DIVE investigation into ALL individuals and organizations mentioned. This is a HIGH-RISK scenario requiring maximum scrutiny.
+
+## CRITICAL RED FLAGS IN THIS REQUEST
+
+⚠️ They are requesting:
+- CEO and Chief of Ops email credentials and passwords
+- Complete database access across all platforms  
+- Creation of super admin accounts
+- Building a data lake with full access
+
+⚠️ Additional concerns:
+- No substantial prior work history provided
+- No verifiable references
+- Becoming aggressive about timeline (6 days)
+- Recently arrived in Australia from Colombia
+- Minimal verifiable information available
+
+# COMPREHENSIVE VERIFICATION PROTOCOL
+
+You MUST execute ALL of these checks. Use bash commands, web searches, and analysis. Be THOROUGH, SKEPTICAL, and OBJECTIVE.
+
+## Phase 1: Identity & Professional Verification
+
+For EACH person mentioned:
+
+1. **Multiple Web Searches** (execute ALL variations):
+   ```bash
+   # Person searches
+   curl -s "https://www.google.com/search?q=Gregory+Dutton+Institute+Sustainable+Biodiversity"
+   curl -s "https://www.google.com/search?q=Gregory+Dutton+ISB+eco"
+   curl -s "https://www.google.com/search?q=Gregory+Dutton+Colombia+Australia"
+   curl -s "https://www.google.com/search?q=Casey+Dutton+SCA+Technology"
+   curl -s "https://www.google.com/search?q=Casey+Dutton+Gregory+Dutton"
+   
+   # Company searches
+   curl -s "https://www.google.com/search?q=scatechnology.ai+reviews"
+   curl -s "https://www.google.com/search?q=SCA+Technology+AI+company"
+   curl -s "https://www.google.com/search?q=Institute+Sustainable+Biodiversity+scam"
+   curl -s "https://www.google.com/search?q=isb.eco+legitimacy"
+   ```
+
+2. **LinkedIn & Professional Networks**:
+   ```bash
+   curl -s "https://www.google.com/search?q=site:linkedin.com+Gregory+Dutton"
+   curl -s "https://www.google.com/search?q=site:linkedin.com+Casey+Dutton"
+   ```
+
+3. **News & Media Mentions**:
+   ```bash
+   curl -s "https://www.google.com/search?q=Gregory+Dutton+news"
+   curl -s "https://www.google.com/search?q=SCA+Technology+news"
+   ```
+
+## Phase 2: Domain & Infrastructure Deep Dive
+
+For EACH domain mentioned (scatechnology.ai, isb.eco):
+
+1. **Domain Analysis**:
+   ```bash
+   # Full domain checks
+   curl -I https://scatechnology.ai
+   curl -I https://isb.eco
+   nslookup scatechnology.ai
+   nslookup isb.eco
+   
+   # WHOIS data
+   whois scatechnology.ai
+   whois isb.eco
+   ```
+
+2. **SSL Certificate Verification**:
+   ```bash
+   echo | openssl s_client -servername scatechnology.ai -connect scatechnology.ai:443 2>/dev/null | openssl x509 -noout -dates -subject -issuer
+   echo | openssl s_client -servername isb.eco -connect isb.eco:443 2>/dev/null | openssl x509 -noout -dates -subject -issuer
+   ```
+
+3. **Historical Presence**:
+   ```bash
+   curl -s "http://archive.org/wayback/available?url=scatechnology.ai"
+   curl -s "http://archive.org/wayback/available?url=isb.eco"
+   ```
+
+4. **DNS Records (ALL types)**:
+   ```bash
+   nslookup -type=mx scatechnology.ai
+   nslookup -type=txt scatechnology.ai
+   nslookup -type=ns scatechnology.ai
+   nslookup -type=mx isb.eco
+   nslookup -type=txt isb.eco
+   ```
+
+## Phase 3: Company Verification
+
+1. **Business Registration** (search multiple databases):
+   ```bash
+   curl -s "https://www.google.com/search?q=SCA+Technology+ABN+Australia+business+registration"
+   curl -s "https://www.google.com/search?q=Institute+Sustainable+Biodiversity+Colombia+registration"
+   ```
+
+2. **Social Media Presence**:
+   ```bash
+   curl -s "https://www.google.com/search?q=site:twitter.com+scatechnology"
+   curl -s "https://www.google.com/search?q=site:facebook.com+scatechnology"
+   ```
+
+3. **Client References & Portfolio**:
+   ```bash
+   curl -s "https://www.google.com/search?q=SCA+Technology+client+reviews"
+   curl -s "https://www.google.com/search?q=SCA+Technology+portfolio+projects"
+   ```
+
+## Phase 4: Scam & Fraud Checks
+
+1. **Scam Databases**:
+   ```bash
+   curl -s "https://www.google.com/search?q=Gregory+Dutton+scam"
+   curl -s "https://www.google.com/search?q=SCA+Technology+fraud"
+   curl -s "https://www.google.com/search?q=isb.eco+phishing"
+   ```
+
+2. **Similar Scams**:
+   ```bash
+   curl -s "https://www.google.com/search?q=super+admin+account+scam"
+   curl -s "https://www.google.com/search?q=data+lake+access+social+engineering"
+   ```
+
+# OUTPUT FORMAT - COMPREHENSIVE MARKDOWN REPORT
+
+Generate a COMPLETE markdown report following this EXACT structure:
+
+```markdown
+# PROFESSIONAL VERIFICATION & RISK ASSESSMENT REPORT
+
+**Generated:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}  
+**Subject:** [Primary person/company]  
+**Verification Type:** High-Risk Due Diligence  
+**Risk Level:** [CRITICAL / HIGH / MEDIUM / LOW]  
+**Recommendation:** [REJECT / PROCEED WITH EXTREME CAUTION / ADDITIONAL VERIFICATION REQUIRED / APPROVE]  
+**Confidence Score:** [0-100]%
+
+---
+
+## EXECUTIVE SUMMARY
+
+[2-3 paragraphs summarizing the key findings, overall risk level, and primary recommendation]
+
+---
+
+## 1. SUBJECT INFORMATION
+
+| Field | Value | Verification Status |
+|-------|-------|---------------------|
+| Primary Contact | [Name] | ✅ / ⚠️ / ❌ |
+| Secondary Contact | [Name] | ✅ / ⚠️ / ❌ |
+| Company | [Company Name] | ✅ / ⚠️ / ❌ |
+| Primary Domain | [Domain] | ✅ / ⚠️ / ❌ |
+| Secondary Domain | [Domain] | ✅ / ⚠️ / ❌ |
+| Email | [Email] | ✅ / ⚠️ / ❌ |
+| Phone | [Phone] | ✅ / ⚠️ / ❌ |
+
+---
+
+## 2. CRITICAL RED FLAGS IDENTIFIED
+
+### 🚨 SEVERITY: CRITICAL
+[List all CRITICAL severity issues - these are deal-breakers]
+
+### ⚠️ SEVERITY: HIGH
+[List all HIGH severity concerns]
+
+### ⚡ SEVERITY: MEDIUM
+[List all MEDIUM severity warnings]
+
+### ℹ️ SEVERITY: LOW
+[List all LOW severity observations]
+
+---
+
+## 3. TECHNICAL INFRASTRUCTURE ANALYSIS
+
+### Domain: [scatechnology.ai]
+
+**Domain Status:** ✅ Active / ⚠️ Issues / ❌ Inactive  
+**SSL Certificate:** ✅ Valid / ⚠️ Self-Signed / ❌ Invalid  
+**Certificate Issuer:** [Issuer Name]  
+**Certificate Expiry:** [Date]  
+**Domain Age:** [X years/months]  
+**Registrar:** [Registrar Name]  
+**Name Servers:** [NS records]
+
+**DNS Configuration:**
+- A Records: [IPs]
+- MX Records: [Mail servers]
+- TXT Records: [SPF, DMARC, etc.]
+
+**Historical Web Presence:**
+- First Archived: [Date]
+- Total Snapshots: [Count]
+- Recent Activity: [Yes/No]
+
+### Domain: [isb.eco]
+
+[Same structure as above]
+
+---
+
+## 4. PROFESSIONAL VERIFICATION
+
+### Gregory Dutton
+
+**Online Presence:** ✅ Strong / ⚠️ Limited / ❌ None  
+**LinkedIn Profile:** ✅ Found / ❌ Not Found  
+**Professional History:** [Details]  
+**Education:** [Details if found]  
+**Connections:** [Number/quality]  
+**Endorsements:** [Count/relevance]  
+**Publications:** [Count/links]  
+**News Mentions:** [Count/links]
+
+**Verification Findings:**
+[Detailed paragraph about what was found/not found]
+
+### Casey Dutton
+
+[Same structure as above]
+
+---
+
+## 5. COMPANY VERIFICATION
+
+### SCA Technology (scatechnology.ai)
+
+**Business Registration:** ✅ Verified / ⚠️ Pending / ❌ Not Found  
+**ABN/Registration Number:** [Number]  
+**Registration Date:** [Date]  
+**Registered Address:** [Address]  
+**Directors:** [Names]  
+**Company Status:** Active / Inactive / Dissolved
+
+**Client Portfolio:** ✅ Extensive / ⚠️ Limited / ❌ None  
+**Client Reviews:** [Rating/count]  
+**Social Media Presence:** [Platforms and follower counts]  
+**Contact Information:** ✅ Multiple verified / ⚠️ Limited / ❌ Suspicious
+
+### Institute of Sustainable Biodiversity (isb.eco)
+
+[Same structure as above]
+
+---
+
+## 6. RISK ASSESSMENT
+
+### Overall Risk Level: [CRITICAL / HIGH / MEDIUM / LOW]
+
+**Justification:**
+[Detailed explanation of why this risk level was assigned]
+
+### Specific Risks Identified:
+
+#### Risk #1: [Risk Name]
+- **Severity:** [CRITICAL/HIGH/MEDIUM/LOW]
+- **Description:** [What the risk is]
+- **Evidence:** [What supports this assessment]
+- **Impact:** [What could happen]
+- **Mitigation:** [How to reduce this risk]
+
+#### Risk #2: [Risk Name]
+[Same structure]
+
+[Continue for all identified risks]
+
+---
+
+## 7. FRAUD INDICATORS ASSESSMENT
+
+| Indicator | Present | Severity | Details |
+|-----------|---------|----------|---------|
+| Requests credentials/passwords | ✅ / ❌ | CRITICAL | [Details] |
+| Requests super admin access | ✅ / ❌ | CRITICAL | [Details] |
+| Urgency/pressure tactics | ✅ / ❌ | HIGH | [Details] |
+| No verifiable history | ✅ / ❌ | HIGH | [Details] |
+| Generic/suspicious domain | ✅ / ❌ | MEDIUM | [Details] |
+| No business registration | ✅ / ❌ | HIGH | [Details] |
+| Recent domain registration | ✅ / ❌ | MEDIUM | [Details] |
+| No SSL or self-signed | ✅ / ❌ | MEDIUM | [Details] |
+| Inconsistent information | ✅ / ❌ | HIGH | [Details] |
+
+**Fraud Score:** [0-10] (10 = highest likelihood of fraud)
+
+---
+
+## 8. COMPARISON TO KNOWN SCAM PATTERNS
+
+[Compare this request to known social engineering attacks, business email compromise patterns, etc.]
+
+---
+
+## 9. MITIGATION STRATEGIES
+
+### IMMEDIATE ACTIONS REQUIRED
+
+1. [Action 1]
+2. [Action 2]
+3. [Action 3]
+
+### ADDITIONAL VERIFICATION STEPS
+
+1. [Verification 1]
+2. [Verification 2]
+3. [Verification 3]
+
+### MONITORING RECOMMENDATIONS
+
+1. [Monitoring 1]
+2. [Monitoring 2]
+3. [Monitoring 3]
+
+---
+
+## 10. METHODOLOGY & TRANSPARENCY
+
+**Verification Methods Used:**
+- [Method 1] - [Result]
+- [Method 2] - [Result]
+- [Method 3] - [Result]
+
+**Data Sources:**
+- Google search results
+- Domain WHOIS databases
+- SSL certificate authorities
+- Web archive data
+- DNS records
+- [Other sources used]
+
+**Limitations:**
+- [Limitation 1]
+- [Limitation 2]
+
+**Assumptions Made:**
+- [Assumption 1]
+- [Assumption 2]
+
+---
+
+## 11. FINAL RECOMMENDATION
+
+**Decision:** [REJECT / PROCEED WITH EXTREME CAUTION / ADDITIONAL VERIFICATION REQUIRED / APPROVE]
+
+**Justification:**
+[Comprehensive explanation of the recommendation]
+
+**Confidence Level:** [0-100]%
+
+**Next Steps:**
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+---
+
+## APPENDIX A: RAW COMMAND OUTPUTS
+
+### Domain Checks
+```
+[Paste ALL curl, nslookup, whois outputs]
+```
+
+### SSL Certificate Details
+```
+[Paste ALL openssl outputs]
+```
+
+### Web Search Results
+```
+[Paste relevant search result snippets]
+```
+
+### DNS Records
+```
+[Paste ALL DNS query outputs]
+```
+
+---
+
+## APPENDIX B: SEARCH RESULTS SUMMARY
+
+| Search Query | Results Found | Key Findings |
+|-------------|---------------|--------------|
+| [Query 1] | Yes/No | [Summary] |
+| [Query 2] | Yes/No | [Summary] |
+| [Query 3] | Yes/No | [Summary] |
+[Continue for all searches performed]
+
+---
+
+## DOCUMENT CONTROL
+
+**Report ID:** VER-{datetime.now().strftime('%Y%m%d-%H%M%S')}  
+**Analyst:** AI Verification System (Claude Sonnet 4.5)  
+**Protocol Version:** Enhanced Multi-Source Validation v2.0  
+**Total Commands Executed:** [Count]  
+**Total Searches Performed:** [Count]  
+**Verification Duration:** [Time]  
+**Confidentiality:** RESTRICTED - Internal Use Only
+
+---
+
+*This is an automated verification report. All findings should be reviewed by qualified security and compliance personnel before making final decisions regarding access provisioning or business relationships.*
+```
+
+# CRITICAL INSTRUCTIONS
+
+1. **Execute EVERY command listed above** - Do not skip anything
+2. **Document EVERYTHING** in the appendix - Include all raw outputs
+3. **Be OBJECTIVE** - Report what you find, good or bad
+4. **Be THOROUGH** - This is a high-risk scenario requiring maximum diligence
+5. **Multiple searches** - Try variations, don't rely on single queries
+6. **Fill EVERY section** - Complete the entire markdown template
+7. **Be SKEPTICAL** - Given the red flags, scrutinize everything
+
+Begin your verification NOW. Execute commands, analyze results, and generate the comprehensive report.
+"""
+    
+    messages = [{
+        "role": "user",
+        "content": verification_task
+    }]
+    
+    iteration = 0
+    max_iterations = 100  # Increased for thorough analysis
+    total_tokens = 0
+    all_commands = []
+    
+    try:
+        while iteration < max_iterations:
+            iteration += 1
+            
+            print(f"\n🔄 Iteration {iteration}...")
+            
+            # Send iteration update
+            await broadcast({
+                'type': 'iteration',
+                'iteration': iteration,
+                'stop_reason': 'processing'
+            })
+            
+            # Make API call with bash_20250124 tool
+            response = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=8000,
+                temperature=0.3,
+                tools=[{"type": "bash_20250124", "name": "bash"}],
+                messages=messages
+            )
+            
+            total_tokens += response.usage.input_tokens + response.usage.output_tokens
+            
+            print(f"   Tokens: {response.usage.input_tokens} in, {response.usage.output_tokens} out")
+            print(f"   Stop reason: {response.stop_reason}")
+            
+            # Send token update
+            await broadcast({
+                'type': 'tokens',
+                'tokens': total_tokens
+            })
+            
+            # Process response
+            if response.stop_reason == 'end_turn':
+                # Verification complete
+                final_text = ""
+                for block in response.content:
+                    if hasattr(block, 'text'):
+                        final_text += block.text
+                
+                await broadcast({
+                    'type': 'iteration',
+                    'iteration': iteration,
+                    'stop_reason': 'end_turn'
+                })
+                
+                # Extract confidence score from markdown
+                confidence_match = re.search(r'\*\*Confidence Score:\*\*\s+(\d+)', final_text)
+                confidence = int(confidence_match.group(1)) if confidence_match else 50
+                
+                # Save markdown report
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                report_filename = f"VERIFICATION_REPORT_{timestamp}.md"
+                report_path = Path(__file__).parent / report_filename
+                
+                with open(report_path, 'w', encoding='utf-8') as f:
+                    f.write(final_text)
+                
+                print(f"\n✅ Report saved: {report_filename}")
+                
+                # Broadcast report saved
+                await broadcast({
+                    'type': 'report_saved',
+                    'filename': report_filename,
+                    'path': str(report_path)
+                })
+                
+                # Send final results
+                await broadcast({
+                    'type': 'results',
+                    'text': final_text,
+                    'confidence_score': confidence,
+                    'total_iterations': iteration,
+                    'total_commands': len(all_commands),
+                    'total_tokens': total_tokens
+                })
+                
+                print("\n✅ Verification complete!")
+                break
+            
+            elif response.stop_reason == 'tool_use':
+                # Process tool calls
+                tool_results = []
+                
+                for block in response.content:
+                    if hasattr(block, 'text'):
+                        # Send reasoning
+                        await broadcast({
+                            'type': 'reasoning',
+                            'text': block.text,
+                            'iteration': iteration
+                        })
+                    
+                    elif block.type == 'tool_use' and block.name == 'bash':
+                        # Execute bash command
+                        command = block.input.get('command', '')
+                        
+                        print(f"   💻 Executing: {command[:80]}...")
+                        
+                        all_commands.append(command)
+                        
+                        # Send command update
+                        await broadcast({
+                            'type': 'command_count',
+                            'count': len(all_commands)
+                        })
+                        
+                        try:
+                            # Execute command
+                            proc = await asyncio.create_subprocess_shell(
+                                command,
+                                stdout=asyncio.subprocess.PIPE,
+                                stderr=asyncio.subprocess.PIPE
+                            )
+                            
+                            stdout, stderr = await proc.communicate()
+                            output = stdout.decode('utf-8', errors='ignore')
+                            
+                            if stderr:
+                                error_text = stderr.decode('utf-8', errors='ignore')
+                                output += f"\n[STDERR]: {error_text}"
+                            
+                            # Limit output size
+                            if len(output) > 10000:
+                                output = output[:10000] + "\n... (output truncated)"
+                            
+                            print(f"   ✅ Output: {len(output)} bytes")
+                            
+                        except Exception as e:
+                            output = f"Error executing command: {str(e)}"
+                            print(f"   ❌ Error: {e}")
+                        
+                        # Send command result
+                        await broadcast({
+                            'type': 'command',
+                            'command': command,
+                            'output': output
+                        })
+                        
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": output
+                        })
+                
+                # Continue conversation
+                messages.append({"role": "assistant", "content": response.content})
+                messages.append({"role": "user", "content": tool_results})
+            
+            else:
+                # Unexpected stop
+                await broadcast({
+                    'type': 'error',
+                    'message': f'Unexpected stop reason: {response.stop_reason}'
+                })
+                break
+            
+            # Small delay between iterations
+            await asyncio.sleep(0.5)
+        
+        if iteration >= max_iterations:
+            await broadcast({
+                'type': 'error',
+                'message': f'Max iterations ({max_iterations}) reached - report may be incomplete'
+            })
+    
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        await broadcast({
+            'type': 'error',
+            'message': str(e)
+        })
+
+
 async def run_verification_with_updates(subject_data):
     """
     Run ENHANCED verification with comprehensive risk assessment and markdown reporting
@@ -722,6 +1374,67 @@ CRITICAL: Fill in EVERY section. Include ALL raw outputs in appendix. Be thoroug
         })
 
 
+async def handle_chat_message(message_text, conversation_history):
+    """Handle interactive chat message from user during investigation"""
+    
+    print(f"\n💬 Received chat message: {message_text[:80]}...")
+    
+    # Get API key
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        await broadcast({
+            'type': 'error',
+            'message': 'No API key found'
+        })
+        return
+    
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key)
+        
+        # Build conversation context
+        messages = []
+        for msg in conversation_history:
+            messages.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
+        
+        # Add latest user message
+        messages.append({
+            "role": "user",
+            "content": message_text
+        })
+        
+        # Get AI response
+        response = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=2000,
+            temperature=0.7,
+            messages=messages
+        )
+        
+        ai_response = ""
+        for block in response.content:
+            if hasattr(block, 'text'):
+                ai_response += block.text
+        
+        # Send response back
+        await broadcast({
+            'type': 'chat_response',
+            'message': ai_response
+        })
+        
+        print(f"✅ Sent AI response: {ai_response[:80]}...")
+        
+    except Exception as e:
+        print(f"❌ Chat error: {e}")
+        await broadcast({
+            'type': 'error',
+            'message': f'Chat error: {str(e)}'
+        })
+
+
 async def handle_websocket(websocket, path):
     """Handle WebSocket connection"""
     
@@ -736,16 +1449,29 @@ async def handle_websocket(websocket, path):
             data = json.loads(message)
             
             if data.get('action') == 'start_verification':
-                subject = data.get('subject', {
-                    'name': 'Gregory Dutton',
-                    'company': 'Institute of Sustainable Biodiversity',
-                    'email': 'gregory.dutton@isb.eco',
-                    'domain': 'isb.eco',
-                    'phone': '+61 461 357 358'
-                })
+                # Get free-form subject text
+                subject_text = data.get('subject_text', '')
                 
-                # Run verification
-                await run_verification_with_updates(subject)
+                if not subject_text:
+                    # Fallback to old format
+                    subject = data.get('subject', {})
+                    subject_text = f"""
+Name: {subject.get('name', 'Unknown')}
+Company: {subject.get('company', 'Unknown')}
+Email: {subject.get('email', 'Unknown')}
+Domain: {subject.get('domain', 'Unknown')}
+Phone: {subject.get('phone', 'N/A')}
+"""
+                
+                # Run verification with free-form text
+                await run_verification_with_freeform_text(subject_text)
+            
+            elif data.get('action') == 'chat_message':
+                # Handle interactive chat during investigation
+                message_text = data.get('message', '')
+                conversation_history = data.get('conversation_history', [])
+                
+                await handle_chat_message(message_text, conversation_history)
     
     except websockets.exceptions.ConnectionClosed:
         print(f"❌ Client disconnected")
@@ -779,9 +1505,9 @@ def run_http_server():
     # Change to TESTS directory
     os.chdir(Path(__file__).parent)
     
-    server = HTTPServer(('localhost', 8080), CORSHTTPRequestHandler)
-    print(f"✅ HTTP server started on http://localhost:8080")
-    print(f"   Open: http://localhost:8080/verification_dashboard.html")
+    server = HTTPServer(('localhost', 9000), CORSHTTPRequestHandler)
+    print(f"\n✅ HTTP server started on http://localhost:9000")
+    print(f"   Open: http://localhost:9000/verification_dashboard.html\n")
     server.serve_forever()
 
 
@@ -805,7 +1531,7 @@ async def main():
     print("📊 DASHBOARD ACCESS")
     print("="*80)
     print("")
-    print(f"   🌐 Open in browser: http://localhost:8080/verification_dashboard.html")
+    print(f"   🌐 Open in browser: http://localhost:9000/verification_dashboard.html")
     print("")
     print("="*80)
     print("📝 MONITORING")

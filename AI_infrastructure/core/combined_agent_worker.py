@@ -29,13 +29,41 @@ from typing import List, Dict, Any, Optional, Generator
 from queue import Queue
 import threading
 
+# Windows console emoji fix
+def safe_print(msg: str):
+    """Print with emoji support on Windows console"""
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        # Fallback: replace emojis with text equivalents
+        replacements = {
+            '✅': '[OK]',
+            '⚠️': '[WARN]',
+            '❌': '[ERROR]',
+            'ℹ️': '[INFO]',
+            '🔴': '[RED]',
+            '🟡': '[YELLOW]',
+            '🟢': '[GREEN]',
+            '📦': '[PACKAGE]',
+            '🔧': '[TOOL]',
+            '📝': '[NOTE]',
+            '🚀': '[ROCKET]',
+            '💡': '[IDEA]',
+            '🔍': '[SEARCH]',
+            '⏰': '[TIME]',
+            '📊': '[CHART]',
+        }
+        for emoji, text in replacements.items():
+            msg = msg.replace(emoji, text)
+        print(msg.encode('ascii', 'ignore').decode('ascii'))
+
 # Import colored logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from utils.logger_config import Colors
 
 def cprint(message: str, color: str = Colors.RESET):
     """Print with color support"""
-    print(f"{color}{message}{Colors.RESET}")
+    safe_print(f"{color}{message}{Colors.RESET}")
 
 
 # ============================================================
@@ -813,7 +841,7 @@ def ensure_thinking_on_final_assistant(messages: List[Dict], thinking_enabled: b
     
     if last_assistant_idx is None:
         # No assistant messages in history
-        print(f"[Combined Worker] ℹ️  No assistant messages in history (thinking requirement N/A)")
+        safe_print(f"[Combined Worker] ℹ️  No assistant messages in history (thinking requirement N/A)")
         return messages
     
     last_assistant = messages[last_assistant_idx]
@@ -830,11 +858,11 @@ def ensure_thinking_on_final_assistant(messages: List[Dict], thinking_enabled: b
         has_thinking_first = first_block_type in ('thinking', 'redacted_thinking')
     
     if has_thinking_first:
-        print(f"[Combined Worker] ✅ Last assistant message (#{last_assistant_idx}) starts with thinking block")
+        safe_print(f"[Combined Worker] ✅ Last assistant message (#{last_assistant_idx}) starts with thinking block")
     else:
         # Last assistant message doesn't have thinking blocks - this is OK
         # The API will generate thinking blocks when `thinking` param is present
-        print(f"[Combined Worker] ℹ️  Last assistant message (#{last_assistant_idx}) has no thinking blocks (API will generate them)")
+        safe_print(f"[Combined Worker] ℹ️  Last assistant message (#{last_assistant_idx}) has no thinking blocks (API will generate them)")
         print(f"[Combined Worker]   Content blocks: {[b.get('type') for b in content if isinstance(b, dict)]}")
     
     # Always preserve all messages
@@ -1431,10 +1459,10 @@ sys.path.insert(0, calculator_module_path)
 try:
     from tool_use_agent import ToolUseAgent
     TOOL_USE_AGENT_AVAILABLE = True
-    print("[Combined Worker] ToolUseAgent imported - Quote Calculator tools available")
+    safe_print("[Combined Worker] ToolUseAgent imported - Quote Calculator tools available")
 except ImportError:
     TOOL_USE_AGENT_AVAILABLE = False
-    print("[Combined Worker] Quote Calculator module not found (optional)")
+    safe_print("[Combined Worker] Quote Calculator module not found (optional)")
     
     # Fallback placeholder
     class ToolUseAgent:
@@ -2595,12 +2623,12 @@ def execute_streaming_request(
         # STEP 4: Always ensure last message is user when thinking blocks present
         if assistant_messages_with_thinking:
             if messages and messages[-1].get('role') != 'user':
-                print(f"{log_prefix} ⚠️  WARNING: Last message is assistant with thinking blocks")
-                print(f"{log_prefix} ℹ️  This will cause 400 error: 'thinking blocks cannot be modified'")
-                print(f"{log_prefix} 🔧 FIX: Removing last assistant message (will regenerate)")
+                safe_print(f"{log_prefix} ⚠️  WARNING: Last message is assistant with thinking blocks")
+                safe_print(f"{log_prefix} ℹ️  This will cause 400 error: 'thinking blocks cannot be modified'")
+                safe_print(f"{log_prefix} 🔧 FIX: Removing last assistant message (will regenerate)")
                 removed_msg = messages.pop()
                 removed_blocks = len(removed_msg.get('content', [])) if isinstance(removed_msg.get('content'), list) else 1
-                print(f"{log_prefix} ✅ Removed last assistant message ({removed_blocks} blocks)")
+                safe_print(f"{log_prefix} ✅ Removed last assistant message ({removed_blocks} blocks)")
         
         # DEBUG: Log message structure being sent to API
         print(f"{log_prefix} 📋 FINAL MESSAGE STRUCTURE BEING SENT:")
@@ -2687,7 +2715,7 @@ def execute_streaming_request(
                         # CRITICAL: Skip server_tool_use blocks (web_search, web_fetch)
                         # These are executed by Anthropic's API, not by our registry
                         if block.type == 'server_tool_use':
-                            print(f"{log_prefix} ℹ️  Skipping server tool: {block.name} (executed by Anthropic API)")
+                            safe_print(f"{log_prefix} ℹ️  Skipping server tool: {block.name} (executed by Anthropic API)")
                             continue
                         
                         if block.type == 'tool_use':
