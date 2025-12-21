@@ -16,6 +16,7 @@ CREATED: December 19, 2025
 import os
 import sys
 import asyncio
+import requests
 from pathlib import Path
 from datetime import datetime
 import json
@@ -23,6 +24,64 @@ import json
 # Get AI_agents root
 ai_agents_root = Path(__file__).parent.parent.parent
 verification_path = ai_agents_root / 'UI' / 'modules_external' / 'professional-verification' / 'TESTS'
+
+# GitHub API configuration
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_API_BASE = 'https://api.github.com'
+
+
+def search_github_users(name):
+    """
+    Search GitHub users API by name
+    Returns user data if found, None otherwise
+    """
+    if not GITHUB_TOKEN:
+        return {"error": "GitHub token not configured", "found": False}
+    
+    try:
+        url = f"{GITHUB_API_BASE}/search/users"
+        headers = {
+            'Authorization': f'token {GITHUB_TOKEN}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        params = {'q': name, 'per_page': 5}
+        
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('total_count', 0) > 0:
+                # Get detailed info for top result
+                user = data['items'][0]
+                user_url = user['url']
+                
+                user_response = requests.get(user_url, headers=headers, timeout=10)
+                if user_response.status_code == 200:
+                    user_data = user_response.json()
+                    return {
+                        "found": True,
+                        "username": user_data.get('login'),
+                        "name": user_data.get('name'),
+                        "url": user_data.get('html_url'),
+                        "bio": user_data.get('bio'),
+                        "company": user_data.get('company'),
+                        "location": user_data.get('location'),
+                        "email": user_data.get('email'),
+                        "blog": user_data.get('blog'),
+                        "twitter": user_data.get('twitter_username'),
+                        "public_repos": user_data.get('public_repos'),
+                        "followers": user_data.get('followers'),
+                        "following": user_data.get('following'),
+                        "created_at": user_data.get('created_at'),
+                        "total_matches": data.get('total_count')
+                    }
+            return {"found": False, "message": "No GitHub profiles found"}
+        else:
+            return {"error": f"GitHub API returned {response.status_code}", "found": False}
+    
+    except Exception as e:
+        return {"error": str(e), "found": False}
+
 
 def register_verification_routes(app, socketio):
     """
@@ -83,12 +142,12 @@ def register_verification_routes(app, socketio):
         })
     
     @socketio.on('disconnect', namespace='/ws/verification')
-    def handle_verification_disconnect():
+    def handle_verification_disconnect(reason=None):
         """Handle client disconnection"""
         from flask import request
         
         sid = request.sid
-        print(f"❌ [VERIFICATION] Client disconnected: {sid}")
+        print(f"❌ [VERIFICATION] Client disconnected: {sid} (reason: {reason})")
         
         # Clean up any active verification for this session
         if sid in active_verifications:
@@ -522,7 +581,23 @@ curl -s "http://archive.org/wayback/available?url=scatechnology.ai" 2>&1
 curl -s "http://archive.org/wayback/available?url=isb.eco" 2>&1
 ```
 
-### 3. Search Engine Reputation Checks
+### 3. GitHub Profile Search (OFFICIAL API - RELIABLE)
+```bash
+# Search GitHub for developer profiles (uses official GitHub API with authentication)
+# Gregory Dutton search
+python -c "import requests,os,json;token=os.getenv('GITHUB_TOKEN');h={{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}} if token else {{}};r=requests.get('https://api.github.com/search/users',headers=h,params={{'q':'Gregory Dutton','per_page':5}},timeout=10);d=r.json();print('Found:',d.get('total_count',0),'profiles');items=d.get('items',[]);[print(i['login'],i['html_url']) for i in items[:3]]"
+
+# Casey Dutton search
+python -c "import requests,os,json;token=os.getenv('GITHUB_TOKEN');h={{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}} if token else {{}};r=requests.get('https://api.github.com/search/users',headers=h,params={{'q':'Casey Dutton','per_page':5}},timeout=10);d=r.json();print('Found:',d.get('total_count',0),'profiles');items=d.get('items',[]);[print(i['login'],i['html_url']) for i in items[:3]]"
+
+# Search by company name
+python -c "import requests,os;token=os.getenv('GITHUB_TOKEN');h={{'Authorization':'token '+token}} if token else {{}};r=requests.get('https://api.github.com/search/users',headers=h,params={{'q':'scatechnology','per_page':5}},timeout=10);d=r.json();print('Found:',d.get('total_count',0),'users with scatechnology');[print(i['login'],i['html_url']) for i in d.get('items',[])]"
+
+# If profiles found, get detailed info (replace USERNAME with actual username from above)
+# python -c "import requests,os;token=os.getenv('GITHUB_TOKEN');h={{'Authorization':'token '+token}} if token else {{}};r=requests.get('https://api.github.com/users/USERNAME',headers=h,timeout=10);d=r.json();print('Name:',d.get('name'));print('Company:',d.get('company'));print('Location:',d.get('location'));print('Email:',d.get('email'));print('Bio:',d.get('bio'));print('Created:',d.get('created_at'));print('Repos:',d.get('public_repos'));print('Followers:',d.get('followers'))"
+```
+
+### 4. Search Engine Reputation Checks
 ```bash
 # Note: Google blocks automated searches, so use alternative methods
 # Search DuckDuckGo for mentions (less restrictive)

@@ -16,12 +16,15 @@
  * - TipTap (CDN)
  * - Handsontable (CDN)
  * - FontAwesome icons
+ * - DocumentService (shared utility)
  * 
  * EXPORTS:
  * - InternalDocsManager class
  * 
- * LAST MODIFIED: 2025-11-14 - Initial modular implementation
+ * LAST MODIFIED: December 21, 2025 - Integrated with DocumentService
  */
+
+import { documentService } from '../shared/document-service.js';
 
 class InternalDocsManager {
     constructor(apiBaseUrl = window.API_BASE_URL || window.location.origin) {
@@ -1028,22 +1031,15 @@ class InternalDocsManager {
         }
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-ID': String(this.currentUser.user_id)
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    title: title,
-                    content: '',
-                    content_json: docType === 'richtext' ? '{"type":"doc","content":[]}' : '[]',
-                    doc_type: docType,
-                    format: docType === 'richtext' ? 'markdown' : 'json',
-                    description: description,
-                    tags: tags
-                })
+            const data = await documentService.createDocument({
+                session_id: sessionId,
+                title: title,
+                content: '',
+                content_json: docType === 'richtext' ? '{"type":"doc","content":[]}' : '[]',
+                doc_type: docType,
+                format: docType === 'richtext' ? 'markdown' : 'json',
+                description: description,
+                tags: tags
             });
 
             const data = await response.json();
@@ -1943,16 +1939,7 @@ class InternalDocsManager {
                 content: content
             };
 
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-ID': String(this.currentUser.user_id)
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
+            const data = await documentService.updateDocument(docId, payload);
 
             if (data.success) {
                 console.log('✅ Document saved:', docId);
@@ -2175,15 +2162,7 @@ class InternalDocsManager {
      */
     async loadShareUrl(docId) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-ID': String(this.currentUser.user_id)
-                }
-            });
-
-            const data = await response.json();
+            const data = await documentService.fetchDocument(docId);
 
             if (data.success) {
                 const urlElement = document.getElementById(`doc-share-url-${docId}`);
@@ -2340,13 +2319,7 @@ class InternalDocsManager {
     async copyDocumentUrl(docId) {
         try {
             // Fetch document to get full details
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
-                headers: {
-                    'X-User-ID': String(this.currentUser.user_id)
-                }
-            });
-
-            const data = await response.json();
+            const data = await documentService.fetchDocument(docId);
 
             if (!data.success) {
                 throw new Error('Failed to fetch document');
@@ -2442,18 +2415,9 @@ Note: Use the document slug "${slug}" to reference this document in Synergy sess
         if (!newTitle.trim()) return;
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-ID': String(this.currentUser.user_id)
-                },
-                body: JSON.stringify({
-                    title: newTitle
-                })
+            const data = await documentService.updateDocument(docId, {
+                title: newTitle
             });
-
-            const data = await response.json();
 
             if (data.success) {
                 console.log('✅ Title updated:', newTitle);
@@ -2477,18 +2441,9 @@ Note: Use the document slug "${slug}" to reference this document in Synergy sess
      */
     async updateDocumentDescription(docId, newDescription) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-ID': String(this.currentUser.user_id)
-                },
-                body: JSON.stringify({
-                    description: newDescription
-                })
+            const data = await documentService.updateDocument(docId, {
+                description: newDescription
             });
-
-            const data = await response.json();
 
             if (data.success) {
                 console.log('✅ Description updated');

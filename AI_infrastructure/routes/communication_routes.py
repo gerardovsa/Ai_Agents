@@ -247,13 +247,12 @@ def list_emails():
         try:
             print(f"[Communication Hub] 📧 Fetching Gmail messages for user {user_id}...")
             
-            # 🔒 CRITICAL FIX: Retrieve credentials ONCE before parallel operations
-            # This prevents connection pool exhaustion from 50+ parallel credential retrievals
-            gmail_credentials = google_creds  # Already retrieved above with circuit breaker
-            
+            # ✅ FIX: Pass _user_id and _injected_credentials flag (NOT credentials dict)
+            # The Gmail service will fetch credentials from database using UserAuthManager
             gmail_result = gmail_list_messages(
                 max_results=limit,
-                _credentials=gmail_credentials
+                _user_id=user_id,
+                _injected_credentials=True
             )
             
             # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
@@ -266,14 +265,15 @@ def list_emails():
                 from concurrent.futures import ThreadPoolExecutor, as_completed
                 import time
                 
-                # 🔒 CRITICAL: Pass credentials to avoid repeated DB queries in parallel workers
-                def fetch_single_message(msg_summary, creds):
-                    """Fetch a single message metadata with pre-fetched credentials"""
+                # ✅ FIX: Pass user_id to each worker (they'll use database credentials)
+                def fetch_single_message(msg_summary, uid):
+                    """Fetch a single message metadata using database credentials"""
                     try:
                         msg = gmail_get_message(
                             message_id=msg_summary['id'],
                             format='metadata',
-                            _credentials=creds  # Use pre-fetched credentials, not _injected_credentials
+                            _user_id=uid,
+                            _injected_credentials=True
                         )
                         
                         # Parse message headers
@@ -297,8 +297,8 @@ def list_emails():
                 # Execute all fetches in parallel (max 10 workers to respect connection pool limits)
                 start_time = time.time()
                 with ThreadPoolExecutor(max_workers=10) as executor:
-                    # Submit all tasks at once with credentials
-                    future_to_msg = {executor.submit(fetch_single_message, msg, gmail_credentials): msg for msg in gmail_result.get('messages', [])}
+                    # Submit all tasks at once with user_id
+                    future_to_msg = {executor.submit(fetch_single_message, msg, user_id): msg for msg in gmail_result.get('messages', [])}
                     
                     # Collect results as they complete
                     for future in as_completed(future_to_msg):
@@ -1104,6 +1104,97 @@ def debug_credentials():
         'google_present': bool(google_creds),
         'microsoft_present': bool(microsoft_creds)
     })
+
+
+@communication_bp.route('/email-thread-mappings', methods=['GET'])
+@require_auth
+def get_email_thread_mappings():
+    """
+    Load all email-to-thread mappings for authenticated user.
+    
+    Used on page refresh to restore emailThreads state.
+    Queries sessions.threads table (email_thread_id column already exists).
+    
+    ✅ SAFE: Read-only query with proper connection management
+    
+    Returns:
+        {
+            "success": true,
+            "mappings": {
+                "gmail_123": "thread-abc-def",
+                "outlook_456": "thread-xyz-789"
+            },
+            "count": 2
+        }
+    """
+    user_data = getattr(request, 'user', None)
+    if not user_data:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    user_id = user_data.get('user_id')
+    
+    conn = None
+    cursor = None
+    
+    try:
+        from shared.database_utils import get_database_connection
+        
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Query sessions.threads table for email-to-thread mappings
+            # The table already has email_thread_id, email_subject, email_participants columns
+            cursor.execute("""
+                SELECT email_thread_id, thread_slug, location
+                FROM sessions.threads
+                WHERE user_id = %s 
+                  AND email_thread_id IS NOT NULL
+                ORDER BY updated_at DESC
+            """, (user_id,))
+            
+            rows = cursor.fetchall()
+            
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+        
+        # Build mapping dictionary
+        mappings = {}
+        for row in rows:
+            email_id, thread_slug, location = row
+            if email_id and thread_slug:
+                mappings[email_id] = thread_slug
+        
+        logger.info(f"[Communication Hub] Loaded {len(mappings)} email-thread mappings from sessions.threads for user {user_id}")
+        
+        return jsonify({
+            'success': True,
+            'mappings': mappings,
+            'count': len(mappings)
+        })
+        
+    except Exception as e:
+        logger.error(f"[Communication Hub] Failed to load email-thread mappings: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 # Log module initialization

@@ -51,17 +51,27 @@ ThreadManager.openInternalDocsLinkModal = async function (threadId) {
     // Fetch available internal docs
     let internalDocs = [];
     try {
-        const response = await fetch('/api/internal-docs', {
+        const response = await fetch('/api/synergy/internal-docs/list', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
 
         if (response.ok) {
             const data = await response.json();
-            internalDocs = data.docs || [];
+            // Handle different response formats
+            if (Array.isArray(data)) {
+                internalDocs = data;
+            } else if (data && data.success && Array.isArray(data.docs)) {
+                internalDocs = data.docs;
+            } else if (data && Array.isArray(data.docs)) {
+                internalDocs = data.docs;
+            }
             window._internalDocs = internalDocs; // Store for filtering
+            console.log('[Internal Docs Modal] Fetched:', internalDocs.length, 'docs');
+        } else {
+            console.error('[Internal Docs Modal] API error:', response.status, response.statusText);
         }
     } catch (error) {
-        console.error('Failed to fetch internal docs:', error);
+        console.error('[Internal Docs Modal] Failed to fetch internal docs:', error);
     }
 
     // Generate modal HTML
@@ -69,7 +79,7 @@ ThreadManager.openInternalDocsLinkModal = async function (threadId) {
         <div class="modal-overlay" onclick="ThreadManager.closeInternalDocsLinkModal(event)">
             <div class="internal-docs-link-modal" onclick="event.stopPropagation()">
                 <div class="modal-header">
-                    <h3><i class="fas fa-file-alt"></i> Link Internal Doc/Sheet</h3>
+                    <h3><i class="fas fa-file-alt"></i> Link Synergy Doc/Sheet</h3>
                     <button class="modal-close" onclick="ThreadManager.closeInternalDocsLinkModal()">
                         <i class="fas fa-times"></i>
                     </button>
@@ -167,9 +177,19 @@ ThreadManager.openInternalDocsLinkModal = async function (threadId) {
     const existingModal = document.querySelector('.modal-overlay');
     if (existingModal) {
         existingModal.remove();
+        console.log('[Internal Docs Modal] Removed existing modal');
     }
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+    console.log('[Internal Docs Modal] ✅ Modal HTML inserted into DOM');
+
+    // Verify modal was added
+    const addedModal = document.querySelector('.internal-docs-link-modal');
+    if (addedModal) {
+        console.log('[Internal Docs Modal] ✅ Modal element found in DOM');
+    } else {
+        console.error('[Internal Docs Modal] ❌ Modal element NOT found after insertion!');
+    }
 };
 
 // Persistence helper: ensure main modal function stays attached to ThreadManager

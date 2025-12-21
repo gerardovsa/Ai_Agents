@@ -690,15 +690,49 @@ class ModuleLoaderV4 {
     async onSidebarButtonClick(moduleId) {
         const module = this.modules.get(moduleId);
 
-        // Load module if not loaded
-        if (!this.loadedModules.has(moduleId)) {
-            await this.loadModule(moduleId, 'dashboard');
+        // CRITICAL FIX DEC 21: Show loading UI immediately before module loads
+        const tabId = module.main_tab_id || module.capabilities?.dashboard?.tab_id || moduleId;
+        const container = document.getElementById(`tab-${tabId}`);
+
+        if (container && !this.loadedModules.has(moduleId)) {
+            // Show immediate loading indicator
+            container.innerHTML = `
+                <div style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100%;
+                    gap: 20px;
+                    color: var(--text-secondary);
+                ">
+                    <div style="
+                        width: 64px;
+                        height: 64px;
+                        border: 4px solid var(--border-color);
+                        border-top-color: var(--primary-color);
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    "></div>
+                    <div style="font-size: 16px; font-weight: 500;">
+                        Loading ${module.name || moduleId}...
+                    </div>
+                    <div style="font-size: 14px; opacity: 0.7;">
+                        Initializing module and fetching data
+                    </div>
+                </div>
+            `;
+            console.log(`[ModuleLoaderV4] ⏳ Immediate loading UI shown for ${moduleId}`);
         }
 
-        // Switch to dashboard tab
-        const tabId = module.main_tab_id || module.capabilities?.dashboard?.tab_id || moduleId;
+        // Switch to dashboard tab immediately (so user sees loading UI)
         if (typeof switchTab === 'function') {
             switchTab(tabId);
+        }
+
+        // Load module if not loaded (this may take time)
+        if (!this.loadedModules.has(moduleId)) {
+            await this.loadModule(moduleId, 'dashboard');
         }
 
         // Call dashboard lifecycle hook if modern

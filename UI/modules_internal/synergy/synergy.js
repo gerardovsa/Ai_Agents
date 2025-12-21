@@ -284,8 +284,8 @@ window.SynergyModule = window.SynergyModule || {
     // ==================== EVENT HANDLERS ====================
 
     handleThreadLinked(data) {
-        const { thread_id, synergy_card_id, synergy_card_title } = data;
-        this.state.linkedThreads.set(thread_id, { synergy_card_id, synergy_card_title });
+        const { thread_id, synergy_card_id, synergy_card_name } = data;
+        this.state.linkedThreads.set(thread_id, { synergy_card_id, synergy_card_name });
         this.log.info(`Thread ${thread_id} linked to Synergy card ${synergy_card_id}`);
 
         // Emit event for UI update
@@ -369,7 +369,7 @@ window.SynergyModule = window.SynergyModule || {
                 this.handleThreadLinked({
                     thread_id: threadId,
                     synergy_card_id: sessionId,
-                    synergy_card_title: response.session_title
+                    synergy_card_name: response.session_title
                 });
             }
 

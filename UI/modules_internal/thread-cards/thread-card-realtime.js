@@ -427,7 +427,7 @@ window.ThreadCardRealtime = {
             token_count: dbThread.token_count || 0,
             tags: dbThread.tags || [],
             synergy_card_id: dbThread.synergy_card_id,
-            synergy_card_title: dbThread.synergy_card_title,
+            synergy_card_name: dbThread.synergy_card_name,
             synergy_card_desc: dbThread.synergy_card_desc,
             synergy_card_users: dbThread.synergy_card_users,
             synergy_card_updated: dbThread.synergy_card_updated,

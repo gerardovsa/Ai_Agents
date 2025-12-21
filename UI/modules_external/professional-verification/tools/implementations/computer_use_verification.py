@@ -649,6 +649,185 @@ Return format:
         }
 
 
+def verify_facebook_profile(
+    full_name: str,
+    location: Optional[str] = None,
+    employer: Optional[str] = None,
+    _user_id: Optional[str] = None,
+    _injected_credentials: Optional[Dict] = None
+) -> Dict[str, Any]:
+    """
+    Verify Facebook profile using Computer Use for authenticity analysis.
+    
+    Args:
+        full_name: Person's full name to search
+        location: Location for disambiguation
+        employer: Current employer for filtering
+        _user_id: User ID (injected)
+        _injected_credentials: Must contain 'facebook_verifier_account' credentials
+        
+    Returns:
+        dict: Profile data with authenticity score, red flags, activity analysis
+    """
+    logger.info(f"[FACEBOOK_VERIFY] Searching for: {full_name}")
+    
+    # Check for Facebook credentials
+    if not _injected_credentials or 'facebook_verifier_account' not in _injected_credentials:
+        return {
+            'success': False,
+            'error': 'Facebook verifier account credentials not configured. See LINKEDIN_FACEBOOK_SETUP.md'
+        }
+    
+    fb_creds = _injected_credentials['facebook_verifier_account']
+    fb_user = fb_creds.get('username')
+    fb_pass = fb_creds.get('password')
+    
+    if not fb_user or not fb_pass:
+        return {
+            'success': False,
+            'error': 'Facebook credentials incomplete (missing username or password)'
+        }
+    
+    # Build search query
+    search_query = full_name
+    if location:
+        search_query += f" {location}"
+    if employer:
+        search_query += f" {employer}"
+    
+    # Create task for Claude
+    task = f"""
+Your task is to search for a Facebook profile and analyze its authenticity.
+
+SEARCH CRITERIA:
+- Name: {full_name}
+- Location: {location or 'Not specified'}
+- Employer: {employer or 'Not specified'}
+
+STEPS:
+1. Navigate to https://www.facebook.com/login
+2. Log in using these credentials:
+   - Email: {fb_user}
+   - Password: {fb_pass}
+3. After login, use the search bar to search for: "{search_query}"
+4. Filter to "People" tab if available
+5. Click on the most relevant profile (match name, location, employer)
+6. Analyze the profile for authenticity indicators:
+   
+   RED FLAGS (fake/suspicious):
+   - Profile created very recently (check "Joined" date)
+   - Few or no friends (< 20)
+   - No profile photo or stock photo
+   - No posts or only promotional content
+   - Friends list hidden or suspicious
+   - No interaction (no likes, comments, shares)
+   - Bio with suspicious links or generic text
+   
+   GREEN FLAGS (authentic):
+   - Profile created 2+ years ago
+   - 100+ friends with mutual connections
+   - Regular posting activity (personal content)
+   - Tagged in photos by others
+   - Comments/likes from real people
+   - Work/education history matches employer
+   - Location matches search criteria
+
+7. Extract the following:
+   - Profile URL
+   - Join date (how old is account)
+   - Friend count (and privacy setting)
+   - Recent posts (last 5 visible posts)
+   - Work/education info visible
+   - Activity level (posts per month estimate)
+
+8. Take screenshot as evidence
+
+Return data in JSON format:
+{{
+    "profile_found": true/false,
+    "profile_url": "URL",
+    "account_age_years": 5,
+    "friends_count": 234,
+    "friends_visible": true/false,
+    "has_profile_photo": true/false,
+    "work_listed": true/false,
+    "education_listed": true/false,
+    "recent_posts_count": 3,
+    "posts_per_month_estimate": 2,
+    "tagged_photos_count": 15,
+    "red_flags": ["flag1", "flag2"],
+    "green_flags": ["flag1", "flag2"],
+    "authenticity_score": 0.75
+}}
+
+IMPORTANT:
+- If 2FA required, report it and stop
+- If profile is private, note what's visible publicly
+- Don't send friend requests or messages
+- Rate limit: max 10 profiles per session
+"""
+    
+    try:
+        session = ComputerUseSession(task, max_iterations=30)
+        result = asyncio.run(session.run())
+        
+        if not result['success']:
+            return result
+        
+        # Parse response
+        import json
+        try:
+            text = result['result']
+            json_start = text.find('{')
+            json_end = text.rfind('}') + 1
+            
+            if json_start >= 0 and json_end > json_start:
+                json_str = text[json_start:json_end]
+                profile_data = json.loads(json_str)
+                
+                return {
+                    'success': True,
+                    'profile_found': profile_data.get('profile_found', False),
+                    'profile_url': profile_data.get('profile_url'),
+                    'account_age_years': profile_data.get('account_age_years', 0),
+                    'friends_count': profile_data.get('friends_count', 0),
+                    'friends_visible': profile_data.get('friends_visible', False),
+                    'has_profile_photo': profile_data.get('has_profile_photo', False),
+                    'work_listed': profile_data.get('work_listed', False),
+                    'education_listed': profile_data.get('education_listed', False),
+                    'recent_posts_count': profile_data.get('recent_posts_count', 0),
+                    'posts_per_month': profile_data.get('posts_per_month_estimate', 0),
+                    'tagged_photos': profile_data.get('tagged_photos_count', 0),
+                    'red_flags': profile_data.get('red_flags', []),
+                    'green_flags': profile_data.get('green_flags', []),
+                    'authenticity_score': profile_data.get('authenticity_score', 0.0),
+                    'risk_level': 'high' if profile_data.get('authenticity_score', 0) < 0.4 else ('medium' if profile_data.get('authenticity_score', 0) < 0.7 else 'low'),
+                    'ai_annotations': [text]
+                }
+            else:
+                return {
+                    'success': True,
+                    'profile_found': False,
+                    'message': text,
+                    'ai_annotations': [text]
+                }
+        
+        except json.JSONDecodeError:
+            return {
+                'success': True,
+                'profile_found': False,
+                'message': result['result'],
+                'ai_annotations': [result['result']]
+            }
+    
+    except Exception as e:
+        logger.error(f"[FACEBOOK_VERIFY] Error: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
 # Placeholder implementations for remaining tools
 
 def check_education_credentials(*args, **kwargs):

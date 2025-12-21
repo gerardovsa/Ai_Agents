@@ -91,7 +91,7 @@ window.SynergyThreadIntegration = {
     renderThreadBadge(thread, config) {
         const safeEscape = window.safeEscape || ((str) => String(str).replace(/[&<>"']/g, ''));
 
-        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyDisplay = thread.synergy_card_name || thread.synergy_card_id || 'Synergy Session';
         const synergyId = thread.synergy_card_id;
 
         if (!synergyId) {

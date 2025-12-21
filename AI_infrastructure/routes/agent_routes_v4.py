@@ -1883,6 +1883,22 @@ Use tools in multiple rounds with interleaved thinking."""
         This avoids circular imports by pulling the SocketIO instance from Flask app extensions.
         """
         try:
+            # Ensure we're in application context
+            from flask import has_app_context
+            if not has_app_context():
+                # If we're outside app context, push one
+                with current_app.app_context():
+                    socketio_ext = getattr(current_app, 'extensions', {}).get('socketio')
+                    if socketio_ext:
+                        # Broadcast to all clients in the Command Center room.
+                        socketio_ext.emit(
+                            'agent_thread_updated',
+                            event_payload,
+                            room='command_center',
+                            namespace='/ws/synergy'
+                        )
+                return
+            
             socketio_ext = getattr(current_app, 'extensions', {}).get('socketio')
             if not socketio_ext:
                 return

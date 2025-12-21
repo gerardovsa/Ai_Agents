@@ -2799,3 +2799,107 @@ def update_thread_location():
     except Exception as e:
         print(f"[UPDATE LOCATION ERROR] {str(e)}")
         return error_response(f'Failed to update location: {str(e)}', 500)
+
+
+# ============================================================
+# RECONCILIATION SYSTEM (Compare ThreadManager vs Database)
+# ============================================================
+
+@thread_bp.route('/reconcile', methods=['POST'])
+def reconcile_threads_endpoint():
+    """
+    Compare ThreadManager in-memory state vs database.
+    
+    POST Body:
+        {
+            "user_id": 1,
+            "threads": [...ThreadManager.threads array...]
+        }
+        
+    Returns:
+        {
+            "success": true,
+            "discrepancies": {
+                "orphaned_threads": [],      # In DB but not in memory
+                "missing_threads": [],       # In memory but not in DB
+                "stale_metadata": [],        # Exists in both but mismatch
+                "zombie_threads": []         # Marked deleted but in memory
+            },
+            "summary": {
+                "memory_count": 10,
+                "database_count": 12,
+                "orphaned_count": 2,
+                "missing_count": 0,
+                "stale_count": 1,
+                "zombie_count": 0,
+                "healthy": false
+            }
+        }
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        threads = data.get('threads', [])
+        
+        if not user_id:
+            return error_response('user_id required', 400)
+        
+        from AI_infrastructure.shared.thread_reconciliation import reconcile_threads
+        
+        result = reconcile_threads(user_id, threads)
+        
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+            
+    except Exception as e:
+        print(f"[RECONCILIATION ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Reconciliation failed: {str(e)}', 500)
+
+
+@thread_bp.route('/reconcile/auto-fix', methods=['POST'])
+def auto_fix_discrepancies_endpoint():
+    """
+    Automatically fix detected discrepancies.
+    
+    POST Body:
+        {
+            "user_id": 1,
+            "reconciliation_result": {...output from /reconcile...}
+        }
+        
+    Returns:
+        {
+            "success": true,
+            "fixes_applied": {
+                "orphaned_reloaded": 2,
+                "missing_inserted": 0,
+                "stale_updated": 1
+            }
+        }
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        reconciliation_result = data.get('reconciliation_result', {})
+        
+        if not user_id:
+            return error_response('user_id required', 400)
+        
+        from AI_infrastructure.shared.thread_reconciliation import auto_fix_discrepancies
+        
+        result = auto_fix_discrepancies(user_id, reconciliation_result)
+        
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+            
+    except Exception as e:
+        print(f"[AUTO-FIX ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Auto-fix failed: {str(e)}', 500)

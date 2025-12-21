@@ -276,6 +276,37 @@ class KajabiCredentials(PlatformCredentialSchema):
 
 
 # ============================================================================
+# PROFESSIONAL VERIFICATION / EMAIL TOOLS
+# ============================================================================
+
+class HunterCredentials(PlatformCredentialSchema):
+    """Hunter.io email verification and finder credentials"""
+    api_key: str = Field(..., description="Hunter.io API key")
+    
+    # Optional settings
+    plan: Optional[str] = Field(default="free", description="Plan type: free, starter, growth, business")
+    limit: Optional[int] = Field(default=25, description="Monthly search limit")
+
+
+class ClearbitCredentials(PlatformCredentialSchema):
+    """Clearbit company/person enrichment credentials"""
+    api_key: str = Field(..., description="Clearbit API key (format: sk_xxxxx)")
+    
+    # Optional settings
+    plan: Optional[str] = Field(default="risk", description="Plan type: risk, reveal, prospector")
+    monthly_lookups: Optional[int] = Field(default=2500, description="Monthly lookup limit")
+
+
+class PiplCredentials(PlatformCredentialSchema):
+    """Pipl identity resolution credentials"""
+    api_key: str = Field(..., description="Pipl API key")
+    
+    # Optional settings
+    endpoint: Optional[str] = Field(default="https://api.pipl.com/search/v5/", description="API endpoint")
+    cost_per_search: Optional[float] = Field(default=0.50, description="Cost per identity search")
+
+
+# ============================================================================
 # PLATFORM REGISTRY
 # ============================================================================
 
@@ -317,6 +348,11 @@ PLATFORM_SCHEMAS: Dict[str, type[PlatformCredentialSchema]] = {
     
     # Knowledge Commerce / E-Learning
     "kajabi": KajabiCredentials,
+    
+    # Professional Verification / Email Tools
+    "hunter": HunterCredentials,
+    "clearbit": ClearbitCredentials,
+    "pipl": PiplCredentials,
 }
 
 

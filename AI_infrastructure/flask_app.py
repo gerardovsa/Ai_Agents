@@ -468,6 +468,8 @@ app.register_blueprint(workspace_search_bp)                          # NEW: Work
 app.register_blueprint(communication_bp)                             # NEW: Communication Hub (8 endpoints: /api/communication-hub/*)
 app.register_blueprint(user_management_bp)                           # NEW: Sub-user management (5 endpoints: /api/users/sub-users/*)
 app.register_blueprint(render_bp)                                    # NEW: Render cloud management (6 endpoints: /api/render/*)
+from AI_infrastructure.routes.pool_health_routes import pool_health_bp
+app.register_blueprint(pool_health_bp)                               # NEW: Pool health metrics dashboard (4 endpoints: /api/pool-health/*)
 app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
 app.register_blueprint(search_bp)                                    # NEW: Supabase search system (5 endpoints: /api/search/*)
 app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
@@ -872,6 +874,60 @@ def cleanup_stale_sessions():
     return len(stale_sessions)
 
 # ============================================================================
+# ============================================================================
+# WEBSOCKET ERROR DIAGNOSTICS - Intelligent Root Cause Detection
+# ============================================================================
+
+@app.errorhandler(Exception)
+def handle_websocket_errors(error):
+    """
+    Intelligent WebSocket error handler - identifies root causes instead of generic errors.
+    
+    Common causes detected:
+    1. write() before start_response - Client disconnected during handshake
+    2. Connection reset - Network interruption or browser refresh
+    3. Timeout - Client took too long to complete handshake
+    4. Multiple processes - Port conflict with another Flask instance
+    """
+    import traceback
+    error_str = str(error)
+    error_type = type(error).__name__
+    
+    # Pattern matching for root cause identification
+    if "write() before start_response" in error_str or isinstance(error, AssertionError):
+        # ROOT CAUSE: Client disconnected mid-handshake (browser refresh, network issue)
+        log_warning(logger, f"[WS] Client aborted WebSocket upgrade (likely browser refresh or network issue)")
+        return None  # Suppress - this is normal behavior
+    
+    elif "Connection reset" in error_str or "ConnectionResetError" in error_type:
+        # ROOT CAUSE: Network interruption or client forcefully closed connection
+        log_warning(logger, f"[WS] Client connection reset (network interruption or forced close)")
+        return None
+    
+    elif "Timeout" in error_str or "TimeoutError" in error_type:
+        # ROOT CAUSE: Client took too long to respond during handshake
+        log_warning(logger, f"[WS] Handshake timeout (slow network or client not responding)")
+        return None
+    
+    elif "Address already in use" in error_str:
+        # ROOT CAUSE: Multiple Flask instances trying to bind to same port
+        log_error(logger, f"[CRITICAL] Port 5001 already in use - another Flask instance running!")
+        log_error(logger, f"   Run: Stop-Process -Name python -Force")
+        raise error  # This is critical - let it propagate
+    
+    elif "pool" in error_str.lower() and "exhaust" in error_str.lower():
+        # ROOT CAUSE: Database connection pool exhausted
+        log_error(logger, f"[DB] Connection pool exhausted - too many parallel queries")
+        log_error(logger, f"   Check: parallel workers, missing conn.close(), long-running queries")
+        raise error
+    
+    else:
+        # Unknown error - log full details for investigation
+        log_error(logger, f"[ERROR] Unhandled exception: {error_type}: {error_str}")
+        log_error(logger, f"   Traceback: {traceback.format_exc()}")
+        raise error
+
+
 # DEFAULT NAMESPACE HANDLERS (catch unwanted connections)
 # ============================================================================
 
@@ -898,18 +954,46 @@ def default_disconnect():
 
 @socketio.on('connect', namespace='/ws/synergy')
 def ws_synergy_connect(auth=None):
-    """Handle client connection to Synergy namespace"""
+    """
+    Handle client connection to Synergy namespace with intelligent error diagnosis.
+    
+    Detects and reports specific connection failure causes:
+    - Invalid/missing client ID
+    - Duplicate connections from same client
+    - Rate limiting (too many connections)
+    - Authentication failures
+    """
     try:
         from flask_socketio import emit
         from flask import request as flask_request
         
         client_id = flask_request.sid
         
-        # Check if client_id is valid
+        # DIAGNOSTIC: Check if client_id is valid
         if not client_id:
-            log_error(logger, "[WS] Connection attempt with invalid client_id")
+            log_error(logger, "[WS] ROOT CAUSE: Flask-SocketIO failed to generate session ID")
+            log_error(logger, "   Possible causes: WSGI middleware conflict, session disabled, cookie issues")
             return False  # Reject connection
         
+        # DIAGNOSTIC: Check for duplicate connection (reconnection without proper disconnect)
+        if client_id in connected_clients:
+            log_warning(logger, f"[WS] Client {client_id} reconnecting (previous session not cleaned up)")
+            log_warning(logger, "   ROOT CAUSE: Browser refresh or network interruption")
+            # Clean up old session before accepting new one
+            if client_id in connected_clients:
+                connected_clients.pop(client_id, None)
+        
+        # DIAGNOSTIC: Check connection rate (basic DoS protection)
+        recent_connections = [
+            c for c in connected_clients.values()
+            if (datetime.now() - datetime.fromisoformat(c['connected_at'])).total_seconds() < 1
+        ]
+        if len(recent_connections) > 20:
+            log_error(logger, f"[WS] ROOT CAUSE: Connection flood detected ({len(recent_connections)} in 1 second)")
+            log_error(logger, "   Possible causes: DDoS attack, client reconnect loop, misconfigured keepalive")
+            return False  # Reject - rate limit
+        
+        # Accept connection
         connected_clients[client_id] = {
             'rooms': set(),
             'connected_at': datetime.now().isoformat()
@@ -923,19 +1007,44 @@ def ws_synergy_connect(auth=None):
         })
         return True  # Accept connection
         
+    except AssertionError as e:
+        # ROOT CAUSE: write() before start_response (client disconnected during handshake)
+        log_warning(logger, f"[WS] Client disconnected during handshake (browser refresh/network issue)")
+        return False  # Expected behavior - don't log as error
+        
     except Exception as e:
-        log_error(logger, f'[WS ERROR] Connection failed: {e}')
-        import traceback
-        traceback.print_exc()
+        error_type = type(e).__name__
+        error_msg = str(e)
+        
+        # Intelligent error diagnosis
+        if "pool" in error_msg.lower():
+            log_error(logger, f'[WS] ROOT CAUSE: Database connection pool exhausted during WebSocket handshake')
+            log_error(logger, f'   Fix: Reduce parallel connections, add connection pooling, check for leaks')
+        elif "timeout" in error_msg.lower():
+            log_error(logger, f'[WS] ROOT CAUSE: Connection timeout during handshake')
+            log_error(logger, f'   Fix: Increase ping_timeout (currently 60s), check network latency')
+        elif "permission" in error_msg.lower() or "forbidden" in error_msg.lower():
+            log_error(logger, f'[WS] ROOT CAUSE: Permission denied (CORS, authentication, or firewall)')
+            log_error(logger, f'   Fix: Check CORS settings, authentication middleware, firewall rules')
+        else:
+            log_error(logger, f'[WS ERROR] Connection failed - {error_type}: {error_msg}')
+            import traceback
+            log_error(logger, f'   Full trace: {traceback.format_exc()}')
+        
         return False  # Reject connection on error
 
 @socketio.on('disconnect', namespace='/ws/synergy')
 def ws_synergy_disconnect(reason=None):
     """
-    Handle client disconnection from /ws/synergy namespace
+    Handle client disconnection from /ws/synergy namespace with diagnostic logging.
     
     Args:
         reason: Disconnect reason passed by Flask-SocketIO (optional)
+        Common reasons:
+        - "Client disconnected" - Normal user-initiated disconnect
+        - "Connection lost" - Network issue or timeout
+        - "Server shutdown" - Flask restart
+        - "Ping timeout" - Client stopped responding to keepalive
     
     Note: Flask-SocketIO automatically provides request context with session ID.
     This works identically on local Windows and Render Linux deployments with Supabase.
@@ -946,6 +1055,19 @@ def ws_synergy_disconnect(reason=None):
         
         # Get client_id from Flask-SocketIO request context
         client_id = getattr(flask_request, 'sid', None)
+        
+        # DIAGNOSTIC: Log disconnect reason for troubleshooting
+        if reason:
+            if reason == "Client disconnected":
+                log_config(logger, f'[WS] Client {client_id} disconnected normally')
+            elif "timeout" in reason.lower():
+                log_warning(logger, f'[WS] Client {client_id} disconnected: Ping timeout (no response for {60}s)')
+                log_warning(logger, f'   ROOT CAUSE: Client went offline, network issue, or tab backgrounded')
+            elif "lost" in reason.lower():
+                log_warning(logger, f'[WS] Client {client_id} disconnected: Connection lost')
+                log_warning(logger, f'   ROOT CAUSE: Network interruption, browser closed, or WiFi dropped')
+            else:
+                log_config(logger, f'[WS] Client {client_id} disconnected: {reason}')
         
         # If no client_id could be determined, skip silently (normal for some disconnect scenarios)
         if not client_id:
@@ -3888,6 +4010,16 @@ if __name__ == '__main__':
         print(f"   Log file: AI_infrastructure/logs/connection_monitor.log\n")
     except Exception as e:
         print(f"\n⚠️  Failed to start connection monitor: {e}\n")
+    
+    # 🔍 START CONNECTION LEAK DETECTOR (Auto-closes idle connections >30 sec)
+    try:
+        from AI_infrastructure.shared.connection_leak_detector import start_leak_detector
+        start_leak_detector()
+        print("✅ Connection leak detector started (auto-close idle >30 sec)")
+        print("   Metrics: GET /api/pool-health")
+        print("   Force check: POST /api/pool-health/force-check\n")
+    except Exception as e:
+        print(f"⚠️  Failed to start leak detector: {e}\n")
     
     # CRITICAL: Must use socketio.run() when WebSockets are enabled
     # Waitress does NOT support WebSockets - causes "Cannot obtain socket from WSGI environment" error

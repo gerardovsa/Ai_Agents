@@ -815,7 +815,19 @@ def verify_email_deliverability(
     _user_id: Optional[str] = None,
     _injected_credentials: Optional[Dict] = None
 ) -> Dict[str, Any]:
-    """Verify email exists and is deliverable (basic validation + DNS check)."""
+    """
+    Verify email exists and is deliverable using Hunter.io API.
+    
+    Falls back to DNS validation if Hunter.io API unavailable.
+    
+    Args:
+        email: Email address to verify
+        _user_id: User ID (for credential injection)
+        _injected_credentials: Platform credentials (must contain 'hunter' key)
+        
+    Returns:
+        dict: Verification results with deliverability, risk level, and metadata
+    """
     logger.info(f"[EMAIL_VERIFY] Checking {email}")
     
     try:
@@ -825,6 +837,54 @@ def verify_email_deliverability(
             return {'success': True, 'is_valid': False, 'reason': 'Invalid format'}
         
         domain = email.split('@')[1]
+        
+        # Try Hunter.io API first (if credentials available)
+        hunter_key = None
+        if _injected_credentials and 'hunter' in _injected_credentials:
+            hunter_creds = _injected_credentials['hunter']
+            hunter_key = hunter_creds.get('api_key') or hunter_creds.get('credential_value')
+        
+        if hunter_key:
+            logger.info(f"[EMAIL_VERIFY] Using Hunter.io API for {email}")
+            try:
+                response = requests.get(
+                    'https://api.hunter.io/v2/email-verifier',
+                    params={'email': email, 'api_key': hunter_key},
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    data = response.json().get('data', {})
+                    
+                    return {
+                        'success': True,
+                        'method': 'hunter_api',
+                        'email': email,
+                        'is_valid_format': True,
+                        'status': data.get('status'),  # valid/invalid/accept_all/unknown
+                        'result': data.get('result'),  # deliverable/undeliverable/risky
+                        'score': data.get('score'),  # 0-100 confidence score
+                        'is_disposable': data.get('disposable', False),
+                        'is_webmail': data.get('webmail', False),
+                        'is_free': data.get('free', False),
+                        'mx_records': data.get('mx_records', True),
+                        'smtp_check': data.get('smtp_check', False),
+                        'accept_all': data.get('accept_all', False),
+                        'block': data.get('block', False),
+                        'risk_level': 'high' if data.get('result') == 'undeliverable' else ('medium' if data.get('result') == 'risky' else 'low'),
+                        'sources': data.get('sources', []),
+                        'hunter_api_used': True
+                    }
+                elif response.status_code == 429:
+                    logger.warning(f"[EMAIL_VERIFY] Hunter.io rate limit reached, falling back to DNS")
+                else:
+                    logger.warning(f"[EMAIL_VERIFY] Hunter.io API error {response.status_code}, falling back to DNS")
+            
+            except Exception as api_error:
+                logger.warning(f"[EMAIL_VERIFY] Hunter.io API failed: {api_error}, falling back to DNS")
+        
+        # Fallback: DNS validation (free, no API key needed)
+        logger.info(f"[EMAIL_VERIFY] Using DNS validation for {email}")
         
         # Check DNS MX records
         try:
@@ -847,12 +907,15 @@ def verify_email_deliverability(
         
         return {
             'success': True,
+            'method': 'dns_fallback',
             'email': email,
             'is_valid_format': True,
             'domain_exists': domain_exists,
             'has_mx_records': has_mx,
             'is_deliverable': is_deliverable,
-            'risk_level': 'low' if is_deliverable else 'high'
+            'risk_level': 'low' if is_deliverable else 'high',
+            'hunter_api_used': False,
+            'note': 'Hunter.io API not available, using basic DNS validation'
         }
         
     except Exception as e:

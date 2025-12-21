@@ -13,6 +13,8 @@
  * LAST MODIFIED: 2025-11-24 - Initial implementation
  */
 
+import { documentService } from '../shared/document-service.js';
+
 class SynergyDocPicker {
     constructor() {
         this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
@@ -191,15 +193,8 @@ class SynergyDocPicker {
         `;
 
         try {
-            const response = await fetch(`${this.API_BASE_URL}/api/synergy/internal-docs/list`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            if (!response.ok) throw new Error('Failed to load documents');
-
-            const data = await response.json();
-            this.documents = data.documents || [];
+            const data = await documentService.fetchAllDocuments();
+            this.documents = data.documents || data || [];
             this.applyFilters();
 
         } catch (error) {

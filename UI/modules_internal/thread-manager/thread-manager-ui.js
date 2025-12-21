@@ -338,10 +338,10 @@ window.ThreadManagerUI = {
                         ${thread.synergy_card_id ? `
                             <div class="thread-item-synergy thread-item-synergy-linked" style="display: flex; align-items: center; gap: 8px;">
                                 <button class="synergy-badge" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex: 1;"
-                                    onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${thread.synergy_card_id}', '${thread.synergy_card_title || thread.synergy_card_id}')"
-                                    title="${thread.synergy_card_title || thread.synergy_card_id}">
+                                    onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${thread.synergy_card_id}', '${thread.synergy_card_name || thread.synergy_card_id}')"
+                                    title="${thread.synergy_card_name || thread.synergy_card_id}">
                                     <i class="fas fa-link"></i>
-                                    <span>${thread.synergy_card_title || thread.synergy_card_id}</span>
+                                    <span>${thread.synergy_card_name || thread.synergy_card_id}</span>
                                 </button>
                                 ${currentLocation !== 'synergy' ? `
                                     <button class="thread-synergy-unlink" style="background: #ef4444; color: white; border: none; padding: 6px 8px; border-radius: 4px; cursor: pointer;" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">

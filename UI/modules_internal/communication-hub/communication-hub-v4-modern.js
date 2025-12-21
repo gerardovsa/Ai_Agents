@@ -197,6 +197,9 @@ export default {
             window.CommunicationHub = this;
             this.log.debug('Exposed CommunicationHub globally for onclick handlers');
 
+            // 11.5. Subscribe to realtime thread updates (to sync email assignments)
+            this.subscribeToRealtimeUpdates();
+
             // 12. Emit event for other modules
             this.events.emit('communication-hub:loaded', {
                 timestamp: Date.now(),
@@ -421,6 +424,9 @@ export default {
         this.renderCompose();
         this.renderThreads();
         this.renderSearch();
+
+        // Setup toolbar events AFTER unified inbox is rendered (toolbar is inside inbox)
+        this.setupToolbarEvents();
 
         this.log.debug('All sub-tabs initialized');
     },
@@ -974,14 +980,11 @@ export default {
             });
         }
 
-        // Wait for toolbar to be rendered in DOM
-        setTimeout(() => {
-            this.setupToolbarEvents();
-        }, 100);
+        this.log.debug('Dashboard events setup complete');
     },
 
     /**
-     * Setup toolbar event listeners (called after DOM is ready)
+     * Setup toolbar event listeners (called after unified inbox is rendered)
      */
     setupToolbarEvents() {
         this.log.info('Setting up toolbar events...');
@@ -989,21 +992,11 @@ export default {
         // Toolbar actions - look for filters-bar (the actual toolbar class)
         const toolbar = this.dashboardContainer.querySelector('.filters-bar');
         if (!toolbar) {
-            // Limit retries to prevent infinite loop
-            if (!this.toolbarRetryCount) this.toolbarRetryCount = 0;
-            this.toolbarRetryCount++;
-
-            if (this.toolbarRetryCount < 10) {
-                this.log.warn(`Toolbar not found, retry ${this.toolbarRetryCount}/10 in 200ms...`);
-                setTimeout(() => this.setupToolbarEvents(), 200);
-            } else {
-                this.log.error('Toolbar setup failed after 10 retries - toolbar may not exist in current tab');
-            }
+            this.log.error('Toolbar not found - unified inbox may not be rendered yet');
             return;
         }
 
-        // Reset retry counter on success
-        this.toolbarRetryCount = 0;
+        this.log.success('✅ Refresh button found, attaching direct listener');
 
         if (toolbar) {
             // Tag buttons
@@ -1232,11 +1225,25 @@ export default {
             this.state.emails = response.emails || [];
             this.log.success(`Loaded ${this.state.emails.length} emails`);
 
+            // Check if no emails returned and no accounts connected
+            if (this.state.emails.length === 0 && this.state.accounts.length === 0) {
+                this.showNoAccountsWarning();
+                return;
+            }
+
+            // Check if no emails but accounts are connected
+            if (this.state.emails.length === 0 && this.state.accounts.length > 0) {
+                this.log.warn('No emails found despite having connected accounts');
+            }
+
             // Update stats
             this.updateStats();
 
             // Create/update table
             this.createEmailTable();
+
+            // ✅ FIX #4: Load email-thread mappings from database (persistence after refresh)
+            await this.loadEmailThreadMappings();
 
         } catch (error) {
             this.log.error('Failed to load emails', error);
@@ -1277,12 +1284,28 @@ export default {
             return;
         }
 
-        // Create table
+        // Create table (WooCommerce Gold Standard Pattern)
+        // ✅ Phase 2 Features: Header filters, pagination with size selector, movable/resizable columns, persistent layout
         this.state.tabulatorTable = new Tabulator(container, {
             data: this.state.emails,
-            layout: "fitDataStretch",
-            pagination: true,
-            paginationSize: this.state.pageSize,
+            layout: "fitColumns",  // ✅ FIX: Responsive column sizing
+            layoutColumnsOnNewData: true,
+            responsiveLayout: false,  // ✅ FIX: Disable responsive collapse (keep all columns visible)
+
+            // Pagination (WooCommerce pattern)
+            pagination: "local",
+            paginationSize: 25,
+            paginationSizeSelector: [10, 25, 50, 100],
+            paginationButtonCount: 5,
+            paginationCounter: "rows",
+
+            // User control (WooCommerce pattern)
+            movableColumns: true,
+            resizableColumns: true,
+            persistentLayout: true,
+            persistentLayoutID: "communication-hub-inbox-layout",
+
+            // Selection
             selectable: true,  // Multi-selection enabled
             selectableRangeMode: "click",  // Click to select/deselect
             columns: [
@@ -1299,23 +1322,61 @@ export default {
                 {
                     title: "Date",
                     field: "date",
-                    width: 160,
+                    width: 180,
                     sorter: "datetime",
+                    headerFilter: "input",
+                    headerFilterPlaceholder: "Search date...",
                     formatter: (cell) => {
-                        return this.formatDate(cell.getValue());
+                        const date = new Date(cell.getValue());
+                        const formatted = date.toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+                        const time = date.toLocaleTimeString('en-GB', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+
+                        return `<div style="text-align: left;">
+                            <div style="color: #ffffff; font-weight: 500;">
+                                <i class="fas fa-calendar" style="color: #6b7280; margin-right: 4px;"></i>
+                                ${formatted}
+                            </div>
+                            <div style="color: #9ca3af; font-size: 11px; margin-top: 2px;">
+                                <i class="fas fa-clock" style="color: #6b7280; margin-right: 4px;"></i>
+                                ${time}
+                            </div>
+                        </div>`;
                     }
                 },
                 {
                     title: "Status",
                     field: "is_read",
-                    width: 80,
+                    width: 100,
                     hozAlign: "center",
-                    headerSort: false,
+                    headerFilter: "select",
+                    headerFilterParams: { values: { "": "All", "false": "Unread", "true": "Read" } },
+                    headerFilterPlaceholder: "Filter...",
                     formatter: (cell) => {
                         const isRead = cell.getValue();
-                        return isRead
-                            ? '<i class="fas fa-envelope-open" style="color: #6b7280;" title="Read"></i>'
-                            : '<i class="fas fa-envelope" style="color: #3b82f6;" title="Unread"></i>';
+                        const colors = isRead
+                            ? { bg: '#6b7280', text: '#f9fafb', icon: 'envelope-open' }
+                            : { bg: '#3b82f6', text: '#f9fafb', icon: 'envelope' };
+
+                        return `<span style="
+                            display: inline-block;
+                            padding: 6px 12px;
+                            border-radius: 12px;
+                            font-size: 11px;
+                            font-weight: 700;
+                            background: ${colors.bg};
+                            color: ${colors.text};
+                            letter-spacing: 0.3px;
+                        ">
+                            <i class="fas fa-${colors.icon}" style="margin-right: 4px;"></i>
+                            ${isRead ? 'Read' : 'Unread'}
+                        </span>`;
                     }
                 },
                 {
@@ -1342,46 +1403,82 @@ export default {
                 {
                     title: "Account",
                     field: "provider",
-                    width: 70,
+                    width: 120,
                     hozAlign: "center",
-                    headerSort: false,
+                    headerFilter: "select",
+                    headerFilterParams: { values: { "": "All", "gmail": "Gmail", "outlook": "Outlook" } },
+                    headerFilterPlaceholder: "Filter...",
                     formatter: (cell) => {
                         const provider = cell.getValue();
                         if (provider === 'gmail') {
-                            return '<i class="fab fa-google" style="color: #ea4335; font-size: 16px;" title="Gmail"></i>';
+                            return `<span style="color: #ffffff; font-weight: 500;">
+                                <i class="fab fa-google" style="color: #ea4335; font-size: 14px; margin-right: 4px;"></i>
+                                Gmail
+                            </span>`;
                         } else if (provider === 'outlook') {
-                            return '<i class="fab fa-microsoft" style="color: #0078d4; font-size: 16px;" title="Outlook"></i>';
+                            return `<span style="color: #ffffff; font-weight: 500;">
+                                <i class="fab fa-microsoft" style="color: #0078d4; font-size: 14px; margin-right: 4px;"></i>
+                                Outlook
+                            </span>`;
                         }
-                        return '<i class="fas fa-envelope" style="color: #6b7280;"></i>';
+                        return `<span style="color: #9ca3af;">
+                            <i class="fas fa-envelope" style="color: #6b7280; margin-right: 4px;"></i>
+                            Unknown
+                        </span>`;
                     }
                 },
                 {
                     title: "From",
                     field: "from",
                     width: 220,
-                    sorter: "string"
+                    sorter: "string",
+                    headerFilter: "input",
+                    headerFilterPlaceholder: "Search sender...",
+                    formatter: (cell) => {
+                        const from = cell.getValue() || 'Unknown';
+                        const row = cell.getRow().getData();
+                        const isRead = row.is_read;
+
+                        return `<div style="display: flex; align-items: center; gap: 6px;">
+                            ${!isRead ? `<span style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; flex-shrink: 0;"></span>` : ''}
+                            <span style="color: #ffffff; font-weight: ${isRead ? '400' : '600'}; flex: 1;">
+                                <i class="fas fa-user" style="color: #6b7280; margin-right: 4px; font-size: 11px;"></i>
+                                ${this.escapeHtml(from)}
+                            </span>
+                        </div>`;
+                    }
                 },
                 {
                     title: "Subject",
                     field: "subject",
-                    width: 450,
+                    width: 400,
                     sorter: "string",
+                    headerFilter: "input",
+                    headerFilterPlaceholder: "Search subject...",
                     formatter: (cell) => {
-                        const value = cell.getValue();
+                        const value = cell.getValue() || '(No subject)';
                         const data = cell.getRow().getData();
                         const hasThread = this.state.emailThreads[data.id];
+                        const isRead = data.is_read;
+                        const hasAttachments = data.has_attachments;
 
-                        // Show thread indicator if email has thread
+                        let html = '<div style="display: flex; align-items: center; gap: 8px;">';
+
+                        // Thread indicator
                         if (hasThread) {
-                            return `
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <i class="fas fa-comments" style="color: #6366f1; font-size: 12px;" title="Part of thread"></i>
-                                    <span>${this.escapeHtml(value)}</span>
-                                </div>
-                            `;
+                            html += `<i class="fas fa-comments" style="color: #6366f1; font-size: 12px;" title="Part of thread"></i>`;
                         }
 
-                        return this.escapeHtml(value);
+                        // Subject text
+                        html += `<span style="color: #ffffff; font-weight: ${isRead ? '400' : '600'}; flex: 1;">${this.escapeHtml(value)}</span>`;
+
+                        // Attachment indicator
+                        if (hasAttachments) {
+                            html += `<i class="fas fa-paperclip" style="color: #6b7280; font-size: 11px;"></i>`;
+                        }
+
+                        html += '</div>';
+                        return html;
                     }
                 },
                 {
@@ -1411,7 +1508,26 @@ export default {
                         // IS ASSIGNED - Show agent badge + thread info
                         const thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
                         if (!thread) {
-                            return `<span style="color: #9ca3af; font-size: 10px;">Loading...</span>`;
+                            // Thread not loaded yet in ThreadManager - show thread slug with loading state
+                            const threadShort = threadSlug.substring(0, 8);
+                            return `
+                                <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+                                    <span class="agent-badge" style="background: #6b7280; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fas fa-sync fa-spin"></i> Syncing...
+                                    </span>
+                                    <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: monospace;" title="Thread ID: ${threadSlug}">
+                                        #${threadShort}
+                                    </span>
+                                    <button class="reload-thread-btn" 
+                                            onclick="event.stopPropagation(); window.CommunicationHub.refreshThreadData('${emailId}', '${threadSlug}')"
+                                            title="Refresh thread data"
+                                            style="background: transparent; border: none; color: #3b82f6; cursor: pointer; padding: 2px 4px; font-size: 11px; opacity: 0.7; transition: opacity 0.2s;"
+                                            onmouseover="this.style.opacity='1'"
+                                            onmouseout="this.style.opacity='0.7'">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            `;
                         }
 
                         const location = thread.location || 'prime';
@@ -1741,16 +1857,43 @@ export default {
                     statusText = '<span style="color: #22c55e; font-size: 10px; margin-left: 6px; font-weight: 600;">(Empty)</span>';
                 }
 
+                // ✅ FIX: Add task type submenu (expandable on click)
                 html += `
-                    <div class="agent-option" data-agent-id="${agent.id || agent.name}" data-agent-name="${this.escapeHtml(agent.name)}"
-                         style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: ${bgColor}; border: ${borderStyle}; border-radius: 4px; margin: 2px 8px;"
-                         onmouseover="this.style.background='${hoverColor}'" 
-                         onmouseout="this.style.background='${bgColor}'">
-                        <i class="fas fa-robot" style="color: ${iconColor}; width: 20px; text-align: center; font-size: 16px;"></i>
-                        <div style="flex: 1;">
-                            <div style="font-size: 13px; color: #f0f6fc; font-weight: ${isAssigned ? '600' : '500'};">
-                                ${this.escapeHtml(agent.name)}
-                                ${statusText}
+                    <div class="agent-option-wrapper" data-agent-id="${agent.id || agent.name}" data-agent-name="${this.escapeHtml(agent.name)}" style="margin: 2px 8px;">
+                        <div class="agent-option" 
+                             style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: ${bgColor}; border: ${borderStyle}; border-radius: 4px;"
+                             onmouseover="this.style.background='${hoverColor}'" 
+                             onmouseout="this.style.background='${bgColor}'">
+                            <i class="fas fa-robot" style="color: ${iconColor}; width: 20px; text-align: center; font-size: 16px;"></i>
+                            <div style="flex: 1;">
+                                <div style="font-size: 13px; color: #f0f6fc; font-weight: ${isAssigned ? '600' : '500'};">
+                                    ${this.escapeHtml(agent.name)}
+                                    ${statusText}
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-down" style="color: #6b7280; font-size: 11px; transition: transform 0.2s;"></i>
+                        </div>
+                        <!-- Task Type Submenu (hidden by default) -->
+                        <div class="agent-task-submenu" style="display: none; padding: 8px 0 8px 32px; margin-top: 4px;">
+                            <div class="task-option" data-task="summarize" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
+                                <i class="fas fa-file-alt" style="width: 16px; text-align: center;"></i>
+                                <span>Summarize Email</span>
+                            </div>
+                            <div class="task-option" data-task="draft_reply" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
+                                <i class="fas fa-reply" style="width: 16px; text-align: center;"></i>
+                                <span>Draft Reply</span>
+                            </div>
+                            <div class="task-option" data-task="extract_tasks" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
+                                <i class="fas fa-tasks" style="width: 16px; text-align: center;"></i>
+                                <span>Extract Action Items</span>
+                            </div>
+                            <div class="task-option" data-task="analyze" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
+                                <i class="fas fa-chart-line" style="width: 16px; text-align: center;"></i>
+                                <span>Analyze Sentiment</span>
+                            </div>
+                            <div class="task-option" data-task="discuss" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
+                                <i class="fas fa-comments" style="width: 16px; text-align: center;"></i>
+                                <span>General Discussion</span>
                             </div>
                         </div>
                     </div>
@@ -1779,28 +1922,67 @@ export default {
             dropdown.innerHTML = html;
         }
 
-        // Add click handlers
+        // ✅ FIX: Add click handlers for agent options (toggle submenu) and task options (assign with task)
         dropdown.querySelectorAll('.agent-option').forEach(option => {
-            option.addEventListener('click', async () => {
-                const agentId = option.dataset.agentId;
-                const agentName = option.dataset.agentName;
+            option.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const wrapper = option.closest('.agent-option-wrapper');
+
+                if (!wrapper) {
+                    // Old-style option (clear assignment, activate next)
+                    const agentId = option.dataset.agentId;
+                    const agentName = option.dataset.agentName;
+                    dropdown.remove();
+
+                    if (agentId === 'clear') {
+                        await this.clearEmailAgentAssignment(emailId, cell);
+                    } else if (agentId === 'activate-next') {
+                        this.log.info(`🚀 Activating next agent: ${agentName}`);
+                        if (window.synergyBoard && typeof window.synergyBoard.activateAgent === 'function') {
+                            window.synergyBoard.activateAgent(agentName);
+                        }
+                        await this.assignEmailToAgent(emailId, agentName, cell, 'new');
+                    } else {
+                        await this.assignEmailToAgent(emailId, agentName, cell, agentId);
+                    }
+                    return;
+                }
+
+                // New-style option with submenu - toggle submenu visibility
+                const submenu = wrapper.querySelector('.agent-task-submenu');
+                const chevron = option.querySelector('.fa-chevron-down');
+
+                if (submenu.style.display === 'none') {
+                    // Close all other submenus
+                    dropdown.querySelectorAll('.agent-task-submenu').forEach(s => s.style.display = 'none');
+                    dropdown.querySelectorAll('.fa-chevron-down').forEach(c => c.style.transform = 'rotate(0deg)');
+
+                    // Open this submenu
+                    submenu.style.display = 'block';
+                    chevron.style.transform = 'rotate(180deg)';
+                } else {
+                    // Close this submenu
+                    submenu.style.display = 'none';
+                    chevron.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+
+        // ✅ FIX: Add click handlers for task options (assign with specific task type)
+        dropdown.querySelectorAll('.task-option').forEach(taskOption => {
+            taskOption.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const wrapper = taskOption.closest('.agent-option-wrapper');
+                const agentId = wrapper.dataset.agentId;
+                const agentName = wrapper.dataset.agentName;
+                const taskType = taskOption.dataset.task;
+
                 dropdown.remove();
 
-                if (agentId === 'clear') {
-                    await this.clearEmailAgentAssignment(emailId, cell);
-                } else if (agentId === 'activate-next') {
-                    // Activate next agent panel
-                    this.log.info(`🚀 Activating next agent: ${agentName}`);
-                    // Trigger agent panel activation (you may need to implement this)
-                    if (window.synergyBoard && typeof window.synergyBoard.activateAgent === 'function') {
-                        window.synergyBoard.activateAgent(agentName);
-                    }
-                    // Then assign email to the new agent
-                    await this.assignEmailToAgent(emailId, agentName, cell, 'new');
-                } else {
-                    // Regular agent assignment
-                    await this.assignEmailToAgent(emailId, agentName, cell, agentId);
-                }
+                this.log.info(`📧 Assigning email to ${agentName} with task: ${taskType}`);
+
+                // Assign email to agent with task-specific instructions
+                await this.assignEmailToAgentWithTask(emailId, agentName, agentId, taskType, cell);
             });
         });
 
@@ -1823,9 +2005,24 @@ export default {
      * Assign email to an AI agent
      * Creates a thread in sessions.threads with email data
      * If agentId is 'new', finds next available empty agent slot
+     * 
+     * ✅ IDEMPOTENCY: Checks if email already assigned before creating thread
      */
     async assignEmailToAgent(emailId, agentName, cell, agentId = null) {
         this.log.info(`🤖 Assigning email ${emailId} to agent: ${agentName} (ID: ${agentId})`);
+
+        // ✅ CRITICAL: Check if email already assigned (prevent duplicate threads)
+        if (this.state.emailThreads && this.state.emailThreads[emailId]) {
+            const existingThreadSlug = this.state.emailThreads[emailId];
+            this.log.warn(`⚠️ Email ${emailId} already assigned to thread ${existingThreadSlug}`);
+            this.showWarning(`This email is already assigned to a thread. Click the agent badge to view it.`);
+            return; // Early exit - don't create duplicate
+        }
+
+        // ✅ CRITICAL: Disable cell to prevent double-click
+        const originalHTML = cell.getElement().innerHTML;
+        cell.getElement().innerHTML = '<span style="color: #9ca3af; font-size: 10px;"><i class="fas fa-spinner fa-spin"></i> Assigning...</span>';
+        cell.getElement().style.pointerEvents = 'none'; // Disable all clicks
 
         try {
             const userId = window.UserAuth?.user?.id || 1;
@@ -2092,8 +2289,22 @@ export default {
             // ✅ CRITICAL: Load thread into AI agent column and trigger AI response
             await this.loadThreadIntoAgentAndTrigger(threadSlug, location, fullEmail, processedAttachments);
 
+            // ✅ CRITICAL: Refresh ThreadManager so formatter can find the thread immediately
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                await ThreadManager.loadThreadsFromBackend();
+                this.log.success('✅ ThreadManager refreshed - table will show agent badge');
+
+                // Force table redraw to update AI Agent column
+                if (this.state.tabulatorTable) {
+                    this.state.tabulatorTable.redraw(true);
+                }
+            }
+
             // Final success notification
             this.showSuccess(`✅ Email assigned to ${agentName}`);
+
+            // ✅ CRITICAL: Re-enable cell after successful assignment
+            cell.getElement().style.pointerEvents = 'auto';
 
         } catch (error) {
             this.log.error('Failed to assign email to agent:', error);
@@ -2101,6 +2312,263 @@ export default {
             if (typeof showToast === 'function') {
                 showToast(`❌ Assignment failed: ${error.message}`, 'error', 5000);
             }
+
+            // ✅ CRITICAL: Restore original cell HTML and re-enable on error
+            cell.getElement().innerHTML = originalHTML;
+            cell.getElement().style.pointerEvents = 'auto';
+        }
+    },
+
+    /**
+     * ✅ FIX #4: Assign email to agent with specific task type
+     * ✅ IDEMPOTENCY: Checks if email already assigned to prevent duplicate thread creation
+     * ✅ DOUBLE-CLICK PREVENTION: Disables cell during 2-5 second assignment process
+     * @param {string} emailId - Email ID
+     * @param {string} agentName - Agent name (e.g., 'Alpha')
+     * @param {string} agentId - Agent location (e.g., 'agent-1')
+     * @param {string} taskType - Task type ('summarize', 'draft_reply', 'extract_tasks', 'analyze', 'discuss')
+     * @param {object} cell - Tabulator cell reference
+     */
+    async assignEmailToAgentWithTask(emailId, agentName, agentId, taskType, cell) {
+        this.log.info(`🤖 Assigning email ${emailId} to agent: ${agentName} with task: ${taskType}`);
+
+        // ✅ IDEMPOTENCY CHECK: Prevent duplicate thread creation
+        if (this.state.emailThreads && this.state.emailThreads[emailId]) {
+            this.log.warn(`⚠️ Email ${emailId} already assigned to thread ${this.state.emailThreads[emailId]}`);
+            this.showWarning('Email already assigned to a thread');
+            return; // Early exit - prevent duplicate API call
+        }
+
+        // ✅ DOUBLE-CLICK PREVENTION: Disable cell during assignment
+        const originalHTML = cell.getElement().innerHTML;
+        cell.getElement().innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Assigning with task...</span>';
+        cell.getElement().style.pointerEvents = 'none'; // Disable clicks
+
+        try {
+            // First, assign email to agent normally (creates thread, links email)
+            const userId = window.UserAuth?.user?.id || 1;
+            const emailData = cell.getRow().getData();
+            const fullEmail = await this.fetchEmailContent(emailId);
+
+            // ✅ DEBUG: Log what we got from fetchEmailContent
+            this.log.info(`📧 Full email data fetched:`, {
+                id: fullEmail.id,
+                from: fullEmail.from,
+                to: fullEmail.to,
+                subject: fullEmail.subject,
+                has_body_text: !!fullEmail.body_text,
+                has_body_html: !!fullEmail.body_html,
+                body_text_length: fullEmail.body_text?.length || 0,
+                snippet_length: fullEmail.snippet?.length || 0
+            });
+
+            // Process attachments
+            let processedAttachments = [];
+            if (fullEmail.attachments && fullEmail.attachments.length > 0) {
+                this.log.info(`📎 Processing ${fullEmail.attachments.length} attachment(s)...`);
+                if (typeof AttachmentProcessor !== 'undefined') {
+                    processedAttachments = await AttachmentProcessor.processAttachmentsForAI(
+                        emailId,
+                        fullEmail.attachments,
+                        this
+                    );
+                }
+            }
+
+            // Create thread with task-specific title
+            const taskTitles = {
+                'summarize': `Summarize: ${fullEmail.subject || 'No Subject'}`,
+                'draft_reply': `Reply to: ${fullEmail.subject || 'No Subject'}`,
+                'extract_tasks': `Tasks from: ${fullEmail.subject || 'No Subject'}`,
+                'analyze': `Analyze: ${fullEmail.subject || 'No Subject'}`,
+                'discuss': `Discuss: ${fullEmail.subject || 'No Subject'}`
+            };
+
+            const metadata = {
+                email_id: emailId,
+                email_subject: fullEmail.subject,
+                email_from: fullEmail.from,
+                email_to: fullEmail.to,
+                email_date: fullEmail.date,
+                email_provider: fullEmail.provider,
+                assigned_agent: agentName,
+                assigned_at: new Date().toISOString(),
+                email_task_type: taskType,  // ✅ Store task intent
+                attachments_count: processedAttachments.length
+            };
+
+            // Determine location
+            let location = agentId;
+            if (agentId === 'new' || agentId === null) {
+                const agentsResponse = await fetch(`/api/threads/agents/list?user_id=${userId}`);
+                if (agentsResponse.ok) {
+                    const agentsData = await agentsResponse.json();
+                    if (agentsData.success && agentsData.agents) {
+                        const emptyAgent = agentsData.agents.find(a => !a.is_create_new && a.thread_count === 0);
+                        if (emptyAgent) {
+                            location = emptyAgent.id;
+                            agentName = emptyAgent.name;
+                        }
+                    }
+                }
+                if (!location || location === 'new') {
+                    location = 'agent-1';
+                    agentName = 'Agent Alpha';
+                }
+            }
+
+            // Create thread
+            const threadResponse = await this.api.post('/api/threads/create', {
+                user_id: userId,
+                title: taskTitles[taskType] || `Email: ${fullEmail.subject}`,
+                context_type: 'email',
+                location: location,
+                tags: ['email', fullEmail.provider, 'assigned', taskType],
+                metadata: metadata
+            });
+
+            let threadSlug = null;
+            if (threadResponse.thread_slug) {
+                threadSlug = threadResponse.thread_slug;
+            } else if (threadResponse.data && threadResponse.data.thread_slug) {
+                threadSlug = threadResponse.data.thread_slug;
+            }
+
+            if (!threadSlug) {
+                throw new Error('Failed to create thread');
+            }
+
+            this.log.success(`📧 Thread created: ${threadSlug}`);
+
+            // Link email to thread
+            const emailParticipants = [];
+            if (typeof fullEmail.from === 'string') {
+                emailParticipants.push(fullEmail.from);
+            }
+            if (fullEmail.to) {
+                if (typeof fullEmail.to === 'string') {
+                    emailParticipants.push(fullEmail.to);
+                } else if (Array.isArray(fullEmail.to)) {
+                    emailParticipants.push(...fullEmail.to);
+                }
+            }
+
+            await this.api.post('/api/thread-assignments/email', {
+                user_id: userId,
+                thread_slug: threadSlug,
+                email_thread_id: emailId,
+                email_subject: fullEmail.subject || 'No Subject',
+                email_participants: emailParticipants
+            });
+
+            // Update local state
+            if (!this.state.emailThreads) {
+                this.state.emailThreads = {};
+            }
+            this.state.emailThreads[emailId] = threadSlug;
+
+            // ✅ CRITICAL: Refresh ThreadManager immediately so formatter can find the thread
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                await ThreadManager.loadThreadsFromBackend();
+                this.log.success('✅ ThreadManager refreshed with new thread');
+            }
+
+            // Now update table to show agent badge (formatter will find thread in ThreadManager)
+            cell.getRow().update({ assigned_agent: agentName });
+
+            // ✅ NEW: Load thread and send task-specific prompt
+            await this.loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, fullEmail, processedAttachments, taskType);
+
+            this.showSuccess(`✅ Email assigned to ${agentName} for ${taskType.replace('_', ' ')}`);
+
+            // ✅ CRITICAL: Re-enable cell after successful assignment
+            cell.getElement().style.pointerEvents = 'auto';
+
+        } catch (error) {
+            this.log.error('Failed to assign email with task:', error);
+            this.showError(`Failed to assign email: ${error.message}`);
+            if (typeof showToast === 'function') {
+                showToast(`❌ Assignment failed: ${error.message}`, 'error', 5000);
+            }
+
+            // ✅ CRITICAL: Restore original cell HTML and re-enable on error
+            cell.getElement().innerHTML = originalHTML;
+            cell.getElement().style.pointerEvents = 'auto';
+        }
+    },
+
+    /**
+     * ✅ FIX #4: Load thread and trigger AI with task-specific prompt (SINGLE MESSAGE ONLY)
+     */
+    async loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, emailData, processedAttachments, taskType) {
+        try {
+            this.log.info(`🔄 Loading thread ${threadSlug} with task: ${taskType}`);
+
+            // Step 1: Refresh thread list
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                await ThreadManager.loadThreadsFromBackend();
+            }
+
+            // Step 2: Extract agent ID from location
+            const agentMatch = location.match(/agent-(\d+)/);
+            if (!agentMatch) {
+                this.log.warn('Could not extract agent ID from location:', location);
+                return;
+            }
+            const agentId = parseInt(agentMatch[1]);
+
+            // Step 3: Load thread into agent card using MultiAgent
+            if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
+                // Fetch thread object from ThreadManager
+                const thread = ThreadManager.threads?.find(t => t.thread_slug === threadSlug || t.id === threadSlug);
+                if (thread) {
+                    this.log.info(`🔄 Loading thread ${threadSlug} into agent ${agentId}`);
+                    MultiAgent.loadThreadIntoAgent(agentId, thread);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    this.log.success(`✅ Thread loaded into agent card ${agentId}`);
+                } else {
+                    this.log.warn(`⚠️ Thread ${threadSlug} not found in ThreadManager.threads`);
+                }
+            } else {
+                this.log.warn('⚠️ MultiAgent.loadThreadIntoAgent not available');
+            }
+
+            // Step 4: Build SINGLE message with task prompt + email content using enhanced template
+            const taskPrompts = {
+                'summarize': `Please provide a clear, concise summary of this email, highlighting the key points and any action items.`,
+                'draft_reply': `Please draft a professional reply to this email. Consider the tone and context of the original message.`,
+                'extract_tasks': `Please extract all action items and tasks mentioned in this email. List them in order of priority.`,
+                'analyze': `Please analyze this email's tone, sentiment, and key themes. Identify any potential concerns or opportunities.`,
+                'discuss': `I need your assistance with this email. Please help me understand the context and suggest appropriate next steps.`
+            };
+
+            // Use enhanced formatter to build the prompt with template
+            const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailData, taskType);
+            const attachmentSummary = AttachmentProcessor.generateAttachmentSummary(processedAttachments || []);
+            const completePrompt = basePrompt + attachmentSummary;
+
+            // Generate message content (multimodal if attachments)
+            const messageContent = EmailAIFormatter.generateClaudeMessageContent(
+                completePrompt,
+                processedAttachments || []
+            );
+
+            // Step 5: Send ONE message
+            const inputId = `agent-input-${agentId}`;
+            const inputElement = document.getElementById(inputId);
+
+            if (inputElement && typeof sendAgentMessage === 'function') {
+                this.log.info(`🤖 Sending single message with task: ${taskType}`);
+                inputElement.value = typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent);
+                await sendAgentMessage(agentId);
+                this.log.success(`✅ AI processing started with task: ${taskType}`);
+                if (typeof showToast === 'function') {
+                    showToast(`🤖 AI agent ${taskType.replace('_', ' ')}...`, 'info', 3000);
+                }
+            }
+
+        } catch (error) {
+            this.log.error('Failed to load thread with task:', error);
         }
     },
 
@@ -2131,25 +2599,23 @@ export default {
             }
             const agentId = parseInt(agentMatch[1]);
 
-            // Step 3: Load thread into agent column (clears welcome message, shows thread card)
-            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.loadThreadIntoAgent === 'function') {
-                await AgentColumn.loadThreadIntoAgent(agentId, threadSlug);
-                this.log.success(`✅ Thread loaded into agent column ${agentId}`);
-                if (typeof showToast === 'function') {
-                    showToast('✅ Thread loaded into agent', 'success', 2000);
-                }
-            } else if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
-                // Fallback to MultiAgent if AgentColumn not available
-                const thread = ThreadManager.threads?.find(t => t.id === threadSlug);
+            // Step 3: Load thread into agent card using MultiAgent.loadThreadIntoAgent()
+            if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
+                // Fetch thread object from ThreadManager
+                const thread = ThreadManager.threads?.find(t => t.thread_slug === threadSlug || t.id === threadSlug);
                 if (thread) {
-                    await MultiAgent.loadThreadIntoAgent(agentId, thread);
-                    this.log.success(`✅ Thread loaded via MultiAgent into agent ${agentId}`);
+                    this.log.info(`🔄 Loading thread ${threadSlug} into agent ${agentId}`);
+                    MultiAgent.loadThreadIntoAgent(agentId, thread);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    this.log.success(`✅ Thread loaded into agent card ${agentId}`);
                     if (typeof showToast === 'function') {
                         showToast('✅ Thread loaded into agent', 'success', 2000);
                     }
+                } else {
+                    this.log.warn(`⚠️ Thread ${threadSlug} not found in ThreadManager.threads`);
                 }
             } else {
-                this.log.warn('⚠️ AgentColumn.loadThreadIntoAgent not available');
+                this.log.warn('⚠️ MultiAgent.loadThreadIntoAgent not available');
             }
 
             // Step 3.5: Verify thread is properly loaded
@@ -2172,23 +2638,25 @@ export default {
             const emailMessageContent = this.formatEmailForMessage(emailData, processedAttachments);
 
             try {
-                // Save to database
-                const messageResponse = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/messages/create`, {
+                // ✅ FIX: Use correct endpoint /api/threads/messages/save (NOT /api/messages/create which doesn't exist)
+                const messageResponse = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/messages/save`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
                     },
                     body: JSON.stringify({
-                        thread_id: threadSlug,
+                        thread_id: threadSlug,  // ✅ FIX: Backend expects thread_id (not thread_slug)
                         user_id: userId,
-                        role: 'user',
-                        content: JSON.stringify([{ type: 'text', text: emailMessageContent }]),
-                        metadata: JSON.stringify({
-                            message_type: 'email',
-                            email_id: emailData.id || emailData.email_id,
-                            has_attachments: processedAttachments.length > 0
-                        })
+                        messages: [{
+                            role: 'user',
+                            content: emailMessageContent,
+                            metadata: {
+                                message_type: 'email',
+                                email_id: emailData.id || emailData.email_id,
+                                has_attachments: processedAttachments.length > 0
+                            }
+                        }]
                     })
                 });
 
@@ -2275,7 +2743,8 @@ export default {
         const from = emailData.from || 'Unknown Sender';
         const subject = emailData.subject || emailData.title || 'No Subject';
         const date = emailData.date || new Date().toISOString();
-        const body = emailData.body || emailData.snippet || 'No content';
+        // ✅ FIX: Check body_text first (from full email fetch), then fallback to body or snippet
+        const body = emailData.body_text || emailData.body || emailData.snippet || 'No content';
 
         let message = `📧 **Email from ${from}**\n`;
         message += `**Subject:** ${subject}\n`;
@@ -2595,16 +3064,18 @@ export default {
             const threadSlug = this.state.emailThreads[emailData.id];
             let threadEmails = [];
 
-            if (threadSlug) {
-                this.log.info(`📬 Email is part of thread: ${threadSlug}`);
-                try {
-                    threadEmails = await this.fetchThreadEmails(threadSlug);
-                    this.log.success(`Fetched ${threadEmails.length} emails in thread`);
-                } catch (threadError) {
-                    this.log.warn('Could not fetch thread emails:', threadError);
-                    // Continue with single email view
-                }
-            }
+            // TODO: Backend endpoint /api/communication-hub/threads/{slug}/emails not yet implemented
+            // Disabling thread email preview until backend is ready
+            // if (threadSlug) {
+            //     this.log.info(`📬 Email is part of thread: ${threadSlug}`);
+            //     try {
+            //         threadEmails = await this.fetchThreadEmails(threadSlug);
+            //         this.log.success(`Fetched ${threadEmails.length} emails in thread`);
+            //     } catch (threadError) {
+            //         this.log.warn('Could not fetch thread emails:', threadError);
+            //         // Continue with single email view
+            //     }
+            // }
 
             // Render preview based on thread status
             let contentHtml = '';
@@ -2754,7 +3225,7 @@ export default {
                         </div>
                     </div>
                     <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;" 
-                            onclick="window.comHub.downloadAttachment('${email.id}', '${attachmentId}', '${this.escapeHtml(filename)}')" 
+                            onclick="window.CommunicationHub.downloadAttachment('${email.id}', '${attachmentId}', '${this.escapeHtml(filename)}')" 
                             title="Download attachment">
                         <i class="fas fa-download"></i> Download
                     </button>
@@ -2775,7 +3246,14 @@ export default {
      */
     renderAISection(email) {
         const threadSlug = this.state.emailThreads?.[email.id];
-        const hasThread = !!threadSlug;
+        // ✅ FIX: Only show if thread exists AND is loaded in ThreadManager
+        let hasThread = false;
+        let threadLocation = null;
+        if (threadSlug && typeof ThreadManager !== 'undefined') {
+            const thread = ThreadManager.threads?.find(t => t.id === threadSlug);
+            hasThread = !!thread;
+            threadLocation = thread?.location || 'unknown';
+        }
 
         if (hasThread) {
             return `
@@ -2788,9 +3266,10 @@ export default {
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                             <i class="fas fa-link" style="color: var(--accent-blue, #3b82f6);"></i>
                             <span style="color: var(--text-primary); font-weight: 500;">Linked to AI Thread</span>
+                            <span style="color: var(--text-secondary); font-size: 11px; margin-left: auto;">${threadLocation}</span>
                         </div>
                         <button class="btn-primary" style="width: 100%; margin-top: 8px;"
-                                onclick="window.comHub.openAIThread('${threadSlug}')">
+                                onclick="window.CommunicationHub.openAIThread('${threadSlug}')">
                             <i class="fas fa-comments"></i> Continue Conversation
                         </button>
                     </div>
@@ -2805,16 +3284,16 @@ export default {
                     AI Assistant
                 </h4>
                 <div class="ai-quick-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button class="ai-action-btn" onclick="window.comHub.handleAIQuickAction('summarize', '${email.id}')">
+                    <button class="ai-action-btn" onclick="window.CommunicationHub.handleAIQuickAction('summarize', '${email.id}')">
                         <i class="fas fa-file-alt"></i> Summarize
                     </button>
-                    <button class="ai-action-btn" onclick="window.comHub.handleAIQuickAction('draft_reply', '${email.id}')">
+                    <button class="ai-action-btn" onclick="window.CommunicationHub.handleAIQuickAction('draft_reply', '${email.id}')">
                         <i class="fas fa-reply"></i> Draft Reply
                     </button>
-                    <button class="ai-action-btn" onclick="window.comHub.handleAIQuickAction('extract_tasks', '${email.id}')">
+                    <button class="ai-action-btn" onclick="window.CommunicationHub.handleAIQuickAction('extract_tasks', '${email.id}')">
                         <i class="fas fa-tasks"></i> Extract Tasks
                     </button>
-                    <button class="ai-action-btn ai-action-primary" onclick="window.comHub.handleAIQuickAction('discuss', '${email.id}')">
+                    <button class="ai-action-btn ai-action-primary" onclick="window.CommunicationHub.handleAIQuickAction('discuss', '${email.id}')">
                         <i class="fas fa-comments"></i> Discuss with AI
                     </button>
                 </div>
@@ -3024,18 +3503,20 @@ export default {
 
         const result = await response.json();
 
-        // Cache the result (5 minute TTL)
-        this.state.emailContentCache[emailId] = result;
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to fetch email');
+        }
+
+        // ✅ FIX: Cache the ACTUAL EMAIL DATA (result.email), not the wrapper
+        const emailData = result.email;
+
+        this.state.emailContentCache[emailId] = emailData;
         setTimeout(() => {
             delete this.state.emailContentCache[emailId];
             this.log.debug(`Cache expired for email: ${emailId}`);
         }, 5 * 60 * 1000);  // 5 minutes
 
-        if (!result.success) {
-            throw new Error(result.error || 'Failed to fetch email');
-        }
-
-        return result.email;
+        return emailData;
     },
 
     /**
@@ -3796,6 +4277,41 @@ export default {
     },
 
     /**
+     * Show warning when no email accounts are connected
+     */
+    showNoAccountsWarning() {
+        const container = document.getElementById('email-table-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div style="padding: 60px 20px; text-align: center; background: var(--bg-card); border-radius: 8px; margin: 20px;">
+                <div style="font-size: 48px; color: #8b949e; margin-bottom: 16px;">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h3 style="color: var(--text-primary); margin-bottom: 12px; font-size: 20px;">
+                    No Email Accounts Connected
+                </h3>
+                <p style="color: #8b949e; margin-bottom: 24px; font-size: 14px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    To view and manage your emails, you need to connect at least one email account (Gmail or Outlook).
+                </p>
+                <button onclick="window.location.href='/oauth'" 
+                        style="padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-plug"></i> Connect Email Account
+                </button>
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #30363d;">
+                    <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">Supported Providers:</p>
+                    <div style="display: flex; gap: 16px; justify-content: center; align-items: center;">
+                        <span style="color: #8b949e; font-size: 13px;"><i class="fab fa-google"></i> Gmail</span>
+                        <span style="color: #8b949e; font-size: 13px;"><i class="fab fa-microsoft"></i> Outlook</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.log.warn('No email accounts connected - showing connection prompt');
+    },
+
+    /**
      * Format date for display
      */
     formatDate(dateString) {
@@ -4086,6 +4602,39 @@ export default {
         }
     },
 
+    /**
+     * Refresh thread data when formatter shows "Syncing..." state
+     * @param {string} emailId - Email ID
+     * @param {string} threadSlug - Thread slug
+     */
+    async refreshThreadData(emailId, threadSlug) {
+        try {
+            this.log.info(`🔄 Refreshing thread data for email ${emailId}, thread ${threadSlug}`);
+
+            // Reload ThreadManager threads from backend
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                await ThreadManager.loadThreadsFromBackend();
+                this.log.success('✅ ThreadManager refreshed');
+            }
+
+            // Force table redraw to update the AI Agent column
+            if (this.state.tabulatorTable) {
+                this.state.tabulatorTable.redraw(true);
+                this.log.success('✅ Table redrawn - agent badge should now appear');
+            }
+
+            if (typeof showToast === 'function') {
+                showToast('✅ Thread data refreshed', 'success', 2000);
+            }
+
+        } catch (error) {
+            this.log.error('Failed to refresh thread data:', error);
+            if (typeof showToast === 'function') {
+                showToast('❌ Refresh failed', 'error', 3000);
+            }
+        }
+    },
+
     showSuccess(message) {
         this.log.success(message);
         if (typeof showToast === 'function') {
@@ -4115,10 +4664,29 @@ export default {
             this.state.threads = [];
             this.state.emailThreads = {};
 
-            // Note: The old generic assignment system is deprecated.
-            // Email-to-thread linkages are now stored directly in sessions.threads
-            // with email_thread_id, email_subject, email_participants columns.
-            // No need to load them here - they're loaded when viewing threads.
+            // ✅ NEW: Sync email assignments from ThreadManager
+            if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
+                this.log.info(`📧 Syncing email assignments from ${ThreadManager.threads.length} threads...`);
+
+                let assignedCount = 0;
+                ThreadManager.threads.forEach(thread => {
+                    // Check if thread has email metadata
+                    const emailId = thread.metadata?.email_thread_id || thread.email_thread_id;
+                    if (emailId) {
+                        this.state.emailThreads[emailId] = thread.id;
+                        assignedCount++;
+                    }
+                });
+
+                this.log.success(`✅ Found ${assignedCount} email-to-thread assignments`);
+
+                // Refresh table to show assignments
+                if (this.state.tabulatorTable) {
+                    this.state.tabulatorTable.redraw();
+                }
+            } else {
+                this.log.warn('⚠️ ThreadManager not available, cannot sync email assignments');
+            }
 
             this.log.info('Thread assignment system ready (email linkages stored in sessions.threads)');
         } catch (error) {
@@ -4128,6 +4696,107 @@ export default {
             this.state.emailThreads = {};
         } finally {
             this.state.loading.threads = false;
+        }
+    },
+
+    /**
+     * ✅ NEW: Subscribe to realtime thread updates
+     * Updates email assignments when threads are created/updated/deleted
+     */
+    subscribeToRealtimeUpdates() {
+        this.log.info('📡 Subscribing to realtime thread updates...');
+
+        // Listen for ThreadManager updates (threads subscription already exists in realtime-subscriptions-init.js)
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.on === 'function') {
+            ThreadManager.on('threads-updated', () => {
+                this.log.info('🔔 Threads updated - syncing email assignments');
+                this.syncEmailAssignments();
+            });
+            this.log.success('✅ Subscribed to ThreadManager updates');
+        } else {
+            this.log.warn('⚠️ ThreadManager events not available - realtime sync disabled');
+        }
+
+        // Also listen for window events (backup mechanism)
+        window.addEventListener('thread-created', (e) => {
+            this.log.info('🔔 Thread created event:', e.detail);
+            this.syncEmailAssignments();
+        });
+
+        window.addEventListener('thread-updated', (e) => {
+            this.log.info('🔔 Thread updated event:', e.detail);
+            this.syncEmailAssignments();
+        });
+
+        this.log.success('✅ Realtime subscriptions active');
+    },
+
+    /**
+     * ✅ FIX #4: Load email-thread mappings from database
+     * 
+     * Restores emailThreads state after page refresh.
+     * Shows which emails are assigned to threads even after reload.
+     * 
+     * Called after loadEmails() to ensure persistence.
+     */
+    async loadEmailThreadMappings() {
+        try {
+            this.log.info('🔄 Loading email-thread mappings from database...');
+
+            const response = await this.api.get(`${this.state.apiBase}/email-thread-mappings`);
+
+            if (response.success && response.mappings) {
+                // Replace in-memory state with database mappings
+                this.state.emailThreads = response.mappings;
+
+                this.log.success(`✅ Loaded ${response.count} email-thread mapping(s) from database`);
+
+                // Redraw table to show agent badges
+                if (this.state.tabulatorTable) {
+                    this.log.info('🔄 Redrawing table to show persisted assignments...');
+                    this.state.tabulatorTable.redraw();
+                }
+            } else {
+                this.log.warn('⚠️ No email-thread mappings found in database');
+                this.state.emailThreads = {};
+            }
+
+        } catch (error) {
+            this.log.error('❌ Failed to load email-thread mappings:', error);
+            // Don't fail - just continue with empty mappings
+            this.state.emailThreads = {};
+        }
+    },
+
+    /**
+     * ✅ NEW: Sync email assignments from ThreadManager
+     * Called when threads are updated in realtime
+     */
+    syncEmailAssignments() {
+        if (!ThreadManager || !ThreadManager.threads) {
+            this.log.warn('⚠️ ThreadManager not available');
+            return;
+        }
+
+        this.log.info('🔄 Syncing email assignments from ThreadManager...');
+
+        const oldCount = Object.keys(this.state.emailThreads).length;
+        this.state.emailThreads = {};
+
+        ThreadManager.threads.forEach(thread => {
+            const emailId = thread.metadata?.email_thread_id || thread.email_thread_id;
+            if (emailId) {
+                this.state.emailThreads[emailId] = thread.id;
+            }
+        });
+
+        const newCount = Object.keys(this.state.emailThreads).length;
+        this.log.success(`✅ Synced ${newCount} email assignments (was ${oldCount})`);
+
+        // Refresh table to show updated assignments
+        if (this.state.tabulatorTable) {
+            this.log.info('🔄 Redrawing table to show new assignments...');
+            this.state.tabulatorTable.redraw();
         }
     },
 

@@ -4,7 +4,11 @@
  * 
  * Created: December 9, 2025
  * Purpose: Display synergy internal docs in modal with preview/download options
+ * 
+ * UPDATED: December 21, 2025 - Integrated with DocumentService
  */
+
+import { documentService } from '../shared/document-service.js';
 
 window.ThreadFilePreview = {
     /**
@@ -14,22 +18,23 @@ window.ThreadFilePreview = {
     async showSynergyFiles(sessionId) {
         try {
             console.log(`[FilePreview] Loading files for session: ${sessionId}`);
-            
-            // Fetch session details with files
+
+            // Fetch session details with files using DocumentService
+            const files = await documentService.fetchSessionDocuments(sessionId);
+
+            // Get session title (simplified - we only need files for display)
             const response = await fetch(`/api/synergy/sessions/${sessionId}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch session: ${response.statusText}`);
             }
-            
             const data = await response.json();
             const session = data.session || data;
-            const files = session.internal_docs || [];
-            
+
             console.log(`[FilePreview] Found ${files.length} files for ${session.title}`);
-            
+
             // Create modal HTML
             const modalHtml = this._buildModal(session, files);
-            
+
             // Inject modal into DOM
             let modalContainer = document.getElementById('synergy-files-modal-container');
             if (!modalContainer) {
@@ -38,29 +43,29 @@ window.ThreadFilePreview = {
                 document.body.appendChild(modalContainer);
             }
             modalContainer.innerHTML = modalHtml;
-            
+
             // Show modal
             const modal = document.getElementById('synergy-files-modal');
             modal.style.display = 'flex';
-            
+
             // Setup event listeners
             this._setupEventListeners(sessionId, files);
-            
+
         } catch (error) {
             console.error('[FilePreview] Error loading files:', error);
             alert(`Failed to load files: ${error.message}`);
         }
     },
-    
+
     /**
      * Build modal HTML
      * @private
      */
     _buildModal(session, files) {
-        const fileListHtml = files.length > 0 
+        const fileListHtml = files.length > 0
             ? files.map((file, index) => this._buildFileCard(file, index)).join('')
             : '<div class="no-files-message">📭 No files in this session yet</div>';
-        
+
         return `
             <div id="synergy-files-modal" class="synergy-files-modal">
                 <div class="synergy-files-modal-content">
@@ -90,7 +95,7 @@ window.ThreadFilePreview = {
             </div>
         `;
     },
-    
+
     /**
      * Build file card HTML
      * @private
@@ -99,7 +104,7 @@ window.ThreadFilePreview = {
         const iconClass = file.doc_type === 'spreadsheet' ? 'fa-table' : 'fa-file-alt';
         const typeLabel = file.doc_type === 'spreadsheet' ? 'Sheet' : 'Doc';
         const updatedDate = file.updated_at ? new Date(file.updated_at).toLocaleDateString() : 'N/A';
-        
+
         return `
             <div class="file-card" data-doc-id="${file.doc_id}">
                 <div class="file-icon">
@@ -133,7 +138,7 @@ window.ThreadFilePreview = {
             </div>
         `;
     },
-    
+
     /**
      * Setup event listeners
      * @private
@@ -146,7 +151,7 @@ window.ThreadFilePreview = {
                 this.closeModal();
             }
         });
-        
+
         // Close on ESC key
         const escHandler = (e) => {
             if (e.key === 'Escape') {
@@ -156,7 +161,7 @@ window.ThreadFilePreview = {
         };
         document.addEventListener('keydown', escHandler);
     },
-    
+
     /**
      * Close modal
      */
@@ -166,41 +171,28 @@ window.ThreadFilePreview = {
             modal.style.display = 'none';
         }
     },
-    
+
     /**
      * Open file in new tab
      */
     openFile(docId) {
         window.open(`/api/synergy/internal-docs/${docId}`, '_blank');
     },
-    
+
     /**
      * Download file
      */
     async downloadFile(docId, title) {
         try {
-            const response = await fetch(`/api/synergy/internal-docs/${docId}/download`);
-            if (!response.ok) {
-                throw new Error('Download failed');
-            }
-            
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${title}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
+            // Use DocumentService for download
+            await documentService.downloadDocument(docId, title);
             console.log(`[FilePreview] Downloaded: ${title}`);
         } catch (error) {
             console.error('[FilePreview] Download error:', error);
             alert(`Failed to download file: ${error.message}`);
         }
     },
-    
+
     /**
      * Copy share link to clipboard
      */
@@ -209,7 +201,7 @@ window.ThreadFilePreview = {
             alert('No share link available');
             return;
         }
-        
+
         try {
             await navigator.clipboard.writeText(shareUrl);
             alert('✅ Share link copied to clipboard!');
@@ -218,7 +210,7 @@ window.ThreadFilePreview = {
             alert('Failed to copy link');
         }
     },
-    
+
     /**
      * Download all files as ZIP
      */
@@ -228,7 +220,7 @@ window.ThreadFilePreview = {
             if (!response.ok) {
                 throw new Error('Download failed');
             }
-            
+
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -238,14 +230,14 @@ window.ThreadFilePreview = {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-            
+
             console.log(`[FilePreview] Downloaded all files for session: ${sessionId}`);
         } catch (error) {
             console.error('[FilePreview] Download all error:', error);
             alert(`Failed to download files: ${error.message}`);
         }
     },
-    
+
     /**
      * Escape HTML to prevent XSS
      * @private
@@ -259,7 +251,7 @@ window.ThreadFilePreview = {
 
 // Add to ThreadManager for easy access
 if (window.ThreadManager) {
-    window.ThreadManager.showSynergyFiles = function(sessionId) {
+    window.ThreadManager.showSynergyFiles = function (sessionId) {
         window.ThreadFilePreview.showSynergyFiles(sessionId);
     };
 }

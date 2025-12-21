@@ -7,6 +7,7 @@
         // - synergy-milestone-renderer.js (milestone UI)
         // - synergy-milestone-interactions.js (interactions)
         // The controller is exposed as window.SynergySidebar singleton
+        // DocumentService is used for all API calls
 
         // ========== SYNERGY BOARD (Main Dashboard) ==========
         // MOVED TO: Line 38707 (complete implementation with all methods)
@@ -20,13 +21,8 @@
                     console.log('[SYNERGY SIDEBAR] Lazy loading sessions with batch endpoint...');
                     const startTime = performance.now();
 
-                    // Use batch endpoint for optimized loading
-                    const response = await fetch(`${API_BASE_URL}/api/synergy/sessions/batch`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const result = await response.json();
+                    // Use documentService for optimized batch loading
+                    const result = await documentService.fetchSessionsBatch();
                     if (result.success) {
                         this.sessions = result.sessions || [];
                         this.sessionsLoaded = true;

@@ -13,6 +13,8 @@
  * - Integrates with ThreadManager for thread linking
  */
 
+import { documentService } from '../shared/document-service.js';
+
 console.log('📦 [SYNERGY] Starting synergyBoard initialization...');
 
 window.synergyBoard = {
@@ -362,18 +364,10 @@ window.synergyBoard = {
                 const loadTime = (endTime - startTime).toFixed(0);
                 console.log(`[SYNERGY] ✅ Loaded ${this.sessions.length} sessions via DataLoader in ${loadTime}ms`);
             } else {
-                // Fallback: Direct API call if DataLoader not available
-                console.warn('[SYNERGY] DataLoader not available, using direct API call');
-                const response = await fetch(`${this.apiBaseUrl}/api/synergy/sessions/batch`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                // Fallback: Direct API call via DocumentService if DataLoader not available
+                console.warn('[SYNERGY] DataLoader not available, using DocumentService');
+                const data = await documentService.fetchSessionsBatch();
 
-                if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
-                }
-
-                const data = await response.json();
                 if (data.success) {
                     this.sessions = data.sessions || [];
                     const endTime = performance.now();
@@ -547,17 +541,11 @@ window.synergyBoard = {
             const synergyIds = [...new Set(threads.filter(t => t.synergy_card_id).map(t => t.synergy_card_id))];
             if (synergyIds.length > 0) {
                 try {
-                    const batchResponse = await fetch(`${this.apiBaseUrl}/api/synergy/sessions/batch?ids=${synergyIds.join(',')}`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    if (batchResponse.ok) {
-                        const batchData = await batchResponse.json();
-                        if (batchData.success && Array.isArray(batchData.sessions)) {
-                            batchData.sessions.forEach(s => {
-                                cache[s.session_id] = s;
-                            });
-                        }
+                    const batchData = await documentService.fetchSessionsBatch(synergyIds);
+                    if (batchData.success && Array.isArray(batchData.sessions)) {
+                        batchData.sessions.forEach(s => {
+                            cache[s.session_id] = s;
+                        });
                     }
                 } catch (err) {
                     console.warn('[SYNERGY] Failed to fetch synergy metadata:', err);

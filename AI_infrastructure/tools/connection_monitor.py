@@ -26,6 +26,13 @@ Configuration:
 
 import os
 import sys
+import io
+
+# Fix Windows console encoding for emoji support in logging
+if sys.platform == 'win32' and sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 import time
 import logging
 import threading
@@ -64,9 +71,9 @@ LOG_DIR.mkdir(exist_ok=True)
 logger = logging.getLogger('connection_monitor')
 logger.setLevel(logging.INFO)
 
-# File handler
+# File handler (with UTF-8 encoding for emoji support)
 log_path = LOG_DIR / 'connection_monitor.log'
-file_handler = logging.FileHandler(log_path)
+file_handler = logging.FileHandler(log_path, encoding='utf-8')
 file_handler.setLevel(logging.INFO)
 file_formatter = logging.Formatter(
     '%(asctime)s | %(levelname)-7s | %(message)s',
@@ -180,14 +187,14 @@ class ConnectionMonitor(threading.Thread):
             
             elif total_leaked > 0:
                 logger.info(
-                    f"ℹ️  Minor leak: {total_leaked} connections "
+                    f"[INFO] Minor leak: {total_leaked} connections "
                     f"(Acquired: {total_acquired}, Returned: {total_returned})"
                 )
             else:
                 # All good - log summary every 10 checks (10 minutes)
                 if len(self.leak_count_history) % 10 == 0:
                     logger.info(
-                        f"✅ Pool healthy: {total_acquired} acquired, "
+                        f"[OK] Pool healthy: {total_acquired} acquired, "
                         f"{total_returned} returned (0 leaks)"
                     )
         

@@ -129,7 +129,7 @@ def generate_embedding(text: str, user_id: int, provider: str = None) -> Optiona
 # ENDPOINT 1: UNIVERSAL SEARCH
 # ============================================================================
 
-@universal_search_bp.route('/search', methods=['POST'])
+@universal_search_bp.route('/search', methods=['GET', 'POST'])
 @require_auth
 def universal_search():
     """
@@ -155,28 +155,53 @@ def universal_search():
     cursor = None  # ✅ Initialize cursor before try
     conn = None    # ✅ Initialize connection before try
     try:
-        user_id = request.user_id
-        data = request.get_json()
+        # Get user_id from request.user (set by @require_auth decorator)
+        user_id = request.user.get('user_id')
         
-        query = data.get('query', '')
-        sources = data.get('sources', [])  # Empty = all sources
-        search_type = data.get('search_type', 'hybrid')  # 'fulltext', 'semantic', 'hybrid'
-        limit = data.get('limit', 10)
+        # Handle both GET and POST
+        if request.method == 'GET':
+            query = request.args.get('query', '')
+            sources = request.args.get('sources', '').split(',') if request.args.get('sources') else []
+            search_type = request.args.get('search_type', 'hybrid')
+            limit = int(request.args.get('limit', 10))
+        else:
+            data = request.get_json() or {}
+            query = data.get('query', '')
+            sources = data.get('sources', [])
+            search_type = data.get('search_type', 'hybrid')
+            limit = data.get('limit', 10)
         
-        # What to search (default: all enabled)
-        include_documents = data.get('include_documents', True)
-        include_messages = data.get('include_messages', True)
-        include_synergy = data.get('include_synergy', True)
-        include_vector_db = data.get('include_vector_db', 'vector-database' in sources)
-        include_supabase = data.get('include_supabase', False)
-        include_gmail = data.get('include_gmail', 'gmail' in sources)
-        include_slack = data.get('include_slack', 'slack' in sources)
-        include_xero = data.get('include_xero', 'xero' in sources)
-        include_inhouseprint = data.get('include_inhouseprint', 'inhouseprint' in sources)
-        include_google_drive = data.get('include_google_drive', 'google-drive' in sources)
-        include_onedrive = data.get('include_onedrive', 'onedrive' in sources)
-        include_sharepoint = data.get('include_sharepoint', 'sharepoint' in sources)
-        include_outlook = data.get('include_outlook', 'outlook' in sources)
+        # What to search (default: all enabled unless sources specified)
+        if request.method == 'GET':
+            # For GET, sources come from query params (array)
+            include_documents = 'documents' in sources or not sources
+            include_messages = 'messages' in sources or not sources
+            include_synergy = 'synergy' in sources or not sources
+            include_vector_db = 'vector-database' in sources
+            include_supabase = False
+            include_gmail = 'gmail' in sources
+            include_slack = 'slack' in sources
+            include_xero = 'xero' in sources
+            include_inhouseprint = 'inhouseprint' in sources
+            include_google_drive = 'google-drive' in sources
+            include_onedrive = 'onedrive' in sources
+            include_sharepoint = 'sharepoint' in sources
+            include_outlook = 'outlook' in sources
+        else:
+            # For POST, use data payload
+            include_documents = data.get('include_documents', True)
+            include_messages = data.get('include_messages', True)
+            include_synergy = data.get('include_synergy', True)
+            include_vector_db = data.get('include_vector_db', 'vector-database' in sources)
+            include_supabase = data.get('include_supabase', False)
+            include_gmail = data.get('include_gmail', 'gmail' in sources)
+            include_slack = data.get('include_slack', 'slack' in sources)
+            include_xero = data.get('include_xero', 'xero' in sources)
+            include_inhouseprint = data.get('include_inhouseprint', 'inhouseprint' in sources)
+            include_google_drive = data.get('include_google_drive', 'google-drive' in sources)
+            include_onedrive = data.get('include_onedrive', 'onedrive' in sources)
+            include_sharepoint = data.get('include_sharepoint', 'sharepoint' in sources)
+            include_outlook = data.get('include_outlook', 'outlook' in sources)
         
         results = {
             'query': query,
@@ -389,6 +414,7 @@ def universal_search():
                     'count': len(synergy),
                     'results': [
                         {
+                            'type': 'session',
                             'id': row[0],
                             'title': row[1],
                             'date': row[2].isoformat() if row[2] else None,
@@ -400,6 +426,58 @@ def universal_search():
                     ]
                 }
                 results['total_results'] += len(synergy)
+                
+                # Also search Synergy Internal Docs (Google Docs/Sheets within Synergy)
+                try:
+                    search_pattern = f'%{query}%'
+                    cursor.execute("""
+                        SELECT 
+                            d.doc_id,
+                            d.title,
+                            d.doc_type,
+                            d.session_id,
+                            s.title as session_title,
+                            d.slug,
+                            d.created_at,
+                            d.updated_at,
+                            CASE 
+                                WHEN d.title ILIKE %s THEN 'title'
+                                ELSE 'content'
+                            END as match_field
+                        FROM synergy_sessions.synergy_internal_docs d
+                        LEFT JOIN synergy_sessions.synergy_sessions s 
+                            ON d.session_id = s.session_id
+                        WHERE (d.title ILIKE %s OR d.content ILIKE %s)
+                        ORDER BY 
+                            CASE WHEN d.title ILIKE %s THEN 1 ELSE 2 END,
+                            d.updated_at DESC
+                        LIMIT %s
+                    """, (search_pattern, search_pattern, search_pattern, search_pattern, limit))
+                    
+                    synergy_docs = cursor.fetchall()
+                    if synergy_docs:
+                        # Append docs to synergy results
+                        for row in synergy_docs:
+                            results['sources']['synergy']['results'].append({
+                                'type': 'document',
+                                'id': row[0],
+                                'doc_id': row[0],
+                                'title': row[1],
+                                'doc_type': row[2],  # 'richtext' or 'spreadsheet'
+                                'session_id': row[3],
+                                'session_title': row[4] or 'Untitled Session',
+                                'slug': row[5],
+                                'date': row[6].isoformat() if row[6] else None,
+                                'updated': row[7].isoformat() if row[7] else None,
+                                'match_field': row[8],
+                                'url': f'/synergy/{row[3]}/doc/{row[0]}'
+                            })
+                        results['sources']['synergy']['count'] += len(synergy_docs)
+                        results['total_results'] += len(synergy_docs)
+                except Exception as doc_error:
+                    print(f"[UNIVERSAL SEARCH] Synergy docs search error: {doc_error}")
+                    # Don't fail entire synergy search if docs search fails
+                
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Synergy search error: {e}")
                 results['sources']['synergy'] = {'error': str(e)}
@@ -514,7 +592,7 @@ def universal_search():
         # ========================================================================
         if include_gmail:
             try:
-                gmail_creds = auth_manager.get_platform_credentials(user_id, 'google')
+                gmail_creds = auth_manager.get_user_google_oauth_credentials(user_id)
                 if gmail_creds:
                     # Call Gmail API
                     response = requests.get(
@@ -529,6 +607,11 @@ def universal_search():
                             'results': gmail_messages[:limit]
                         }
                         results['total_results'] += len(gmail_messages)
+                    else:
+                        print(f"[UNIVERSAL SEARCH] Gmail API error: {response.status_code}")
+                        results['sources']['gmail'] = {'error': f'Gmail API returned {response.status_code}'}
+                else:
+                    results['sources']['gmail'] = {'error': 'Gmail not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Gmail search error: {e}")
                 results['sources']['gmail'] = {'error': str(e)}
@@ -538,7 +621,9 @@ def universal_search():
         # ========================================================================
         if include_slack:
             try:
-                slack_creds = auth_manager.get_platform_credentials(user_id, 'slack')
+                # TODO: Add Slack OAuth credential retrieval
+                # slack_creds = auth_manager.get_user_slack_oauth_credentials(user_id)
+                slack_creds = None  # Not implemented yet
                 if slack_creds:
                     # Call Slack API
                     response = requests.get(
@@ -553,6 +638,10 @@ def universal_search():
                             'results': slack_messages[:limit]
                         }
                         results['total_results'] += len(slack_messages)
+                    else:
+                        results['sources']['slack'] = {'error': f'Slack API returned {response.status_code}'}
+                else:
+                    results['sources']['slack'] = {'error': 'Slack not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Slack search error: {e}")
                 results['sources']['slack'] = {'error': str(e)}
@@ -741,7 +830,7 @@ def universal_search():
         # ========================================================================
         if include_google_drive:
             try:
-                google_creds = auth_manager.get_platform_credentials(user_id, 'google')
+                google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
                 if google_creds and google_creds.get('access_token'):
                     # Search Google Drive using Drive API v3
                     drive_query = f"name contains '{query}' or fullText contains '{query}'"
@@ -776,9 +865,10 @@ def universal_search():
                         }
                         results['total_results'] += len(formatted_results)
                     else:
-                        results['sources']['google-drive'] = {'error': f'Drive API error: {response.status_code}'}
+                        print(f"[UNIVERSAL SEARCH] Drive API error: {response.status_code}")
+                        results['sources']['google-drive'] = {'error': f'Drive API returned {response.status_code}'}
                 else:
-                    results['sources']['google-drive'] = {'error': 'Google credentials not found'}
+                    results['sources']['google-drive'] = {'error': 'Google Drive not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Google Drive search error: {e}")
                 results['sources']['google-drive'] = {'error': str(e)}
@@ -788,7 +878,7 @@ def universal_search():
         # ========================================================================
         if include_onedrive:
             try:
-                microsoft_creds = auth_manager.get_platform_credentials(user_id, 'microsoft')
+                microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
                 if microsoft_creds and microsoft_creds.get('access_token'):
                     # Search OneDrive using Microsoft Graph API
                     response = requests.get(
@@ -819,9 +909,10 @@ def universal_search():
                         }
                         results['total_results'] += len(formatted_results)
                     else:
-                        results['sources']['onedrive'] = {'error': f'Graph API error: {response.status_code}'}
+                        print(f"[UNIVERSAL SEARCH] OneDrive API error: {response.status_code}")
+                        results['sources']['onedrive'] = {'error': f'Graph API returned {response.status_code}'}
                 else:
-                    results['sources']['onedrive'] = {'error': 'Microsoft credentials not found'}
+                    results['sources']['onedrive'] = {'error': 'OneDrive not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] OneDrive search error: {e}")
                 results['sources']['onedrive'] = {'error': str(e)}
@@ -831,7 +922,7 @@ def universal_search():
         # ========================================================================
         if include_sharepoint:
             try:
-                microsoft_creds = auth_manager.get_platform_credentials(user_id, 'microsoft')
+                microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
                 if microsoft_creds and microsoft_creds.get('access_token'):
                     # First get the user's SharePoint sites
                     sites_response = requests.get(
@@ -877,9 +968,10 @@ def universal_search():
                         }
                         results['total_results'] += len(sharepoint_results)
                     else:
-                        results['sources']['sharepoint'] = {'error': f'Unable to access SharePoint sites: {sites_response.status_code}'}
+                        print(f"[UNIVERSAL SEARCH] SharePoint sites API error: {sites_response.status_code}")
+                        results['sources']['sharepoint'] = {'error': f'Graph API returned {sites_response.status_code}'}
                 else:
-                    results['sources']['sharepoint'] = {'error': 'Microsoft credentials not found'}
+                    results['sources']['sharepoint'] = {'error': 'SharePoint not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] SharePoint search error: {e}")
                 results['sources']['sharepoint'] = {'error': str(e)}
@@ -889,7 +981,7 @@ def universal_search():
         # ========================================================================
         if include_outlook:
             try:
-                microsoft_creds = auth_manager.get_platform_credentials(user_id, 'microsoft')
+                microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
                 if microsoft_creds and microsoft_creds.get('access_token'):
                     # Search Outlook emails using Microsoft Graph API
                     response = requests.get(
@@ -927,9 +1019,10 @@ def universal_search():
                         }
                         results['total_results'] += len(formatted_results)
                     else:
-                        results['sources']['outlook'] = {'error': f'Graph API error: {response.status_code}'}
+                        print(f"[UNIVERSAL SEARCH] Outlook API error: {response.status_code}")
+                        results['sources']['outlook'] = {'error': f'Graph API returned {response.status_code}'}
                 else:
-                    results['sources']['outlook'] = {'error': 'Microsoft credentials not found'}
+                    results['sources']['outlook'] = {'error': 'Outlook not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Outlook search error: {e}")
                 results['sources']['outlook'] = {'error': str(e)}

@@ -151,7 +151,7 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for compact thread card with hover expand
      */
     compactCard(thread, location, agent, meta, slug, synergyMeta = null, currentLocation = null) {
-        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyDisplay = thread.synergy_card_name || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
 
         // Use different header based on location
@@ -262,7 +262,7 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for full thread card
      */
     fullCard(thread, location, agent, meta, slug, synergyMeta = null) {
-        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyDisplay = thread.synergy_card_name || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
 
         return `
@@ -582,7 +582,7 @@ window.ThreadCardTemplates = {
      * Fallback badge rendering (used during initialization)
      * Maintains backward compatibility while ThreadCardRegistry loads
      * 
-     * UPDATED: Always shows all 4 placeholder pills (Synergy, Workflow, Automation, Internal Doc)
+     * UPDATED: Always shows all 4 placeholder pills (Synergy, Workflow, Automation, Synergy Doc)
      * for Thread History and Agent columns, matching Prime panel behavior
      * 
      * @param {Object} thread - Thread object
@@ -591,7 +591,7 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for UI links row
      */
     _fallbackBadgeRendering(thread, location, synergyMeta = null) {
-        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyDisplay = thread.synergy_card_name || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
 
         const safeEscape = window.safeEscape || ((str) => String(str).replace(/[&<>"']/g, ''));
@@ -710,7 +710,7 @@ window.ThreadCardTemplates = {
                     </div>
                 `}
                 
-                <!-- Internal Docs/Sheets (AMBER pill) - Always visible -->
+                <!-- Synergy Docs/Sheets (AMBER pill) - Always visible -->
                 ${thread.internal_doc_id ? `
                     <div class="thread-item-internal-doc thread-item-internal-doc-linked" data-internal-doc-id="${safeEscape(thread.internal_doc_id)}">
                         <button class="internal-doc-badge" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 8px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;"
@@ -733,17 +733,17 @@ window.ThreadCardTemplates = {
                     </div>
                 ` : `
                     <div class="thread-item-internal-doc thread-item-internal-doc-unlinked" onclick="event.stopPropagation(); window.InternalDocsThreadIntegration.openLinkModal('${thread.id}')" 
-                        title="Link thread to Internal Doc/Sheet"
+                        title="Link thread to Synergy Doc/Sheet"
                         style="border: 2px dashed rgba(245, 158, 11, 0.4); color: #f59e0b; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: rgba(245, 158, 11, 0.05); display: flex; align-items: center; gap: 8px;"
                         onmouseover="this.style.borderColor='rgba(245, 158, 11, 0.6)'; this.style.background='rgba(245, 158, 11, 0.1)'"
                         onmouseout="this.style.borderColor='rgba(245, 158, 11, 0.4)'; this.style.background='rgba(245, 158, 11, 0.05)'">
                         <i class="fas fa-file-alt"></i>
-                        <span>Link Internal Doc</span>
+                        <span>Link Synergy Doc</span>
                     </div>
                 `}
 
-                <!-- Email Thread (TEAL pill) - Shows when thread has email data -->
-                ${thread.email_thread_id ? `
+                <!-- Email Thread (TEAL pill) - Shows when thread has email data AND is assigned to an agent -->
+                ${thread.email_thread_id && thread.location && (thread.location.startsWith('agent-') || thread.location === 'prime' || thread.location === 'prime-loaded') ? `
                     <div class="thread-item-email thread-item-email-linked" data-email-id="${safeEscape(thread.email_thread_id)}">
                         <button class="email-badge" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); color: white; border: none; padding: 8px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;"
                             onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(20, 184, 166, 0.4)'"
@@ -899,7 +899,7 @@ window.ThreadCardTemplates = {
      */
     _synergyRow(thread, synergyMeta) {
         const safeEscape = window.safeEscape || ((str) => String(str).replace(/[&<>"']/g, ''));
-        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyDisplay = thread.synergy_card_name || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
 
         // File count badge (Gap #1 fix)

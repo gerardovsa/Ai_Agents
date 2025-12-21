@@ -57,21 +57,43 @@ window.ThreadSynergyIntegration = {
         console.log(`🔗 [THREAD-SYNERGY] Linking thread ${threadId} to Synergy ${synergyId}`);
 
         try {
-            // Step 1: Update thread with Synergy link
-            if (window.ThreadManager) {
-                await window.ThreadManager.syncThreadLocationEverywhere(
-                    threadId,
-                    window.ThreadManager.threads.find(t => t.id === threadId)?.agent || 'main',
-                    {
-                        addLinks: ['synergy'],
-                        synergySessionId: synergyId,
-                        synergySessionName: synergyName
-                    }
-                );
+            // Step 1: Update thread object in memory
+            const thread = window.ThreadManager?.threads?.find(t => t.id === threadId);
+            if (thread) {
+                thread.synergy_card_id = synergyId;
+                thread.synergy_card_name = synergyName;
+                thread.updated = new Date().toISOString();
             }
 
-            // Step 2: Update Synergy session with thread link
+            // Step 2: Persist to database via /api/threads/upsert
             const userId = (window.UserAuth?.user?.id || window.UserAuth?.user?.user_id) || 1;
+            const apiBaseUrl = window.API_BASE_URL || 'http://localhost:5001';
+
+            console.log(`[THREAD-SYNERGY] Saving synergy_card_id to database...`);
+            const upsertResponse = await fetch(`${apiBaseUrl}/api/threads/upsert`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${window.UserAuth?.token || localStorage.getItem('auth_token') || ''}`
+                },
+                body: JSON.stringify({
+                    thread_id: threadId,
+                    user_id: userId,
+                    title: thread?.title || thread?.name || 'Untitled Thread',
+                    location: thread?.location || 'prime',
+                    tags: thread?.tags || [],
+                    synergy_card_id: synergyId  // ✅ CRITICAL: Save synergy_card_id to database
+                })
+            });
+
+            const upsertData = await upsertResponse.json();
+            if (!upsertData.success) {
+                throw new Error(upsertData.error || 'Failed to save synergy_card_id to database');
+            }
+
+            console.log(`✅ [THREAD-SYNERGY] synergy_card_id saved to database`);
+
+            // Step 3: Update Synergy session with thread link (bidirectional)
             const response = await fetch(`${this.apiBaseUrl}/api/synergy/${synergyId}/link-thread`, {
                 method: 'POST',
                 headers: {
@@ -90,20 +112,22 @@ window.ThreadSynergyIntegration = {
                 throw new Error(result.error || 'Failed to link thread to Synergy');
             }
 
-            console.log('✅ [THREAD-SYNERGY] Thread linked successfully');
+            console.log('✅ [THREAD-SYNERGY] Bidirectional link established (thread ↔ synergy)');
 
-            // Step 3: Show success notification
+            // Step 4: Show success notification
             if (window.showNotification) {
                 window.showNotification('Thread linked to Synergy card', 'success');
             }
 
-            // Step 4: Refresh UI
+            // Step 5: Refresh UI
             if (window.synergyBoard) {
                 await window.synergyBoard.refreshCardThreads?.(synergyId);
             }
 
-            // Step 5: Refresh thread card display
-            if (window.ThreadManager?.renderThreads) {
+            // Step 6: Refresh thread card display to show synergy badge
+            if (window.ThreadManager?.refreshAllThreadInfoCards) {
+                window.ThreadManager.refreshAllThreadInfoCards(threadId);
+            } else if (window.ThreadManager?.renderThreads) {
                 window.ThreadManager.renderThreads();
             }
 

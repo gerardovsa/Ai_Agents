@@ -11,6 +11,7 @@
  * - synergy-card-renderer.js (card rendering)
  * - synergy-milestone-renderer.js (milestone rendering)
  * - synergy-sidebar.css (styling)
+ * - document-service.js (API operations)
  * 
  * EXPORTS:
  * - window.SynergySidebar (main singleton)
@@ -27,7 +28,7 @@ class SynergySidebarController {
         this.currentView = 'list'; // 'list' or 'pinned'
         this.currentFilter = 'all'; // 'all', 'backlog', 'in_progress', 'review', 'done'
         this.searchQuery = '';
-        
+
         // Fix #3: Track width state - Map<sessionId, 'wide' | 'extra-wide' | null>
         this.widthExpandedSessions = new Map();
         this.loadWidthState();
@@ -46,7 +47,7 @@ class SynergySidebarController {
 
         console.log('[SYNERGY SIDEBAR CONTROLLER] Initialized');
     }
-    
+
     /**
      * Fix #3: Load width state from localStorage
      */
@@ -62,7 +63,7 @@ class SynergySidebarController {
             console.error('[SYNERGY SIDEBAR] Error loading width state:', error);
         }
     }
-    
+
     /**
      * Fix #3: Save width state to localStorage
      */
@@ -74,7 +75,7 @@ class SynergySidebarController {
             console.error('[SYNERGY SIDEBAR] Error saving width state:', error);
         }
     }
-    
+
     /**
      * Fix #3: Set width state for a session
      */
@@ -86,7 +87,7 @@ class SynergySidebarController {
         }
         this.saveWidthState();
     }
-    
+
     /**
      * Fix #3: Get width state for a session
      */
@@ -116,15 +117,9 @@ class SynergySidebarController {
         try {
             console.log('[SYNERGY SIDEBAR] Loading sessions...');
 
-            // Use /sessions/batch endpoint to get sessions with counts
-            const response = await fetch(`${this.API_BASE_URL}/api/synergy/sessions/batch`);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            this.sessions = data.sessions || [];
+            // Use documentService for batch session fetching
+            const data = await documentService.fetchSessionsBatch();
+            this.sessions = data.sessions || data || [];
 
             console.log(`[SYNERGY SIDEBAR] Loaded ${this.sessions.length} sessions`);
 

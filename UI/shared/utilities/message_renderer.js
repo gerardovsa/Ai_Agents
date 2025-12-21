@@ -214,9 +214,17 @@ const UnifiedMessageRenderer = (function () {
         actionsDiv.appendChild(popOutBtn);
 
         // Assemble left group
-        leftGroup.appendChild(avatar);
-        leftGroup.appendChild(toggleBtn);
-        leftGroup.appendChild(actionsDiv);
+        // For user messages, avatar should be LAST (rightmost)
+        // For AI messages, avatar should be FIRST (leftmost)
+        if (role === 'user') {
+            leftGroup.appendChild(toggleBtn);
+            leftGroup.appendChild(actionsDiv);
+            leftGroup.appendChild(avatar); // Avatar LAST for user
+        } else {
+            leftGroup.appendChild(avatar); // Avatar FIRST for AI
+            leftGroup.appendChild(toggleBtn);
+            leftGroup.appendChild(actionsDiv);
+        }
 
         // Right group: Timestamp
         const rightGroup = document.createElement('div');

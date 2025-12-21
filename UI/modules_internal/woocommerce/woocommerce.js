@@ -156,7 +156,47 @@ function renderOrdersTable(orders, container) {
         movableColumns: true,
         resizableColumns: true,
         placeholder: "No orders found",
+        selectable: true,
+        selectableRangeMode: "click",
         columns: [
+            {
+                formatter: "rowSelection",
+                titleFormatter: "rowSelection",
+                hozAlign: "center",
+                headerSort: false,
+                width: 40,
+                frozen: true,
+                cellClick: function (e, cell) {
+                    cell.getRow().toggleSelect();
+                }
+            },
+            {
+                title: "#",
+                formatter: "rownum",
+                hozAlign: "center",
+                width: 50,
+                frozen: true
+            },
+            {
+                title: "Tag",
+                field: "_tag",
+                width: 60,
+                hozAlign: "center",
+                headerSort: false,
+                frozen: true,
+                formatter: function (cell) {
+                    const rowId = cell.getRow().getData().id;
+                    const tags = JSON.parse(localStorage.getItem('wc_order_tags') || '{}');
+                    const tag = tags[rowId] || 'none';
+                    const colors = {
+                        green: '#10b981',
+                        orange: '#f59e0b',
+                        red: '#ef4444',
+                        none: '#6b7280'
+                    };
+                    return `<button onclick="wcToggleTag(${rowId}, event)" style="background: ${colors[tag]}; border: none; padding: 6px; border-radius: 4px; cursor: pointer; width: 40px; height: 28px;" title="Tag: ${tag}"><i class="fas fa-tag" style="color: white; font-size: 12px;"></i></button>`;
+                }
+            },
             {
                 title: "Order ID",
                 field: "id",
@@ -336,6 +376,37 @@ function renderOrdersTable(orders, container) {
         ]
     });
 
+    // Row selection event
+    window.wooOrdersTable.on("rowSelectionChanged", function(data, rows) {
+        const count = rows.length;
+        console.log(`Selected ${count} orders`);
+        // Update bulk action button
+        const bulkBtn = document.getElementById('wc-bulk-actions-btn');
+        if (bulkBtn) {
+            bulkBtn.innerHTML = `<i class="fas fa-tasks"></i> Bulk Actions${count > 0 ? ' (' + count + ')' : ''}`;
+            bulkBtn.disabled = count === 0;
+            bulkBtn.style.opacity = count > 0 ? '1' : '0.5';
+        }
+        // Update selection counter
+        const counter = document.getElementById('wc-selection-count');
+        if (counter) {
+            counter.textContent = `${count} selected`;
+            counter.style.color = count > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)';
+            counter.style.fontWeight = count > 0 ? '600' : '400';
+        }
+    });
+
+    // Double-click cell to show popup
+    window.wooOrdersTable.on("cellDblClick", function(e, cell) {
+        const field = cell.getColumn().getField();
+        const value = cell.getValue();
+        const rowData = cell.getRow().getData();
+        wcShowCellPopup(field, value, rowData);
+    });
+
+    // Load existing tags
+    wcApplyRowTags();
+
     console.log('Tabulator table initialized successfully');
 }
 
@@ -362,6 +433,206 @@ function wcExportOrders() {
         showNotification('Orders exported to Excel successfully', 'success');
     } else {
         showNotification('No orders loaded to export', 'error');
+    }
+}
+
+// Row Tagging System
+function wcToggleTag(orderId, event) {
+    event.stopPropagation();
+    const tags = JSON.parse(localStorage.getItem('wc_order_tags') || '{}');
+    const current = tags[orderId] || 'none';
+    const cycle = { none: 'green', green: 'orange', orange: 'red', red: 'none' };
+    tags[orderId] = cycle[current];
+    localStorage.setItem('wc_order_tags', JSON.stringify(tags));
+    
+    // Refresh table to show new tag
+    if (window.wooOrdersTable) {
+        window.wooOrdersTable.redraw();
+        wcApplyRowTags();
+    }
+}
+
+function wcApplyRowTags() {
+    const tags = JSON.parse(localStorage.getItem('wc_order_tags') || '{}');
+    if (!window.wooOrdersTable) return;
+    
+    window.wooOrdersTable.getRows().forEach(row => {
+        const orderId = row.getData().id;
+        const tag = tags[orderId];
+        const element = row.getElement();
+        
+        // Remove all tag classes
+        element.classList.remove('tagged-row-green', 'tagged-row-orange', 'tagged-row-red');
+        
+        // Add new tag class
+        if (tag && tag !== 'none') {
+            element.classList.add(`tagged-row-${tag}`);
+        }
+    });
+}
+
+// Cell Popup Modal
+function wcShowCellPopup(field, value, rowData) {
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'cell-popup';
+    modal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        max-width: 800px;
+        max-height: 80vh;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-default);
+        border-radius: 12px;
+        padding: var(--space-5);
+        z-index: 10000;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        overflow-y: auto;
+    `;
+
+    // Format value for display
+    let displayValue = value;
+    if (typeof value === 'object') {
+        displayValue = JSON.stringify(value, null, 2);
+    } else if (field === 'line_items' && Array.isArray(value)) {
+        displayValue = value.map(item => `${item.quantity} x ${item.name} - ${item.sku || 'N/A'}`).join('\n');
+    }
+
+    modal.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); border-bottom: 2px solid var(--border-default); padding-bottom: var(--space-3);">
+            <h3 style="color: var(--text-primary); font-size: 18px; font-weight: 600;">
+                <i class="fas fa-info-circle" style="color: var(--accent-primary); margin-right: 8px;"></i>
+                Order #${rowData.id} - ${field.replace(/_/g, ' ').toUpperCase()}
+            </h3>
+            <button onclick="wcCloseCellPopup()" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 24px; padding: 0; width: 32px; height: 32px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div style="background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 8px; padding: var(--space-4); white-space: pre-wrap; font-family: monospace; color: var(--text-primary); font-size: 14px; line-height: 1.6; max-height: 60vh; overflow-y: auto;">
+            ${displayValue || 'No data'}
+        </div>
+        <div style="margin-top: var(--space-4); display: flex; gap: var(--space-2);">
+            <button onclick="navigator.clipboard.writeText('${String(displayValue).replace(/'/g, "\\'")}'')" style="padding: 10px 20px; background: var(--accent-primary); border: none; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+            <button onclick="wcCloseCellPopup()" style="padding: 10px 20px; background: var(--bg-tertiary); border: none; border-radius: 6px; color: var(--text-primary); font-weight: 600; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    `;
+
+    // Add backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'cell-popup-backdrop';
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+    `;
+    backdrop.onclick = wcCloseCellPopup;
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+}
+
+function wcCloseCellPopup() {
+    document.querySelectorAll('.cell-popup, .cell-popup-backdrop').forEach(el => el.remove());
+}
+
+// Bulk Actions
+function wcShowBulkActions() {
+    if (!window.wooOrdersTable) return;
+    const selected = window.wooOrdersTable.getSelectedRows();
+    if (selected.length === 0) {
+        showNotification('No orders selected', 'info');
+        return;
+    }
+
+    const orderIds = selected.map(row => row.getData().id).join(', ');
+    const actions = [
+        { label: 'Export Selected', icon: 'fa-download', action: 'export' },
+        { label: 'Mark as Processing', icon: 'fa-cog', action: 'processing' },
+        { label: 'Mark as Completed', icon: 'fa-check', action: 'completed' },
+        { label: 'Tag Green', icon: 'fa-tag', action: 'tag-green' },
+        { label: 'Tag Orange', icon: 'fa-tag', action: 'tag-orange' },
+        { label: 'Tag Red', icon: 'fa-tag', action: 'tag-red' }
+    ];
+
+    let html = `<div style="margin-bottom: var(--space-3); padding: var(--space-3); background: var(--bg-tertiary); border-radius: 6px; color: var(--text-primary);">
+        <strong>${selected.length} orders selected:</strong> #${orderIds}
+    </div><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2);">`;
+
+    actions.forEach(act => {
+        html += `<button onclick="wcExecuteBulkAction('${act.action}')" style="padding: 12px; background: var(--bg-hover); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.borderColor='var(--border-default)'">
+            <i class="fas ${act.icon}" style="margin-right: 8px; color: var(--accent-primary);"></i>${act.label}
+        </button>`;
+    });
+
+    html += `</div>`;
+    
+    showModalDialog('Bulk Actions', html);
+}
+
+function wcExecuteBulkAction(action) {
+    if (!window.wooOrdersTable) return;
+    const selected = window.wooOrdersTable.getSelectedRows();
+    const tags = JSON.parse(localStorage.getItem('wc_order_tags') || '{}');
+
+    selected.forEach(row => {
+        const orderId = row.getData().id;
+        
+        if (action.startsWith('tag-')) {
+            const color = action.replace('tag-', '');
+            tags[orderId] = color;
+        } else if (action === 'export') {
+            // Export selected rows
+            window.wooOrdersTable.download("xlsx", "woocommerce-selected-orders.xlsx", {
+                sheetName: "Selected Orders"
+            }, "selected");
+        }
+    });
+
+    if (action.startsWith('tag-')) {
+        localStorage.setItem('wc_order_tags', JSON.stringify(tags));
+        window.wooOrdersTable.redraw();
+        wcApplyRowTags();
+        showNotification(`Tagged ${selected.length} orders`, 'success');
+    }
+
+    closeModal();
+}
+
+// Column Visibility Toggle
+function wcToggleColumn(field) {
+    if (!window.wooOrdersTable) return;
+    const column = window.wooOrdersTable.getColumn(field);
+    if (column) {
+        if (column.isVisible()) {
+            column.hide();
+            showNotification(`${field} column hidden`, 'info');
+        } else {
+            column.show();
+            showNotification(`${field} column shown`, 'info');
+        }
+    }
+}
+
+// Clear All Tags
+function wcClearAllTags() {
+    if (confirm('Clear all order tags?')) {
+        localStorage.removeItem('wc_order_tags');
+        if (window.wooOrdersTable) {
+            window.wooOrdersTable.redraw();
+            wcApplyRowTags();
+        }
+        showNotification('All tags cleared', 'success');
     }
 }
 

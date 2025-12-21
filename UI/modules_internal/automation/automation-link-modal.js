@@ -48,20 +48,30 @@ ThreadManager.openAutomationLinkModal = async function (threadId) {
         (threadCard.querySelector('.thread-title')?.textContent || 'Unknown Thread') :
         'Unknown Thread';
 
-    // Fetch available automations
+    // Fetch available automations (visual workflows from automation_workflows table)
     let automations = [];
     try {
-        const response = await fetch('/api/visual-automations', {
+        const response = await fetch('/api/automation/list', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
 
         if (response.ok) {
             const data = await response.json();
-            automations = data.automations || [];
+            // Handle different response formats
+            if (Array.isArray(data)) {
+                automations = data;
+            } else if (data && data.success && Array.isArray(data.automations)) {
+                automations = data.automations;
+            } else if (data && Array.isArray(data.automations)) {
+                automations = data.automations;
+            }
             window._automations = automations; // Store for filtering
+            console.log('[Automation Modal] Fetched:', automations.length, 'automations');
+        } else {
+            console.error('[Automation Modal] API error:', response.status, response.statusText);
         }
     } catch (error) {
-        console.error('Failed to fetch automations:', error);
+        console.error('[Automation Modal] Failed to fetch automations:', error);
     }
 
     // Generate modal HTML
@@ -159,9 +169,19 @@ ThreadManager.openAutomationLinkModal = async function (threadId) {
     const existingModal = document.querySelector('.modal-overlay');
     if (existingModal) {
         existingModal.remove();
+        console.log('[Automation Modal] Removed existing modal');
     }
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+    console.log('[Automation Modal] ✅ Modal HTML inserted into DOM');
+
+    // Verify modal was added
+    const addedModal = document.querySelector('.automation-link-modal');
+    if (addedModal) {
+        console.log('[Automation Modal] ✅ Modal element found in DOM');
+    } else {
+        console.error('[Automation Modal] ❌ Modal element NOT found after insertion!');
+    }
 };
 
 /**

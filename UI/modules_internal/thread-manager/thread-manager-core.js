@@ -82,6 +82,100 @@ const ThreadManager = {
     autoSaveInterval: null,
     _initialized: false,  // ✅ NEW: Flag to prevent duplicate initialization
     _initializationPromise: null,  // ✅ NEW: Track ongoing initialization
+    _eventListeners: {},  // ✅ NEW: Event emitter system for realtime updates
+
+    // ==================== REALTIME UPDATES ====================
+    /**
+     * ✅ NEW: Handle realtime thread updates from Supabase
+     * Called by realtime-subscriptions-init.js when threads change
+     * @param {Object} payload - Supabase realtime payload
+     */
+    handleRealtimeUpdate(payload) {
+        console.log('🔔 [ThreadManager] Realtime update received:', payload);
+
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+
+        try {
+            switch (eventType) {
+                case 'INSERT':
+                    // New thread created
+                    if (newRecord && !this.threads.find(t => t.id === newRecord.id)) {
+                        console.log('➕ [ThreadManager] Adding new thread:', newRecord.title || newRecord.id);
+                        this.threads.push(newRecord);
+                    }
+                    break;
+
+                case 'UPDATE':
+                    // Thread updated
+                    const index = this.threads.findIndex(t => t.id === newRecord.id);
+                    if (index !== -1) {
+                        console.log('🔄 [ThreadManager] Updating thread:', newRecord.title || newRecord.id);
+                        this.threads[index] = { ...this.threads[index], ...newRecord };
+                    } else {
+                        // Thread not in list yet, add it
+                        console.log('➕ [ThreadManager] Adding updated thread:', newRecord.title || newRecord.id);
+                        this.threads.push(newRecord);
+                    }
+                    break;
+
+                case 'DELETE':
+                    // Thread deleted
+                    if (oldRecord) {
+                        const deleteIndex = this.threads.findIndex(t => t.id === oldRecord.id);
+                        if (deleteIndex !== -1) {
+                            console.log('➖ [ThreadManager] Removing thread:', this.threads[deleteIndex].title || oldRecord.id);
+                            this.threads.splice(deleteIndex, 1);
+                        }
+                    }
+                    break;
+            }
+
+            // Emit event for subscribers (like Communication Hub)
+            this.emit('threads-updated', { eventType, thread: newRecord || oldRecord });
+
+        } catch (error) {
+            console.error('❌ [ThreadManager] Error handling realtime update:', error);
+        }
+    },
+
+    /**
+     * ✅ NEW: Event emitter - Register listener
+     * @param {string} event - Event name
+     * @param {Function} callback - Callback function
+     */
+    on(event, callback) {
+        if (!this._eventListeners[event]) {
+            this._eventListeners[event] = [];
+        }
+        this._eventListeners[event].push(callback);
+        console.log(`📡 [ThreadManager] Listener registered for "${event}"`);
+    },
+
+    /**
+     * ✅ NEW: Event emitter - Remove listener
+     * @param {string} event - Event name
+     * @param {Function} callback - Callback function to remove
+     */
+    off(event, callback) {
+        if (!this._eventListeners[event]) return;
+        this._eventListeners[event] = this._eventListeners[event].filter(cb => cb !== callback);
+    },
+
+    /**
+     * ✅ NEW: Event emitter - Emit event
+     * @param {string} event - Event name
+     * @param {*} data - Data to pass to listeners
+     */
+    emit(event, data) {
+        if (!this._eventListeners[event]) return;
+        this._eventListeners[event].forEach(callback => {
+            try {
+                callback(data);
+            } catch (error) {
+                console.error(`❌ [ThreadManager] Error in "${event}" listener:`, error);
+            }
+        });
+    },
 
     /**
      * Sanitize thread ID by removing whitespace and newlines

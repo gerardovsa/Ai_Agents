@@ -4,6 +4,8 @@
  * Handles all Synergy session linking, creation, and management
  */
 
+import { documentService } from '../shared/document-service.js';
+
 window.ThreadManagerSynergy = {
     /**
      * Create a new Synergy session and link it to the thread in one action
@@ -167,14 +169,8 @@ window.ThreadManagerSynergy = {
         // Fetch all Synergy sessions with counts
         let synergySessions = [];
         try {
-            // Use /sessions/batch endpoint to get sessions with milestone/task/doc counts
-            let resp = await fetch(`${this.apiBaseUrl}/api/synergy/sessions/batch`);
-            if (!resp.ok) {
-                // Fallback to basic sessions endpoint
-                resp = await fetch(`${this.apiBaseUrl}/api/synergy/sessions`);
-            }
-
-            const data = await resp.json();
+            // Use documentService for batch session fetching with automatic fallback
+            const data = await documentService.fetchSessionsBatch();
             console.log('[openSynergySyncModal] Fetched sessions:', data);
 
             // Handle multiple response formats
@@ -319,7 +315,7 @@ window.ThreadManagerSynergy = {
             const tasksDone = session.tasks_done || 0;
             const totalSubtasks = session.subtask_count || 0;
             const subtasksDone = session.subtasks_done || 0;
-            
+
             // Count docs and links
             let docsCount = session.internal_docs_count || 0;
             if (session.documents) {
@@ -327,7 +323,7 @@ window.ThreadManagerSynergy = {
                     (typeof session.documents === 'string' ? JSON.parse(session.documents || '[]') : []);
                 docsCount += docs.length;
             }
-            const linksCount = session.links ? (Array.isArray(session.links) ? session.links.length : 
+            const linksCount = session.links ? (Array.isArray(session.links) ? session.links.length :
                 (typeof session.links === 'string' ? JSON.parse(session.links || '[]').length : 0)) : 0;
 
             return `

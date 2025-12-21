@@ -263,10 +263,15 @@ class AutomationScheduler:
     
     def _execute_task(self, task_id: str):
         """Execute a scheduled task"""
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
+        conn = None
+        cursor = None
+        execution_id = None
+        start_time = datetime.now()
         
         try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
             # Get task details
             cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
             task = cursor.fetchone()
@@ -285,7 +290,6 @@ class AutomationScheduler:
             execution_id = cursor.lastrowid
             conn.commit()
             
-            start_time = datetime.now()
             # Execute based on action type
             action_type = task['action_type']
             result = None
@@ -327,26 +331,31 @@ class AutomationScheduler:
             end_time = datetime.now()
             duration_ms = int((end_time - start_time).total_seconds() * 1000)
             
-            cursor.execute('''
-                UPDATE task_executions 
-                SET status = 'failed', completed_at = %s, error_message = %s, execution_duration_ms = %s
-                WHERE execution_id = %s
-            ''', (end_time, str(e), duration_ms, execution_id))
+            try:
+                if cursor and execution_id:
+                    cursor.execute('''
+                        UPDATE task_executions 
+                        SET status = 'failed', completed_at = %s, error_message = %s, execution_duration_ms = %s
+                        WHERE execution_id = %s
+                    ''', (end_time, str(e), duration_ms, execution_id))
+                    
+                    # Update task failure count
+                    cursor.execute('''
+                        UPDATE scheduled_tasks 
+                        SET failure_count = failure_count + 1, last_execution_time = %s
+                        WHERE task_id = %s
+                    ''', (end_time, task_id))
+                    
+                    conn.commit()
+            except Exception as commit_error:
+                logger.error(f"Failed to record task failure: {commit_error}")
             
-            # Update task failure count
-            cursor.execute('''
-                UPDATE scheduled_tasks 
-                SET failure_count = failure_count + 1, last_execution_time = %s
-                WHERE task_id = %s
-            ''', (end_time, task_id))
-            
-            conn.commit()
-            logger.error(f"Task {task['task_name']} failed: {e}")
+            logger.error(f"Task {task.get('task_name', task_id) if task else task_id} failed: {e}")
             
             # Check if should retry
-            if task['failure_count'] + 1 < task['max_retries']:
+            if task and task.get('failure_count', 0) + 1 < task.get('max_retries', 3):
                 # Schedule retry
-                retry_time = datetime.now() + timedelta(seconds=task['retry_delay_seconds'])
+                retry_time = datetime.now() + timedelta(seconds=task.get('retry_delay_seconds', 300))
                 self.scheduler.add_job(
                     self._execute_task,
                     'date',
@@ -460,29 +469,27 @@ class AutomationScheduler:
             logger.warning("No Supabase connectivity - skipping approval check")
             return
         
-        conn = None
-        cursor = None
+        # Use context manager to ensure proper connection cleanup
         try:
-            conn = get_connection('ai_infrastructure')
-            cursor = conn.cursor()
+            from AI_infrastructure.shared.database_utils import execute_query
             
-            cursor.execute('''
+            pending_tasks = execute_query(
+                '''
                 SELECT * FROM ai_infrastructure.scheduled_tasks 
                 WHERE is_active = true 
                 AND requires_approval = true 
                 AND approval_status = 'pending'
-            ''')
-            
-            pending_tasks = cursor.fetchall()
+                ''',
+                (),
+                fetch_mode='all',
+                schema='ai_infrastructure'
+            )
             
             if pending_tasks:
                 logger.info(f"Found {len(pending_tasks)} tasks pending approval")
                 # TODO: Send notifications to users
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        except Exception as e:
+            logger.error(f"Error checking pending approvals: {e}")
     
     def create_task(self, task_data: Dict) -> str:
         """Create a new scheduled task"""

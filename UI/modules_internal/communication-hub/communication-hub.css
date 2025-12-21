@@ -39,7 +39,7 @@
 
 .account-selector select {
     padding: 8px 12px;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-default, #e5e7eb);
     border-radius: 6px;
     background: var(--background-color, #f9fafb);
     color: var(--text-primary, #1f2937);
@@ -407,7 +407,11 @@ textarea.form-control {
 
 .tabulator {
     background: white;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-default, #e5e7eb);
+}
+
+.tabulator-header .tabulator-col {
+    border: 1px solid var(--border-default, #e5e7eb);
 }
 
 .tabulator-row {
@@ -542,11 +546,17 @@ textarea.form-control {
     width: 100%;
     height: 100%;
     margin: 0 20px;
+    overflow-x: auto;
+    /* Enable horizontal scroll at container level */
 }
 
 .email-workspace-container .email-table-wrapper {
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 800px;
+    /* flex-grow, flex-shrink, flex-basis */
+    min-width: 800px;
+    /* Prevent compression below minimum readable width */
+    overflow-x: auto;
+    /* Enable horizontal scroll when needed */
     transition: flex 0.3s ease, transform 0.3s ease;
 }
 
@@ -1044,7 +1054,7 @@ textarea.form-control {
 .form-group textarea {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid var(--border-color, #e5e7eb);
+    border: 1px solid var(--border-default, #e5e7eb);
     border-radius: 6px;
     background: var(--background-color, white);
     color: var(--text-primary, #1f2937);

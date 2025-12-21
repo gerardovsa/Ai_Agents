@@ -460,6 +460,32 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         conn_acquired = True
         _pool_stats['total_wait_time'] += wait_time
         
+        # ✅ FIX 5: Test if connection is alive before using it
+        # Supabase may close idle connections - pool returns them but they're dead
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT 1")  # Quick liveness check
+            cursor.close()
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as test_err:
+            # Connection is dead - discard it and get a fresh one
+            print(f" [POOL] Connection test failed, discarding dead connection: {test_err}")
+            try:
+                pool_instance.putconn(conn, close=True)  # Remove from pool
+            except:
+                pass
+            # Recursively retry with new connection (max 1 retry to avoid infinite loop)
+            if not hasattr(get_database_connection, '_retry_count'):
+                get_database_connection._retry_count = 0
+            if get_database_connection._retry_count < 1:
+                get_database_connection._retry_count += 1
+                print(f" [POOL] Retrying with fresh connection...")
+                result = get_database_connection(db_name)
+                get_database_connection._retry_count = 0
+                return result
+            else:
+                get_database_connection._retry_count = 0
+                raise ConnectionError(f"Failed to get live connection after retry: {test_err}")
+        
         # Set search_path and configure connection
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         

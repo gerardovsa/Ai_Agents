@@ -4,6 +4,7 @@
  * 
  * DEPENDENCIES:
  * - UI/modules/thread-manager/thread-manager-core.js (must load first)
+ * - DocumentService (shared utility)
  * 
  * EXPORTS:
  * - Extends window.ThreadManager with interaction methods
@@ -1365,7 +1366,7 @@ Object.assign(window.ThreadManager, {
     async showSynergySessionSelector(buttonElement) {
         try {
             // Fetch Synergy sessions
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy-sessions/list`, {
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/list`, {
                 headers: { 'Content-Type': 'application/json' }
             });
 
@@ -1377,7 +1378,15 @@ Object.assign(window.ThreadManager, {
             }
 
             const data = await response.json();
-            const sessions = data.sessions || [];
+            // Handle different response formats
+            let sessions = [];
+            if (Array.isArray(data)) {
+                sessions = data;
+            } else if (data && data.success && Array.isArray(data.sessions)) {
+                sessions = data.sessions;
+            } else if (data && Array.isArray(data.sessions)) {
+                sessions = data.sessions;
+            }
 
             if (sessions.length === 0) {
                 console.log('No Synergy sessions found, using generic tag');
@@ -1454,7 +1463,7 @@ Object.assign(window.ThreadManager, {
     async showWorkflowSelector(buttonElement, tagType) {
         try {
             // Fetch workflows/automations
-            const response = await fetch(`${this.apiBaseUrl}/api/automation/workflows/list`, {
+            const response = await fetch(`${this.apiBaseUrl}/api/automation/list`, {
                 headers: { 'Content-Type': 'application/json' }
             });
 
@@ -1464,9 +1473,21 @@ Object.assign(window.ThreadManager, {
                 return;
             }
 
-            const workflows = await response.json();
+            const data = await response.json();
 
-            if (!workflows || !Array.isArray(workflows) || workflows.length === 0) {
+            // Handle different response formats
+            let workflows = [];
+            if (Array.isArray(data)) {
+                workflows = data;
+            } else if (data && data.success && Array.isArray(data.workflows)) {
+                workflows = data.workflows;
+            } else if (data && Array.isArray(data.workflows)) {
+                workflows = data.workflows;
+            } else if (data && Array.isArray(data.automations)) {
+                workflows = data.automations;
+            }
+
+            if (!workflows || workflows.length === 0) {
                 console.log(`No ${tagType}s found, using generic tag`);
                 buttonElement.classList.add('selected');
                 return;
@@ -1537,18 +1558,18 @@ Object.assign(window.ThreadManager, {
      */
     async showInternalDocSelector(buttonElement) {
         try {
-            // Fetch internal docs from Synergy docs
-            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-docs/list`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
+            // Fetch internal docs from Synergy docs using DocumentService
+            const data = await documentService.fetchAllDocuments();
 
-            if (!response.ok) {
-                console.warn('Internal docs API not available, using generic tag');
-                buttonElement.classList.add('selected');
-                return;
+            // Handle different response formats
+            let docs = [];
+            if (Array.isArray(data)) {
+                docs = data;
+            } else if (data && data.success && Array.isArray(data.docs)) {
+                docs = data.docs;
+            } else if (data && Array.isArray(data.docs)) {
+                docs = data.docs;
             }
-
-            const docs = await response.json();
 
             if (!docs || docs.length === 0) {
                 console.log('No internal documents found, using generic tag');

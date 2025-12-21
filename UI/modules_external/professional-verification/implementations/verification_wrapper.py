@@ -444,6 +444,32 @@ def search_linkedin_profile(full_name: str, company_name: str = None, location: 
     )
 
 
+def verify_facebook_profile(full_name: str, location: str = None, employer: str = None, **kwargs):
+    """
+    Verify Facebook profile using Computer Use for authenticity analysis.
+    
+    Args:
+        full_name: Person's full name to search
+        location: Location for disambiguation
+        employer: Current employer for filtering
+        
+    Returns:
+        dict: Profile data with authenticity score, red flags, activity analysis
+    """
+    if not HAS_COMPUTER_USE:
+        return {
+            'success': False,
+            'error': 'Computer Use verification not available. Requires Anthropic API + Docker.'
+        }
+    
+    return computer_use_verification.verify_facebook_profile(
+        full_name=full_name,
+        location=location,
+        employer=employer,
+        **kwargs
+    )
+
+
 def cross_platform_timeline(linkedin_data: dict, github_data: dict, resume_data: dict, **kwargs):
     """
     Build unified timeline from LinkedIn, GitHub, Twitter activity.
