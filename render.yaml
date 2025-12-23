@@ -116,6 +116,12 @@ services:
       - key: GOOGLE_OAUTH_SCOPES
         value: https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/calendar.readonly
       
+      # ==================== Xero Accounting Integration ====================
+      # Xero credentials are stored in Supabase database table:
+      # ai_infrastructure.user_platform_credentials
+      # Platforms: xero_print, xero_publishing, xero_signs
+      # No environment variables needed - fetched dynamically from database
+      
       # ==================== Database Configuration ====================
       # Supabase PostgreSQL (Production) or SQLite (Local Dev)
       # Controlled by USE_SUPABASE environment variable
@@ -169,13 +175,20 @@ services:
 #    - MICROSOFT_CLIENT_SECRET
 #    - GOOGLE_OAUTH_CLIENT_ID
 #    - GOOGLE_OAUTH_CLIENT_SECRET
+#    - SUPABASE_URL & SUPABASE_SERVICE_KEY
+#    - SUPABASE_DB_URL_POOLER & SUPABASE_DB_URL_SESSION
 #    - SECRET_KEY
 #
 # 2. Update OAuth redirect URLs:
 #    - Google Cloud Console: Add https://ai-agents-backend-xxxx.onrender.com/api/auth/google/callback
 #    - Microsoft Azure Portal: Add https://ai-agents-backend-xxxx.onrender.com/api/auth/microsoft/callback
 #
-# 3. Test deployment:
+# 3. Xero Integration:
+#    - Credentials stored in Supabase: ai_infrastructure.user_platform_credentials
+#    - Platforms: xero_print, xero_publishing, xero_signs
+#    - No environment variables needed (fetched from database)
+#
+# 4. Test deployment:
 #    - python Render_backend/test_deployment.py https://ai-agents-backend-xxxx.onrender.com
 #
 # 4. Monitor service:

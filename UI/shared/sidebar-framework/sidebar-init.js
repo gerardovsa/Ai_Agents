@@ -349,6 +349,41 @@
             }
         });
 
+        // ==================== CHAT SIDEBAR ====================
+        SidebarManager.register({
+            id: 'chat-sidebar',
+            side: 'right',
+            toggleButtonId: 'chat-sidebar-toggle',
+            width: '400px',
+            icon: 'fa-comments',
+            title: 'Team Chat',
+            zIndex: 9998,
+            onInit: async () => {
+                console.log('[CHAT SIDEBAR] First open - initializing...');
+                if (window.ChatSidebar && typeof window.ChatSidebar.init === 'function') {
+                    await window.ChatSidebar.init();
+                } else {
+                    console.warn('[CHAT SIDEBAR] ChatSidebar.init not found');
+                }
+            },
+            onOpen: () => {
+                console.log('[CHAT SIDEBAR] Sidebar opened');
+                if (window.ChatSidebar && typeof window.ChatSidebar.open === 'function') {
+                    window.ChatSidebar.open();
+                } else {
+                    console.warn('[CHAT SIDEBAR] ChatSidebar.open not found');
+                }
+            },
+            onClose: () => {
+                console.log('[CHAT SIDEBAR] Sidebar closed');
+                if (window.ChatSidebar && typeof window.ChatSidebar.close === 'function') {
+                    window.ChatSidebar.close();
+                } else {
+                    console.warn('[CHAT SIDEBAR] ChatSidebar.close not found');
+                }
+            }
+        });
+
         console.log('[SIDEBAR INIT] All sidebars registered');
         console.log('ℹ️ [SIDEBAR INIT] Note: Communication Hub is a tab module, not a sidebar');
         console.log('[SIDEBAR INIT] Registered:', SidebarManager.getAll().map(s => s.id));
@@ -379,6 +414,18 @@
                 originalAutomationsToggle();
             }
         };
+
+        // Chat sidebar toggle compatibility
+        const originalChatToggle = window.ChatSidebar?.toggleSidebar;
+        if (window.ChatSidebar) {
+            window.ChatSidebar.toggleSidebar = function () {
+                if (SidebarManager.sidebars.has('chat-sidebar')) {
+                    SidebarManager.toggle('chat-sidebar');
+                } else if (originalChatToggle) {
+                    originalChatToggle.call(window.ChatSidebar);
+                }
+            };
+        }
 
         // Account toggle compatibility
         const originalAccountToggle = window.AccountSidebar?.toggleSidebar;

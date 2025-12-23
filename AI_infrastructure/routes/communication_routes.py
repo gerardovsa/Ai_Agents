@@ -56,6 +56,7 @@ from auth.user_auth import require_auth
 from google_workspace.gmail import (
     gmail_list_messages, 
     gmail_get_message,  # Used to fetch full message details (already imported)
+    gmail_get_attachment,  # NEW: Download Gmail attachments
     gmail_send_email,
     gmail_mark_as_read,
     gmail_delete_message,
@@ -1195,6 +1196,498 @@ def get_email_thread_mappings():
                 conn.close()
             except:
                 pass
+
+
+# ==================== ATTACHMENT ENDPOINTS ====================
+
+@communication_bp.route('/gmail/attachment', methods=['GET'])
+@require_auth
+def download_gmail_attachment():
+    """
+    Download Gmail attachment
+    
+    Query Params:
+        message_id: Gmail message ID
+        attachment_id: Attachment ID from Gmail API
+        user_id: User ID (optional, uses authenticated user)
+    
+    Returns:
+        Binary attachment data with appropriate content-type
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses gmail_get_attachment wrapper)
+    """
+    user_data = getattr(request, 'user', None)
+    if user_data:
+        user_id = user_data.get('user_id')
+    else:
+        user_id = request.args.get('user_id', 1, type=int)
+    
+    message_id = request.args.get('message_id')
+    attachment_id = request.args.get('attachment_id')
+    
+    if not message_id or not attachment_id:
+        return jsonify({
+            'success': False,
+            'error': 'Missing message_id or attachment_id'
+        }), 400
+    
+    try:
+        # Get attachment from Gmail API
+        result = gmail_get_attachment(
+            message_id=message_id,
+            attachment_id=attachment_id,
+            _user_id=user_id,
+            _injected_credentials=True
+        )
+        
+        # Get filename from message metadata
+        message = gmail_get_message(
+            message_id=message_id,
+            format='metadata',
+            _user_id=user_id,
+            _injected_credentials=True
+        )
+        
+        filename = 'attachment'
+        content_type = 'application/octet-stream'
+        
+        if message and 'payload' in message:
+            parts = message['payload'].get('parts', [])
+            for part in parts:
+                if part.get('body', {}).get('attachmentId') == attachment_id:
+                    filename = part.get('filename', 'attachment')
+                    content_type = part.get('mimeType', 'application/octet-stream')
+                    break
+        
+        # Return binary data
+        from flask import Response
+        return Response(
+            result['data'],
+            mimetype=content_type,
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Length': str(result['size'])
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"[Communication Hub] Failed to download Gmail attachment: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@communication_bp.route('/outlook/attachment', methods=['GET'])
+@require_auth
+def download_outlook_attachment():
+    """
+    Download Outlook attachment
+    
+    Query Params:
+        message_id: Outlook message ID
+        attachment_id: Attachment ID from Outlook API
+        user_id: User ID (optional, uses authenticated user)
+    
+    Returns:
+        Binary attachment data with appropriate content-type
+    
+    ✅ NO DATABASE OPERATIONS - Safe (uses Microsoft365Client)
+    """
+    if not OUTLOOK_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'error': 'Outlook integration not available'
+        }), 503
+    
+    user_data = getattr(request, 'user', None)
+    if user_data:
+        user_id = user_data.get('user_id')
+    else:
+        user_id = request.args.get('user_id', 1, type=int)
+    
+    message_id = request.args.get('message_id')
+    attachment_id = request.args.get('attachment_id')
+    
+    if not message_id or not attachment_id:
+        return jsonify({
+            'success': False,
+            'error': 'Missing message_id or attachment_id'
+        }), 400
+    
+    try:
+        from tools.implementations.microsoft_outlook_tools import MicrosoftOutlookTools
+        
+        outlook = MicrosoftOutlookTools()
+        result = outlook.outlook_download_attachment(
+            message_id=message_id,
+            attachment_id=attachment_id,
+            _user_id=user_id,
+            _injected_credentials=True
+        )
+        
+        if not result.get('success'):
+            return jsonify(result), 500
+        
+        # Decode base64 content
+        import base64
+        content = base64.b64decode(result['content'])
+        
+        # Return binary data
+        from flask import Response
+        return Response(
+            content,
+            mimetype=result.get('content_type', 'application/octet-stream'),
+            headers={
+                'Content-Disposition': f'attachment; filename="{result.get("name", "attachment")}"',
+                'Content-Length': str(result.get('size', len(content)))
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"[Communication Hub] Failed to download Outlook attachment: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@communication_bp.route('/extract-document-text', methods=['POST'])
+@require_auth
+def extract_document_text():
+    """
+    Extract text from Word/PowerPoint documents
+    
+    Request Body:
+        {
+            "email_id": "gmail_123" or "outlook_456",
+            "attachment_id": "attachment_id_string",
+            "user_id": 1,
+            "provider": "gmail" or "outlook"
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "text": "Extracted text content...",
+            "filename": "document.docx",
+            "size": 50000
+        }
+    
+    Supports: .docx, .pptx (requires python-docx, python-pptx)
+    Text limit: 50KB to prevent token overflow
+    
+    ✅ NO DATABASE OPERATIONS - Safe (downloads attachment and extracts text)
+    """
+    user_data = getattr(request, 'user', None)
+    if user_data:
+        user_id = user_data.get('user_id')
+    else:
+        data = request.json
+        user_id = data.get('user_id', 1)
+    
+    data = request.json
+    email_id = data.get('email_id')
+    attachment_id = data.get('attachment_id')
+    provider = data.get('provider', 'gmail')
+    
+    if not email_id or not attachment_id:
+        return jsonify({
+            'success': False,
+            'error': 'Missing email_id or attachment_id'
+        }), 400
+    
+    try:
+        import tempfile
+        import os
+        
+        # Download attachment first
+        if provider == 'gmail':
+            message_id = email_id.replace('gmail_', '')
+            att_result = gmail_get_attachment(
+                message_id=message_id,
+                attachment_id=attachment_id,
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+            attachment_data = att_result['data']
+            
+            # Get filename
+            message = gmail_get_message(
+                message_id=message_id,
+                format='metadata',
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+            filename = 'document'
+            if message and 'payload' in message:
+                parts = message['payload'].get('parts', [])
+                for part in parts:
+                    if part.get('body', {}).get('attachmentId') == attachment_id:
+                        filename = part.get('filename', 'document')
+                        break
+        else:
+            # Outlook
+            from tools.implementations.microsoft_outlook_tools import MicrosoftOutlookTools
+            outlook = MicrosoftOutlookTools()
+            result = outlook.outlook_download_attachment(
+                message_id=email_id.replace('outlook_', ''),
+                attachment_id=attachment_id,
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+            import base64
+            attachment_data = base64.b64decode(result['content'])
+            filename = result.get('name', 'document')
+        
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+            tmp.write(attachment_data)
+            tmp_path = tmp.name
+        
+        try:
+            # Extract text based on file type
+            filename_lower = filename.lower()
+            text = ''
+            
+            if filename_lower.endswith('.docx'):
+                import docx
+                doc = docx.Document(tmp_path)
+                text = '\n'.join([para.text for para in doc.paragraphs])
+            
+            elif filename_lower.endswith('.pptx'):
+                from pptx import Presentation
+                prs = Presentation(tmp_path)
+                slides_text = []
+                for i, slide in enumerate(prs.slides, 1):
+                    slide_text = f"Slide {i}:\n"
+                    for shape in slide.shapes:
+                        if hasattr(shape, 'text'):
+                            slide_text += shape.text + '\n'
+                    slides_text.append(slide_text)
+                text = '\n'.join(slides_text)
+            
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'Unsupported file type: {filename}'
+                }), 400
+            
+            # Limit to 50KB
+            max_chars = 50 * 1024
+            if len(text) > max_chars:
+                text = text[:max_chars] + '\n\n[Text truncated - exceeded 50KB limit]'
+            
+            return jsonify({
+                'success': True,
+                'text': text,
+                'filename': filename,
+                'size': len(text)
+            })
+        
+        finally:
+            # Clean up temp file
+            try:
+                os.remove(tmp_path)
+            except:
+                pass
+    
+    except ImportError as e:
+        logger.error(f"[Communication Hub] Missing library for document extraction: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Document extraction libraries not installed (python-docx, python-pptx required)'
+        }), 500
+    
+    except Exception as e:
+        logger.error(f"[Communication Hub] Failed to extract document text: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@communication_bp.route('/extract-spreadsheet-text', methods=['POST'])
+@require_auth
+def extract_spreadsheet_text():
+    """
+    Extract data from Excel spreadsheets
+    
+    Request Body:
+        {
+            "email_id": "gmail_123" or "outlook_456",
+            "attachment_id": "attachment_id_string",
+            "user_id": 1,
+            "provider": "gmail" or "outlook"
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "text": "CSV-formatted data...",
+            "filename": "spreadsheet.xlsx",
+            "sheets": ["Sheet1", "Sheet2"],
+            "rows": 100
+        }
+    
+    Supports: .xlsx, .xls (requires openpyxl, xlrd)
+    Row limit: 100 rows to prevent token overflow
+    
+    ✅ NO DATABASE OPERATIONS - Safe (downloads attachment and extracts data)
+    """
+    user_data = getattr(request, 'user', None)
+    if user_data:
+        user_id = user_data.get('user_id')
+    else:
+        data = request.json
+        user_id = data.get('user_id', 1)
+    
+    data = request.json
+    email_id = data.get('email_id')
+    attachment_id = data.get('attachment_id')
+    provider = data.get('provider', 'gmail')
+    
+    if not email_id or not attachment_id:
+        return jsonify({
+            'success': False,
+            'error': 'Missing email_id or attachment_id'
+        }), 400
+    
+    try:
+        import tempfile
+        import os
+        
+        # Download attachment first
+        if provider == 'gmail':
+            message_id = email_id.replace('gmail_', '')
+            att_result = gmail_get_attachment(
+                message_id=message_id,
+                attachment_id=attachment_id,
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+            attachment_data = att_result['data']
+            
+            # Get filename
+            message = gmail_get_message(
+                message_id=message_id,
+                format='metadata',
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+            filename = 'spreadsheet'
+            if message and 'payload' in message:
+                parts = message['payload'].get('parts', [])
+                for part in parts:
+                    if part.get('body', {}).get('attachmentId') == attachment_id:
+                        filename = part.get('filename', 'spreadsheet')
+                        break
+        else:
+            # Outlook
+            from tools.implementations.microsoft_outlook_tools import MicrosoftOutlookTools
+            outlook = MicrosoftOutlookTools()
+            result = outlook.outlook_download_attachment(
+                message_id=email_id.replace('outlook_', ''),
+                attachment_id=attachment_id,
+                _user_id=user_id,
+                _injected_credentials=True
+            )
+            import base64
+            attachment_data = base64.b64decode(result['content'])
+            filename = result.get('name', 'spreadsheet')
+        
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+            tmp.write(attachment_data)
+            tmp_path = tmp.name
+        
+        try:
+            # Extract data based on file type
+            filename_lower = filename.lower()
+            sheets_text = []
+            sheet_names = []
+            total_rows = 0
+            
+            if filename_lower.endswith('.xlsx'):
+                import openpyxl
+                wb = openpyxl.load_workbook(tmp_path, data_only=True)
+                
+                for sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                    sheet_names.append(sheet_name)
+                    
+                    sheet_text = f"Sheet: {sheet_name}\n\n"
+                    rows = []
+                    
+                    for row_num, row in enumerate(ws.iter_rows(values_only=True), 1):
+                        if row_num > 100:  # Limit to 100 rows
+                            break
+                        # Convert row to strings, handle None
+                        row_values = [str(cell) if cell is not None else '' for cell in row]
+                        rows.append(','.join(row_values))
+                        total_rows += 1
+                    
+                    sheet_text += '\n'.join(rows)
+                    sheets_text.append(sheet_text)
+            
+            elif filename_lower.endswith('.xls'):
+                import xlrd
+                wb = xlrd.open_workbook(tmp_path)
+                
+                for sheet in wb.sheets():
+                    sheet_names.append(sheet.name)
+                    
+                    sheet_text = f"Sheet: {sheet.name}\n\n"
+                    rows = []
+                    
+                    for row_num in range(min(sheet.nrows, 100)):
+                        row_values = [str(cell.value) for cell in sheet.row(row_num)]
+                        rows.append(','.join(row_values))
+                        total_rows += 1
+                    
+                    sheet_text += '\n'.join(rows)
+                    sheets_text.append(sheet_text)
+            
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'Unsupported file type: {filename}'
+                }), 400
+            
+            text = '\n\n'.join(sheets_text)
+            
+            return jsonify({
+                'success': True,
+                'text': text,
+                'filename': filename,
+                'sheets': sheet_names,
+                'rows': total_rows
+            })
+        
+        finally:
+            # Clean up temp file
+            try:
+                os.remove(tmp_path)
+            except:
+                pass
+    
+    except ImportError as e:
+        logger.error(f"[Communication Hub] Missing library for spreadsheet extraction: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Spreadsheet extraction libraries not installed (openpyxl, xlrd required)'
+        }), 500
+    
+    except Exception as e:
+        logger.error(f"[Communication Hub] Failed to extract spreadsheet text: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 # Log module initialization

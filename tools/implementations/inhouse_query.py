@@ -328,11 +328,12 @@ def inhouse_search_database(
             
             'Clients': f"""
                 SELECT TOP {limit_per_table}
-                    ClientID, ClientName, Email, MYOB_ID
+                    ContactID, Name, defaultEmail, Phone, AddressCity
                 FROM Clients
                 WHERE 
-                    ClientName LIKE ?
-                    OR Email LIKE ?
+                    Name LIKE ?
+                    OR defaultEmail LIKE ?
+                    OR Phone LIKE ?
             """,
             
             'PaperSize': f"""

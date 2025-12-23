@@ -346,16 +346,14 @@ class SynergyInlineEditClass {
 
     // Add/Edit Links
     async addLink(sessionId) {
-        const url = prompt('Enter link URL:');
-        if (!url) return;
-
-        const title = prompt('Enter link title (optional):', url);
+        const linkData = await this.showAddLinkModal();
+        if (!linkData) return;
 
         try {
-            const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/links`, {
+            const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/link-document`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, title: title || url })
+                body: JSON.stringify({ url: linkData.url, title: linkData.title || linkData.url })
             });
 
             if (!response.ok) throw new Error('Add link failed');
@@ -369,28 +367,104 @@ class SynergyInlineEditClass {
         }
     }
 
+    // Show add link modal
+    showAddLinkModal() {
+        return new Promise((resolve) => {
+            const modalHTML = `
+                <div id="synergy-add-link-modal" class="synergy-doc-choice-overlay">
+                    <div class="synergy-doc-choice-modal">
+                        <div class="synergy-doc-choice-header">
+                            <h3>Add Link</h3>
+                            <button onclick="document.getElementById('synergy-add-link-modal').dispatchEvent(new CustomEvent('cancel')); return false;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style="padding: 24px;">
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">URL *</label>
+                                <input type="url" id="synergy-link-url" placeholder="https://example.com" 
+                                    style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                            </div>
+                            <div style="margin-bottom: 24px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Title (optional)</label>
+                                <input type="text" id="synergy-link-title" placeholder="Link title" 
+                                    style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                            </div>
+                            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                                <button onclick="document.getElementById('synergy-add-link-modal').dispatchEvent(new CustomEvent('cancel'))" 
+                                    style="padding: 10px 20px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer; color: var(--text-primary); font-size: 14px;">
+                                    Cancel
+                                </button>
+                                <button onclick="document.getElementById('synergy-add-link-modal').dispatchEvent(new CustomEvent('submit'))" 
+                                    style="padding: 10px 20px; background: var(--accent-primary); border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 600; font-size: 14px;">
+                                    Add Link
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modal = document.getElementById('synergy-add-link-modal');
+            const urlInput = document.getElementById('synergy-link-url');
+
+            // Focus URL input
+            setTimeout(() => urlInput.focus(), 100);
+
+            // Handle enter key
+            urlInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    modal.dispatchEvent(new CustomEvent('submit'));
+                }
+            });
+
+            modal.addEventListener('submit', () => {
+                const url = urlInput.value.trim();
+                const title = document.getElementById('synergy-link-title').value.trim();
+
+                if (!url) {
+                    alert('URL is required');
+                    urlInput.focus();
+                    return;
+                }
+
+                modal.remove();
+                resolve({ url, title });
+            });
+
+            modal.addEventListener('cancel', () => {
+                modal.remove();
+                resolve(null);
+            });
+        });
+    }
+
     // Add Document - with picker and create options
     async addDocument(sessionId) {
+        console.log('[SYNERGY INLINE EDIT] 🚀 addDocument method called for session:', sessionId);
+
         // Show choice modal: Create New or Link Existing
+        console.log('[SYNERGY INLINE EDIT] Showing document choice modal...');
         const choice = await this.showDocumentChoice();
+        console.log('[SYNERGY INLINE EDIT] User choice:', choice);
 
         if (choice === 'create') {
-            // Open internal docs manager to create new doc
-            if (window.internalDocsManager) {
-                await window.internalDocsManager.createInternalDoc(sessionId);
-            } else {
-                console.error('[SYNERGY INLINE EDIT] Internal docs manager not available');
-                alert('Document manager not loaded');
+            // TODO: Implement internal doc creation inline
+            // For now, show a simple form
+            const docName = prompt('Enter document name:');
+            if (docName) {
+                console.log('[SYNERGY INLINE EDIT] Creating doc:', docName);
+                // Call backend to create doc and link it
+                alert('Document creation coming soon. Use "Link Existing" for now.');
             }
         } else if (choice === 'existing') {
-            // Open document picker
-            if (window.SynergyDocPicker) {
-                window.SynergyDocPicker.open(async (docId, docData) => {
-                    await this.linkDocument(sessionId, docId, docData);
-                });
-            } else {
-                console.error('[SYNERGY INLINE EDIT] Document picker not available');
-                alert('Document picker not loaded');
+            // TODO: Implement doc picker inline
+            // For now, ask for doc ID
+            const docId = prompt('Enter document ID to link:');
+            if (docId) {
+                console.log('[SYNERGY INLINE EDIT] Linking doc:', docId);
+                await this.linkDocument(sessionId, docId, { doc_id: docId });
             }
         }
     }
@@ -832,7 +906,7 @@ document.addEventListener('click', function (e) {
     // CRITICAL FIX: Determine if click is in sidebar, dashboard, or popup modal
     // This prevents cross-container editing (sidebar → dashboard, popup → sidebar, etc.)
     const clickedInSidebar = target.closest('#synergy-sidebar');
-    const clickedInDashboard = target.closest('#synergy-dashboard-container');
+    const clickedInDashboard = target.closest('#synergy-dashboard-container, .synergy-dashboard-wrapper');
     const clickedInPopup = target.closest('.synergy-popup-container');
 
     // If not in any synergy container, ignore
@@ -845,7 +919,7 @@ document.addEventListener('click', function (e) {
 
         // Verify container is in the same context (sidebar, dashboard, or popup)
         const containerInSidebar = container.closest('#synergy-sidebar');
-        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInDashboard = container.closest('#synergy-dashboard-container, .synergy-dashboard-wrapper');
         const containerInPopup = container.closest('.synergy-popup-container');
 
         // Only allow editing if click and container are in the SAME context
@@ -880,7 +954,7 @@ document.addEventListener('click', function (e) {
 
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
-        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInDashboard = container.closest('#synergy-dashboard-container, .synergy-dashboard-wrapper');
         const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
@@ -914,7 +988,7 @@ document.addEventListener('click', function (e) {
 
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
-        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInDashboard = container.closest('#synergy-dashboard-container, .synergy-dashboard-wrapper');
         const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
@@ -947,7 +1021,7 @@ document.addEventListener('click', function (e) {
 
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
-        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInDashboard = container.closest('#synergy-dashboard-container, .synergy-dashboard-wrapper');
         const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
@@ -981,7 +1055,7 @@ document.addEventListener('click', function (e) {
 
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
-        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInDashboard = container.closest('#synergy-dashboard-container, .synergy-dashboard-wrapper');
         const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {
@@ -1037,8 +1111,15 @@ document.addEventListener('click', function (e) {
 
     // Add document button
     if (target.classList.contains('synergy-add-document-btn')) {
+        console.log('[SYNERGY INLINE EDIT] 📄 Add document button clicked');
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
-        window.SynergyInlineEdit.addDocument(sessionId);
+        console.log('[SYNERGY INLINE EDIT] Session ID:', sessionId);
+        if (window.SynergyInlineEdit) {
+            console.log('[SYNERGY INLINE EDIT] Calling addDocument method...');
+            window.SynergyInlineEdit.addDocument(sessionId);
+        } else {
+            console.error('[SYNERGY INLINE EDIT] ❌ SynergyInlineEdit not found on window');
+        }
         return;
     }
 
@@ -1103,13 +1184,6 @@ document.addEventListener('click', function (e) {
         return;
     }
 
-    // Add document button
-    if (target.classList.contains('synergy-add-document-btn')) {
-        const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
-        window.SynergyInlineEdit.addDocument(sessionId);
-        return;
-    }
-
     // Remove link button
     if (target.classList.contains('synergy-remove-link-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
@@ -1146,7 +1220,7 @@ document.addEventListener('change', function (e) {
 
         // Verify container is in the same context
         const containerInSidebar = container.closest('#synergy-sidebar');
-        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInDashboard = container.closest('#synergy-dashboard-container, .synergy-dashboard-wrapper');
         const containerInPopup = container.closest('.synergy-popup-container');
 
         if (clickedInSidebar && !containerInSidebar) {

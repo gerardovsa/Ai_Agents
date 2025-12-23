@@ -70,6 +70,25 @@ def parse_xero_date(date_str):
         print(f"[XERO] Failed to parse date '{date_str}': {e}")
         return None
 
+
+def format_xero_datetime(date_str):
+    """
+    Convert YYYY-MM-DD date string to Xero DateTime(YYYY,MM,DD) format.
+    
+    Args:
+        date_str: Date string in YYYY-MM-DD format
+        
+    Returns:
+        String in DateTime(YYYY,MM,DD) format for Xero API where clause
+    """
+    if not date_str:
+        return None
+    try:
+        year, month, day = date_str.split('-')
+        return f'DateTime({year},{month},{day})'
+    except:
+        return None
+
 # Xero API Configuration
 XERO_TOKEN_URL = "https://identity.xero.com/connect/token"
 XERO_API_BASE = "https://api.xero.com/api.xro/2.0"
@@ -149,20 +168,18 @@ class XeroAPIClient:
         Returns:
             Tuple of (client_id, client_secret) or (None, None) if not found
         """
-        cursor = None  # ✅ Initialize before try
-        conn = None
-        
         try:
             import sys
             from pathlib import Path
+            import json
             
             # Add AI_agents root to path for imports
             root_path = Path(__file__).parent.parent.parent.parent
             if str(root_path) not in sys.path:
                 sys.path.insert(0, str(root_path))
             
-            from AI_infrastructure.shared.db_connection_wrapper import get_connection
-            import json
+            # ✅ Use execute_query from database_utils (automatic connection cleanup)
+            from AI_infrastructure.shared.database_utils import execute_query
             
             # Platform name mapping: business_id -> platform name in database
             platform_map = {
@@ -175,42 +192,37 @@ class XeroAPIClient:
             if not platform:
                 return None, None
             
-            # Use context manager for automatic connection cleanup
-            with get_connection('ai_infrastructure') as conn:
-                cursor = conn.cursor()
+            # Query user_platform_credentials for Xero credentials
+            row = execute_query("""
+                SELECT credentials
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s 
+                AND platform = %s 
+                AND is_active = TRUE
+                ORDER BY updated_at DESC
+                LIMIT 1
+            """, (self.user_id, platform), fetch_mode='one')
+            
+            if row:
+                # Extract credentials from JSONB column
+                creds = row[0] if isinstance(row, tuple) else row['credentials']
                 
-                # Query user_platform_credentials for Xero credentials
-                cursor.execute("""
-                    SELECT credentials
-                    FROM ai_infrastructure.user_platform_credentials
-                    WHERE user_id = %s 
-                    AND platform = %s 
-                    AND is_active = TRUE
-                    ORDER BY updated_at DESC
-                    LIMIT 1
-                """, (self.user_id, platform))
+                # Parse JSON if it's a string
+                if isinstance(creds, str):
+                    creds = json.loads(creds)
                 
-                row = cursor.fetchone()
+                client_id = creds.get('client_id')
+                client_secret = creds.get('client_secret')
                 
-                if row:
-                    # Extract credentials from JSONB column
-                    creds = row[0] if isinstance(row, tuple) else row['credentials']
-                    
-                    # Parse JSON if it's a string
-                    if isinstance(creds, str):
-                        creds = json.loads(creds)
-                    
-                    client_id = creds.get('client_id')
-                    client_secret = creds.get('client_secret')
-                    
-                    if client_id and client_secret:
-                        print(f"✅ Loaded Xero credentials from database for {self.config['name']}")
-                        return client_id, client_secret
-                
-                return None, None
+                if client_id and client_secret:
+                    print(f"✅ Loaded Xero credentials from database for {self.config['name']}")
+                    return client_id, client_secret
+            
+            return None, None
             
         except Exception as e:
             print(f"⚠️ Failed to load Xero credentials from database: {e}")
+            traceback.print_exc()
             return None, None
     
     def get_access_token(self):
@@ -639,9 +651,13 @@ def get_invoices():
         if invoice_number:
             where_clauses.append(f'InvoiceNumber=="{invoice_number}"')
         if from_date:
-            where_clauses.append(f'Date>=DateTime({from_date})')
+            # Convert YYYY-MM-DD to DateTime(YYYY, MM, DD) format for Xero API
+            year, month, day = from_date.split('-')
+            where_clauses.append(f'Date>=DateTime({year},{month},{day})')
         if to_date:
-            where_clauses.append(f'Date<=DateTime({to_date})')
+            # Convert YYYY-MM-DD to DateTime(YYYY, MM, DD) format for Xero API
+            year, month, day = to_date.split('-')
+            where_clauses.append(f'Date<=DateTime({year},{month},{day})')
         
         params = {}
         if where_clauses:
@@ -805,7 +821,8 @@ def get_contacts():
         if search:
             where_clauses.append(f'Name.Contains("{search}")')
         if from_date:
-            where_clauses.append(f'UpdatedDateUTC>=DateTime({from_date})')
+            from_dt = format_xero_datetime(from_date)
+            where_clauses.append(f'UpdatedDateUTC>={from_dt}')
         
         params = {}
         if where_clauses:
@@ -909,7 +926,8 @@ def xero_payments():
         if invoice_id:
             where_clauses.append(f'Invoice.InvoiceID==Guid("{invoice_id}")')
         if from_date:
-            where_clauses.append(f'Date>=DateTime({from_date})')
+            from_dt = format_xero_datetime(from_date)
+            where_clauses.append(f'Date>={from_dt}')
         
         params = {}
         if where_clauses:
@@ -1004,9 +1022,11 @@ def xero_bank_transactions():
         params = {}
         where_clauses = []
         if from_date:
-            where_clauses.append(f'Date>=DateTime({from_date})')
+            from_dt = format_xero_datetime(from_date)
+            where_clauses.append(f'Date>={from_dt}')
         if to_date:
-            where_clauses.append(f'Date<=DateTime({to_date})')
+            to_dt = format_xero_datetime(to_date)
+            where_clauses.append(f'Date<={to_dt}')
         
         if where_clauses:
             params['where'] = ' AND '.join(where_clauses)
@@ -1077,7 +1097,9 @@ def xero_report_contact_activity():
         contacts = contacts_data.get('Contacts', [])
         
         # Fetch invoices in date range
-        params = {'where': f'Date>=DateTime({from_date}) AND Date<=DateTime({to_date})'}
+        from_dt = format_xero_datetime(from_date)
+        to_dt = format_xero_datetime(to_date)
+        params = {'where': f'Date>={from_dt} AND Date<={to_dt}'}
         invoices_data = client.make_request('GET', 'Invoices', params=params)
         invoices = invoices_data.get('Invoices', [])
         
@@ -1257,7 +1279,9 @@ def xero_report_sales_summary():
         client = XeroAPIClient(business_id)
         
         # Fetch invoices in date range
-        params = {'where': f'Date>=DateTime({from_date}) AND Date<=DateTime({to_date})'}
+        from_dt = format_xero_datetime(from_date)
+        to_dt = format_xero_datetime(to_date)
+        params = {'where': f'Date>={from_dt} AND Date<={to_dt}'}
         data = client.make_request('GET', 'Invoices', params=params)
         invoices = data.get('Invoices', [])
         
@@ -1390,7 +1414,8 @@ def xero_report_revenue_trends():
         
         # Fetch invoices
         from_date = (datetime.now() - timedelta(days=months_back*30)).strftime('%Y-%m-%d')
-        params = {'where': f'Date>=DateTime({from_date}) AND Status="PAID"'}
+        from_dt = format_xero_datetime(from_date)
+        params = {'where': f'Date>={from_dt} AND Status="PAID"'}
         data = client.make_request('GET', 'Invoices', params=params)
         invoices = data.get('Invoices', [])
         
@@ -1444,7 +1469,8 @@ def xero_report_invoice_status():
         
         params = {}
         if from_date:
-            params['where'] = f'Date>=DateTime({from_date})'
+            from_dt = format_xero_datetime(from_date)
+            params['where'] = f'Date>={from_dt}'
         
         data = client.make_request('GET', 'Invoices', params=params)
         invoices = data.get('Invoices', [])
@@ -1487,8 +1513,8 @@ def xero_report_inactive_customers():
         invoices_data = client.make_request('GET', 'Invoices')
         invoices = invoices_data.get('Invoices', [])
         
-        # Build last invoice date map
-        contact_last_invoice = {}
+        # Build customer activity map
+        contact_activity = {}
         for inv in invoices:
             contact_id = inv.get('Contact', {}).get('ContactID')
             inv_date_str = inv.get('Date')
@@ -1496,10 +1522,38 @@ def xero_report_inactive_customers():
                 try:
                     inv_date = parse_xero_date(inv_date_str)
                     if inv_date:
-                        if contact_id not in contact_last_invoice or inv_date > contact_last_invoice[contact_id]:
-                            contact_last_invoice[contact_id] = inv_date
+                        if contact_id not in contact_activity:
+                            contact_activity[contact_id] = {
+                                'last_invoice_date': inv_date,
+                                'first_invoice_date': inv_date,
+                                'invoice_count': 0,
+                                'total_revenue': 0,
+                                'avg_order_value': 0
+                            }
+                        
+                        # Update activity metrics
+                        if inv_date > contact_activity[contact_id]['last_invoice_date']:
+                            contact_activity[contact_id]['last_invoice_date'] = inv_date
+                        if inv_date < contact_activity[contact_id]['first_invoice_date']:
+                            contact_activity[contact_id]['first_invoice_date'] = inv_date
+                        
+                        contact_activity[contact_id]['invoice_count'] += 1
+                        if inv.get('Status') == 'PAID':
+                            contact_activity[contact_id]['total_revenue'] += float(inv.get('Total', 0))
                 except:
                     continue
+        
+        # Calculate average order value and frequency
+        for contact_id, activity in contact_activity.items():
+            if activity['invoice_count'] > 0:
+                activity['avg_order_value'] = activity['total_revenue'] / activity['invoice_count']
+                
+                # Calculate order frequency (days between orders)
+                tenure_days = (activity['last_invoice_date'] - activity['first_invoice_date']).days
+                if activity['invoice_count'] > 1:
+                    activity['avg_days_between_orders'] = tenure_days / (activity['invoice_count'] - 1)
+                else:
+                    activity['avg_days_between_orders'] = tenure_days
         
         # Find inactive customers
         cutoff_date = datetime.now() - timedelta(days=days_inactive)
@@ -1510,7 +1564,8 @@ def xero_report_inactive_customers():
                 continue
             
             contact_id = contact.get('ContactID')
-            last_invoice_date = contact_last_invoice.get(contact_id)
+            activity = contact_activity.get(contact_id)
+            last_invoice_date = activity['last_invoice_date'] if activity else None
             
             if not last_invoice_date or last_invoice_date < cutoff_date:
                 days_since_last = (datetime.now() - last_invoice_date).days if last_invoice_date else None
@@ -1518,7 +1573,11 @@ def xero_report_inactive_customers():
                     'name': contact.get('Name'),
                     'email': contact.get('EmailAddress'),
                     'last_invoice_date': last_invoice_date.strftime('%Y-%m-%d') if last_invoice_date else 'Never',
-                    'days_since_last': days_since_last
+                    'days_since_last': days_since_last,
+                    'total_orders': activity['invoice_count'] if activity else 0,
+                    'total_revenue': round(activity['total_revenue'], 2) if activity else 0,
+                    'avg_order_value': round(activity['avg_order_value'], 2) if activity else 0,
+                    'avg_days_between_orders': round(activity['avg_days_between_orders'], 1) if activity else 0
                 })
         
         return jsonify({
@@ -1546,7 +1605,8 @@ def xero_report_cash_flow():
         
         # Fetch payments
         from_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y-%m-%d')
-        params = {'where': f'Date>=DateTime({from_date})'}
+        from_dt = format_xero_datetime(from_date)
+        params = {'where': f'Date>={from_dt}'}
         data = client.make_request('GET', 'Payments', params=params)
         payments = data.get('Payments', [])
         
@@ -1602,7 +1662,9 @@ def xero_report_business_comparison():
             client = XeroAPIClient(business_id)
             
             # Fetch invoices for this business
-            params = {'where': f'Date>=DateTime({from_date}) AND Date<=DateTime({to_date})'}
+            from_dt = format_xero_datetime(from_date)
+            to_dt = format_xero_datetime(to_date)
+            params = {'where': f'Date>={from_dt} AND Date<={to_dt}'}
             data = client.make_request('GET', 'Invoices', params=params)
             invoices = data.get('Invoices', [])
             
@@ -1672,21 +1734,24 @@ def xero_report_customer_lifetime_value():
             customer_ltv[contact_id]['invoice_count'] += 1
             
             # Track dates
-            inv_date = inv.get('Date')
-            if inv_date:
-                if not customer_ltv[contact_id]['first_invoice_date'] or inv_date < customer_ltv[contact_id]['first_invoice_date']:
-                    customer_ltv[contact_id]['first_invoice_date'] = inv_date
-                if not customer_ltv[contact_id]['last_invoice_date'] or inv_date > customer_ltv[contact_id]['last_invoice_date']:
-                    customer_ltv[contact_id]['last_invoice_date'] = inv_date
+            inv_date_str = inv.get('Date')
+            if inv_date_str:
+                inv_date = parse_xero_date(inv_date_str)
+                if inv_date:
+                    if not customer_ltv[contact_id]['first_invoice_date'] or inv_date < customer_ltv[contact_id]['first_invoice_date']:
+                        customer_ltv[contact_id]['first_invoice_date'] = inv_date
+                    if not customer_ltv[contact_id]['last_invoice_date'] or inv_date > customer_ltv[contact_id]['last_invoice_date']:
+                        customer_ltv[contact_id]['last_invoice_date'] = inv_date
         
         # Calculate tenure and average frequency
         for customer in customer_ltv.values():
             if customer['first_invoice_date'] and customer['last_invoice_date']:
-                first = datetime.fromisoformat(customer['first_invoice_date'].replace('Z', '+00:00'))
-                last = datetime.fromisoformat(customer['last_invoice_date'].replace('Z', '+00:00'))
-                tenure_days = (last - first).days
+                tenure_days = (customer['last_invoice_date'] - customer['first_invoice_date']).days
                 customer['tenure_days'] = tenure_days
                 customer['avg_days_between_invoices'] = tenure_days / customer['invoice_count'] if customer['invoice_count'] > 1 else 0
+                # Format dates for JSON serialization
+                customer['first_invoice_date'] = customer['first_invoice_date'].strftime('%Y-%m-%d')
+                customer['last_invoice_date'] = customer['last_invoice_date'].strftime('%Y-%m-%d')
             else:
                 customer['tenure_days'] = 0
                 customer['avg_days_between_invoices'] = 0
@@ -1964,7 +2029,9 @@ def xero_report_revenue_by_product():
             to_date = datetime.now().strftime('%Y-%m-%d')
         
         # Fetch invoices
-        params = {'where': f'Date>=DateTime({from_date}) AND Date<=DateTime({to_date})'}
+        from_dt = format_xero_datetime(from_date)
+        to_dt = format_xero_datetime(to_date)
+        params = {'where': f'Date>={from_dt} AND Date<={to_dt}'}
         data = client.make_request('GET', 'Invoices', params=params)
         invoices = data.get('Invoices', [])
         
@@ -2025,7 +2092,8 @@ def xero_report_seasonality():
         
         # Fetch invoices for specified years
         from_date = (datetime.now() - timedelta(days=365 * years)).strftime('%Y-%m-%d')
-        params = {'where': f'Date>=DateTime({from_date})'}
+        from_dt = format_xero_datetime(from_date)
+        params = {'where': f'Date>={from_dt}'}
         data = client.make_request('GET', 'Invoices', params=params)
         invoices = data.get('Invoices', [])
         
@@ -2036,11 +2104,14 @@ def xero_report_seasonality():
             if inv.get('Status') != 'PAID':
                 continue
             
-            inv_date = inv.get('Date')
-            if not inv_date:
+            inv_date_str = inv.get('Date')
+            if not inv_date_str:
                 continue
             
-            dt = datetime.fromisoformat(inv_date.replace('Z', '+00:00'))
+            dt = parse_xero_date(inv_date_str)
+            if not dt:
+                continue
+            
             year = dt.year
             month = dt.month
             month_name = dt.strftime('%B')
@@ -2101,7 +2172,8 @@ def xero_report_forecast():
         
         # Fetch historical invoices
         from_date = (datetime.now() - timedelta(days=30 * historical_months)).strftime('%Y-%m-%d')
-        params = {'where': f'Date>=DateTime({from_date})'}
+        from_dt = format_xero_datetime(from_date)
+        params = {'where': f'Date>={from_dt}'}
         data = client.make_request('GET', 'Invoices', params=params)
         invoices = data.get('Invoices', [])
         
@@ -2112,11 +2184,14 @@ def xero_report_forecast():
             if inv.get('Status') != 'PAID':
                 continue
             
-            inv_date = inv.get('Date')
-            if not inv_date:
+            inv_date_str = inv.get('Date')
+            if not inv_date_str:
                 continue
             
-            dt = datetime.fromisoformat(inv_date.replace('Z', '+00:00'))
+            dt = parse_xero_date(inv_date_str)
+            if not dt:
+                continue
+            
             month_key = dt.strftime('%Y-%m')
             
             if month_key not in monthly_revenue:
@@ -2205,10 +2280,10 @@ def xero_report_customer_segmentation():
                     'total_monetary_value': 0
                 }
             
-            inv_date = inv.get('Date')
-            if inv_date:
-                dt = datetime.fromisoformat(inv_date.replace('Z', '+00:00'))
-                if not customer_rfm[contact_id]['last_invoice_date'] or dt > customer_rfm[contact_id]['last_invoice_date']:
+            inv_date_str = inv.get('Date')
+            if inv_date_str:
+                dt = parse_xero_date(inv_date_str)
+                if dt and (not customer_rfm[contact_id]['last_invoice_date'] or dt > customer_rfm[contact_id]['last_invoice_date']):
                     customer_rfm[contact_id]['last_invoice_date'] = dt
             
             customer_rfm[contact_id]['invoice_count'] += 1
@@ -2359,9 +2434,11 @@ def xero_report_consolidated_revenue():
         }
         
         # Fetch from each business
+        from_dt = format_xero_datetime(from_date)
+        to_dt = format_xero_datetime(to_date)
         for business_id in [1, 2, 3]:
             client = XeroAPIClient(business_id)
-            params = {'where': f'Date>=DateTime({from_date}) AND Date<=DateTime({to_date})'}
+            params = {'where': f'Date>={from_dt} AND Date<={to_dt}'}
             data = client.make_request('GET', 'Invoices', params=params)
             invoices = data.get('Invoices', [])
             
@@ -2414,7 +2491,9 @@ def xero_report_invoice_volume():
             to_date = datetime.now().strftime('%Y-%m-%d')
         
         # Fetch invoices
-        params = {'where': f'Date>=DateTime({from_date}) AND Date<=DateTime({to_date})'}
+        from_dt = format_xero_datetime(from_date)
+        to_dt = format_xero_datetime(to_date)
+        params = {'where': f'Date>={from_dt} AND Date<={to_dt}'}
         data = client.make_request('GET', 'Invoices', params=params)
         invoices = data.get('Invoices', [])
         

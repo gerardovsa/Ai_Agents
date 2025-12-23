@@ -257,7 +257,7 @@ Outline next steps for each option`
 
     /**
      * Generate Claude-compatible message content with images
-     * Follows Anthropic Vision API format for multimodal messages
+     * Follows Anthropic Messages API format for multimodal messages
      * @param {string} textPrompt - Markdown text prompt
      * @param {array} processedAttachments - Processed attachments with image data
      * @returns {array} Claude message content blocks

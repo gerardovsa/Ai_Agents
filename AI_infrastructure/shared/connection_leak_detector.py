@@ -47,14 +47,14 @@ class ConnectionLeakDetector:
     """
     
     def __init__(self, 
-                 check_interval: int = 60,  # Check every 60 seconds
-                 idle_timeout: int = 30,    # 30 seconds idle = abandoned (was 300)
+                 check_interval: int = 30,  # Check every 30 seconds (match idle timeout)
+                 idle_timeout: int = 30,    # 30 seconds idle = abandoned
                  enable_auto_close: bool = True):
         """
         Initialize leak detector.
         
         Args:
-            check_interval: Seconds between checks (default: 60)
+            check_interval: Seconds between checks (default: 30)
             idle_timeout: Seconds before connection considered abandoned (default: 30)
             enable_auto_close: Auto-close idle connections (default: True)
         """
@@ -70,7 +70,8 @@ class ConnectionLeakDetector:
             'active_warned': 0,
             'errors': 0,
             'last_check': None,
-            'pool_stats': {}
+            'pool_stats': {},
+            'pool_cleanups': 0  # Track zombie cleanups on startup
         }
         
         # Thread control
@@ -81,6 +82,86 @@ class ConnectionLeakDetector:
         logger.info(f"   Check interval: {check_interval}s")
         logger.info(f"   Idle timeout: {idle_timeout}s")
         logger.info(f"   Auto-close: {enable_auto_close}")
+    
+    def cleanup_pool(self) -> Dict:
+        """
+        Proactively clean zombie connections from pool.
+        Called on Flask startup to clear dead connections.
+        
+        Returns:
+            dict: Cleanup metrics
+        """
+        logger.info("🧹 Starting proactive pool cleanup...")
+        
+        cleaned = 0
+        errors = 0
+        
+        try:
+            from AI_infrastructure.shared.database_utils import _connection_pools
+            
+            for db_name, pool_instance in _connection_pools.items():
+                if pool_instance is None:
+                    continue
+                
+                # Test each connection in pool
+                conns_to_test = []
+                try:
+                    # Get all available connections (non-blocking)
+                    while True:
+                        try:
+                            conn = pool_instance.getconn()
+                            if conn:
+                                conns_to_test.append(conn)
+                        except:
+                            break  # No more connections available
+                    
+                    # Test each connection
+                    for conn in conns_to_test:
+                        try:
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT 1")
+                            cursor.close()
+                            # Connection alive - return to pool
+                            pool_instance.putconn(conn)
+                        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+                            # Connection dead - close instead of return
+                            try:
+                                pool_instance.putconn(conn, close=True)
+                                cleaned += 1
+                                logger.info(f"   ✅ Cleaned zombie connection from {db_name} pool")
+                            except:
+                                errors += 1
+                        except Exception as e:
+                            # Return to pool on other errors
+                            pool_instance.putconn(conn)
+                            errors += 1
+                            logger.error(f"   ❌ Error testing connection: {e}")
+                
+                except Exception as e:
+                    logger.error(f"   ❌ Error cleaning {db_name} pool: {e}")
+                    errors += 1
+            
+            self.metrics['pool_cleanups'] += cleaned
+            
+            if cleaned > 0:
+                logger.warning(f"⚠️  Cleaned {cleaned} zombie connections from pool")
+            else:
+                logger.info("✅ No zombie connections found in pool")
+            
+            return {
+                'cleaned': cleaned,
+                'errors': errors,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Pool cleanup failed: {e}")
+            return {
+                'cleaned': 0,
+                'errors': errors + 1,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
     
     def start(self):
         """Start background monitoring thread."""
@@ -396,10 +477,15 @@ def get_leak_detector() -> ConnectionLeakDetector:
 
 
 def start_leak_detector():
-    """Start global leak detector (call from flask_app.py on startup)."""
+    """Start global leak detector (call from flask_app.py on startup).
+    
+    Returns:
+        ConnectionLeakDetector: Detector instance for cleanup operations
+    """
     detector = get_leak_detector()
     detector.start()
     logger.info("🚀 Global leak detector started")
+    return detector  # Return for cleanup_pool() calls
 
 
 def stop_leak_detector():

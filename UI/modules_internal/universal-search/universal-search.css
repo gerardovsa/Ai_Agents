@@ -110,9 +110,10 @@
     gap: 25px;
     margin-bottom: 30px;
     padding: 20px;
-    background: #f8fafc;
     border-radius: 12px;
+    background: var(--bg-primary);
     flex-wrap: wrap;
+
 }
 
 .universal-search-filters .filter-group {
@@ -216,7 +217,7 @@
 .universal-search-sidebar .sidebar-filters {
     margin-bottom: 15px;
     padding: 12px;
-    background: #f8fafc;
+    background: var(--bg-primary);
     border-radius: 8px;
 }
 
@@ -370,7 +371,7 @@
 }
 
 .result-item:hover {
-    background: #f8fafc;
+    background: var(--bg-secondary);
 }
 
 .result-item:last-child {
@@ -566,7 +567,7 @@
     gap: 30px;
     margin-bottom: 30px;
     padding: 20px;
-    background: #f8fafc;
+    background: var(--bg-secondary);
     border-radius: 8px;
     flex-wrap: wrap;
 }
@@ -763,7 +764,7 @@
 }
 
 .result-item:hover {
-    background: #f8fafc;
+    background: var(--bg-secondary);
 }
 
 .result-item:last-child {

@@ -100,11 +100,11 @@ const AttachmentProcessor = {
                 break;
 
             case 'image':
-                processed.ai_accessible = true; // Claude supports vision!
+                processed.ai_accessible = true; // Claude supports multimodal!
                 processed.image_data = await this.downloadImageAsBase64(emailId, attachment, communicationHub);
                 processed.processing_status = processed.image_data ? 'success' : 'download_failed';
                 processed.ai_note = processed.image_data
-                    ? 'Image encoded as base64 for Claude Vision API analysis'
+                    ? 'Image encoded as base64 for Messages API analysis'
                     : 'Image download failed - manual review required';
                 break;
 
@@ -326,7 +326,7 @@ const AttachmentProcessor = {
     },
 
     /**
-     * Download image and convert to base64 for Claude Vision API
+     * Download image and convert to base64 for Messages API
      * @param {string} emailId - Email ID
      * @param {object} attachment - Attachment object
      * @param {object} communicationHub - Communication Hub instance
@@ -350,9 +350,9 @@ const AttachmentProcessor = {
             // Get image as blob
             const blob = await response.blob();
 
-            // Check file size (Claude has 5MB limit per image)
+            // Check file size (Messages API has 5MB limit per image)
             if (blob.size > 5 * 1024 * 1024) {
-                console.warn('[AttachmentProcessor] Image too large for Claude Vision:', blob.size);
+                console.warn('[AttachmentProcessor] Image too large for Messages API:', blob.size);
                 return null;
             }
 

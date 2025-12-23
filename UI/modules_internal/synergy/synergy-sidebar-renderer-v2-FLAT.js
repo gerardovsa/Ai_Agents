@@ -707,21 +707,35 @@ class SynergySidebarRendererV2 {
      * Called after card expansion and after thread linking
      */
     async loadLinkedThreads(sessionId) {
+        console.log('[SYNERGY] 🔄 Loading linked threads for session:', sessionId);
+
         // Escape session ID for querySelector (handles special chars like &, :, etc.)
         const escapedId = CSS.escape(sessionId);
+        console.log('[SYNERGY] 🔍 Escaped ID:', escapedId);
+
         const container = document.querySelector(`#synergy-linked-threads-${escapedId} .synergy-linked-threads-container`);
         const countSpan = document.querySelector(`#synergy-linked-threads-${escapedId} .linked-threads-count`);
 
+        console.log('[SYNERGY] 🔍 Container found:', !!container);
+        console.log('[SYNERGY] 🔍 Count span found:', !!countSpan);
+
         if (!container) {
-            console.warn('[SYNERGY] Linked threads container not found for session', sessionId);
+            console.error('[SYNERGY] ❌ Linked threads container not found for session', sessionId);
             return;
         }
 
         try {
-            const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/linked-threads`);
+            const url = `${this.API_BASE_URL}/api/synergy/${sessionId}/linked-threads`;
+            console.log('[SYNERGY] 🌐 Fetching from:', url);
+
+            const response = await fetch(url);
+            console.log('[SYNERGY] 📡 Response status:', response.status);
+
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
+            console.log('[SYNERGY] 📦 Response data:', data);
+
             if (!data.success) throw new Error(data.error || 'Unknown error');
 
             const threads = data.threads || [];

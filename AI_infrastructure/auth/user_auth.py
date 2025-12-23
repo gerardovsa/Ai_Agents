@@ -1124,20 +1124,55 @@ class UserAuthManager:
                 # If OAuth didn't find anything, try user_platform_credentials
                 if not result:
                     try:
+                        # ✅ FIX: Two-tier credential lookup with fallback to platform user (user_id = 1)
+                        # 1. Check user-specific credentials first
                         cursor.execute('''
-                            SELECT credential_key, credential_value
+                            SELECT credential_key, credential_value, credentials, metadata
                             FROM ai_infrastructure.user_platform_credentials
                             WHERE user_id = %s AND platform = %s AND is_active = TRUE
                         ''', (user_id, platform))
                         
                         rows = cursor.fetchall()
                         
+                        # 2. If no user-specific credentials, fall back to platform global credentials (user_id = 1)
+                        if not rows and user_id != 1:
+                            print(f"[CREDENTIALS] No {platform} credentials for user {user_id}, checking platform global (user_id=1)...")
+                            cursor.execute('''
+                                SELECT credential_key, credential_value, credentials, metadata
+                                FROM ai_infrastructure.user_platform_credentials
+                                WHERE user_id = 1 AND platform = %s AND is_active = TRUE
+                            ''', (platform,))
+                            
+                            rows = cursor.fetchall()
+                            if rows:
+                                print(f"✅ [CREDENTIALS] Using platform global {platform} credentials for user {user_id}")
+                        
                         if rows:
                             result = {}
+                            
+                            # First, add all key-value pairs from credential_key/credential_value columns
                             for row in rows:
                                 key = row['credential_key'] if isinstance(row, dict) else row[0]
                                 value = row['credential_value'] if isinstance(row, dict) else row[1]
                                 result[key] = value
+                            
+                            # Then, merge in the credentials JSONB object (preferred source)
+                            # This provides structured data like api_key, index_name, namespace, etc.
+                            for row in rows:
+                                credentials_json = row.get('credentials') if isinstance(row, dict) else (row[2] if len(row) > 2 else None)
+                                if credentials_json and isinstance(credentials_json, dict):
+                                    result.update(credentials_json)
+                                    break  # Only need one credentials object
+                            
+                            # Also merge metadata if needed (contains descriptions, configs, etc.)
+                            for row in rows:
+                                metadata_json = row.get('metadata') if isinstance(row, dict) else (row[3] if len(row) > 3 else None)
+                                if metadata_json and isinstance(metadata_json, dict):
+                                    # Only add metadata fields that don't conflict with credentials
+                                    for meta_key, meta_value in metadata_json.items():
+                                        if meta_key not in result:
+                                            result[meta_key] = meta_value
+                                    break
                             
                     except Exception as e:
                         print(f"⚠️ Platform credentials lookup failed: {e}")

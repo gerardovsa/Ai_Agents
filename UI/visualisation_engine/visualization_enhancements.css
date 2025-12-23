@@ -235,6 +235,64 @@ html[data-theme="dark"] .html-visualization-wrapper {
 }
 
 /* ============================================================================
+   SVG METADATA ELEMENTS - HIDE ACCESSIBILITY/METADATA (CRITICAL FIX)
+   ============================================================================ */
+
+/**
+ * CRITICAL FIX (Dec 23, 2025): Hide SVG <title> and <desc> metadata elements
+ * 
+ * Per MDN Web Docs:
+ * - <title>: "Text in a <title> element is not rendered as part of the graphic"
+ * - <desc>: "Text in a <desc> element is not rendered as part of the graphic"
+ * Source: https://developer.mozilla.org/en-US/docs/Web/SVG/Element/title
+ * 
+ * These are accessibility/metadata elements that should never be visually displayed.
+ * They can cause overlapping text issues when rendered by certain browsers.
+ * 
+ * Solution from GitHub best practices:
+ * - Use both display:none AND position:absolute for maximum browser compatibility
+ * - Apply !important to prevent override by inline styles
+ */
+
+svg title,
+svg desc,
+.svg-visualization-wrapper svg title,
+.svg-visualization-wrapper svg desc,
+.cad-diagram svg title,
+.cad-diagram svg desc,
+.cad-svg-container svg title,
+.cad-svg-container svg desc,
+.schematic-diagram svg title,
+.schematic-diagram svg desc,
+.blueprint-diagram svg title,
+.blueprint-diagram svg desc,
+.molecule-diagram svg title,
+.molecule-diagram svg desc {
+    /* Primary method: Remove from layout completely */
+    display: none !important;
+
+    /* Fallback method: Make invisible if display:none fails */
+    visibility: hidden !important;
+    opacity: 0 !important;
+
+    /* Fallback method: Position off-screen if visibility fails */
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+
+    /* Prevent any space allocation */
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    /* Screen reader only (maintain accessibility) */
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* ============================================================================
    SVG TEXT VISIBILITY (CRITICAL FIX)
    ============================================================================ */
 

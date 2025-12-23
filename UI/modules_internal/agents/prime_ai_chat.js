@@ -2468,14 +2468,8 @@ function updateAIStatusIndicator(status) {
         console.log(`[STATUS] Prime AI icon status: ${status || 'idle'}`);
     }
 
-    const agentIcons = document.querySelectorAll('.agent-header h2 i');
-    agentIcons.forEach(icon => {
-        icon.classList.remove('status-thinking', 'status-tool-running', 'status-tool-success', 'status-writing');
-
-        if (status) {
-            icon.classList.add(`status-${status}`);
-        }
-    });
+    // REMOVED: No longer update all agent icons - each agent manages its own status
+    // Prime chat should only update its own icon, not all agent icons in Command Center
 }
 
 function clearAIStatusIndicator() {

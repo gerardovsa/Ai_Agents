@@ -847,17 +847,20 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
             "Clients": {
                 "table": "Clients",
                 "alias": "c",
-                "primary_key": "ClientID",
+                "primary_key": "ContactID",
                 "key_columns": {
-                    "ClientID": "int (Primary Key)",
-                    "ClientName": "nvarchar(255) - Client/company name",
-                    "ContactName": "nvarchar(255) - Primary contact",
-                    "Email": "nvarchar(255) - Contact email",
-                    "Phone": "nvarchar(50) - Contact phone",
-                    "Address": "nvarchar(500) - Physical address",
-                    "MYOB_ID": "uniqueidentifier - MYOB customer reference"
+                    "ContactID": "varchar(100) (Primary Key) - Xero/MYOB contact UUID",
+                    "Name": "varchar(150) - Customer/company name",
+                    "AddressLine1": "varchar(250) - Street address",
+                    "AddressCity": "varchar(50) - City",
+                    "PostalCode": "varchar(10) - ZIP/postal code",
+                    "Phone": "varchar(50) - Contact phone",
+                    "BusinessID": "int - Business division ID",
+                    "LastSyncTime": "datetime - Last sync from accounting system",
+                    "defaultEmail": "varchar(250) - Primary email address"
                 },
-                "use_case": "Customer data, contact info lookups"
+                "use_case": "Customer data, contact info lookups. Joins to Orders.CustomerMYOB_ID = Clients.ContactID",
+                "critical_note": "❌ NO ClientID, ClientName, or Email columns! Use ContactID (primary key), Name (customer name), defaultEmail (email address). This table is synced from Xero accounting system."
             }
         },
         

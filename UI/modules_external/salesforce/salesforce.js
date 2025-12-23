@@ -19,6 +19,20 @@ class BaseModule {
             console.warn(` Failed to load manifest for ${this.moduleId}:`, error);
         }
     }
+
+    /**
+     * Utility: Get sub-tab container
+     */
+    getSubTabContainer(subTabId) {
+        return document.getElementById(`${this.moduleId}-subtab-${subTabId}`);
+    }
+
+    /**
+     * Utility: Get main content container (if no sub-tabs)
+     */
+    getContentContainer() {
+        return document.getElementById(`${this.moduleId}-content`);
+    }
 }
 /**
  * Salesforce Module
@@ -44,8 +58,13 @@ class SalesforceModule extends BaseModule {
     async initialize() {
         await super.initialize();
 
-        // Load settings
-        this.apiEndpoint = this.manifest.settings.api_endpoint;
+        // Load settings with safety check
+        if (this.manifest && this.manifest.settings) {
+            this.apiEndpoint = this.manifest.settings.api_endpoint;
+        } else {
+            console.warn('⚠️ Salesforce manifest or settings not loaded, using default');
+            this.apiEndpoint = 'https://your-instance.salesforce.com';
+        }
 
         // Note: In production, authenticate via parent platform
         // For demo, we'll show mock data

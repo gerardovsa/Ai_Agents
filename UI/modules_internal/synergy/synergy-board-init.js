@@ -11,9 +11,16 @@
  * - Manages session loading and rendering
  * - Handles real-time updates via Supabase
  * - Integrates with ThreadManager for thread linking
+ * 
+ * FIXED: December 23, 2025 - Removed ES6 import, use window.documentService
  */
 
-import { documentService } from '../shared/document-service.js';
+// Check if documentService is available globally (use let to allow re-declaration if file loaded twice)
+let documentService = window.documentService || (window.DocumentService ? new window.DocumentService() : null);
+
+if (!documentService) {
+    console.warn('[SYNERGY BOARD] documentService not available, some features may not work');
+}
 
 console.log('📦 [SYNERGY] Starting synergyBoard initialization...');
 
@@ -941,6 +948,9 @@ window.synergyBoard = {
                         const renderer = new window.SynergySidebarRendererV2();
                         expandedContent.innerHTML = renderer.renderExpandedCardContent(session, milestones, sessionId);
                         console.log(`[SYNERGY] Rendered with FLAT V2 renderer (expand buttons enabled)`);
+
+                        // ✅ FIX: Load linked threads asynchronously (don't block card rendering)
+                        setTimeout(() => renderer.loadLinkedThreads(sessionId), 100);
                     } else if (window.SynergySidebarRenderer) {
                         const renderer = new window.SynergySidebarRenderer();
                         expandedContent.innerHTML = renderer.renderExpandedCardContent(session, milestones, sessionId);
@@ -1817,14 +1827,19 @@ window.synergyBoard = {
         event.stopPropagation();
         event.currentTarget.classList.remove('drag-over');
 
-        // Get dropped thread ID
-        const threadId = event.dataTransfer.getData('text/plain');
+        // Get dropped thread ID (try multiple data formats)
+        let threadId = event.dataTransfer.getData('application/x-thread-id');  // Primary format from thread-manager
         if (!threadId) {
-            console.warn('[SYNERGY] No thread ID in drop event');
+            threadId = event.dataTransfer.getData('text/plain');  // Fallback
+        }
+
+        if (!threadId) {
+            console.error('[SYNERGY] ❌ No thread ID in drop event');
+            console.log('[SYNERGY] Available data types:', event.dataTransfer.types);
             return;
         }
 
-        console.log(`[SYNERGY] Thread ${threadId} dropped on synergy session ${synergySessionId}`);
+        console.log(`[SYNERGY] 🎯 Thread ${threadId} dropped on synergy session ${synergySessionId}`);
 
         try {
             // Call backend to link thread to synergy session
@@ -1865,12 +1880,25 @@ window.synergyBoard = {
     },
 
     async refreshLinkedThreads(sessionId) {
-        console.log(`[SYNERGY] Refreshing linked threads for session ${sessionId}`);
+        console.log(`[SYNERGY] 🔄 Refreshing linked threads for session ${sessionId}`);
+
+        // Refresh the dashboard card's linked threads section (if expanded)
+        const escapedId = CSS.escape(sessionId);
+        const cardContainer = document.querySelector(`#synergy-linked-threads-${escapedId}`);
+
+        if (cardContainer && window.SynergySidebarRendererV2) {
+            console.log('[SYNERGY] 📋 Refreshing linked threads in dashboard card...');
+            const renderer = new window.SynergySidebarRendererV2();
+            await renderer.loadLinkedThreads(sessionId);
+        }
 
         // If sidebar is open for this session, refresh it
         if (typeof SynergySidebar !== 'undefined') {
+            console.log('[SYNERGY] 📋 Refreshing linked threads in sidebar...');
             await SynergySidebar.refreshLinkedThreadsSection(sessionId);
         }
+
+        console.log('[SYNERGY] ✅ Linked threads refreshed');
     }
 };
 

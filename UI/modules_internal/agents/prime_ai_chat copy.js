@@ -977,14 +977,14 @@ async function sendChatMessage() {
                                         if (!thinkingBubble._fullThinkingText) {
                                             thinkingBubble._fullThinkingText = '';
                                         }
-                                        
+
                                         // AUTO SEPARATOR: Add visual break when new thinking block starts
                                         if (data.delta_type === 'start' && thinkingBubble._fullThinkingText.trim()) {
                                             // New thinking block detected - add separator before it
                                             thinkingBubble._fullThinkingText += '\n\n---\n\n';
                                             console.log('[THINKING] New thinking block detected, added visual separator');
                                         }
-                                        
+
                                         thinkingBubble._fullThinkingText += thinkingText;
 
                                         // ALSO accumulate for conversation history
@@ -1363,12 +1363,12 @@ async function sendChatMessage() {
                                         console.log(`[SYNC] 📥 Received conversation_sync: ${data.message_count} messages (round ${data.round})`);
                                         console.log(`ℹ️  [SYNC] IGNORING backend conversation (frontend is authoritative)`);
                                         console.log(`ℹ️  [SYNC] Backend has ${data.message_count} messages, frontend has ${AppState.chatMessages.length} messages`);
-                                        
+
                                         // Log backend structure for debugging ONLY (don't use it)
                                         if (data.conversation_history && Array.isArray(data.conversation_history)) {
                                             console.log('[SYNC] Backend message structure (for debugging only):');
                                             data.conversation_history.forEach((msg, idx) => {
-                                                const contentTypes = Array.isArray(msg.content) 
+                                                const contentTypes = Array.isArray(msg.content)
                                                     ? msg.content.map(b => b.type).join(', ')
                                                     : 'string';
                                                 console.log(`  [${idx}] ${msg.role}: ${contentTypes}`);
@@ -1951,7 +1951,7 @@ async function sendChatMessage() {
                                 // ISOLATION FIX: Only increment error count for THIS thread
                                 threadErrorCount++;
                                 console.error(`[Prime] SSE parse error (${threadErrorCount}/${maxThreadErrors}):`, e, 'Line:', line);
-                                
+
                                 // If too many errors in THIS thread, stop THIS thread only
                                 if (threadErrorCount >= maxThreadErrors) {
                                     threadFailed = true;
@@ -1962,7 +1962,7 @@ async function sendChatMessage() {
                             }
                         }
                     }
-                    
+
                     // If thread failed, break outer message loop too
                     if (threadFailed) {
                         console.error(`[Prime] Exiting stream reader for failed thread ${threadSlug}`);
@@ -1990,7 +1990,7 @@ async function sendChatMessage() {
             // Sync MessageStore with backend's complete conversation
             if (window.MessageStore && AppState.chatMessages.length > 0) {
                 console.log(`[SYNC] Syncing MessageStore with backend's ${AppState.chatMessages.length} messages...`);
-                
+
                 // Clear and rebuild MessageStore from backend's authoritative conversation
                 // This ensures MessageStore has the same structure as backend (with all blocks)
                 for (const msg of AppState.chatMessages) {
@@ -2079,17 +2079,17 @@ async function sendChatMessage() {
         if (window.ErrorRecoveryManager && error.message) {
             const errorMsg = error.message.toLowerCase();
             const isRecoverable = errorMsg.includes('invalid_request_error') ||
-                                 errorMsg.includes('tool_use_id') ||
-                                 errorMsg.includes('first block must be') ||
-                                 errorMsg.includes('thinking') ||
-                                 errorMsg.includes('rate limit') ||
-                                 errorMsg.includes('context_length') ||
-                                 errorMsg.includes('prompt is too long') ||
-                                 errorMsg.includes('overloaded');
+                errorMsg.includes('tool_use_id') ||
+                errorMsg.includes('first block must be') ||
+                errorMsg.includes('thinking') ||
+                errorMsg.includes('rate limit') ||
+                errorMsg.includes('context_length') ||
+                errorMsg.includes('prompt is too long') ||
+                errorMsg.includes('overloaded');
 
             if (isRecoverable) {
                 console.log(' Attempting auto-recovery...');
-                
+
                 try {
                     // Create recovery manager
                     const recoveryManager = new ErrorRecoveryManager(
@@ -2104,16 +2104,16 @@ async function sendChatMessage() {
                     // If recovery succeeded, process the new stream
                     if (recoveryResponse) {
                         console.log(' Auto-recovery successful!');
-                        
+
                         // Show recovery log in console
                         const recoveryLog = recoveryManager.exportRecoveryLog();
                         console.log('=== RECOVERY LOG ===\\n' + recoveryLog);
-                        
+
                         // Show success notification
                         if (typeof showNotification === 'function') {
                             showNotification('Auto-recovery successful - message sent', 'success');
                         }
-                        
+
                         // Note: Recovery manager handles resubmission
                         // Exit and let the new stream process
                         return;
@@ -2759,17 +2759,8 @@ function updateAIStatusIndicator(status) {
         console.log(`[STATUS] Prime AI icon status: ${status || 'idle'}`);
     }
 
-    // For Agent icons in multi-agent columns
-    const agentIcons = document.querySelectorAll('.agent-header h2 i');
-    agentIcons.forEach(icon => {
-        // Remove all status classes
-        icon.classList.remove('status-thinking', 'status-tool-running', 'status-tool-success', 'status-writing');
-
-        // Add new status class
-        if (status) {
-            icon.classList.add(`status-${status}`);
-        }
-    });
+    // REMOVED: No longer update all agent icons - each agent manages its own status
+    // Prime chat should only update its own icon, not all agent icons in Command Center
 }
 
 // Clear status indicator (back to idle - no border)

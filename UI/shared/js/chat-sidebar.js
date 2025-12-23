@@ -7,6 +7,7 @@ window.ChatSidebar = {
     // State
     isOpen: false,
     currentView: 'chat-list', // 'chat-list', 'conversation', 'call'
+    currentTab: 'chats', // 'chats', 'contacts', 'calls'
     activeConversation: null,
     conversations: new Map(),
     unreadCount: 0,
@@ -27,9 +28,11 @@ window.ChatSidebar = {
     },
 
     /**
-     * Initialize chat sidebar
+     * Initialize chat sidebar (called by SidebarManager on first open)
      */
-    init() {
+    async init() {
+        console.log('[CHAT SIDEBAR] Initializing...');
+
         // Apply saved side preference
         this.applySidePreference();
 
@@ -40,16 +43,18 @@ window.ChatSidebar = {
         if (typeof SynergyRealtime !== 'undefined' && SynergyRealtime.isConnected()) {
             this.setupWebSocketListeners();
         } else {
+            console.warn('[CHAT SIDEBAR] WebSocket not ready, will retry...');
             // Retry after WebSocket connects
-            setTimeout(() => this.init(), 1000);
-            return;
+            setTimeout(() => this.setupWebSocketListeners(), 1000);
         }
 
         // Load conversation history
-        this.loadConversationHistory();
+        await this.loadConversationHistory();
 
         // Setup UI event listeners
         this.setupUIListeners();
+
+        console.log('[CHAT SIDEBAR] Initialized successfully');
     },
 
     /**
@@ -159,13 +164,10 @@ window.ChatSidebar = {
     },
 
     /**
-     * Open sidebar
+     * Open sidebar (called by SidebarManager)
      */
     open() {
-        const sidebar = document.getElementById('chat-sidebar');
-        if (!sidebar) return;
-
-        sidebar.classList.remove('collapsed');
+        console.log('[CHAT SIDEBAR] Opening...');
         this.isOpen = true;
 
         // Load initial data
@@ -175,13 +177,10 @@ window.ChatSidebar = {
     },
 
     /**
-     * Close sidebar
+     * Close sidebar (called by SidebarManager)
      */
     close() {
-        const sidebar = document.getElementById('chat-sidebar');
-        if (!sidebar) return;
-
-        sidebar.classList.add('collapsed');
+        console.log('[CHAT SIDEBAR] Closing...');
         this.isOpen = false;
 
         // End any active call
@@ -201,6 +200,188 @@ window.ChatSidebar = {
         document.getElementById('chat-conversation-view').style.display = 'none';
         document.getElementById('chat-call-view').style.display = 'none';
         this.activeConversation = null;
+    },
+
+    /**
+     * Switch between tabs (Chats, Contacts, Calls)
+     */
+    switchTab(tabName) {
+        console.log(`[CHAT SIDEBAR] Switching to tab: ${tabName}`);
+        this.currentTab = tabName;
+
+        // Update tab buttons
+        document.querySelectorAll('.chat-tab').forEach(tab => {
+            if (tab.getAttribute('data-tab') === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // Update tab content
+        document.querySelectorAll('.chat-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        const activeContent = document.getElementById(`chat-tab-${tabName}`);
+        if (activeContent) {
+            activeContent.classList.add('active');
+        }
+
+        // Load data based on tab
+        switch (tabName) {
+            case 'chats':
+                this.refreshChatList();
+                break;
+            case 'contacts':
+                this.loadContacts();
+                break;
+            case 'calls':
+                this.loadCallHistory();
+                break;
+        }
+    },
+
+    /**
+     * Load contacts list
+     */
+    async loadContacts() {
+        const container = document.getElementById('chat-contacts-container');
+        if (!container) return;
+
+        try {
+            const currentUserId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/users/team-members?user_id=${currentUserId}`);
+            const data = await response.json();
+
+            if (data.users && data.users.length > 0) {
+                let html = '';
+                data.users.forEach(user => {
+                    const isOnline = user.is_online || false;
+                    html += `
+                        <div class="chat-contact-item">
+                            <div class="chat-contact-avatar">
+                                <img src="/api/user/avatar/${user.user_id}" alt="${user.name}">
+                                <span class="chat-online-indicator ${isOnline ? 'online' : ''}"></span>
+                            </div>
+                            <div class="chat-contact-info">
+                                <div class="chat-contact-name">${user.name}</div>
+                                <div class="chat-contact-status">
+                                    <i class="fas fa-circle" style="font-size: 8px; color: ${isOnline ? '#4CAF50' : '#9e9e9e'};"></i>
+                                    ${isOnline ? 'Online' : 'Offline'}
+                                </div>
+                            </div>
+                            <div class="chat-contact-actions">
+                                <button class="chat-contact-action-btn" onclick="ChatSidebar.startChatWith('${user.user_id}', '${user.name}')" title="Start Chat">
+                                    <i class="fas fa-comment"></i>
+                                </button>
+                                <button class="chat-contact-action-btn" onclick="ChatSidebar.callUser('${user.user_id}', '${user.name}')" title="Call">
+                                    <i class="fas fa-phone"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="chat-list-empty">
+                        <i class="fas fa-user-friends"></i>
+                        <p>No contacts yet</p>
+                        <small>Team members will appear here</small>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error loading contacts:', error);
+        }
+    },
+
+    /**
+     * Load call history
+     */
+    async loadCallHistory() {
+        const container = document.getElementById('chat-calls-container');
+        if (!container) return;
+
+        try {
+            const currentUserId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/calls/history?user_id=${currentUserId}`);
+            const data = await response.json();
+
+            if (data.calls && data.calls.length > 0) {
+                let html = '';
+                data.calls.forEach(call => {
+                    const type = call.type; // 'outgoing', 'incoming', 'missed'
+                    const icon = type === 'outgoing' ? 'phone-alt' : 'phone';
+                    const iconClass = call.type;
+
+                    html += `
+                        <div class="chat-call-item ${iconClass}">
+                            <div class="chat-call-icon ${iconClass}">
+                                <i class="fas fa-${icon}"></i>
+                            </div>
+                            <div class="chat-call-details">
+                                <div class="chat-call-name">${call.user_name}</div>
+                                <div class="chat-call-info">
+                                    <span>${call.duration || 'Not answered'}</span>
+                                    <span>•</span>
+                                    <span>${call.timestamp}</span>
+                                </div>
+                            </div>
+                            <button class="chat-call-redial-btn" onclick="ChatSidebar.callUser('${call.user_id}', '${call.user_name}')" title="Call Back">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="chat-list-empty">
+                        <i class="fas fa-phone-slash"></i>
+                        <p>No call history</p>
+                        <small>Your call history will appear here</small>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error loading call history:', error);
+        }
+    },
+
+    /**
+     * Start chat with user from contacts
+     */
+    startChatWith(userId, userName) {
+        this.switchTab('chats');
+        setTimeout(() => {
+            this.openConversation(userId, userName, 'Online');
+        }, 300);
+    },
+
+    /**
+     * Call user
+     */
+    callUser(userId, userName) {
+        this.startVoiceCall(userId, userName);
+    },
+
+    /**
+     * Clear call history
+     */
+    async clearCallHistory() {
+        if (!confirm('Are you sure you want to clear your call history?')) return;
+
+        try {
+            const currentUserId = localStorage.getItem('user_id');
+            await fetch(`/api/calls/clear-history?user_id=${currentUserId}`, {
+                method: 'DELETE'
+            });
+            this.loadCallHistory();
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error clearing call history:', error);
+        }
     },
 
     /**
@@ -920,13 +1101,20 @@ window.ChatSidebar = {
     },
 
     /**
-     * Toggle sidebar (new method for consistency with Synergy)
+     * Toggle sidebar (delegates to SidebarManager for consistency)
      */
     toggleSidebar() {
-        if (this.isOpen) {
-            this.close();
+        // Check if SidebarManager is available
+        if (window.SidebarManager && window.SidebarManager.sidebars.has('chat-sidebar')) {
+            window.SidebarManager.toggle('chat-sidebar');
         } else {
-            this.open();
+            // Fallback to manual toggle if SidebarManager not ready
+            console.warn('[CHAT SIDEBAR] SidebarManager not available, using manual toggle');
+            if (this.isOpen) {
+                this.close();
+            } else {
+                this.open();
+            }
         }
     },
 

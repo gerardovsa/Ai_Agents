@@ -113,6 +113,42 @@
 
 ---
 
+## 👥 **Clients Table - Complete Column List**
+
+**Purpose:** Customer/contact data synced from Xero accounting system
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `ContactID` | varchar(100) | **Primary key** - Xero contact UUID |
+| `Name` | varchar(150) | Customer/company name |
+| `AddressLine1` | varchar(250) | Street address |
+| `AddressCity` | varchar(50) | City |
+| `PostalCode` | varchar(10) | ZIP/postal code |
+| `Phone` | varchar(50) | Contact phone |
+| `BusinessID` | int | Business division ID |
+| `LastSyncTime` | datetime | Last sync timestamp from Xero |
+| `defaultEmail` | varchar(250) | Primary email address |
+
+### **❌ COLUMNS THAT DON'T EXIST IN CLIENTS:**
+- ❌ `ClientID` - Use `ContactID` instead!
+- ❌ `ClientName` - Use `Name` instead!
+- ❌ `Email` - Use `defaultEmail` instead!
+- ❌ `ContactName` - Does NOT exist separately (use `Name`)
+- ❌ `MYOB_ID` - Deprecated (system now uses Xero, not MYOB)
+
+### **Relationship to Orders:**
+```sql
+-- Join pattern: Orders to Clients
+SELECT o.OrderID, o.ClientName, c.Name, c.defaultEmail, c.Phone
+FROM Orders o
+LEFT JOIN Clients c ON o.CustomerMYOB_ID = c.ContactID
+WHERE c.Name LIKE '%customer%'
+```
+
+**Note:** `Orders.ClientName` duplicates `Clients.Name` (denormalized for performance). Both contain the same customer name, but Clients table has additional contact details (email, phone, address).
+
+---
+
 ## 🎯 **Example Real Record - Gerardo Poli Job**
 
 ```sql

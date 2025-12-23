@@ -471,20 +471,20 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             print(f" [POOL] Connection test failed, discarding dead connection: {test_err}")
             try:
                 pool_instance.putconn(conn, close=True)  # Remove from pool
-            except:
-                pass
-            # Recursively retry with new connection (max 1 retry to avoid infinite loop)
+            except Exception as putconn_err:
+                print(f" [POOL] Failed to remove dead connection: {putconn_err}")
+            # Recursively retry with new connection (max 2 retries to handle zombie cascade)
             if not hasattr(get_database_connection, '_retry_count'):
                 get_database_connection._retry_count = 0
-            if get_database_connection._retry_count < 1:
+            if get_database_connection._retry_count < 2:  # Increased from 1 to 2
                 get_database_connection._retry_count += 1
-                print(f" [POOL] Retrying with fresh connection...")
+                print(f" [POOL] Retrying with fresh connection (attempt {get_database_connection._retry_count}/2)...")
                 result = get_database_connection(db_name)
                 get_database_connection._retry_count = 0
                 return result
             else:
                 get_database_connection._retry_count = 0
-                raise ConnectionError(f"Failed to get live connection after retry: {test_err}")
+                raise ConnectionError(f"Failed to get live connection after 2 retries: {test_err}")
         
         # Set search_path and configure connection
         cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -530,10 +530,24 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 
                 try:
                     if not self._conn.closed:
-                        self._conn.rollback()
-                        self._pool.putconn(self._conn)
-                        _pool_stats['connections_returned'] += 1
-                        self._closed = True  # ✅ Only mark closed if putconn succeeds
+                        # ✅ FIX: Test connection liveness before returning to pool
+                        try:
+                            test_cursor = self._conn.cursor()
+                            test_cursor.execute("SELECT 1")
+                            test_cursor.close()
+                            # Connection alive - safe to return
+                            self._conn.rollback()
+                            self._pool.putconn(self._conn)
+                            _pool_stats['connections_returned'] += 1
+                            self._closed = True
+                        except (psycopg2.OperationalError, psycopg2.InterfaceError) as zombie_err:
+                            # Connection died during use - don't return zombie to pool
+                            print(f"⚠️  [POOL] Discarding zombie connection (died during use): {zombie_err}")
+                            try:
+                                self._pool.putconn(self._conn, close=True)  # Close instead of return
+                            except:
+                                pass
+                            self._closed = True
                 except Exception as e:
                     # ✅ Even if putconn fails, mark as closed to prevent retry
                     self._closed = True
@@ -912,3 +926,167 @@ if __name__ == '__main__':
     print(f"  Connections returned: {stats['connections_returned']}")
     print(f"  Avg wait time: {stats['avg_wait_time']*1000:.2f}ms")
     print("=" * 60)
+
+
+# ==================== EXECUTE QUERY - CANONICAL PATTERN ====================
+
+def execute_query(
+    query: str,
+    params: tuple = (),
+    *,
+    fetch_mode: str = 'all',
+    schema: str = 'ai_infrastructure'
+):
+    """
+    Execute query with automatic connection management (CANONICAL PATTERN)
+    
+    This is the RECOMMENDED way to execute database queries. Handles connection
+    pooling, cleanup, and error handling automatically. No manual try/finally needed.
+    
+    Args:
+        query: SQL query (use %s placeholders for PostgreSQL)
+        params: Query parameters tuple (default: empty tuple)
+        fetch_mode: Result fetch mode (keyword-only)
+            - 'all': List[Dict] - all rows as list of dictionaries
+            - 'one': Dict | None - single row as dictionary or None
+            - 'value': Any - single value from first row, first column
+            - None: int - affected row count (for INSERT/UPDATE/DELETE)
+        schema: Database schema name (keyword-only, default: 'ai_infrastructure')
+                Options: 'ai_infrastructure', 'sessions', 'synergy_sessions',
+                        'stock_data', 'kanban_analytics'
+    
+    Returns:
+        - fetch_mode='all': List[Dict] (all rows)
+        - fetch_mode='one': Dict | None (single row)
+        - fetch_mode='value': Any (single value)
+        - fetch_mode=None: int (affected row count)
+    
+    Raises:
+        Exception: If query execution fails (connection errors, SQL errors)
+    
+    Examples:
+        # Select all rows
+        users = execute_query(
+            "SELECT * FROM users WHERE active = %s",
+            (True,),
+            fetch_mode='all',
+            schema='ai_infrastructure'
+        )
+        # Returns: [{'id': 1, 'name': 'Alice', ...}, {'id': 2, 'name': 'Bob', ...}]
+        
+        # Select single row
+        user = execute_query(
+            "SELECT * FROM users WHERE id = %s",
+            (user_id,),
+            fetch_mode='one'
+        )
+        # Returns: {'id': 1, 'name': 'Alice', ...} or None
+        
+        # Get single value
+        count = execute_query(
+            "SELECT COUNT(*) FROM users",
+            (),
+            fetch_mode='value'
+        )
+        # Returns: 42
+        
+        # Insert/Update (no fetch)
+        affected = execute_query(
+            "UPDATE users SET last_login = NOW() WHERE id = %s",
+            (user_id,),
+            fetch_mode=None
+        )
+        # Returns: 1 (number of rows affected)
+        
+        # Use different schema
+        threads = execute_query(
+            "SELECT * FROM threads WHERE user_id = %s",
+            (user_id,),
+            fetch_mode='all',
+            schema='sessions'
+        )
+    
+    Connection Management:
+        - Automatically gets connection from pool
+        - Automatically returns connection to pool (even on exceptions)
+        - No manual try/finally blocks needed
+        - Thread-safe (uses connection pooling)
+    
+    Performance:
+        - Uses connection pool (10-100x faster than creating connections)
+        - Minimal overhead compared to manual connection management
+        - Automatic cleanup prevents connection leaks
+    
+    Best Practices:
+        - Use this for single-query operations (most common case)
+        - Use context manager (with get_database_connection) for:
+          * Multi-query transactions (need atomicity)
+          * Complex logic requiring multiple queries
+          * Custom cursor configuration
+    
+    See Also:
+        - get_database_connection(): For advanced use cases
+        - Context manager pattern: For transactions
+    """
+    conn = None
+    cursor = None
+    
+    try:
+        # Get connection from pool
+        conn = get_database_connection(schema)
+        cursor = conn.cursor()
+        
+        # Execute query
+        cursor.execute(query, params)
+        
+        # Fetch results based on mode
+        if fetch_mode == 'all':
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows] if rows else []
+        
+        elif fetch_mode == 'one':
+            row = cursor.fetchone()
+            return dict(row) if row else None
+        
+        elif fetch_mode == 'value':
+            row = cursor.fetchone()
+            if row:
+                # Get first column value
+                return row[0] if isinstance(row, (tuple, list)) else list(row.values())[0]
+            return None
+        
+        elif fetch_mode is None:
+            # INSERT/UPDATE/DELETE - commit and return row count
+            conn.commit()
+            return cursor.rowcount
+        
+        else:
+            raise ValueError(
+                f"Invalid fetch_mode: '{fetch_mode}'. "
+                f"Valid options: 'all', 'one', 'value', None"
+            )
+    
+    except Exception as e:
+        # Rollback on error
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        
+        # Re-raise with context
+        raise Exception(f"Query execution failed: {e}") from e
+    
+    finally:
+        # GUARANTEED cleanup - always executes
+        if cursor:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        
+        if conn:
+            try:
+                conn.close()  # Returns to pool, doesn't actually close
+            except Exception:
+                pass

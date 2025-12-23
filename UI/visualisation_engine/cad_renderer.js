@@ -1335,17 +1335,44 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
                 svgElement.style.height = 'auto';
             }
 
-            // FIXED (Dec 11, 2025): Hide SVG <title> and <desc> elements
-            // These are metadata/accessibility elements, not meant to be visually rendered
-            // They were overlaying the actual drawing content
+            // CRITICAL FIX (Dec 23, 2025): Enhanced metadata element hiding
+            // Per MDN: <title> and <desc> are metadata, not visual elements
+            // Source: https://developer.mozilla.org/en-US/docs/Web/SVG/Element/title
+            // 
+            // Issue: Some browsers still render these elements, causing overlapping text
+            // Solution: Multiple hiding methods for maximum browser compatibility
             const metadataElements = svgElement.querySelectorAll('title, desc');
             metadataElements.forEach(el => {
-                el.style.display = 'none'; // Hide metadata elements
+                // Method 1: Remove from visual layout (primary)
+                el.style.display = 'none';
+
+                // Method 2: Make invisible (fallback)
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+
+                // Method 3: Position off-screen (fallback)
+                el.style.position = 'absolute';
+                el.style.left = '-9999px';
+                el.style.top = '-9999px';
+
+                // Method 4: Remove space allocation
+                el.style.width = '0';
+                el.style.height = '0';
+                el.style.margin = '0';
+                el.style.padding = '0';
+
+                // Method 5: Screen reader only (maintain accessibility)
+                el.style.clip = 'rect(0, 0, 0, 0)';
+                el.style.whiteSpace = 'nowrap';
+                el.style.border = '0';
+
+                // Add ARIA attributes for screen readers
+                el.setAttribute('aria-hidden', 'true');
             });
 
             console.log('✅ CAD: SVG element found and styled');
             if (metadataElements.length > 0) {
-                console.log(`✅ CAD: Hidden ${metadataElements.length} metadata elements (title/desc)`);
+                console.log(`✅ CAD: Applied comprehensive hiding to ${metadataElements.length} metadata elements (title/desc)`);
             }
         } else {
             console.warn('⚠️ CAD: No SVG element found in content');

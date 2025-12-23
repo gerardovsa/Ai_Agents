@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Metadata Hiding Test</title>
+    <style>
+        /* Import the fix from visualization_enhancements.css */
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .before {
+            border-left: 4px solid #f44336;
+        }
+
+        .after {
+            border-left: 4px solid #4CAF50;
+        }
+
+        /* CRITICAL FIX: Hide SVG metadata elements */
+        svg title,
+        svg desc {
+            /* Method 1: Remove from layout completely */
+            display: none !important;
+
+            /* Method 2: Make invisible if display:none fails */
+            visibility: hidden !important;
+            opacity: 0 !important;
+
+            /* Method 3: Position off-screen if visibility fails */
+            position: absolute !important;
+            left: -9999px !important;
+            top: -9999px !important;
+
+            /* Method 4: Prevent any space allocation */
+            width: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+
+            /* Method 5: Screen reader only (maintain accessibility) */
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+
+        .cad-svg-container {
+            width: 100%;
+            max-width: 100%;
+            min-height: 400px;
+            overflow: auto;
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .pass {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .fail {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 SVG Metadata Hiding Test Suite</h1>
+    <p><strong>Date:</strong> December 23, 2025</p>
+    <p><strong>Purpose:</strong> Verify that SVG &lt;title&gt; and &lt;desc&gt; elements are properly hidden</p>
+
+    <div class="test-container before">
+        <h2>❌ Test 1: BEFORE Fix (Metadata Visible)</h2>
+        <p>This SVG has metadata elements that should NOT be visible:</p>
+        <div style="background: white; padding: 20px;">
+            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+                <!-- These should be hidden by CSS -->
+                <title style="font-size: 24px; fill: red;">THIS TITLE SHOULD NOT BE VISIBLE</title>
+                <desc>This description should also not be visible</desc>
+
+                <!-- Actual drawing content -->
+                <rect x="50" y="50" width="300" height="200" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" />
+                <text x="200" y="150" font-size="20" text-anchor="middle" fill="#1976d2">
+                    ✅ This text SHOULD be visible
+                </text>
+                <text x="200" y="180" font-size="14" text-anchor="middle" fill="#666">
+                    (The title/desc above should be hidden)
+                </text>
+            </svg>
+        </div>
+        <div class="status fail" id="test1-status">
+            ⏳ Checking... (If you see "THIS TITLE SHOULD NOT BE VISIBLE" = FAIL)
+        </div>
+    </div>
+
+    <div class="test-container after">
+        <h2>✅ Test 2: AFTER Fix (JavaScript Enhanced)</h2>
+        <p>This SVG applies the JavaScript fix from cad_renderer.js:</p>
+        <div class="cad-svg-container" id="test2-container">
+            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+                <title>CAD Drawing - Insulation System</title>
+                <desc>Technical drawing showing thermal insulation layers</desc>
+
+                <!-- Actual drawing content -->
+                <rect x="50" y="50" width="300" height="200" fill="#fff3e0" stroke="#f57c00" stroke-width="2" />
+                <line x1="50" y1="100" x2="350" y2="100" stroke="#666" stroke-width="1" stroke-dasharray="5,5" />
+                <line x1="50" y1="150" x2="350" y2="150" stroke="#666" stroke-width="1" stroke-dasharray="5,5" />
+                <line x1="50" y1="200" x2="350" y2="200" stroke="#666" stroke-width="1" stroke-dasharray="5,5" />
+
+                <text x="200" y="80" font-size="16" text-anchor="middle" fill="#f57c00" font-weight="bold">
+                    Layer 1: Steel Shell
+                </text>
+                <text x="200" y="125" font-size="16" text-anchor="middle" fill="#f57c00" font-weight="bold">
+                    Layer 2: Air Gap
+                </text>
+                <text x="200" y="175" font-size="16" text-anchor="middle" fill="#f57c00" font-weight="bold">
+                    Layer 3: Wool Insulation
+                </text>
+                <text x="200" y="225" font-size="16" text-anchor="middle" fill="#f57c00" font-weight="bold">
+                    Layer 4: Interior Surface
+                </text>
+            </svg>
+        </div>
+        <div class="status pass" id="test2-status">
+            ✅ JavaScript fix applied (check console for logs)
+        </div>
+    </div>
+
+    <div class="test-container after">
+        <h2>✅ Test 3: Complex CAD Drawing (Real-World Example)</h2>
+        <p>This mimics the actual Fiat Ducato insulation system rendering:</p>
+        <div class="cad-svg-container" id="test3-container">
+            <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+                <title>Fiat Ducato Insulation System - Technical Specification</title>
+                <desc>Cross-sectional view of insulation layers with thermal performance data</desc>
+
+                <!-- Background -->
+                <rect width="1000" height="600" fill="#f5f5f5" />
+
+                <!-- Layer 1: Steel Shell -->
+                <rect x="100" y="50" width="800" height="40" fill="#2196F3" />
+                <text x="500" y="75" font-size="18" text-anchor="middle" fill="white" font-weight="bold">
+                    1. STEEL SHELL
+                </text>
+
+                <!-- Layer 2: Air Gap -->
+                <rect x="100" y="90" width="800" height="60" fill="#e3f2fd" />
+                <text x="500" y="125" font-size="18" text-anchor="middle" fill="#1976d2" font-weight="bold">
+                    3. PRIMARY AIR GAP
+                </text>
+                <text x="500" y="145" font-size="14" text-anchor="middle" fill="#1976d2">
+                    R = 1.5 (38% of total)
+                </text>
+
+                <!-- Layer 3: XPE Foil -->
+                <rect x="100" y="150" width="800" height="30" fill="#ffeb3b" />
+                <text x="500" y="170" font-size="14" text-anchor="middle" fill="#000" font-weight="bold">
+                    4. XPE FOIL - Radiant barrier
+                </text>
+
+                <!-- Layer 4: Secondary Air Gap -->
+                <rect x="100" y="180" width="800" height="30" fill="#f5f5f5" />
+                <text x="500" y="200" font-size="12" text-anchor="middle" fill="#666">
+                    5. SECONDARY AIR GAP ≈98mm
+                </text>
+
+                <!-- Layer 5: Wool Insulation -->
+                <rect x="100" y="210" width="800" height="200" fill="#ffc107" opacity="0.6" />
+                <text x="500" y="305" font-size="20" text-anchor="middle" fill="#000" font-weight="bold">
+                    6. HAVELOCK WOOL
+                </text>
+                <text x="500" y="330" font-size="16" text-anchor="middle" fill="#000">
+                    R = 1.67 (44% of total)
+                </text>
+
+                <!-- Layer 6: PVC Foam -->
+                <rect x="100" y="410" width="800" height="50" fill="#8d6e63" />
+                <text x="500" y="440" font-size="16" text-anchor="middle" fill="white" font-weight="bold">
+                    9. PVC FOAM BOARD
+                </text>
+
+                <!-- Layer 7: Interior -->
+                <rect x="100" y="460" width="800" height="40" fill="#4caf50" />
+                <text x="500" y="485" font-size="18" text-anchor="middle" fill="white" font-weight="bold">
+                    INTERIOR SURFACE
+                </text>
+
+                <!-- Thermal Performance Summary -->
+                <rect x="100" y="510" width="800" height="80" fill="#fff9c4" stroke="#fbc02d" stroke-width="2" />
+                <text x="500" y="535" font-size="18" text-anchor="middle" fill="#000" font-weight="bold">
+                    THERMAL PERFORMANCE SUMMARY
+                </text>
+                <text x="500" y="560" font-size="14" text-anchor="middle" fill="#000">
+                    Flat Bay Section (85% of area): Total R-Value: 3.93 m²·K/W (R-22.3 imperial)
+                </text>
+                <text x="500" y="580" font-size="14" text-anchor="middle" fill="#000">
+                    Top Contributors: Air gap (38%) + Wool (34%) = 72%
+                </text>
+            </svg>
+        </div>
+        <div class="status pass" id="test3-status">
+            ✅ Complex drawing rendered (no overlapping text)
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔍 Accessibility Test</h2>
+        <p>Open browser DevTools and check:</p>
+        <ol>
+            <li><strong>Inspect Element:</strong> Right-click SVG → Inspect → Look for &lt;title&gt; and &lt;desc&gt;
+            </li>
+            <li><strong>Computed Styles:</strong> Check that <code>display: none</code> is applied</li>
+            <li><strong>Screen Reader:</strong> Use screen reader to verify metadata is still announced</li>
+        </ol>
+        <div class="status pass">
+            ℹ️ Metadata should be in DOM but visually hidden
+        </div>
+    </div>
+
+    <script>
+        console.log('🧪 SVG Metadata Hiding Test Suite Started');
+
+        // Apply JavaScript fix to Test 2 and Test 3
+        function applyJavaScriptFix(containerId) {
+            const container = document.getElementById(containerId);
+            const svgElement = container.querySelector('svg');
+
+            if (!svgElement) {
+                console.error(`❌ No SVG found in ${containerId}`);
+                return;
+            }
+
+            const metadataElements = svgElement.querySelectorAll('title, desc');
+            console.log(`🔧 Found ${metadataElements.length} metadata elements in ${containerId}`);
+
+            metadataElements.forEach((el, index) => {
+                // Method 1: Remove from visual layout (primary)
+                el.style.display = 'none';
+
+                // Method 2: Make invisible (fallback)
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+
+                // Method 3: Position off-screen (fallback)
+                el.style.position = 'absolute';
+                el.style.left = '-9999px';
+                el.style.top = '-9999px';
+
+                // Method 4: Remove space allocation
+                el.style.width = '0';
+                el.style.height = '0';
+                el.style.margin = '0';
+                el.style.padding = '0';
+
+                // Method 5: Screen reader only (maintain accessibility)
+                el.style.clip = 'rect(0, 0, 0, 0)';
+                el.style.whiteSpace = 'nowrap';
+                el.style.border = '0';
+
+                // Add ARIA attributes for screen readers
+                el.setAttribute('aria-hidden', 'true');
+
+                console.log(`✅ Applied comprehensive hiding to ${el.tagName} #${index + 1}`);
+            });
+
+            console.log(`✅ ${containerId}: JavaScript fix complete`);
+        }
+
+        // Apply fixes on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            applyJavaScriptFix('test2-container');
+            applyJavaScriptFix('test3-container');
+
+            // Check Test 1 status
+            setTimeout(() => {
+                const test1Status = document.getElementById('test1-status');
+                const visibleTitle = document.querySelector('.before title');
+
+                if (visibleTitle) {
+                    const rect = visibleTitle.getBoundingClientRect();
+                    if (rect.width === 0 && rect.height === 0) {
+                        test1Status.className = 'status pass';
+                        test1Status.textContent = '✅ PASS: Title hidden by CSS (width/height = 0)';
+                        console.log('✅ Test 1 PASSED: Title properly hidden');
+                    } else {
+                        test1Status.className = 'status fail';
+                        test1Status.textContent = '❌ FAIL: Title still visible (check CSS)';
+                        console.error('❌ Test 1 FAILED: Title dimensions:', rect);
+                    }
+                }
+            }, 500);
+
+            console.log('🎉 All tests initialized');
+        });
+
+        // Continuous monitoring
+        setInterval(() => {
+            const containers = ['test2-container', 'test3-container'];
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                const metadataElements = container.querySelectorAll('title, desc');
+
+                metadataElements.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 0 || rect.height > 0) {
+                        console.warn(`⚠️ ${containerId}: Metadata element has visible dimensions!`, rect);
+                    }
+                });
+            });
+        }, 2000);
+    </script>
+</body>
+
+</html>

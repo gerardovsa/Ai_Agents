@@ -75,6 +75,13 @@ html2text>=2020.1.16
 beautifulsoup4>=4.12.0  # HTML extraction
 lxml>=4.9.0             # XML/HTML parsing
 
+# Professional Verification & Integration Tools
+python-whois>=0.9.6     # Domain age checks and WHOIS lookups for verification module
+stripe>=13.0.0          # Payment processing integration
+
+# Background Task Processing
+celery>=5.5.0           # Async task queue for scheduled workflows
+
 # Geolocation (optional) - removed maxminddb-geolite2 due to slow download
 # geoip2>=4.7.0
 # maxminddb-geolite2>=2018.701

@@ -19,6 +19,20 @@ class BaseModule {
             console.warn(` Failed to load manifest for ${this.moduleId}:`, error);
         }
     }
+
+    /**
+     * Utility: Get sub-tab container
+     */
+    getSubTabContainer(subTabId) {
+        return document.getElementById(`${this.moduleId}-subtab-${subTabId}`);
+    }
+
+    /**
+     * Utility: Get main content container (if no sub-tabs)
+     */
+    getContentContainer() {
+        return document.getElementById(`${this.moduleId}-content`);
+    }
 }
 /**
  * Shopify E-Commerce Module

@@ -1,3 +1,6 @@
+// Import Quick Prompts module
+import { XeroQuickPrompts } from './xero-quick-prompts.js';
+
 // BaseModule polyfill (required since module-base.js is not globally loaded)
 class BaseModule {
     constructor(moduleId) {
@@ -125,6 +128,533 @@ class XeroModule extends BaseModule {
     }
 
     /**
+     * Create universal date range picker with comparison options
+     * @param {string} containerId - ID of container element
+     * @param {Function} onChangeCallback - Callback when date range changes
+     * @returns {Object} Date range controller
+     */
+    createDateRangePicker(containerId, onChangeCallback) {
+        const container = document.getElementById(containerId);
+        if (!container) return null;
+
+        const presets = [
+            { label: 'This Month', value: 'this_month' },
+            { label: 'Last Month', value: 'last_month' },
+            { label: 'This Quarter', value: 'this_quarter' },
+            { label: 'Last Quarter', value: 'last_quarter' },
+            { label: 'This Year', value: 'this_year' },
+            { label: 'Last Year', value: 'last_year' },
+            { label: 'Last 3 Months', value: 'last_3_months' },
+            { label: 'Last 6 Months', value: 'last_6_months' },
+            { label: 'Last 12 Months', value: 'last_12_months' },
+            { label: 'Custom', value: 'custom' }
+        ];
+
+        const compareOptions = [
+            { label: 'None', value: 'none' },
+            { label: 'Same Period Last Year', value: 'yoy' },
+            { label: 'Previous Period', value: 'previous' }
+        ];
+
+        container.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; color: #8b949e; margin-bottom: 6px;">📅 Quick Select</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;" id="${containerId}-presets"></div>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; color: #8b949e; margin-bottom: 6px;">🔄 Compare To</label>
+                    <select id="${containerId}-compare" style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-size: 14px;">
+                        ${compareOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('')}
+                    </select>
+                </div>
+                <div id="${containerId}-custom-dates" style="grid-column: 1 / -1; display: none; gap: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #8b949e; margin-bottom: 6px;">From</label>
+                            <input type="date" id="${containerId}-from" style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #8b949e; margin-bottom: 6px;">To</label>
+                            <input type="date" id="${containerId}-to" style="width: 100%; padding: 8px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const presetsContainer = document.getElementById(`${containerId}-presets`);
+        presets.forEach(preset => {
+            const btn = document.createElement('button');
+            btn.textContent = preset.label;
+            btn.className = 'date-preset-btn';
+            btn.dataset.value = preset.value;
+            btn.style.cssText = 'padding: 6px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-size: 13px; cursor: pointer; transition: all 0.2s;';
+            btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(19, 181, 234, 0.15)');
+            btn.addEventListener('mouseleave', () => btn.style.background = btn.classList.contains('active') ? '#13B5EA' : '#21262d');
+            btn.addEventListener('click', () => handlePresetClick(preset.value));
+            presetsContainer.appendChild(btn);
+        });
+
+        const customDatesDiv = document.getElementById(`${containerId}-custom-dates`);
+        const fromInput = document.getElementById(`${containerId}-from`);
+        const toInput = document.getElementById(`${containerId}-to`);
+        const compareSelect = document.getElementById(`${containerId}-compare`);
+
+        function calculateDateRange(presetValue) {
+            const now = new Date();
+            let from, to;
+
+            switch (presetValue) {
+                case 'this_month':
+                    from = new Date(now.getFullYear(), now.getMonth(), 1);
+                    to = now;
+                    break;
+                case 'last_month':
+                    from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    to = new Date(now.getFullYear(), now.getMonth(), 0);
+                    break;
+                case 'this_quarter':
+                    const q = Math.floor(now.getMonth() / 3);
+                    from = new Date(now.getFullYear(), q * 3, 1);
+                    to = now;
+                    break;
+                case 'last_quarter':
+                    const lq = Math.floor(now.getMonth() / 3) - 1;
+                    from = new Date(now.getFullYear(), lq * 3, 1);
+                    to = new Date(now.getFullYear(), lq * 3 + 3, 0);
+                    break;
+                case 'this_year':
+                    from = new Date(now.getFullYear(), 0, 1);
+                    to = now;
+                    break;
+                case 'last_year':
+                    from = new Date(now.getFullYear() - 1, 0, 1);
+                    to = new Date(now.getFullYear() - 1, 11, 31);
+                    break;
+                case 'last_3_months':
+                    from = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+                    to = now;
+                    break;
+                case 'last_6_months':
+                    from = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+                    to = now;
+                    break;
+                case 'last_12_months':
+                    from = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
+                    to = now;
+                    break;
+                default:
+                    return null;
+            }
+
+            return {
+                from: from.toISOString().split('T')[0],
+                to: to.toISOString().split('T')[0]
+            };
+        }
+
+        function handlePresetClick(value) {
+            // Update button styles
+            document.querySelectorAll('.date-preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.background = '#21262d';
+                btn.style.borderColor = '#30363d';
+            });
+
+            const clickedBtn = document.querySelector(`[data-value="${value}"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+                clickedBtn.style.background = '#13B5EA';
+                clickedBtn.style.borderColor = '#13B5EA';
+            }
+
+            if (value === 'custom') {
+                customDatesDiv.style.display = 'block';
+            } else {
+                customDatesDiv.style.display = 'none';
+                const range = calculateDateRange(value);
+                if (range && onChangeCallback) {
+                    onChangeCallback(range, compareSelect.value);
+                }
+            }
+        }
+
+        // Handle custom date changes
+        [fromInput, toInput].forEach(input => {
+            input.addEventListener('change', () => {
+                if (fromInput.value && toInput.value && onChangeCallback) {
+                    const dates = {
+                        from: fromInput.value,
+                        to: toInput.value
+                    };
+
+                    // Auto-calculate YoY comparison dates for custom ranges
+                    if (compareSelect.value === 'yoy') {
+                        const fromDate = new Date(fromInput.value);
+                        const toDate = new Date(toInput.value);
+                        fromDate.setFullYear(fromDate.getFullYear() - 1);
+                        toDate.setFullYear(toDate.getFullYear() - 1);
+                        dates.compare_from = fromDate.toISOString().split('T')[0];
+                        dates.compare_to = toDate.toISOString().split('T')[0];
+                    } else if (compareSelect.value === 'previous') {
+                        const fromDate = new Date(fromInput.value);
+                        const toDate = new Date(toInput.value);
+                        const daysDiff = Math.floor((toDate - fromDate) / (1000 * 60 * 60 * 24));
+                        const compareToDate = new Date(fromDate);
+                        compareToDate.setDate(compareToDate.getDate() - 1);
+                        const compareFromDate = new Date(compareToDate);
+                        compareFromDate.setDate(compareFromDate.getDate() - daysDiff);
+                        dates.compare_from = compareFromDate.toISOString().split('T')[0];
+                        dates.compare_to = compareToDate.toISOString().split('T')[0];
+                    }
+
+                    onChangeCallback(dates, compareSelect.value);
+                }
+            });
+        });
+
+        // Handle comparison change
+        compareSelect.addEventListener('change', () => {
+            const activeBtn = document.querySelector('.date-preset-btn.active');
+            if (activeBtn) {
+                const value = activeBtn.dataset.value;
+                if (value === 'custom' && fromInput.value && toInput.value) {
+                    const dates = {
+                        from: fromInput.value,
+                        to: toInput.value
+                    };
+
+                    // Auto-calculate comparison dates for custom ranges
+                    if (compareSelect.value === 'yoy') {
+                        const fromDate = new Date(fromInput.value);
+                        const toDate = new Date(toInput.value);
+                        fromDate.setFullYear(fromDate.getFullYear() - 1);
+                        toDate.setFullYear(toDate.getFullYear() - 1);
+                        dates.compare_from = fromDate.toISOString().split('T')[0];
+                        dates.compare_to = toDate.toISOString().split('T')[0];
+                    } else if (compareSelect.value === 'previous') {
+                        const fromDate = new Date(fromInput.value);
+                        const toDate = new Date(toInput.value);
+                        const daysDiff = Math.floor((toDate - fromDate) / (1000 * 60 * 60 * 24));
+                        const compareToDate = new Date(fromDate);
+                        compareToDate.setDate(compareToDate.getDate() - 1);
+                        const compareFromDate = new Date(compareToDate);
+                        compareFromDate.setDate(compareFromDate.getDate() - daysDiff);
+                        dates.compare_from = compareFromDate.toISOString().split('T')[0];
+                        dates.compare_to = compareToDate.toISOString().split('T')[0];
+                    }
+
+                    onChangeCallback(dates, compareSelect.value);
+                } else if (value !== 'custom') {
+                    const range = calculateDateRange(value);
+                    if (range && onChangeCallback) {
+                        onChangeCallback(range, compareSelect.value);
+                    }
+                }
+            }
+        });
+
+        // Set default to last 12 months
+        handlePresetClick('last_12_months');
+
+        return {
+            getDateRange: () => {
+                const activeBtn = document.querySelector('.date-preset-btn.active');
+                if (!activeBtn) return null;
+                const value = activeBtn.dataset.value;
+                if (value === 'custom') {
+                    return { from: fromInput.value, to: toInput.value };
+                }
+                return calculateDateRange(value);
+            },
+            getComparison: () => compareSelect.value
+        };
+    }
+
+    /**
+     * Create export to clipboard button for dashboards
+     * @param {string} containerId - Container element ID
+     * @param {Function} getDataCallback - Function that returns dashboard data to export
+     * @param {string} dashboardName - Name of the dashboard for context
+     * @param {string} endpoint - API endpoint used to fetch the data
+     */
+    createExportButton(containerId, getDataCallback, dashboardName, endpoint) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const exportBtn = document.createElement('button');
+        exportBtn.innerHTML = '<i class="fas fa-clipboard"></i> Export for AI';
+        exportBtn.className = 'export-to-clipboard-btn';
+        exportBtn.style.cssText = `
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #8957e5 0%, #9b6df7 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(137, 87, 229, 0.3);
+            transition: all 0.2s;
+            z-index: 100;
+        `;
+
+        exportBtn.addEventListener('mouseenter', () => {
+            exportBtn.style.transform = 'translateY(-2px)';
+            exportBtn.style.boxShadow = '0 4px 12px rgba(137, 87, 229, 0.4)';
+        });
+
+        exportBtn.addEventListener('mouseleave', () => {
+            exportBtn.style.transform = 'translateY(0)';
+            exportBtn.style.boxShadow = '0 2px 8px rgba(137, 87, 229, 0.3)';
+        });
+
+        exportBtn.addEventListener('click', async () => {
+            try {
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Copying...';
+                exportBtn.disabled = true;
+
+                const data = await getDataCallback();
+                const exportText = this.formatDataForAI(data, dashboardName, endpoint);
+
+                await navigator.clipboard.writeText(exportText);
+
+                exportBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                exportBtn.style.background = 'linear-gradient(135deg, #3fb950 0%, #2ea043 100%)';
+
+                setTimeout(() => {
+                    exportBtn.innerHTML = '<i class="fas fa-clipboard"></i> Export for AI';
+                    exportBtn.style.background = 'linear-gradient(135deg, #8957e5 0%, #9b6df7 100%)';
+                    exportBtn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                console.error('Failed to copy to clipboard:', error);
+                exportBtn.innerHTML = '<i class="fas fa-times"></i> Failed';
+                exportBtn.style.background = 'linear-gradient(135deg, #f85149 0%, #d73027 100%)';
+
+                setTimeout(() => {
+                    exportBtn.innerHTML = '<i class="fas fa-clipboard"></i> Export for AI';
+                    exportBtn.style.background = 'linear-gradient(135deg, #8957e5 0%, #9b6df7 100%)';
+                    exportBtn.disabled = false;
+                }, 2000);
+            }
+        });
+
+        container.style.position = 'relative';
+        container.insertBefore(exportBtn, container.firstChild);
+    }
+
+    /**
+     * Format dashboard data for AI interpretation
+     * @param {Object} data - Dashboard data object
+     * @param {string} dashboardName - Name of the dashboard
+     * @param {string} endpoint - API endpoint used
+     * @returns {string} Formatted text for AI
+     */
+    formatDataForAI(data, dashboardName, endpoint) {
+        const timestamp = new Date().toISOString();
+
+        let output = `# Xero ${dashboardName} - Export for AI Analysis\n`;
+        output += `**Exported:** ${new Date().toLocaleString()}\n`;
+        output += `**Dashboard:** ${dashboardName}\n`;
+        output += `**API Endpoint:** ${endpoint}\n\n`;
+
+        // Add data source queries
+        output += `## 📊 Data Source Information\n\n`;
+        output += `### Primary Endpoint\n`;
+        output += `\`\`\`\n${endpoint}\n\`\`\`\n\n`;
+
+        output += `### SQL Queries Used (Backend)\n`;
+        output += `To retrieve raw data or verify calculations, use these SQL patterns:\n\n`;
+
+        if (dashboardName.includes('Business Comparison')) {
+            output += `\`\`\`sql\n`;
+            output += `-- Business revenue and outstanding by date range\n`;
+            output += `SELECT \n`;
+            output += `    business_name,\n`;
+            output += `    SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END) as total_revenue,\n`;
+            output += `    SUM(CASE WHEN status NOT IN ('PAID', 'VOIDED') THEN total ELSE 0 END) as outstanding,\n`;
+            output += `    COUNT(*) as invoice_count,\n`;
+            output += `    AVG(total) as avg_invoice_value\n`;
+            output += `FROM xero_invoices\n`;
+            output += `WHERE date BETWEEN '${data.date_range?.from}' AND '${data.date_range?.to}'\n`;
+            output += `GROUP BY business_name;\n`;
+            output += `\n`;
+            output += `-- Collection days calculation\n`;
+            output += `SELECT \n`;
+            output += `    business_name,\n`;
+            output += `    AVG(JULIANDAY(fully_paid_date) - JULIANDAY(date)) as avg_collection_days\n`;
+            output += `FROM xero_invoices\n`;
+            output += `WHERE status = 'PAID' AND fully_paid_date IS NOT NULL\n`;
+            output += `GROUP BY business_name;\n`;
+            output += `\`\`\`\n\n`;
+        } else if (dashboardName.includes('Consolidated Revenue')) {
+            output += `\`\`\`sql\n`;
+            output += `-- Consolidated revenue across all businesses\n`;
+            output += `SELECT \n`;
+            output += `    strftime('%Y-%m', date) as month,\n`;
+            output += `    SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END) as revenue,\n`;
+            output += `    SUM(CASE WHEN status NOT IN ('PAID', 'VOIDED') THEN total ELSE 0 END) as outstanding\n`;
+            output += `FROM xero_invoices\n`;
+            output += `WHERE date BETWEEN '${data.date_range?.from}' AND '${data.date_range?.to}'\n`;
+            output += `GROUP BY month ORDER BY month;\n`;
+            output += `\n`;
+            output += `-- Cash flow projection by aging\n`;
+            output += `SELECT \n`;
+            output += `    CASE \n`;
+            output += `        WHEN JULIANDAY('now') - JULIANDAY(date) <= 30 THEN '0-30 days'\n`;
+            output += `        WHEN JULIANDAY('now') - JULIANDAY(date) <= 60 THEN '31-60 days'\n`;
+            output += `        WHEN JULIANDAY('now') - JULIANDAY(date) <= 90 THEN '61-90 days'\n`;
+            output += `        ELSE '90+ days'\n`;
+            output += `    END as aging_bucket,\n`;
+            output += `    SUM(total) as outstanding_amount\n`;
+            output += `FROM xero_invoices\n`;
+            output += `WHERE status NOT IN ('PAID', 'VOIDED')\n`;
+            output += `GROUP BY aging_bucket;\n`;
+            output += `\`\`\`\n\n`;
+        } else if (dashboardName.includes('Seasonality')) {
+            output += `\`\`\`sql\n`;
+            output += `-- Monthly revenue patterns over multiple years\n`;
+            output += `SELECT \n`;
+            output += `    strftime('%Y', date) as year,\n`;
+            output += `    strftime('%m', date) as month,\n`;
+            output += `    SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END) as revenue,\n`;
+            output += `    COUNT(*) as invoice_count\n`;
+            output += `FROM xero_invoices\n`;
+            output += `WHERE business_id = ${data.business_id || 1}\n`;
+            output += `GROUP BY year, month\n`;
+            output += `ORDER BY year, month;\n`;
+            output += `\n`;
+            output += `-- Average revenue by month across all years\n`;
+            output += `SELECT \n`;
+            output += `    strftime('%m', date) as month_num,\n`;
+            output += `    AVG(monthly_revenue) as avg_revenue,\n`;
+            output += `    MIN(monthly_revenue) as min_revenue,\n`;
+            output += `    MAX(monthly_revenue) as max_revenue\n`;
+            output += `FROM (\n`;
+            output += `    SELECT strftime('%Y-%m', date) as month, SUM(total) as monthly_revenue\n`;
+            output += `    FROM xero_invoices WHERE status = 'PAID'\n`;
+            output += `    GROUP BY month\n`;
+            output += `) GROUP BY month_num;\n`;
+            output += `\`\`\`\n\n`;
+        } else if (dashboardName.includes('Forecast')) {
+            output += `\`\`\`sql\n`;
+            output += `-- Historical monthly revenue for forecasting\n`;
+            output += `SELECT \n`;
+            output += `    strftime('%Y-%m', date) as month,\n`;
+            output += `    SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END) as revenue\n`;
+            output += `FROM xero_invoices\n`;
+            output += `WHERE business_id = ${data.business_id || 1}\n`;
+            output += `    AND date >= date('now', '-${data.historical_months || 12} months')\n`;
+            output += `GROUP BY month\n`;
+            output += `ORDER BY month;\n`;
+            output += `\`\`\`\n\n`;
+        }
+
+        // Add date range context
+        if (data.date_range) {
+            output += `## 📅 Date Range\n`;
+            output += `- **From:** ${data.date_range.from}\n`;
+            output += `- **To:** ${data.date_range.to}\n`;
+            if (data.comparison_period) {
+                output += `- **Comparison Period:** ${data.comparison_period.from} to ${data.comparison_period.to}\n`;
+            }
+            output += `\n`;
+        }
+
+        // Add dashboard-specific data
+        output += `## 📈 Dashboard Data\n\n`;
+        output += `\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\`\n\n`;
+
+        // Add instructions for AI
+        output += `## 🤖 AI Analysis Instructions\n\n`;
+        output += `This data export contains:\n`;
+        output += `1. **API Endpoint:** The backend endpoint that generated this data\n`;
+        output += `2. **SQL Queries:** Reference queries to retrieve raw data from the database\n`;
+        output += `3. **Dashboard Data:** Complete JSON response with all metrics, charts, and tables\n\n`;
+        output += `**To analyze this data, you can:**\n`;
+        output += `- Interpret trends and patterns in the metrics\n`;
+        output += `- Compare year-over-year growth rates\n`;
+        output += `- Identify anomalies or outliers\n`;
+        output += `- Generate insights and recommendations\n`;
+        output += `- Run the provided SQL queries to verify calculations or get more detail\n\n`;
+        output += `**To get raw data from the database:**\n`;
+        output += `Use the SQL queries provided above in the "SQL Queries Used" section. These queries:\n`;
+        output += `- Show exactly how the backend calculated the displayed metrics\n`;
+        output += `- Can be modified to drill down into specific businesses, dates, or transactions\n`;
+        output += `- Include joins and aggregations used for complex calculations\n\n`;
+        output += `**Example questions to ask:**\n`;
+        output += `- "What's driving the revenue growth in Q4?"\n`;
+        output += `- "Which business has the best collection days and why?"\n`;
+        output += `- "Are there any concerning trends in the cash flow aging?"\n`;
+        output += `- "What seasonality patterns should we plan for?"\n`;
+        output += `- "How confident should we be in the 6-month forecast?"\n`;
+
+        return output;
+    }
+
+    /**
+     * Create Plotly chart with standard theming
+     * @param {string} containerId - Chart container ID
+     * @param {Object} data - Plotly data array
+     * @param {Object} layout - Plotly layout object
+     * @param {Object} config - Plotly config object
+     */
+    createChart(containerId, data, layout = {}, config = {}) {
+        const defaultLayout = {
+            paper_bgcolor: '#0d1117',
+            plot_bgcolor: '#161b22',
+            font: { color: '#c9d1d9', family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+            margin: { l: 50, r: 50, t: 50, b: 50 },
+            xaxis: { gridcolor: '#21262d', zeroline: false },
+            yaxis: { gridcolor: '#21262d', zeroline: false },
+            showlegend: true,
+            legend: { bgcolor: '#0d1117', bordercolor: '#30363d', borderwidth: 1 }
+        };
+
+        const defaultConfig = {
+            responsive: true,
+            displayModeBar: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+            ...config
+        };
+
+        const mergedLayout = { ...defaultLayout, ...layout };
+
+        const container = document.getElementById(containerId);
+        if (container) {
+            Plotly.newPlot(containerId, data, mergedLayout, defaultConfig);
+        }
+    }
+
+    /**
+     * Calculate YoY comparison metrics
+     * @param {number} current - Current period value
+     * @param {number} previous - Previous period value
+     * @returns {Object} Comparison metrics
+     */
+    calculateYoYMetrics(current, previous) {
+        const change = current - previous;
+        const percentChange = previous !== 0 ? ((change / previous) * 100) : 0;
+        const arrow = percentChange > 0 ? '⬆' : percentChange < 0 ? '⬇' : '━';
+        const color = percentChange > 0 ? '#3fb950' : percentChange < 0 ? '#f85149' : '#8b949e';
+
+        return {
+            change,
+            percentChange: percentChange.toFixed(1),
+            arrow,
+            color,
+            formatted: `${arrow} ${Math.abs(percentChange).toFixed(1)}%`
+        };
+    }
+
+    /**
      * Initialize module
      */
     async initialize() {
@@ -133,6 +663,9 @@ class XeroModule extends BaseModule {
         try {
             // Call parent initialization
             await super.initialize();
+
+            // Initialize Quick Prompts module with reference to this instance
+            XeroQuickPrompts.init(this);
 
             // CRITICAL FIX DEC 16: Inject base HTML structure first
             this.injectBaseStructure();
@@ -1022,8 +1555,15 @@ class XeroModule extends BaseModule {
                 throw new Error(data.error || 'Failed to load invoices');
             }
 
-            this.data.invoices = data.invoices || [];
-            console.log(`[Xero] ✅ Loaded ${this.data.invoices.length} invoices into memory`);
+            // Transform invoice data - convert date strings to Date objects for proper sorting
+            this.data.invoices = (data.invoices || []).map(inv => {
+                return {
+                    ...inv,
+                    date: inv.date ? new Date(inv.date) : null,
+                    due_date: inv.due_date ? new Date(inv.due_date) : null
+                };
+            });
+            console.log(`[Xero] ✅ Loaded ${this.data.invoices.length} invoices into memory (dates converted)`);
 
             // Create the table
             console.log('[Xero] 📊 Creating invoices table...');
@@ -1051,7 +1591,8 @@ class XeroModule extends BaseModule {
 
         this.tables.invoices = new Tabulator(container, {
             data: this.data.invoices,
-            layout: 'fitDataStretch',
+            layout: 'fitData',
+            autoColumns: false,
             responsiveLayout: 'collapse',
             pagination: 'local',
             paginationSize: 25,
@@ -1068,6 +1609,9 @@ class XeroModule extends BaseModule {
                     hozAlign: 'center',
                     headerSort: false,
                     width: 40,
+                    minWidth: 40,
+                    maxWidth: 40,
+                    widthGrow: 0,
                     cellClick: function (e, cell) {
                         cell.getRow().toggleSelect();
                     }
@@ -1075,7 +1619,10 @@ class XeroModule extends BaseModule {
                 {
                     title: 'Invoice #',
                     field: 'invoice_number',
-                    width: 130,
+                    minWidth: 100,
+                    maxWidth: 150,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     headerSort: true,
                     headerFilter: 'input',
                     headerFilterPlaceholder: 'Search...',
@@ -1087,7 +1634,10 @@ class XeroModule extends BaseModule {
                 {
                     title: 'Contact',
                     field: 'contact_name',
-                    width: 200,
+                    minWidth: 120,
+                    maxWidth: 300,
+                    widthGrow: 2,
+                    widthShrink: 1,
                     headerSort: true,
                     headerFilter: 'input',
                     headerFilterPlaceholder: 'Search...',
@@ -1096,27 +1646,54 @@ class XeroModule extends BaseModule {
                 {
                     title: 'Date',
                     field: 'date',
-                    width: 120,
+                    minWidth: 90,
+                    maxWidth: 130,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     headerSort: true,
-                    sorter: 'datetime',
+                    sorter: 'date',
+                    sorterParams: {
+                        format: 'iso',
+                        alignEmptyValues: 'bottom'
+                    },
                     headerFilter: 'input',
                     headerFilterPlaceholder: 'Search...',
-                    formatter: (cell) => `<span style="color: #ffffff;">${this.formatDate(cell.getValue())}</span>`
+                    formatter: (cell) => {
+                        const val = cell.getValue();
+                        if (!val) return '<span style="color: #8b949e;">N/A</span>';
+                        const dateObj = val instanceof Date ? val : this.parseXeroDate(val);
+                        return `<span style="color: #ffffff;">${this.formatDate(dateObj)}</span>`;
+                    }
                 },
                 {
                     title: 'Due Date',
                     field: 'due_date',
-                    width: 120,
+                    minWidth: 90,
+                    maxWidth: 130,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     headerSort: true,
-                    sorter: 'datetime',
+                    sorter: 'date',
+                    sorterParams: {
+                        format: 'iso',
+                        alignEmptyValues: 'bottom'
+                    },
                     headerFilter: 'input',
                     headerFilterPlaceholder: 'Search...',
-                    formatter: (cell) => `<span style="color: #ffffff;">${this.formatDate(cell.getValue())}</span>`
+                    formatter: (cell) => {
+                        const val = cell.getValue();
+                        if (!val) return '<span style="color: #8b949e;">N/A</span>';
+                        const dateObj = val instanceof Date ? val : this.parseXeroDate(val);
+                        return `<span style="color: #ffffff;">${this.formatDate(dateObj)}</span>`;
+                    }
                 },
                 {
                     title: 'Total',
                     field: 'total',
-                    width: 130,
+                    minWidth: 90,
+                    maxWidth: 150,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     headerSort: true,
                     sorter: 'number',
                     hozAlign: 'right',
@@ -1127,7 +1704,10 @@ class XeroModule extends BaseModule {
                 {
                     title: 'Amount Due',
                     field: 'amount_due',
-                    width: 130,
+                    minWidth: 110,
+                    maxWidth: 150,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     headerSort: true,
                     sorter: 'number',
                     hozAlign: 'right',
@@ -1138,7 +1718,10 @@ class XeroModule extends BaseModule {
                 {
                     title: 'Status',
                     field: 'status',
-                    width: 130,
+                    minWidth: 90,
+                    maxWidth: 130,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     headerSort: true,
                     headerFilter: 'input',
                     headerFilterPlaceholder: 'Search...',
@@ -1416,7 +1999,8 @@ class XeroModule extends BaseModule {
 
         this.tables.contacts = new Tabulator(container, {
             data: this.data.contacts,
-            layout: 'fitDataStretch',
+            layout: 'fitData',
+            autoColumns: false,
             responsiveLayout: 'collapse',
             pagination: true,
             paginationSize: 50,
@@ -1429,17 +2013,23 @@ class XeroModule extends BaseModule {
                     hozAlign: 'center',
                     headerSort: false,
                     width: 40,
+                    minWidth: 40,
+                    maxWidth: 40,
+                    widthGrow: 0,
                     cellClick: function (e, cell) {
                         cell.getRow().toggleSelect();
                     }
                 },
-                { title: 'Name', field: 'name', width: 250 },
-                { title: 'Email', field: 'email', width: 200 },
-                { title: 'Phone', field: 'phone', width: 150 },
+                { title: 'Name', field: 'name', minWidth: 120, maxWidth: 300, widthGrow: 2, widthShrink: 1 },
+                { title: 'Email', field: 'email', minWidth: 150, maxWidth: 250, widthGrow: 2, widthShrink: 1 },
+                { title: 'Phone', field: 'phone', minWidth: 100, maxWidth: 150, widthGrow: 1, widthShrink: 1 },
                 {
                     title: 'Type',
                     field: 'is_customer',
-                    width: 120,
+                    minWidth: 80,
+                    maxWidth: 120,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     formatter: (cell) => {
                         const isCustomer = cell.getValue();
                         const row = cell.getRow().getData();
@@ -1451,7 +2041,10 @@ class XeroModule extends BaseModule {
                 },
                 {
                     title: 'Actions',
-                    width: 100,
+                    minWidth: 90,
+                    maxWidth: 100,
+                    widthGrow: 0,
+                    widthShrink: 0,
                     hozAlign: 'center',
                     formatter: () => `
                         <button class="xero-action-btn" title="View Details">
@@ -1599,7 +2192,8 @@ class XeroModule extends BaseModule {
 
         this.tables.payments = new Tabulator(container, {
             data: this.data.payments,
-            layout: 'fitColumns',
+            layout: 'fitData',
+            autoColumns: false,
             responsiveLayout: 'collapse',
             pagination: 'local',
             paginationSize: 50,
@@ -1607,21 +2201,37 @@ class XeroModule extends BaseModule {
                 {
                     title: 'Date',
                     field: 'date',
-                    width: 150,
+                    minWidth: 90,
+                    maxWidth: 130,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     formatter: (cell) => this.formatDate(cell.getValue())
                 },
-                { title: 'Invoice #', field: 'invoice_number', width: 150 },
+                {
+                    title: 'Invoice #',
+                    field: 'invoice_number',
+                    minWidth: 100,
+                    maxWidth: 150,
+                    widthGrow: 1,
+                    widthShrink: 1
+                },
                 {
                     title: 'Amount',
                     field: 'amount',
-                    width: 150,
+                    minWidth: 90,
+                    maxWidth: 150,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     hozAlign: 'right',
                     formatter: (cell) => this.formatCurrency(cell.getValue())
                 },
                 {
                     title: 'Status',
                     field: 'status',
-                    width: 120,
+                    minWidth: 90,
+                    maxWidth: 130,
+                    widthGrow: 1,
+                    widthShrink: 1,
                     formatter: (cell) => {
                         const status = cell.getValue();
                         return this.getStatusBadge(status);
@@ -1721,15 +2331,16 @@ class XeroModule extends BaseModule {
 
         this.tables.accounts = new Tabulator(container, {
             data: this.data.accounts,
-            layout: 'fitColumns',
+            layout: 'fitData',
+            autoColumns: false,
             responsiveLayout: 'collapse',
             pagination: 'local',
             paginationSize: 50,
             columns: [
-                { title: 'Code', field: 'code', width: 100 },
-                { title: 'Name', field: 'name', width: 300 },
-                { title: 'Type', field: 'type', width: 150 },
-                { title: 'Tax Type', field: 'tax_type', width: 150 }
+                { title: 'Code', field: 'code', minWidth: 70, maxWidth: 100, widthGrow: 1, widthShrink: 1 },
+                { title: 'Name', field: 'name', minWidth: 150, maxWidth: 300, widthGrow: 3, widthShrink: 1 },
+                { title: 'Type', field: 'type', minWidth: 100, maxWidth: 180, widthGrow: 1, widthShrink: 1 },
+                { title: 'Tax Type', field: 'tax_type', minWidth: 100, maxWidth: 150, widthGrow: 1, widthShrink: 1 }
             ]
         });
     }
@@ -2235,27 +2846,43 @@ class XeroModule extends BaseModule {
 
             new Tabulator('#overdue-invoices-table', {
                 data: tableData,
-                layout: 'fitColumns',
+                layout: 'fitData',
+                autoColumns: false,
                 height: '600px',
                 pagination: 'local',
                 paginationSize: 25,
                 paginationSizeSelector: [10, 25, 50, 100],
                 columns: [
-                    { title: 'Invoice #', field: 'invoice_number', sorter: 'string', headerFilter: 'input', width: 120 },
-                    { title: 'Contact', field: 'contact_name', sorter: 'string', headerFilter: 'input', widthGrow: 2 },
+                    { title: 'Invoice #', field: 'invoice_number', sorter: 'string', headerFilter: 'input', minWidth: 100, maxWidth: 150, widthGrow: 1, widthShrink: 1 },
+                    { title: 'Contact', field: 'contact_name', sorter: 'string', headerFilter: 'input', minWidth: 120, maxWidth: 300, widthGrow: 2, widthShrink: 1 },
                     {
                         title: 'Due Date',
                         field: 'due_date',
                         sorter: 'date',
-                        formatter: (cell) => this.formatDate(cell.getValue()),
-                        width: 130
+                        sorterParams: {
+                            format: 'iso',
+                            alignEmptyValues: 'bottom'
+                        },
+                        formatter: (cell) => {
+                            const val = cell.getValue();
+                            if (!val) return 'N/A';
+                            const dateObj = val instanceof Date ? val : this.parseXeroDate(val);
+                            return this.formatDate(dateObj);
+                        },
+                        minWidth: 90,
+                        maxWidth: 130,
+                        widthGrow: 1,
+                        widthShrink: 1
                     },
                     {
                         title: 'Days Overdue',
                         field: 'days_overdue',
                         sorter: 'number',
                         hozAlign: 'right',
-                        width: 130,
+                        minWidth: 100,
+                        maxWidth: 130,
+                        widthGrow: 1,
+                        widthShrink: 1,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             const color = val > 90 ? '#f85149' : val > 60 ? '#d29922' : '#f0883e';
@@ -2269,7 +2896,10 @@ class XeroModule extends BaseModule {
                         hozAlign: 'right',
                         formatter: 'money',
                         formatterParams: { precision: 2, symbol: '$' },
-                        width: 130
+                        minWidth: 100,
+                        maxWidth: 150,
+                        widthGrow: 1,
+                        widthShrink: 1
                     }
                 ],
                 initialSort: [{ column: 'days_overdue', dir: 'desc' }]
@@ -2324,15 +2954,16 @@ class XeroModule extends BaseModule {
 
             new Tabulator('#revenue-trends-table', {
                 data: tableData,
-                layout: 'fitColumns',
+                layout: 'fitData',
+                autoColumns: false,
                 height: '500px',
                 pagination: 'local',
                 paginationSize: 12,
                 columns: [
-                    { title: 'Month', field: 'month', sorter: 'string', headerFilter: 'input', width: 150 },
-                    { title: 'Revenue', field: 'revenue', sorter: 'number', hozAlign: 'right', formatter: 'money', formatterParams: { precision: 2, symbol: '$' }, widthGrow: 2 },
-                    { title: 'Invoices', field: 'invoice_count', sorter: 'number', hozAlign: 'center', width: 100 },
-                    { title: 'Avg Value', field: 'avg_value', sorter: 'number', hozAlign: 'right', formatter: 'money', formatterParams: { precision: 2, symbol: '$' }, width: 130 }
+                    { title: 'Month', field: 'month', sorter: 'string', headerFilter: 'input', minWidth: 90, maxWidth: 150, widthGrow: 1, widthShrink: 1 },
+                    { title: 'Revenue', field: 'revenue', sorter: 'number', hozAlign: 'right', formatter: 'money', formatterParams: { precision: 2, symbol: '$' }, minWidth: 100, maxWidth: 200, widthGrow: 2, widthShrink: 1 },
+                    { title: 'Invoices', field: 'invoice_count', sorter: 'number', hozAlign: 'center', minWidth: 80, maxWidth: 110, widthGrow: 1, widthShrink: 1 },
+                    { title: 'Avg Value', field: 'avg_value', sorter: 'number', hozAlign: 'right', formatter: 'money', formatterParams: { precision: 2, symbol: '$' }, minWidth: 90, maxWidth: 150, widthGrow: 1, widthShrink: 1 }
                 ],
                 initialSort: [{ column: 'month', dir: 'desc' }]
             });
@@ -2399,15 +3030,16 @@ class XeroModule extends BaseModule {
 
             new Tabulator('#contact-activity-table', {
                 data: tableData,
-                layout: 'fitColumns',
+                layout: 'fitData',
+                autoColumns: false,
                 height: '600px',
                 pagination: 'local',
                 paginationSize: 25,
                 paginationSizeSelector: [10, 25, 50, 100],
                 columns: [
-                    { title: 'Contact', field: 'contact_name', sorter: 'string', headerFilter: 'input', widthGrow: 2 },
-                    { title: 'Invoices', field: 'invoice_count', sorter: 'number', hozAlign: 'right', width: 120, headerFilter: 'input' },
-                    { title: 'Total Revenue', field: 'total_revenue', sorter: 'number', hozAlign: 'right', formatter: 'money', formatterParams: { precision: 2, symbol: '$' }, width: 150 }
+                    { title: 'Contact', field: 'contact_name', sorter: 'string', headerFilter: 'input', minWidth: 150, maxWidth: 300, widthGrow: 2, widthShrink: 1 },
+                    { title: 'Invoices', field: 'invoice_count', sorter: 'number', hozAlign: 'right', minWidth: 80, maxWidth: 120, widthGrow: 1, widthShrink: 1, headerFilter: 'input' },
+                    { title: 'Total Revenue', field: 'total_revenue', sorter: 'number', hozAlign: 'right', formatter: 'money', formatterParams: { precision: 2, symbol: '$' }, minWidth: 120, maxWidth: 180, widthGrow: 1, widthShrink: 1 }
                 ],
                 initialSort: [{ column: 'total_revenue', dir: 'desc' }]
             });
@@ -2432,23 +3064,102 @@ class XeroModule extends BaseModule {
 
             const tableData = (data.customers || []).map(c => ({
                 contact_name: c.contact_name || c.contact || c.name || 'Unknown',
-                last_invoice_date: this.parseXeroDate(c.last_invoice_date),
-                days_since_last: c.days_since_last || c.days_inactive || 0
+                last_invoice_date: c.last_invoice_date !== 'Never' ? this.parseXeroDate(c.last_invoice_date) : null,
+                days_since_last: c.days_since_last || c.days_inactive || 0,
+                total_orders: c.total_orders || 0,
+                total_revenue: c.total_revenue || 0,
+                avg_order_value: c.avg_order_value || 0,
+                avg_days_between_orders: c.avg_days_between_orders || 0
             }));
 
             resultsDiv.innerHTML = `<div style="padding: 16px;"><h4 style="margin: 0 0 16px 0; color: #c9d1d9;">Inactive Customers (${tableData.length})</h4><div id="inactive-customers-table"></div></div>`;
 
             new Tabulator('#inactive-customers-table', {
                 data: tableData,
-                layout: 'fitColumns',
+                layout: 'fitData',
+                autoColumns: false,
                 height: '600px',
                 pagination: 'local',
                 paginationSize: 25,
                 paginationSizeSelector: [10, 25, 50, 100],
                 columns: [
-                    { title: 'Contact', field: 'contact_name', sorter: 'string', headerFilter: 'input', widthGrow: 2 },
-                    { title: 'Last Invoice', field: 'last_invoice_date', sorter: 'date', formatter: (cell) => this.formatDate(cell.getValue()), width: 130 },
-                    { title: 'Days Inactive', field: 'days_since_last', sorter: 'number', hozAlign: 'right', width: 130, headerFilter: 'input' }
+                    { title: 'Contact', field: 'contact_name', sorter: 'string', headerFilter: 'input', minWidth: 120, maxWidth: 250, widthGrow: 2, widthShrink: 1 },
+                    {
+                        title: 'Last Invoice',
+                        field: 'last_invoice_date',
+                        sorter: 'date',
+                        formatter: (cell) => {
+                            const val = cell.getValue();
+                            return val ? this.formatDate(val) : 'Never';
+                        },
+                        minWidth: 90,
+                        maxWidth: 130,
+                        widthGrow: 1,
+                        widthShrink: 1
+                    },
+                    {
+                        title: 'Days Inactive',
+                        field: 'days_since_last',
+                        sorter: 'number',
+                        hozAlign: 'right',
+                        minWidth: 100,
+                        maxWidth: 130,
+                        widthGrow: 1,
+                        widthShrink: 1,
+                        formatter: (cell) => {
+                            const val = cell.getValue();
+                            const color = val > 180 ? '#f85149' : val > 90 ? '#d29922' : '#8b949e';
+                            return `<span style="color: ${color};">${val || 'N/A'}</span>`;
+                        }
+                    },
+                    {
+                        title: 'Total Orders',
+                        field: 'total_orders',
+                        sorter: 'number',
+                        hozAlign: 'right',
+                        minWidth: 80,
+                        maxWidth: 120,
+                        widthGrow: 1,
+                        widthShrink: 1
+                    },
+                    {
+                        title: 'Total Revenue',
+                        field: 'total_revenue',
+                        sorter: 'number',
+                        hozAlign: 'right',
+                        formatter: 'money',
+                        formatterParams: { precision: 2, symbol: '$' },
+                        minWidth: 100,
+                        maxWidth: 150,
+                        widthGrow: 1,
+                        widthShrink: 1
+                    },
+                    {
+                        title: 'Avg Order Value',
+                        field: 'avg_order_value',
+                        sorter: 'number',
+                        hozAlign: 'right',
+                        formatter: 'money',
+                        formatterParams: { precision: 2, symbol: '$' },
+                        minWidth: 110,
+                        maxWidth: 160,
+                        widthGrow: 1,
+                        widthShrink: 1
+                    },
+                    {
+                        title: 'Order Frequency',
+                        field: 'avg_days_between_orders',
+                        sorter: 'number',
+                        hozAlign: 'right',
+                        minWidth: 110,
+                        maxWidth: 170,
+                        widthGrow: 1,
+                        widthShrink: 1,
+                        formatter: (cell) => {
+                            const val = cell.getValue();
+                            return val ? val.toFixed(1) + ' days' : 'N/A';
+                        }
+                    }
                 ],
                 initialSort: [{ column: 'days_since_last', dir: 'desc' }]
             });
@@ -2499,35 +3210,400 @@ class XeroModule extends BaseModule {
     async showBusinessComparison() {
         const resultsDiv = document.querySelector('#xero-reports-results');
         if (!resultsDiv) return;
-        resultsDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #8b949e;">Loading business comparison...</div>';
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/api/xero/reports/business-comparison`);
-            const data = await response.json();
-            if (!data.success) throw new Error(data.error);
-            let html = `<div style="padding: 16px; background: #161b22; border-radius: 6px;"><h4 style="margin: 0 0 16px 0; color: #c9d1d9;">Business Performance Comparison</h4><table style="width: 100%; border-collapse: collapse;"><thead><tr style="border-bottom: 1px solid #30363d;"><th style="text-align: left; padding: 8px;">Business</th><th style="text-align: right; padding: 8px;">Revenue</th><th style="text-align: right; padding: 8px;">Outstanding</th><th style="text-align: right; padding: 8px;">Invoices</th></tr></thead><tbody>`;
-            data.businesses.forEach(biz => {
-                html += `<tr style="border-bottom: 1px solid #30363d;"><td style="padding: 8px; color: #c9d1d9;">${biz.business_name}</td><td style="padding: 8px; text-align: right; color: #238636; font-weight: 600;">$${biz.revenue.toFixed(2)}</td><td style="padding: 8px; text-align: right; color: #d29922;">$${biz.outstanding.toFixed(2)}</td><td style="padding: 8px; text-align: right; color: #8b949e;">${biz.invoice_count}</td></tr>`;
-            });
-            html += `</tbody></table></div>`;
-            resultsDiv.innerHTML = html;
-        } catch (error) {
-            resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
-        }
+
+        // Create date picker container
+        resultsDiv.innerHTML = `
+            <div style="padding: 20px;">
+                <h2 style="margin: 0 0 16px 0; color: #c9d1d9; font-size: 24px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-building" style="color: #13B5EA;"></i> Business Performance Dashboard
+                </h2>
+                <div id="business-comparison-date-picker"></div>
+                <div id="business-comparison-kpis" style="margin-bottom: 20px;"></div>
+                <div id="business-comparison-charts" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;"></div>
+                <div id="business-comparison-table" style="margin-bottom: 20px;"></div>
+                <div id="business-comparison-alerts"></div>
+            </div>
+        `;
+
+        const loadData = async (dateRange, comparison) => {
+            try {
+                const url = `${this.API_BASE_URL}/api/xero/reports/business-comparison-enhanced?from_date=${dateRange.from}&to_date=${dateRange.to}&compare_to=${comparison}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                // KPI Cards
+                const kpiHtml = `
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                        <div style="padding: 16px; background: linear-gradient(135deg, #1f6feb 0%, #1a56db 100%); border-radius: 8px; border: 1px solid #388bfd;">
+                            <div style="font-size: 11px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Total Revenue</div>
+                            <div style="font-size: 28px; color: #ffffff; font-weight: 700; margin-bottom: 4px;">$${(data.total_revenue / 1000).toFixed(1)}k</div>
+                            ${data.compare_to !== 'none' && data.businesses[0].comparison ?
+                        `<div style="font-size: 13px; color: rgba(255,255,255,0.9);">${this.calculateYoYMetrics(data.total_revenue, data.businesses.reduce((sum, b) => sum + b.comparison.revenue, 0)).formatted}</div>`
+                        : ''}
+                        </div>
+                        <div style="padding: 16px; background: linear-gradient(135deg, #238636 0%, #1a7f37 100%); border-radius: 8px; border: 1px solid #2ea043;">
+                            <div style="font-size: 11px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Avg Invoice</div>
+                            <div style="font-size: 28px; color: #ffffff; font-weight: 700; margin-bottom: 4px;">$${(data.businesses.reduce((sum, b) => sum + b.avg_invoice_value, 0) / 3).toFixed(0)}</div>
+                            <div style="font-size: 13px; color: rgba(255,255,255,0.9);">Across 3 businesses</div>
+                        </div>
+                        <div style="padding: 16px; background: linear-gradient(135deg, #d29922 0%, #b08008 100%); border-radius: 8px; border: 1px solid #e2a611;">
+                            <div style="font-size: 11px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Outstanding</div>
+                            <div style="font-size: 28px; color: #ffffff; font-weight: 700; margin-bottom: 4px;">$${(data.total_outstanding / 1000).toFixed(1)}k</div>
+                            <div style="font-size: 13px; color: rgba(255,255,255,0.9);">${((data.total_outstanding / data.total_revenue) * 100).toFixed(1)}% of revenue</div>
+                        </div>
+                        <div style="padding: 16px; background: linear-gradient(135deg, #8957e5 0%, #6e40c9 100%); border-radius: 8px; border: 1px solid #a371f7;">
+                            <div style="font-size: 11px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Avg Collection</div>
+                            <div style="font-size: 28px; color: #ffffff; font-weight: 700; margin-bottom: 4px;">${(data.businesses.reduce((sum, b) => sum + b.collection_days, 0) / 3).toFixed(0)} days</div>
+                            <div style="font-size: 13px; color: rgba(255,255,255,0.9);">Days Sales Outstanding</div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('business-comparison-kpis').innerHTML = kpiHtml;
+
+                // Charts Container
+                const chartsContainer = document.getElementById('business-comparison-charts');
+                chartsContainer.innerHTML = `
+                    <div style="background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+                        <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #c9d1d9; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-chart-pie" style="color: #13B5EA;"></i> Market Share Distribution
+                        </h3>
+                        <div id="market-share-pie" style="height: 350px;"></div>
+                    </div>
+                    <div style="background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+                        <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #c9d1d9; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-chart-line" style="color: #13B5EA;"></i> 12-Month Revenue Trend
+                        </h3>
+                        <div id="revenue-trend-line" style="height: 350px;"></div>
+                    </div>
+                `;
+
+                // Pie Chart - Market Share
+                const pieData = [{
+                    values: data.businesses.map(b => b.revenue),
+                    labels: data.businesses.map(b => b.business_name),
+                    type: 'pie',
+                    marker: {
+                        colors: ['#1f6feb', '#238636', '#d29922']
+                    },
+                    textinfo: 'label+percent',
+                    textfont: { color: '#ffffff', size: 14 },
+                    hoverinfo: 'label+value+percent',
+                    hole: 0.4
+                }];
+                this.createChart('market-share-pie', pieData, {
+                    showlegend: false,
+                    annotations: [{
+                        font: { size: 20, color: '#c9d1d9' },
+                        showarrow: false,
+                        text: 'Market<br>Share',
+                        x: 0.5,
+                        y: 0.5
+                    }]
+                });
+
+                // Line Chart - Revenue Trends
+                const lineData = data.businesses.map((business, idx) => ({
+                    x: business.monthly_trend.map(m => m.month),
+                    y: business.monthly_trend.map(m => m.revenue),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: business.business_name,
+                    line: { width: 3, color: ['#1f6feb', '#238636', '#d29922'][idx] },
+                    marker: { size: 8 }
+                }));
+                this.createChart('revenue-trend-line', lineData, {
+                    xaxis: { title: 'Month', gridcolor: '#21262d' },
+                    yaxis: { title: 'Revenue ($)', gridcolor: '#21262d' },
+                    hovermode: 'x unified'
+                });
+
+                // Metrics Table
+                let tableHtml = `
+                    <div style="background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+                        <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #c9d1d9; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-table" style="color: #13B5EA;"></i> Detailed Metrics Comparison
+                        </h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #30363d;">
+                                    <th style="text-align: left; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">Business</th>
+                                    <th style="text-align: right; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">Revenue</th>
+                                    <th style="text-align: right; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">Market Share</th>
+                                    <th style="text-align: right; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">Invoices</th>
+                                    <th style="text-align: right; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">Avg Value</th>
+                                    <th style="text-align: right; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">Outstanding</th>
+                                    <th style="text-align: right; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">Collection Days</th>
+                                    ${data.compare_to !== 'none' ? '<th style="text-align: right; padding: 12px; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase;">YoY Growth</th>' : ''}
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                data.businesses.forEach(biz => {
+                    const yoyMetrics = biz.comparison ? this.calculateYoYMetrics(biz.revenue, biz.comparison.revenue) : null;
+                    tableHtml += `
+                        <tr style="border-bottom: 1px solid #21262d;">
+                            <td style="padding: 12px; color: #c9d1d9; font-weight: 600;">${biz.business_name}</td>
+                            <td style="padding: 12px; text-align: right; color: #3fb950; font-weight: 600; font-size: 15px;">$${biz.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style="padding: 12px; text-align: right; color: #8b949e;">${biz.market_share}%</td>
+                            <td style="padding: 12px; text-align: right; color: #8b949e;">${biz.invoice_count}</td>
+                            <td style="padding: 12px; text-align: right; color: #8b949e;">$${biz.avg_invoice_value.toFixed(2)}</td>
+                            <td style="padding: 12px; text-align: right; color: #d29922;">$${biz.outstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style="padding: 12px; text-align: right; color: #8b949e;">${biz.collection_days} days</td>
+                            ${yoyMetrics ? `<td style="padding: 12px; text-align: right; color: ${yoyMetrics.color}; font-weight: 600;">${yoyMetrics.formatted}</td>` : ''}
+                        </tr>
+                    `;
+                });
+
+                tableHtml += `</tbody></table></div>`;
+                document.getElementById('business-comparison-table').innerHTML = tableHtml;
+
+                // Automated Alerts
+                const alerts = [];
+                data.businesses.forEach(biz => {
+                    if (biz.comparison && biz.comparison.revenue_change_pct < -5) {
+                        alerts.push({
+                            type: 'danger',
+                            icon: 'exclamation-triangle',
+                            text: `${biz.business_name} revenue down ${Math.abs(biz.comparison.revenue_change_pct).toFixed(1)}% ${data.compare_to === 'yoy' ? 'YoY' : 'vs previous period'} - investigate immediately`
+                        });
+                    }
+                    if (biz.collection_days > 60) {
+                        alerts.push({
+                            type: 'warning',
+                            icon: 'clock',
+                            text: `${biz.business_name} collection days at ${biz.collection_days} - focus on AR collection`
+                        });
+                    }
+                });
+
+                if (alerts.length > 0) {
+                    let alertsHtml = `
+                        <div style="background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+                            <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #c9d1d9; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-bell" style="color: #f85149;"></i> Automated Alerts
+                            </h3>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                    `;
+                    alerts.forEach(alert => {
+                        const bgColor = alert.type === 'danger' ? 'rgba(248, 81, 73, 0.1)' : 'rgba(210, 153, 34, 0.1)';
+                        const borderColor = alert.type === 'danger' ? '#f85149' : '#d29922';
+                        const iconColor = alert.type === 'danger' ? '#f85149' : '#d29922';
+                        alertsHtml += `
+                            <div style="padding: 12px 16px; background: ${bgColor}; border-left: 3px solid ${borderColor}; border-radius: 4px; display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-${alert.icon}" style="color: ${iconColor}; font-size: 16px;"></i>
+                                <span style="color: #c9d1d9; font-size: 14px;">${alert.text}</span>
+                            </div>
+                        `;
+                    });
+                    alertsHtml += `</div></div>`;
+                    document.getElementById('business-comparison-alerts').innerHTML = alertsHtml;
+                }
+
+                // Store data for export
+                this.lastBusinessComparisonData = data;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
+            }
+        };
+
+        // Initialize date picker
+        this.createDateRangePicker('business-comparison-date-picker', loadData);
+
+        // Add export button
+        this.createExportButton(
+            'xero-reports-results',
+            async () => this.lastBusinessComparisonData || {},
+            'Business Comparison Dashboard',
+            '/api/xero/reports/business-comparison-enhanced'
+        );
+
+        // Add Quick Prompts button
+        XeroQuickPrompts.createQuickPromptsButton(
+            'xero-reports-results',
+            'Business Comparison',
+            () => this.lastBusinessComparisonData || null,
+            '/api/xero/reports/business-comparison-enhanced'
+        );
     }
 
     async showConsolidatedRevenue() {
         const resultsDiv = document.querySelector('#xero-reports-results');
         if (!resultsDiv) return;
-        resultsDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #8b949e;">Loading consolidated revenue...</div>';
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/api/xero/reports/consolidated-revenue`);
-            const data = await response.json();
-            if (!data.success) throw new Error(data.error);
-            let html = `<div style="padding: 16px; background: #161b22; border-radius: 6px;"><h4 style="margin: 0 0 16px 0; color: #c9d1d9;">Consolidated Revenue</h4><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;"><div style="padding: 16px; background: #0d1117; border-radius: 4px;"><div style="font-size: 12px; color: #8b949e; margin-bottom: 4px;">Total Revenue</div><div style="font-size: 24px; color: #238636; font-weight: 600;">$${data.consolidated.total_revenue.toFixed(2)}</div></div><div style="padding: 16px; background: #0d1117; border-radius: 4px;"><div style="font-size: 12px; color: #8b949e; margin-bottom: 4px;">Total Outstanding</div><div style="font-size: 24px; color: #d29922; font-weight: 600;">$${data.consolidated.total_outstanding.toFixed(2)}</div></div></div></div>`;
-            resultsDiv.innerHTML = html;
-        } catch (error) {
-            resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
-        }
+
+        resultsDiv.innerHTML = `
+            <div style="padding: 20px;">
+                <h3 style="color: #c9d1d9; margin-bottom: 20px;">
+                    <i class="fas fa-layer-group" style="color: #13B5EA; margin-right: 8px;"></i>
+                    Consolidated Revenue Dashboard
+                </h3>
+                
+                <div id="consolidated-revenue-date-picker"></div>
+                <div id="consolidated-revenue-kpis" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;"></div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div id="consolidated-revenue-waterfall-chart" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px;"></div>
+                    <div id="consolidated-revenue-trend-chart" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px;"></div>
+                </div>
+                <div id="consolidated-revenue-cashflow-chart" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 24px;"></div>
+                <div id="consolidated-revenue-table"></div>
+            </div>
+        `;
+
+        const loadData = async (dateRange, compareType) => {
+            try {
+                const params = new URLSearchParams({
+                    from_date: dateRange.from,
+                    to_date: dateRange.to,
+                    compare_to: compareType || 'none'
+                });
+
+                if (dateRange.compare_from && dateRange.compare_to) {
+                    params.set('compare_from', dateRange.compare_from);
+                    params.set('compare_to_date', dateRange.compare_to);
+                }
+
+                const response = await fetch(`${this.API_BASE_URL}/api/xero/reports/consolidated-revenue-enhanced?${params}`);
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                // Render KPI Cards
+                const kpisHtml = `
+                    <div style="padding: 20px; background: linear-gradient(135deg, #238636 0%, #2ea043 100%); border-radius: 6px; box-shadow: 0 2px 8px rgba(35, 134, 54, 0.3);">
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Total Revenue</div>
+                        <div style="font-size: 28px; color: white; font-weight: 700; margin-bottom: 4px;">$${(data.consolidated.total_revenue / 1000).toFixed(1)}k</div>
+                        ${data.consolidated.comparison ? `<div style="font-size: 12px; color: rgba(255,255,255,0.9);">${this.calculateYoYMetrics(data.consolidated.total_revenue, data.consolidated.comparison.total_revenue).formatted}</div>` : ''}
+                    </div>
+                    <div style="padding: 20px; background: linear-gradient(135deg, #d29922 0%, #e2a329 100%); border-radius: 6px; box-shadow: 0 2px 8px rgba(210, 153, 34, 0.3);">
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Total Outstanding</div>
+                        <div style="font-size: 28px; color: white; font-weight: 700; margin-bottom: 4px;">$${(data.consolidated.total_outstanding / 1000).toFixed(1)}k</div>
+                        ${data.consolidated.comparison ? `<div style="font-size: 12px; color: rgba(255,255,255,0.9);">${this.calculateYoYMetrics(data.consolidated.total_outstanding, data.consolidated.comparison.total_outstanding).formatted}</div>` : ''}
+                    </div>
+                    <div style="padding: 20px; background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%); border-radius: 6px; box-shadow: 0 2px 8px rgba(31, 111, 235, 0.3);">
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Avg Monthly</div>
+                        <div style="font-size: 28px; color: white; font-weight: 700;">$${(data.consolidated.total_revenue / 12 / 1000).toFixed(1)}k</div>
+                    </div>
+                    <div style="padding: 20px; background: linear-gradient(135deg, #8957e5 0%, #9b6df7 100%); border-radius: 6px; box-shadow: 0 2px 8px rgba(137, 87, 229, 0.3);">
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Total Invoices</div>
+                        <div style="font-size: 28px; color: white; font-weight: 700;">${data.consolidated.total_invoice_count}</div>
+                    </div>
+                `;
+                document.getElementById('consolidated-revenue-kpis').innerHTML = kpisHtml;
+
+                // Waterfall Chart - Business Contributions
+                const businesses = data.consolidated.businesses;
+                this.createChart('consolidated-revenue-waterfall-chart', {
+                    x: businesses.map(b => b.name),
+                    y: businesses.map(b => b.revenue),
+                    type: 'bar',
+                    marker: { color: ['#238636', '#1f6feb', '#8957e5'] },
+                    text: businesses.map(b => `$${(b.revenue / 1000).toFixed(1)}k (${b.percentage_of_total}%)`),
+                    textposition: 'outside'
+                }, {
+                    title: { text: 'Revenue by Business', font: { size: 16 } },
+                    xaxis: { title: 'Business' },
+                    yaxis: { title: 'Revenue ($)' },
+                    showlegend: false
+                });
+
+                // Monthly Trend Chart
+                const monthlyData = data.monthly_trends;
+                const traces = [{
+                    x: monthlyData.map(m => m.month),
+                    y: monthlyData.map(m => m.current),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Current Period',
+                    line: { color: '#13B5EA', width: 3 },
+                    marker: { size: 8 }
+                }];
+
+                if (compareType !== 'none' && monthlyData.some(m => m.comparison !== null)) {
+                    traces.push({
+                        x: monthlyData.map(m => m.month),
+                        y: monthlyData.map(m => m.comparison),
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Comparison Period',
+                        line: { color: '#8b949e', width: 2, dash: 'dash' },
+                        marker: { size: 6 }
+                    });
+                }
+
+                this.createChart('consolidated-revenue-trend-chart', traces, {
+                    title: { text: 'Monthly Revenue Trend', font: { size: 16 } },
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Revenue ($)' }
+                });
+
+                // Cash Flow Projection Chart
+                const cashFlow = data.cash_flow_projection;
+                this.createChart('consolidated-revenue-cashflow-chart', {
+                    x: Object.keys(cashFlow),
+                    y: Object.values(cashFlow),
+                    type: 'bar',
+                    marker: {
+                        color: ['#238636', '#d29922', '#f85149', '#8b1000']
+                    },
+                    text: Object.values(cashFlow).map(v => `$${(v / 1000).toFixed(1)}k`),
+                    textposition: 'outside'
+                }, {
+                    title: { text: 'Cash Flow Projection (Outstanding by Age)', font: { size: 16 } },
+                    xaxis: { title: 'Aging Bucket (Days)' },
+                    yaxis: { title: 'Outstanding Amount ($)' },
+                    showlegend: false
+                });
+
+                // Business Contribution Table
+                const tableData = businesses.map(b => ({
+                    business: b.name,
+                    revenue: b.revenue,
+                    outstanding: b.outstanding,
+                    invoices: b.invoice_count,
+                    percentage: b.percentage_of_total,
+                    yoy_growth: b.comparison ? this.calculateYoYMetrics(b.revenue, b.comparison.revenue).formatted : 'N/A'
+                }));
+
+                new Tabulator('#consolidated-revenue-table', {
+                    data: tableData,
+                    layout: 'fitColumns',
+                    columns: [
+                        { title: 'Business', field: 'business', minWidth: 150 },
+                        { title: 'Revenue', field: 'revenue', formatter: 'money', formatterParams: { precision: 2 }, minWidth: 120 },
+                        { title: 'Outstanding', field: 'outstanding', formatter: 'money', formatterParams: { precision: 2 }, minWidth: 120 },
+                        { title: 'Invoices', field: 'invoices', minWidth: 100 },
+                        { title: '% of Total', field: 'percentage', formatter: cell => `${cell.getValue()}%`, minWidth: 110 },
+                        { title: 'YoY Growth', field: 'yoy_growth', minWidth: 120 }
+                    ]
+                });
+
+                // Store data for export
+                this.lastConsolidatedRevenueData = data;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
+            }
+        };
+
+        this.createDateRangePicker('consolidated-revenue-date-picker', loadData);
+        loadData({ from: this.getDateRangeStart(12), to: new Date().toISOString().split('T')[0] }, 'none');
+
+        // Add export button
+        this.createExportButton(
+            'xero-reports-results',
+            async () => this.lastConsolidatedRevenueData || {},
+            'Consolidated Revenue Dashboard',
+            '/api/xero/reports/consolidated-revenue-enhanced'
+        );
+
+        // Add Quick Prompts button
+        XeroQuickPrompts.createQuickPromptsButton(
+            'xero-reports-results',
+            'Consolidated Revenue',
+            () => this.lastConsolidatedRevenueData || null,
+            '/api/xero/reports/consolidated-revenue-enhanced'
+        );
     }
 
     async showCustomerOverlap() {
@@ -2567,39 +3643,487 @@ class XeroModule extends BaseModule {
     async showSeasonality() {
         const resultsDiv = document.querySelector('#xero-reports-results');
         if (!resultsDiv) return;
-        resultsDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #8b949e;">Loading seasonality analysis...</div>';
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/api/xero/reports/seasonality?business_id=${this.currentBusiness}`);
-            const data = await response.json();
-            if (!data.success) throw new Error(data.error);
-            let html = `<div style="padding: 16px; background: #161b22; border-radius: 6px;"><h4 style="margin: 0 0 16px 0; color: #c9d1d9;">Seasonality Analysis</h4><table style="width: 100%; border-collapse: collapse;"><thead><tr style="border-bottom: 1px solid #30363d;"><th style="text-align: left; padding: 8px;">Month</th><th style="text-align: right; padding: 8px;">Avg Revenue</th><th style="text-align: right; padding: 8px;">Occurrences</th></tr></thead><tbody>`;
-            data.seasonal_pattern.forEach(month => {
-                html += `<tr style="border-bottom: 1px solid #30363d;"><td style="padding: 8px; color: #c9d1d9;">${month.month_name}</td><td style="padding: 8px; text-align: right; color: #238636;">$${month.avg_revenue.toFixed(2)}</td><td style="padding: 8px; text-align: right; color: #8b949e;">${month.occurrences}</td></tr>`;
-            });
-            html += `</tbody></table></div>`;
-            resultsDiv.innerHTML = html;
-        } catch (error) {
-            resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
-        }
+
+        resultsDiv.innerHTML = `
+            <div style="padding: 20px;">
+                <h3 style="color: #c9d1d9; margin-bottom: 20px;">
+                    <i class="fas fa-calendar-alt" style="color: #13B5EA; margin-right: 8px;"></i>
+                    Seasonality Analysis Dashboard
+                </h3>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 12px; color: #8b949e; margin-right: 8px;">Years of History:</label>
+                    <select id="seasonality-years" style="padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9;">
+                        <option value="2">2 Years</option>
+                        <option value="3" selected>3 Years</option>
+                        <option value="5">5 Years</option>
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div id="seasonality-current-month" style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;"></div>
+                    <div id="seasonality-peak-month" style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;"></div>
+                    <div id="seasonality-slow-month" style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;"></div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                    <div id="seasonality-heatmap" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px;"></div>
+                    <div id="seasonality-bar-chart" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px;"></div>
+                </div>
+                
+                <div id="seasonality-insights" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 24px;"></div>
+                <div id="seasonality-table"></div>
+            </div>
+        `;
+
+        const loadData = async (years = 3) => {
+            try {
+                const response = await fetch(`${this.API_BASE_URL}/api/xero/reports/seasonality-enhanced?business_id=${this.currentBusiness}&years=${years}`);
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                // Current Month Stats Card
+                const currentMonthHtml = `
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+                        <i class="fas fa-calendar-check" style="margin-right: 4px;"></i> ${data.current_month_stats.month}
+                    </div>
+                    <div style="font-size: 24px; color: #13B5EA; font-weight: 700; margin-bottom: 8px;">
+                        $${(data.current_month_stats.revenue / 1000).toFixed(1)}k
+                    </div>
+                    <div style="font-size: 12px; color: ${data.current_month_stats.variance_pct > 0 ? '#3fb950' : '#f85149'};">
+                        ${data.current_month_stats.variance_pct > 0 ? '⬆' : '⬇'} ${Math.abs(data.current_month_stats.variance_pct).toFixed(1)}% vs Avg
+                    </div>
+                `;
+                document.getElementById('seasonality-current-month').innerHTML = currentMonthHtml;
+
+                // Peak Month Card
+                const peakMonth = data.peak_months[0];
+                const peakMonthHtml = `
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+                        <i class="fas fa-arrow-up" style="margin-right: 4px;"></i> Peak Month
+                    </div>
+                    <div style="font-size: 20px; color: #3fb950; font-weight: 700; margin-bottom: 4px;">
+                        ${peakMonth.month_name}
+                    </div>
+                    <div style="font-size: 14px; color: #c9d1d9;">
+                        $${(peakMonth.avg_revenue / 1000).toFixed(1)}k avg
+                    </div>
+                `;
+                document.getElementById('seasonality-peak-month').innerHTML = peakMonthHtml;
+
+                // Slow Month Card
+                const slowMonth = data.slow_months[0];
+                const slowMonthHtml = `
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+                        <i class="fas fa-arrow-down" style="margin-right: 4px;"></i> Slowest Month
+                    </div>
+                    <div style="font-size: 20px; color: #f85149; font-weight: 700; margin-bottom: 4px;">
+                        ${slowMonth.month_name}
+                    </div>
+                    <div style="font-size: 14px; color: #c9d1d9;">
+                        $${(slowMonth.avg_revenue / 1000).toFixed(1)}k avg
+                    </div>
+                `;
+                document.getElementById('seasonality-slow-month').innerHTML = slowMonthHtml;
+
+                // Heatmap - Years x Months
+                const heatmapData = [];
+                const monthlyBreakdown = data.monthly_breakdown;
+                const years = [...new Set(monthlyBreakdown.map(m => m.year))].sort();
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+                const revenueMatrix = years.map(year =>
+                    months.map((_, monthIdx) => {
+                        const monthData = monthlyBreakdown.find(m => m.year === year && m.month === monthIdx + 1);
+                        return monthData ? monthData.revenue : 0;
+                    })
+                );
+
+                this.createChart('seasonality-heatmap', {
+                    z: revenueMatrix,
+                    x: months,
+                    y: years,
+                    type: 'heatmap',
+                    colorscale: [
+                        [0, '#0d1117'],
+                        [0.25, '#1f6feb'],
+                        [0.5, '#13B5EA'],
+                        [0.75, '#3fb950'],
+                        [1, '#238636']
+                    ],
+                    hovertemplate: '%{y} %{x}: $%{z:,.0f}<extra></extra>'
+                }, {
+                    title: { text: 'Revenue Heatmap (Years × Months)', font: { size: 14 } },
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Year' }
+                });
+
+                // Bar Chart - Average by Month with Variance
+                const seasonalPattern = data.seasonal_pattern;
+                this.createChart('seasonality-bar-chart', {
+                    x: seasonalPattern.map(m => m.month_name),
+                    y: seasonalPattern.map(m => m.avg_revenue),
+                    type: 'bar',
+                    marker: {
+                        color: seasonalPattern.map(m => {
+                            const avg = seasonalPattern.reduce((sum, x) => sum + x.avg_revenue, 0) / seasonalPattern.length;
+                            return m.avg_revenue > avg * 1.1 ? '#3fb950' : m.avg_revenue < avg * 0.9 ? '#f85149' : '#13B5EA';
+                        })
+                    },
+                    text: seasonalPattern.map(m => `$${(m.avg_revenue / 1000).toFixed(1)}k`),
+                    textposition: 'outside',
+                    error_y: {
+                        type: 'data',
+                        array: seasonalPattern.map(m => m.variance / 2),
+                        color: '#8b949e'
+                    }
+                }, {
+                    title: { text: 'Average Revenue by Month (with Variance)', font: { size: 14 } },
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Average Revenue ($)' },
+                    showlegend: false
+                });
+
+                // Insights Section
+                const insightsHtml = `
+                    <h4 style="color: #c9d1d9; margin: 0 0 12px 0;">
+                        <i class="fas fa-lightbulb" style="color: #d29922;"></i> Seasonal Insights
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="padding: 12px; background: rgba(63, 185, 80, 0.1); border-left: 3px solid #3fb950; border-radius: 4px;">
+                            <div style="font-size: 12px; color: #3fb950; font-weight: 600; margin-bottom: 4px;">PEAK SEASON</div>
+                            <div style="font-size: 13px; color: #c9d1d9;">
+                                ${data.peak_months.map(m => m.month_name).join(', ')} perform strongest 
+                                (${((data.peak_months[0].avg_revenue / (seasonalPattern.reduce((s, m) => s + m.avg_revenue, 0) / seasonalPattern.length) - 1) * 100).toFixed(0)}% above average)
+                            </div>
+                        </div>
+                        <div style="padding: 12px; background: rgba(248, 81, 73, 0.1); border-left: 3px solid #f85149; border-radius: 4px;">
+                            <div style="font-size: 12px; color: #f85149; font-weight: 600; margin-bottom: 4px;">SLOW SEASON</div>
+                            <div style="font-size: 13px; color: #c9d1d9;">
+                                ${data.slow_months.map(m => m.month_name).join(', ')} need marketing support
+                                (${((1 - data.slow_months[0].avg_revenue / (seasonalPattern.reduce((s, m) => s + m.avg_revenue, 0) / seasonalPattern.length)) * 100).toFixed(0)}% below average)
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('seasonality-insights').innerHTML = insightsHtml;
+
+                // Detailed Table
+                const tableData = seasonalPattern.map(m => ({
+                    month: m.month_name,
+                    avg_revenue: m.avg_revenue,
+                    min_revenue: m.min_revenue,
+                    max_revenue: m.max_revenue,
+                    variance: m.variance,
+                    yoy_change: m.yoy_change !== undefined ? `${m.yoy_change > 0 ? '⬆' : '⬇'} ${Math.abs(m.yoy_change).toFixed(1)}%` : 'N/A'
+                }));
+
+                new Tabulator('#seasonality-table', {
+                    data: tableData,
+                    layout: 'fitColumns',
+                    columns: [
+                        { title: 'Month', field: 'month', minWidth: 100 },
+                        { title: 'Avg Revenue', field: 'avg_revenue', formatter: 'money', formatterParams: { precision: 0 }, minWidth: 120 },
+                        { title: 'Min', field: 'min_revenue', formatter: 'money', formatterParams: { precision: 0 }, minWidth: 100 },
+                        { title: 'Max', field: 'max_revenue', formatter: 'money', formatterParams: { precision: 0 }, minWidth: 100 },
+                        { title: 'Variance', field: 'variance', formatter: 'money', formatterParams: { precision: 0 }, minWidth: 100 },
+                        { title: 'YoY Change', field: 'yoy_change', minWidth: 110 }
+                    ]
+                });
+
+                // Store data for export
+                this.lastSeasonalityData = data;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
+            }
+        };
+
+        document.getElementById('seasonality-years').addEventListener('change', (e) => {
+            loadData(parseInt(e.target.value));
+        });
+
+        loadData(3);
+
+        // Add export button
+        this.createExportButton(
+            'xero-reports-results',
+            async () => this.lastSeasonalityData || {},
+            'Seasonality Analysis Dashboard',
+            '/api/xero/reports/seasonality-enhanced'
+        );
+
+        // Add Quick Prompts button
+        XeroQuickPrompts.createQuickPromptsButton(
+            'xero-reports-results',
+            'Seasonality',
+            () => this.lastSeasonalityData || null,
+            '/api/xero/reports/seasonality-enhanced'
+        );
     }
 
     async showForecast() {
         const resultsDiv = document.querySelector('#xero-reports-results');
         if (!resultsDiv) return;
-        resultsDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #8b949e;">Loading revenue forecast...</div>';
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/api/xero/reports/forecast?business_id=${this.currentBusiness}`);
-            const data = await response.json();
-            if (!data.success) throw new Error(data.error);
-            let html = `<div style="padding: 16px; background: #161b22; border-radius: 6px;"><h4 style="margin: 0 0 16px 0; color: #c9d1d9;">Revenue Forecast</h4><div style="margin-bottom: 16px; padding: 12px; background: #0d1117; border-radius: 4px;"><div style="font-size: 12px; color: #8b949e;">Avg Monthly Revenue</div><div style="font-size: 20px; color: #238636; font-weight: 600;">$${data.avg_monthly_revenue.toFixed(2)}</div><div style="font-size: 12px; color: #8b949e; margin-top: 8px;">Growth Rate: ${data.avg_growth_rate.toFixed(2)}%</div></div><table style="width: 100%; border-collapse: collapse;"><thead><tr style="border-bottom: 1px solid #30363d;"><th style="text-align: left; padding: 8px;">Month</th><th style="text-align: right; padding: 8px;">Forecasted Revenue</th><th style="text-align: right; padding: 8px;">Confidence</th></tr></thead><tbody>`;
-            data.forecast.forEach(month => {
-                html += `<tr style="border-bottom: 1px solid #30363d;"><td style="padding: 8px; color: #c9d1d9;">${month.month}</td><td style="padding: 8px; text-align: right; color: #1f6feb; font-weight: 600;">$${month.forecasted_revenue.toFixed(2)}</td><td style="padding: 8px; text-align: right; color: #8b949e;">${month.confidence}</td></tr>`;
-            });
-            html += `</tbody></table></div>`;
-            resultsDiv.innerHTML = html;
-        } catch (error) {
-            resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
-        }
+
+        resultsDiv.innerHTML = `
+            <div style="padding: 20px;">
+                <h3 style="color: #c9d1d9; margin-bottom: 20px;">
+                    <i class="fas fa-chart-line" style="color: #13B5EA; margin-right: 8px;"></i>
+                    Revenue Forecast Dashboard
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label style="font-size: 12px; color: #8b949e; margin-right: 8px;">Historical Months:</label>
+                        <select id="forecast-historical" style="width: 100%; padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9;">
+                            <option value="6">6 Months</option>
+                            <option value="12" selected>12 Months</option>
+                            <option value="24">24 Months</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: #8b949e; margin-right: 8px;">Forecast Period:</label>
+                        <select id="forecast-period" style="width: 100%; padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9;">
+                            <option value="3">3 Months</option>
+                            <option value="6" selected>6 Months</option>
+                            <option value="12">12 Months</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: #8b949e; margin-right: 8px;">Scenario View:</label>
+                        <select id="forecast-scenario" style="width: 100%; padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9;">
+                            <option value="base" selected>Base Case</option>
+                            <option value="optimistic">Optimistic</option>
+                            <option value="pessimistic">Pessimistic</option>
+                            <option value="all">All Scenarios</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div id="forecast-total-kpi" style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;"></div>
+                    <div id="forecast-growth-kpi" style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;"></div>
+                    <div id="forecast-confidence-kpi" style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;"></div>
+                </div>
+                
+                <div id="forecast-chart" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 24px;"></div>
+                
+                <div id="forecast-risks" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 24px;"></div>
+                
+                <div id="forecast-table"></div>
+            </div>
+        `;
+
+        const loadData = async (historicalMonths = 12, forecastMonths = 6) => {
+            try {
+                const response = await fetch(`${this.API_BASE_URL}/api/xero/reports/forecast-enhanced?business_id=${this.currentBusiness}&historical_months=${historicalMonths}&forecast_months=${forecastMonths}`);
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                // KPI Cards
+                document.getElementById('forecast-total-kpi').innerHTML = `
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+                        <i class="fas fa-dollar-sign"></i> ${forecastMonths}-Month Forecast
+                    </div>
+                    <div style="font-size: 26px; color: #1f6feb; font-weight: 700;">
+                        $${(data.total_forecast_base / 1000).toFixed(1)}k
+                    </div>
+                    <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">
+                        Range: $${(data.total_forecast_pessimistic / 1000).toFixed(1)}k - $${(data.total_forecast_optimistic / 1000).toFixed(1)}k
+                    </div>
+                `;
+
+                document.getElementById('forecast-growth-kpi').innerHTML = `
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+                        <i class="fas fa-percentage"></i> Avg Monthly Growth
+                    </div>
+                    <div style="font-size: 26px; color: ${data.avg_growth_rate >= 0 ? '#3fb950' : '#f85149'}; font-weight: 700;">
+                        ${data.avg_growth_rate >= 0 ? '⬆' : '⬇'} ${Math.abs(data.avg_growth_rate).toFixed(1)}%
+                    </div>
+                    <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">
+                        Based on ${historicalMonths} months
+                    </div>
+                `;
+
+                const avgConfidence = data.forecast.reduce((sum, f) => sum + f.confidence, 0) / data.forecast.length;
+                document.getElementById('forecast-confidence-kpi').innerHTML = `
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+                        <i class="fas fa-check-circle"></i> Avg Confidence
+                    </div>
+                    <div style="font-size: 26px; color: ${avgConfidence > 70 ? '#3fb950' : avgConfidence > 50 ? '#d29922' : '#f85149'}; font-weight: 700;">
+                        ${avgConfidence.toFixed(0)}%
+                    </div>
+                    <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">
+                        Volatility: ±${data.volatility.toFixed(1)}%
+                    </div>
+                `;
+
+                // Forecast Chart with Confidence Bands
+                const scenario = document.getElementById('forecast-scenario').value;
+                const historicalData = data.historical_data;
+                const forecastData = data.forecast;
+
+                const traces = [];
+
+                // Historical line (solid)
+                traces.push({
+                    x: historicalData.map(h => h.month),
+                    y: historicalData.map(h => h.revenue),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Historical',
+                    line: { color: '#c9d1d9', width: 3 },
+                    marker: { size: 6 }
+                });
+
+                // Forecast scenarios
+                if (scenario === 'base' || scenario === 'all') {
+                    traces.push({
+                        x: forecastData.map(f => f.month_name),
+                        y: forecastData.map(f => f.base),
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Base Forecast',
+                        line: { color: '#1f6feb', width: 3, dash: 'dash' },
+                        marker: { size: 8 }
+                    });
+                }
+
+                if (scenario === 'optimistic' || scenario === 'all') {
+                    traces.push({
+                        x: forecastData.map(f => f.month_name),
+                        y: forecastData.map(f => f.optimistic),
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Optimistic',
+                        line: { color: '#3fb950', width: 2, dash: 'dot' }
+                    });
+                }
+
+                if (scenario === 'pessimistic' || scenario === 'all') {
+                    traces.push({
+                        x: forecastData.map(f => f.month_name),
+                        y: forecastData.map(f => f.pessimistic),
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Pessimistic',
+                        line: { color: '#f85149', width: 2, dash: 'dot' }
+                    });
+                }
+
+                // Confidence band (fill between optimistic and pessimistic)
+                if (scenario === 'all' || scenario === 'base') {
+                    traces.push({
+                        x: [...forecastData.map(f => f.month_name), ...forecastData.map(f => f.month_name).reverse()],
+                        y: [...forecastData.map(f => f.optimistic), ...forecastData.map(f => f.pessimistic).reverse()],
+                        fill: 'toself',
+                        fillcolor: 'rgba(31, 111, 235, 0.1)',
+                        line: { color: 'transparent' },
+                        name: 'Confidence Band',
+                        showlegend: true
+                    });
+                }
+
+                this.createChart('forecast-chart', traces, {
+                    title: { text: 'Revenue Forecast with Confidence Intervals', font: { size: 16 } },
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Revenue ($)' }
+                });
+
+                // Risk Factors
+                let risksHtml = '<h4 style="color: #c9d1d9; margin: 0 0 12px 0;"><i class="fas fa-exclamation-triangle" style="color: #d29922;"></i> Risk Factors</h4>';
+                if (data.risk_factors && data.risk_factors.length > 0) {
+                    risksHtml += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                    data.risk_factors.forEach(risk => {
+                        const colors = {
+                            'danger': { bg: 'rgba(248, 81, 73, 0.1)', border: '#f85149', icon: 'fa-times-circle' },
+                            'warning': { bg: 'rgba(210, 153, 34, 0.1)', border: '#d29922', icon: 'fa-exclamation-circle' },
+                            'info': { bg: 'rgba(19, 181, 234, 0.1)', border: '#13B5EA', icon: 'fa-info-circle' }
+                        };
+                        const style = colors[risk.type] || colors.info;
+                        risksHtml += `
+                            <div style="padding: 12px; background: ${style.bg}; border-left: 3px solid ${style.border}; border-radius: 4px;">
+                                <i class="fas ${style.icon}" style="color: ${style.border}; margin-right: 8px;"></i>
+                                <span style="color: #c9d1d9;">${risk.text}</span>
+                            </div>
+                        `;
+                    });
+                    risksHtml += '</div>';
+                } else {
+                    risksHtml += '<div style="color: #8b949e; font-size: 14px;">No significant risk factors identified.</div>';
+                }
+                document.getElementById('forecast-risks').innerHTML = risksHtml;
+
+                // Forecast Table
+                const tableData = forecastData.map(f => ({
+                    month: f.month_name,
+                    base: f.base,
+                    optimistic: f.optimistic,
+                    pessimistic: f.pessimistic,
+                    confidence: `${f.confidence}%`,
+                    range: `$${((f.optimistic - f.pessimistic) / 1000).toFixed(1)}k`
+                }));
+
+                new Tabulator('#forecast-table', {
+                    data: tableData,
+                    layout: 'fitColumns',
+                    columns: [
+                        { title: 'Month', field: 'month', minWidth: 120 },
+                        { title: 'Base Forecast', field: 'base', formatter: 'money', formatterParams: { precision: 0 }, minWidth: 130 },
+                        { title: 'Optimistic', field: 'optimistic', formatter: 'money', formatterParams: { precision: 0 }, minWidth: 120 },
+                        { title: 'Pessimistic', field: 'pessimistic', formatter: 'money', formatterParams: { precision: 0 }, minWidth: 120 },
+                        { title: 'Confidence', field: 'confidence', minWidth: 100 },
+                        { title: 'Range', field: 'range', minWidth: 100 }
+                    ]
+                });
+
+                // Store data for export
+                this.lastForecastData = data;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="padding: 20px; color: #f85149;">Error: ${error.message}</div>`;
+            }
+        };
+
+        document.getElementById('forecast-historical').addEventListener('change', () => {
+            loadData(
+                parseInt(document.getElementById('forecast-historical').value),
+                parseInt(document.getElementById('forecast-period').value)
+            );
+        });
+
+        document.getElementById('forecast-period').addEventListener('change', () => {
+            loadData(
+                parseInt(document.getElementById('forecast-historical').value),
+                parseInt(document.getElementById('forecast-period').value)
+            );
+        });
+
+        document.getElementById('forecast-scenario').addEventListener('change', () => {
+            loadData(
+                parseInt(document.getElementById('forecast-historical').value),
+                parseInt(document.getElementById('forecast-period').value)
+            );
+        });
+
+        loadData(12, 6);
+
+        // Add export button
+        this.createExportButton(
+            'xero-reports-results',
+            async () => this.lastForecastData || {},
+            'Revenue Forecast Dashboard',
+            '/api/xero/reports/forecast-enhanced'
+        );
+
+        // Add Quick Prompts button
+        XeroQuickPrompts.createQuickPromptsButton(
+            'xero-reports-results',
+            'Forecast',
+            () => this.lastForecastData || null,
+            '/api/xero/reports/forecast-enhanced'
+        );
     }
 }
 

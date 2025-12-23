@@ -366,8 +366,8 @@ export default {
                 </div>
                 
                 <!-- Content Containers -->
-                <div class="module-subtabs-content" style="flex: 1; overflow: auto; margin-top: 10px;">
-                    <div class="module-subtab-content active" id="communication-hub-subtab-unified-inbox" data-subtab="unified-inbox"></div>
+                <div class="module-subtabs-content" style="flex: 1; margin-top: 10px; display: flex; flex-direction: column;">
+                    <div class="module-subtab-content active" id="communication-hub-subtab-unified-inbox" data-subtab="unified-inbox" style="display: flex; flex-direction: column; height: 100%;"></div>
                     <div class="module-subtab-content" id="communication-hub-subtab-compose" data-subtab="compose" style="display: none;"></div>
                     <div class="module-subtab-content" id="communication-hub-subtab-threads" data-subtab="threads" style="display: none;"></div>
                     <div class="module-subtab-content" id="communication-hub-subtab-search" data-subtab="search" style="display: none;"></div>
@@ -471,7 +471,7 @@ export default {
                             </div>
                             
                             <!-- Table Container -->
-                            <div id="email-table-container" style="display: none; min-height: 500px;"></div>
+                            <div id="email-table-container" style="display: none; height: calc(100vh - 320px); overflow: auto;"></div>
                         </div>
                     </div>
                     
@@ -1291,6 +1291,7 @@ export default {
             layout: "fitColumns",  // ✅ FIX: Responsive column sizing
             layoutColumnsOnNewData: true,
             responsiveLayout: false,  // ✅ FIX: Disable responsive collapse (keep all columns visible)
+            height: "100%",  // ✅ FIX: Enable virtual DOM scrolling with fixed header
 
             // Pagination (WooCommerce pattern)
             pagination: "local",
@@ -1562,9 +1563,27 @@ export default {
 
                         const threadShort = threadSlug.substring(0, 8);
 
+                        // Determine navigation action based on location
+                        let onclickAction;
+                        if (location === 'prime' || location === 'prime-loaded') {
+                            // Prime: Open AI Prime sidebar with thread and update location
+                            onclickAction = `event.stopPropagation(); window.CommunicationHub.openThreadInPrime('${threadSlug}');`;
+                        } else if (location.startsWith('agent-')) {
+                            // Agent: Navigate to command centre and scroll to agent
+                            const agentNum = parseInt(location.replace('agent-', ''));
+                            onclickAction = `event.stopPropagation(); if (typeof switchTab === 'function') { switchTab('multi-agent'); } setTimeout(() => { if (typeof MultiAgent !== 'undefined' && MultiAgent.scrollToAgent) { MultiAgent.scrollToAgent(${agentNum}); } }, 300);`;
+                        } else {
+                            onclickAction = `event.stopPropagation();`;
+                        }
+
                         return `
                             <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
-                                <span class="agent-badge" style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                <span class="agent-badge" 
+                                      onclick="${onclickAction}"
+                                      style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: opacity 0.2s;"
+                                      onmouseover="this.style.opacity='0.85'"
+                                      onmouseout="this.style.opacity='1'"
+                                      title="Click to view in ${location === 'prime' || location === 'prime-loaded' ? 'AI Prime' : badgeText}">
                                     <i class="fas ${badgeIcon}"></i> ${this.escapeHtml(badgeText)}
                                 </span>
                                 <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: monospace;" title="Thread ID: ${threadSlug}">
@@ -1688,27 +1707,75 @@ export default {
         // Remove any existing dropdown
         document.querySelectorAll('.agent-assignment-dropdown').forEach(d => d.remove());
 
-        // Get click position
+        // Get cell element and table container for scroll tracking
         const cellElement = cell.getElement();
-        const rect = cellElement.getBoundingClientRect();
+        const tableContainer = cellElement.closest('.tabulator') || cellElement.closest('.email-table-container');
 
         // Create dropdown
         const dropdown = document.createElement('div');
         dropdown.className = 'agent-assignment-dropdown';
+
+        // Get column width to match dropdown width
+        const columnWidth = cellElement.offsetWidth;
+
+        // Function to update dropdown position relative to cell
+        const updatePosition = () => {
+            const rect = cellElement.getBoundingClientRect();
+            const containerRect = tableContainer ? tableContainer.getBoundingClientRect() : null;
+
+            // Get table header position to check if dropdown should hide under it
+            const tableHeader = tableContainer?.querySelector('.tabulator-header');
+            const headerRect = tableHeader ? tableHeader.getBoundingClientRect() : null;
+
+            // Check if cell is still visible in viewport OR if dropdown would overlap header
+            if (containerRect && (rect.bottom < containerRect.top || rect.top > containerRect.bottom)) {
+                // Cell scrolled out of view - hide dropdown
+                dropdown.style.opacity = '0';
+                dropdown.style.pointerEvents = 'none';
+            } else if (headerRect && rect.top < headerRect.bottom) {
+                // Cell is scrolling under header - hide dropdown
+                dropdown.style.opacity = '0';
+                dropdown.style.pointerEvents = 'none';
+            } else {
+                // Cell is visible - show dropdown at correct position
+                dropdown.style.opacity = '1';
+                dropdown.style.pointerEvents = 'auto';
+                dropdown.style.top = `${rect.bottom + 4}px`;
+                dropdown.style.left = `${rect.left}px`;
+                dropdown.style.width = `${columnWidth}px`;
+            }
+        };
+
+        // Set initial styles with position tracking
         dropdown.style.cssText = `
             position: fixed;
-            top: ${rect.bottom + 4}px;
-            left: ${rect.left}px;
             background: #1a1a1a;
             border: 1px solid #30363d;
             border-radius: 6px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            z-index: 10000;
-            min-width: 220px;
-            max-height: 400px;
+            z-index: 100;
+            min-width: 200px;
+            width: ${columnWidth}px;
+            max-height: 500px;
             overflow-y: auto;
             color: #f0f6fc;
+            scrollbar-width: thin;
+            scrollbar-color: #30363d #1a1a1a;
+            transition: opacity 0.15s ease;
         `;
+
+        // Set initial position
+        updatePosition();
+
+        // Add webkit scrollbar styling
+        const style = document.createElement('style');
+        style.textContent = `
+            .agent-assignment-dropdown::-webkit-scrollbar { width: 8px; }
+            .agent-assignment-dropdown::-webkit-scrollbar-track { background: #1a1a1a; }
+            .agent-assignment-dropdown::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+            .agent-assignment-dropdown::-webkit-scrollbar-thumb:hover { background: #484f58; }
+        `;
+        document.head.appendChild(style);
 
         // Fetch available agents from synergy sessions AND thread counts
         let agents = [];
@@ -1726,8 +1793,10 @@ export default {
             const threadsData = threadsResponse.ok ? await threadsResponse.json() : { agents: [] };
             const threadAgents = threadsData.agents || [];
 
-            // Define ALL agent names in order (all 10 agents)
-            const agentOrder = ['Prime', 'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India'];
+            // Define ALL agent names in order (all 26 NATO alphabet agents + Prime)
+            const agentOrder = ['Prime', 'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
+                'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
+                'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
 
             // Build sessions map
             const sessionsMap = {};
@@ -1745,41 +1814,55 @@ export default {
                 }
             });
 
-            // Agent name to location ID mapping
+            // Agent name to location ID mapping (all 26 NATO + Prime)
             const agentLocationMap = {
                 'Prime': 'prime',
-                'Alpha': 'agent-1',
-                'Bravo': 'agent-2',
-                'Charlie': 'agent-3',
-                'Delta': 'agent-4',
-                'Echo': 'agent-5',
-                'Foxtrot': 'agent-6',
-                'Golf': 'agent-7',
-                'Hotel': 'agent-8',
-                'India': 'agent-9'
+                'Alpha': 'agent-1', 'Bravo': 'agent-2', 'Charlie': 'agent-3', 'Delta': 'agent-4', 'Echo': 'agent-5',
+                'Foxtrot': 'agent-6', 'Golf': 'agent-7', 'Hotel': 'agent-8', 'India': 'agent-9', 'Juliet': 'agent-10',
+                'Kilo': 'agent-11', 'Lima': 'agent-12', 'Mike': 'agent-13', 'November': 'agent-14', 'Oscar': 'agent-15',
+                'Papa': 'agent-16', 'Quebec': 'agent-17', 'Romeo': 'agent-18', 'Sierra': 'agent-19', 'Tango': 'agent-20',
+                'Uniform': 'agent-21', 'Victor': 'agent-22', 'Whiskey': 'agent-23', 'Xray': 'agent-24', 'Yankee': 'agent-25', 'Zulu': 'agent-26'
             };
 
-            // Add ALL agents (whether they have sessions or not)
-            agentOrder.forEach(agentName => {
+            // ✅ FIX: Only show agents that are ACTIVE (have threads/sessions) + next available
+            // Find last active agent
+            let lastActiveIndex = -1;
+            agentOrder.forEach((agentName, index) => {
+                const session = sessionsMap[agentName];
+                const locationId = agentLocationMap[agentName];
+                const threadCount = threadCountsMap[locationId] || 0;
+                if (session || threadCount > 0) {
+                    lastActiveIndex = index;
+                }
+            });
+
+            // Show active agents + next one (stop at Zulu - index 26)
+            const maxIndexToShow = Math.min(lastActiveIndex + 1, 26); // 26 = Zulu's index
+
+            agentOrder.forEach((agentName, index) => {
+                if (index > maxIndexToShow) return; // Skip inactive agents beyond next available
+
                 const session = sessionsMap[agentName];
                 const locationId = agentLocationMap[agentName] || agentName.toLowerCase();
-                const threadCount = threadCountsMap[locationId] || 0; // Get REAL thread count from database
+                const threadCount = threadCountsMap[locationId] || 0;
 
                 agents.push({
                     name: agentName,
-                    id: locationId, // Use proper location ID (agent-1, agent-2, etc.)
-                    has_threads: threadCount > 0, // Use REAL thread count (includes email assignments)
+                    id: locationId,
+                    has_threads: threadCount > 0,
                     threads_count: threadCount,
                     is_assigned: emailData.assigned_agent === agentName,
-                    is_open: !!session // True if has synergy session
+                    is_open: !!session,
+                    is_next_available: index === lastActiveIndex + 1 && index <= 26 // Mark next available (if ≤ Zulu)
                 });
             });
 
-            // Find next agent to activate
+            // Find next agent to activate (stop at Zulu - don't allow past agent-26)
             if (agents.length > 0) {
                 const lastOpenAgent = agents[agents.length - 1].name;
                 const lastIndex = agentOrder.indexOf(lastOpenAgent);
-                if (lastIndex >= 0 && lastIndex < agentOrder.length - 1) {
+                // Only allow activation up to Zulu (index 26)
+                if (lastIndex >= 0 && lastIndex < 26) {
                     nextAgentToActivate = agentOrder[lastIndex + 1];
                 }
             }
@@ -1874,7 +1957,12 @@ export default {
                             <i class="fas fa-chevron-down" style="color: #6b7280; font-size: 11px; transition: transform 0.2s;"></i>
                         </div>
                         <!-- Task Type Submenu (hidden by default) -->
-                        <div class="agent-task-submenu" style="display: none; padding: 8px 0 8px 32px; margin-top: 4px;">
+                        <div class="agent-task-submenu" style="display: none; padding: 8px 0 8px 5px; margin-top: 4px;">
+                            <div class="task-option" data-task="generate_quote" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #22c55e; font-weight: 600;" onmouseover="this.style.background='rgba(34, 197, 94, 0.15)'; this.style.color='#22c55e'" onmouseout="this.style.background='transparent'; this.style.color='#22c55e'">
+                                <i class="fas fa-file-invoice-dollar" style="width: 16px; text-align: center;"></i>
+                                <span>Generate Quote</span>
+                            </div>
+                            <div style="border-top: 1px solid #21262d; margin: 4px 0;"></div>
                             <div class="task-option" data-task="summarize" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
                                 <i class="fas fa-file-alt" style="width: 16px; text-align: center;"></i>
                                 <span>Summarize Email</span>
@@ -1922,6 +2010,28 @@ export default {
             dropdown.innerHTML = html;
         }
 
+        // Append to body
+        document.body.appendChild(dropdown);
+
+        // Add scroll listener to update position as user scrolls
+        const scrollHandler = () => {
+            updatePosition();
+        };
+
+        // Cleanup function for scroll listeners
+        const cleanupScrollListeners = () => {
+            if (tableContainer) {
+                tableContainer.removeEventListener('scroll', scrollHandler);
+            }
+            window.removeEventListener('scroll', scrollHandler, true);
+        };
+
+        // Listen for scroll events on table container and window
+        if (tableContainer) {
+            tableContainer.addEventListener('scroll', scrollHandler);
+        }
+        window.addEventListener('scroll', scrollHandler, true); // Use capture phase for all scrollable elements
+
         // ✅ FIX: Add click handlers for agent options (toggle submenu) and task options (assign with task)
         dropdown.querySelectorAll('.agent-option').forEach(option => {
             option.addEventListener('click', async (e) => {
@@ -1932,6 +2042,7 @@ export default {
                     // Old-style option (clear assignment, activate next)
                     const agentId = option.dataset.agentId;
                     const agentName = option.dataset.agentName;
+                    cleanupScrollListeners(); // Clean up before removing
                     dropdown.remove();
 
                     if (agentId === 'clear') {
@@ -1977,6 +2088,7 @@ export default {
                 const agentName = wrapper.dataset.agentName;
                 const taskType = taskOption.dataset.task;
 
+                cleanupScrollListeners(); // Clean up before removing
                 dropdown.remove();
 
                 this.log.info(`📧 Assigning email to ${agentName} with task: ${taskType}`);
@@ -1986,13 +2098,11 @@ export default {
             });
         });
 
-        // Append to body
-        document.body.appendChild(dropdown);
-
         // Close on outside click
         setTimeout(() => {
             const closeHandler = (e) => {
                 if (!dropdown.contains(e.target) && !cellElement.contains(e.target)) {
+                    cleanupScrollListeners(); // Clean up before removing
                     dropdown.remove();
                     document.removeEventListener('click', closeHandler);
                 }
@@ -2007,16 +2117,42 @@ export default {
      * If agentId is 'new', finds next available empty agent slot
      * 
      * ✅ IDEMPOTENCY: Checks if email already assigned before creating thread
+     * ✅ REASSIGNMENT: Shows confirmation modal if email already assigned
      */
     async assignEmailToAgent(emailId, agentName, cell, agentId = null) {
         this.log.info(`🤖 Assigning email ${emailId} to agent: ${agentName} (ID: ${agentId})`);
 
-        // ✅ CRITICAL: Check if email already assigned (prevent duplicate threads)
+        // ✅ REASSIGNMENT CHECK: If email already assigned, show confirmation modal
         if (this.state.emailThreads && this.state.emailThreads[emailId]) {
             const existingThreadSlug = this.state.emailThreads[emailId];
-            this.log.warn(`⚠️ Email ${emailId} already assigned to thread ${existingThreadSlug}`);
-            this.showWarning(`This email is already assigned to a thread. Click the agent badge to view it.`);
-            return; // Early exit - don't create duplicate
+
+            // Get existing thread details
+            const existingThread = ThreadManager.threads?.find(t => t.id === existingThreadSlug || t.thread_slug === existingThreadSlug);
+            const existingAgentName = existingThread?.metadata?.assigned_agent || 'another agent';
+
+            this.log.warn(`⚠️ Email ${emailId} already assigned to thread ${existingThreadSlug} (${existingAgentName})`);
+
+            // Show confirmation modal
+            const action = await this.showReassignmentModal(emailId, existingAgentName, agentName);
+
+            if (action === 'cancel') {
+                this.log.info('User cancelled reassignment');
+                return; // User cancelled
+            }
+
+            if (action === 'move') {
+                // Reassign: Unlink from old thread, create new thread
+                this.log.info(`🔄 Moving email from ${existingAgentName} to ${agentName}`);
+                await this.reassignEmail(emailId, existingThreadSlug, agentName, agentId, cell);
+                return;
+            }
+
+            if (action === 'new') {
+                // Create new thread for same email (allow duplicate)
+                this.log.info(`➕ Creating new thread for already-assigned email`);
+                delete this.state.emailThreads[emailId]; // Temporary removal to bypass check
+                // Continue with normal assignment flow below...
+            }
         }
 
         // ✅ CRITICAL: Disable cell to prevent double-click
@@ -2377,6 +2513,7 @@ export default {
 
             // Create thread with task-specific title
             const taskTitles = {
+                'generate_quote': `Quote Request: ${fullEmail.subject || 'No Subject'}`,
                 'summarize': `Summarize: ${fullEmail.subject || 'No Subject'}`,
                 'draft_reply': `Reply to: ${fullEmail.subject || 'No Subject'}`,
                 'extract_tasks': `Tasks from: ${fullEmail.subject || 'No Subject'}`,
@@ -2509,7 +2646,72 @@ export default {
                 await ThreadManager.loadThreadsFromBackend();
             }
 
-            // Step 2: Extract agent ID from location
+            // Step 2: Handle Prime location specially (open in AI Prime sidebar)
+            if (location === 'prime' || location === 'prime-loaded') {
+                this.log.info(`🤖 Opening thread in AI Prime sidebar`);
+
+                // Build task prompt
+                const taskPrompts = {
+                    'generate_quote': `Please analyze this email and generate a comprehensive quote for the customer.`,
+                    'summarize': `Please provide a clear, concise summary of this email, highlighting the key points and any action items.`,
+                    'draft_reply': `Please draft a professional reply to this email. Consider the tone and context of the original message.`,
+                    'extract_tasks': `Please extract all action items and tasks mentioned in this email. List them in order of priority.`,
+                    'analyze': `Please analyze this email's tone, sentiment, and key themes. Identify any potential concerns or opportunities.`,
+                    'discuss': `I need your assistance with this email. Please help me understand the context and suggest appropriate next steps.`
+                };
+
+                // Use enhanced formatter to build the prompt
+                const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailData, taskType);
+                const attachmentSummary = AttachmentProcessor.generateAttachmentSummary(processedAttachments || []);
+                const completePrompt = basePrompt + attachmentSummary;
+
+                // Generate message content (multimodal if attachments)
+                const messageContent = EmailAIFormatter.generateClaudeMessageContent(
+                    completePrompt,
+                    processedAttachments || []
+                );
+
+                // Open AI Prime sidebar with thread
+                if (window.AIPrime?.open) {
+                    window.AIPrime.open({
+                        threadSlug: threadSlug,
+                        agent: 'communication-agent',
+                        initialMessage: typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent),
+                        autoSend: true,
+                        context: {
+                            type: 'email',
+                            email_id: emailData.id,
+                            email_data: emailData,
+                            task_type: taskType
+                        }
+                    });
+
+                    // Update thread location to 'prime-loaded'
+                    try {
+                        const userId = window.UserAuth?.user?.id || 1;
+                        await this.api.post('/api/threads/update-location', {
+                            thread_slug: threadSlug,
+                            new_location: 'prime-loaded',
+                            user_id: userId
+                        });
+                        this.log.success(`✅ Updated thread location to prime-loaded`);
+
+                        // Refresh ThreadManager to reflect new location
+                        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                            await ThreadManager.loadThreadsFromBackend();
+                        }
+                    } catch (error) {
+                        this.log.warn('Failed to update thread location:', error);
+                    }
+
+                    this.log.success(`✅ Opened thread in AI Prime with task: ${taskType}`);
+                } else {
+                    this.log.warn('⚠️ AI Prime sidebar not available');
+                }
+                return;
+            }
+
+            // Step 3: Extract agent ID from location (for agent-X locations)
             const agentMatch = location.match(/agent-(\d+)/);
             if (!agentMatch) {
                 this.log.warn('Could not extract agent ID from location:', location);
@@ -2535,6 +2737,115 @@ export default {
 
             // Step 4: Build SINGLE message with task prompt + email content using enhanced template
             const taskPrompts = {
+                'generate_quote': `Please analyze this email and generate a comprehensive quote for the customer. 
+
+STEP 1: EXTRACT AVAILABLE INFORMATION
+- Product/service requested
+- Quantities mentioned
+- Sizes/dimensions specified  
+- Materials/finishes stated
+- Deadline/turnaround requirements
+- Customer name and contact details
+
+STEP 2: QUERY FRED DATABASE FOR CUSTOMER HISTORY (If specifications are incomplete)
+Use the inhouse_execute_query tool to find previous orders and use historical specifications:
+
+Round 1 - Identify Customer:
+inhouse_execute_query(
+    query="SELECT TOP 10 ContactID, Name, Email, Phone FROM Clients WHERE Email LIKE ? OR Name LIKE ?",
+    params=['%customer_email%', '%customer_name%']
+)
+
+Round 2 - Get Previous Orders (if customer found):
+inhouse_execute_query(
+    query="""
+    SELECT TOP 20
+        o.OrderID,
+        o.ClientName,
+        o.OrderDate,
+        jt.ShortJobDesc,
+        jt.QTY as Quantity,
+        jt.Width,
+        jt.Height,
+        pt.[Desc] as PaperType,
+        g.[DESC] as GSM,
+        jtype.[Desc] as JobType,
+        jt.FrontCelloGloss,
+        jt.FrontCelloMatt,
+        jt.Cost
+    FROM Orders o
+    INNER JOIN JobTickets jt ON o.OrderID = jt.OrderID
+    INNER JOIN Clients c ON o.CustomerMYOB_ID = c.ContactID
+    LEFT JOIN PaperType pt ON jt.PaperTypeID = pt.PaperTypeID
+    LEFT JOIN GSM g ON jt.GSM_ID = g.GSM_ID
+    LEFT JOIN JobType jtype ON jt.JobTypeID = jtype.JobTypeID
+    WHERE c.ContactID = ?
+    ORDER BY o.OrderDate DESC
+    """,
+    params=[customer_contact_id]
+)
+
+Round 3 - Find Similar Product Orders (if customer mentioned specific product type):
+inhouse_execute_query(
+    query="""
+    SELECT TOP 20
+        jt.TicketID,
+        jt.ShortJobDesc,
+        o.ClientName,
+        o.OrderDate,
+        jt.QTY,
+        jt.Width,
+        jt.Height,
+        pt.[Desc] as PaperType,
+        g.[DESC] as GSM,
+        jt.FrontCelloGloss,
+        jt.FrontCelloMatt,
+        jt.Cost
+    FROM JobTickets jt
+    INNER JOIN Orders o ON jt.OrderID = o.OrderID
+    LEFT JOIN PaperType pt ON jt.PaperTypeID = pt.PaperTypeID
+    LEFT JOIN GSM g ON jt.GSM_ID = g.GSM_ID
+    WHERE jt.JobTypeID = ? OR jt.ShortJobDesc LIKE ?
+    ORDER BY o.OrderDate DESC
+    """,
+    params=[job_type_id, '%product_keyword%']
+)
+
+STEP 3: FILL MISSING SPECIFICATIONS
+Use historical data to complete calculator requirements:
+- If customer ordered "business cards" before but didn't specify size → use previous size (90mm x 55mm)
+- If no quantity given → use their typical quantity or suggest based on history
+- If no paper type specified → use their preferred stock (e.g., 350gsm matt celloglaze)
+- If no finish mentioned → check if they usually get celloglaze, spot UV, etc.
+
+STEP 4: GENERATE QUOTE USING APPROPRIATE CALCULATOR
+You have access to 80+ printing quote calculators:
+- Business Cards: calculate_economical_business_cards_shopify, calculate_premium_business_cards_shopify
+- Flyers: calculate_a3_flyers_shopify, calculate_a4_flyers_shopify, calculate_a5_flyers_shopify, calculate_dl_flyers_shopify
+- Booklets: calculate_saddle_stitch_booklets_shopify, calculate_perfect_bound_booklets_shopify
+- Signage: calculate_corflute_signs_shopify, calculate_metal_aframe_signs_shopify
+- Stationery: calculate_letterheads_shopify, calculate_compliments_slips_shopify
+- And 60+ more specialized calculators
+
+Select the correct calculator based on product type and run with specifications (from email OR from historical data).
+
+STEP 5: DRAFT PROFESSIONAL QUOTE
+Include:
+- Line items with descriptions
+- Unit prices and quantities
+- Subtotals, taxes, and total
+- Turnaround time / delivery date
+- Payment terms
+- Valid until date
+- Note if specifications were based on previous orders: "Based on your previous order specifications from [date]..."
+
+STEP 6: ADD VALUE SUGGESTIONS
+Recommend upgrades or related products based on history:
+- "You previously ordered matt celloglaze - would you like to upgrade to premium celloglazing?"
+- "Customers who order business cards often need matching letterheads and compliments slips"
+
+FALLBACK: If no customer history exists and specifications are incomplete:
+Draft questions for the customer listing all missing details required for accurate quoting.`,
                 'summarize': `Please provide a clear, concise summary of this email, highlighting the key points and any action items.`,
                 'draft_reply': `Please draft a professional reply to this email. Consider the tone and context of the original message.`,
                 'extract_tasks': `Please extract all action items and tasks mentioned in this email. List them in order of priority.`,
@@ -3297,6 +3608,17 @@ export default {
                         <i class="fas fa-comments"></i> Discuss with AI
                     </button>
                 </div>
+                <div style="margin-top: 12px;">
+                    <label style="display: block; color: var(--text-secondary, #8b949e); font-size: 0.85em; margin-bottom: 6px; font-weight: 500;">
+                        <i class="fas fa-pencil-alt" style="margin-right: 4px;"></i> Custom Instructions (Optional)
+                    </label>
+                    <textarea id="ai-custom-instruction-${email.id}" 
+                              placeholder="Add specific instructions for the AI (e.g., 'Focus on pricing details' or 'Use formal tone')..."
+                              style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid var(--border-color, #30363d); 
+                                     border-radius: 6px; background: var(--input-bg, #0d1117); color: var(--text-primary, #c9d1d9);
+                                     font-size: 0.9em; font-family: inherit; resize: vertical;"
+                    ></textarea>
+                </div>
             </div>
         `;
     },
@@ -3312,6 +3634,10 @@ export default {
             if (!email) {
                 throw new Error('Email not found');
             }
+
+            // Get custom instruction from textarea
+            const customInstructionTextarea = document.getElementById(`ai-custom-instruction-${emailId}`);
+            const customInstruction = customInstructionTextarea?.value?.trim() || '';
 
             // Fetch full email content for context
             const fullEmail = await this.fetchEmailContent(emailId);
@@ -3379,7 +3705,12 @@ export default {
                 'discuss': `I need your assistance with this email. Here's the full content:\n\n${emailMarkdown}`
             };
 
-            const initialMessage = prompts[action] || prompts['discuss'];
+            let initialMessage = prompts[action] || prompts['discuss'];
+
+            // Append custom instruction if provided
+            if (customInstruction) {
+                initialMessage += `\n\n**Additional Instructions:** ${customInstruction}`;
+            }
 
             // Open AI Prime sidebar with pre-filled context
             if (window.AIPrime?.open) {
@@ -3394,6 +3725,28 @@ export default {
                         email_data: fullEmail
                     }
                 });
+
+                // Update thread location to 'prime-loaded'
+                try {
+                    await this.api.post('/api/threads/update-location', {
+                        thread_slug: threadSlug,
+                        new_location: 'prime-loaded',
+                        user_id: userId
+                    });
+                    this.log.success(`✅ Updated thread location to prime-loaded`);
+
+                    // Refresh ThreadManager to reflect new location
+                    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                        await ThreadManager.loadThreadsFromBackend();
+                    }
+
+                    // Update Tabulator to show new badge
+                    if (this.emailTable) {
+                        this.emailTable.updateData([{ id: emailId }]);
+                    }
+                } catch (error) {
+                    this.log.warn('Failed to update thread location:', error);
+                }
             } else {
                 // Fallback: Navigate to thread
                 window.location.hash = `#thread/${threadSlug}`;
@@ -4603,6 +4956,46 @@ export default {
     },
 
     /**
+     * Open thread in AI Prime and update location to prime-loaded
+     * @param {string} threadSlug - Thread slug to open
+     */
+    async openThreadInPrime(threadSlug) {
+        try {
+            // Open AI Prime sidebar
+            if (window.AIPrime?.open) {
+                window.AIPrime.open({
+                    threadSlug: threadSlug,
+                    agent: 'communication-agent'
+                });
+
+                // Update thread location to 'prime-loaded'
+                const userId = window.UserAuth?.user?.id || 1;
+                await this.api.post('/api/threads/update-location', {
+                    thread_slug: threadSlug,
+                    new_location: 'prime-loaded',
+                    user_id: userId
+                });
+                this.log.success(`✅ Updated thread location to prime-loaded`);
+
+                // Refresh ThreadManager to reflect new location
+                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                    await ThreadManager.loadThreadsFromBackend();
+                }
+
+                // Update Tabulator if we have the email table
+                if (this.emailTable) {
+                    this.emailTable.redraw();
+                }
+            } else {
+                // Fallback: Navigate to thread
+                window.location.hash = `#thread/${threadSlug}`;
+            }
+        } catch (error) {
+            this.log.error('Failed to open thread in Prime:', error);
+        }
+    },
+
+    /**
      * Refresh thread data when formatter shows "Syncing..." state
      * @param {string} emailId - Email ID
      * @param {string} threadSlug - Thread slug
@@ -4642,6 +5035,161 @@ export default {
         } else {
             // Fallback to alert if toast not available
             alert(message);
+        }
+    },
+
+    /**
+     * Show reassignment confirmation modal
+     * Returns: 'move' | 'new' | 'cancel'
+     */
+    async showReassignmentModal(emailId, existingAgentName, newAgentName) {
+        return new Promise((resolve) => {
+            // Create modal backdrop
+            const modal = document.createElement('div');
+            modal.className = 'reassignment-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 20000;
+                animation: fadeIn 0.2s ease;
+            `;
+
+            // Create modal content
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: #1a1a1a;
+                border: 1px solid #30363d;
+                border-radius: 8px;
+                padding: 24px;
+                max-width: 480px;
+                box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+                animation: slideUp 0.3s ease;
+            `;
+
+            content.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <i class="fas fa-exchange-alt" style="color: #f59e0b; font-size: 24px;"></i>
+                    <h3 style="color: #f0f6fc; margin: 0; font-size: 18px; font-weight: 600;">Email Already Assigned</h3>
+                </div>
+                <p style="color: #8b949e; margin: 0 0 20px 0; line-height: 1.6;">
+                    This email is currently assigned to <strong style="color: #6366f1;">${this.escapeHtml(existingAgentName)}</strong>.
+                    What would you like to do?
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="modal-btn-move" style="padding: 12px 16px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; transition: background 0.2s;">
+                        <i class="fas fa-arrow-right"></i>
+                        <span>Move to ${this.escapeHtml(newAgentName)}</span>
+                    </button>
+                    <button class="modal-btn-new" style="padding: 12px 16px; background: #30363d; color: #f0f6fc; border: 1px solid #484f58; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; transition: all 0.2s;">
+                        <i class="fas fa-plus"></i>
+                        <span>Create New Thread (keep both)</span>
+                    </button>
+                    <button class="modal-btn-cancel" style="padding: 12px 16px; background: transparent; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; transition: all 0.2s;">
+                        <i class="fas fa-times"></i>
+                        <span>Cancel</span>
+                    </button>
+                </div>
+            `;
+
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+
+            // Add hover effects
+            const moveBtn = content.querySelector('.modal-btn-move');
+            const newBtn = content.querySelector('.modal-btn-new');
+            const cancelBtn = content.querySelector('.modal-btn-cancel');
+
+            moveBtn.addEventListener('mouseenter', () => moveBtn.style.background = '#5558dd');
+            moveBtn.addEventListener('mouseleave', () => moveBtn.style.background = '#6366f1');
+
+            newBtn.addEventListener('mouseenter', () => { newBtn.style.background = '#484f58'; newBtn.style.borderColor = '#6b7280'; });
+            newBtn.addEventListener('mouseleave', () => { newBtn.style.background = '#30363d'; newBtn.style.borderColor = '#484f58'; });
+
+            cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = 'rgba(255,255,255,0.05)'; cancelBtn.style.borderColor = '#484f58'; });
+            cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = 'transparent'; cancelBtn.style.borderColor = '#30363d'; });
+
+            // Button handlers
+            moveBtn.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve('move');
+            });
+
+            newBtn.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve('new');
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                document.body.removeChild(modal);
+                resolve('cancel');
+            });
+
+            // Close on backdrop click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    resolve('cancel');
+                }
+            });
+
+            // Close on Escape key
+            const escapeHandler = (e) => {
+                if (e.key === 'Escape') {
+                    document.body.removeChild(modal);
+                    document.removeEventListener('keydown', escapeHandler);
+                    resolve('cancel');
+                }
+            };
+            document.addEventListener('keydown', escapeHandler);
+        });
+    },
+
+    /**
+     * Reassign email from old thread to new agent
+     */
+    async reassignEmail(emailId, oldThreadSlug, newAgentName, newAgentId, cell) {
+        this.log.info(`🔄 Reassigning email ${emailId} from ${oldThreadSlug} to ${newAgentName}`);
+
+        try {
+            const userId = window.UserAuth?.user?.id || 1;
+
+            // Step 1: Unlink from old thread
+            const unlinkResponse = await this.api.post('/api/thread-assignments/email/unlink', {
+                thread_slug: oldThreadSlug,
+                email_thread_id: emailId,
+                user_id: userId
+            });
+
+            if (!unlinkResponse || !unlinkResponse.success) {
+                throw new Error('Failed to unlink email from old thread');
+            }
+
+            this.log.success(`✅ Email unlinked from ${oldThreadSlug}`);
+            if (typeof showToast === 'function') {
+                showToast('📤 Email unlinked from old thread', 'info', 2000);
+            }
+
+            // Step 2: Remove from local state
+            delete this.state.emailThreads[emailId];
+
+            // Step 3: Small delay for database commit
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Step 4: Create new thread (existing assignEmailToAgent logic)
+            await this.assignEmailToAgent(emailId, newAgentName, cell, newAgentId);
+
+            this.log.success(`✅ Email reassigned to ${newAgentName}`);
+
+        } catch (error) {
+            this.log.error('❌ Reassignment failed:', error);
+            this.showError(`Failed to reassign email: ${error.message}`);
         }
     },
 

@@ -1,58 +1,36 @@
 /**
  * CHAT SIDEBAR - WhatsApp-Style Messaging
  * Modern chat interface with message bubbles and voice calling
+ * 
+ * NOTE: Uses universal-sidebar framework base styles
+ * This file only contains chat-specific styling (views, messages, etc.)
  */
 
-/* ==================== CHAT SIDEBAR CONTAINER ==================== */
-.chat-sidebar {
-    position: fixed;
-    top: 60px;
-    right: 60px;
-    height: calc(100vh - 60px);
-    width: 420px;
+/* ==================== CHAT SIDEBAR SPECIFIC STYLES ==================== */
+#chat-sidebar {
+    /* Inherits positioning from .universal-sidebar.sidebar-right */
     background: var(--bg-primary);
-    display: flex;
+    z-index: 9998;
+    /* SidebarManager sets this */
+}
+
+/* Legacy .chat-sidebar class support (if needed) */
+.chat-sidebar {
+    background: var(--bg-primary);
+}
+
+/* ==================== CHAT VIEWS ==================== */
+.chat-view {
+    display: none;
     flex-direction: column;
-    z-index: 9999;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-    border-left: 1px solid var(--border-default);
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+    flex: 1;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
 }
 
-.chat-sidebar.collapsed {
-    transform: translateX(calc(100% + 60px));
-    box-shadow: none;
-}
-
-/* ==================== CHAT SIDEBAR TOGGLE ==================== */
-.chat-sidebar-toggle {
-    position: fixed;
-    top: 50%;
-    right: 60px;
-    transform: translateY(-50%);
-    background: var(--accent-primary);
-    color: white;
-    border: none;
-    cursor: pointer;
-    z-index: 10000;
+.chat-view.active {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    transition: all 0.3s ease;
-    box-shadow: -2px 0 12px rgba(0, 0, 0, 0.2);
-}
-
-.chat-sidebar-toggle:hover {
-    background: var(--accent-primary-hover, #79c0ff);
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
-}
-
-.chat-sidebar-toggle i {
-    font-size: 20px;
 }
 
 .chat-unread-badge {
@@ -75,9 +53,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
+    padding: var(--space-4);
     border-bottom: 1px solid var(--border-default);
-    background: var(--bg-secondary);
+    background: var(--bg-tertiary);
     min-height: 64px;
 }
 
@@ -113,13 +91,13 @@
 }
 
 .chat-header-title i {
-    font-size: 22px;
+    font-size: 20px;
     color: var(--accent-primary);
 }
 
 .chat-header-title h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -155,6 +133,65 @@
 .chat-header-btn.voice-call:hover {
     background: rgba(76, 175, 80, 0.1);
     color: #45a049;
+}
+
+/* ==================== TABS ==================== */
+.chat-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+    padding: 0;
+}
+
+.chat-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 12px 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    border-bottom: 2px solid transparent;
+}
+
+.chat-tab:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.chat-tab.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+    background: var(--bg-primary);
+}
+
+.chat-tab i {
+    font-size: 18px;
+}
+
+.chat-tab-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Tab Content */
+.chat-tab-content {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.chat-tab-content.active {
+    display: flex;
 }
 
 /* ==================== CHAT LIST VIEW ==================== */
@@ -205,6 +242,10 @@
     flex: 1;
     overflow-y: auto;
     background: var(--bg-primary);
+    display: flex;
+    /* Make it a flex container */
+    flex-direction: column;
+    /* Stack children vertically */
 }
 
 /* Chat List Item */
@@ -308,7 +349,8 @@
 }
 
 /* Empty State */
-.chat-empty-state {
+.chat-empty-state,
+.chat-list-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -316,23 +358,241 @@
     padding: 60px 20px;
     text-align: center;
     color: var(--text-secondary);
+    height: 100%;
 }
 
-.chat-empty-state i {
+.chat-empty-state i,
+.chat-list-empty i {
     font-size: 64px;
     margin-bottom: 20px;
     opacity: 0.3;
     color: var(--text-tertiary);
 }
 
-.chat-empty-state p {
+.chat-empty-state p,
+.chat-list-empty p {
     margin: 8px 0;
     font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.chat-empty-state small,
+.chat-list-empty small {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
 }
 
 .chat-empty-hint {
     font-size: 14px;
     color: var(--text-tertiary);
+}
+
+/* ==================== CONTACTS TAB ==================== */
+.chat-contacts-container {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-contact-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-default);
+    cursor: pointer;
+    transition: background 0.2s;
+    align-items: center;
+}
+
+.chat-contact-item:hover {
+    background: var(--bg-secondary);
+}
+
+.chat-contact-avatar {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+}
+
+.chat-contact-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-default);
+}
+
+.chat-contact-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-contact-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.chat-contact-status {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-contact-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-contact-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.chat-contact-action-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+}
+
+/* ==================== CALLS TAB ==================== */
+.chat-calls-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+}
+
+.chat-clear-history-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.chat-clear-history-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.chat-calls-container {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-call-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-default);
+    cursor: pointer;
+    transition: background 0.2s;
+    align-items: center;
+}
+
+.chat-call-item:hover {
+    background: var(--bg-secondary);
+}
+
+.chat-call-item.missed {
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.chat-call-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.chat-call-icon.outgoing {
+    background: rgba(74, 158, 255, 0.1);
+    color: var(--accent-primary);
+}
+
+.chat-call-icon.incoming {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.chat-call-icon.missed {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.chat-call-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-call-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.chat-call-info {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-call-time {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.chat-call-redial-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-secondary);
+    color: #4CAF50;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.chat-call-redial-btn:hover {
+    background: rgba(76, 175, 80, 0.1);
+    transform: scale(1.1);
 }
 
 /* ==================== CONVERSATION VIEW ==================== */

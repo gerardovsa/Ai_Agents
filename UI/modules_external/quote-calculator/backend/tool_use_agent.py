@@ -1632,6 +1632,93 @@ Use this for:
                 
                 return result_data
             
+            elif tool_name == "execute_query_library":
+                # Execute pre-built query from library (FIXED Dec 23, 2025)
+                # Schema defines tool as "execute_query_library" but handler was "get_query_from_library"
+                # This caused "Unknown tool" errors despite tool being registered in RegistryV3
+                query_name = tool_input["query_name"]
+                parameters = tool_input.get("parameters", {})
+                
+                self._print_and_log(f"QUERY NAME: {query_name}")
+                self._print_and_log(f"PARAMETERS:")
+                self._print_and_log(json.dumps(parameters, indent=2))
+                self._print_and_log("")
+                
+                try:
+                    # Execute query via query library
+                    query_result = self.query_library.build_query(query_name, **parameters)
+                    
+                    self._print_and_log(f" QUERY BUILT:")
+                    self._print_and_log(f"   Name: {query_name}")
+                    self._print_and_log(f"   Category: {query_result['metadata']['category']}")
+                    self._print_and_log(f"   Description: {query_result['metadata']['description']}")
+                    self._print_and_log(f"\nSQL:")
+                    self._print_and_log(query_result['sql'])
+                    self._print_and_log("")
+                    
+                    # Execute the query
+                    df = self.db.execute_query(query_result['sql'])
+                    records = df.to_dict('records')
+                    
+                    # Convert to JSON-serializable
+                    def convert_to_json_serializable(obj):
+                        if isinstance(obj, list):
+                            return [convert_to_json_serializable(item) for item in obj]
+                        elif isinstance(obj, dict):
+                            return {key: convert_to_json_serializable(value) for key, value in obj.items()}
+                        elif isinstance(obj, (int, float, str, bool, type(None))):
+                            return obj
+                        else:
+                            return str(obj)
+                    
+                    json_safe_records = convert_to_json_serializable(records)
+                    
+                    self._print_and_log(f" QUERY RESULT: {len(json_safe_records)} rows")
+                    
+                    result_data = {
+                        "success": True,
+                        "query_name": query_name,
+                        "parameters_used": query_result['parameters'],
+                        "data": json_safe_records,
+                        "metadata": {
+                            "description": query_result['metadata']['description'],
+                            "category": query_result['metadata']['category'],
+                            "visualization": query_result['metadata'].get('visualization', 'table'),
+                            "row_count": len(json_safe_records),
+                            "best_for": query_result['metadata'].get('best_for', '')
+                        }
+                    }
+                    
+                    # Emit client_tool_execution event
+                    self._log_event("client_tool_execution", {
+                        "tool_name": tool_name,
+                        "tool_input": tool_input,
+                        "result": result_data,
+                        "summary": f"Executed query '{query_name}': {len(json_safe_records)} rows returned"
+                    })
+                    
+                    return result_data
+                    
+                except Exception as e:
+                    error_msg = f"Query execution failed: {str(e)}"
+                    self._print_and_log(f" ERROR: {error_msg}")
+                    
+                    result_data = {
+                        "success": False,
+                        "error": error_msg,
+                        "query_name": query_name,
+                        "parameters": parameters
+                    }
+                    
+                    self._log_event("client_tool_execution", {
+                        "tool_name": tool_name,
+                        "tool_input": tool_input,
+                        "result": result_data,
+                        "summary": f"Query execution failed: {error_msg}"
+                    })
+                    
+                    return result_data
+            
             elif tool_name == "get_query_from_library":
                 # Get and execute query from library
                 query_name = tool_input["query_name"]

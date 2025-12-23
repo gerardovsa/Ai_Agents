@@ -633,21 +633,23 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-3, 12px);
+    padding: var(--space-4);
     background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-default);
 }
 
 .prompt-sidebar-title {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 18px;
+    gap: var(--space-2);
+    font-size: 20px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .prompt-sidebar-title i {
     color: var(--accent-primary);
+    font-size: 20px;
 }
 
 /* Close button now uses .synergy-icon-btn class from main styles */

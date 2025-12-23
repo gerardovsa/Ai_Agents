@@ -2,21 +2,43 @@
 Universal Database Connection Wrapper
 Exclusively uses Supabase PostgreSQL
 
-USAGE:
-    from shared.db_connection_wrapper import get_connection
-    
-    conn = get_connection('ai_infrastructure')  # Uses Supabase PostgreSQL
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+⚠️ DEPRECATION WARNING: This wrapper is deprecated!
+   Use execute_query() from shared.database_utils instead.
+   
+   OLD PATTERN (error-prone, requires manual cleanup):
+       conn = get_connection('ai_infrastructure')
+       cursor = conn.cursor()
+       try:
+           cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+           result = cursor.fetchall()
+       finally:
+           cursor.close()
+           conn.close()  # Easy to forget!
+   
+   NEW PATTERN (automatic cleanup, no leaks):
+       from shared.database_utils import execute_query
+       result = execute_query(
+           "SELECT * FROM users WHERE id = %s",
+           (user_id,),
+           fetch_mode='all',
+           schema='ai_infrastructure'
+       )
 """
 
 import os
+import warnings
 from pathlib import Path
 from typing import Union
 
 def get_connection(db_name: str = 'ai_infrastructure'):
     """
     Get Supabase PostgreSQL database connection
+    
+    ⚠️ DEPRECATED: Use execute_query() from shared.database_utils instead!
+    
+    This function requires manual connection cleanup (try/finally blocks)
+    which is error-prone and causes connection leaks. The new execute_query()
+    function provides automatic cleanup and is the recommended pattern.
     
     Args:
         db_name: Database name / schema name
@@ -31,15 +53,32 @@ def get_connection(db_name: str = 'ai_infrastructure'):
         ConnectionError: If connection fails
     
     Examples:
+        >>> # ❌ OLD (deprecated, requires manual cleanup)
         >>> conn = get_connection('ai_infrastructure')
         >>> cursor = conn.cursor()
-        >>> cursor.execute("SELECT * FROM users WHERE id = %s", (1,))
+        >>> try:
+        ...     cursor.execute("SELECT * FROM users WHERE id = %s", (1,))
+        ...     result = cursor.fetchall()
+        ... finally:
+        ...     cursor.close()
+        ...     conn.close()
         
-        >>> # With context manager (auto-close)
-        >>> with get_connection('sessions') as conn:
-        ...     cursor = conn.cursor()
-        ...     cursor.execute("SELECT * FROM threads")
+        >>> # ✅ NEW (recommended, automatic cleanup)
+        >>> from shared.database_utils import execute_query
+        >>> result = execute_query(
+        ...     "SELECT * FROM users WHERE id = %s",
+        ...     (1,),
+        ...     fetch_mode='all',
+        ...     schema='ai_infrastructure'
+        ... )
     """
+    warnings.warn(
+        "get_connection() is deprecated and will be removed in a future version. "
+        "Use execute_query() from shared.database_utils for automatic connection cleanup. "
+        "See DATABASE_PATTERNS.md for migration guide.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     from shared.database_utils import get_database_connection
     return get_database_connection(db_name)
 

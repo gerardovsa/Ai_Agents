@@ -272,11 +272,13 @@
                     Drop files here or click to browse
                 </div>
                 <div class="upload-hint">
-                    Supports 40+ formats: PDF, Word, Excel, PowerPoint, Markdown, HTML, JSON, CSV, XML, RTF, ODT, Pages, Keynote, EPUB, LaTeX, YAML, and more (Max 10MB per file)
+                    Supports 40+ formats: PDF, Word, Excel, PowerPoint, Markdown, HTML, JSON, CSV, XML, RTF, ODT, Pages,
+                    Keynote, EPUB, LaTeX, YAML, and more (Max 10MB per file)
                 </div>
             </div>
 
-            <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.txt,.md,.docx,.doc,.rtf,.odt,.html,.htm,.xml,.json,.csv,.tsv,.xlsx,.xls,.pptx,.ppt,.pages,.key,.numbers,.epub,.tex,.latex,.rst,.adoc,.org,.fountain,.yml,.yaml,.toml,.ini,.cfg,.log,.eml,.msg" />
+            <input type="file" id="file-input" class="file-input" multiple
+                accept=".pdf,.txt,.md,.docx,.doc,.rtf,.odt,.html,.htm,.xml,.json,.csv,.tsv,.xlsx,.xls,.pptx,.ppt,.pages,.key,.numbers,.epub,.tex,.latex,.rst,.adoc,.org,.fountain,.yml,.yaml,.toml,.ini,.cfg,.log,.eml,.msg" />
 
             <div id="uploaded-files" style="margin-top: 16px;"></div>
 
@@ -550,7 +552,7 @@
                     Vector database and embedding provider credentials are managed through Platform Connections.
                 </p>
                 <button
-                    onclick="window.parent.loadConnectionsModal ? window.parent.loadConnectionsModal() : alert('Platform Connections not available')"
+                    onclick="if (typeof loadConnectionsModal === 'function') { loadConnectionsModal(); } else if (window.parent && typeof window.parent.loadConnectionsModal === 'function') { window.parent.loadConnectionsModal(); } else { const modal = document.getElementById('connections-modal'); if (modal) { modal.style.display = 'flex'; loadConnectionsModal(); } else { alert('Platform Connections not available'); } }"
                     class="btn-primary" style="width: 100%;">
                     <i class="fas fa-external-link-alt"></i> Open Platform Connections
                 </button>

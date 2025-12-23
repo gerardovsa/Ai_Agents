@@ -874,6 +874,14 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
             extracted_tool_name = input_obj.pop('tool_name', None)
             params.update(input_obj)
     
+    # 5. Unwrap nested 'parameters' dict (AI agent sometimes wraps actual params)
+    # Example: {"tool_name": "foo", "parameters": {"query": "SELECT..."}}
+    # Should become: {"query": "SELECT..."}
+    if 'parameters' in params and isinstance(params['parameters'], dict):
+        nested_params = params.pop('parameters')
+        # Merge nested params into main params (nested params take precedence)
+        params.update(nested_params)
+    
     # Validate tool_name extracted
     if not extracted_tool_name:
         return {
@@ -916,6 +924,11 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
         print(f"  - Has _injected_credentials: {'_injected_credentials' in params}")
         if '_user_id' in params:
             print(f"  - User ID: {params['_user_id']}")
+        
+        # Log parameter values (for debugging - exclude sensitive fields)
+        safe_params = {k: v for k, v in params.items() 
+                      if k not in ['_injected_credentials', 'password', 'api_key', 'token']}
+        print(f"  - Safe parameter values: {safe_params}")
         
         # CRITICAL: registry.execute_tool() only accepts **kwargs, not positional args
         # Must pass tool_name inside kwargs dictionary

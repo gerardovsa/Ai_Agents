@@ -16,7 +16,7 @@
  * EXPORTS:
  * - window.SynergySidebar (main singleton)
  * 
- * LAST MODIFIED: 2025-11-20
+ * LAST MODIFIED: 2025-12-23 - Fixed documentService import
  */
 
 class SynergySidebarController {
@@ -28,6 +28,12 @@ class SynergySidebarController {
         this.currentView = 'list'; // 'list' or 'pinned'
         this.currentFilter = 'all'; // 'all', 'backlog', 'in_progress', 'review', 'done'
         this.searchQuery = '';
+
+        // Initialize DocumentService
+        this.documentService = window.documentService || (window.DocumentService ? new window.DocumentService() : null);
+        if (!this.documentService) {
+            console.warn('[SYNERGY SIDEBAR CONTROLLER] DocumentService not available, using fallback API calls');
+        }
 
         // Fix #3: Track width state - Map<sessionId, 'wide' | 'extra-wide' | null>
         this.widthExpandedSessions = new Map();
@@ -117,9 +123,26 @@ class SynergySidebarController {
         try {
             console.log('[SYNERGY SIDEBAR] Loading sessions...');
 
-            // Use documentService for batch session fetching
-            const data = await documentService.fetchSessionsBatch();
-            this.sessions = data.sessions || data || [];
+            // Use documentService for batch session fetching if available
+            if (this.documentService && this.documentService.fetchSessionsBatch) {
+                const data = await this.documentService.fetchSessionsBatch();
+                this.sessions = data.sessions || data || [];
+            } else {
+                // Fallback to direct API call
+                const response = await fetch(`${this.API_BASE_URL}/api/synergy/sessions`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                this.sessions = data.sessions || data || [];
+            }
 
             console.log(`[SYNERGY SIDEBAR] Loaded ${this.sessions.length} sessions`);
 

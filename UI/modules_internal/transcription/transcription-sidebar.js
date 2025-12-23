@@ -665,32 +665,32 @@ class TranscriptionSidebarController {
 
         this.isPaused = !this.isPaused;
         const pauseBtn = document.getElementById('transcription-pause-btn');
-        
+
         if (this.isPaused) {
             // Pause audio recorder
             if (this.sharedState.audioRecorder && this.sharedState.audioRecorder.state === 'recording') {
                 this.sharedState.audioRecorder.pause();
             }
-            
+
             // Update button
             if (pauseBtn) {
                 pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
                 pauseBtn.title = 'Resume Recording';
             }
-            
+
             console.log('[TRANSCRIPTION SIDEBAR] Recording paused');
         } else {
             // Resume audio recorder
             if (this.sharedState.audioRecorder && this.sharedState.audioRecorder.state === 'paused') {
                 this.sharedState.audioRecorder.resume();
             }
-            
+
             // Update button
             if (pauseBtn) {
                 pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 pauseBtn.title = 'Pause Recording';
             }
-            
+
             console.log('[TRANSCRIPTION SIDEBAR] Recording resumed');
         }
     }
@@ -708,7 +708,7 @@ class TranscriptionSidebarController {
             this.shouldSaveOnStop = false;
             await this.sharedState.stopRecording();
             this.shouldSaveOnStop = true; // Reset for next recording
-            
+
             // Clear live transcript display
             const liveDisplay = document.getElementById('transcription-live-display');
             if (liveDisplay) {
@@ -719,7 +719,7 @@ class TranscriptionSidebarController {
                     </div>
                 `;
             }
-            
+
             console.log('[TRANSCRIPTION SIDEBAR] Recording deleted');
         }
     }
@@ -730,10 +730,10 @@ class TranscriptionSidebarController {
     toggleAudioSection() {
         const content = document.getElementById('audio-section-content');
         const icon = document.getElementById('audio-section-toggle');
-        
+
         if (content && icon) {
             const isCollapsed = content.classList.contains('collapsed');
-            
+
             if (isCollapsed) {
                 content.classList.remove('collapsed');
                 icon.classList.add('rotated');
@@ -750,27 +750,27 @@ class TranscriptionSidebarController {
      */
     async selectAudioSource(source) {
         console.log(`[TRANSCRIPTION SIDEBAR] Selecting audio source: ${source}`);
-        
+
         // Update button states
         const systemBtn = document.getElementById('system-audio-btn');
         const micBtn = document.getElementById('microphone-btn');
-        
+
         if (systemBtn && micBtn) {
             systemBtn.classList.remove('active');
             micBtn.classList.remove('active');
-            
+
             if (source === 'system' && systemBtn) {
                 systemBtn.classList.add('active');
             } else if (source === 'microphone' && micBtn) {
                 micBtn.classList.add('active');
             }
         }
-        
+
         // If currently previewing or recording, restart with new source
         if (this.sharedState.previewStream || this.sharedState.isRecording) {
             // Stop current preview
             this.sharedState.stopAudioPreview();
-            
+
             // Restart preview with selected source
             // Note: Browser may show permission dialog again
             await this.sharedState.startAudioPreview();
@@ -915,9 +915,9 @@ class TranscriptionSidebarController {
     async processMultipleFiles(files) {
         const panel = document.getElementById('upload-status-panel');
         const queueDiv = document.getElementById('upload-file-queue');
-        
+
         if (panel) panel.style.display = 'block';
-        
+
         // Show file queue
         if (queueDiv) {
             queueDiv.innerHTML = files.map((f, i) => `
@@ -928,12 +928,12 @@ class TranscriptionSidebarController {
                 </div>
             `).join('');
         }
-        
+
         // Process files sequentially
         for (let i = 0; i < files.length; i++) {
             const statusSpan = document.getElementById(`file-queue-status-${i}`);
             if (statusSpan) statusSpan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing';
-            
+
             try {
                 await this.processUploadedFile(files[i], i + 1, files.length);
                 if (statusSpan) statusSpan.innerHTML = '<i class="fas fa-check" style="color: #3fb950;"></i> Done';
@@ -941,7 +941,7 @@ class TranscriptionSidebarController {
                 if (statusSpan) statusSpan.innerHTML = '<i class="fas fa-times" style="color: #f85149;"></i> Error';
             }
         }
-        
+
         // Clear queue after delay
         setTimeout(() => {
             if (queueDiv) queueDiv.innerHTML = '';
@@ -972,7 +972,7 @@ class TranscriptionSidebarController {
         const progressText = document.getElementById('upload-progress-text');
         const languageDisplay = document.getElementById('upload-language-display');
         const durationDisplay = document.getElementById('upload-duration-display');
-        
+
         if (progressDiv) progressDiv.style.display = 'block';
         if (statusSpan) statusSpan.textContent = `Processing ${currentFile}/${totalFiles}: ${file.name}`;
         if (progressBar) progressBar.style.width = '10%';
@@ -1002,9 +1002,9 @@ class TranscriptionSidebarController {
             if (statusSpan) statusSpan.textContent = 'Transcribing with Local Whisper AI...';
             if (progressBar) progressBar.style.width = '50%';
             if (progressText) progressText.textContent = '50%';
-            
+
             const result = await this.sendFileToWhisper(audioBlob, file.name);
-            
+
             if (progressBar) progressBar.style.width = '90%';
             if (progressText) progressText.textContent = '90%';
 
@@ -1025,9 +1025,9 @@ class TranscriptionSidebarController {
                     processingTime: processingTime,
                     confidence: result.confidence
                 });
-                
+
                 this.addSTTTranscript(result.transcript, 'file-upload');
-                
+
                 // Save to server with full metadata
                 try {
                     await this.saveTranscriptionToServer({
@@ -1043,7 +1043,7 @@ class TranscriptionSidebarController {
                         confidence: result.confidence,
                         language: result.language,
                         duration_seconds: duration,
-                        metadata: { 
+                        metadata: {
                             origin: 'upload',
                             processing_time: processingTime
                         }
@@ -1051,7 +1051,7 @@ class TranscriptionSidebarController {
                 } catch (err) {
                     console.warn('[TRANSCRIPTION] Failed to save uploaded transcription:', err);
                 }
-                
+
                 if (statusSpan) statusSpan.textContent = `Complete! (${processingTime}s)`;
                 if (progressBar) progressBar.style.width = '100%';
                 if (progressText) progressText.textContent = '100%';
@@ -1073,14 +1073,14 @@ class TranscriptionSidebarController {
             if (statusSpan) statusSpan.textContent = 'Error: ' + error.message;
             if (progressBar) progressBar.style.width = '0%';
             if (progressText) progressText.textContent = 'Failed';
-            
+
             if (totalFiles === 1) {
                 alert('Failed to transcribe file: ' + error.message);
                 setTimeout(() => {
                     if (progressDiv) progressDiv.style.display = 'none';
                 }, 3000);
             }
-            
+
             throw error; // Re-throw for queue handling
         }
 
@@ -1143,7 +1143,7 @@ class TranscriptionSidebarController {
 
         const formData = new FormData();
         formData.append('file', audioBlob, filename);
-        
+
         // Add language preference if set (Whisper supports 50+ languages)
         const languageSelect = document.getElementById('whisper-language-select');
         if (languageSelect && languageSelect.value !== 'auto') {
@@ -1161,7 +1161,7 @@ class TranscriptionSidebarController {
         }
 
         const result = await response.json();
-        
+
         // Return full result with metadata (transcript, language, confidence)
         return {
             transcript: result.transcript || result.text || '',
@@ -1188,7 +1188,7 @@ class TranscriptionSidebarController {
             border-radius: 6px;
             margin-bottom: 12px;
         `;
-        
+
         let badgesHTML = '';
         if (metadata.language) {
             badgesHTML += `<span style="background: #238636; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">
@@ -1205,7 +1205,7 @@ class TranscriptionSidebarController {
                 <i class="fas fa-bolt"></i> ${metadata.processingTime}s
             </span>`;
         }
-        
+
         headerDiv.innerHTML = `
             <div style="font-size: 13px; color: #58a6ff; margin-bottom: 6px;">
                 <i class="fas fa-file-audio"></i> ${filename}
@@ -1241,12 +1241,13 @@ class TranscriptionSidebarController {
         `;
 
         actionsDiv.innerHTML = `
-            <button onclick="TranscriptionSidebar.sendLiveTranscriptToChat()" 
+            <button id="send-to-chat-btn" onclick="TranscriptionSidebar.showAgentSelectorDropdown(event)" 
                     style="flex: 1; padding: 10px 16px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;"
                     onmouseover="this.style.background='#2ea043'"
                     onmouseout="this.style.background='#238636'">
                 <i class="fas fa-paper-plane"></i>
                 <span>Send to Chat</span>
+                <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
             </button>
             <button onclick="TranscriptionSidebar.copyLiveTranscript()" 
                     style="padding: 10px 16px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
@@ -2026,12 +2027,13 @@ class TranscriptionSidebarController {
                 `;
 
                 actionsDiv.innerHTML = `
-                    <button onclick="TranscriptionSidebar.sendLiveTranscriptToChat()" 
+                    <button onclick="TranscriptionSidebar.showAgentSelectorDropdown(event)" 
                             style="flex: 1; padding: 8px 12px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px;"
                             onmouseover="this.style.background='#2ea043'"
                             onmouseout="this.style.background='#238636'">
                         <i class="fas fa-paper-plane"></i>
                         <span>Send to Chat</span>
+                        <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
                     </button>
                     <button onclick="TranscriptionSidebar.copyLiveTranscript()" 
                             style="padding: 8px 12px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
@@ -2487,21 +2489,24 @@ class TranscriptionSidebarController {
         agents.push({
             id: 'ai-prime',
             name: 'AI Prime',
-            icon: 'fas fa-star',
+            icon: 'fas fa-crown',
             inputId: 'ai-chat-input'
         });
 
-        // Get active agent columns
-        const agentColumns = document.querySelectorAll('.agent-column-container');
-        agentColumns.forEach((col, index) => {
-            const titleEl = col.querySelector('.agent-column-title');
-            const inputEl = col.querySelector('.agent-column-input');
-            if (titleEl && inputEl) {
+        // Get active agent columns (same logic as showAgentSelectorDropdown)
+        document.querySelectorAll('.agent-column').forEach(column => {
+            const messagesDiv = column.querySelector('[id^="agent-messages-"]');
+            if (messagesDiv) {
+                const agentId = messagesDiv.id.replace('agent-messages-', '');
+                const nameElement = column.querySelector('.agent-name');
+                const agentName = nameElement ? nameElement.textContent.trim() : `Agent ${agentId}`;
+                const inputId = `input-${agentId}`;
+
                 agents.push({
-                    id: `agent-${index}`,
-                    name: titleEl.textContent.trim(),
+                    id: `agent-${agentId}`,
+                    name: agentName,
                     icon: 'fas fa-robot',
-                    inputId: inputEl.id
+                    inputId: inputId
                 });
             }
         });
@@ -2550,6 +2555,39 @@ class TranscriptionSidebarController {
      * Insert transcript to specific input element
      */
     insertTranscriptToInput(transcript, inputId, button) {
+        const insertMode = this.config.insertMode || 'append';
+
+        // Check if it's an agent input (use AgentInput module)
+        if (inputId.startsWith('input-')) {
+            const agentId = inputId.replace('input-', '');
+
+            if (window.AgentInput && typeof window.AgentInput.setValue === 'function') {
+                const currentValue = window.AgentInput.getValue(agentId) || '';
+
+                if (insertMode === 'replace') {
+                    window.AgentInput.setValue(agentId, transcript.text);
+                } else {
+                    const newValue = currentValue.trim() ? currentValue + ' ' + transcript.text : transcript.text;
+                    window.AgentInput.setValue(agentId, newValue);
+                }
+
+                window.AgentInput.focus(agentId);
+
+                // Visual feedback
+                const icon = button.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-check';
+                    setTimeout(() => {
+                        icon.className = 'fas fa-paper-plane';
+                    }, 1000);
+                }
+
+                console.log(`[TRANSCRIPTION] Transcript inserted to agent ${agentId}`);
+                return;
+            }
+        }
+
+        // Fallback: Direct input element manipulation
         const input = document.getElementById(inputId);
         if (!input) {
             console.error(`[TRANSCRIPTION] Input not found: ${inputId}`);
@@ -2558,7 +2596,6 @@ class TranscriptionSidebarController {
         }
 
         // Insert text
-        const insertMode = this.config.insertMode || 'append';
         if (insertMode === 'replace') {
             input.value = transcript.text;
         } else {
@@ -2677,50 +2714,253 @@ class TranscriptionSidebarController {
     /**
      * Send live transcript to chat input
      */
-    sendLiveTranscriptToChat() {
+    /**
+     * Show agent selector dropdown (similar to Communication Hub pattern)
+     */
+    showAgentSelectorDropdown(event) {
+        event.stopPropagation();
+        const button = event.currentTarget;
+
+        // Remove any existing dropdown
+        const existingDropdown = document.getElementById('transcript-agent-dropdown');
+        if (existingDropdown) {
+            existingDropdown.remove();
+            return;
+        }
+
+        // Get transcript text
         const liveDisplay = document.getElementById('transcription-live-display');
         if (!liveDisplay) return;
 
-        // Get all final text segments (not interim, not action buttons)
         const textSegments = Array.from(liveDisplay.querySelectorAll('.final'))
             .map(el => el.textContent.trim())
             .filter(text => text.length > 0);
 
         const fullText = textSegments.join(' ');
 
-        if (fullText) {
-            const chatInput = document.getElementById('ai-chat-input');
-            if (chatInput) {
+        if (!fullText) {
+            alert('No transcript text to send');
+            return;
+        }
+
+        // Get list of active agents (from MultiAgent system)
+        const agents = [];
+
+        // Check for active agent columns
+        document.querySelectorAll('.agent-column').forEach(column => {
+            const messagesDiv = column.querySelector('[id^="agent-messages-"]');
+            if (messagesDiv) {
+                const agentId = messagesDiv.id.replace('agent-messages-', '');
+                const nameElement = column.querySelector('.agent-name');
+                const agentName = nameElement ? nameElement.textContent.trim() : `Agent ${agentId}`;
+                agents.push({ id: agentId, name: agentName });
+            }
+        });
+
+        // Create dropdown
+        const dropdown = document.createElement('div');
+        dropdown.id = 'transcript-agent-dropdown';
+        dropdown.style.cssText = `
+            position: fixed;
+            background: #1c1f26;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 10000;
+            min-width: 250px;
+            max-width: 300px;
+            overflow: hidden;
+        `;
+
+        // Position dropdown below button
+        const rect = button.getBoundingClientRect();
+        dropdown.style.top = `${rect.bottom + 5}px`;
+        dropdown.style.left = `${rect.left}px`;
+
+        // Build dropdown HTML
+        let html = '<div style="padding: 8px 0;">';
+
+        // Header
+        html += `
+            <div style="padding: 8px 12px; border-bottom: 1px solid #30363d; margin-bottom: 4px;">
+                <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Send Transcript To</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${fullText.substring(0, 50)}...</div>
+            </div>
+        `;
+
+        // AI Prime option
+        html += `
+            <div class="agent-option" data-target="prime"
+                 style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;"
+                 onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'" 
+                 onmouseout="this.style.background='transparent'">
+                <i class="fas fa-crown" style="color: #fbbf24; width: 20px; text-align: center; font-size: 16px;"></i>
+                <div style="flex: 1;">
+                    <div style="font-size: 13px; color: #f0f6fc; font-weight: 600;">AI Prime</div>
+                    <div style="font-size: 10px; color: #8b949e; margin-top: 2px;">Main chat interface</div>
+                </div>
+            </div>
+        `;
+
+        // Agent options
+        if (agents.length > 0) {
+            html += '<div style="border-top: 1px solid #21262d; margin: 4px 0;"></div>';
+            agents.forEach(agent => {
+                html += `
+                    <div class="agent-option" data-target="agent-${agent.id}"
+                         style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;"
+                         onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'" 
+                         onmouseout="this.style.background='transparent'">
+                        <i class="fas fa-robot" style="color: #6366f1; width: 20px; text-align: center; font-size: 16px;"></i>
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; color: #f0f6fc; font-weight: 500;">${agent.name}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            html += `
+                <div style="padding: 20px; text-align: center; color: #8b949e;">
+                    <i class="fas fa-robot" style="font-size: 24px; margin-bottom: 8px; display: block; opacity: 0.5;"></i>
+                    <div style="font-size: 12px;">No agents available</div>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+        dropdown.innerHTML = html;
+
+        // Append to body
+        document.body.appendChild(dropdown);
+
+        // Add click handlers for agent options
+        dropdown.querySelectorAll('.agent-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const target = option.dataset.target;
+                dropdown.remove();
+                this.sendLiveTranscriptToChat(target, fullText);
+            });
+        });
+
+        // Close on outside click
+        setTimeout(() => {
+            const closeHandler = (e) => {
+                if (!dropdown.contains(e.target) && !button.contains(e.target)) {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            document.addEventListener('click', closeHandler);
+        }, 100);
+    }
+
+    /**
+     * Send live transcript to specific chat target
+     * @param {string} target - Target ID ('prime' or 'agent-{id}')
+     * @param {string} text - Transcript text (optional, will extract if not provided)
+     */
+    sendLiveTranscriptToChat(target = 'prime', text = null) {
+        // Get transcript text if not provided
+        if (!text) {
+            const liveDisplay = document.getElementById('transcription-live-display');
+            if (!liveDisplay) return;
+
+            const textSegments = Array.from(liveDisplay.querySelectorAll('.final'))
+                .map(el => el.textContent.trim())
+                .filter(t => t.length > 0);
+
+            text = textSegments.join(' ');
+        }
+
+        if (!text) {
+            console.error('[TRANSCRIPTION SIDEBAR] No transcript text to send');
+            return;
+        }
+
+        let chatInput = null;
+        let targetName = '';
+
+        // Route to appropriate target
+        if (target === 'prime') {
+            chatInput = document.getElementById('ai-chat-input');
+            targetName = 'AI Prime';
+        } else if (target.startsWith('agent-')) {
+            const agentId = target.replace('agent-', '');
+            chatInput = document.getElementById(`input-${agentId}`);
+            targetName = `Agent ${agentId}`;
+
+            // Also use AgentInput module if available
+            if (window.AgentInput && typeof window.AgentInput.setValue === 'function') {
                 const insertMode = this.config.insertMode || 'append';
+                const currentValue = window.AgentInput.getValue(agentId) || '';
 
                 if (insertMode === 'replace') {
-                    chatInput.value = fullText;
-                } else if (insertMode === 'append') {
-                    const currentText = chatInput.value.trim();
-                    chatInput.value = currentText ? currentText + ' ' + fullText : fullText;
+                    window.AgentInput.setValue(agentId, text);
+                } else {
+                    const newValue = currentValue.trim() ? currentValue + ' ' + text : text;
+                    window.AgentInput.setValue(agentId, newValue);
                 }
 
-                chatInput.focus();
-                chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-
-                console.log('[TRANSCRIPTION SIDEBAR] Live transcript sent to chat input');
-
-                // Show success feedback
-                const btn = event?.target?.closest('button');
-                if (btn) {
-                    const icon = btn.querySelector('i');
-                    const span = btn.querySelector('span');
-                    if (icon) icon.className = 'fas fa-check';
-                    if (span) span.textContent = 'Sent!';
-                    setTimeout(() => {
-                        if (icon) icon.className = 'fas fa-paper-plane';
-                        if (span) span.textContent = 'Send to Chat';
-                    }, 1500);
-                }
-            } else {
-                console.error('[TRANSCRIPTION SIDEBAR] Chat input not found');
-                alert('Chat input not found. Please make sure you\'re on the chat page.');
+                window.AgentInput.focus(agentId);
+                console.log(`[TRANSCRIPTION SIDEBAR] Transcript sent to ${targetName}`);
+                this.showSuccessFeedback(`Sent to ${targetName}`);
+                return;
             }
+        }
+
+        if (chatInput) {
+            const insertMode = this.config.insertMode || 'append';
+
+            if (insertMode === 'replace') {
+                chatInput.value = text;
+            } else if (insertMode === 'append') {
+                const currentText = chatInput.value.trim();
+                chatInput.value = currentText ? currentText + ' ' + text : text;
+            }
+
+            chatInput.focus();
+            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+            console.log(`[TRANSCRIPTION SIDEBAR] Transcript sent to ${targetName}`);
+            this.showSuccessFeedback(`Sent to ${targetName}`);
+        } else {
+            console.error(`[TRANSCRIPTION SIDEBAR] Chat input not found for target: ${target}`);
+            alert(`Could not find chat input for ${targetName}`);
+        }
+    }
+
+    /**
+     * Show success feedback message
+     */
+    showSuccessFeedback(message) {
+        // Try to use global notification system
+        if (typeof showNotification === 'function') {
+            showNotification(message, 'success');
+        } else {
+            // Fallback: Show temporary message
+            const feedback = document.createElement('div');
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #238636;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10001;
+                font-size: 14px;
+                font-weight: 600;
+            `;
+            feedback.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 8px;"></i>${message}`;
+            document.body.appendChild(feedback);
+
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                feedback.style.transition = 'opacity 0.3s';
+                setTimeout(() => feedback.remove(), 300);
+            }, 2000);
         }
     }
 

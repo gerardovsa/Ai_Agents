@@ -289,6 +289,14 @@ Object.assign(window.ThreadManager, {
             case 'move-to-prime':
                 await this.assignThread(threadId, 'prime-loaded');
                 await this.switchThread(threadId, true);
+
+                // Open AI Prime sidebar to show the thread
+                if (window.AIPrime?.open) {
+                    window.AIPrime.open({
+                        threadSlug: threadId,
+                        agent: 'communication-agent'
+                    });
+                }
                 break;
 
             case 'view-in-agent':
@@ -307,17 +315,26 @@ Object.assign(window.ThreadManager, {
                 break;
 
             case 'unload-only':
-                await this.assignThread(threadId, 'prime-loaded');
-
                 if (agentId && typeof MultiAgent !== 'undefined') {
                     MultiAgent.clearAgentThread?.(parseInt(agentId));
+                }
+
+                // Load thread in Prime properly (this sets prime-loaded and loads messages)
+                await this.loadThreadInPrime(threadId);
+
+                // Open AI Prime sidebar to show the thread
+                if (window.AIPrime?.open) {
+                    window.AIPrime.open({
+                        threadSlug: threadId,
+                        agent: 'communication-agent'
+                    });
                 }
 
                 await this.loadThreadsFromBackend();
                 await this.renderThreadList();
 
                 if (typeof showNotification === 'function') {
-                    showNotification('Thread unloaded from agent', 'success');
+                    showNotification('Thread unloaded from agent and loaded in Prime', 'success');
                 }
                 break;
         }
@@ -610,6 +627,14 @@ Object.assign(window.ThreadManager, {
 
             // Load in Prime using loadThreadInPrime (this will set prime-loaded internally)
             await this.loadThreadInPrime(threadId);
+
+            // Open AI Prime sidebar to show the thread
+            if (window.AIPrime?.open) {
+                window.AIPrime.open({
+                    threadSlug: threadId,
+                    agent: 'communication-agent'
+                });
+            }
 
             // Update thread info card
             if (typeof this.renderThreadInfoContainer === 'function') {

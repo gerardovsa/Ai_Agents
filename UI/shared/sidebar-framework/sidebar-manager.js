@@ -190,9 +190,18 @@ class UniversalSidebarManager {
         sidebar.style.height = 'calc(100vh - 60px)';
         sidebar.style.width = config.width;
         sidebar.style.zIndex = config.zIndex;
-        sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease';
         sidebar.style.display = 'flex';
         sidebar.style.flexDirection = 'column';
+
+        // Remove old side classes
+        sidebar.classList.remove('sidebar-left', 'sidebar-right');
+
+        // Clear old side styles
+        sidebar.style.removeProperty('left');
+        sidebar.style.removeProperty('right');
+        sidebar.style.removeProperty('transform');
+        sidebar.style.removeProperty('border-left');
+        sidebar.style.removeProperty('border-right');
 
         // Side-specific positioning - 60px from edges to avoid sidebar menu
         if (config.side === 'left') {
@@ -275,14 +284,49 @@ class UniversalSidebarManager {
             // Update config and sidebar if side changed
             if (newSide !== config.side) {
                 console.log(`[SIDEBAR MANAGER] Toggle moved to ${newSide} side for ${config.id}`);
+
+                const wasOpen = config.isOpen;
+                const oldSide = config.side;
                 config.side = newSide;
 
                 // Update button data attribute
                 button.setAttribute('data-side', newSide);
 
+                // Update sidebar element data attribute
+                if (config.element) {
+                    config.element.setAttribute('data-sidebar-side', newSide);
+                }
+
                 // Update sidebar positioning
                 if (config.element) {
+                    // If sidebar was open, close it from old side first
+                    if (wasOpen) {
+                        config.element.classList.remove('expanded');
+                        config.element.classList.add('collapsed');
+                        if (oldSide === 'right') {
+                            config.element.style.setProperty('right', '-450px', 'important');
+                        } else {
+                            config.element.style.transform = 'translateX(calc(-100% - 60px))';
+                        }
+                        config.isOpen = false;
+                    }
+
+                    // Apply new side styles
                     this.applySidebarStyles(config.element, config);
+
+                    // Re-open on new side if it was open
+                    if (wasOpen) {
+                        setTimeout(() => {
+                            config.element.classList.remove('collapsed');
+                            config.element.classList.add('expanded');
+                            if (newSide === 'right') {
+                                config.element.style.setProperty('right', '60px', 'important');
+                            } else {
+                                config.element.style.transform = 'translateX(0)';
+                            }
+                            config.isOpen = true;
+                        }, 50);
+                    }
                 }
             }
 

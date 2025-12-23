@@ -155,8 +155,16 @@ log_debug("Importing message_operations...")
 from routes.message_operations import message_ops_bp  # NEW: Message operations (fork, clone, copy, delete) - ✅ IMPLEMENTED Dec 7, 2025
 log_debug("Importing export_routes...")
 from routes.export_routes import export_bp
-log_debug("Importing woocommerce_routes...")
-from routes.woocommerce_routes import woocommerce_bp
+
+# ⚠️ WooCommerce: Disabled on Render (local development only)
+IS_RENDER = os.getenv('RENDER', 'false').lower() == 'true'
+if not IS_RENDER:
+    log_debug("Importing woocommerce_routes...")
+    from routes.woocommerce_routes import woocommerce_bp
+else:
+    log_config(logger, "[CONFIG] WooCommerce disabled on Render deployment")
+    woocommerce_bp = None
+
 log_debug("Importing auth_routes...")
 from routes.auth_routes import auth_bp  # NEW: User authentication
 log_debug("Importing oauth_routes...")
@@ -424,7 +432,8 @@ app.register_blueprint(thread_sharing_bp)                            # NEW: Thre
 app.register_blueprint(message_ops_bp)                               # NEW: Message operations - fork, clone, copy, delete, export, merge (6 endpoints) - ✅ IMPLEMENTED Dec 7, 2025
 app.register_blueprint(file_bp)                                      # NEW: File storage (7 endpoints: serve, download, delete, usage)
 app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoints (export functionality)
-app.register_blueprint(woocommerce_bp)                               # 9 endpoints (WooCommerce direct API)
+if woocommerce_bp:                                                   # ⚠️ Local development only (disabled on Render)
+    app.register_blueprint(woocommerce_bp)                           # 9 endpoints (WooCommerce direct API)
 app.register_blueprint(auth_bp)                                      # NEW: 6 endpoints (user auth)
 app.register_blueprint(oauth_bp)                                     # NEW: OAuth workspace integration (/api/oauth/*)
 app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth V2 (/api/auth/google/*)
@@ -527,8 +536,10 @@ try:
     if os.path.exists(xero_module_path):
         sys.path.insert(0, xero_module_path)
         from xero_routes import init_xero_routes
+        from xero_reports_enhanced import init_enhanced_xero_routes
         init_xero_routes(app)
-        log_success(logger, f"Xero Accounting routes registered from {xero_module_path}")
+        init_enhanced_xero_routes(app)
+        log_success(logger, f"Xero Accounting routes (+ enhanced reports) registered from {xero_module_path}")
     else:
         log_warning(logger, f"Xero module not found at {xero_module_path}")
 except Exception as e:
@@ -547,6 +558,7 @@ except Exception:
 # TODO: Add platform-specific routes for 281 tools across 19 platforms:
 # - openai_routes.py (15 tools)
 # - anthropic_routes.py (10 tools)
+# - woocommerce_routes.py (29 tools) - ⚠️ DISABLED ON RENDER (local development only)
 # - deepseek_routes.py (8 tools)
 # - gmail_routes.py (29 tools)
 # - slack_routes.py (24 tools)
@@ -935,18 +947,18 @@ def handle_websocket_errors(error):
 def default_connect():
     """
     Handle connection attempts to default namespace (/)
-    Reject these connections as we only support /ws/synergy
+    Accept but do nothing - prevents WSGI "write before start_response" errors
     """
-    log_warning(logger, "[WS] Connection attempt to default namespace - rejecting")
-    return False  # Reject connection
+    log_warning(logger, f"[WS] Connection to default namespace from {request.sid}")
+    # Don't return False - let it connect to avoid WSGI errors
+    # Client should use /ws/synergy or /ws/streaming instead
 
 @socketio.on('disconnect')
 def default_disconnect():
     """
     Handle disconnection from default namespace (/)
-    This should rarely be called since we reject connections
     """
-    pass  # Silently ignore
+    log_info(logger, f"[WS] Disconnection from default namespace: {request.sid}")
 
 # ============================================================================
 # COMPREHENSIVE SOCKETIO HANDLERS FOR /ws/synergy NAMESPACE
@@ -2281,7 +2293,7 @@ def health_check():
 
 @app.route('/api/connections', methods=['GET', 'OPTIONS'])
 def get_connections():
-    """Get OAuth connections for current user"""
+    """Get OAuth connections for current user + platform global credentials"""
     # Handle OPTIONS request for CORS
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'ok'})
@@ -2306,20 +2318,46 @@ def get_connections():
             cursor = conn.cursor()
             
             try:
-                # Fetch active OAuth credentials
+                # ✅ FIX: Fetch user-specific + platform global credentials (user_id=1)
+                # Use UNION to combine both sources
                 cursor.execute("""
+                    -- User-specific credentials
                     SELECT 
                         platform,
                         credential_type,
                         credentials,
                         metadata,
-                        updated_at
+                        updated_at,
+                        is_active,
+                        user_id,
+                        CASE WHEN user_id = 1 THEN true ELSE false END as is_platform_global
                     FROM ai_infrastructure.user_platform_credentials
                     WHERE user_id = %s 
                       AND is_active = true
-                      AND platform IN ('microsoft', 'microsoft_365', 'google', 'google_workspace', 'shopify', 'xero', 'kajabi')
-                    ORDER BY platform
-                """, (int(user_id),))
+                    
+                    UNION
+                    
+                    -- Platform global credentials (only if not already in user's list)
+                    SELECT 
+                        platform,
+                        credential_type,
+                        credentials,
+                        metadata,
+                        updated_at,
+                        is_active,
+                        user_id,
+                        true as is_platform_global
+                    FROM ai_infrastructure.user_platform_credentials
+                    WHERE user_id = 1
+                      AND is_active = true
+                      AND platform NOT IN (
+                          SELECT platform 
+                          FROM ai_infrastructure.user_platform_credentials 
+                          WHERE user_id = %s AND is_active = true
+                      )
+                    
+                    ORDER BY is_platform_global ASC, platform ASC
+                """, (int(user_id), int(user_id)))
                 
                 rows = cursor.fetchall()
                 
@@ -2327,9 +2365,18 @@ def get_connections():
                     connection = {
                         'platform': row['platform'],
                         'type': row['credential_type'],
-                        'scopes': row.get('metadata', {}).get('scopes', []) if row.get('metadata') else [],
-                        'connected_at': row['updated_at'].isoformat() if row.get('updated_at') else None
+                        'is_active': row['is_active'],
+                        'is_platform_global': row['is_platform_global'],
+                        'created_at': row['updated_at'].isoformat() if row.get('updated_at') else None,
+                        'metadata': row.get('metadata', {}) or {}
                     }
+                    
+                    # Add scope info if available
+                    if row.get('metadata'):
+                        meta = row['metadata']
+                        if isinstance(meta, dict):
+                            connection['scopes'] = meta.get('scopes', [])
+                    
                     connections.append(connection)
                     
             finally:
@@ -3405,6 +3452,254 @@ def get_user_info(user_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/users/team-members', methods=['GET'])
+def get_team_members():
+    """
+    Get list of team members for Contacts tab
+    
+    Query params:
+        - user_id: Current user's ID (required)
+    
+    Returns:
+        List of all users except current user with online status
+    """
+    try:
+        user_id = request.args.get('user_id', type=int)
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Get all users except current user
+            cursor.execute("""
+                SELECT id, username, email, created_at
+                FROM ai_infrastructure.users
+                WHERE id != %s
+                ORDER BY username ASC
+            """, (user_id,))
+            
+            rows = cursor.fetchall()
+            
+            users = []
+            for row in rows:
+                uid = row[0]
+                is_online = uid in active_users
+                
+                users.append({
+                    'user_id': uid,
+                    'name': row[1],
+                    'email': row[2],
+                    'is_online': is_online,
+                    'avatar_url': f'/api/user/avatar/{uid}',
+                    'member_since': row[3].isoformat() if row[3] else None
+                })
+            
+            return jsonify({
+                'status': 'success',
+                'users': users,
+                'total': len(users)
+            })
+            
+        except Exception as e:
+            log_error(logger, f"[CHAT API] get_team_members database query failed: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] get_team_members error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/calls/history', methods=['GET'])
+def get_call_history():
+    """
+    Get call history for Calls tab
+    
+    Query params:
+        - user_id: Current user's ID (required)
+        - limit: Max records to return (default: 50, max: 100)
+    
+    Returns:
+        List of call records with user info
+    """
+    try:
+        user_id = request.args.get('user_id', type=int)
+        limit = min(int(request.args.get('limit', 50)), 100)
+        
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Create call_history table if it doesn't exist
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ai_infrastructure.call_history (
+                    call_id SERIAL PRIMARY KEY,
+                    caller_user_id INTEGER NOT NULL,
+                    recipient_user_id INTEGER NOT NULL,
+                    call_type VARCHAR(20) NOT NULL,
+                    duration INTERVAL,
+                    started_at TIMESTAMP DEFAULT NOW(),
+                    ended_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            
+            # Create indexes if they don't exist
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_call_history_caller 
+                ON ai_infrastructure.call_history(caller_user_id, created_at DESC)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_call_history_recipient 
+                ON ai_infrastructure.call_history(recipient_user_id, created_at DESC)
+            """)
+            
+            conn.commit()
+            
+            # Get call history
+            cursor.execute("""
+                SELECT 
+                    ch.call_id,
+                    ch.caller_user_id,
+                    ch.recipient_user_id,
+                    ch.call_type,
+                    ch.duration,
+                    ch.started_at,
+                    ch.ended_at,
+                    u.username as other_user_name
+                FROM ai_infrastructure.call_history ch
+                LEFT JOIN ai_infrastructure.users u ON (
+                    CASE 
+                        WHEN ch.caller_user_id = %s THEN ch.recipient_user_id
+                        ELSE ch.caller_user_id
+                    END = u.id
+                )
+                WHERE ch.caller_user_id = %s OR ch.recipient_user_id = %s
+                ORDER BY ch.created_at DESC
+                LIMIT %s
+            """, (user_id, user_id, user_id, limit))
+            
+            rows = cursor.fetchall()
+            
+            calls = []
+            for row in rows:
+                # Determine call type from perspective of current user
+                if row[1] == user_id:
+                    call_type = 'outgoing'
+                else:
+                    call_type = 'incoming' if row[3] != 'missed' else 'missed'
+                
+                other_user_id = row[2] if row[1] == user_id else row[1]
+                
+                # Format duration
+                duration_str = None
+                if row[4]:
+                    total_seconds = int(row[4].total_seconds())
+                    minutes = total_seconds // 60
+                    seconds = total_seconds % 60
+                    duration_str = f"{minutes:02d}:{seconds:02d}"
+                
+                calls.append({
+                    'call_id': row[0],
+                    'user_id': other_user_id,
+                    'user_name': row[7] or 'Unknown User',
+                    'type': call_type,
+                    'duration': duration_str,
+                    'timestamp': row[5].isoformat() if row[5] else None
+                })
+            
+            return jsonify({
+                'status': 'success',
+                'calls': calls,
+                'total': len(calls)
+            })
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            log_error(logger, f"[CHAT API] get_call_history failed: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] get_call_history error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/calls/clear-history', methods=['DELETE'])
+def clear_call_history():
+    """
+    Clear all call history for current user
+    
+    Query params:
+        - user_id: Current user's ID (required)
+    
+    Returns:
+        Number of records deleted
+    """
+    try:
+        user_id = request.args.get('user_id', type=int)
+        
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        
+        conn = None
+        cursor = None
+        try:
+            from shared.database_utils import get_database_connection
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Delete all calls involving this user
+            cursor.execute("""
+                DELETE FROM ai_infrastructure.call_history
+                WHERE caller_user_id = %s OR recipient_user_id = %s
+            """, (user_id, user_id))
+            
+            deleted_count = cursor.rowcount
+            conn.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Call history cleared',
+                'deleted_count': deleted_count
+            })
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            log_error(logger, f"[CHAT API] clear_call_history failed: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    except Exception as e:
+        log_error(logger, f"[CHAT API] clear_call_history error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ============================================================================
 # STATIC FILES (Frontend)
 # ============================================================================
@@ -4014,7 +4309,16 @@ if __name__ == '__main__':
     # 🔍 START CONNECTION LEAK DETECTOR (Auto-closes idle connections >30 sec)
     try:
         from AI_infrastructure.shared.connection_leak_detector import start_leak_detector
-        start_leak_detector()
+        detector = start_leak_detector()
+        
+        # 🧹 PROACTIVE CLEANUP: Remove zombie connections from pool
+        print("🧹 Cleaning zombie connections from pool...")
+        cleanup_result = detector.cleanup_pool()
+        if cleanup_result['cleaned'] > 0:
+            print(f"   ⚠️  Cleaned {cleanup_result['cleaned']} zombie connections")
+        else:
+            print("   ✅ No zombie connections found")
+        
         print("✅ Connection leak detector started (auto-close idle >30 sec)")
         print("   Metrics: GET /api/pool-health")
         print("   Force check: POST /api/pool-health/force-check\n")

@@ -498,8 +498,13 @@
    LOADING SPINNER ANIMATION
    ============================================================================ */
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .xero-spinner {
@@ -594,4 +599,115 @@
 
 .xero-chart-card h3 i {
     color: var(--xero-primary);
+}
+
+/* ============================================================================
+   TABULATOR CUSTOM DARK THEME OVERRIDES
+   ============================================================================ */
+
+/* Row hover - subtle blue highlight instead of white */
+.tabulator-row:hover {
+    background-color: rgba(19, 181, 234, 0.08) !important;
+}
+
+/* Selected row - darker blue */
+.tabulator-row.tabulator-selected {
+    background-color: rgba(19, 181, 234, 0.15) !important;
+}
+
+/* Selected row hover - even brighter */
+.tabulator-row.tabulator-selected:hover {
+    background-color: rgba(19, 181, 234, 0.2) !important;
+}
+
+/* Alternate row colors for better readability */
+.tabulator-row.tabulator-row-even {
+    background-color: #0d1117;
+}
+
+.tabulator-row.tabulator-row-odd {
+    background-color: #161b22;
+}
+
+/* Keep alternating colors visible on hover */
+.tabulator-row.tabulator-row-even:hover {
+    background-color: rgba(19, 181, 234, 0.08) !important;
+}
+
+.tabulator-row.tabulator-row-odd:hover {
+    background-color: rgba(19, 181, 234, 0.08) !important;
+}
+
+/* Table header styling */
+.tabulator-header {
+    background-color: #161b22 !important;
+    border-bottom: 2px solid #30363d !important;
+}
+
+.tabulator-col {
+    background-color: #161b22 !important;
+    border-right: 1px solid #21262d !important;
+}
+
+.tabulator-col-title {
+    color: #c9d1d9 !important;
+    font-weight: 600 !important;
+}
+
+/* Sort arrows */
+.tabulator-arrow {
+    border-bottom-color: #8b949e !important;
+}
+
+/* Active sort column */
+.tabulator-col.tabulator-sortable[aria-sort="ascending"] .tabulator-arrow,
+.tabulator-col.tabulator-sortable[aria-sort="descending"] .tabulator-arrow {
+    border-bottom-color: var(--xero-primary) !important;
+}
+
+/* Cell text color */
+.tabulator-cell {
+    color: #c9d1d9 !important;
+    border-right: 1px solid #21262d !important;
+}
+
+/* Pagination styling */
+.tabulator-footer {
+    background-color: #0d1117 !important;
+    border-top: 1px solid #30363d !important;
+}
+
+.tabulator-page {
+    background-color: #21262d !important;
+    color: #8b949e !important;
+    border: 1px solid #30363d !important;
+}
+
+.tabulator-page:hover {
+    background-color: rgba(19, 181, 234, 0.15) !important;
+    color: #c9d1d9 !important;
+}
+
+.tabulator-page.active {
+    background-color: var(--xero-primary) !important;
+    color: #ffffff !important;
+    border-color: var(--xero-primary) !important;
+}
+
+/* Header filter inputs */
+.tabulator-header-filter input {
+    background-color: #0d1117 !important;
+    color: #c9d1d9 !important;
+    border: 1px solid #30363d !important;
+}
+
+.tabulator-header-filter input:focus {
+    border-color: var(--xero-primary) !important;
+    outline: none !important;
+}
+
+/* Placeholder text for empty tables */
+.tabulator-placeholder {
+    color: #8b949e !important;
+    background-color: #0d1117 !important;
 }

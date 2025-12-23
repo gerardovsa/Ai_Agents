@@ -387,9 +387,8 @@ def transcription_history():
     """
     Return transcription history for the authenticated user.
     
-    ✅ FIXED: Proper cursor management with finally block
+    ✅ FIXED: Use execute_query pattern from database_utils
     """
-    cursor = None  # ✅ Initialize cursor before try
     try:
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
@@ -401,35 +400,34 @@ def transcription_history():
         if not user_id and hasattr(request, 'user_id'):
             user_id = request.user_id
 
-        # Initialize variables before try block
-        cursor = None
-        conn = None
-
-        # ✅ FIX: Use PostgreSQL instead of SQLite
-        from AI_infrastructure.shared.database_utils import get_database_connection
+        # ✅ FIX: Use execute_query from database_utils (proper connection pooling)
+        from AI_infrastructure.shared.database_utils import execute_query
         
-        conn = get_database_connection('ai_infrastructure')
-        cursor = conn.cursor()
-
         if user_id:
-            cursor.execute('''
-                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+            rows = execute_query(
+                '''
+                SELECT id, source_type, transcript_text, confidence, language, 
+                       duration_seconds, model_used, created_at
                 FROM ai_infrastructure.user_transcriptions
                 WHERE user_id = %s
                 ORDER BY created_at DESC
                 LIMIT %s OFFSET %s
-            ''', (user_id, limit, offset))
+                ''',
+                (user_id, limit, offset),
+                fetch_mode='all'
+            )
         else:
-            cursor.execute('''
-                SELECT id, source_type, transcript_text, confidence, language, duration_seconds, model_used, created_at
+            rows = execute_query(
+                '''
+                SELECT id, source_type, transcript_text, confidence, language, 
+                       duration_seconds, model_used, created_at
                 FROM ai_infrastructure.user_transcriptions
                 ORDER BY created_at DESC
                 LIMIT %s OFFSET %s
-            ''', (limit, offset))
-
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
+                ''',
+                (limit, offset),
+                fetch_mode='all'
+            )
 
         results = []
         for r in rows:
@@ -441,25 +439,25 @@ def transcription_history():
                 'language': r[4],
                 'duration_seconds': r[5],
                 'model_used': r[6],
-                'created_at': r[7]
+                'created_at': r[7].isoformat() if hasattr(r[7], 'isoformat') else str(r[7])
             })
 
         return jsonify({'success': True, 'history': results}), 200
         
     except Exception as e:
         logger.error(f'[TRANSCRIPTION] History error: {e}', exc_info=True)
+        
+        # Check if it's a missing table error
+        error_msg = str(e)
+        if 'does not exist' in error_msg or 'UndefinedTable' in error_msg:
+            logger.warning('[TRANSCRIPTION] user_transcriptions table not found - returning empty history')
+            return jsonify({
+                'success': True, 
+                'history': [],
+                'warning': 'Transcription history table not initialized. Run migration: python AI_infrastructure/migrations/run_014_user_transcriptions.py'
+            }), 200
+        
         return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
 
 # Export blueprint for flask_app.py to register
