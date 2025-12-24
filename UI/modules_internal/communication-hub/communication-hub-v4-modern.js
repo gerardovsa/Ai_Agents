@@ -448,15 +448,15 @@ export default {
                 ${this.renderToolbar()}
                 
                 <!-- Side-by-side workspace container for table and preview -->
-                <div class="email-workspace-container">
+                <div class="email-workspace-container" style="display: flex; gap: 16px; height: calc(100vh - 250px); overflow: hidden;">
                     <!-- Email Table Card -->
-                    <div class="dashboard-card email-table-wrapper">
+                    <div class="dashboard-card email-table-wrapper" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%;">
                         <div class="card-header">
                             <h3 class="card-title">
                                 <i class="fas fa-list"></i> Email Messages
                             </h3>
                         </div>
-                        <div class="card-content">
+                        <div class="card-content" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
                             <!-- Ready State -->
                             <div id="inbox-ready" class="ready-state" style="text-align: center; padding: 40px; color: var(--text-secondary, #9ca3af);">
                                 <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
@@ -471,13 +471,13 @@ export default {
                             </div>
                             
                             <!-- Table Container -->
-                            <div id="email-table-container" style="display: none; height: calc(100vh - 320px); overflow: auto;"></div>
+                            <div id="email-table-container" style="display: none; flex: 1; min-height: 0;"></div>
                         </div>
                     </div>
                     
                     <!-- Email Preview Panel (sibling to dashboard-card) -->
-                    <div id="emailPreview" class="email-preview-panel" data-mode="sibling" style="display: none;">
-                    <div class="email-preview-header">
+                    <div id="emailPreview" class="email-preview-panel" data-mode="sibling" style="display: none; flex: 1; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="email-preview-header" style="flex-shrink: 0;">
                         <div class="email-preview-title">
                             <i class="fas fa-envelope"></i>
                             <span id="preview-title-text">Email Preview</span>
@@ -517,7 +517,7 @@ export default {
                             <i class="fas fa-print"></i>
                         </button>
                     </div>
-                    <div id="previewContent" class="email-preview-body"></div>
+                    <div id="previewContent" class="email-preview-body" style="flex: 1; overflow-y: auto; overflow-x: hidden;"></div>
                 </div>
             </div>
         `;
@@ -1740,9 +1740,50 @@ export default {
                 // Cell is visible - show dropdown at correct position
                 dropdown.style.opacity = '1';
                 dropdown.style.pointerEvents = 'auto';
-                dropdown.style.top = `${rect.bottom + 4}px`;
                 dropdown.style.left = `${rect.left}px`;
                 dropdown.style.width = `${columnWidth}px`;
+
+                // Calculate available space below and above
+                const viewportHeight = window.innerHeight;
+                const spaceBelow = viewportHeight - rect.bottom - 4; // Space below cell
+                const spaceAbove = rect.top - (headerRect ? headerRect.bottom : 0) - 4; // Space above cell (but below header)
+
+                const maxDropdownHeight = 500;
+                const minDropdownHeight = 200; // Minimum dropdown height
+
+                // Determine positioning strategy
+                if (spaceBelow >= maxDropdownHeight) {
+                    // Plenty of space below - show full dropdown below
+                    dropdown.style.top = `${rect.bottom + 4}px`;
+                    dropdown.style.bottom = 'auto';
+                    dropdown.style.maxHeight = `${maxDropdownHeight}px`;
+                } else if (spaceBelow >= minDropdownHeight) {
+                    // Some space below (at least half) - reduce height to fit
+                    dropdown.style.top = `${rect.bottom + 4}px`;
+                    dropdown.style.bottom = 'auto';
+                    dropdown.style.maxHeight = `${Math.floor(spaceBelow)}px`;
+                } else if (spaceAbove >= maxDropdownHeight) {
+                    // Not enough space below, but plenty above - show full dropdown above
+                    dropdown.style.top = 'auto';
+                    dropdown.style.bottom = `${viewportHeight - rect.top + 4}px`;
+                    dropdown.style.maxHeight = `${maxDropdownHeight}px`;
+                } else if (spaceAbove >= minDropdownHeight) {
+                    // Some space above - reduce height to fit above
+                    dropdown.style.top = 'auto';
+                    dropdown.style.bottom = `${viewportHeight - rect.top + 4}px`;
+                    dropdown.style.maxHeight = `${Math.floor(spaceAbove)}px`;
+                } else {
+                    // Not enough space either direction - use larger space and reduce height
+                    if (spaceBelow > spaceAbove) {
+                        dropdown.style.top = `${rect.bottom + 4}px`;
+                        dropdown.style.bottom = 'auto';
+                        dropdown.style.maxHeight = `${Math.floor(spaceBelow)}px`;
+                    } else {
+                        dropdown.style.top = 'auto';
+                        dropdown.style.bottom = `${viewportHeight - rect.top + 4}px`;
+                        dropdown.style.maxHeight = `${Math.floor(spaceAbove)}px`;
+                    }
+                }
             }
         };
 

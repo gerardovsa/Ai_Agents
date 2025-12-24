@@ -3494,7 +3494,7 @@ class XeroModule extends BaseModule {
                 // Waterfall Chart - Business Contributions
                 const businesses = data.consolidated.businesses;
                 this.createChart('consolidated-revenue-waterfall-chart', {
-                    x: businesses.map(b => b.name),
+                    x: businesses.map(b => b.business_name),
                     y: businesses.map(b => b.revenue),
                     type: 'bar',
                     marker: { color: ['#238636', '#1f6feb', '#8957e5'] },
@@ -3557,7 +3557,7 @@ class XeroModule extends BaseModule {
 
                 // Business Contribution Table
                 const tableData = businesses.map(b => ({
-                    business: b.name,
+                    business: b.business_name,
                     revenue: b.revenue,
                     outstanding: b.outstanding,
                     invoices: b.invoice_count,
@@ -3729,10 +3729,10 @@ class XeroModule extends BaseModule {
                 // Heatmap - Years x Months
                 const heatmapData = [];
                 const monthlyBreakdown = data.monthly_breakdown;
-                const years = [...new Set(monthlyBreakdown.map(m => m.year))].sort();
+                const yearsList = [...new Set(monthlyBreakdown.map(m => m.year))].sort();
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-                const revenueMatrix = years.map(year =>
+                const revenueMatrix = yearsList.map(year =>
                     months.map((_, monthIdx) => {
                         const monthData = monthlyBreakdown.find(m => m.year === year && m.month === monthIdx + 1);
                         return monthData ? monthData.revenue : 0;
@@ -3742,7 +3742,7 @@ class XeroModule extends BaseModule {
                 this.createChart('seasonality-heatmap', {
                     z: revenueMatrix,
                     x: months,
-                    y: years,
+                    y: yearsList,
                     type: 'heatmap',
                     colorscale: [
                         [0, '#0d1117'],
@@ -3907,7 +3907,7 @@ class XeroModule extends BaseModule {
                     <div id="forecast-confidence-kpi" style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;"></div>
                 </div>
                 
-                <div id="forecast-chart" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 24px;"></div>
+                <div id="forecast-chart" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 24px; min-height: 500px;"></div>
                 
                 <div id="forecast-risks" style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 24px;"></div>
                 

@@ -28,41 +28,42 @@ body:not(:has(.platform-container.active)) .universal-sidebar {
     display: none !important;
 }
 
-/* Left-side sidebars - positioned 60px from left edge to avoid sidebar menu */
+/* Left-side sidebars - Anchor to LEFT edge, transform relative to left */
 .universal-sidebar.sidebar-left {
-    left: 60px;
-    /* Account for 60px main sidebar menu */
+    left: 0;
+    right: auto;
+    /* Anchor to left edge */
     border-right: 1px solid var(--border-default);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
 }
 
 .universal-sidebar.sidebar-left.collapsed {
-    transform: translateX(calc(-100% - 60px));
-    /* Slide beyond left edge */
+    transform: translateX(-100%);
+    /* Slide fully off-screen to the LEFT */
 }
 
 .universal-sidebar.sidebar-left.expanded {
-    transform: translateX(0);
-    /* Slides in from left, stops at 60px */
+    transform: translateX(60px);
+    /* Slide in to 60px (past the static sidebar) */
 }
 
-/* Right-side sidebars - positioned 60px from LEFT edge (slides in from left) */
+/* Right-side sidebars - Anchor to RIGHT edge, transform relative to right */
 .universal-sidebar.sidebar-right {
-    left: -450px !important;
-    /* Start off-screen to the left */
-    border-right: 1px solid var(--border-default);
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
+    right: 0;
+    left: auto;
+    /* Anchor to right edge */
+    border-left: 1px solid var(--border-default);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
 }
 
 .universal-sidebar.sidebar-right.collapsed {
-    left: -450px !important;
-    /* Hidden off-screen to the left */
+    transform: translateX(100%);
+    /* Slide fully off-screen to the RIGHT */
 }
 
 .universal-sidebar.sidebar-right.expanded {
-    left: 60px !important;
-    /* Slides in from left, stops at 60px from edge */
+    transform: translateX(-60px);
+    /* Slide in to -60px (past the static sidebar) */
 }
 
 /* ==================== TOGGLE BUTTONS ==================== */

@@ -196,29 +196,30 @@ class UniversalSidebarManager {
         // Remove old side classes
         sidebar.classList.remove('sidebar-left', 'sidebar-right');
 
-        // Clear old side styles
+        // Clear ALL positioning properties to prevent conflicts
         sidebar.style.removeProperty('left');
         sidebar.style.removeProperty('right');
         sidebar.style.removeProperty('transform');
         sidebar.style.removeProperty('border-left');
         sidebar.style.removeProperty('border-right');
 
-        // Side-specific positioning - 60px from edges to avoid sidebar menu
+        // Side-specific positioning - Use transform-based animations for ALL sidebars
         if (config.side === 'left') {
-            sidebar.style.left = '60px';  // 60px from left to avoid main sidebar
+            // LEFT SIDE: Anchor to left edge, transform pushes/pulls from there
+            sidebar.style.left = '0';
+            sidebar.style.right = 'auto';  // Explicitly clear right positioning
             sidebar.style.borderRight = '1px solid var(--border-default)';
             sidebar.style.boxShadow = '4px 0 24px rgba(0, 0, 0, 0.3)';
-            sidebar.style.transform = 'translateX(calc(-100% - 60px))';  // Start hidden beyond left edge
-            // Use transform-based transitions for left side
-            sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease';
+            sidebar.style.transform = 'translateX(-100%)';  // Start hidden off-screen LEFT
+            sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease';
         } else {
-            // Right-side sidebars: position off-screen using `right` property with !important
-            // Default hidden offset: -450px (user requested)
-            sidebar.style.setProperty('right', '-450px', 'important');
+            // RIGHT SIDE: Anchor to right edge, transform pushes/pulls from there
+            sidebar.style.right = '0';
+            sidebar.style.left = 'auto';  // Explicitly clear left positioning
             sidebar.style.borderLeft = '1px solid var(--border-default)';
             sidebar.style.boxShadow = '-4px 0 24px rgba(0, 0, 0, 0.3)';
-            // Use right-based transitions for right side so it behaves like .thread-menu-overlay
-            sidebar.style.setProperty('transition', 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease', 'important');
+            sidebar.style.transform = 'translateX(100%)';  // Start hidden off-screen RIGHT
+            sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease';
         }
 
         // Add standard classes
@@ -304,9 +305,9 @@ class UniversalSidebarManager {
                         config.element.classList.remove('expanded');
                         config.element.classList.add('collapsed');
                         if (oldSide === 'right') {
-                            config.element.style.setProperty('right', '-450px', 'important');
+                            config.element.style.transform = 'translateX(100%)';
                         } else {
-                            config.element.style.transform = 'translateX(calc(-100% - 60px))';
+                            config.element.style.transform = 'translateX(-100%)';
                         }
                         config.isOpen = false;
                     }
@@ -320,9 +321,9 @@ class UniversalSidebarManager {
                             config.element.classList.remove('collapsed');
                             config.element.classList.add('expanded');
                             if (newSide === 'right') {
-                                config.element.style.setProperty('right', '60px', 'important');
+                                config.element.style.transform = 'translateX(-60px)';
                             } else {
-                                config.element.style.transform = 'translateX(0)';
+                                config.element.style.transform = 'translateX(60px)';
                             }
                             config.isOpen = true;
                         }, 50);
@@ -407,15 +408,16 @@ class UniversalSidebarManager {
             config.initialized = true;
         }
 
-        // Open the sidebar
+        // Open the sidebar using transform
         config.element.classList.remove('collapsed');
         config.element.classList.add('expanded');
-        // Use side-specific open animation: left uses transform, right uses right property
+        // Use transform-based open animation for both sides
         if (config.side === 'right') {
-            // Slide in from right to 60px from edge with !important to override
-            config.element.style.setProperty('right', '60px', 'important');
+            // Slide in from right to -60px (past the static sidebar)
+            config.element.style.transform = 'translateX(-60px)';
         } else {
-            config.element.style.transform = 'translateX(0)';
+            // Slide in from left to 60px (past the static sidebar)
+            config.element.style.transform = 'translateX(60px)';
         }
         config.isOpen = true;
         this.activeSidebars.add(sidebarId);
@@ -443,15 +445,15 @@ class UniversalSidebarManager {
         const config = this.sidebars.get(sidebarId);
         if (!config || !config.element) return;
 
-        // Slide sidebar off-screen
+        // Slide sidebar off-screen using transform
         config.element.classList.remove('expanded');
         config.element.classList.add('collapsed');
         if (config.side === 'right') {
-            // Move it back off-screen to the requested hidden offset (-450px) with !important
-            config.element.style.setProperty('right', '-450px', 'important');
+            // Slide off-screen to the right
+            config.element.style.transform = 'translateX(100%)';
         } else {
-            const translateValue = 'translateX(calc(-100% - 60px))';
-            config.element.style.transform = translateValue;
+            // Slide off-screen to the left
+            config.element.style.transform = 'translateX(-100%)';
         }
         config.isOpen = false;
         this.activeSidebars.delete(sidebarId);

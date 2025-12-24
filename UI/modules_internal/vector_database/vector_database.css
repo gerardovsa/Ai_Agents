@@ -562,17 +562,23 @@
     font-size: 48px;
     color: var(--text-muted);
     margin-bottom: 16px;
+    pointer-events: none;
+    /* Allow drag events to pass through to parent */
 }
 
 .upload-text {
     font-size: 14px;
     color: var(--text-primary);
     margin-bottom: 8px;
+    pointer-events: none;
+    /* Allow drag events to pass through to parent */
 }
 
 .upload-hint {
     font-size: 12px;
     color: var(--text-muted);
+    pointer-events: none;
+    /* Allow drag events to pass through to parent */
 }
 
 .file-input {

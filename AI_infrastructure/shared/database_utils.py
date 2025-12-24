@@ -530,13 +530,19 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 
                 try:
                     if not self._conn.closed:
+                        # ✅ CRITICAL: ALWAYS rollback before testing or returning
+                        # This handles aborted transactions that would cause putconn() to fail
+                        try:
+                            self._conn.rollback()
+                        except Exception as rollback_err:
+                            print(f"⚠️  [POOL] Rollback failed (connection may be dead): {rollback_err}")
+                        
                         # ✅ FIX: Test connection liveness before returning to pool
                         try:
                             test_cursor = self._conn.cursor()
                             test_cursor.execute("SELECT 1")
                             test_cursor.close()
                             # Connection alive - safe to return
-                            self._conn.rollback()
                             self._pool.putconn(self._conn)
                             _pool_stats['connections_returned'] += 1
                             self._closed = True
@@ -549,13 +555,23 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                                 pass
                             self._closed = True
                 except Exception as e:
-                    # ✅ Even if putconn fails, mark as closed to prevent retry
-                    self._closed = True
-                    print(f"❌ [POOL] Failed to return connection to pool: {e}")
-                    print(f"   Schema: {self._schema}")
-                    print(f"   This connection is now LEAKED (cannot be returned)")
-                    leaked = _pool_stats['connections_acquired'] - _pool_stats['connections_returned']
-                    print(f"   Total leaked connections: {leaked}")
+                    # ✅ Last resort: Try to rollback and return anyway
+                    try:
+                        print(f"⚠️  [POOL] Attempting emergency rollback for failed connection: {e}")
+                        self._conn.rollback()
+                        self._pool.putconn(self._conn)
+                        _pool_stats['connections_returned'] += 1
+                        self._closed = True
+                        print(f"✅ [POOL] Emergency return succeeded for '{self._schema}'")
+                    except Exception as final_err:
+                        # Truly failed - mark as leaked
+                        self._closed = True
+                        print(f"❌ [POOL] Failed to return connection to pool: {e}")
+                        print(f"   Emergency rollback also failed: {final_err}")
+                        print(f"   Schema: {self._schema}")
+                        print(f"   This connection is now LEAKED (cannot be returned)")
+                        leaked = _pool_stats['connections_acquired'] - _pool_stats['connections_returned']
+                        print(f"   Total leaked connections: {leaked}")
             
             def __getattr__(self, name):
                 return getattr(self._conn, name)

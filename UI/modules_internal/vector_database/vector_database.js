@@ -89,6 +89,9 @@ window.VectorDatabaseModule = {
                     const html = await response.text();
                     this.container.innerHTML = html;
                     this.log.info('[VECTOR DB] HTML template loaded');
+
+                    // Wait for DOM to update before setting up event listeners
+                    await new Promise(resolve => requestAnimationFrame(resolve));
                 } else {
                     this.log.error('[VECTOR DB] Failed to load HTML template');
                     return;
@@ -163,20 +166,30 @@ window.VectorDatabaseModule = {
             }
         });
 
-        // Drag and drop
+        // Drag and drop - prevent default on dragenter to allow drop
+        this.dom.on(this.container, 'dragenter', '#upload-zone', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.add('drag-over');
+        });
+
         this.dom.on(this.container, 'dragover', '#upload-zone', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             e.currentTarget.classList.add('drag-over');
         });
 
         this.dom.on(this.container, 'dragleave', '#upload-zone', (e) => {
+            e.stopPropagation();
             e.currentTarget.classList.remove('drag-over');
         });
 
         this.dom.on(this.container, 'drop', '#upload-zone', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             e.currentTarget.classList.remove('drag-over');
             const files = Array.from(e.dataTransfer.files);
+            this.log.info(`[VECTOR DB] Drop event: ${files.length} file(s) dropped`);
             this.handleFileSelect(files);
         });
 
@@ -580,6 +593,7 @@ window.VectorDatabaseModule = {
     // ==================== FILE UPLOAD ====================
 
     handleFileSelect(files) {
+        this.log.info(`[VECTOR DB] handleFileSelect called with ${files.length} file(s)`);
         const maxSize = 10 * 1024 * 1024; // 10MB
         const allowedTypes = [
             // Documents
@@ -614,14 +628,23 @@ window.VectorDatabaseModule = {
         this.renderUploadedFiles();
 
         const processBtn = this.container.querySelector('#process-btn');
+        this.log.info(`[VECTOR DB] Process button lookup: ${processBtn ? 'found' : 'NOT FOUND'}`);
+        this.log.info(`[VECTOR DB] Files in state: ${this.state.uploadedFiles.length}`);
         if (processBtn && this.state.uploadedFiles.length > 0) {
             processBtn.style.display = 'block';
+            this.log.info('[VECTOR DB] Process button shown');
+        } else {
+            this.log.warn(`[VECTOR DB] Process button NOT shown - button: ${!!processBtn}, files: ${this.state.uploadedFiles.length}`);
         }
     },
 
     renderUploadedFiles() {
         const container = this.container.querySelector('#uploaded-files');
-        if (!container) return;
+        if (!container) {
+            this.log.error('[VECTOR DB] uploaded-files container not found');
+            return;
+        }
+        this.log.info(`[VECTOR DB] Rendering ${this.state.uploadedFiles.length} file(s)`);
 
         container.innerHTML = '';
 
@@ -665,6 +688,10 @@ window.VectorDatabaseModule = {
     },
 
     async processFiles() {
+        this.log.info('[VECTOR DB] processFiles() called');
+        this.log.info(`[VECTOR DB] Files to process: ${this.state.uploadedFiles.length}`);
+        this.log.info(`[VECTOR DB] Connection status: ${this.state.isConnected}`);
+
         if (this.state.uploadedFiles.length === 0) {
             this.showMessage('No files to process', 'error');
             return;

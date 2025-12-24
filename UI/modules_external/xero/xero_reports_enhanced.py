@@ -260,7 +260,7 @@ def init_enhanced_xero_routes(app):
             outstanding_aging = {'0-30': 0, '31-60': 0, '61-90': 0, '90+': 0}
             for business_id in [1, 2, 3]:
                 client = XeroAPIClient(business_id)
-                params = {'where': f'Status={"AUTHORISED"} OR Status={"SUBMITTED"}'}
+                params = {'where': 'Status=="AUTHORISED" OR Status=="SUBMITTED"'}
                 data = client.make_request('GET', 'Invoices', params=params)
                 invoices = data.get('Invoices', [])
                 
