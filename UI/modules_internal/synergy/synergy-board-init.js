@@ -13,10 +13,11 @@
  * - Integrates with ThreadManager for thread linking
  * 
  * FIXED: December 23, 2025 - Removed ES6 import, use window.documentService
+ * FIXED: December 27, 2025 - Changed to var to prevent re-declaration errors when file loads twice
  */
 
-// Check if documentService is available globally (use let to allow re-declaration if file loaded twice)
-let documentService = window.documentService || (window.DocumentService ? new window.DocumentService() : null);
+// Check if documentService is available globally (use var to allow re-declaration if file loaded twice)
+var documentService = window.documentService || (window.DocumentService ? new window.DocumentService() : null);
 
 if (!documentService) {
     console.warn('[SYNERGY BOARD] documentService not available, some features may not work');
@@ -584,7 +585,7 @@ window.synergyBoard = {
                     synergy_card_users: synergyUsers,
                     synergy_card_updated: synergyUpdated,
                     synergy_card_priority: synergyPriority,
-                    agent: thread.agent_id || 'prime'
+                    agent: thread.agent_id || 'unassigned'
                 };
 
                 // Temporarily add to ThreadManager.threads if not exists (for rendering)
@@ -605,7 +606,7 @@ window.synergyBoard = {
                          data-thread-id="${normalizedThread.id}"
                          draggable="true"
                          ondragstart="ThreadManager.handleDragStart(event)"
-                         onclick="synergyBoard.openThread('${normalizedThread.id}', '${thread.agent_id || 'prime'}')">
+                         onclick="synergyBoard.openThread('${normalizedThread.id}', '${thread.agent_id || 'unassigned'}')">
                         ${threadInfoHTML}
                     </div>
                 `;

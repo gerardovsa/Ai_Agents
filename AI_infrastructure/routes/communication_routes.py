@@ -393,10 +393,11 @@ def get_email(email_id):
         provider, message_id = email_id.split('_', 1)
         
         if provider == 'gmail':
-            # Fetch full message with format='full' to get body content
+            # Fetch COMPLETE message with format='full' to get full body content (not truncated)
+            # format='full' returns full message including body data (vs 'metadata' or 'minimal')
             msg = gmail_get_message(
                 message_id=message_id,
-                format='full',
+                format='full',  # CRITICAL: 'full' gets complete body, 'metadata' only headers, 'minimal' is truncated
                 _user_id=user_id,
                 _injected_credentials=True
             )
@@ -408,14 +409,26 @@ def get_email(email_id):
             import base64
             body_text = ''
             body_html = ''
+            attachments_list = []
             
             def parse_parts(parts):
-                """Recursively parse MIME parts"""
+                """Recursively parse MIME parts for body and attachments"""
                 text = ''
                 html = ''
+                atts = []
                 for part in parts:
                     mime_type = part.get('mimeType', '')
-                    if mime_type == 'text/plain':
+                    filename = part.get('filename', '')
+                    
+                    # Check if this is an attachment
+                    if filename and part.get('body', {}).get('attachmentId'):
+                        atts.append({
+                            'id': part.get('body', {}).get('attachmentId'),
+                            'name': filename,
+                            'mimeType': mime_type,
+                            'size': part.get('body', {}).get('size', 0)
+                        })
+                    elif mime_type == 'text/plain':
                         data = part.get('body', {}).get('data', '')
                         if data:
                             text = base64.urlsafe_b64decode(data).decode('utf-8', errors='ignore')
@@ -425,15 +438,16 @@ def get_email(email_id):
                             html = base64.urlsafe_b64decode(data).decode('utf-8', errors='ignore')
                     elif 'parts' in part:
                         # Multipart message - recurse
-                        sub_text, sub_html = parse_parts(part['parts'])
+                        sub_text, sub_html, sub_atts = parse_parts(part['parts'])
                         text = text or sub_text
                         html = html or sub_html
-                return text, html
+                        atts.extend(sub_atts)
+                return text, html, atts
             
             # Check if single part or multipart
             payload = msg.get('payload', {})
             if 'parts' in payload:
-                body_text, body_html = parse_parts(payload['parts'])
+                body_text, body_html, attachments_list = parse_parts(payload['parts'])
             else:
                 # Single part message
                 mime_type = payload.get('mimeType', '')
@@ -444,6 +458,15 @@ def get_email(email_id):
                         body_html = decoded
                     else:
                         body_text = decoded
+            
+            print(f"\n🔍 [GMAIL DEBUG] Message ID: {message_id}")
+            print(f"🔍 [GMAIL DEBUG] Body text length: {len(body_text)}")
+            print(f"🔍 [GMAIL DEBUG] Body HTML length: {len(body_html)}")
+            print(f"🔍 [GMAIL DEBUG] Attachments count: {len(attachments_list)}")
+            if attachments_list:
+                print(f"🔍 [GMAIL DEBUG] Attachment details:")
+                for att in attachments_list:
+                    print(f"  - {att['name']} ({att.get('size', 0)} bytes, {att.get('mimeType', 'unknown')})")
             
             return jsonify({
                 'success': True,
@@ -457,13 +480,16 @@ def get_email(email_id):
                     'body_text': body_text,
                     'body_html': body_html,
                     'snippet': msg.get('snippet', ''),
-                    'attachments': []
+                    'attachments': attachments_list,  # ✅ Parsed attachment metadata
+                    'has_attachments': len(attachments_list) > 0
                 }
             })
         
         elif provider == 'outlook' and OUTLOOK_AVAILABLE:
+            # Request message WITH attachments expanded to get full attachment metadata
             result = microsoft_outlook_get_message(
                 message_id=message_id,
+                include_attachments=True,  # ✅ CRITICAL: Expand attachments to get full data
                 _user_id=user_id,
                 _injected_credentials=True
             )
@@ -473,10 +499,46 @@ def get_email(email_id):
                 from_addr = email_data.get('from', {})
                 from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown') if isinstance(from_addr, dict) else str(from_addr)
                 
-                # Outlook body content
+                # Outlook body content - use uniqueBody (full content) if available, fallback to body
+                unique_body = email_data.get('uniqueBody', {})
                 body = email_data.get('body', {})
-                content = body.get('content', '')
-                content_type = body.get('contentType', 'text')
+                
+                # Prefer uniqueBody (contains full message without quoted replies/truncation)
+                if unique_body and unique_body.get('content'):
+                    content = unique_body.get('content', '')
+                    content_type = unique_body.get('contentType', 'text')
+                else:
+                    content = body.get('content', '')
+                    content_type = body.get('contentType', 'text')
+                
+                # 🔍 DEBUG: Log what we're about to send to frontend
+                print(f"\n🔍 [COMMUNICATION ROUTES DEBUG] Email ID: {email_id}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] Using uniqueBody: {bool(unique_body and unique_body.get('content'))}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] Content length: {len(content)}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] Content type: {content_type}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] bodyPreview length: {len(email_data.get('bodyPreview', ''))}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] Body length: {len(body.get('content', ''))}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] UniqueBody length: {len(unique_body.get('content', ''))}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] Attachments count: {len(email_data.get('attachments', []))}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] Content first 200: {content[:200]}")
+                print(f"🔍 [COMMUNICATION ROUTES DEBUG] Content last 200: {content[-200:]}")
+                
+                # Parse attachments metadata
+                attachments = email_data.get('attachments', [])
+                attachment_list = []
+                for att in attachments:
+                    attachment_list.append({
+                        'id': att.get('id'),
+                        'name': att.get('name'),
+                        'contentType': att.get('contentType'),
+                        'size': att.get('size'),
+                        'isInline': att.get('isInline', False)
+                    })
+                
+                if attachment_list:
+                    print(f"🔍 [COMMUNICATION ROUTES DEBUG] Attachment details:")
+                    for att in attachment_list:
+                        print(f"  - {att['name']} ({att.get('size', 0)} bytes, {att.get('contentType', 'unknown')})")
                 
                 return jsonify({
                     'success': True,
@@ -490,7 +552,8 @@ def get_email(email_id):
                         'body_text': content if content_type == 'text' else '',
                         'body_html': content if content_type == 'html' else '',
                         'snippet': email_data.get('bodyPreview', ''),
-                        'attachments': email_data.get('attachments', [])
+                        'attachments': attachment_list,  # ✅ Parsed attachment metadata
+                        'has_attachments': len(attachment_list) > 0
                     }
                 })
         
@@ -946,18 +1009,18 @@ def get_thread_emails(thread_slug):
         # Query thread-assignments table for all emails in this thread
         from shared.database_utils import get_database_connection
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Get all email_thread_ids for this thread_slug
-        cursor.execute("""
-            SELECT email_thread_id, email_subject, email_participants, created_at
-            FROM sessions.thread_assignments
-            WHERE thread_slug = %s AND user_id = %s
-            ORDER BY created_at ASC
-        """, (thread_slug, user_id))
-        
-        assignments = cursor.fetchall()
+        with get_database_connection('sessions') as conn:
+            with conn.cursor() as cursor:
+                
+                # Get all email_thread_ids for this thread_slug
+                cursor.execute("""
+                    SELECT email_thread_id, email_subject, email_participants, created_at
+                    FROM sessions.thread_assignments
+                    WHERE thread_slug = %s AND user_id = %s
+                    ORDER BY created_at ASC
+                """, (thread_slug, user_id))
+                
+                assignments = cursor.fetchall()
         
         if not assignments:
             return jsonify({
@@ -1134,36 +1197,28 @@ def get_email_thread_mappings():
     
     user_id = user_data.get('user_id')
     
-    conn = None
-    cursor = None
-    
     try:
-        from shared.database_utils import get_database_connection
+        from shared.database_utils import execute_query
         
-        with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Query sessions.threads table for email-to-thread mappings
-            # The table already has email_thread_id, email_subject, email_participants columns
-            cursor.execute("""
-                SELECT email_thread_id, thread_slug, location
-                FROM sessions.threads
-                WHERE user_id = %s 
-                  AND email_thread_id IS NOT NULL
-                ORDER BY updated_at DESC
-            """, (user_id,))
-            
-            rows = cursor.fetchall()
-            
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        # Query sessions.threads table for email-to-thread mappings
+        # The table already has email_thread_id, email_subject, email_participants columns
+        # ✅ FIX (Jan 4, 2026): ONLY return threads that have agents assigned
+        rows = execute_query("""
+            SELECT email_thread_id, thread_slug, location
+            FROM sessions.threads
+            WHERE user_id = %s 
+              AND email_thread_id IS NOT NULL
+              AND location IS NOT NULL
+              AND location != 'unassigned'
+              AND location != ''
+            ORDER BY updated_at DESC
+        """, (user_id,), fetch_mode='all')
         
-        # Build mapping dictionary
+        # Build mapping dictionary (rows are dicts from RealDictCursor)
         mappings = {}
         for row in rows:
-            email_id, thread_slug, location = row
+            email_id = row['email_thread_id']
+            thread_slug = row['thread_slug']
             if email_id and thread_slug:
                 mappings[email_id] = thread_slug
         
@@ -1230,6 +1285,10 @@ def download_gmail_attachment():
             'success': False,
             'error': 'Missing message_id or attachment_id'
         }), 400
+    
+    # Strip provider prefix from message_id (gmail_XXX → XXX)
+    if message_id.startswith('gmail_'):
+        message_id = message_id.replace('gmail_', '', 1)
     
     try:
         # Get attachment from Gmail API
@@ -1315,6 +1374,10 @@ def download_outlook_attachment():
             'error': 'Missing message_id or attachment_id'
         }), 400
     
+    # Strip provider prefix from message_id (outlook_XXX → XXX)
+    if message_id.startswith('outlook_'):
+        message_id = message_id.replace('outlook_', '', 1)
+    
     try:
         from tools.implementations.microsoft_outlook_tools import MicrosoftOutlookTools
         
@@ -1322,6 +1385,7 @@ def download_outlook_attachment():
         result = outlook.outlook_download_attachment(
             message_id=message_id,
             attachment_id=attachment_id,
+            save_to_disk=False,  # Return base64 for browser download
             _user_id=user_id,
             _injected_credentials=True
         )
@@ -1433,6 +1497,7 @@ def extract_document_text():
             result = outlook.outlook_download_attachment(
                 message_id=email_id.replace('outlook_', ''),
                 attachment_id=attachment_id,
+                save_to_disk=False,  # Need base64 for text extraction
                 _user_id=user_id,
                 _injected_credentials=True
             )
@@ -1591,6 +1656,7 @@ def extract_spreadsheet_text():
             result = outlook.outlook_download_attachment(
                 message_id=email_id.replace('outlook_', ''),
                 attachment_id=attachment_id,
+                save_to_disk=False,  # Need base64 for spreadsheet extraction
                 _user_id=user_id,
                 _injected_credentials=True
             )

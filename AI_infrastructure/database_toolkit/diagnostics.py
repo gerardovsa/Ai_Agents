@@ -6,6 +6,7 @@ Health checks and troubleshooting tools.
 """
 
 import os
+import psycopg2
 from typing import Dict, List
 from datetime import datetime, timedelta
 
@@ -35,144 +36,156 @@ class Diagnostics:
     
     def check_tables(self) -> Dict:
         """Check which tables exist"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Expected tables
-        expected = [
-            "users", "user_sessions", "user_platform_credentials",
-            "user_gmail_accounts", "user_email_aliases", "workspaces",
-            "user_account_links", "account_link_requests", "kanban_task_links"
-        ]
-        
-        # Get actual tables
-        cursor.execute("""
-            SELECT table_name FROM information_schema.tables WHERE table_schema='ai_infrastructure'
-            ORDER BY name
-        """)
-        actual = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
-        
-        conn.close()
-        
-        return {
-            "expected_count": len(expected),
-            "actual_count": len(actual),
-            "missing": [t for t in expected if t not in actual],
-            "extra": [t for t in actual if t not in expected],
-            "all_present": set(expected) == set(actual)
-        }
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                
+                # Expected tables
+                expected = [
+                    "users", "user_sessions", "user_platform_credentials",
+                    "user_gmail_accounts", "user_email_aliases", "workspaces",
+                    "user_account_links", "account_link_requests", "kanban_task_links"
+                ]
+                
+                # Get actual tables
+                cursor.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema='ai_infrastructure'
+                    ORDER BY table_name
+                """)
+                actual = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
+                
+                return {
+                    "expected_count": len(expected),
+                    "actual_count": len(actual),
+                    "missing": [t for t in expected if t not in actual],
+                    "extra": [t for t in actual if t not in expected],
+                    "all_present": set(expected) == set(actual)
+                }
     
     def check_table_counts(self) -> Dict:
         """Get row counts for all tables"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Get all tables
-        cursor.execute("""
-            SELECT table_name FROM information_schema.tables WHERE table_schema='ai_infrastructure'
-        """)
-        tables = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                
+                # Get all tables
+                cursor.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema='ai_infrastructure'
+                """)
+                tables = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
         
         counts = {}
-        for table in tables:
-            cursor.execute(f"SELECT COUNT(*) FROM {table}")
-            counts[table] = cursor.fetchone()[0]
+        with self.get_connection() as conn:
+            for table in tables:
+                with conn.cursor() as cursor:
+                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                    counts[table] = cursor.fetchone()[0]
         
-        conn.close()
         return counts
     
     def check_foreign_keys(self) -> List[Dict]:
         """Validate foreign key constraints"""
-        conn = self.get_connection()
-        conn.execute("-- PostgreSQL: Foreign keys always enforced")
-        cursor = conn.cursor()
-        
-        # Get all tables
-        cursor.execute("""
-            SELECT table_name FROM information_schema.tables WHERE table_schema='ai_infrastructure'
-        """)
-        tables = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                
+                # Get all tables
+                cursor.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema='ai_infrastructure'
+                """)
+                tables = [row[0] if isinstance(row, tuple) else row for row in cursor.fetchall()]
         
         violations = []
-        for table in tables:
-            try:
-                cursor.execute(f"SELECT * FROM information_schema.table_constraints WHERE constraint_type='FOREIGN KEY' AND table_name=({table})")
-                issues = cursor.fetchall()
-                if issues:
-                    violations.append({
-                        "table": table,
-                        "violations": issues
-                    })
-            except Exception as e:
-                violations.append({
-                    "table": table,
-                    "error": str(e)
-                })
+        with self.get_connection() as conn:
+            for table in tables:
+                with conn.cursor() as cursor:
+                    try:
+                        cursor.execute("""
+                            SELECT constraint_name, table_name 
+                            FROM information_schema.table_constraints 
+                            WHERE constraint_type='FOREIGN KEY' 
+                            AND table_name=%s
+                        """, (table,))
+                        issues = cursor.fetchall()
+                        if issues:
+                            violations.append({
+                                "table": table,
+                                "violations": issues
+                            })
+                    except Exception as e:
+                        violations.append({
+                            "table": table,
+                            "error": str(e)
+                        })
         
-        conn.close()
         return violations
     
     def check_indexes(self) -> Dict:
         """Check database indexes"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT name, tbl_name, sql 
-            FROM sqlite_master 
-            WHERE type='index' AND name NOT LIKE 'sqlite_%'
-            ORDER BY tbl_name, name
-        """)
-        indexes = cursor.fetchall()
-        
-        conn.close()
-        
-        return {
-            "total_indexes": len(indexes),
-            "indexes": [
-                {"name": idx[0], "table": idx[1], "sql": idx[2]}
-                for idx in indexes
-            ]
-        }
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT 
+                        indexname AS name,
+                        tablename AS tbl_name,
+                        indexdef AS sql
+                    FROM pg_indexes
+                    WHERE schemaname = 'ai_infrastructure'
+                    AND indexname NOT LIKE 'pg_%'
+                    ORDER BY tablename, indexname
+                """)
+                indexes = cursor.fetchall()
+                
+                return {
+                    "total_indexes": len(indexes),
+                    "indexes": [
+                        {"name": idx[0], "table": idx[1], "sql": idx[2]}
+                        for idx in indexes
+                    ]
+                }
     
     def check_recent_activity(self) -> Dict:
         """Check recent database activity"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
         activity = {}
         
-        # Recent users
-        try:
-            cursor.execute("""
-                SELECT COUNT(*) FROM users 
-                WHERE datetime(created_at) > datetime('now', '-7 days')
-            """)
-            activity["users_created_7d"] = cursor.fetchone()[0]
-        except:
-            activity["users_created_7d"] = None
+        with self.get_connection() as conn:
+            # Recent users
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM users 
+                        WHERE created_at > NOW() - INTERVAL '7 days'
+                    """)
+                    activity["users_created_7d"] = cursor.fetchone()[0]
+            except:
+                activity["users_created_7d"] = None
+            
+            # Active sessions
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM user_sessions 
+                        WHERE expires_at > NOW()
+                    """)
+                    activity["active_sessions"] = cursor.fetchone()[0]
+            except:
+                activity["active_sessions"] = None
+            
+            # Recent session activity
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM user_sessions 
+                        WHERE created_at > NOW() - INTERVAL '24 hours'
+                    """)
+                    activity["sessions_24h"] = cursor.fetchone()[0]
+            except:
+                activity["sessions_24h"] = None
         
-        # Active sessions
-        try:
-            cursor.execute("""
-                SELECT COUNT(*) FROM user_sessions 
-                WHERE expires_at > CURRENT_TIMESTAMP
-            """)
-            activity["active_sessions"] = cursor.fetchone()[0]
-        except:
-            activity["active_sessions"] = None
-        
-        # Recent session activity
-        try:
-            cursor.execute("""
-                SELECT COUNT(*) FROM user_sessions 
-                WHERE datetime(created_at) > datetime('now', '-24 hours')
-            """)
-            activity["sessions_24h"] = cursor.fetchone()[0]
-        except:
-            activity["sessions_24h"] = None
-        
-        conn.close()
         return activity
     
     def run_full_health_check(self) -> Dict:
@@ -229,5 +242,3 @@ if __name__ == "__main__":
     # Run health check
     diag = Diagnostics()
     diag.run_full_health_check()
-
-

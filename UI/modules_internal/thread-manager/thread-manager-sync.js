@@ -94,7 +94,7 @@ window.ThreadManagerSync = {
 
         threadCards.forEach(card => {
             // Get the location from the card's context
-            const location = card.getAttribute('data-location') || 'prime';
+            const location = card.getAttribute('data-location') || 'unassigned';
 
             // Re-render the card with updated agent info AND UI pills
             if (typeof this.renderThreadInfoContainer === 'function') {

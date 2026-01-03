@@ -50,7 +50,7 @@ USAGE EXAMPLE:
         tool_params={'to': 'user@example.com', 'subject': 'Test', 'body': 'Hello'}
     )
 
-LAST MODIFIED: 2025-11-02 - Added OAuth token auto-refresh for Google and Microsoft credentials
+LAST MODIFIED: 2026-01-01 - Fixed all cursor leaks with context managers
 """
 
 import os
@@ -107,6 +107,20 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
             f"Please sign in with Google at /api/auth/google/login"
         )
     
+    # ✅ STORAGE-ONLY RESTRICTION: Check link_purpose before allowing service access
+    link_purpose = cred_dict.get('link_purpose', 'primary')
+    
+    if link_purpose == 'storage':
+        # User linked Google for storage only - restrict to Drive API
+        if service_name not in ['drive']:
+            raise Exception(
+                f"🚫 Google account linked for storage only (Google Drive). "
+                f"Cannot use {service_name} service. "
+                f"Only Google Drive is available for this account. "
+                f"To use Gmail, Calendar, or other services, please log in with your Google account."
+            )
+        print(f"✅ Storage-only account: Allowing Drive access for user {user_id}")
+    
     # SECURITY: Auto-decrypt credentials if encrypted
     from AI_infrastructure.auth.credential_encryptor import get_encryptor
     encryptor = get_encryptor()
@@ -140,7 +154,7 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
     # Build the service
     try:
         service = build(service_name, version, credentials=credentials)
-        print(f"✅ Created {service_name} v{version} service for user {user_id}")
+        print(f"✅ Created {service_name} v{version} service for user {user_id} (purpose: {link_purpose})")
         return service
     except Exception as e:
         print(f"❌ Failed to create {service_name} service: {e}")
@@ -161,35 +175,36 @@ def _save_refreshed_google_token(user_id: int, credentials: Credentials, origina
     db_path = get_ai_infrastructure_db_path()
     
     conn = get_connection('ai_infrastructure')
-    cursor = conn.cursor()
     
     try:
-        # Update access token in oauth_tokens table
-        cursor.execute('''
-            UPDATE oauth_tokens
-            SET access_token = %s, expires_at = %s,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = %s 
-            AND platform = 'google'
-        ''', (
-            credentials.token,
-            credentials.expiry.isoformat() if credentials.expiry else None,
-            user_id
-        ))
-        
-        # Update refresh token if changed (Google sometimes returns new refresh token)
-        if credentials.refresh_token and credentials.refresh_token != original_cred_dict.get('refresh_token'):
+        with conn.cursor() as cursor:
+            
+            # Update access token in oauth_tokens table
             cursor.execute('''
                 UPDATE oauth_tokens
-                SET refresh_token = %s,
+                SET access_token = %s, expires_at = %s,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = %s 
                 AND platform = 'google'
-            ''', (credentials.refresh_token, user_id))
-        
-        conn.commit()
-        print(f"✅ Saved refreshed Google token for user {user_id}")
-        
+            ''', (
+                credentials.token,
+                credentials.expiry.isoformat() if credentials.expiry else None,
+                user_id
+            ))
+            
+            # Update refresh token if changed (Google sometimes returns new refresh token)
+            if credentials.refresh_token and credentials.refresh_token != original_cred_dict.get('refresh_token'):
+                cursor.execute('''
+                    UPDATE oauth_tokens
+                    SET refresh_token = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s 
+                    AND platform = 'google'
+                ''', (credentials.refresh_token, user_id))
+            
+            conn.commit()
+            print(f"✅ Saved refreshed Google token for user {user_id}")
+            
     except Exception as e:
         print(f"❌ Failed to save refreshed token: {e}")
         conn.rollback()
@@ -208,35 +223,36 @@ def _save_refreshed_microsoft_token(user_id: int, access_token: str, refresh_tok
         expires_at: Token expiry datetime
     """
     conn = get_connection('ai_infrastructure')
-    cursor = conn.cursor()
     
     try:
-        # Convert expires_at to ISO string if datetime object
-        from datetime import datetime
-        if isinstance(expires_at, datetime):
-            expires_at_str = expires_at.isoformat()
-        else:
-            expires_at_str = str(expires_at)
-        
-        # Update access token in oauth_tokens table
-        cursor.execute('''
-            UPDATE oauth_tokens
-            SET access_token = %s, 
-                refresh_token = %s,
-                expires_at = %s,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = %s 
-            AND platform = 'microsoft'
-        ''', (
-            access_token,
-            refresh_token,
-            expires_at_str,
-            user_id
-        ))
-        
-        conn.commit()
-        print(f"💾 Saved refreshed Microsoft token for user {user_id} (expires: {expires_at_str})")
-        
+        with conn.cursor() as cursor:
+            
+            # Convert expires_at to ISO string if datetime object
+            from datetime import datetime
+            if isinstance(expires_at, datetime):
+                expires_at_str = expires_at.isoformat()
+            else:
+                expires_at_str = str(expires_at)
+            
+            # Update access token in oauth_tokens table
+            cursor.execute('''
+                UPDATE oauth_tokens
+                SET access_token = %s, 
+                    refresh_token = %s,
+                    expires_at = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s 
+                AND platform = 'microsoft'
+            ''', (
+                access_token,
+                refresh_token,
+                expires_at_str,
+                user_id
+            ))
+            
+            conn.commit()
+            print(f"💾 Saved refreshed Microsoft token for user {user_id} (expires: {expires_at_str})")
+            
     except Exception as e:
         print(f"❌ Failed to save refreshed Microsoft token: {e}")
         conn.rollback()
@@ -267,6 +283,20 @@ def create_microsoft_service_with_user_credentials(user_id: int, service_type: s
             f"User {user_id} does not have Microsoft OAuth credentials. "
             f"Please sign in with Microsoft at /api/auth/microsoft/login"
         )
+    
+    # ✅ STORAGE-ONLY RESTRICTION: Check link_purpose before allowing service access
+    link_purpose = cred_dict.get('link_purpose', 'primary')
+    
+    if link_purpose == 'storage':
+        # User linked Microsoft for storage only - restrict to OneDrive API
+        if service_type not in ['onedrive', 'graph']:  # graph needed for OneDrive operations
+            raise Exception(
+                f"🚫 Microsoft account linked for storage only (OneDrive). "
+                f"Cannot use {service_type} service. "
+                f"Only OneDrive is available for this account. "
+                f"To use Outlook, Teams, or other services, please log in with your Microsoft account."
+            )
+        print(f"✅ Storage-only account: Allowing OneDrive access for user {user_id}")
     
     # SECURITY: Auto-decrypt credentials if encrypted
     from AI_infrastructure.auth.credential_encryptor import get_encryptor
@@ -397,11 +427,13 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
     # Determine if this is a Google Workspace tool
     google_tools_prefixes = ['gmail_', 'google_calendar_', 'google_tasks_', 
                              'google_forms_', 'google_docs_', 'google_sheets_',
-                             'google_slides_', 'google_drive_', 'gsheets_']
+                             'google_slides_', 'google_drive_', 'gsheets_',
+                             'process_gmail_', 'process_google_drive_']  # Include attachment processing tools
     
     # Determine if this is a Microsoft 365 tool
     microsoft_tools_prefixes = ['microsoft_', 'outlook_', 'teams_', 'onedrive_', 
-                                'sharepoint_', 'onenote_', 'planner_', 'todo_', 'word_']
+                                'sharepoint_', 'onenote_', 'planner_', 'todo_', 'word_',
+                                'process_outlook_', 'process_onedrive_']  # Include attachment processing tools
     
     # Determine if this is a Xero accounting tool
     xero_tools_prefixes = ['xero_']
@@ -419,10 +451,10 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
         
         try:
             result = tool_function(**tool_params)
-            print(f" Tool {tool_name} executed successfully with user credentials")
+            print(f"✅ Tool {tool_name} executed successfully with user credentials")
             return result
         except Exception as e:
-            print(f" Tool {tool_name} failed: {e}")
+            print(f"❌ Tool {tool_name} failed: {e}")
             raise
     
     elif is_microsoft_tool:
@@ -434,10 +466,10 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
         
         try:
             result = tool_function(**tool_params)
-            print(f" Tool {tool_name} executed successfully with user credentials")
+            print(f"✅ Tool {tool_name} executed successfully with user credentials")
             return result
         except Exception as e:
-            print(f" Tool {tool_name} failed: {e}")
+            print(f"❌ Tool {tool_name} failed: {e}")
             raise
     
     elif is_xero_tool:
@@ -708,48 +740,49 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
         db_path = get_ai_infrastructure_db_path()
         
         conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
         
         try:
-            # Update access token and expiry in oauth_tokens table
-            # FIXED: Use 'microsoft' not 'microsoft365' (matches callback route)
-            cursor.execute('''
-                UPDATE oauth_tokens
-                SET access_token = %s, expires_at = %s,
-                    updated_at = CURRENT_TIMESTAMP,
-                    last_refreshed_at = CURRENT_TIMESTAMP,
-                    error_count = 0,
-                    last_error = NULL
-                WHERE user_id = %s 
-                AND platform = 'microsoft'
-            ''', (
-                new_access_token,
-                expires_at.strftime('%Y-%m-%d %H:%M:%S'),
-                user_id
-            ))
-            
-            rows_updated = cursor.rowcount
-            
-            # Update refresh token if changed
-            if new_refresh_token != refresh_token:
+            with conn.cursor() as cursor:
+                
+                # Update access token and expiry in oauth_tokens table
+                # FIXED: Use 'microsoft' not 'microsoft365' (matches callback route)
                 cursor.execute('''
                     UPDATE oauth_tokens
-                    SET refresh_token = %s,
-                        updated_at = CURRENT_TIMESTAMP
+                    SET access_token = %s, expires_at = %s,
+                        updated_at = CURRENT_TIMESTAMP,
+                        last_refreshed_at = CURRENT_TIMESTAMP,
+                        error_count = 0,
+                        last_error = NULL
                     WHERE user_id = %s 
                     AND platform = 'microsoft'
-                ''', (new_refresh_token, user_id))
-            
-            if rows_updated == 0:
-                print(f"⚠️  No rows updated - user {user_id} may not have microsoft token in database")
-            else:
-                print(f"✅ Updated {rows_updated} row(s) for user {user_id}")
-            
-            conn.commit()
-            print(f"✅ Saved refreshed Microsoft token for user {user_id}")
-            
-            return new_access_token
-            
+                ''', (
+                    new_access_token,
+                    expires_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    user_id
+                ))
+                
+                rows_updated = cursor.rowcount
+                
+                # Update refresh token if changed
+                if new_refresh_token != refresh_token:
+                    cursor.execute('''
+                        UPDATE oauth_tokens
+                        SET refresh_token = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = %s 
+                        AND platform = 'microsoft'
+                    ''', (new_refresh_token, user_id))
+                
+                if rows_updated == 0:
+                    print(f"⚠️  No rows updated - user {user_id} may not have microsoft token in database")
+                else:
+                    print(f"✅ Updated {rows_updated} row(s) for user {user_id}")
+                
+                conn.commit()
+                print(f"✅ Saved refreshed Microsoft token for user {user_id}")
+                
+                return new_access_token
+                
         except Exception as db_error:
             print(f"❌ Database error saving token: {db_error}")
             conn.rollback()
@@ -765,17 +798,19 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
             from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
             db_path = get_ai_infrastructure_db_path()
             conn = get_connection('ai_infrastructure')
-            cursor = conn.cursor()
             
-            cursor.execute('''
-                UPDATE oauth_tokens
-                SET error_count = error_count + 1,
-                    last_error = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = %s AND platform = 'microsoft'
-            ''', (f"Token refresh failed: {str(e)}", user_id))
+            with conn.cursor() as cursor:
+                
+                cursor.execute('''
+                    UPDATE oauth_tokens
+                    SET error_count = error_count + 1,
+                        last_error = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND platform = 'microsoft'
+                ''', (f"Token refresh failed: {str(e)}", user_id))
+                
+                conn.commit()
             
-            conn.commit()
             conn.close()
         except Exception as db_err:
             print(f"⚠️  Could not update error count: {db_err}")
@@ -789,17 +824,19 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
             from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
             db_path = get_ai_infrastructure_db_path()
             conn = get_connection('ai_infrastructure')
-            cursor = conn.cursor()
             
-            cursor.execute('''
-                UPDATE oauth_tokens
-                SET error_count = error_count + 1,
-                    last_error = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = %s AND platform = 'microsoft'
-            ''', (f"Token refresh exception: {str(e)}", user_id))
+            with conn.cursor() as cursor:
+                
+                cursor.execute('''
+                    UPDATE oauth_tokens
+                    SET error_count = error_count + 1,
+                        last_error = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND platform = 'microsoft'
+                ''', (f"Token refresh exception: {str(e)}", user_id))
+                
+                conn.commit()
             
-            conn.commit()
             conn.close()
         except Exception as db_err:
             print(f"⚠️  Could not update error count: {db_err}")
@@ -1163,27 +1200,32 @@ def get_xero_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
     
     # Check if user has OAuth token
     conn = get_connection('ai_infrastructure')
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT access_token, refresh_token, expires_at
-        FROM ai_infrastructure.oauth_tokens
-        WHERE user_id = %s AND platform = 'xero' AND is_active = TRUE
-    """, (user_id,))
     
-    row = cursor.fetchone()
-    conn.close()
-    
-    if row:
-        # User has OAuth token (preferred method)
-        return {
-            'auth_type': 'oauth',
-            'access_token': row[0],
-            'refresh_token': row[1],
-            'expires_at': row[2]
-        }
-    else:
-        # Fall back to API key credentials
-        return get_platform_credentials(user_id, 'xero')
+    try:
+        with conn.cursor() as cursor:
+            
+            cursor.execute("""
+                SELECT access_token, refresh_token, expires_at
+                FROM ai_infrastructure.oauth_tokens
+                WHERE user_id = %s AND platform = 'xero' AND is_active = TRUE
+            """, (user_id,))
+            
+            row = cursor.fetchone()
+        
+        if row:
+            # User has OAuth token (preferred method)
+            return {
+                'auth_type': 'oauth',
+                'access_token': row[0],
+                'refresh_token': row[1],
+                'expires_at': row[2]
+            }
+        else:
+            # Fall back to API key credentials
+            return get_platform_credentials(user_id, 'xero')
+            
+    finally:
+        conn.close()
 
 
 def get_github_credentials(user_id: Optional[int] = None, **kwargs) -> dict:
@@ -1247,4 +1289,3 @@ __all__ = [
     'get_xero_credentials',
     'get_github_credentials'
 ]
-

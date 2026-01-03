@@ -98,10 +98,11 @@ Object.assign(window.ThreadManager, {
                 thread.message_count = pagination?.total || messages.length;
 
                 // Cache in MessageStore for fast access
+                // CRITICAL FIX: Use for...of with await to preserve message order
                 if (typeof window.MessageStore !== 'undefined') {
-                    messages.forEach(msg => {
-                        window.MessageStore.addMessage(threadId, msg, { checkDuplicates: false, silent: true });
-                    });
+                    for (const msg of messages) {
+                        await window.MessageStore.addMessage(threadId, msg, { checkDuplicates: false, silent: true });
+                    }
                 }
             }
 
@@ -176,7 +177,7 @@ Object.assign(window.ThreadManager, {
                         // message_count is calculated by backend from sessions.messages
                     })
                 });
-                
+
                 if (!response.ok) {
                     console.error('❌ [ThreadManager] Failed to save thread metadata:', await response.text());
                 } else {

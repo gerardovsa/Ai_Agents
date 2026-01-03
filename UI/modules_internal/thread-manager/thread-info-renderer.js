@@ -35,7 +35,7 @@
             return `
                 <div class="thread-info-wrapper">
                     <div class="no-thread-message clickable" 
-                         id="${location === 'prime' ? 'prime-no-thread' : ''}">
+                         id="${location === 'unassigned' ? 'prime-no-thread' : ''}">
                         <i class="fas fa-comment-slash" style="opacity: 0.5; margin-right: 8px;"></i>
                         <span>No thread loaded</span>
                         <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 0.9em;"></i>
@@ -81,7 +81,7 @@
                         </button>
                     </div>
                 `;
-            } else if (location === 'prime') {
+            } else if (location === 'unassigned') {
                 // Prime location: Show only "Unload" button
                 buttonsHTML = `
                     <div class="thread-info-actions">

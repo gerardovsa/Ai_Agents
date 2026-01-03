@@ -448,9 +448,9 @@ export default {
                 ${this.renderToolbar()}
                 
                 <!-- Side-by-side workspace container for table and preview -->
-                <div class="email-workspace-container" style="display: flex; gap: 16px; height: calc(100vh - 250px); overflow: hidden;">
+                <div class="email-workspace-container" style="display: flex; gap: 16px; height: calc(100vh - 310px); overflow: hidden;">
                     <!-- Email Table Card -->
-                    <div class="dashboard-card email-table-wrapper" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%;">
+                    <div class="dashboard-card email-table-wrapper" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 92%;">
                         <div class="card-header">
                             <h3 class="card-title">
                                 <i class="fas fa-list"></i> Email Messages
@@ -476,13 +476,36 @@ export default {
                     </div>
                     
                     <!-- Email Preview Panel (sibling to dashboard-card) -->
-                    <div id="emailPreview" class="email-preview-panel" data-mode="sibling" style="display: none; flex: 1; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div id="emailPreview" class="email-preview-panel" data-mode="sibling" style="display: none; flex: 1; height: 92%; display: flex; flex-direction: column; overflow: hidden;">
                     <div class="email-preview-header" style="flex-shrink: 0;">
                         <div class="email-preview-title">
                             <i class="fas fa-envelope"></i>
                             <span id="preview-title-text">Email Preview</span>
                         </div>
                         <div class="email-preview-controls">
+                            <button class="synergy-icon-btn" data-action="reply" title="Reply">
+                                <i class="fas fa-reply"></i>
+                            </button>
+                            <button class="synergy-icon-btn" data-action="reply-all" title="Reply All">
+                                <i class="fas fa-reply-all"></i>
+                            </button>
+                            <button class="synergy-icon-btn" data-action="forward" title="Forward">
+                                <i class="fas fa-share"></i>
+                            </button>
+                            <div style="width: 1px; height: 24px; background: var(--border-default, #30363d); margin: 0 4px;"></div>
+                            <button class="synergy-icon-btn" data-action="archive" title="Archive">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="synergy-icon-btn" data-action="delete" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="synergy-icon-btn" data-action="toggle-read" title="Mark as read/unread">
+                                <i class="fas fa-envelope-open"></i>
+                            </button>
+                            <button class="synergy-icon-btn" data-action="print" title="Print">
+                                <i class="fas fa-print"></i>
+                            </button>
+                            <div style="width: 1px; height: 24px; background: var(--border-default, #30363d); margin: 0 4px;"></div>
                             <button class="synergy-icon-btn" data-action="toggle-popup-mode" title="Toggle popup mode">
                                 <i class="fas fa-external-link-alt"></i>
                             </button>
@@ -491,33 +514,7 @@ export default {
                             </button>
                         </div>
                     </div>
-                    <!-- Email Action Toolbar (Reply, Forward, Delete, etc) -->
-                    <div id="email-action-toolbar" class="email-action-toolbar" style="display: none; padding: 12px 20px; background: rgba(99, 102, 241, 0.05); border-bottom: 1px solid var(--border-default, #30363d); display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="btn-email-action btn-primary" data-action="reply" title="Reply to sender">
-                            <i class="fas fa-reply"></i> Reply
-                        </button>
-                        <button class="btn-email-action" data-action="reply-all" title="Reply to all recipients">
-                            <i class="fas fa-reply-all"></i> Reply All
-                        </button>
-                        <button class="btn-email-action" data-action="forward" title="Forward this email">
-                            <i class="fas fa-share"></i> Forward
-                        </button>
-                        <div style="width: 1px; height: 24px; background: var(--border-default, #30363d); margin: 0 4px;"></div>
-                        <button class="btn-email-action" data-action="archive" title="Archive this email">
-                            <i class="fas fa-archive"></i> Archive
-                        </button>
-                        <button class="btn-email-action" data-action="delete" title="Delete this email">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                        <button class="btn-email-action" data-action="toggle-read" title="Mark as read/unread">
-                            <i class="fas fa-envelope-open"></i> <span id="read-status-text">Mark Read</span>
-                        </button>
-                        <div style="flex: 1;"></div>
-                        <button class="btn-email-action" data-action="print" title="Print this email">
-                            <i class="fas fa-print"></i>
-                        </button>
-                    </div>
-                    <div id="previewContent" class="email-preview-body" style="flex: 1; overflow-y: auto; overflow-x: hidden;"></div>
+                    <div id="previewContent" class="email-preview-body" style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;"></div>
                 </div>
             </div>
         `;
@@ -530,7 +527,7 @@ export default {
      */
     renderToolbar() {
         return `
-            <div class="filters-bar" style="margin: 15px 20px; padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+            <div class="filters-bar" style="margin: 5px 5px; padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
                 <!-- Read/Unread Filter -->
                 <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                     <label style="color: #8b949e; font-size: 0.9em; font-weight: 600;"><i class="fas fa-envelope"></i> Status:</label>
@@ -1239,11 +1236,12 @@ export default {
             // Update stats
             this.updateStats();
 
-            // Create/update table
-            this.createEmailTable();
-
-            // ✅ FIX #4: Load email-thread mappings from database (persistence after refresh)
+            // ✅ FIX #5 (Jan 4, 2026): Load email-thread mappings BEFORE creating table
+            // This ensures AI Agent column shows badges immediately on first render
             await this.loadEmailThreadMappings();
+
+            // Create/update table (mappings are now available for formatters)
+            this.createEmailTable();
 
         } catch (error) {
             this.log.error('Failed to load emails', error);
@@ -1492,67 +1490,93 @@ export default {
                         const emailId = cell.getRow().getData().id;
                         const threadSlug = this.state.emailThreads?.[emailId];
 
+                        // 🔍 CRITICAL DEBUG: Check EVERY step
+                        if (!threadSlug) {
+                            console.warn(`❌ [AI Agent Formatter] Email ${emailId} - NO threadSlug in state!`);
+                            console.warn(`   this.state.emailThreads keys:`, Object.keys(this.state.emailThreads || {}));
+                            console.warn(`   Expected to find key "${emailId}"`);
+                        } else {
+                            console.log(`✅ [AI Agent Formatter] Email ${emailId} → thread ${threadSlug}`);
+                        }
+
                         // Check if email has an assigned thread
                         if (!threadSlug) {
-                            // NOT ASSIGNED - Show dropdown button
+                            // NOT ASSIGNED - Simple badge
                             return `
-                                <div class="agent-assignment-cell" data-email-id="${emailId}" style="cursor: pointer; position: relative;">
-                                    <span style="color: #9ca3af; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
-                                        <i class="fas fa-robot"></i>
-                                        Assign Agent
-                                        <i class="fas fa-chevron-down" style="font-size: 9px;"></i>
+                                <div style="display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: #6b7280; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: rgba(107, 114, 128, 0.1); border-radius: 4px;">
+                                        <i class="fas fa-minus-circle" style="font-size: 10px;"></i>
+                                        Not Assigned
                                     </span>
                                 </div>
                             `;
                         }
 
                         // IS ASSIGNED - Show agent badge + thread info
-                        const thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
+                        // ✅ FIX (Jan 3, 2026): Try multiple lookup strategies to find thread
+                        let thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
+
+                        // Fallback 1: Try thread_slug field
+                        if (!thread) {
+                            thread = ThreadManager?.threads?.find(t => t.thread_slug === threadSlug);
+                        }
+
+                        // Fallback 2: Try email_thread_id metadata
+                        if (!thread) {
+                            thread = ThreadManager?.threads?.find(t =>
+                                t.email_thread_id === emailId ||
+                                t.metadata?.email_thread_id === emailId
+                            );
+                        }
+
+                        // Debug logging for troubleshooting
+                        if (!thread && typeof console !== 'undefined') {
+                            console.warn(`[CommunicationHub] Thread lookup failed for email ${emailId}:`,
+                                `\n  threadSlug: ${threadSlug}`,
+                                `\n  ThreadManager.threads count: ${ThreadManager?.threads?.length || 0}`,
+                                `\n  Available thread IDs:`, ThreadManager?.threads?.slice(0, 5).map(t => ({ id: t.id, slug: t.thread_slug, location: t.location }))
+                            );
+                        }
+
                         if (!thread) {
                             // Thread not loaded yet in ThreadManager - show thread slug with loading state
                             const threadShort = threadSlug.substring(0, 8);
                             return `
                                 <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
-                                    <span class="agent-badge" style="background: #6b7280; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span class="agent-badge" style="background: #6b7280; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                                         <i class="fas fa-sync fa-spin"></i> Syncing...
                                     </span>
                                     <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: monospace;" title="Thread ID: ${threadSlug}">
                                         #${threadShort}
                                     </span>
-                                    <button class="reload-thread-btn" 
-                                            onclick="event.stopPropagation(); window.CommunicationHub.refreshThreadData('${emailId}', '${threadSlug}')"
-                                            title="Refresh thread data"
-                                            style="background: transparent; border: none; color: #3b82f6; cursor: pointer; padding: 2px 4px; font-size: 11px; opacity: 0.7; transition: opacity 0.2s;"
-                                            onmouseover="this.style.opacity='1'"
-                                            onmouseout="this.style.opacity='0.7'">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
                                 </div>
                             `;
                         }
 
-                        const location = thread.location || 'prime';
+                        const location = thread.location || 'unassigned';
                         let badgeColor, badgeText, badgeIcon;
 
-                        if (location === 'prime') {
-                            // Unassigned state
+                        if (location === 'unassigned') {
+                            // Unassigned state (thread exists but in unassigned pool)
                             return `
-                                <div class="agent-assignment-cell" data-email-id="${emailId}" style="cursor: pointer; position: relative;">
-                                    <span style="color: #9ca3af; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
-                                        <i class="fas fa-robot"></i>
-                                        Assign Agent
-                                        <i class="fas fa-chevron-down" style="font-size: 9px;"></i>
+                                <div style="display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: #6b7280; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: rgba(107, 114, 128, 0.1); border-radius: 4px;">
+                                        <i class="fas fa-minus-circle" style="font-size: 10px;"></i>
+                                        Not Assigned
                                     </span>
                                 </div>
                             `;
-                        } else if (location === 'prime-loaded') {
+                        } else if (location === 'prime') {
                             badgeColor = '#f59e0b';
-                            badgeText = 'Prime-Loaded';
+                            badgeText = 'Prime';
                             badgeIcon = 'fa-star';
                         } else if (location.startsWith('agent-')) {
                             badgeColor = '#3b82f6';
                             const agentNum = parseInt(location.replace('agent-', ''));
-                            const natoNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India'];
+                            // All 26 NATO alphabet agent names
+                            const natoNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India',
+                                'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
+                                'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
                             badgeText = natoNames[agentNum - 1] || `Agent ${agentNum}`;
                             badgeIcon = 'fa-user-robot';
                         } else {
@@ -1565,7 +1589,7 @@ export default {
 
                         // Determine navigation action based on location
                         let onclickAction;
-                        if (location === 'prime' || location === 'prime-loaded') {
+                        if (location === 'unassigned' || location === 'prime') {
                             // Prime: Open AI Prime sidebar with thread and update location
                             onclickAction = `event.stopPropagation(); window.CommunicationHub.openThreadInPrime('${threadSlug}');`;
                         } else if (location.startsWith('agent-')) {
@@ -1577,37 +1601,32 @@ export default {
                         }
 
                         return `
-                            <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+                            <div class="email-agent-assignment" style="display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 4px 0;">
                                 <span class="agent-badge" 
                                       onclick="${onclickAction}"
-                                      style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: opacity 0.2s;"
+                                      data-thread-slug="${threadSlug}"
+                                      data-location="${location}"
+                                      style="background: ${badgeColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: opacity 0.2s; width: fit-content;"
                                       onmouseover="this.style.opacity='0.85'"
                                       onmouseout="this.style.opacity='1'"
-                                      title="Click to view in ${location === 'prime' || location === 'prime-loaded' ? 'AI Prime' : badgeText}">
+                                      title="Click to view in ${location === 'unassigned' || location === 'prime' ? 'AI Prime' : badgeText}">
                                     <i class="fas ${badgeIcon}"></i> ${this.escapeHtml(badgeText)}
                                 </span>
-                                <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: monospace;" title="Thread ID: ${threadSlug}">
-                                    #${threadShort}
-                                </span>
-                                <button class="unload-thread-btn" 
-                                        onclick="event.stopPropagation(); window.CommunicationHub.unloadEmailFromAgent('${emailId}', event)"
-                                        title="Unload from agent"
-                                        style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 2px 4px; font-size: 11px; opacity: 0.7; transition: opacity 0.2s;"
-                                        onmouseover="this.style.opacity='1'"
-                                        onmouseout="this.style.opacity='0.7'">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                </button>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: monospace;" title="Thread ID: ${threadSlug}">
+                                        #${threadShort}
+                                    </span>
+                                    <button class="unload-thread-btn" 
+                                            onclick="event.stopPropagation(); window.CommunicationHub.unloadEmailFromAgent('${emailId}', '${threadSlug}', event)"
+                                            title="Unload from agent"
+                                            style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 2px 4px; font-size: 11px; opacity: 0.7; transition: opacity 0.2s;"
+                                            onmouseover="this.style.opacity='1'"
+                                            onmouseout="this.style.opacity='0.7'">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                    </button>
+                                </div>
                             </div>
                         `;
-                    },
-                    cellClick: (e, cell) => {
-                        // CRITICAL: Stop ALL event propagation to prevent row click
-                        e.stopPropagation();
-                        e.preventDefault();
-
-                        // Show agent dropdown (not email preview)
-                        this.showAgentAssignmentDropdown(e, cell);
-                        return false;
                     }
                 }
             ]
@@ -1620,10 +1639,7 @@ export default {
         });
 
         this.state.tabulatorTable.on("rowClick", (e, row) => {
-            // Don't open preview if clicking on agent assignment cell
-            if (e.target.closest('.agent-assignment-cell')) {
-                return;
-            }
+            // Open email preview
             this.showEmailPreview(row.getData());
         });
 
@@ -1697,216 +1713,155 @@ export default {
     /**
      * Show agent assignment dropdown for a single email
      * Triggered by clicking on the AI Agent column in the table
+     * Displays inline vertical list with sliding task options
      */
     async showAgentAssignmentDropdown(event, cell) {
         const emailData = cell.getRow().getData();
         const emailId = emailData.id;
 
-        this.log.info(`📋 Showing agent assignment dropdown for email: ${emailId}`);
+        this.log.info(`📋 Showing inline agent selector for email: ${emailId}`);
 
-        // Remove any existing dropdown
-        document.querySelectorAll('.agent-assignment-dropdown').forEach(d => d.remove());
+        // Remove any existing inline selector
+        document.querySelectorAll('.agent-assignment-inline').forEach(d => d.remove());
 
-        // Get cell element and table container for scroll tracking
+        // Get cell element
         const cellElement = cell.getElement();
-        const tableContainer = cellElement.closest('.tabulator') || cellElement.closest('.email-table-container');
+        const rowElement = cell.getRow().getElement();
 
-        // Create dropdown
-        const dropdown = document.createElement('div');
-        dropdown.className = 'agent-assignment-dropdown';
+        // Create inline container with vertical list
+        const inlineContainer = document.createElement('div');
+        inlineContainer.className = 'agent-assignment-inline';
 
-        // Get column width to match dropdown width
-        const columnWidth = cellElement.offsetWidth;
-
-        // Function to update dropdown position relative to cell
-        const updatePosition = () => {
-            const rect = cellElement.getBoundingClientRect();
-            const containerRect = tableContainer ? tableContainer.getBoundingClientRect() : null;
-
-            // Get table header position to check if dropdown should hide under it
-            const tableHeader = tableContainer?.querySelector('.tabulator-header');
-            const headerRect = tableHeader ? tableHeader.getBoundingClientRect() : null;
-
-            // Check if cell is still visible in viewport OR if dropdown would overlap header
-            if (containerRect && (rect.bottom < containerRect.top || rect.top > containerRect.bottom)) {
-                // Cell scrolled out of view - hide dropdown
-                dropdown.style.opacity = '0';
-                dropdown.style.pointerEvents = 'none';
-            } else if (headerRect && rect.top < headerRect.bottom) {
-                // Cell is scrolling under header - hide dropdown
-                dropdown.style.opacity = '0';
-                dropdown.style.pointerEvents = 'none';
-            } else {
-                // Cell is visible - show dropdown at correct position
-                dropdown.style.opacity = '1';
-                dropdown.style.pointerEvents = 'auto';
-                dropdown.style.left = `${rect.left}px`;
-                dropdown.style.width = `${columnWidth}px`;
-
-                // Calculate available space below and above
-                const viewportHeight = window.innerHeight;
-                const spaceBelow = viewportHeight - rect.bottom - 4; // Space below cell
-                const spaceAbove = rect.top - (headerRect ? headerRect.bottom : 0) - 4; // Space above cell (but below header)
-
-                const maxDropdownHeight = 500;
-                const minDropdownHeight = 200; // Minimum dropdown height
-
-                // Determine positioning strategy
-                if (spaceBelow >= maxDropdownHeight) {
-                    // Plenty of space below - show full dropdown below
-                    dropdown.style.top = `${rect.bottom + 4}px`;
-                    dropdown.style.bottom = 'auto';
-                    dropdown.style.maxHeight = `${maxDropdownHeight}px`;
-                } else if (spaceBelow >= minDropdownHeight) {
-                    // Some space below (at least half) - reduce height to fit
-                    dropdown.style.top = `${rect.bottom + 4}px`;
-                    dropdown.style.bottom = 'auto';
-                    dropdown.style.maxHeight = `${Math.floor(spaceBelow)}px`;
-                } else if (spaceAbove >= maxDropdownHeight) {
-                    // Not enough space below, but plenty above - show full dropdown above
-                    dropdown.style.top = 'auto';
-                    dropdown.style.bottom = `${viewportHeight - rect.top + 4}px`;
-                    dropdown.style.maxHeight = `${maxDropdownHeight}px`;
-                } else if (spaceAbove >= minDropdownHeight) {
-                    // Some space above - reduce height to fit above
-                    dropdown.style.top = 'auto';
-                    dropdown.style.bottom = `${viewportHeight - rect.top + 4}px`;
-                    dropdown.style.maxHeight = `${Math.floor(spaceAbove)}px`;
-                } else {
-                    // Not enough space either direction - use larger space and reduce height
-                    if (spaceBelow > spaceAbove) {
-                        dropdown.style.top = `${rect.bottom + 4}px`;
-                        dropdown.style.bottom = 'auto';
-                        dropdown.style.maxHeight = `${Math.floor(spaceBelow)}px`;
-                    } else {
-                        dropdown.style.top = 'auto';
-                        dropdown.style.bottom = `${viewportHeight - rect.top + 4}px`;
-                        dropdown.style.maxHeight = `${Math.floor(spaceAbove)}px`;
-                    }
-                }
-            }
-        };
-
-        // Set initial styles with position tracking
-        dropdown.style.cssText = `
-            position: fixed;
-            background: #1a1a1a;
+        // Style as vertical scrollable list (shows 5 agents at a time)
+        inlineContainer.style.cssText = `
+            position: relative;
+            background: #0d1117;
             border: 1px solid #30363d;
             border-radius: 6px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            z-index: 100;
-            min-width: 200px;
-            width: ${columnWidth}px;
-            max-height: 500px;
+            height: 220px;
+            max-height: 220px;
             overflow-y: auto;
-            color: #f0f6fc;
+            overflow-x: hidden;
+            min-width: 300px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
             scrollbar-width: thin;
-            scrollbar-color: #30363d #1a1a1a;
-            transition: opacity 0.15s ease;
+            scrollbar-color: #30363d #0d1117;
         `;
-
-        // Set initial position
-        updatePosition();
 
         // Add webkit scrollbar styling
-        const style = document.createElement('style');
-        style.textContent = `
-            .agent-assignment-dropdown::-webkit-scrollbar { width: 8px; }
-            .agent-assignment-dropdown::-webkit-scrollbar-track { background: #1a1a1a; }
-            .agent-assignment-dropdown::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-            .agent-assignment-dropdown::-webkit-scrollbar-thumb:hover { background: #484f58; }
-        `;
-        document.head.appendChild(style);
+        if (!document.getElementById('agent-inline-vertical-style')) {
+            const style = document.createElement('style');
+            style.id = 'agent-inline-vertical-style';
+            style.textContent = `
+                .agent-assignment-inline::-webkit-scrollbar { width: 6px; }
+                .agent-assignment-inline::-webkit-scrollbar-track { background: #0d1117; }
+                .agent-assignment-inline::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+                .agent-assignment-inline::-webkit-scrollbar-thumb:hover { background: #484f58; }
+                .agent-list-item { transition: all 0.2s ease; }
+                .agent-list-item:hover { background: rgba(99, 102, 241, 0.1) !important; }
+                .task-slide-panel { 
+                    animation: slideInFromRight 0.2s ease;
+                }
+                @keyframes slideInFromRight {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
 
-        // Fetch available agents from synergy sessions AND thread counts
+        // Fetch available agents from MultiAgent.loadedThreads (same as preview panel)
         let agents = [];
-        let nextAgentToActivate = null;
         try {
-            const userId = window.UserAuth?.user?.id || 1;
+            this.log.info('🔍 Building agent list from MultiAgent.loadedThreads (email row dropdown)...');
 
-            // Fetch synergy sessions to get open agents
-            const response = await fetch('/api/synergy/sessions');
-            const synergyData = response.ok ? await response.json() : { sessions: [] };
-            const sessions = synergyData.sessions || [];
+            let threadCounts = {};
 
-            // Fetch ACTUAL thread counts from database (includes threads without synergy sessions)
-            const threadsResponse = await fetch(`/api/threads/agents/list?user_id=${userId}`);
-            const threadsData = threadsResponse.ok ? await threadsResponse.json() : { agents: [] };
-            const threadAgents = threadsData.agents || [];
+            // USE COMMAND CENTER'S DATA: MultiAgent.loadedThreads
+            if (typeof MultiAgent !== 'undefined' && MultiAgent.loadedThreads) {
+                this.log.info('✅ Using MultiAgent.loadedThreads (Command Center data)');
 
-            // Define ALL agent names in order (all 26 NATO alphabet agents + Prime)
+                // Count threads per agent from MultiAgent.loadedThreads
+                Object.entries(MultiAgent.loadedThreads).forEach(([agentId, threadInfo]) => {
+                    if (threadInfo && threadInfo.threadId) {
+                        const numericId = parseInt(agentId);
+                        threadCounts[numericId] = 1;
+                        const agentName = MultiAgent.getAgentName(numericId);
+                        this.log.info(`   Agent ${agentId} (${agentName}): 1 thread - "${threadInfo.threadTitle}"`);
+                    }
+                });
+
+                // Check if Prime has a loaded thread
+                if (typeof ThreadManager !== 'undefined' && ThreadManager.currentThreadId) {
+                    const primeThread = ThreadManager.threads?.find(t => t.id === ThreadManager.currentThreadId);
+                    if (primeThread) {
+                        threadCounts['27'] = 1;
+                        this.log.info(`   Agent 27 (Prime): 1 thread - "${primeThread.title}"`);
+                    }
+                }
+
+                const totalThreads = Object.keys(threadCounts).length;
+                this.log.info(`   Total agents with threads: ${totalThreads}`);
+            } else {
+                this.log.warn('⚠️ MultiAgent.loadedThreads not available');
+            }
+
+            // Agent order: Prime first, then NATO alphabet
             const agentOrder = ['Prime', 'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
                 'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
                 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
 
-            // Build sessions map
-            const sessionsMap = {};
-            sessions.forEach(session => {
-                if (session.agent_name) {
-                    sessionsMap[session.agent_name] = session;
-                }
-            });
-
-            // Build thread counts map (this is the SOURCE OF TRUTH for thread counts)
-            const threadCountsMap = {};
-            threadAgents.forEach(agent => {
-                if (agent.id && agent.id !== 'new') {
-                    threadCountsMap[agent.id] = agent.thread_count || 0;
-                }
-            });
-
-            // Agent name to location ID mapping (all 26 NATO + Prime)
-            const agentLocationMap = {
-                'Prime': 'prime',
-                'Alpha': 'agent-1', 'Bravo': 'agent-2', 'Charlie': 'agent-3', 'Delta': 'agent-4', 'Echo': 'agent-5',
-                'Foxtrot': 'agent-6', 'Golf': 'agent-7', 'Hotel': 'agent-8', 'India': 'agent-9', 'Juliet': 'agent-10',
-                'Kilo': 'agent-11', 'Lima': 'agent-12', 'Mike': 'agent-13', 'November': 'agent-14', 'Oscar': 'agent-15',
-                'Papa': 'agent-16', 'Quebec': 'agent-17', 'Romeo': 'agent-18', 'Sierra': 'agent-19', 'Tango': 'agent-20',
-                'Uniform': 'agent-21', 'Victor': 'agent-22', 'Whiskey': 'agent-23', 'Xray': 'agent-24', 'Yankee': 'agent-25', 'Zulu': 'agent-26'
+            // Agent ID mapping
+            const agentIdMap = {
+                'Prime': 27,
+                'Alpha': 1, 'Bravo': 2, 'Charlie': 3, 'Delta': 4, 'Echo': 5, 'Foxtrot': 6,
+                'Golf': 7, 'Hotel': 8, 'India': 9, 'Juliet': 10, 'Kilo': 11, 'Lima': 12,
+                'Mike': 13, 'November': 14, 'Oscar': 15, 'Papa': 16, 'Quebec': 17, 'Romeo': 18,
+                'Sierra': 19, 'Tango': 20, 'Uniform': 21, 'Victor': 22, 'Whiskey': 23,
+                'Xray': 24, 'Yankee': 25, 'Zulu': 26
             };
 
-            // ✅ FIX: Only show agents that are ACTIVE (have threads/sessions) + next available
-            // Find last active agent
-            let lastActiveIndex = -1;
-            agentOrder.forEach((agentName, index) => {
-                const session = sessionsMap[agentName];
-                const locationId = agentLocationMap[agentName];
-                const threadCount = threadCountsMap[locationId] || 0;
-                if (session || threadCount > 0) {
-                    lastActiveIndex = index;
+            // Find highest agent with threads
+            let highestActiveAgentId = 0;
+            Object.keys(threadCounts).forEach(agentId => {
+                const id = parseInt(agentId);
+                if (id > 0 && id <= 26 && id > highestActiveAgentId) {
+                    highestActiveAgentId = id;
                 }
             });
 
-            // Show active agents + next one (stop at Zulu - index 26)
-            const maxIndexToShow = Math.min(lastActiveIndex + 1, 26); // 26 = Zulu's index
+            this.log.info(`✅ Highest active agent ID: ${highestActiveAgentId}`);
+
+            // Show ALL agents from Prime through highest active + 1
+            const maxAgentIdToShow = Math.min(highestActiveAgentId + 1, 26);
+            this.log.info(`✅ Will show agents 1-${maxAgentIdToShow}`);
 
             agentOrder.forEach((agentName, index) => {
-                if (index > maxIndexToShow) return; // Skip inactive agents beyond next available
+                const agentId = agentIdMap[agentName];
 
-                const session = sessionsMap[agentName];
-                const locationId = agentLocationMap[agentName] || agentName.toLowerCase();
-                const threadCount = threadCountsMap[locationId] || 0;
+                // Show Prime always
+                if (agentName === 'Prime') {
+                    // Will be processed below
+                }
+                // Show agents 1 through maxAgentIdToShow
+                else if (agentId > maxAgentIdToShow) {
+                    return;
+                }
+
+                const threadCount = threadCounts[agentId] || 0;
+                const locationId = agentName === 'Prime' ? 'prime' : `agent-${agentId}`;
+                const isNextAvailable = agentId === maxAgentIdToShow && threadCount === 0;
 
                 agents.push({
                     name: agentName,
                     id: locationId,
                     has_threads: threadCount > 0,
                     threads_count: threadCount,
-                    is_assigned: emailData.assigned_agent === agentName,
-                    is_open: !!session,
-                    is_next_available: index === lastActiveIndex + 1 && index <= 26 // Mark next available (if ≤ Zulu)
+                    is_assigned: false,
+                    is_open: true,
+                    is_next_available: isNextAvailable
                 });
             });
-
-            // Find next agent to activate (stop at Zulu - don't allow past agent-26)
-            if (agents.length > 0) {
-                const lastOpenAgent = agents[agents.length - 1].name;
-                const lastIndex = agentOrder.indexOf(lastOpenAgent);
-                // Only allow activation up to Zulu (index 26)
-                if (lastIndex >= 0 && lastIndex < 26) {
-                    nextAgentToActivate = agentOrder[lastIndex + 1];
-                }
-            }
         } catch (error) {
             this.log.warn('Could not fetch synergy sessions:', error);
             // Fallback to basic agents
@@ -1916,240 +1871,209 @@ export default {
         }
 
         if (agents.length === 0) {
-            dropdown.innerHTML = `
-                <div style="padding: 16px; text-align: center; color: #8b949e;">
-                    <i class="fas fa-robot" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
-                    <div style="font-size: 12px;">No agents available</div>
-                    <div style="font-size: 11px; margin-top: 4px;">Create agents in the sidebar</div>
+            inlineContainer.innerHTML = `
+                <div style="padding: 12px; text-align: center; color: #8b949e; font-size: 11px;">
+                    <i class="fas fa-robot" style="margin-right: 4px;"></i> No agents available
                 </div>
             `;
         } else {
-            // Build dropdown HTML
-            let html = '<div style="padding: 8px 0;">';
-
-            // Header
-            html += `
-                <div style="padding: 8px 12px; border-bottom: 1px solid #30363d; margin-bottom: 4px;">
-                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Assign to Agent</div>
-                    <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${this.escapeHtml(emailData.subject || 'Email')}</div>
-                </div>
-            `;
-
-            // Clear assignment option
-            if (emailData.assigned_agent) {
-                html += `
-                    <div class="agent-option" data-agent-id="clear" 
-                         style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #21262d;"
-                         onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'" 
-                         onmouseout="this.style.background='transparent'">
-                        <i class="fas fa-times-circle" style="color: #f85149; width: 20px; text-align: center;"></i>
-                        <div style="flex: 1;">
-                            <div style="font-size: 13px; color: #f85149; font-weight: 500;">Clear Assignment</div>
-                            <div style="font-size: 11px; color: #8b949e; margin-top: 2px;">Remove from ${this.escapeHtml(emailData.assigned_agent)}</div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Agent options with status indicators
+            // Build vertical list items for each agent
             agents.forEach((agent, index) => {
-                const isAssigned = agent.is_assigned || emailData.assigned_agent === agent.name;
                 const hasThreads = agent.has_threads || agent.threads_count > 0;
+                const isNextAvailable = agent.is_next_available;
 
-                // Color coding based on your requirements:
-                // - Accent blue BORDER if agent has threads already assigned
-                // - Green if agent is empty
-                // - Current assignment shows checkmark
-                let bgColor = 'transparent';
-                let hoverColor = 'rgba(99, 102, 241, 0.1)';
-                let borderStyle = 'none';
+                // Item styling based on status
+                let borderLeft = 'none';
                 let iconColor = '#8b949e';
                 let statusText = '';
+                let bgColor = 'transparent';
 
-                if (isAssigned) {
-                    // Currently assigned to this email
-                    iconColor = '#6366f1';
-                    statusText = '<i class="fas fa-check-circle" style="color: #6366f1; font-size: 11px; margin-left: 6px;"></i>';
-                } else if (hasThreads) {
-                    // Agent has threads - show ACCENT BLUE BORDER
-                    borderStyle = '2px solid #6366f1';
+                if (hasThreads) {
+                    // Agent has threads - show PURPLE LEFT BORDER
+                    borderLeft = '3px solid #6366f1';
                     iconColor = '#8b949e';
-                    statusText = `<span style="color: #8b949e; font-size: 10px; margin-left: 6px;">(${agent.threads_count} ${agent.threads_count === 1 ? 'thread' : 'threads'})</span>`;
-                } else {
-                    // Empty agent - show GREEN
+                    statusText = `<span style="color: #8b949e; font-size: 10px;">(${agent.threads_count})</span>`;
+                } else if (isNextAvailable) {
+                    // Next available agent - green highlight
                     iconColor = '#22c55e';
-                    statusText = '<span style="color: #22c55e; font-size: 10px; margin-left: 6px; font-weight: 600;">(Empty)</span>';
-                }
-
-                // ✅ FIX: Add task type submenu (expandable on click)
-                html += `
-                    <div class="agent-option-wrapper" data-agent-id="${agent.id || agent.name}" data-agent-name="${this.escapeHtml(agent.name)}" style="margin: 2px 8px;">
-                        <div class="agent-option" 
-                             style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: ${bgColor}; border: ${borderStyle}; border-radius: 4px;"
-                             onmouseover="this.style.background='${hoverColor}'" 
-                             onmouseout="this.style.background='${bgColor}'">
-                            <i class="fas fa-robot" style="color: ${iconColor}; width: 20px; text-align: center; font-size: 16px;"></i>
-                            <div style="flex: 1;">
-                                <div style="font-size: 13px; color: #f0f6fc; font-weight: ${isAssigned ? '600' : '500'};">
-                                    ${this.escapeHtml(agent.name)}
-                                    ${statusText}
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-down" style="color: #6b7280; font-size: 11px; transition: transform 0.2s;"></i>
-                        </div>
-                        <!-- Task Type Submenu (hidden by default) -->
-                        <div class="agent-task-submenu" style="display: none; padding: 8px 0 8px 5px; margin-top: 4px;">
-                            <div class="task-option" data-task="generate_quote" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #22c55e; font-weight: 600;" onmouseover="this.style.background='rgba(34, 197, 94, 0.15)'; this.style.color='#22c55e'" onmouseout="this.style.background='transparent'; this.style.color='#22c55e'">
-                                <i class="fas fa-file-invoice-dollar" style="width: 16px; text-align: center;"></i>
-                                <span>Generate Quote</span>
-                            </div>
-                            <div style="border-top: 1px solid #21262d; margin: 4px 0;"></div>
-                            <div class="task-option" data-task="summarize" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
-                                <i class="fas fa-file-alt" style="width: 16px; text-align: center;"></i>
-                                <span>Summarize Email</span>
-                            </div>
-                            <div class="task-option" data-task="draft_reply" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
-                                <i class="fas fa-reply" style="width: 16px; text-align: center;"></i>
-                                <span>Draft Reply</span>
-                            </div>
-                            <div class="task-option" data-task="extract_tasks" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
-                                <i class="fas fa-tasks" style="width: 16px; text-align: center;"></i>
-                                <span>Extract Action Items</span>
-                            </div>
-                            <div class="task-option" data-task="analyze" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
-                                <i class="fas fa-chart-line" style="width: 16px; text-align: center;"></i>
-                                <span>Analyze Sentiment</span>
-                            </div>
-                            <div class="task-option" data-task="discuss" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; font-size: 12px; color: #9ca3af;" onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'; this.style.color='#f0f6fc'" onmouseout="this.style.background='transparent'; this.style.color='#9ca3af'">
-                                <i class="fas fa-comments" style="width: 16px; text-align: center;"></i>
-                                <span>General Discussion</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            // Add "Activate Next Agent" option if available
-            if (nextAgentToActivate) {
-                html += `
-                    <div class="agent-option" data-agent-id="activate-next" data-agent-name="${nextAgentToActivate}"
-                         style="padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-top: 2px solid #30363d; margin-top: 8px; background: rgba(34, 197, 94, 0.08);"
-                         onmouseover="this.style.background='rgba(34, 197, 94, 0.15)'" 
-                         onmouseout="this.style.background='rgba(34, 197, 94, 0.08)'">
-                        <i class="fas fa-plus-circle" style="color: #22c55e; width: 20px; text-align: center; font-size: 18px;"></i>
-                        <div style="flex: 1;">
-                            <div style="font-size: 13px; color: #22c55e; font-weight: 700;">
-                                Activate ${this.escapeHtml(nextAgentToActivate)}
-                            </div>
-                            <div style="font-size: 11px; color: #8b949e; margin-top: 2px;">Open next agent panel</div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            html += '</div>';
-            dropdown.innerHTML = html;
-        }
-
-        // Append to body
-        document.body.appendChild(dropdown);
-
-        // Add scroll listener to update position as user scrolls
-        const scrollHandler = () => {
-            updatePosition();
-        };
-
-        // Cleanup function for scroll listeners
-        const cleanupScrollListeners = () => {
-            if (tableContainer) {
-                tableContainer.removeEventListener('scroll', scrollHandler);
-            }
-            window.removeEventListener('scroll', scrollHandler, true);
-        };
-
-        // Listen for scroll events on table container and window
-        if (tableContainer) {
-            tableContainer.addEventListener('scroll', scrollHandler);
-        }
-        window.addEventListener('scroll', scrollHandler, true); // Use capture phase for all scrollable elements
-
-        // ✅ FIX: Add click handlers for agent options (toggle submenu) and task options (assign with task)
-        dropdown.querySelectorAll('.agent-option').forEach(option => {
-            option.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const wrapper = option.closest('.agent-option-wrapper');
-
-                if (!wrapper) {
-                    // Old-style option (clear assignment, activate next)
-                    const agentId = option.dataset.agentId;
-                    const agentName = option.dataset.agentName;
-                    cleanupScrollListeners(); // Clean up before removing
-                    dropdown.remove();
-
-                    if (agentId === 'clear') {
-                        await this.clearEmailAgentAssignment(emailId, cell);
-                    } else if (agentId === 'activate-next') {
-                        this.log.info(`🚀 Activating next agent: ${agentName}`);
-                        if (window.synergyBoard && typeof window.synergyBoard.activateAgent === 'function') {
-                            window.synergyBoard.activateAgent(agentName);
-                        }
-                        await this.assignEmailToAgent(emailId, agentName, cell, 'new');
-                    } else {
-                        await this.assignEmailToAgent(emailId, agentName, cell, agentId);
-                    }
-                    return;
-                }
-
-                // New-style option with submenu - toggle submenu visibility
-                const submenu = wrapper.querySelector('.agent-task-submenu');
-                const chevron = option.querySelector('.fa-chevron-down');
-
-                if (submenu.style.display === 'none') {
-                    // Close all other submenus
-                    dropdown.querySelectorAll('.agent-task-submenu').forEach(s => s.style.display = 'none');
-                    dropdown.querySelectorAll('.fa-chevron-down').forEach(c => c.style.transform = 'rotate(0deg)');
-
-                    // Open this submenu
-                    submenu.style.display = 'block';
-                    chevron.style.transform = 'rotate(180deg)';
+                    bgColor = 'rgba(34, 197, 94, 0.08)';
+                    statusText = '<span style="color: #22c55e; font-size: 10px; font-weight: 600;">(Next)</span>';
                 } else {
-                    // Close this submenu
-                    submenu.style.display = 'none';
-                    chevron.style.transform = 'rotate(0deg)';
+                    // Empty agent - green icon
+                    iconColor = '#22c55e';
+                    statusText = '<span style="color: #22c55e; font-size: 10px; font-weight: 600;">(Empty)</span>';
                 }
+
+                const listItem = document.createElement('div');
+                listItem.className = 'agent-list-item';
+                listItem.dataset.agentId = agent.id;
+                listItem.dataset.agentName = agent.name;
+                listItem.style.cssText = `
+                    padding: 10px 12px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    border-bottom: 1px solid #21262d;
+                    border-left: ${borderLeft};
+                    background: ${bgColor};
+                `;
+
+                listItem.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                        <i class="fas ${isNextAvailable ? 'fa-plus-circle' : 'fa-robot'}" style="color: ${iconColor}; width: 16px; text-align: center;"></i>
+                        <span style="color: #f0f6fc; font-size: 13px; ${isNextAvailable ? 'font-weight: 600;' : ''}">${isNextAvailable ? 'Activate ' : ''}${this.escapeHtml(agent.name)}</span>
+                        ${statusText}
+                    </div>
+                    <i class="fas fa-chevron-right" style="color: #6b7280; font-size: 10px;"></i>
+                `;
+
+                // Click handler - show task slide panel
+                listItem.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    this.log.info(`📋 Showing task submenu for ${agent.name} (${agent.id})`);
+                    this.showTaskSlidePanelInline(emailId, emailData, agent, inlineContainer, cellElement);
+                });
+
+                inlineContainer.appendChild(listItem);
             });
+        }
+
+        // Replace cell content with inline container
+        cellElement.innerHTML = '';
+        cellElement.appendChild(inlineContainer);
+
+        // Expand row height and cell width to show the selector
+        rowElement.style.height = '240px';
+        cellElement.style.width = 'auto';
+        cellElement.style.minWidth = '320px';
+        cellElement.style.padding = '8px';
+
+        // Click outside to close
+        const closeHandler = (e) => {
+            if (!cellElement.contains(e.target)) {
+                inlineContainer.remove();
+                // Restore row height and cell styling
+                rowElement.style.height = '';
+                cellElement.style.width = '';
+                cellElement.style.minWidth = '';
+                cellElement.style.padding = '';
+                // Redraw table to restore original cell content
+                if (this.state.tabulatorTable) {
+                    this.state.tabulatorTable.redraw();
+                }
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 100);
+    },
+
+    /**
+     * Show task type slide panel inline (slides over agent list)
+     */
+    showTaskSlidePanelInline(emailId, emailData, agent, parentContainer, cellElement) {
+        // Task types with icons and colors
+        const taskTypes = [
+            { type: 'generate_quote', label: 'Generate Quote', icon: 'fa-calculator', color: '#10b981' },
+            { type: 'summarize', label: 'Summarize', icon: 'fa-list-ul', color: '#3b82f6' },
+            { type: 'draft_reply', label: 'Draft Reply', icon: 'fa-reply', color: '#8b5cf6' },
+            { type: 'extract_tasks', label: 'Extract Tasks', icon: 'fa-check-square', color: '#f59e0b' },
+            { type: 'analyze', label: 'Analyze', icon: 'fa-search', color: '#ec4899' },
+            { type: 'discuss', label: 'Discuss', icon: 'fa-comments', color: '#6366f1' }
+        ];
+
+        // Create slide panel
+        const slidePanel = document.createElement('div');
+        slidePanel.className = 'task-slide-panel';
+        slidePanel.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0d1117;
+            z-index: 10;
+            overflow-y: auto;
+        `;
+
+        // Header with back button
+        const header = document.createElement('div');
+        header.style.cssText = `
+            padding: 10px 12px;
+            border-bottom: 1px solid #30363d;
+            background: rgba(99, 102, 241, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        header.innerHTML = `
+            <i class="fas fa-arrow-left" style="color: #6366f1; cursor: pointer; font-size: 12px;" data-back></i>
+            <strong style="color: #f0f6fc; font-size: 13px; flex: 1;">${this.escapeHtml(agent.name)} - Select Task</strong>
+        `;
+
+        // Back button handler
+        header.querySelector('[data-back]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            slidePanel.remove();
         });
 
-        // ✅ FIX: Add click handlers for task options (assign with specific task type)
-        dropdown.querySelectorAll('.task-option').forEach(taskOption => {
-            taskOption.addEventListener('click', async (e) => {
+        slidePanel.appendChild(header);
+
+        // Task list
+        taskTypes.forEach(task => {
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+            taskItem.dataset.taskType = task.type;
+            taskItem.style.cssText = `
+                padding: 10px 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                border-bottom: 1px solid #21262d;
+                transition: background 0.2s;
+            `;
+
+            taskItem.innerHTML = `
+                <i class="fas ${task.icon}" style="color: ${task.color}; width: 16px;"></i>
+                <span style="color: #f0f6fc; font-size: 13px;">${task.label}</span>
+            `;
+
+            // Hover effect
+            taskItem.addEventListener('mouseenter', () => {
+                taskItem.style.background = 'rgba(99, 102, 241, 0.1)';
+            });
+            taskItem.addEventListener('mouseleave', () => {
+                taskItem.style.background = 'transparent';
+            });
+
+            // Click handler - assign with task type
+            taskItem.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const wrapper = taskOption.closest('.agent-option-wrapper');
-                const agentId = wrapper.dataset.agentId;
-                const agentName = wrapper.dataset.agentName;
-                const taskType = taskOption.dataset.task;
+                this.log.info(`🎯 Assigning email ${emailId} to ${agent.name} with task: ${task.type}`);
 
-                cleanupScrollListeners(); // Clean up before removing
-                dropdown.remove();
+                try {
+                    // Call the correct function with proper parameters
+                    await this.assignEmailToAgentWithTask(emailId, agent.name, agent.id, task.type, cellElement.parentElement?.parentElement ? { getElement: () => cellElement.parentElement.parentElement } : null, '');
 
-                this.log.info(`📧 Assigning email to ${agentName} with task: ${taskType}`);
+                    // Remove inline selector
+                    parentContainer.remove();
 
-                // Assign email to agent with task-specific instructions
-                await this.assignEmailToAgentWithTask(emailId, agentName, agentId, taskType, cell);
+                    // Redraw table to show new assignment
+                    if (this.state.tabulatorTable) {
+                        this.state.tabulatorTable.redraw();
+                    }
+                } catch (error) {
+                    this.log.error(`Failed to assign: ${error.message}`);
+                }
             });
+
+            slidePanel.appendChild(taskItem);
         });
 
-        // Close on outside click
-        setTimeout(() => {
-            const closeHandler = (e) => {
-                if (!dropdown.contains(e.target) && !cellElement.contains(e.target)) {
-                    cleanupScrollListeners(); // Clean up before removing
-                    dropdown.remove();
-                    document.removeEventListener('click', closeHandler);
-                }
-            };
-            document.addEventListener('click', closeHandler);
-        }, 100);
+        // Add slide panel to parent container
+        parentContainer.style.position = 'relative';
+        parentContainer.appendChild(slidePanel);
     },
 
     /**
@@ -2281,13 +2205,13 @@ export default {
                 const currentThread = ThreadManager.getThreadByAgent?.(location);
 
                 if (currentThread) {
-                    this.log.warn(`⚠️ Agent ${agentName} already has thread ${currentThread.id} - cascading to prime`);
+                    this.log.warn(`⚠️ Agent ${agentName} already has thread ${currentThread.id} - cascading to unassigned`);
 
-                    // Move old thread to prime
+                    // Move old thread to unassigned
                     try {
                         await this.api.post('/api/threads/update-location', {
                             thread_slug: currentThread.id,
-                            new_location: 'prime',
+                            new_location: 'unassigned',
                             user_id: userId
                         });
 
@@ -2297,13 +2221,13 @@ export default {
                         }
 
                         // Update local state
-                        currentThread.location = 'prime';
+                        currentThread.location = 'unassigned';
 
                         if (typeof showToast === 'function') {
-                            showToast(`📤 Previous thread moved to Prime`, 'info', 2500);
+                            showToast(`📤 Previous thread moved to Unassigned`, 'info', 2500);
                         }
 
-                        this.log.success(`✅ Cascaded old thread ${currentThread.id} to prime`);
+                        this.log.success(`✅ Cascaded old thread ${currentThread.id} to unassigned`);
                     } catch (cascadeError) {
                         this.log.error('❌ Failed to cascade old thread:', cascadeError);
                         // Continue anyway - new thread takes priority
@@ -2453,8 +2377,15 @@ export default {
             }
             this.state.emailThreads[emailId] = threadSlug;
 
-            // Update table cell
-            cell.getRow().update({ assigned_agent: agentName });
+            // Update table cell (only if cell provided)
+            if (cell && cell.getRow) {
+                cell.getRow().update({ assigned_agent: agentName });
+            } else {
+                // Called from preview panel - just redraw table
+                if (this.state.tabulatorTable) {
+                    this.state.tabulatorTable.redraw();
+                }
+            }
 
             // Show initial success toast
             if (typeof showToast === 'function') {
@@ -2480,8 +2411,10 @@ export default {
             // Final success notification
             this.showSuccess(`✅ Email assigned to ${agentName}`);
 
-            // ✅ CRITICAL: Re-enable cell after successful assignment
-            cell.getElement().style.pointerEvents = 'auto';
+            // ✅ CRITICAL: Re-enable cell after successful assignment (if cell provided)
+            if (cell && cell.getElement) {
+                cell.getElement().style.pointerEvents = 'auto';
+            }
 
         } catch (error) {
             this.log.error('Failed to assign email to agent:', error);
@@ -2490,9 +2423,11 @@ export default {
                 showToast(`❌ Assignment failed: ${error.message}`, 'error', 5000);
             }
 
-            // ✅ CRITICAL: Restore original cell HTML and re-enable on error
-            cell.getElement().innerHTML = originalHTML;
-            cell.getElement().style.pointerEvents = 'auto';
+            // ✅ CRITICAL: Restore original cell HTML and re-enable on error (if cell provided)
+            if (cell && cell.getElement && originalHTML) {
+                cell.getElement().innerHTML = originalHTML;
+                cell.getElement().style.pointerEvents = 'auto';
+            }
         }
     },
 
@@ -2504,27 +2439,39 @@ export default {
      * @param {string} agentName - Agent name (e.g., 'Alpha')
      * @param {string} agentId - Agent location (e.g., 'agent-1')
      * @param {string} taskType - Task type ('summarize', 'draft_reply', 'extract_tasks', 'analyze', 'discuss')
-     * @param {object} cell - Tabulator cell reference
+     * @param {object} cell - Tabulator cell reference (optional, null when called from preview panel)
+     * @param {string} customInstructions - Custom instructions from user (optional)
      */
-    async assignEmailToAgentWithTask(emailId, agentName, agentId, taskType, cell) {
+    async assignEmailToAgentWithTask(emailId, agentName, agentId, taskType, cell, customInstructions = '') {
         this.log.info(`🤖 Assigning email ${emailId} to agent: ${agentName} with task: ${taskType}`);
 
-        // ✅ IDEMPOTENCY CHECK: Prevent duplicate thread creation
+        // ✅ ALLOW REASSIGNMENT: If email already assigned, clear old mapping first
         if (this.state.emailThreads && this.state.emailThreads[emailId]) {
-            this.log.warn(`⚠️ Email ${emailId} already assigned to thread ${this.state.emailThreads[emailId]}`);
-            this.showWarning('Email already assigned to a thread');
-            return; // Early exit - prevent duplicate API call
+            const oldThreadSlug = this.state.emailThreads[emailId];
+            this.log.info(`🔄 Email ${emailId} already assigned to thread ${oldThreadSlug} - will reassign to ${agentName}`);
+            delete this.state.emailThreads[emailId]; // Clear old mapping to allow new assignment
         }
 
-        // ✅ DOUBLE-CLICK PREVENTION: Disable cell during assignment
-        const originalHTML = cell.getElement().innerHTML;
-        cell.getElement().innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Assigning with task...</span>';
-        cell.getElement().style.pointerEvents = 'none'; // Disable clicks
+        // ✅ DOUBLE-CLICK PREVENTION: Disable cell during assignment (only if cell provided)
+        let originalHTML = null;
+        if (cell && cell.getElement) {
+            originalHTML = cell.getElement().innerHTML;
+            cell.getElement().innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Assigning with task...</span>';
+            cell.getElement().style.pointerEvents = 'none'; // Disable clicks
+        }
 
         try {
             // First, assign email to agent normally (creates thread, links email)
             const userId = window.UserAuth?.user?.id || 1;
-            const emailData = cell.getRow().getData();
+
+            // Get email data - from cell if available, otherwise fetch from state
+            let emailData;
+            if (cell && cell.getRow) {
+                emailData = cell.getRow().getData();
+            } else {
+                emailData = this.state.emails.find(e => e.id === emailId);
+            }
+
             const fullEmail = await this.fetchEmailContent(emailId);
 
             // ✅ DEBUG: Log what we got from fetchEmailContent
@@ -2536,8 +2483,20 @@ export default {
                 has_body_text: !!fullEmail.body_text,
                 has_body_html: !!fullEmail.body_html,
                 body_text_length: fullEmail.body_text?.length || 0,
-                snippet_length: fullEmail.snippet?.length || 0
+                body_html_length: fullEmail.body_html?.length || 0,
+                snippet_length: fullEmail.snippet?.length || 0,
+                body_text_preview: fullEmail.body_text?.substring(0, 100) || 'N/A',
+                body_html_preview: fullEmail.body_html?.substring(0, 100) || 'N/A'
             });
+
+            // 🔍 CRITICAL DEBUG: Log full body content to check truncation
+            if (fullEmail.body_text) {
+                console.log('🔍 [TRUNCATION CHECK] Full body_text:', fullEmail.body_text);
+                console.log('🔍 [TRUNCATION CHECK] Body length:', fullEmail.body_text.length);
+            }
+            if (fullEmail.body_html) {
+                console.log('🔍 [TRUNCATION CHECK] Full body_html length:', fullEmail.body_html.length);
+            }
 
             // Process attachments
             let processedAttachments = [];
@@ -2577,6 +2536,22 @@ export default {
 
             // Determine location
             let location = agentId;
+
+            // Convert numeric agentId to location string format
+            if (agentId === 27 || agentId === '27') {
+                location = 'prime';
+            } else if (typeof agentId === 'number' && agentId >= 1 && agentId <= 26) {
+                location = `agent-${agentId}`;
+            } else if (typeof agentId === 'string' && /^\d+$/.test(agentId)) {
+                // String numeric ID
+                const numId = parseInt(agentId);
+                if (numId === 27) {
+                    location = 'prime';
+                } else if (numId >= 1 && numId <= 26) {
+                    location = `agent-${numId}`;
+                }
+            }
+
             if (agentId === 'new' || agentId === null) {
                 const agentsResponse = await fetch(`/api/threads/agents/list?user_id=${userId}`);
                 if (agentsResponse.ok) {
@@ -2645,22 +2620,76 @@ export default {
             }
             this.state.emailThreads[emailId] = threadSlug;
 
+            console.log('🔍 [assignEmailToAgentWithTask] ASSIGNED email to thread:');
+            console.log('   emailId:', emailId);
+            console.log('   threadSlug:', threadSlug);
+            console.log('   this.state.emailThreads:', this.state.emailThreads);
+
             // ✅ CRITICAL: Refresh ThreadManager immediately so formatter can find the thread
             if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
                 await ThreadManager.loadThreadsFromBackend();
+                console.log('🔍 [assignEmailToAgentWithTask] ThreadManager refreshed, thread count:', ThreadManager.threads?.length);
+                const assignedThread = ThreadManager.threads?.find(t => t.id === threadSlug || t.thread_slug === threadSlug);
+                console.log('🔍 [assignEmailToAgentWithTask] Can find assigned thread in ThreadManager:', !!assignedThread);
+                if (assignedThread) {
+                    console.log('🔍 [assignEmailToAgentWithTask] Thread details:', { id: assignedThread.id, slug: assignedThread.thread_slug, location: assignedThread.location, email_thread_id: assignedThread.email_thread_id });
+                }
                 this.log.success('✅ ThreadManager refreshed with new thread');
             }
 
+            // ✅ SHOW IMMEDIATE NOTIFICATION: Let user know assignment is happening
+            this.showSuccess(`📧 Email assigned to ${agentName} - Loading conversation...`);
+            if (typeof showToast === 'function') {
+                showToast(`📧 Email sent to ${agentName} (${taskType.replace('_', ' ')})`, 'success', 4000);
+            }
+
             // Now update table to show agent badge (formatter will find thread in ThreadManager)
-            cell.getRow().update({ assigned_agent: agentName });
+            // Only update cell if it was provided (from table, not preview panel)
+            if (cell && cell.getRow) {
+                cell.getRow().update({ assigned_agent: agentName });
+            } else {
+                // Called from preview panel - just redraw table
+                if (this.state.tabulatorTable) {
+                    this.state.tabulatorTable.redraw();
+                }
+            }
 
             // ✅ NEW: Load thread and send task-specific prompt
             await this.loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, fullEmail, processedAttachments, taskType);
 
-            this.showSuccess(`✅ Email assigned to ${agentName} for ${taskType.replace('_', ' ')}`);
+            // ✅ SECOND NOTIFICATION: Confirm task was sent to AI
+            if (typeof showToast === 'function') {
+                showToast(`✅ AI ${agentName} is processing your ${taskType.replace('_', ' ')} request`, 'success', 3000);
+            }
 
-            // ✅ CRITICAL: Re-enable cell after successful assignment
-            cell.getElement().style.pointerEvents = 'auto';
+            // ✅ CLEAR CUSTOM INSTRUCTION TEXTAREA after successful send
+            const customInstructionTextarea = document.getElementById(`ai-custom-instruction-${emailId}`);
+            if (customInstructionTextarea) {
+                customInstructionTextarea.value = '';
+                this.log.info('🧹 Cleared custom instruction textarea');
+            }
+
+            // ✅ CRITICAL: Multiple table redraws to ensure AI Agent column updates
+            if (this.state.tabulatorTable) {
+                // First redraw immediately
+                this.state.tabulatorTable.redraw();
+                this.log.info('🔄 First table redraw (immediate)');
+
+                // Second redraw after 300ms
+                await new Promise(resolve => setTimeout(resolve, 300));
+                this.state.tabulatorTable.redraw();
+                this.log.info('🔄 Second table redraw (300ms)');
+
+                // Third redraw after 1 second (ensure thread fully loaded)
+                await new Promise(resolve => setTimeout(resolve, 700));
+                this.state.tabulatorTable.redraw();
+                this.log.success('✅ Final table redraw - AI Agent column should now show thread info');
+            }
+
+            // ✅ CRITICAL: Re-enable cell after successful assignment (if cell provided)
+            if (cell && cell.getElement) {
+                cell.getElement().style.pointerEvents = 'auto';
+            }
 
         } catch (error) {
             this.log.error('Failed to assign email with task:', error);
@@ -2669,9 +2698,11 @@ export default {
                 showToast(`❌ Assignment failed: ${error.message}`, 'error', 5000);
             }
 
-            // ✅ CRITICAL: Restore original cell HTML and re-enable on error
-            cell.getElement().innerHTML = originalHTML;
-            cell.getElement().style.pointerEvents = 'auto';
+            // ✅ CRITICAL: Restore original cell HTML and re-enable on error (if cell provided)
+            if (cell && cell.getElement && originalHTML) {
+                cell.getElement().innerHTML = originalHTML;
+                cell.getElement().style.pointerEvents = 'auto';
+            }
         }
     },
 
@@ -2688,7 +2719,7 @@ export default {
             }
 
             // Step 2: Handle Prime location specially (open in AI Prime sidebar)
-            if (location === 'prime' || location === 'prime-loaded') {
+            if (location === 'unassigned' || location === 'prime') {
                 this.log.info(`🤖 Opening thread in AI Prime sidebar`);
 
                 // Build task prompt
@@ -2712,42 +2743,47 @@ export default {
                     processedAttachments || []
                 );
 
-                // Open AI Prime sidebar with thread
-                if (window.AIPrime?.open) {
-                    window.AIPrime.open({
-                        threadSlug: threadSlug,
-                        agent: 'communication-agent',
-                        initialMessage: typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent),
-                        autoSend: true,
-                        context: {
-                            type: 'email',
-                            email_id: emailData.id,
-                            email_data: emailData,
-                            task_type: taskType
-                        }
-                    });
-
-                    // Update thread location to 'prime-loaded'
+                // Use ThreadManager to load thread into Prime
+                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadInPrime === 'function') {
                     try {
+                        // Load thread into Prime (opens sidebar, displays messages)
+                        await ThreadManager.loadThreadInPrime(threadSlug);
+                        this.log.success(`✅ Loaded thread ${threadSlug} into Prime`);
+
+                        // Update thread location to 'prime'
                         const userId = window.UserAuth?.user?.id || 1;
                         await this.api.post('/api/threads/update-location', {
                             thread_slug: threadSlug,
-                            new_location: 'prime-loaded',
+                            new_location: 'prime',
                             user_id: userId
                         });
-                        this.log.success(`✅ Updated thread location to prime-loaded`);
+                        this.log.success(`✅ Updated thread location to prime`);
 
                         // Refresh ThreadManager to reflect new location
-                        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
-                            await ThreadManager.loadThreadsFromBackend();
-                        }
-                    } catch (error) {
-                        this.log.warn('Failed to update thread location:', error);
-                    }
+                        await ThreadManager.loadThreadsFromBackend();
 
-                    this.log.success(`✅ Opened thread in AI Prime with task: ${taskType}`);
+                        // Wait for Prime UI to be ready
+                        await new Promise(resolve => setTimeout(resolve, 300));
+
+                        // Populate Prime input and send message automatically
+                        const primeInput = document.getElementById('ai-chat-input');
+                        if (primeInput && typeof sendChatMessage === 'function') {
+                            // Set input value
+                            primeInput.value = typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent);
+
+                            // Trigger send
+                            await sendChatMessage();
+                            this.log.success(`✅ Sent ${taskType} task to Prime`);
+                        } else {
+                            this.log.warn('⚠️ Prime input or sendChatMessage not available');
+                        }
+
+                        this.log.success(`✅ Opened thread in AI Prime with task: ${taskType}`);
+                    } catch (error) {
+                        this.log.error('Failed to open thread in Prime:', error);
+                    }
                 } else {
-                    this.log.warn('⚠️ AI Prime sidebar not available');
+                    this.log.warn('⚠️ ThreadManager.loadThreadInPrime not available');
                 }
                 return;
             }
@@ -3281,7 +3317,7 @@ Draft questions for the customer listing all missing details required for accura
             const response = await this.api.post('/api/threads/create', {
                 user_id: userId,
                 name: `Emails: ${selectedData[0].subject}`,
-                location: destinationId, // 'prime' or 'agent-1', 'agent-2', etc.
+                location: destinationId, // 'unassigned' or 'agent-1', 'agent-2', etc.
                 initial_message: emailText,
                 metadata: {
                     email_ids: Array.from(this.state.selectedEmails),
@@ -3341,6 +3377,31 @@ Draft questions for the customer listing all missing details required for accura
     async showEmailPreview(emailData) {
         this.log.debug(`Showing preview for email: ${emailData.id}`);
 
+        // ✅ FIX (Jan 3, 2026): Highlight the selected email row with accent blue border
+        if (this.state.tabulatorTable) {
+            // Remove highlight from all rows
+            const allRows = this.state.tabulatorTable.getRows();
+            allRows.forEach(row => {
+                const element = row.getElement();
+                element.style.outline = '';
+                element.style.outlineOffset = '';
+                element.style.boxShadow = '';
+                element.style.position = '';
+                element.style.zIndex = '';
+            });
+
+            // Add highlight to current email row (using outline to avoid layout shift)
+            const currentRow = this.state.tabulatorTable.getRows().find(r => r.getData().id === emailData.id);
+            if (currentRow) {
+                const element = currentRow.getElement();
+                element.style.outline = '2px solid var(--accent-blue, #3b82f6)';
+                element.style.outlineOffset = '-2px';  // Inset the outline so it doesn't expand the row
+                element.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.4)';
+                element.style.position = 'relative';
+                element.style.zIndex = '10';
+            }
+        }
+
         // Check if preview is in popup mode - create new popup instance
         const existingPreview = document.getElementById('emailPreview');
         const isPopupMode = existingPreview && existingPreview.getAttribute('data-mode') === 'popup';
@@ -3379,10 +3440,10 @@ Draft questions for the customer listing all missing details required for accura
 
         // Show panel immediately with loading state
         const loadingHtml = `
-            <div class="email-preview-subject">
+            <div class="email-preview-subject" style="flex-shrink: 0; padding: 16px 20px; border-bottom: 1px solid var(--border-default, #30363d);">
                 <h4>${this.escapeHtml(emailData.subject)}</h4>
             </div>
-            <div class="email-preview-meta">
+            <div class="email-preview-meta" style="flex-shrink: 0; padding: 12px 20px; background: var(--bg-secondary, #161b22); border-bottom: 1px solid var(--border-default, #30363d);">
                 <div class="meta-row">
                     <span class="meta-label">From:</span>
                     <span class="meta-value">${this.escapeHtml(emailData.from)}</span>
@@ -3396,7 +3457,7 @@ Draft questions for the customer listing all missing details required for accura
                     <span class="meta-value">${emailData.provider}</span>
                 </div>
             </div>
-            <div class="email-preview-content">
+            <div class="email-preview-content" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; align-items: center; justify-content: center; padding: 12px;">
                 <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
                     <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
                     <p>Loading email content...</p>
@@ -3438,10 +3499,10 @@ Draft questions for the customer listing all missing details required for accura
             } else {
                 // Single email view
                 contentHtml = `
-                    <div class="email-preview-subject">
-                        <h4>${this.escapeHtml(fullEmail.subject)}</h4>
+                    <div class="email-preview-subject" style="flex-shrink: 0; padding: 10px 12px; border-bottom: 1px solid var(--border-default, #30363d);">
+                        <h4 style="margin: 0; font-size: 15px;">${this.escapeHtml(fullEmail.subject)}</h4>
                     </div>
-                    <div class="email-preview-meta">
+                    <div class="email-preview-meta" style="flex-shrink: 0; padding: 8px 12px; background: var(--bg-secondary, #161b22); border-bottom: 1px solid var(--border-default, #30363d); font-size: 12px;">
                         <div class="meta-row">
                             <span class="meta-label">From:</span>
                             <span class="meta-value">${this.escapeHtml(fullEmail.from)}</span>
@@ -3459,11 +3520,13 @@ Draft questions for the customer listing all missing details required for accura
                             <span class="meta-value">${fullEmail.provider}</span>
                         </div>
                     </div>
-                    ${this.renderAttachmentsSection(fullEmail)}
-                    <div class="email-preview-content">
+                    <div class="email-preview-content" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px;">
                         ${this.renderEmailBody(fullEmail)}
+                        ${this.renderAttachmentsSection(fullEmail)}
                     </div>
-                    ${this.renderAISection(fullEmail)}
+                    <div style="flex-shrink: 0; padding: 8px 12px; border-top: 1px solid var(--border-default, #30363d); background: var(--bg-secondary, #161b22);">
+                        ${this.renderAISection(fullEmail)}
+                    </div>
                 `;
             }
 
@@ -3474,10 +3537,10 @@ Draft questions for the customer listing all missing details required for accura
 
             // Show error state
             const errorHtml = `
-                <div class="email-preview-subject">
-                    <h4>${this.escapeHtml(emailData.subject)}</h4>
+                <div class="email-preview-subject" style="flex-shrink: 0; padding: 10px 12px; border-bottom: 1px solid var(--border-default, #30363d);">
+                    <h4 style="margin: 0; font-size: 15px;">${this.escapeHtml(emailData.subject)}</h4>
                 </div>
-                <div class="email-preview-meta">
+                <div class="email-preview-meta" style="flex-shrink: 0; padding: 8px 12px; background: var(--bg-secondary, #161b22); border-bottom: 1px solid var(--border-default, #30363d); font-size: 12px;">
                     <div class="meta-row">
                         <span class="meta-label">From:</span>
                         <span class="meta-value">${this.escapeHtml(emailData.from)}</span>
@@ -3487,8 +3550,8 @@ Draft questions for the customer listing all missing details required for accura
                         <span class="meta-value">${this.formatDate(emailData.date)}</span>
                     </div>
                 </div>
-                <div class="email-preview-content">
-                    <div style="padding: 20px; background: var(--bg-error, #2a1a1a); border-radius: 8px; margin-top: 16px;">
+                <div class="email-preview-content" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px;">
+                    <div style="padding: 20px; background: var(--bg-error, #2a1a1a); border-radius: 8px;">
                         <p style="color: var(--text-error, #ff6b6b); margin: 0 0 8px 0;">
                             <i class="fas fa-exclamation-triangle"></i> Failed to load email content
                         </p>
@@ -3609,57 +3672,43 @@ Draft questions for the customer listing all missing details required for accura
 
         if (hasThread) {
             return `
-                <div class="email-ai-section">
-                    <h4 style="display: flex; align-items: center; gap: 8px; margin: 0 0 12px 0;">
-                        <i class="fas fa-robot" style="color: var(--accent-blue, #3b82f6);"></i>
-                        AI Assistant
-                    </h4>
-                    <div class="ai-thread-linked" style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; border-left: 3px solid var(--accent-blue, #3b82f6);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                            <i class="fas fa-link" style="color: var(--accent-blue, #3b82f6);"></i>
-                            <span style="color: var(--text-primary); font-weight: 500;">Linked to AI Thread</span>
-                            <span style="color: var(--text-secondary); font-size: 11px; margin-left: auto;">${threadLocation}</span>
-                        </div>
-                        <button class="btn-primary" style="width: 100%; margin-top: 8px;"
-                                onclick="window.CommunicationHub.openAIThread('${threadSlug}')">
-                            <i class="fas fa-comments"></i> Continue Conversation
-                        </button>
-                    </div>
+                <div class="email-ai-section" style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-robot" style="color: var(--accent-blue, #3b82f6); font-size: 14px;"></i>
+                    <span style="color: var(--text-primary); font-size: 12px; font-weight: 500;">AI Assistant</span>
+                    <span style="color: var(--text-secondary); font-size: 10px; margin-left: auto;">${threadLocation}</span>
+                    <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;"
+                            onclick="window.CommunicationHub.openAIThread('${threadSlug}')">
+                        <i class="fas fa-comments"></i> Continue
+                    </button>
                 </div>
             `;
         }
 
         return `
             <div class="email-ai-section">
-                <h4 style="display: flex; align-items: center; gap: 8px; margin: 0 0 12px 0;">
-                    <i class="fas fa-robot" style="color: var(--accent-blue, #3b82f6);"></i>
-                    AI Assistant
-                </h4>
-                <div class="ai-quick-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button class="ai-action-btn" onclick="window.CommunicationHub.handleAIQuickAction('summarize', '${email.id}')">
-                        <i class="fas fa-file-alt"></i> Summarize
-                    </button>
-                    <button class="ai-action-btn" onclick="window.CommunicationHub.handleAIQuickAction('draft_reply', '${email.id}')">
-                        <i class="fas fa-reply"></i> Draft Reply
-                    </button>
-                    <button class="ai-action-btn" onclick="window.CommunicationHub.handleAIQuickAction('extract_tasks', '${email.id}')">
-                        <i class="fas fa-tasks"></i> Extract Tasks
-                    </button>
-                    <button class="ai-action-btn ai-action-primary" onclick="window.CommunicationHub.handleAIQuickAction('discuss', '${email.id}')">
-                        <i class="fas fa-comments"></i> Discuss with AI
-                    </button>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                    <i class="fas fa-robot" style="color: var(--accent-blue, #3b82f6); font-size: 14px;"></i>
+                    <span style="color: var(--text-primary); font-size: 12px; font-weight: 500;">AI Assistant</span>
                 </div>
-                <div style="margin-top: 12px;">
-                    <label style="display: block; color: var(--text-secondary, #8b949e); font-size: 0.85em; margin-bottom: 6px; font-weight: 500;">
-                        <i class="fas fa-pencil-alt" style="margin-right: 4px;"></i> Custom Instructions (Optional)
-                    </label>
-                    <textarea id="ai-custom-instruction-${email.id}" 
-                              placeholder="Add specific instructions for the AI (e.g., 'Focus on pricing details' or 'Use formal tone')..."
-                              style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid var(--border-color, #30363d); 
-                                     border-radius: 6px; background: var(--input-bg, #0d1117); color: var(--text-primary, #c9d1d9);
-                                     font-size: 0.9em; font-family: inherit; resize: vertical;"
-                    ></textarea>
-                </div>
+                
+                <button class="agent-assignment-btn" 
+                        onclick="window.CommunicationHub.showAgentAssignmentFromPreview('${email.id}', event)"
+                        style="width: 100%; padding: 6px 8px; background: var(--bg-secondary, #161b22); border: 1px solid var(--border-color, #30363d);
+                               border-radius: 6px; color: var(--text-primary, #c9d1d9); cursor: pointer; display: flex; align-items: center; gap: 6px;
+                               transition: background 0.2s, border-color 0.2s; margin-bottom: 6px;"
+                        onmouseover="this.style.background='var(--bg-tertiary, #0d1117)'; this.style.borderColor='var(--accent-blue, #3b82f6)'"
+                        onmouseout="this.style.background='var(--bg-secondary, #161b22)'; this.style.borderColor='var(--border-color, #30363d)'">
+                    <i class="fas fa-user-robot" style="color: var(--accent-blue, #3b82f6); font-size: 11px;"></i>
+                    <span style="flex: 1; text-align: left; font-size: 11px;">Select Agent & Task</span>
+                    <i class="fas fa-chevron-down" style="color: var(--text-secondary, #8b949e); font-size: 9px;"></i>
+                </button>
+                
+                <textarea id="ai-custom-instruction-${email.id}" 
+                          placeholder="Custom instructions (optional)..."
+                          style="width: 100%; min-height: 40px; padding: 6px; border: 1px solid var(--border-color, #30363d); 
+                                 border-radius: 6px; background: var(--input-bg, #0d1117); color: var(--text-primary, #c9d1d9);
+                                 font-size: 11px; font-family: inherit; resize: vertical;"
+                ></textarea>
             </div>
         `;
     },
@@ -3767,14 +3816,14 @@ Draft questions for the customer listing all missing details required for accura
                     }
                 });
 
-                // Update thread location to 'prime-loaded'
+                // Update thread location to 'prime'
                 try {
                     await this.api.post('/api/threads/update-location', {
                         thread_slug: threadSlug,
-                        new_location: 'prime-loaded',
+                        new_location: 'prime',
                         user_id: userId
                     });
-                    this.log.success(`✅ Updated thread location to prime-loaded`);
+                    this.log.success(`✅ Updated thread location to prime`);
 
                     // Refresh ThreadManager to reflect new location
                     if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
@@ -3859,13 +3908,43 @@ Draft questions for the customer listing all missing details required for accura
     openAIThread(threadSlug) {
         this.log.debug(`Opening AI thread: ${threadSlug}`);
 
+        // ✅ FIX (Jan 3, 2026): Navigate to the agent's column in command center
+        if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
+            const thread = ThreadManager.threads.find(t => t.id === threadSlug || t.thread_slug === threadSlug);
+
+            if (thread) {
+                const location = thread.location;
+                this.log.info(`📍 Thread ${threadSlug} is in location: ${location}`);
+
+                // Parse agent number from location (e.g., 'agent-3' -> 3)
+                if (location && location.startsWith('agent-')) {
+                    const agentNum = parseInt(location.split('-')[1]);
+
+                    // Navigate to agent column using MultiAgent
+                    if (typeof MultiAgent !== 'undefined' && MultiAgent.switchToAgent) {
+                        this.log.info(`🎯 Switching to agent ${agentNum}`);
+                        MultiAgent.switchToAgent(agentNum);
+                    } else {
+                        // Fallback: Try to show the agent's container
+                        const agentContainer = document.getElementById(`agent-${agentNum}-container`);
+                        if (agentContainer) {
+                            agentContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }
+                } else if (location === 'prime') {
+                    // Navigate to Prime column
+                    if (typeof AIPrime !== 'undefined' && AIPrime.focus) {
+                        AIPrime.focus();
+                    }
+                }
+            }
+        }
+
+        // Also try legacy AIPrime.open if available
         if (window.AIPrime?.open) {
             window.AIPrime.open({
                 threadSlug: threadSlug
             });
-        } else {
-            // Fallback: Navigate to thread
-            window.location.hash = `#thread/${threadSlug}`;
         }
     },
 
@@ -4671,6 +4750,47 @@ Draft questions for the customer listing all missing details required for accura
     },
 
     /**
+     * Show warning message
+     */
+    showWarning(message) {
+        this.log.warn(message);
+        if (typeof showToast === 'function') {
+            showToast(message, 'warning', 3000);
+        }
+    },
+
+    /**
+     * Open email preview by email ID (called from thread cards)
+     * @param {string} emailId - Email ID to preview
+     */
+    async openEmailPreview(emailId) {
+        this.log.debug(`Opening email preview for ID: ${emailId}`);
+
+        try {
+            // Find email in current state
+            const email = this.state.emails?.find(e => e.id === emailId);
+
+            if (email) {
+                // Email already loaded in state
+                await this.showEmailPreview(email);
+            } else {
+                // Email not in state, need to fetch it
+                this.log.debug(`Email ${emailId} not in state, fetching...`);
+                const response = await this.api.get(`${this.state.apiBase}/emails/${emailId}`);
+
+                if (response.success && response.email) {
+                    await this.showEmailPreview(response.email);
+                } else {
+                    throw new Error('Email not found');
+                }
+            }
+        } catch (error) {
+            this.log.error(`Failed to open email preview: ${error.message}`);
+            this.showError(`Failed to open email: ${error.message}`);
+        }
+    },
+
+    /**
      * Show warning when no email accounts are connected
      */
     showNoAccountsWarning() {
@@ -4938,30 +5058,31 @@ Draft questions for the customer listing all missing details required for accura
     /**
      * Unload email thread from agent (move to prime)
      */
-    async unloadEmailFromAgent(emailId, event) {
+    async unloadEmailFromAgent(emailId, threadSlug, event) {
         event?.stopPropagation();
 
-        const threadSlug = this.state.emailThreads?.[emailId];
-        if (!threadSlug) {
+        // Use provided threadSlug or fallback to state
+        const actualThreadSlug = threadSlug || this.state.emailThreads?.[emailId];
+        if (!actualThreadSlug) {
             this.log.warn('No thread found for email:', emailId);
             return;
         }
 
-        const thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
+        const thread = ThreadManager?.threads?.find(t => t.id === actualThreadSlug);
         if (!thread) {
-            this.log.warn('Thread not found in ThreadManager:', threadSlug);
+            this.log.warn('Thread not found in ThreadManager:', actualThreadSlug);
             return;
         }
 
         const userId = window.UserAuth?.user?.id || 1;
 
         try {
-            this.log.info(`🔄 Unloading thread ${threadSlug} from ${thread.location} to prime`);
+            this.log.info(`🔄 Unloading thread ${actualThreadSlug} from ${thread.location} to unassigned`);
 
-            // Update location to prime
+            // Update location to unassigned
             await this.api.post('/api/threads/update-location', {
-                thread_slug: threadSlug,
-                new_location: 'prime',
+                thread_slug: actualThreadSlug,
+                new_location: 'unassigned',
                 user_id: userId
             });
 
@@ -4975,7 +5096,7 @@ Draft questions for the customer listing all missing details required for accura
             }
 
             // Update local state
-            thread.location = 'prime';
+            thread.location = 'unassigned';
 
             // Refresh table to show "Assign Agent" button again
             if (this.state.tabulatorTable) {
@@ -4986,7 +5107,7 @@ Draft questions for the customer listing all missing details required for accura
                 showToast('✅ Thread unloaded to Prime', 'success', 2000);
             }
 
-            this.log.success(`✅ Thread ${threadSlug} unloaded to prime`);
+            this.log.success(`✅ Thread ${actualThreadSlug} unloaded to prime`);
 
         } catch (error) {
             this.log.error('Failed to unload thread:', error);
@@ -4997,39 +5118,48 @@ Draft questions for the customer listing all missing details required for accura
     },
 
     /**
-     * Open thread in AI Prime and update location to prime-loaded
+     * Open thread in AI Prime and update location to prime
      * @param {string} threadSlug - Thread slug to open
      */
     async openThreadInPrime(threadSlug) {
         try {
-            // Open AI Prime sidebar
-            if (window.AIPrime?.open) {
-                window.AIPrime.open({
-                    threadSlug: threadSlug,
-                    agent: 'communication-agent'
-                });
+            this.log.info(`🔵 Opening thread in Prime: ${threadSlug}`);
 
-                // Update thread location to 'prime-loaded'
-                const userId = window.UserAuth?.user?.id || 1;
-                await this.api.post('/api/threads/update-location', {
-                    thread_slug: threadSlug,
-                    new_location: 'prime-loaded',
-                    user_id: userId
-                });
-                this.log.success(`✅ Updated thread location to prime-loaded`);
-
-                // Refresh ThreadManager to reflect new location
-                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
-                    await ThreadManager.loadThreadsFromBackend();
+            // CRITICAL: Use ThreadManager.loadThreadInPrime() to properly load messages
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadInPrime === 'function') {
+                // Find thread by slug
+                const thread = ThreadManager.threads?.find(t => t.slug === threadSlug);
+                if (thread) {
+                    this.log.info(`✅ Found thread ID: ${thread.id}, loading messages...`);
+                    // Use ThreadManager's proper load function (loads messages + updates location)
+                    await ThreadManager.loadThreadInPrime(thread.id);
+                    this.log.success(`✅ Thread loaded in Prime with messages`);
+                } else {
+                    this.log.warn(`⚠️ Thread not found in ThreadManager, using fallback...`);
+                    // Fallback: Just open sidebar without messages
+                    if (window.AIPrime?.open) {
+                        window.AIPrime.open({
+                            threadSlug: threadSlug,
+                            agent: 'communication-agent'
+                        });
+                    }
                 }
 
-                // Update Tabulator if we have the email table
-                if (this.emailTable) {
-                    this.emailTable.redraw();
+                // Update Tabulator to show new badge
+                if (this.state.tabulatorTable) {
+                    this.state.tabulatorTable.redraw();
                 }
             } else {
-                // Fallback: Navigate to thread
-                window.location.hash = `#thread/${threadSlug}`;
+                this.log.warn(`⚠️ ThreadManager not available, using basic open`);
+                // Fallback: Basic open without message loading
+                if (window.AIPrime?.open) {
+                    window.AIPrime.open({
+                        threadSlug: threadSlug,
+                        agent: 'communication-agent'
+                    });
+                } else {
+                    window.location.hash = `#thread/${threadSlug}`;
+                }
             }
         } catch (error) {
             this.log.error('Failed to open thread in Prime:', error);
@@ -5077,6 +5207,372 @@ Draft questions for the customer listing all missing details required for accura
             // Fallback to alert if toast not available
             alert(message);
         }
+    },
+
+    /**
+     * Show agent assignment dropdown from email preview panel
+     * This is called from the preview panel's "Select Agent & Task Type" button
+     */
+    async showAgentAssignmentFromPreview(emailId, event) {
+        this.log.info(`📋 Opening agent dropdown from preview for email: ${emailId}`);
+
+        // Get the button that was clicked for positioning
+        const button = event?.target?.closest('.agent-assignment-btn');
+        if (!button) {
+            this.log.error('❌ Could not find agent assignment button');
+            return;
+        }
+
+        // Get email data
+        const email = this.state.emails.find(e => e.id === emailId);
+        if (!email) {
+            this.log.error('❌ Email not found:', emailId);
+            return;
+        }
+
+        // Remove any existing dropdown
+        const existingDropdown = document.querySelector('.agent-assignment-dropdown');
+        if (existingDropdown) {
+            existingDropdown.remove();
+        }
+
+        // Fetch synergy sessions and thread counts (same as table dropdown)
+        this.log.info('🔍 Building agent list from MultiAgent.loadedThreads...');
+
+        let threadCounts = {};
+
+        // USE COMMAND CENTER'S DATA: MultiAgent.loadedThreads
+        if (typeof MultiAgent !== 'undefined' && MultiAgent.loadedThreads) {
+            this.log.info('✅ Using MultiAgent.loadedThreads (Command Center data)');
+
+            // Count threads per agent from MultiAgent.loadedThreads
+            Object.entries(MultiAgent.loadedThreads).forEach(([agentId, threadInfo]) => {
+                if (threadInfo && threadInfo.threadId) {
+                    // agentId is a string like "3", "4", etc. - store as number
+                    const numericId = parseInt(agentId);
+                    threadCounts[numericId] = 1; // Each agent can only have 1 thread loaded
+                    const agentName = MultiAgent.getAgentName(numericId);
+                    this.log.info(`   Agent ${agentId} (${agentName}): 1 thread - "${threadInfo.threadTitle}"`);
+                }
+            });
+
+            // Check if Prime has a loaded thread (from ThreadManager)
+            if (typeof ThreadManager !== 'undefined' && ThreadManager.currentThreadId) {
+                const primeThread = ThreadManager.threads?.find(t => t.id === ThreadManager.currentThreadId);
+                if (primeThread) {
+                    threadCounts['27'] = 1; // Prime agent ID
+                    this.log.info(`   Agent 27 (Prime): 1 thread - "${primeThread.title}"`);
+                }
+            }
+
+            const totalThreads = Object.keys(threadCounts).length;
+            this.log.info(`   Total agents with threads: ${totalThreads}`);
+        } else {
+            this.log.warn('⚠️ MultiAgent.loadedThreads not available, showing Prime + Alpha only');
+        }
+
+        // Get current assignment
+        const currentThreadSlug = this.state.emailThreads?.[emailId];
+
+        // Build agent list - MATCHES EMAIL TABLE DROPDOWN LOGIC
+        // Order: Prime FIRST, then NATO agents (only show up to last active + 1)
+        const agentOrder = ['Prime', 'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India',
+            'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
+            'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
+
+        // Agent ID mapping (Prime = 27, Alpha = 1, Bravo = 2, etc.)
+        const agentIdMap = {
+            'Prime': 27,
+            'Alpha': 1, 'Bravo': 2, 'Charlie': 3, 'Delta': 4, 'Echo': 5, 'Foxtrot': 6,
+            'Golf': 7, 'Hotel': 8, 'India': 9, 'Juliet': 10, 'Kilo': 11, 'Lima': 12,
+            'Mike': 13, 'November': 14, 'Oscar': 15, 'Papa': 16, 'Quebec': 17, 'Romeo': 18,
+            'Sierra': 19, 'Tango': 20, 'Uniform': 21, 'Victor': 22, 'Whiskey': 23,
+            'Xray': 24, 'Yankee': 25, 'Zulu': 26
+        };
+
+        // Find highest agent with threads
+        let highestActiveAgentId = 0;
+        Object.keys(threadCounts).forEach(agentId => {
+            const id = parseInt(agentId);
+            if (id > 0 && id <= 26 && id > highestActiveAgentId) {
+                highestActiveAgentId = id;
+            }
+        });
+
+        this.log.info(`✅ Highest active agent ID: ${highestActiveAgentId} (${MultiAgent.getAgentName(highestActiveAgentId) || 'None'})`);
+
+        // Show ALL agents from Prime through highest active + 1 (for "Activate Next Agent")
+        const maxAgentIdToShow = Math.min(highestActiveAgentId + 1, 26);
+
+        this.log.info(`✅ Will show agents from Prime (27) and Alpha (1) to ${agentOrder[maxAgentIdToShow]} (${maxAgentIdToShow})`);
+        this.log.info(`   This includes ALL agents 1-${maxAgentIdToShow}, showing which have threads and which are empty`);
+
+        const agentList = [];
+
+        agentOrder.forEach((name, index) => {
+            const agentId = agentIdMap[name];
+
+            // Show Prime always
+            if (name === 'Prime') {
+                // Will be processed below
+            }
+            // Show agents 1 through maxAgentIdToShow
+            else if (agentId > maxAgentIdToShow) {
+                this.log.info(`   ⏭️ Skipping agent ${name} (ID ${agentId}) - beyond highest active + 1`);
+                return;
+            }
+
+            const threadCount = threadCounts[agentId] || 0;
+            const isCurrentAgent = false; // Not checking current assignment for now
+            const isNextAvailable = agentId === maxAgentIdToShow && threadCount === 0;
+
+            let borderColor, iconColor, statusText, icon;
+
+            if (isCurrentAgent) {
+                // Currently assigned to this email
+                borderColor = '#6366f1';
+                iconColor = '#6366f1';
+                icon = '<i class="fas fa-check-circle" style="color: #6366f1; margin-left: 8px;"></i>';
+                statusText = '';
+            } else if (threadCount > 0) {
+                // Agent has threads - show PURPLE BORDER + thread count
+                borderColor = '#6366f1';
+                iconColor = '#8b949e';
+                icon = '';
+                statusText = `<span style="color: #8b949e; font-size: 10px; margin-left: 6px;">(${threadCount} ${threadCount === 1 ? 'thread' : 'threads'})</span>`;
+            } else {
+                // Empty agent - show GREEN
+                borderColor = 'transparent';
+                iconColor = '#22c55e';
+                icon = '';
+                statusText = '<span style="color: #22c55e; font-size: 10px; margin-left: 6px; font-weight: 600;">(Empty)</span>';
+            }
+
+            agentList.push({ name, agentId, threadCount, isCurrentAgent, borderColor, iconColor, icon, statusText, isNextAvailable });
+        });
+
+        // Create dropdown HTML
+        const dropdownHtml = `
+            <div class="agent-assignment-dropdown" style="
+                position: fixed;
+                background: #1a1a1a;
+                border: 1px solid #30363d;
+                border-radius: 8px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+                max-height: 400px;
+                overflow-y: auto;
+                z-index: 10000;
+                min-width: 280px;
+            ">
+                <div style="padding: 12px; border-bottom: 1px solid #30363d; background: #0d1117;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-robot" style="color: #6366f1;"></i>
+                        <strong style="color: #f0f6fc; font-size: 14px;">Select Agent & Task</strong>
+                    </div>
+                </div>
+                ${agentList.map(agent => `
+                    <div class="agent-dropdown-item" data-agent-id="${agent.agentId}" data-agent-name="${agent.name}" style="
+                        padding: 10px 12px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        border-bottom: 1px solid #30363d;
+                        transition: background 0.2s;
+                        border-left: ${agent.borderColor === 'transparent' ? 'none' : `3px solid ${agent.borderColor}`};
+                        ${agent.isNextAvailable ? 'background: rgba(34, 197, 94, 0.08);' : ''}
+                    ">
+                        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                            <i class="fas ${agent.isNextAvailable ? 'fa-plus-circle' : 'fa-robot'}" style="color: ${agent.iconColor}; width: 16px; text-align: center;"></i>
+                            <span style="color: #f0f6fc; font-size: 13px; ${agent.isNextAvailable ? 'font-weight: 600;' : ''}">${agent.isNextAvailable ? 'Activate ' : ''}${agent.name}</span>
+                            ${agent.icon}
+                            ${agent.statusText}
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: #6b7280; font-size: 10px;"></i>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // Insert dropdown into DOM
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = dropdownHtml;
+        const dropdown = tempContainer.firstElementChild;
+        document.body.appendChild(dropdown);
+
+        // Position dropdown below button (or above if not enough space)
+        const buttonRect = button.getBoundingClientRect();
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - buttonRect.bottom;
+        const spaceAbove = buttonRect.top;
+
+        if (spaceBelow >= dropdownRect.height || spaceBelow >= spaceAbove) {
+            // Position below button
+            dropdown.style.top = `${buttonRect.bottom + 4}px`;
+        } else {
+            // Position above button
+            dropdown.style.top = `${buttonRect.top - dropdownRect.height - 4}px`;
+        }
+        dropdown.style.left = `${buttonRect.left}px`;
+
+        // Add hover effects to agent items
+        dropdown.querySelectorAll('.agent-dropdown-item').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                item.style.background = 'rgba(99, 102, 241, 0.1)';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.background = 'transparent';
+            });
+
+            // Click handler: show task submenu
+            item.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const agentId = parseInt(item.dataset.agentId);
+                const agentName = item.dataset.agentName;
+
+                // Show task type submenu
+                this.showTaskSubmenuFromPreview(emailId, agentId, agentName, item, dropdown);
+            });
+        });
+
+        // Close dropdown on outside click
+        const closeHandler = (e) => {
+            if (!dropdown.contains(e.target) && !button.contains(e.target)) {
+                dropdown.remove();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+
+        this.log.success(`✅ Agent dropdown displayed with ${agentList.length} agents`);
+    },
+
+    /**
+     * Show task type submenu from preview panel
+     */
+    showTaskSubmenuFromPreview(emailId, agentId, agentName, agentItem, parentDropdown) {
+        this.log.info(`📋 Showing task submenu for ${agentName} (Agent ${agentId})`);
+
+        // Remove any existing submenu
+        const existingSubmenu = document.querySelector('.task-submenu');
+        if (existingSubmenu) {
+            existingSubmenu.remove();
+        }
+
+        // Task types with icons and colors
+        const taskTypes = [
+            { type: 'generate_quote', label: 'Generate Quote', icon: 'fa-calculator', color: '#10b981' },
+            { type: 'summarize', label: 'Summarize', icon: 'fa-list-ul', color: '#3b82f6' },
+            { type: 'draft_reply', label: 'Draft Reply', icon: 'fa-reply', color: '#8b5cf6' },
+            { type: 'extract_tasks', label: 'Extract Tasks', icon: 'fa-check-square', color: '#f59e0b' },
+            { type: 'analyze', label: 'Analyze', icon: 'fa-search', color: '#ec4899' },
+            { type: 'discuss', label: 'Discuss', icon: 'fa-comments', color: '#6366f1' }
+        ];
+
+        // Create submenu HTML
+        const submenuHtml = `
+            <div class="task-submenu" style="
+                position: fixed;
+                background: #1a1a1a;
+                border: 1px solid #30363d;
+                border-radius: 8px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+                z-index: 10001;
+                min-width: 200px;
+            ">
+                <div style="padding: 10px 12px; border-bottom: 1px solid #30363d; background: #0d1117;">
+                    <strong style="color: #f0f6fc; font-size: 13px;">${agentName} - Select Task</strong>
+                </div>
+                ${taskTypes.map(task => `
+                    <div class="task-item" data-task-type="${task.type}" style="
+                        padding: 10px 12px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        border-bottom: 1px solid #30363d;
+                        transition: background 0.2s;
+                    ">
+                        <i class="fas ${task.icon}" style="color: ${task.color}; width: 16px;"></i>
+                        <span style="color: #f0f6fc; font-size: 13px;">${task.label}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // Insert submenu into DOM
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = submenuHtml;
+        const submenu = tempContainer.firstElementChild;
+        document.body.appendChild(submenu);
+
+        // Position submenu to the right of agent item
+        const itemRect = agentItem.getBoundingClientRect();
+        const submenuRect = submenu.getBoundingClientRect();
+        const spaceRight = window.innerWidth - itemRect.right;
+
+        if (spaceRight >= submenuRect.width) {
+            // Position to the right
+            submenu.style.left = `${itemRect.right + 4}px`;
+        } else {
+            // Position to the left
+            submenu.style.left = `${itemRect.left - submenuRect.width - 4}px`;
+        }
+        submenu.style.top = `${itemRect.top}px`;
+
+        // Add hover effects to task items
+        submenu.querySelectorAll('.task-item').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                item.style.background = 'rgba(99, 102, 241, 0.1)';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.background = 'transparent';
+            });
+
+            // Click handler: assign email with task type
+            item.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const taskType = item.dataset.taskType;
+
+                // Get custom instructions from textarea
+                const instructionsTextarea = document.getElementById(`ai-custom-instruction-${emailId}`);
+                const customInstructions = instructionsTextarea?.value?.trim() || '';
+
+                this.log.info(`🎯 Assigning email ${emailId} to ${agentName} with task: ${taskType}`);
+                if (customInstructions) {
+                    this.log.info(`📝 Custom instructions: ${customInstructions}`);
+                }
+
+                // Close both dropdowns
+                submenu.remove();
+                parentDropdown.remove();
+
+                // Assign email with task type and custom instructions
+                await this.assignEmailToAgentWithTask(
+                    emailId,
+                    agentName,
+                    agentId,
+                    taskType,
+                    null, // cell (not applicable from preview)
+                    customInstructions
+                );
+
+                // Refresh preview panel to show assignment
+                const email = this.state.emails.find(e => e.id === emailId);
+                if (email) {
+                    this.showEmailPreview(email);
+                }
+            });
+        });
+
+        // Close submenu on outside click
+        const closeHandler = (e) => {
+            if (!submenu.contains(e.target)) {
+                submenu.remove();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
     },
 
     /**
@@ -5259,8 +5755,10 @@ Draft questions for the customer listing all missing details required for accura
 
                 let assignedCount = 0;
                 ThreadManager.threads.forEach(thread => {
-                    // Check if thread has email metadata
-                    const emailId = thread.metadata?.email_thread_id || thread.email_thread_id;
+                    // ✅ FIX (Jan 3, 2026): Try multiple field locations for email ID
+                    const emailId = thread.email_thread_id ||
+                        thread.metadata?.email_thread_id ||
+                        thread.metadata?.email_id;
                     if (emailId) {
                         this.state.emailThreads[emailId] = thread.id;
                         assignedCount++;
@@ -5306,6 +5804,13 @@ Draft questions for the customer listing all missing details required for accura
             this.log.warn('⚠️ ThreadManager events not available - realtime sync disabled');
         }
 
+        // ✅ FIX (Jan 3, 2026): Re-sync email mappings when agent threads load
+        // This ensures badges render correctly for agent-4, agent-5, etc. after async load
+        window.addEventListener('multiagent-threads-loaded', () => {
+            this.log.info('🔔 MultiAgent threads loaded - re-syncing email assignments');
+            this.syncEmailAssignments(); // Re-sync mappings from newly loaded threads
+        });
+
         // Also listen for window events (backup mechanism)
         window.addEventListener('thread-created', (e) => {
             this.log.info('🔔 Thread created event:', e.detail);
@@ -5334,16 +5839,34 @@ Draft questions for the customer listing all missing details required for accura
 
             const response = await this.api.get(`${this.state.apiBase}/email-thread-mappings`);
 
+            console.log('🔍 [loadEmailThreadMappings] Raw API response:', response);
+            console.log('🔍 [loadEmailThreadMappings] response.success:', response.success);
+            console.log('🔍 [loadEmailThreadMappings] response.mappings:', response.mappings);
+            console.log('🔍 [loadEmailThreadMappings] response.count:', response.count);
+
             if (response.success && response.mappings) {
                 // Replace in-memory state with database mappings
                 this.state.emailThreads = response.mappings;
 
+                console.log('🔍 [loadEmailThreadMappings] SET this.state.emailThreads to:', this.state.emailThreads);
+                console.log('🔍 [loadEmailThreadMappings] Sample keys:', Object.keys(this.state.emailThreads).slice(0, 3));
+
                 this.log.success(`✅ Loaded ${response.count} email-thread mapping(s) from database`);
 
-                // Redraw table to show agent badges
+                // ✅ CRITICAL (Jan 3, 2026): Refresh ThreadManager to load assigned threads
+                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                    this.log.info('🔄 Refreshing ThreadManager to load assigned threads...');
+                    await ThreadManager.loadThreadsFromBackend();
+                    console.log('🔍 [loadEmailThreadMappings] ThreadManager.threads after refresh:', ThreadManager.threads?.length);
+                    console.log('🔍 [loadEmailThreadMappings] Sample thread IDs:', ThreadManager.threads?.slice(0, 3).map(t => ({ id: t.id, slug: t.thread_slug, email: t.email_thread_id })));
+                    this.log.success('✅ ThreadManager refreshed with assigned threads');
+                }
+
+                // Redraw table to show agent badges (after threads are loaded)
                 if (this.state.tabulatorTable) {
                     this.log.info('🔄 Redrawing table to show persisted assignments...');
                     this.state.tabulatorTable.redraw();
+                    console.log('🔍 [loadEmailThreadMappings] Table redraw completed');
                 }
             } else {
                 this.log.warn('⚠️ No email-thread mappings found in database');
@@ -5373,9 +5896,18 @@ Draft questions for the customer listing all missing details required for accura
         this.state.emailThreads = {};
 
         ThreadManager.threads.forEach(thread => {
-            const emailId = thread.metadata?.email_thread_id || thread.email_thread_id;
+            // ✅ FIX (Jan 3, 2026): Try multiple field locations for email ID
+            const emailId = thread.email_thread_id ||
+                thread.metadata?.email_thread_id ||
+                thread.metadata?.email_id;
+
             if (emailId) {
                 this.state.emailThreads[emailId] = thread.id;
+
+                // Debug log first few mappings
+                if (Object.keys(this.state.emailThreads).length <= 3) {
+                    console.log(`[CommunicationHub] Mapped email ${emailId.substring(0, 20)}... → thread ${thread.id} (${thread.location})`);
+                }
             }
         });
 

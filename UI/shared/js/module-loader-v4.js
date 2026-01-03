@@ -249,6 +249,7 @@ class ModuleLoaderV4 {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = src;
+            script.type = 'module'; // Support ES6 modules with import statements
             script.onload = () => resolve(window); // Legacy modules export to window
             script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
             document.head.appendChild(script);

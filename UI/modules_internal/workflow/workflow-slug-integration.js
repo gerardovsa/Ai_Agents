@@ -289,7 +289,7 @@ window.WorkflowThreadIntegration = {
             });
 
             // Update UI
-            const location = thread.location || 'prime';
+            const location = thread.location || 'unassigned';
             const threadInfoContainer = document.querySelector(`#thread-info-${location.replace('agent-', '')}`);
             if (threadInfoContainer) {
                 threadInfoContainer.innerHTML = window.ThreadManager.renderThreadInfoContainer(

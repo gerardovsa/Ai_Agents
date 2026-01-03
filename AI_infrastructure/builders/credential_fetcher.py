@@ -96,6 +96,7 @@ class CredentialFetcher:
         """
         logger.debug(f"🔍 Fetching {platform} credentials for user_id={user_id}")
         
+        conn = None
         try:
             conn = self._get_db_connection()
             cursor = conn.cursor()
@@ -115,7 +116,6 @@ class CredentialFetcher:
             """, (user_id, platform_pattern))
             
             row = cursor.fetchone()
-            conn.close()
             
             if not row:
                 logger.warning(f"⚠️ No credentials found for {platform}")
@@ -160,6 +160,13 @@ class CredentialFetcher:
         except Error as e:
             logger.error(f" Database error: {e}")
             return None
+        finally:
+            # ✅ CRITICAL: Always close connection
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
 
     def get_all_credentials(self, user_id: int) -> Dict[str, Any]:
         """

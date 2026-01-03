@@ -60,7 +60,7 @@ const ThreadLoader = {
     async loadMessagesForThread(threadId, limit = null, offset = 0) {
         // Prevent simultaneous requests from exhausting 5-connection pool
         await delayIfNeeded();
-        
+
         try {
             console.log(`[ThreadLoader] Fetching messages for thread ${threadId} (limit: ${limit}, offset: ${offset})...`);
 
@@ -71,21 +71,29 @@ const ThreadLoader = {
             }
 
             const response = await fetch(url);
-            
+
             // ✅ FIX: Handle 500 errors for missing threads
             if (!response.ok) {
                 console.warn(`[ThreadLoader] ⚠️ Thread ${threadId} not found or error (${response.status}) - thread may have been deleted`);
-                return { 
-                    messages: [], 
+                return {
+                    messages: [],
                     pagination: { total: 0, loaded: 0, hasMore: false, nextOffset: 0 },
                     error: 'THREAD_NOT_FOUND'
                 };
             }
-            
+
             const data = await response.json();
 
             if (data.success && data.data) {
                 const messages = data.data.messages || data.data || [];
+
+                // DEBUG: Track role distribution
+                const roleCounts = messages.reduce((acc, msg) => {
+                    acc[msg.role] = (acc[msg.role] || 0) + 1;
+                    return acc;
+                }, {});
+                console.log(`[ThreadLoader DEBUG] Thread ${threadId}: Received ${messages.length} messages from backend`);
+                console.log(`[ThreadLoader DEBUG] Role distribution:`, roleCounts);
 
                 // If pagination data exists (paginated request), return it
                 if (data.data.total !== undefined) {

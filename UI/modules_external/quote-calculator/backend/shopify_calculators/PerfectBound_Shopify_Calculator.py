@@ -100,6 +100,10 @@ class PerfectBoundShopifyCalculator:
             PerfectBoundQuoteResult with total price, unit price, and breakdown
         """
         
+        # Convert parameters to correct types if needed
+        quantity = int(quantity) if isinstance(quantity, str) else quantity
+        printed_pages = int(printed_pages) if isinstance(printed_pages, str) else printed_pages
+        
         # Validate pages divisible by 4
         if printed_pages % 4 != 0:
             raise ValueError(f"Pages must be divisible by 4. Got: {printed_pages}")

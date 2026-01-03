@@ -678,7 +678,7 @@ calculate_perfect_bound_books_god(
 - **Test Coverage:** 97.5% (39/40 tests passing)
 - **Tool Schemas:** 31 fully documented
 - **Database Tables:** 5 core tables
-- **SQL Queries:** 50+ pre-built queries available
+- **SQL Queries:** 75+ pre-built queries available
 - **Parameter Flexibility:** String and integer formats supported
 - **Dependencies:** 1 sibling module (inhouse-print)
 

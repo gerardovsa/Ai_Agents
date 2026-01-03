@@ -477,6 +477,43 @@ Completed:
 
 ---
 
+## 🎨 SVG CAD Generation Guidelines
+
+**CRITICAL:** When generating SVG diagrams in AI responses, follow `.github/SVG_CAD_GENERATION_RULES.md`
+
+### Quick Rules for SVG Diagrams
+
+**Title Block Spacing Formula:**
+```
+Title Block Height = (Font Size × Lines × 1.5) + 20px
+Text Y-Position = Block Top + (Font × 1.2)
+Content Start = Block Bottom + 40-60px
+```
+
+**Example (Electrical Schematic):**
+```svg
+<!-- Title block: 90px height (28px + 14px fonts) -->
+<rect x="20" y="20" width="1160" height="90" stroke="#ffd700"/>
+<text x="600" y="55" font-size="28">Title</text>  <!-- 20 + (28×1.2) = 55 -->
+<text x="600" y="85" font-size="14">Subtitle</text>  <!-- 55 + 30 = 85 -->
+
+<!-- Content: starts at y=160 (50px clearance) -->
+<text x="150" y="160" font-size="16">Section Heading</text>
+```
+
+**Common Mistakes:**
+- ❌ Starting content at y=140 (too close - causes overlap)
+- ❌ Title text at y=60 with 28px font in block starting at y=20 (descenders clip)
+- ✅ Always use y=160+ for content when title block ends at y=110
+
+**Full Templates:** See `.github/SVG_CAD_GENERATION_RULES.md` for:
+- Schematic template (1200×900px)
+- Blueprint template (1400×1100px)
+- Validation checklist
+- Debugging guide
+
+---
+
 ## 📞 Support
 
 **Issues & Questions:**

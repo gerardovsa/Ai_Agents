@@ -68,7 +68,7 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
     Args:
         user_id: User ID
         session_id: Thread ID to assign
-        location: Target location (agent-1, agent-2, etc. or 'prime')
+        location: Target location (agent-1, agent-2, etc. or 'unassigned')
     
     Returns:
         dict: {
@@ -127,8 +127,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
                 del assignments[loc]
                 logger.info(f"🔄 [RULE 1] Removed thread {session_id} from {loc} (thread can only be in one location)")
         
-        # If moving to Prime, we're done (Prime is implicit - not stored in metadata)
-        if location == 'prime':
+        # If moving to unassigned, we're done (unassigned is implicit - not stored in metadata)
+        if location == 'unassigned':
             metadata['thread_assignments'] = assignments
             
             sql, params = convert_sql_placeholders("""
@@ -138,10 +138,10 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             """, (json.dumps(metadata), user_id))
             cursor.execute(sql, params)
         
-            # CRITICAL: Also update sessions.threads.location to 'prime'
+            # CRITICAL: Also update sessions.threads.location to 'unassigned'
             sql, params = convert_sql_placeholders("""
                 UPDATE sessions.threads 
-                SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                SET location = 'unassigned', updated_at = CURRENT_TIMESTAMP
                 WHERE thread_slug = %s::text AND user_id = %s
             """, (str(session_id), user_id))
             cursor.execute(sql, params)
@@ -184,16 +184,16 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             cursor.execute(sql, params)
             conn.commit()
             
-            # If thread was displaced, move it to Prime
+            # If thread was displaced, move it to unassigned
             if displaced_thread:
                 sql, params = convert_sql_placeholders("""
                     UPDATE sessions.threads 
-                    SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                    SET location = 'unassigned', updated_at = CURRENT_TIMESTAMP
                     WHERE thread_slug = %s::text AND user_id = %s
                 """, (str(displaced_thread), user_id))
                 cursor.execute(sql, params)
                 conn.commit()
-                logger.info(f"🔄 Moved displaced thread {displaced_thread} to Prime in sessions.threads")
+                logger.info(f"🔄 Moved displaced thread {displaced_thread} to Unassigned in sessions.threads")
             
             logger.info(f"✅ Updated sessions.threads.location for thread {session_id} → {location}")
             
@@ -240,7 +240,7 @@ def get_thread_assignments():
             cursor = conn.cursor()
             
             # Read from sessions.threads.location (single source of truth in Supabase)
-            # CRITICAL: Include prime-loaded (frontend needs this for page load)
+            # CRITICAL: Include prime (frontend needs this for page load)
             logger.info(f"🔍 [Assignment] Executing query for user {user_id}")
             
             sql, params = convert_sql_placeholders("""
@@ -248,7 +248,7 @@ def get_thread_assignments():
                 FROM sessions.threads 
                 WHERE user_id = %s 
                   AND location IS NOT NULL 
-                  AND location != 'prime'
+                  AND location != 'unassigned'
                 ORDER BY updated_at DESC
             """, (user_id,))
             
@@ -262,14 +262,14 @@ def get_thread_assignments():
                 logger.info(f"No thread assignments found for user {user_id}")
                 assignments = {}
             else:
-                # Build assignments dict: {"agent-1": "thread_slug", "prime-loaded": "thread_slug", ...}
+                # Build assignments dict: {"agent-1": "thread_slug", "prime": "thread_slug", ...}
                 assignments = {}
                 for row in rows:
                     thread_slug = str(row['thread_slug'])
                     location = row['location']
                     
-                    # Include agent locations AND prime-loaded (needed for page load)
-                    if location and (location.startswith('agent-') or location == 'prime-loaded'):
+                    # Include agent locations AND prime (needed for page load)
+                    if location and (location.startswith('agent-') or location == 'prime'):
                         assignments[location] = thread_slug
                 
                 logger.info(f"Loaded {len(assignments)} thread assignments from sessions.threads for user {user_id}")
@@ -424,7 +424,7 @@ def assign_thread():
         data = request.get_json()
         user_id = data.get('user_id', 1)
         session_id = data.get('session_id')
-        location = data.get('location', 'prime')
+        location = data.get('location', 'unassigned')
         
         if not session_id:
             return jsonify({
@@ -491,7 +491,7 @@ def assign_thread_by_id(thread_id):
     try:
         data = request.get_json()
         user_id = data.get('user_id', 1)
-        location = data.get('location', 'prime')
+        location = data.get('location', 'unassigned')
         agent_name = data.get('agent_name', location)
         
         logger.info(f"📌 [ASSIGN] Thread {thread_id} → {location} ({agent_name}) [user {user_id}]")

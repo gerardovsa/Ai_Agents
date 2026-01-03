@@ -5,7 +5,7 @@
  * SUBSCRIPTIONS:
  * 1. Heartbeat - Server health monitoring (60s interval)
  * 2. Workspace - Cross-tab sync (user_command_center)
- * 3. Threads - Thread updates (saved_threads table)
+ * 3. Threads - Thread updates (sessions.threads table) ✅ FIXED Dec 29, 2025
  * 4. Synergy - Kanban board updates (synergy_sessions, milestones, tasks, subtasks)
  * 5. Credentials - OAuth token updates (user_platform_credentials)
  * 6. Sessions - User session updates (user_sessions)
@@ -268,7 +268,7 @@ window.RealtimeSubscriptionsInit = (function () {
             SupabaseRealtimeManager.subscribe('threads', {
                 event: '*',
                 schema: 'sessions',
-                table: 'saved_threads',
+                table: 'threads',  // ✅ FIXED Dec 29, 2025: Was 'saved_threads' (wrong table)
                 filter: `user_id=eq.${userId}`,
                 onChange: (eventType, payload) => {
                     console.log('🔔 [Threads] Update received:', eventType, payload);
@@ -291,9 +291,19 @@ window.RealtimeSubscriptionsInit = (function () {
     }
 
     /**
-     * ✅ CORRECTED: Subscribe to CONVERSATION MESSAGES (sessions.messages table)
-     * Broadcasts AI responses and user messages across all browser tabs/sessions in real-time
-     * Ensures zero-latency synchronization for multi-session collaboration
+     * ✅ FIXED (Dec 29, 2025): Subscribe to CONVERSATION MESSAGES with Team ID routing
+     * 
+     * MULTI-USER COLLABORATION SUPPORT:
+     * - Listens to messages where user_id matches (personal messages)
+     * - Filters out messages not intended for this user (based on Team ID routing)
+     * - Shows broadcast messages (AI responses to all users in thread)
+     * - Shows direct messages to user's Team ID
+     * 
+     * MESSAGE ROUTING (sessions.messages columns):
+     * - sender_team_id: Who sent the message (Team ID username)
+     * - recipient_team_id: Who receives (NULL = broadcast, specific Team ID = direct)
+     * - message_type: 'private' (default), 'direct', 'broadcast', 'team'
+     * - user_id: Thread owner (may differ from sender in multi-user threads)
      */
     async function subscribeToThreadMessages(userId) {
         try {
@@ -309,6 +319,24 @@ window.RealtimeSubscriptionsInit = (function () {
 
                     const message = payload.new || payload.old;
                     const threadId = message.thread_id;
+
+                    // ✅ TEAM ID ROUTING: Check if this user should see this message
+                    // Supabase Realtime filters are limited (can't do OR/NULL in filter)
+                    // So we filter client-side for Team ID routing
+                    const userTeamId = window.UserAuth?.user?.username;
+                    const shouldDisplay = (
+                        message.user_id === userId ||  // User owns the thread
+                        message.message_type === 'broadcast' ||  // AI broadcast response
+                        message.recipient_team_id === null ||  // Broadcast (NULL recipient)
+                        message.recipient_team_id === userTeamId ||  // Direct to this Team ID
+                        !message.recipient_team_id  // Undefined = broadcast
+                    );
+
+                    if (!shouldDisplay) {
+                        console.log('⏭️ [Messages] Message not for this user (Team ID routing)');
+                        console.log(`   sender=${message.sender_team_id}, recipient=${message.recipient_team_id}, type=${message.message_type}`);
+                        return;
+                    }
 
                     // ✅ INSTANT UPDATE: Add message to MessageStore (all tabs get this)
                     if (eventType === 'INSERT' && window.MessageStore) {

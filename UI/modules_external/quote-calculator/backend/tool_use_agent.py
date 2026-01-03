@@ -18,6 +18,14 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from anthropic import Anthropic
 
+# Import parameter translator for high-level → low-level parameter conversion
+try:
+    from parameter_translator import translate_parameters, validate_parameters
+    PARAMETER_TRANSLATOR_AVAILABLE = True
+except ImportError:
+    PARAMETER_TRANSLATOR_AVAILABLE = False
+    print("[WARNING] parameter_translator.py not found - parameter translation disabled")
+
 # CRITICAL FIX: Override print() to strip Unicode emoji for Windows cp1252 console
 import builtins
 _original_print = builtins.print
@@ -1064,9 +1072,46 @@ Use this for:
                     }
                 
                 self._print_and_log(f"PRODUCT: {product_type}")
-                self._print_and_log(f"PARAMETERS:")
+                self._print_and_log(f"PARAMETERS (ORIGINAL):")
                 self._print_and_log(json.dumps(params, indent=2))
                 self._print_and_log("")
+                
+                # ========================================================================
+                # PARAMETER TRANSLATION - Convert high-level to low-level parameters
+                # (Jan 3, 2026 - Issue #4: GOD calculator parameter translation)
+                # ========================================================================
+                if PARAMETER_TRANSLATOR_AVAILABLE:
+                    # Check if parameters need translation (contains high-level params like "size")
+                    needs_translation = any(key in params for key in ["size", "colour", "finish", "material", "binding"])
+                    
+                    if needs_translation:
+                        self._print_and_log(f"🔄 TRANSLATING: High-level parameters detected")
+                        try:
+                            # Translate parameters
+                            translated_params = translate_parameters(params, product_type)
+                            
+                            # Show what changed
+                            added_keys = set(translated_params.keys()) - set(params.keys())
+                            removed_keys = set(params.keys()) - set(translated_params.keys())
+                            
+                            if added_keys:
+                                self._print_and_log(f"  ✅ Added: {', '.join(added_keys)}")
+                            if removed_keys:
+                                self._print_and_log(f"  🔄 Removed: {', '.join(removed_keys)}")
+                            
+                            # Validate translated parameters
+                            is_valid, missing = validate_parameters(translated_params, product_type)
+                            if not is_valid:
+                                self._print_and_log(f"  ⚠️ Missing required: {', '.join(missing)}")
+                            
+                            params = translated_params
+                            self._print_and_log(f"PARAMETERS (TRANSLATED):")
+                            self._print_and_log(json.dumps(params, indent=2))
+                            self._print_and_log("")
+                        
+                        except Exception as e:
+                            self._print_and_log(f"  ⚠️ Translation failed: {str(e)}")
+                            self._print_and_log(f"  → Continuing with original parameters")
                 
                 # Define supported parameters for each product type
                 # Updated Dec 8, 2025: Added Shopify calculator parameters for perfect_bound_books

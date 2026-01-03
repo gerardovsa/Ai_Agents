@@ -465,7 +465,7 @@ class AutomationScheduler:
         # Skip if no network connectivity (prevents repeated failures)
         import socket
         try:
-            socket.create_connection(("db.ryoicrdifiqhqpsnjmdo.supabase.co", 5432), timeout=3)
+            socket.create_connection(("db.ryoicrdifiqhqpsnjmdo.supabase.co", 5432), timeout=10)  # Increased from 3 to 10 seconds
         except (socket.timeout, socket.error, OSError):
             logger.warning("No Supabase connectivity - skipping approval check")
             return

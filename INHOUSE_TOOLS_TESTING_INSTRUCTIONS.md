@@ -1,6 +1,6 @@
-# Fred Database Tools - Complete Testing Instructions for AI
+# InHouse Database Tools - Complete Testing Instructions for AI
 
-Use these instructions to systematically test all Fred database query tools and workflows. Copy and paste each test case to an AI assistant.
+Use these instructions to systematically test all InHouse database query tools and workflows. Copy and paste each test case to an AI assistant.
 
 ---
 
@@ -8,7 +8,7 @@ Use these instructions to systematically test all Fred database query tools and 
 
 ### Test 1.1: Simple SELECT Query
 ```
-Test fred_execute_query with basic SELECT:
+Test inhouse_execute_query with basic SELECT:
 - Query: "SELECT TOP 10 OrderID, ClientName, OrderDate, Invoiced FROM Orders ORDER BY OrderDate DESC"
 
 Expected outcomes:
@@ -21,7 +21,7 @@ Save a ClientName from results for Test 1.2
 
 ### Test 1.2: Query with Parameters (LIKE search)
 ```
-Test fred_execute_query with parameterized search:
+Test inhouse_execute_query with parameterized search:
 - Query: "SELECT TOP 20 * FROM Orders WHERE ClientName LIKE ? ORDER BY OrderDate DESC"
 - Params: ['%CJ King%']
 
@@ -59,7 +59,7 @@ Save a TicketID for later tests
 
 ### Test 2.1: COUNT with GROUP BY
 ```
-Test fred_execute_query with aggregation:
+Test inhouse_execute_query with aggregation:
 - Query: '''
     SELECT TOP 20
         o.ClientName,
@@ -81,7 +81,7 @@ Expected outcomes:
 
 ### Test 2.2: CASE Statement (Calculated Fields)
 ```
-Test fred_execute_query with CASE statement:
+Test inhouse_execute_query with CASE statement:
 - Query: '''
     SELECT TOP 50
         OrderID,
@@ -110,7 +110,7 @@ Expected outcomes:
 
 ### Test 3.1: Date Range with Parameters
 ```
-Test fred_execute_query with date range:
+Test inhouse_execute_query with date range:
 - Query: '''
     SELECT TOP 100
         OrderID, ClientName, OrderDate, DateRequired, Invoiced
@@ -128,7 +128,7 @@ Expected outcomes:
 
 ### Test 3.2: Relative Date Query
 ```
-Test fred_execute_query with relative dates:
+Test inhouse_execute_query with relative dates:
 - Query: '''
     SELECT TOP 50 *
     FROM Orders
@@ -148,7 +148,7 @@ Expected outcomes:
 
 ### Test 4.1: Urgent Orders
 ```
-Test fred_execute_query with boolean filters:
+Test inhouse_execute_query with boolean filters:
 - Query: '''
     SELECT TOP 30
         OrderID, ClientName, OrderDate, DateRequired, Invoiced
@@ -165,7 +165,7 @@ Expected outcomes:
 
 ### Test 4.2: Job Finishing Options
 ```
-Test fred_execute_query with finishing flags:
+Test inhouse_execute_query with finishing flags:
 - Query: '''
     SELECT TOP 20
         jt.TicketID, jt.ShortJobDesc, o.ClientName,
@@ -188,7 +188,7 @@ Expected outcomes:
 
 ### Test 5.1: Search All Tables (Default)
 ```
-Test fred_search_database with default settings:
+Test inhouse_search_database with default settings:
 - search_text: 'CJ King Printing'
 
 Expected outcomes:
@@ -200,7 +200,7 @@ Expected outcomes:
 
 ### Test 5.2: Search Specific Table
 ```
-Test fred_search_database with table filter:
+Test inhouse_search_database with table filter:
 - search_text: '%business cards%'
 - tables: ['JobTickets']
 - limit_per_table: 20
@@ -214,7 +214,7 @@ Expected outcomes:
 
 ### Test 5.3: Search by Email
 ```
-Test fred_search_database for email:
+Test inhouse_search_database for email:
 - search_text: '%@cjking.com.au'
 - tables: ['Clients']
 
@@ -226,7 +226,7 @@ Expected outcomes:
 
 ### Test 5.4: Search Invoice Number
 ```
-Test fred_search_database for invoice:
+Test inhouse_search_database for invoice:
 - search_text: 'INV-2025-'
 
 Expected outcomes:
@@ -241,7 +241,7 @@ Expected outcomes:
 
 ### Test 6.1: Invalid Column Name
 ```
-Test fred_execute_query with non-existent column:
+Test inhouse_execute_query with non-existent column:
 - Query: "SELECT OrderID, Status FROM Orders"
 
 Expected outcomes:
@@ -252,7 +252,7 @@ Expected outcomes:
 
 ### Test 6.2: Invalid Table Name
 ```
-Test fred_execute_query with wrong table:
+Test inhouse_execute_query with wrong table:
 - Query: "SELECT * FROM Invoice"
 
 Expected outcomes:
@@ -263,7 +263,7 @@ Expected outcomes:
 
 ### Test 6.3: Read-Only Enforcement
 ```
-Test fred_execute_query with UPDATE (read_only=True):
+Test inhouse_execute_query with UPDATE (read_only=True):
 - Query: "UPDATE Orders SET Urgent = 1 WHERE OrderID = 12345"
 - read_only: True (default)
 
@@ -275,7 +275,7 @@ Expected outcomes:
 
 ### Test 6.4: Missing Parameter
 ```
-Test fred_execute_query with missing param:
+Test inhouse_execute_query with missing param:
 - Query: "SELECT * FROM Orders WHERE ClientName = ?"
 - params: []  (empty list)
 
@@ -291,7 +291,7 @@ Expected outcomes:
 
 ### Test 7.1: Multiple JOINs
 ```
-Test fred_execute_query with 5-table JOIN:
+Test inhouse_execute_query with 5-table JOIN:
 - Query: '''
     SELECT TOP 50
         o.OrderID, o.ClientName, o.OrderDate,
@@ -319,7 +319,7 @@ Expected outcomes:
 
 ### Test 7.2: Subquery
 ```
-Test fred_execute_query with subquery:
+Test inhouse_execute_query with subquery:
 - Query: '''
     SELECT 
         OrderID,
@@ -344,7 +344,7 @@ Expected outcomes:
 
 ### Test 8.1: Default Max Rows (100)
 ```
-Test fred_execute_query with default max_rows:
+Test inhouse_execute_query with default max_rows:
 - Query: "SELECT * FROM Orders WHERE Invoiced = 1"
 - max_rows: not specified (default 100)
 
@@ -356,7 +356,7 @@ Expected outcomes:
 
 ### Test 8.2: Custom Max Rows
 ```
-Test fred_execute_query with custom limit:
+Test inhouse_execute_query with custom limit:
 - Query: "SELECT TOP 500 * FROM Orders ORDER BY OrderDate DESC"
 - max_rows: 50
 
@@ -369,7 +369,7 @@ Expected outcomes:
 
 ### Test 8.3: Max Rows Larger Than Results
 ```
-Test fred_execute_query when results < max_rows:
+Test inhouse_execute_query when results < max_rows:
 - Query: "SELECT * FROM Orders WHERE ClientName = 'Very Specific Name That Doesnt Exist'"
 - max_rows: 100
 
@@ -388,16 +388,16 @@ Expected outcomes:
 Complete workflow test:
 
 Step 1: Search for customer
-fred_search_database('Gerardo Poli')
+inhouse_search_database('Gerardo Poli')
 
 Step 2: Get customer's orders
-fred_execute_query(
+inhouse_execute_query(
   query="SELECT TOP 20 * FROM Orders WHERE ClientName LIKE ? ORDER BY OrderDate DESC",
   params=['%Gerardo Poli%']
 )
 
 Step 3: Get job details for an order
-fred_execute_query(
+inhouse_execute_query(
   query='''
     SELECT jt.*, ps.[Desc] as PaperSize, bt.BindTypeDesc, jtype.[Desc] as JobType
     FROM JobTickets jt
@@ -421,7 +421,7 @@ Expected outcomes:
 Create urgent orders dashboard:
 
 Query urgent unpaid orders:
-fred_execute_query(
+inhouse_execute_query(
   query='''
     SELECT 
         o.OrderID,
@@ -460,7 +460,7 @@ After running all tests, document results in this format:
 
 ```
 ═══════════════════════════════════════════════════════════════
-FRED DATABASE TOOLS TEST RESULTS SUMMARY
+InHouse Database Tools TEST RESULTS SUMMARY
 ═══════════════════════════════════════════════════════════════
 
 Test Date: [Date]
@@ -561,25 +561,25 @@ SQL Server Syntax: ✅ CORRECT
 ### Fastest Way to Test Core Functionality
 ```
 Test 1: Simple query
-fred_execute_query(query="SELECT TOP 10 * FROM Orders ORDER BY OrderDate DESC")
+inhouse_execute_query(query="SELECT TOP 10 * FROM Orders ORDER BY OrderDate DESC")
 
 Test 2: Search customer
-fred_execute_query(query="SELECT * FROM Orders WHERE ClientName LIKE ?", params=['%CJ King%'])
+inhouse_execute_query(query="SELECT * FROM Orders WHERE ClientName LIKE ?", params=['%CJ King%'])
 
 Test 3: Get job tickets
-fred_execute_query(
+inhouse_execute_query(
   query="SELECT jt.*, ps.[Desc] as PaperSize FROM JobTickets jt LEFT JOIN PaperSize ps ON jt.PaperSizeID = ps.SizeID WHERE jt.OrderID = ?",
   params=[56230]
 )
 
 Test 4: Search database
-fred_search_database(search_text='CJ King Printing')
+inhouse_search_database(search_text='CJ King Printing')
 
 Test 5: Search specific table
-fred_search_database(search_text='%business cards%', tables=['JobTickets'])
+inhouse_search_database(search_text='%business cards%', tables=['JobTickets'])
 
 Test 6: Urgent orders
-fred_execute_query(query="SELECT TOP 20 * FROM Orders WHERE Urgent = 1 AND Invoiced = 0 ORDER BY DateRequired")
+inhouse_execute_query(query="SELECT TOP 20 * FROM Orders WHERE Urgent = 1 AND Invoiced = 0 ORDER BY DateRequired")
 ```
 
 ---
@@ -629,7 +629,7 @@ If testing via Python script, use this template:
 
 ```python
 import json
-from tools.implementations.fred_query import fred_execute_query, fred_search_database
+from tools.implementations.fred_query import inhouse_execute_query, inhouse_search_database
 
 # Test configuration
 test_results = {"passed": 0, "failed": 0, "tests": []}
@@ -654,19 +654,19 @@ def run_test(name, func, *args, **kwargs):
         return None
 
 # Run tests
-print("Starting Fred Database Tools Test Suite...\\n")
+print("Starting InHouse Database Tools Test Suite...\\n")
 
 # Test 1: Simple query
 orders = run_test(
     "Simple SELECT Query",
-    fred_execute_query,
+    inhouse_execute_query,
     query="SELECT TOP 10 OrderID, ClientName FROM Orders ORDER BY OrderDate DESC"
 )
 
 # Test 2: Search
 run_test(
     "Search Database",
-    fred_search_database,
+    inhouse_search_database,
     search_text='CJ King'
 )
 
@@ -674,7 +674,7 @@ run_test(
 if orders and orders.get('rows'):
     run_test(
         "Parameterized Query",
-        fred_execute_query,
+        inhouse_execute_query,
         query="SELECT * FROM Orders WHERE ClientName LIKE ?",
         params=['%CJ King%']
     )
@@ -698,4 +698,4 @@ for test in test_results['tests']:
 
 ---
 
-**Testing Complete!** Use these instructions to thoroughly test all Fred database functionality.
+**Testing Complete!** Use these instructions to thoroughly test all InHouse database functionality.

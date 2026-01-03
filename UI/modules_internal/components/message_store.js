@@ -42,7 +42,8 @@ class MessageStore {
                             `Existing ID: ${existing.id}`
                         );
                     }
-                    return existing;
+                    // Mark as duplicate so caller can skip DOM creation
+                    return { ...existing, _isDuplicate: true };
                 }
             }
         }
@@ -204,7 +205,7 @@ class MessageStore {
 
         Object.assign(message, updates);
         console.log(`[MessageStore] Updated message ${messageId}`);
-        
+
         // Find thread ID for event emission
         for (const [threadId, messages] of this._messages.entries()) {
             if (messages.some(m => m.id === messageId)) {

@@ -32,6 +32,7 @@ Usage:
 
 Author: AI Agent Platform Team
 Date: November 29, 2025
+Updated: January 1, 2026 - Fixed cursor leaks with context managers
 """
 
 import os
@@ -63,13 +64,8 @@ class MFAManager:
     
     def __init__(self):
         """Initialize MFA manager"""
-        self.conn = None
-    
-    def get_db_connection(self):
-        """Get database connection"""
-        if not self.conn or self.conn.closed:
-            self.conn = get_database_connection('ai_infrastructure')
-        return self.conn
+        # No persistent connection - use context managers for each operation
+        pass
     
     def is_mfa_enabled(self, user_id: int) -> bool:
         """
@@ -82,27 +78,27 @@ class MFAManager:
             True if MFA enabled, False otherwise
         """
         try:
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT mfa_enabled
-                FROM ai_infrastructure.users
-                WHERE id = %s
-            ''', (user_id,))
-            
-            row = cursor.fetchone()
-            
-            if row and row[0]:
-                return True
-            
-            return False
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        SELECT mfa_enabled
+                        FROM ai_infrastructure.users
+                        WHERE id = %s
+                    ''', (user_id,))
+                    
+                    row = cursor.fetchone()
+                    
+                    if row and row[0]:
+                        return True
+                    
+                    return False
         
         except Exception as e:
             logger.error(f"❌ Failed to check MFA status: {e}")
             return False
     
-    def enable_mfa(self, user_id: int, username: str) -> Tuple[str, str]:
+    def enable_mfa(self, user_id: int, username: str) -> Tuple[str, str, List[str]]:
         """
         Enable MFA for user and generate QR code
         
@@ -111,7 +107,7 @@ class MFAManager:
             username: Username (for TOTP label)
         
         Returns:
-            Tuple of (secret_key, qr_code_data_uri)
+            Tuple of (secret_key, qr_code_data_uri, backup_codes)
         
         Raises:
             ValueError: If MFA already enabled
@@ -151,21 +147,21 @@ class MFAManager:
             backup_codes = self._generate_backup_codes()
             
             # Store in database
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            # Update user record
-            cursor.execute('''
-                UPDATE ai_infrastructure.users
-                SET mfa_secret = %s,
-                    mfa_enabled = TRUE,
-                    mfa_backup_codes = %s,
-                    mfa_enabled_at = NOW(),
-                    updated_at = NOW()
-                WHERE id = %s
-            ''', (secret, backup_codes, user_id))
-            
-            conn.commit()
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    # Update user record
+                    cursor.execute('''
+                        UPDATE ai_infrastructure.users
+                        SET mfa_secret = %s,
+                            mfa_enabled = TRUE,
+                            mfa_backup_codes = %s,
+                            mfa_enabled_at = NOW(),
+                            updated_at = NOW()
+                        WHERE id = %s
+                    ''', (secret, backup_codes, user_id))
+                    
+                    conn.commit()
             
             logger.info(f"✅ MFA enabled for user {user_id}")
             
@@ -189,20 +185,20 @@ class MFAManager:
             True if disabled successfully, False otherwise
         """
         try:
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                UPDATE ai_infrastructure.users
-                SET mfa_secret = NULL,
-                    mfa_enabled = FALSE,
-                    mfa_backup_codes = NULL,
-                    mfa_last_used = NULL,
-                    updated_at = NOW()
-                WHERE id = %s
-            ''', (user_id,))
-            
-            conn.commit()
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        UPDATE ai_infrastructure.users
+                        SET mfa_secret = NULL,
+                            mfa_enabled = FALSE,
+                            mfa_backup_codes = NULL,
+                            mfa_last_used = NULL,
+                            updated_at = NOW()
+                        WHERE id = %s
+                    ''', (user_id,))
+                    
+                    conn.commit()
             
             logger.info(f"✅ MFA disabled for user {user_id}")
             return True
@@ -228,48 +224,51 @@ class MFAManager:
                 logger.warning(f"⚠️ Rate limit exceeded for user {user_id}")
                 return False
             
-            # Get secret from database
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT mfa_secret, mfa_enabled
-                FROM ai_infrastructure.users
-                WHERE id = %s
-            ''', (user_id,))
-            
-            row = cursor.fetchone()
-            
-            if not row or not row[1]:
-                logger.warning(f"⚠️ MFA not enabled for user {user_id}")
-                return False
-            
-            secret = row[0]
-            
-            if not secret:
-                logger.error(f"❌ MFA secret not found for user {user_id}")
-                return False
-            
-            # Verify TOTP code
-            totp = pyotp.TOTP(secret, interval=self.TOTP_INTERVAL, digits=self.TOTP_DIGITS)
-            
-            # Allow 1 interval before/after (90 second window total)
-            is_valid = totp.verify(code, valid_window=1)
-            
-            if is_valid:
-                # Update last used timestamp
-                cursor.execute('''
-                    UPDATE ai_infrastructure.users
-                    SET mfa_last_used = NOW()
-                    WHERE id = %s
-                ''', (user_id,))
-                conn.commit()
+            # Get secret from database and verify
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        SELECT mfa_secret, mfa_enabled
+                        FROM ai_infrastructure.users
+                        WHERE id = %s
+                    ''', (user_id,))
+                    
+                    row = cursor.fetchone()
+                    
+                    if not row or not row[1]:
+                        logger.warning(f"⚠️ MFA not enabled for user {user_id}")
+                        return False
+                    
+                    secret = row[0]
+                    
+                    if not secret:
+                        logger.error(f"❌ MFA secret not found for user {user_id}")
+                        return False
                 
-                logger.info(f"✅ TOTP verified for user {user_id}")
-                return True
-            else:
-                logger.warning(f"⚠️ Invalid TOTP code for user {user_id}")
-                return False
+                # Verify TOTP code (outside cursor context)
+                totp = pyotp.TOTP(secret, interval=self.TOTP_INTERVAL, digits=self.TOTP_DIGITS)
+                
+                # Allow 1 interval before/after (90 second window total)
+                is_valid = totp.verify(code, valid_window=1)
+                
+                if is_valid:
+                    # Update last used timestamp (new cursor context)
+                    with conn.cursor() as cursor:
+                        
+                        cursor.execute('''
+                            UPDATE ai_infrastructure.users
+                            SET mfa_last_used = NOW()
+                            WHERE id = %s
+                        ''', (user_id,))
+                        
+                        conn.commit()
+                    
+                    logger.info(f"✅ TOTP verified for user {user_id}")
+                    return True
+                else:
+                    logger.warning(f"⚠️ Invalid TOTP code for user {user_id}")
+                    return False
         
         except Exception as e:
             logger.error(f"❌ TOTP verification failed: {e}")
@@ -287,46 +286,48 @@ class MFAManager:
             True if code valid, False otherwise
         """
         try:
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT mfa_backup_codes, mfa_enabled
-                FROM ai_infrastructure.users
-                WHERE id = %s
-            ''', (user_id,))
-            
-            row = cursor.fetchone()
-            
-            if not row or not row[1]:
-                logger.warning(f"⚠️ MFA not enabled for user {user_id}")
-                return False
-            
-            backup_codes = row[0]
-            
-            if not backup_codes or code not in backup_codes:
-                logger.warning(f"⚠️ Invalid backup code for user {user_id}")
-                return False
-            
-            # Remove used backup code
-            backup_codes.remove(code)
-            
-            cursor.execute('''
-                UPDATE ai_infrastructure.users
-                SET mfa_backup_codes = %s,
-                    mfa_last_used = NOW()
-                WHERE id = %s
-            ''', (backup_codes, user_id))
-            
-            conn.commit()
-            
-            logger.info(f"✅ Backup code verified for user {user_id} ({len(backup_codes)} codes remaining)")
-            
-            # Warn if running low on backup codes
-            if len(backup_codes) <= 2:
-                logger.warning(f"⚠️ User {user_id} has only {len(backup_codes)} backup codes remaining!")
-            
-            return True
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        SELECT mfa_backup_codes, mfa_enabled
+                        FROM ai_infrastructure.users
+                        WHERE id = %s
+                    ''', (user_id,))
+                    
+                    row = cursor.fetchone()
+                    
+                    if not row or not row[1]:
+                        logger.warning(f"⚠️ MFA not enabled for user {user_id}")
+                        return False
+                    
+                    backup_codes = row[0]
+                    
+                    if not backup_codes or code not in backup_codes:
+                        logger.warning(f"⚠️ Invalid backup code for user {user_id}")
+                        return False
+                
+                # Remove used backup code (new cursor context)
+                backup_codes.remove(code)
+                
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        UPDATE ai_infrastructure.users
+                        SET mfa_backup_codes = %s,
+                            mfa_last_used = NOW()
+                        WHERE id = %s
+                    ''', (backup_codes, user_id))
+                    
+                    conn.commit()
+                
+                logger.info(f"✅ Backup code verified for user {user_id} ({len(backup_codes)} codes remaining)")
+                
+                # Warn if running low on backup codes
+                if len(backup_codes) <= 2:
+                    logger.warning(f"⚠️ User {user_id} has only {len(backup_codes)} backup codes remaining!")
+                
+                return True
         
         except Exception as e:
             logger.error(f"❌ Backup code verification failed: {e}")
@@ -345,17 +346,17 @@ class MFAManager:
         try:
             backup_codes = self._generate_backup_codes()
             
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                UPDATE ai_infrastructure.users
-                SET mfa_backup_codes = %s,
-                    updated_at = NOW()
-                WHERE id = %s
-            ''', (backup_codes, user_id))
-            
-            conn.commit()
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        UPDATE ai_infrastructure.users
+                        SET mfa_backup_codes = %s,
+                            updated_at = NOW()
+                        WHERE id = %s
+                    ''', (backup_codes, user_id))
+                    
+                    conn.commit()
             
             logger.info(f"✅ Regenerated backup codes for user {user_id}")
             
@@ -376,28 +377,28 @@ class MFAManager:
             True if within grace period, False otherwise
         """
         try:
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT mfa_last_used
-                FROM ai_infrastructure.users
-                WHERE id = %s
-            ''', (user_id,))
-            
-            row = cursor.fetchone()
-            
-            if not row or not row[0]:
-                return False
-            
-            last_used = row[0]
-            grace_period_end = last_used + timedelta(minutes=self.GRACE_PERIOD_MINUTES)
-            
-            if datetime.now() < grace_period_end:
-                logger.debug(f"User {user_id} within MFA grace period")
-                return True
-            
-            return False
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        SELECT mfa_last_used
+                        FROM ai_infrastructure.users
+                        WHERE id = %s
+                    ''', (user_id,))
+                    
+                    row = cursor.fetchone()
+                    
+                    if not row or not row[0]:
+                        return False
+                    
+                    last_used = row[0]
+                    grace_period_end = last_used + timedelta(minutes=self.GRACE_PERIOD_MINUTES)
+                    
+                    if datetime.now() < grace_period_end:
+                        logger.debug(f"User {user_id} within MFA grace period")
+                        return True
+                    
+                    return False
         
         except Exception as e:
             logger.error(f"❌ Failed to check grace period: {e}")
@@ -447,35 +448,35 @@ class MFAManager:
             Dictionary with MFA status information
         """
         try:
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT mfa_enabled, mfa_enabled_at, mfa_last_used, mfa_backup_codes
-                FROM ai_infrastructure.users
-                WHERE id = %s
-            ''', (user_id,))
-            
-            row = cursor.fetchone()
-            
-            if not row:
-                return {
-                    'enabled': False,
-                    'enabled_at': None,
-                    'last_used': None,
-                    'backup_codes_remaining': 0,
-                    'within_grace_period': False
-                }
-            
-            backup_codes = row[3] if row[3] else []
-            
-            return {
-                'enabled': row[0] or False,
-                'enabled_at': row[1].isoformat() if row[1] else None,
-                'last_used': row[2].isoformat() if row[2] else None,
-                'backup_codes_remaining': len(backup_codes),
-                'within_grace_period': self.check_mfa_grace_period(user_id)
-            }
+            with get_database_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    
+                    cursor.execute('''
+                        SELECT mfa_enabled, mfa_enabled_at, mfa_last_used, mfa_backup_codes
+                        FROM ai_infrastructure.users
+                        WHERE id = %s
+                    ''', (user_id,))
+                    
+                    row = cursor.fetchone()
+                    
+                    if not row:
+                        return {
+                            'enabled': False,
+                            'enabled_at': None,
+                            'last_used': None,
+                            'backup_codes_remaining': 0,
+                            'within_grace_period': False
+                        }
+                    
+                    backup_codes = row[3] if row[3] else []
+                    
+                    return {
+                        'enabled': row[0] or False,
+                        'enabled_at': row[1].isoformat() if row[1] else None,
+                        'last_used': row[2].isoformat() if row[2] else None,
+                        'backup_codes_remaining': len(backup_codes),
+                        'within_grace_period': self.check_mfa_grace_period(user_id)
+                    }
         
         except Exception as e:
             logger.error(f"❌ Failed to get MFA status: {e}")

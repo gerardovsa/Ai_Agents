@@ -618,7 +618,8 @@ async function sendChatMessage() {
             isThinking: false,
             scrollToBottom: autoScrollEnabled,
             threadId: currentThreadId,
-            syncToBackend: false
+            syncToBackend: false,
+            messageId: null  // User-typed message, ID assigned after backend sync
         }
     );
 
@@ -2350,10 +2351,18 @@ async function sendChatMessageWithFiles(message, sessionId, startTime) {
     }
 }
 
-function addChatMessage(role, content, isThinking = false) {
+async function addChatMessage(role, content, isThinking = false, checkDuplicates = true, messageId = null) {
+    // SAFETY CHECK: Ensure UnifiedMessageRenderer is loaded before proceeding
+    if (typeof UnifiedMessageRenderer === 'undefined') {
+        console.error('[addChatMessage] UnifiedMessageRenderer not loaded yet - deferring render');
+        setTimeout(() => addChatMessage(role, content, isThinking, checkDuplicates, messageId), 100);
+        return;
+    }
+
     const threadId = ThreadManager.currentThreadId;
 
-    const messageDiv = UnifiedMessageRenderer.render(
+    // CRITICAL: Await async render (now handles duplicates and tool_result skipping)
+    const messageDiv = await UnifiedMessageRenderer.render(
         '#ai-chat-messages',
         role === 'ai' ? 'assistant' : role,
         content,
@@ -2361,13 +2370,15 @@ function addChatMessage(role, content, isThinking = false) {
             isThinking: isThinking,
             scrollToBottom: autoScrollEnabled,
             threadId: threadId,
-            syncToBackend: false
+            syncToBackend: false,
+            checkDuplicates: checkDuplicates,  // Pass through (false for historical, true for real-time)
+            messageId: messageId || null  // CRITICAL: Pass message ID from database
         }
     );
 
     if (!messageDiv) {
-        console.error('[Prime] Failed to render message');
-        return;
+        console.log('[Prime] Message rendering skipped (duplicate or tool_result-only)');
+        return null;
     }
 
     return messageDiv;
@@ -2727,13 +2738,26 @@ function unloadThreadFromPrime() {
     }
 
     // STEP 2: Clear thread info
-    const threadInfoContainer = document.getElementById('thread-info-prime');
+    const threadInfoContainer = document.getElementById('prime-thread-info');
     if (threadInfoContainer && typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
         threadInfoContainer.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
         console.log('[PrimeAI] Reset thread info');
+    } else {
+        console.warn('[PrimeAI] Failed to reset thread info:', {
+            containerFound: !!threadInfoContainer,
+            threadManagerExists: typeof ThreadManager !== 'undefined',
+            renderFunctionExists: typeof ThreadManager?.renderThreadInfoContainer === 'function'
+        });
     }
 
-    // STEP 3: Clear input
+    // STEP 3: Hide input wrapper (return to empty state)
+    const inputWrapper = document.querySelector('.ai-chat-input-wrapper');
+    if (inputWrapper) {
+        inputWrapper.style.display = 'none';
+        console.log('[PrimeAI] Hidden input wrapper (empty state)');
+    }
+
+    // STEP 4: Clear input
     const inputTextarea = document.getElementById('ai-chat-input');
     if (inputTextarea) {
         inputTextarea.value = '';
@@ -2744,20 +2768,20 @@ function unloadThreadFromPrime() {
         attachedFilesContainer.innerHTML = '';
     }
 
-    // STEP 4: Clear session/thread ID in AppState
+    // STEP 5: Clear session/thread ID in AppState
     if (typeof AppState !== 'undefined') {
         AppState.sessionId = null;
         AppState.currentThreadId = null;
         console.log('[PrimeAI] Cleared AppState session/thread ID');
     }
 
-    // STEP 5: Clear ThreadManager current thread
+    // STEP 6: Clear ThreadManager current thread
     if (typeof ThreadManager !== 'undefined') {
         ThreadManager.currentThreadId = null;
         console.log('[PrimeAI] Cleared ThreadManager current thread');
     }
 
-    // STEP 6: Abort any active streaming
+    // STEP 7: Abort any active streaming
     if (typeof window.abortController !== 'undefined' && window.abortController.prime) {
         try {
             window.abortController.prime.abort();
@@ -2768,7 +2792,7 @@ function unloadThreadFromPrime() {
         }
     }
 
-    // STEP 7: Dispatch unload event
+    // STEP 8: Dispatch unload event
     const unloadEvent = new CustomEvent('thread-unloaded', {
         detail: { location: 'prime' }
     });

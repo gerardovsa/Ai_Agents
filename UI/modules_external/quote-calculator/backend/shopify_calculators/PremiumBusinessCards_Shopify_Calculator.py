@@ -198,7 +198,8 @@ class PremiumBusinessCardsShopifyCalculator:
         # ========================================================================
         cello_cost = Decimal('0')
         
-        if "None" in celloglaze:
+        # FIX: Case-insensitive check for "none" to prevent $8 overcharge
+        if "None" in celloglaze or celloglaze.lower() == "none":
             cello_per_sheet = Decimal('0')
         elif "SILK FEEL" in celloglaze:
             if "2 Side" in celloglaze:

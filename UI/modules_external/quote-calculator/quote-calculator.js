@@ -290,7 +290,7 @@ class QuoteCalculatorModule extends BaseModule {
             <div class="dashboard-card">
                 <div class="dashboard-card-content" style="text-align: center; padding: 60px 20px;">
                     <i class="fas fa-database" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
-                    <h3 style="color: #666;">50+ Pre-built Queries</h3>
+                    <h3 style="color: #666;">75 Pre-built Queries</h3>
                     <p class="text-secondary">Historical quote analysis, customer analytics, production planning</p>
                     <p class="text-secondary" style="margin-top: 15px;">
                         <small>Database export from In_House_SQL SQL Server required</small>

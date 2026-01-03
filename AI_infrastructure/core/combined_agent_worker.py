@@ -1657,7 +1657,9 @@ def run_simple_agent_worker(
     conversation_history: Optional[List[Dict]] = None,
     ai_client = None,
     user_id: int = 1,
-    thread_id: Optional[str] = None
+    thread_id: Optional[str] = None,
+    sender_team_id: Optional[str] = None,  # ✅ NEW: Team ID routing
+    recipient_team_id: Optional[str] = None  # ✅ NEW: Privacy mode (None=Central HQ, username=Local Ops)
 ):
     """
     Simplified worker for text-only prompts (no files)
@@ -1673,6 +1675,9 @@ def run_simple_agent_worker(
         conversation_history: Previous conversation (will be validated)
         ai_client: UnifiedAIClient instance
         user_id: User ID for OAuth credential injection
+        thread_id: Thread identifier for database saves
+        sender_team_id: Username of original message sender (for privacy mode)
+        recipient_team_id: Target recipient (None = broadcast to all, username = private)
     """
     log_prefix = f"[Combined Simple {agent_id}]"
     
@@ -2002,7 +2007,10 @@ def run_simple_agent_worker(
                     content=validated_content,
                     user_id=user_id,
                     model='claude-sonnet-4-5-20250929',
-                    metadata={'round': tool_iteration, 'has_tool_use': True}
+                    metadata={'round': tool_iteration, 'has_tool_use': True},
+                    sender_team_id=None,  # AI agent (no Team ID)
+                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
+                    message_type='broadcast' if not recipient_team_id else 'direct'  # Broadcast=Central HQ, Direct=Local Ops
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Assistant message saved immediately")
@@ -2023,7 +2031,10 @@ def run_simple_agent_worker(
                     role='user',
                     content=tool_results,
                     user_id=user_id,
-                    metadata={'round': tool_iteration, 'tool_results': True}
+                    metadata={'round': tool_iteration, 'tool_results': True},
+                    sender_team_id=None,  # System-generated tool results
+                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
+                    message_type='broadcast' if not recipient_team_id else 'direct'
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Tool results saved immediately")
@@ -2103,7 +2114,10 @@ def run_simple_agent_worker(
                     content=validated_final_content,
                     user_id=user_id,
                     model='claude-sonnet-4-5-20250929',
-                    metadata={'final_response': True, 'rounds': tool_iteration}
+                    metadata={'final_response': True, 'rounds': tool_iteration},
+                    sender_team_id=None,  # AI agent
+                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
+                    message_type='broadcast' if not recipient_team_id else 'direct'
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Final assistant message saved immediately")
@@ -2124,7 +2138,10 @@ def run_simple_agent_worker(
                     content=validated_content,
                     user_id=user_id,
                     model='claude-sonnet-4-5-20250929',
-                    metadata={'direct_response': True}
+                    metadata={'direct_response': True},
+                    sender_team_id=None,  # AI agent
+                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
+                    message_type='broadcast' if not recipient_team_id else 'direct'
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Assistant message saved immediately")
@@ -2597,20 +2614,23 @@ def execute_streaming_request(
                         assistant_messages_with_thinking.append(idx)
                         print(f"{log_prefix}   Message [{idx}] (assistant): Has thinking blocks")
         
-        # STEP 2: Check for consecutive assistant messages
-        consecutive_assistant_indices = []
+        # STEP 2: Check for TRULY consecutive assistant messages (no user message between them)
+        # IMPORTANT: Assistant → User → Assistant is VALID (tool use pattern)
+        #            Assistant → Assistant is INVALID
+        truly_consecutive_indices = []
         for i in range(len(messages) - 1):
             if messages[i].get('role') == 'assistant' and messages[i+1].get('role') == 'assistant':
-                consecutive_assistant_indices.extend([i, i+1])
-                print(f"{log_prefix}  WARNING: Consecutive assistant messages at [{i}] and [{i+1}]")
+                # This is truly consecutive (no user message between)
+                truly_consecutive_indices.extend([i, i+1])
+                print(f"{log_prefix}  WARNING: TRULY consecutive assistant messages at [{i}] and [{i+1}] (no user between)")
         
-        # STEP 3: If we have both thinking blocks AND consecutive assistant messages, fix it
-        if assistant_messages_with_thinking and consecutive_assistant_indices:
-            # Find the earliest assistant message that has both thinking AND is part of consecutive pair
-            problematic_indices = set(assistant_messages_with_thinking) & set(consecutive_assistant_indices)
+        # STEP 3: Only truncate if we have TRULY consecutive assistant messages with thinking blocks
+        # FIX (Dec 29, 2025): Don't truncate valid tool use patterns (assistant → user → assistant)
+        if assistant_messages_with_thinking and truly_consecutive_indices:
+            # Find the earliest assistant message that has both thinking AND is truly consecutive
+            problematic_indices = set(assistant_messages_with_thinking) & set(truly_consecutive_indices)
             if problematic_indices:
-                # Remove ALL consecutive assistant messages to ensure clean conversation
-                print(f"{log_prefix} CRITICAL: Thinking blocks + consecutive assistant messages detected")
+                print(f"{log_prefix} CRITICAL: Thinking blocks + TRULY consecutive assistant messages detected")
                 print(f"{log_prefix} 🔧 FIX: Truncating conversation at first problematic assistant message")
                 
                 first_problem_idx = min(problematic_indices)
@@ -2619,6 +2639,8 @@ def execute_streaming_request(
                 
                 messages = messages[:first_problem_idx]
                 print(f"{log_prefix} ✅ Truncated to {len(messages)} messages")
+            else:
+                print(f"{log_prefix} ℹ️  Consecutive assistant messages found, but properly separated by user messages (valid tool use pattern)")
         
         # STEP 4: Always ensure last message is user when thinking blocks present
         if assistant_messages_with_thinking:

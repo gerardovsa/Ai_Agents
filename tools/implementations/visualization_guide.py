@@ -437,7 +437,8 @@ def _get_visualization_guidance():
                 "RULE 2: ALWAYS include <title> and <desc> elements for accessibility",
                 "RULE 3: NEVER include JavaScript, scripts, or external resources",
                 "RULE 4: Use xmlns='http://www.w3.org/2000/svg'",
-                "RULE 5: Keep all coordinates within viewBox range"
+                "RULE 5: Keep all coordinates within viewBox range",
+                "RULE 6: SVG TITLE BLOCK SPACING - If using title blocks in technical drawings, follow spacing rules from .github/SVG_CAD_GENERATION_RULES.md: Title block height = (font size × lines × 1.5) + 20px, text Y = block top + (font × 1.2), content start = block bottom + 40-60px clearance to prevent text overlap"
             ],
             "examples": [
                 {
@@ -504,7 +505,8 @@ def _get_visualization_guidance():
                 "Use semantic IDs for elements",
                 "Optimize path data for smaller file sizes",
                 "Use text-anchor='middle' for centered text",
-                "Add opacity for layered effects"
+                "Add opacity for layered effects",
+                "For technical drawings with title blocks: Ensure 40-60px clearance between title block bottom and content start. Formula: Title block ends at y=X, content starts at y=X+50 minimum. See .github/SVG_CAD_GENERATION_RULES.md for complete spacing calculations"
             ],
             "when_to_use": [
                 "Custom vector graphics and illustrations",
@@ -545,7 +547,8 @@ def _get_visualization_guidance():
                 "RULE 2: Include grid pattern in <defs> for scale reference",
                 "RULE 3: Label all rooms with text elements",
                 "RULE 4: Show dimensions with measurement lines and text",
-                "RULE 5: Use professional blue color scheme (#0074D9, #4db8ff)"
+                "RULE 5: Use professional blue color scheme (#0074D9, #4db8ff)",
+                "RULE 6: TITLE BLOCK SPACING - Title blocks MUST have 40-60px clearance before content starts. Formula: If title block ends at y=110, floor plan content starts at y=160+ (50px minimum gap). See .github/SVG_CAD_GENERATION_RULES.md"
             ],
             "examples": [
                 {
@@ -736,7 +739,8 @@ def _get_visualization_guidance():
                 "Use proper scale and keep proportions accurate",
                 "Show bolt patterns and hole locations",
                 "Include weld symbols if applicable",
-                "Add notes for tolerances and finishes"
+                "Add notes for tolerances and finishes",
+                "⚠️ SVG TITLE BLOCK SPACING - When generating SVG technical drawings (in 'technical_drawing' field), follow .github/SVG_CAD_GENERATION_RULES.md: Title block height = (font × lines × 1.5) + 20px, text Y position = block top + (font × 1.2), content start = block bottom + 40-60px clearance minimum"
             ],
             "when_to_use": [
                 "Engineering drawings and specifications",
@@ -789,7 +793,8 @@ def _get_visualization_guidance():
                 "RULE 2: Use gold/yellow color scheme (#ffd700) for professional look",
                 "RULE 3: Label ALL components with designators (R1, C1, T1, IC1)",
                 "RULE 4: Show component values (10KΩ, 100μF, 12V)",
-                "RULE 5: Include circuit title and overall description"
+                "RULE 5: Include circuit title and overall description",
+                "RULE 6: TITLE BLOCK SPACING - If using title blocks, ensure 40-60px clearance between title block bottom and circuit diagram start. Formula: Title block height = (font × lines × 1.5) + 20px, text Y = block top + (font × 1.2), content start = block bottom + 50px minimum. See .github/SVG_CAD_GENERATION_RULES.md"
             ],
             "examples": [
                 {
@@ -837,7 +842,8 @@ def _get_visualization_guidance():
                 "Include power/ground symbols",
                 "Use proper wire routing (minimize crossings)",
                 "Add test points if applicable",
-                "Include decoupling capacitors near ICs"
+                "Include decoupling capacitors near ICs",
+                "For schematics with title blocks: Position title at top with 40-60px spacing before circuit starts. Example: Title block y=20-110, circuit components start at y=160+. This prevents text overlap on title block."
             ],
             "when_to_use": [
                 "Electrical circuit diagrams",

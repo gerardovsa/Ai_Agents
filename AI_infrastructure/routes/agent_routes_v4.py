@@ -75,13 +75,13 @@ _semantic_search_lock = None
 
 def get_semantic_search(registry):
     """
-    Get or create cached SemanticToolSearch instance.
+    Get or create cached PersistentSemanticToolSearch instance.
     
-    This ensures embeddings are computed ONCE at server startup,
-    not on every message or new thread.
+    This ensures embeddings are loaded ONCE at server startup from Supabase,
+    not regenerated on every message or new thread.
     
     Returns:
-        SemanticToolSearch instance or None if unavailable
+        PersistentSemanticToolSearch instance or None if unavailable
     """
     global _semantic_search_cache, _semantic_search_lock
     
@@ -93,12 +93,15 @@ def get_semantic_search(registry):
     with _semantic_search_lock:
         if _semantic_search_cache is None:
             try:
-                from tools.intelligent_discovery import SemanticToolSearch
-                cprint("[SEMANTIC CACHE] Initializing semantic search (ONE-TIME OPERATION)...", Colors.INFO)
-                _semantic_search_cache = SemanticToolSearch(registry)
-                cprint(f"[SEMANTIC CACHE] [OK] Initialized with {len(_semantic_search_cache.tool_embeddings)} tool embeddings", Colors.SUCCESS)
+                from tools.persistent_semantic_search import PersistentSemanticToolSearch
+                cprint("[SEMANTIC CACHE] Initializing persistent semantic search (loads from Supabase)...", Colors.INFO)
+                _semantic_search_cache = PersistentSemanticToolSearch(registry)
+                cprint(f"[SEMANTIC CACHE] [OK] Loaded {len(_semantic_search_cache.tool_embeddings)} tool embeddings", Colors.SUCCESS)
+                cprint(f"[SEMANTIC CACHE] Source: {'Supabase' if _semantic_search_cache.db_available else 'Generated'}", Colors.INFO)
             except Exception as e:
                 cprint(f"[SEMANTIC CACHE] [ERROR] Failed to initialize: {e}", Colors.ERROR)
+                import traceback
+                traceback.print_exc()
                 _semantic_search_cache = None
         
         return _semantic_search_cache
@@ -131,92 +134,79 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
     conn = None
     
     try:
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
+        with get_database_connection('sessions') as conn:
+            with conn.cursor() as cursor:
+                
+                # Get thread ID from thread_slug
+                cursor.execute("""
+                    SELECT id FROM sessions.threads 
+                    WHERE thread_slug = %s
+                """, (thread_slug,))
+                
+                thread_row = cursor.fetchone()
         
-        # Get thread ID from thread_slug
-        cursor.execute("""
-            SELECT id FROM sessions.threads 
-            WHERE thread_slug = %s
-        """, (thread_slug,))
+                if not thread_row:
+                    cprint(f"[DB LOAD] INFO: Thread not found in database - this is a NEW conversation", Colors.INFO)
+                    print(f"{'='*80}\n")
+                    return []  # Empty conversation for new threads (context manager handles cleanup)
         
-        thread_row = cursor.fetchone()
+                thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+                cprint(f"[DB LOAD] Thread ID: {thread_id}", Colors.DB)
+                
+                # Get messages for this thread (with optional pagination)
+                if limit:
+                    # Paginated query - get MOST RECENT messages first
+                    cursor.execute("""
+                        SELECT role, content, created_at, model, tokens_used
+                        FROM sessions.messages 
+                        WHERE thread_id = %s 
+                        ORDER BY created_at DESC
+                        LIMIT %s OFFSET %s
+                    """, (thread_id, limit, offset))
+                else:
+                    # Get ALL messages (ordered by creation time)
+                    cursor.execute("""
+                        SELECT role, content, created_at, model, tokens_used
+                        FROM sessions.messages 
+                        WHERE thread_id = %s 
+                        ORDER BY created_at ASC
+                    """, (thread_id,))
+                
+                rows = cursor.fetchall()
+                cprint(f"[DB LOAD] Found {len(rows)} messages in database", Colors.INFO)
         
-        if not thread_row:
-            cprint(f"[DB LOAD] INFO: Thread not found in database - this is a NEW conversation", Colors.INFO)
-            
-            # ✅ Close before return
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
-            
-            print(f"{'='*80}\n")
-            return []  # Empty conversation for new threads
-        
-        thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-        cprint(f"[DB LOAD] Thread ID: {thread_id}", Colors.DB)
-        
-        # Get messages for this thread (with optional pagination)
-        if limit:
-            # Paginated query - get MOST RECENT messages first
-            cursor.execute("""
-                SELECT role, content, created_at, model, tokens_used
-                FROM sessions.messages 
-                WHERE thread_id = %s 
-                ORDER BY created_at DESC
-                LIMIT %s OFFSET %s
-            """, (thread_id, limit, offset))
-        else:
-            # Get ALL messages (ordered by creation time)
-            cursor.execute("""
-                SELECT role, content, created_at, model, tokens_used
-                FROM sessions.messages 
-                WHERE thread_id = %s 
-                ORDER BY created_at ASC
-            """, (thread_id,))
-        
-        rows = cursor.fetchall()
-        cprint(f"[DB LOAD] Found {len(rows)} messages in database", Colors.INFO)
-        
-        messages = []
-        for idx, row in enumerate(rows):
-            if isinstance(row, tuple):
-                role, content, created_at, model, tokens_used = row
-            else:
-                role = row['role']
-                content = row['content']
-                created_at = row['created_at']
-                model = row.get('model')
-                tokens_used = row.get('tokens_used')
-            
-            # Parse JSONB content
-            if isinstance(content, str):
-                try:
-                    content = json.loads(content)
-                except Exception as e:
-                    cprint(f"[DB LOAD] WARNING: Message {idx} content parse failed: {e}", Colors.WARNING)
-                    content = [{'type': 'text', 'text': content}]
-            
-            messages.append({
-                'role': role,
-                'content': content,
-                'created_at': created_at.isoformat() if created_at else None
-            })
-            
-            content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"
-            print(f"[DB LOAD]   [{idx}] {role}: {content_preview}...")
-        
-        # ✅ Close cursor BEFORE return
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
-        cprint(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database", Colors.SUCCESS)
-        print(f"{'='*80}\n")
-        
-        return messages
+                messages = []
+                for idx, row in enumerate(rows):
+                    if isinstance(row, tuple):
+                        role, content, created_at, model, tokens_used = row
+                    else:
+                        role = row['role']
+                        content = row['content']
+                        created_at = row['created_at']
+                        model = row.get('model')
+                        tokens_used = row.get('tokens_used')
+                    
+                    # Parse JSONB content
+                    if isinstance(content, str):
+                        try:
+                            content = json.loads(content)
+                        except Exception as e:
+                            cprint(f"[DB LOAD] WARNING: Message {idx} content parse failed: {e}", Colors.WARNING)
+                            content = [{'type': 'text', 'text': content}]
+                    
+                    messages.append({
+                        'role': role,
+                        'content': content,
+                        'created_at': created_at.isoformat() if created_at else None
+                    })
+                    
+                    content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"
+                    print(f"[DB LOAD]   [{idx}] {role}: {content_preview}...")
+                
+                cprint(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database", Colors.SUCCESS)
+                print(f"{'='*80}\n")
+                
+                return messages
     
     except Exception as e:
         cprint(f"[DB LOAD] ERROR: loading conversation: {e}", Colors.ERROR)
@@ -317,15 +307,25 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
                              user_id: Optional[int] = None,
                              model: Optional[str] = None,
                              tokens_used: Optional[int] = None,
-                             metadata: Optional[Dict] = None) -> bool:
+                             metadata: Optional[Dict] = None,
+                             sender_team_id: Optional[str] = None,
+                             recipient_team_id: Optional[str] = None,
+                             message_type: str = 'broadcast') -> bool:
     """
     Save a single message to the database immediately with transaction management.
     
     FIXED: Proper cursor management with finally block and rollback handling.
+    UPDATED: Added Team ID routing parameters for multi-user collaboration.
+    
+    Args:
+        sender_team_id: Username of the user sending the message
+        recipient_team_id: Username of the recipient (None = broadcast to all)
+        message_type: 'broadcast' (AI responses, default), 'direct' (user messages), 'team'
     """
     cprint(f"[DB SAVE] Saving {role} message to database...", Colors.DB)
     cprint(f"[DB SAVE] Thread slug: {thread_slug}", Colors.DB)
     cprint(f"[DB SAVE] User ID: {user_id}", Colors.DB)
+    cprint(f"[DB SAVE] Team ID: sender={sender_team_id or 'main'} → recipient={recipient_team_id or 'all'} (type: {message_type})", Colors.DB)
     
     conn = None
     cursor = None  # ✅ Already initialized
@@ -333,101 +333,97 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
     try:
         from psycopg2.extras import Json
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
+        with get_database_connection('sessions') as conn:
+            with conn.cursor() as cursor:
+                
+                # Begin explicit transaction
+                cursor.execute("BEGIN")
         
-        # Begin explicit transaction
-        cursor.execute("BEGIN")
+                # Step 1: Check if thread exists
+                cursor.execute("""
+                    SELECT id FROM sessions.threads 
+                    WHERE thread_slug = %s
+                """, (thread_slug,))
+                
+                thread_row = cursor.fetchone()
+                
+                if not thread_row:
+                    # Thread doesn't exist - create it first
+                    cprint(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}", Colors.INFO)
+                    
+                    cursor.execute("""
+                        INSERT INTO sessions.threads 
+                        (thread_slug, user_id, name, created_at, updated_at)
+                        VALUES (%s, %s, %s, NOW(), NOW())
+                        RETURNING id
+                    """, (thread_slug, user_id or 1, 'New Chat'))
+                    
+                    thread_row = cursor.fetchone()
+                    cprint(f"[DB SAVE] SUCCESS: Thread created: {thread_slug}", Colors.SUCCESS)
+                
+                thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
+                cprint(f"[DB SAVE] Thread ID: {thread_id}", Colors.DB)
         
-        # Step 1: Check if thread exists
-        cursor.execute("""
-            SELECT id FROM sessions.threads 
-            WHERE thread_slug = %s
-        """, (thread_slug,))
+                # Step 2: Format content for JSONB storage
+                try:
+                    if isinstance(content, (list, dict)):
+                        content_value = Json(content)
+                    elif isinstance(content, str):
+                        if not content.strip().startswith(('[', '{')):
+                            content_value = Json([{'type': 'text', 'text': content}])
+                        else:
+                            try:
+                                parsed = json.loads(content)
+                                content_value = Json(parsed)
+                            except:
+                                content_value = Json([{'type': 'text', 'text': content}])
+                    else:
+                        content_value = Json([{'type': 'text', 'text': str(content)}])
+                    
+                    cprint(f"[DB SAVE] Content formatted as JSONB", Colors.INFO)
+                except Exception as json_error:
+                    cprint(f"[DB SAVE] WARNING: JSON formatting failed, using string fallback: {json_error}", Colors.WARNING)
+                    content_value = Json([{'type': 'text', 'text': str(content)}])
+                
+                # Step 3: Prepare metadata
+                try:
+                    metadata_val = json.dumps(metadata) if metadata else None
+                except Exception as meta_error:
+                    cprint(f"[DB SAVE] WARNING: Metadata serialization failed: {meta_error}", Colors.WARNING)
+                    metadata_val = None
         
-        thread_row = cursor.fetchone()
-        
-        if not thread_row:
-            # Thread doesn't exist - create it first
-            cprint(f"[DB SAVE] Thread doesn't exist - creating thread {thread_slug}", Colors.INFO)
-            
-            cursor.execute("""
-                INSERT INTO sessions.threads 
-                (thread_slug, user_id, name, created_at, updated_at)
-                VALUES (%s, %s, %s, NOW(), NOW())
-                RETURNING id
-            """, (thread_slug, user_id or 1, 'New Chat'))
-            
-            thread_row = cursor.fetchone()
-            cprint(f"[DB SAVE] SUCCESS: Thread created: {thread_slug}", Colors.SUCCESS)
-        
-        thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
-        cprint(f"[DB SAVE] Thread ID: {thread_id}", Colors.DB)
-        
-        # Step 2: Format content for JSONB storage
-        try:
-            if isinstance(content, (list, dict)):
-                content_value = Json(content)
-            elif isinstance(content, str):
-                if not content.strip().startswith(('[', '{')):
-                    content_value = Json([{'type': 'text', 'text': content}])
+                # Step 4: Insert message with Team ID routing
+                cursor.execute("""
+                    INSERT INTO sessions.messages 
+                    (thread_id, session_id, role, content, user_id, model, tokens_used, metadata, 
+                     sender_team_id, recipient_team_id, message_type, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    RETURNING id
+                """, (thread_id, thread_slug, role, content_value, user_id, model, tokens_used, metadata_val, 
+                      sender_team_id, recipient_team_id, message_type))
+                
+                message_row = cursor.fetchone()
+                message_id = message_row[0] if isinstance(message_row, tuple) else message_row['id']
+                
+                # Commit transaction
+                cursor.execute("COMMIT")
+                cprint(f"[DB SAVE] ✅ Transaction committed", Colors.SUCCESS)
+                
+                # Verify message was saved
+                cursor.execute("""
+                    SELECT id FROM sessions.messages 
+                    WHERE id = %s
+                """, (message_id,))
+                
+                verification_result = cursor.fetchone()
+                
+                if verification_result:
+                    print(f"[DB SAVE] ✅ Verified: Message exists in database (ID: {message_id})")
+                    print(f"[DB SAVE] ✅ Saved {role} message to database (message ID: {message_id})")
+                    return True
                 else:
-                    try:
-                        parsed = json.loads(content)
-                        content_value = Json(parsed)
-                    except:
-                        content_value = Json([{'type': 'text', 'text': content}])
-            else:
-                content_value = Json([{'type': 'text', 'text': str(content)}])
-            
-            cprint(f"[DB SAVE] Content formatted as JSONB", Colors.INFO)
-        except Exception as json_error:
-            cprint(f"[DB SAVE] WARNING: JSON formatting failed, using string fallback: {json_error}", Colors.WARNING)
-            content_value = Json([{'type': 'text', 'text': str(content)}])
-        
-        # Step 3: Prepare metadata
-        try:
-            metadata_val = json.dumps(metadata) if metadata else None
-        except Exception as meta_error:
-            cprint(f"[DB SAVE] WARNING: Metadata serialization failed: {meta_error}", Colors.WARNING)
-            metadata_val = None
-        
-        # Step 4: Insert message
-        cursor.execute("""
-            INSERT INTO sessions.messages 
-            (thread_id, session_id, role, content, user_id, model, tokens_used, metadata, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-            RETURNING id
-        """, (thread_id, thread_slug, role, content_value, user_id, model, tokens_used, metadata_val))
-        
-        message_row = cursor.fetchone()
-        message_id = message_row[0] if isinstance(message_row, tuple) else message_row['id']
-        
-        # Commit transaction
-        cursor.execute("COMMIT")
-        cprint(f"[DB SAVE] ✅ Transaction committed", Colors.SUCCESS)
-        
-        # Verify message was saved
-        cursor.execute("""
-            SELECT id FROM sessions.messages 
-            WHERE id = %s
-        """, (message_id,))
-        
-        verification_result = cursor.fetchone()
-        
-        # ✅ Close cursor BEFORE return
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
-        if verification_result:
-            print(f"[DB SAVE] ✅ Verified: Message exists in database (ID: {message_id})")
-            print(f"[DB SAVE] ✅ Saved {role} message to database (message ID: {message_id})")
-            return True
-        else:
-            print(f"[DB SAVE] ⚠️ WARNING: Message not found after save!")
-            return False
+                    print(f"[DB SAVE] ⚠️ WARNING: Message not found after save!")
+                    return False
     
     except Exception as e:
         # Rollback on error
@@ -640,7 +636,8 @@ from utils.response_helpers import (
 import sys
 
 # Create blueprint
-agent_bp = Blueprint('agent', __name__, url_prefix='/api/agent')
+# NOTE: url_prefix is set during registration in flask_app.py (line 431)
+agent_bp = Blueprint('agent', __name__)
 
 # In-memory storage for user feedback
 _feedback_storage = {}
@@ -704,21 +701,32 @@ def start_agent(agent_id):
             message = request.form.get('message', '')
             files = request.files.getlist('files')
             
-            if not files:
-                return error_response("No files uploaded", 400)
+            # ✅ FIX: Allow empty files list (user may have removed attachments)
+            file_data = None
+            if files:
+                try:
+                    content_blocks = process_file_uploads(files)
+                    file_data = content_blocks
+                    print(f"[START] ✅ Processed {len(files)} file(s)")
+                except FileValidationError as e:
+                    return error_response(str(e), 400)
+            else:
+                print(f"[START] ⚠️ No files in form data, proceeding without attachments")
             
-            try:
-                content_blocks = process_file_uploads(files)
-            except FileValidationError as e:
-                return error_response(str(e), 400)
-            
-            file_data = content_blocks
+            # Extract Team ID routing information from form data
+            sender_team_id = request.form.get('sender_team_id')
+            recipient_team_id = request.form.get('recipient_team_id')
+            message_type = request.form.get('message_type', 'direct')
         else:
             print(f"[START] Processing as JSON")
             data = request.json or {}
             thread_slug = data.get('thread_slug') or data.get('thread_id')
             message = data.get('message', '')
             file_data = None
+            # ✅ NEW: Extract Team ID routing information
+            sender_team_id = data.get('sender_team_id')  # Username of sender (sub-user)
+            recipient_team_id = data.get('recipient_team_id')  # Username of recipient (None = broadcast)
+            message_type = data.get('message_type', 'direct')  # 'direct' for user messages
         
         # ============================================
         # VALIDATION
@@ -791,7 +799,10 @@ def start_agent(agent_id):
                 role='user',
                 content=user_message_content,
                 user_id=user_id,
-                metadata={'source': 'web_ui', 'has_files': bool(file_data)}
+                metadata={'source': 'web_ui', 'has_files': bool(file_data)},
+                sender_team_id=sender_team_id,  # ✅ Username of sender
+                recipient_team_id=recipient_team_id,  # ✅ Respects privacy mode (None=Central HQ, username=Local Ops)
+                message_type=message_type  # 'direct' for user messages
             )
             
             if save_success:
@@ -819,7 +830,9 @@ def start_agent(agent_id):
         print(f"\n[START] 🔄 STEP 5: Updating state manager for worker...")
         state = agent_state_manager.get_or_create_state(agent_id, thread_slug)
         state['conversation'] = conversation
-        print(f"[START] ✅ State updated (conversation: {len(conversation)} messages)")
+        state['sender_team_id'] = sender_team_id  # ✅ NEW: Pass Team ID to worker
+        state['recipient_team_id'] = recipient_team_id  # ✅ NEW: Privacy mode routing
+        print(f"[START] ✅ State updated (conversation: {len(conversation)} messages, privacy: {'Local Ops' if recipient_team_id else 'Central HQ'})")
         
         # ============================================
         # STEP 6: START AI WORKER THREAD
@@ -846,14 +859,16 @@ def start_agent(agent_id):
             threading.Thread(
                 target=run_agent_worker,
                 args=(agent_id, message, file_data, lock, thread_slug, queue, 
-                      state['conversation'], state['context'], user_id, thread_slug),
+                      state['conversation'], state['context'], user_id, thread_slug,
+                      sender_team_id, recipient_team_id),  # ✅ NEW: Team ID routing
                 daemon=True
             ).start()
         else:
             threading.Thread(
                 target=run_simple_agent_worker,
                 args=(agent_id, message, lock, thread_slug, queue, 
-                      state['conversation'], ai_client, user_id, thread_slug),
+                      state['conversation'], ai_client, user_id, thread_slug,
+                      sender_team_id, recipient_team_id),  # ✅ NEW: Team ID routing
                 daemon=True
             ).start()
         
@@ -984,14 +999,14 @@ def stream_agent(agent_id):
     # Get user email from database
     user_email = None
     try:
-        conn = get_database_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-        row = cursor.fetchone()
-        if row:
-            user_email = row[0] if isinstance(row, tuple) else row.get('email')
-        cursor.close()
-        conn.close()
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
+                
+                cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+                row = cursor.fetchone()
+                if row:
+                    user_email = row[0] if isinstance(row, tuple) else row.get('email')
+        
         print(f"[STREAM] 📧 User Email fetched from DB: {user_email} (user_id={user_id})")
     except Exception as e:
         print(f"[STREAM] ⚠️ Could not fetch user email: {e}")
@@ -1099,16 +1114,43 @@ def stream_agent(agent_id):
                     else:
                         relevance = "💡"
                     
+                    # Determine required guides based on tool name and platform
+                    required_guides = []
+                    if 'calculate_' in tool_name or platform == 'quote_calculator':
+                        required_guides.append('inhouse_get_domain_guide()')
+                        required_guides.append('inhouse_calculator_guide()')
+                    elif 'inhouse_execute_sql' in tool_name or 'inhouse_query' in tool_name:
+                        required_guides.append('inhouse_get_domain_guide()')
+                        if 'execute_sql' in tool_name:
+                            required_guides.append('inhouse_database_guide()')
+                        else:
+                            required_guides.append('inhouse_query_guide()')
+                    elif 'synergy_' in tool_name and 'guide' not in tool_name:
+                        required_guides.append('synergy_guide(\"overview\")')
+                    elif any(viz in tool_name for viz in ['chart', 'graph', 'plot', 'visual']):
+                        required_guides.append('visualization_guide(type)')
+                    
                     # NEW FORMAT: tool name, platform, emoji on one line
                     intelligent_tool_suggestions += f"{idx}. {tool_name} [{platform}] {relevance}\n"
                     intelligent_tool_suggestions += f"   {short_desc}\n"
-                    intelligent_tool_suggestions += f"   Similarity: {similarity:.1%}\n\n"
+                    intelligent_tool_suggestions += f"   Similarity: {similarity:.1%}\n"
+                    if required_guides:
+                        intelligent_tool_suggestions += f"   ⚠️  MUST call first: {' → '.join(required_guides)}\n"
+                    intelligent_tool_suggestions += "\n"
                 
                 intelligent_tool_suggestions += "**How to Use These Suggestions:**\n"
-                intelligent_tool_suggestions += "- These tools were pre-selected based on the user's message\n"
-                intelligent_tool_suggestions += "- You can use them immediately if relevant (call get_tool_schema → execute_tool)\n"
+                intelligent_tool_suggestions += "- These tools were pre-selected by semantic analysis (NOT guaranteed perfect matches)\n"
+                intelligent_tool_suggestions += "- ⚠️  CRITICAL: Always call GUIDE tools FIRST before using suggested tools:\n"
+                intelligent_tool_suggestions += "  • InHouse operations: inhouse_get_domain_guide() → domain-specific guide\n"
+                intelligent_tool_suggestions += "  • Visualizations: visualization_guide(type) before creating charts\n"
+                intelligent_tool_suggestions += "  • Complex workflows: synergy_guide(\"overview\") for 3+ tool operations\n"
+                intelligent_tool_suggestions += "- Similarity scores are suggestions, not certainty:\n"
+                intelligent_tool_suggestions += "  • 🔥 ≥70% = High confidence (still verify with get_tool_schema)\n"
+                intelligent_tool_suggestions += "  • ✅ ≥50% = Medium confidence (validate carefully)\n"
+                intelligent_tool_suggestions += "  • 💡 <50% = Low confidence (consider manual search_tools())\n"
+                intelligent_tool_suggestions += "- You can use get_tool_schema → execute_tool IF no guide tools required\n"
                 intelligent_tool_suggestions += "- You still have autonomy: if these don't fit, use search_tools() manually\n"
-                intelligent_tool_suggestions += "- This saves you 1-2 discovery rounds for faster responses\n"
+                intelligent_tool_suggestions += "- This saves discovery time, but NOT context-gathering time (guides still mandatory)\n"
                 intelligent_tool_suggestions += "\n" + "="*80 + "\n"
                 
                 # LOG ALL SELECTED TOOLS (Not just top 3)
@@ -1388,29 +1430,29 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         g.thread_context_cache = {}
     
     try:
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT 
-                synergy_card_id,
-                workflow_slug, workflow_title,
-                automation_slug, automation_title,
-                internal_doc_slug, internal_doc_title,
-                email_thread_id, email_subject, email_participants,
-                tags
-            FROM sessions.threads 
-            WHERE thread_slug = %s
-            LIMIT 1
-        """, (str(thread_slug),))
-        
-        thread_row = cursor.fetchone()
-        
-        if thread_row:
-            # Use list for O(n) performance instead of string concatenation
-            context_parts = []
-            context_token_count = 0
-            MAX_CONTEXT_TOKENS = 180000  # Leave buffer for Claude 200k limit
+        with get_database_connection('sessions') as conn:
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT 
+                        synergy_card_id,
+                        workflow_slug, workflow_title,
+                        automation_slug, automation_title,
+                        internal_doc_slug, internal_doc_title,
+                        email_thread_id, email_subject, email_participants,
+                        tags
+                    FROM sessions.threads 
+                    WHERE thread_slug = %s
+                    LIMIT 1
+                """, (str(thread_slug),))
+                
+                thread_row = cursor.fetchone()
+                
+                if thread_row:
+                    # Use list for O(n) performance instead of string concatenation
+                    context_parts = []
+                    context_token_count = 0
+                    MAX_CONTEXT_TOKENS = 180000  # Leave buffer for Claude 200k limit
             
             # ============================================
             # 🏷️ TAG-BASED CONTEXT INJECTION SYSTEM
@@ -2152,7 +2194,6 @@ def single_viewer_chat():
         return error_response(str(e), 500)
 
 
-@agent_bp.route('/api/agent/chat-with-document', methods=['POST'])
 @agent_bp.route('/chat-with-document', methods=['POST'])
 def agent_chat_with_document():
     """Chat with document endpoint - Synchronous response"""

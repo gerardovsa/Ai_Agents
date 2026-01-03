@@ -26,6 +26,9 @@ torchaudio>=2.0.0
 # Data Processing
 pandas==2.3.3
 numpy>=1.26.4
+scipy>=1.11.0           # Scientific computing for advanced analytics
+statsmodels>=0.14.0     # Time series forecasting (ARIMA) for accurate revenue predictions
+scikit-learn>=1.3.0     # ML models (Logistic Regression, Random Forest) for predictions
 
 # Calculator Formula Evaluation
 asteval>=1.0.7
@@ -78,6 +81,10 @@ lxml>=4.9.0             # XML/HTML parsing
 # Professional Verification & Integration Tools
 python-whois>=0.9.6     # Domain age checks and WHOIS lookups for verification module
 stripe>=13.0.0          # Payment processing integration
+
+# E-commerce & Accounting Integrations
+xero-python>=9.3.0      # Xero accounting API integration
+ShopifyAPI>=12.7.0      # Shopify e-commerce API integration
 
 # Background Task Processing
 celery>=5.5.0           # Async task queue for scheduled workflows

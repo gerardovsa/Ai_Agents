@@ -381,6 +381,12 @@ const MultiAgent = {
         const oldThreadId = this.sessions[agentId];
         console.log(`[CLEAR] Clearing thread from agent-${agentId} (threadId: ${oldThreadId})`);
 
+        // ✅ CRITICAL FIX: Clear MessageStore for this thread
+        if (oldThreadId && typeof window.MessageStore !== 'undefined') {
+            window.MessageStore.clearThread(oldThreadId);
+            console.log(`[CLEAR] ✅ Cleared ${window.MessageStore.getMessageCount(oldThreadId)} messages from MessageStore for thread ${oldThreadId}`);
+        }
+
         // Clear loaded thread state
         delete this.loadedThreads[agentId];
         this.sessions[agentId] = null;
@@ -395,7 +401,8 @@ const MultiAgent = {
             // Fallback: Clear UI manually (preserve scroll controls)
             const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
             if (messagesContainer) {
-                const messages = messagesContainer.querySelectorAll('.ai-message');
+                const messages = messagesContainer.querySelectorAll('.message-bubble, .ai-message');
+                console.log(`[CLEAR] Removing ${messages.length} old messages from DOM for agent-${agentId}`);
                 messages.forEach(msg => msg.remove());
             }
 
@@ -1014,15 +1021,144 @@ const MultiAgent = {
         if (threadCountEl) threadCountEl.textContent = activeThreads;
     },
 
-    // Refresh all agents
-    refreshAllAgents() {
-        console.log('[Command Center] Refreshing all agents...');
-        Object.keys(this.loadedThreads).forEach(agentId => {
-            this.updateAgentHeader(parseInt(agentId));
-        });
-        this.updateDashboardStats();
+    // Refresh all agents - reload threads and messages
+    async refreshAllAgents() {
+        console.log('[Command Center] 🔄 Refreshing all agents - reloading threads and messages...');
+
+        const agentIds = Object.keys(this.loadedThreads);
+
+        if (agentIds.length === 0) {
+            console.log('[Command Center] No agents with loaded threads to refresh');
+            if (typeof showNotification === 'function') {
+                showNotification('No active agents to refresh', 'info', 2000);
+            }
+            return;
+        }
+
+        // Show progress notification
         if (typeof showNotification === 'function') {
-            showNotification('All agents refreshed', 'success');
+            showNotification(`Refreshing ${agentIds.length} agent${agentIds.length > 1 ? 's' : ''}...`, 'info', 2000);
+        }
+
+        try {
+            // Reload each agent's thread and messages
+            for (const agentIdStr of agentIds) {
+                const agentId = parseInt(agentIdStr);
+                const threadInfo = this.loadedThreads[agentId];
+
+                if (!threadInfo || !threadInfo.threadId) {
+                    console.warn(`[Command Center] Agent ${agentId} has no thread loaded, skipping`);
+                    continue;
+                }
+
+                console.log(`[Command Center] 🔄 Refreshing agent ${agentId} - thread ${threadInfo.threadId}`);
+
+                try {
+                    // Get the thread data
+                    const thread = {
+                        id: threadInfo.threadId,
+                        title: threadInfo.threadTitle,
+                        message_count: threadInfo.messageCount || 0,
+                        location: `agent-${agentId}`
+                    };
+
+                    // Clear MessageStore for this thread to force fresh load
+                    if (typeof window.MessageStore !== 'undefined') {
+                        const oldCount = window.MessageStore.getMessageCount(thread.id);
+                        window.MessageStore.clearThread(thread.id);
+                        console.log(`[Command Center] ✅ Cleared ${oldCount} messages from MessageStore for thread ${thread.id}`);
+                    }
+
+                    // Clear the agent's messages container
+                    const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
+                    if (messagesContainer) {
+                        const messages = messagesContainer.querySelectorAll('.message-bubble, .ai-message');
+                        console.log(`[Command Center] 🗑️ Clearing ${messages.length} old messages from DOM for agent ${agentId}`);
+                        messages.forEach(msg => msg.remove());
+
+                        // Show loading indicator
+                        const processingIndicator = createProcessingIndicator(agentId);
+                        messagesContainer.appendChild(processingIndicator);
+                    }
+
+                    // Reload messages from backend
+                    if (typeof ThreadManager !== 'undefined' && ThreadManager.loadMessagesForThread) {
+                        console.log(`[Command Center] 📥 Fetching fresh messages for thread ${thread.id}...`);
+
+                        const result = await ThreadManager.loadMessagesForThread(thread.id, null, 0);
+
+                        if (result?.error === 'THREAD_NOT_FOUND') {
+                            console.warn(`[Command Center] ⚠️ Thread ${thread.id} not found - removing from agent ${agentId}`);
+                            removeProcessingIndicator(agentId);
+                            continue;
+                        }
+
+                        // Get freshly loaded messages from MessageStore
+                        const loadedMessages = window.MessageStore.getMessages(thread.id);
+
+                        if (loadedMessages && loadedMessages.length > 0) {
+                            console.log(`[Command Center] ✅ Rendering ${loadedMessages.length} messages for agent ${agentId}...`);
+
+                            // Remove processing indicator
+                            removeProcessingIndicator(agentId);
+
+                            // Render each message using UnifiedMessageRenderer
+                            for (const [index, msg] of loadedMessages.entries()) {
+                                if (typeof UnifiedMessageRenderer !== 'undefined') {
+                                    await UnifiedMessageRenderer.render(
+                                        messagesContainer,
+                                        msg.role,
+                                        msg.content,
+                                        {
+                                            threadId: thread.id,
+                                            syncToBackend: false,
+                                            scrollToBottom: false,
+                                            createdAt: msg.created_at,
+                                            checkDuplicates: false,
+                                            messageId: msg.id
+                                        }
+                                    );
+                                }
+                            }
+
+                            // Scroll to bottom after all messages rendered
+                            if (messagesContainer) {
+                                setTimeout(() => {
+                                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                                }, 100);
+                            }
+
+                            console.log(`[Command Center] ✅ Agent ${agentId} refreshed successfully`);
+                        } else {
+                            removeProcessingIndicator(agentId);
+                            console.log(`[Command Center] No messages to render for agent ${agentId}`);
+                        }
+                    }
+
+                    // Update agent header with fresh data
+                    this.updateAgentHeader(agentId);
+
+                } catch (error) {
+                    console.error(`[Command Center] Error refreshing agent ${agentId}:`, error);
+                    removeProcessingIndicator(agentId);
+                }
+            }
+
+            // Update dashboard stats
+            this.updateDashboardStats();
+
+            // Success notification
+            if (typeof showNotification === 'function') {
+                showNotification(`✅ Refreshed ${agentIds.length} agent${agentIds.length > 1 ? 's' : ''}`, 'success', 3000);
+            }
+
+            console.log('[Command Center] ✅ All agents refreshed successfully');
+
+        } catch (error) {
+            console.error('[Command Center] Error during refresh:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('Error refreshing agents', 'error', 3000);
+            }
         }
     },
 
@@ -1341,9 +1477,9 @@ const MultiAgent = {
 
         // Update centralized assignment tracker - thread now in Prime
         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.assignThread === 'function') {
-            // First, assign to prime-loaded (this updates database and enables page reload restoration)
-            await ThreadManager.assignThread(threadInfo.threadId, 'prime-loaded');
-            console.log(`[MultiAgent] [OK] Thread ${threadInfo.threadId} assigned to 'prime-loaded' in centralized tracker`);
+            // First, assign to prime (this updates database and enables page reload restoration)
+            await ThreadManager.assignThread(threadInfo.threadId, 'prime');
+            console.log(`[MultiAgent] [OK] Thread ${threadInfo.threadId} assigned to 'prime' in centralized tracker`);
 
             // Then check if agent has any other assigned threads, if not show "Start New Chat"
             if (typeof ThreadManager.checkAndShowEmptyState === 'function') {
@@ -1589,404 +1725,450 @@ const MultiAgent = {
     },
 
     // Load thread into agent
-    loadThreadIntoAgent(agentId, thread) {
-        console.log(`[LOAD] Loading thread "${thread.title}" into agent ${agentId} `);
+    async loadThreadIntoAgent(agentId, thread) {
+        // SAFETY CHECK: Ensure UnifiedMessageRenderer is loaded before proceeding
+        if (typeof UnifiedMessageRenderer === 'undefined') {
+            console.error('[loadThreadIntoAgent] UnifiedMessageRenderer not loaded yet - deferring load');
+            setTimeout(() => this.loadThreadIntoAgent(agentId, thread), 100);
+            return;
+        }
 
-        // CRITICAL: Check if thread is already loaded elsewhere (Prime or another Agent)
-        const currentLocation = this.getThreadCurrentLocation(thread.id);
-        if (currentLocation) {
-            console.warn(`[LOAD] Thread ${thread.id} is already loaded in ${currentLocation}`);
+        // GUARD: Prevent concurrent loads of same thread in same agent
+        if (!window.ThreadManager._loadingThreads) {
+            window.ThreadManager._loadingThreads = new Map();
+        }
 
-            // Unload from current location first
-            if (currentLocation === 'prime') {
-                console.log(`[ISOLATION]  Clearing Prime - thread moving to agent-${agentId}`);
-                // CRITICAL FIX: ALWAYS clear Prime, not just when ThreadManager.currentThreadId matches
-                if (typeof ThreadManager !== 'undefined') {
-                    ThreadManager.currentThreadId = null;
-                }
+        const loadState = window.ThreadManager._loadingThreads.get(thread.id) || { prime: false, agents: new Set() };
+        if (loadState.agents.has(agentId)) {
+            console.warn(`⚠️ [LOAD] Thread ${thread.id} already loading in agent-${agentId}, skipping duplicate load`);
+            return;
+        }
 
-                // Clear Prime chat container
-                const primeMessages = document.getElementById('ai-chat-messages');
-                if (primeMessages) {
-                    // CLEANUP: Destroy any active TwoRuleStreamProcessors before clearing
-                    const bubbles = primeMessages.querySelectorAll('[data-processor-initialized="true"]');
-                    bubbles.forEach(bubble => {
-                        if (bubble._processor) {
-                            console.log(`[CLEANUP] Destroying TwoRuleStreamProcessor for Prime (thread moving)`);
-                            if (window._twoRuleProcessors) {
-                                window._twoRuleProcessors.delete(bubble._processor);
-                            }
-                            bubble._processor = null;
-                        }
-                    });
-                    primeMessages.innerHTML = '';
-                }
+        loadState.agents.add(agentId);
+        window.ThreadManager._loadingThreads.set(thread.id, loadState);
 
-                // Clear Prime thread info container and show no-thread message
-                const primeThreadInfo = document.getElementById('prime-thread-info');
-                if (primeThreadInfo && typeof ThreadManager !== 'undefined') {
-                    primeThreadInfo.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
-                    console.log(`[ISOLATION] Prime thread info cleared - showing welcome message`);
-                }
+        try {
+            console.log(`[LOAD] Loading thread "${thread.title}" into agent ${agentId} `);
 
-                // CRITICAL: Always clear AppState when thread leaves Prime
-                if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
-                    AppState.sessionId = null;
-                    AppState.chatMessages = [];
-                    console.log(`[ISOLATION] Prime AppState cleared (was: ${thread.id})`);
-                }
+            // CRITICAL: Check if thread is already loaded elsewhere (Prime or another Agent)
+            const currentLocation = this.getThreadCurrentLocation(thread.id);
+            if (currentLocation) {
+                console.warn(`[LOAD] Thread ${thread.id} is already loaded in ${currentLocation}`);
 
-                console.log(`[ISOLATION] Prime fully cleared`);
-            } else if (currentLocation.startsWith('agent-')) {
-                // Unload from another agent
-                const oldAgentId = parseInt(currentLocation.replace('agent-', ''));
-                if (oldAgentId !== agentId) {
-                    console.log(`[ISOLATION]  Clearing ${currentLocation} - thread moving to agent-${agentId}`);
+                // Unload from current location first
+                if (currentLocation === 'prime') {
+                    console.log(`[ISOLATION]  Clearing Prime - thread moving to agent-${agentId}`);
+                    // CRITICAL FIX: ALWAYS clear Prime, not just when ThreadManager.currentThreadId matches
+                    if (typeof ThreadManager !== 'undefined') {
+                        ThreadManager.currentThreadId = null;
+                    }
 
-                    // CLEANUP: Destroy any active TwoRuleStreamProcessors before clearing
-                    const oldMessagesContainer = document.getElementById(`agent-messages-${oldAgentId}`);
-                    if (oldMessagesContainer) {
-                        const bubbles = oldMessagesContainer.querySelectorAll('[data-processor-initialized="true"]');
+                    // Clear Prime chat container
+                    const primeMessages = document.getElementById('ai-chat-messages');
+                    if (primeMessages) {
+                        // CLEANUP: Destroy any active TwoRuleStreamProcessors before clearing
+                        const bubbles = primeMessages.querySelectorAll('[data-processor-initialized="true"]');
                         bubbles.forEach(bubble => {
                             if (bubble._processor) {
-                                console.log(`[CLEANUP] Destroying TwoRuleStreamProcessor for agent-${oldAgentId} (thread moving)`);
+                                console.log(`[CLEANUP] Destroying TwoRuleStreamProcessor for Prime (thread moving)`);
                                 if (window._twoRuleProcessors) {
                                     window._twoRuleProcessors.delete(bubble._processor);
                                 }
                                 bubble._processor = null;
-                                bubble._agentId = null;
-                                bubble._threadSlug = null;
                             }
                         });
+                        primeMessages.innerHTML = '';
                     }
 
-                    this.clearAgentThread(oldAgentId);
-                    console.log(`[ISOLATION] ✅ ${currentLocation} cleared and processors destroyed`);
-                }
-            }
-        }
+                    // Clear Prime thread info container and show no-thread message
+                    const primeThreadInfo = document.getElementById('prime-thread-info');
+                    if (primeThreadInfo && typeof ThreadManager !== 'undefined') {
+                        primeThreadInfo.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
+                        console.log(`[ISOLATION] Prime thread info cleared - showing welcome message`);
+                    }
 
-        // Store thread info with message count
-        // CRITICAL: Preserve original database message_count (don't overwrite with 0!)
-        // thread.messages may be empty/undefined when loading metadata, but message_count from DB is accurate
-        const originalMessageCount = thread.message_count || 0;
-        const messageCount = thread.messages ? thread.messages.length : originalMessageCount;
+                    // CRITICAL: Always clear AppState when thread leaves Prime
+                    if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
+                        AppState.sessionId = null;
+                        AppState.chatMessages = [];
+                        console.log(`[ISOLATION] Prime AppState cleared (was: ${thread.id})`);
+                    }
 
-        const metadata = {
-            synergyCardId: thread.synergy_card_id || null,
-            synergySessionName: thread.synergy_card_name || null,
-            workflowId: thread.workflow_id || null,
-            automationId: thread.automation_id || null
-        };
-        this.setLoadedThread(agentId, thread.id, thread.title, originalMessageCount, metadata);
+                    console.log(`[ISOLATION] Prime fully cleared`);
+                } else if (currentLocation.startsWith('agent-')) {
+                    // Unload from another agent
+                    const oldAgentId = parseInt(currentLocation.replace('agent-', ''));
+                    if (oldAgentId !== agentId) {
+                        console.log(`[ISOLATION]  Clearing ${currentLocation} - thread moving to agent-${agentId}`);
 
-        // CRITICAL: DON'T overwrite thread.message_count if it's already set from database
-        // Only update if we have loaded messages in thread.messages array
-        if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
-            const threadInArray = ThreadManager.threads.find(t => t.id === thread.id);
-            if (threadInArray && thread.messages && thread.messages.length > 0) {
-                threadInArray.message_count = messageCount;
-                console.log(`[LOAD] Updated thread.message_count in ThreadManager.threads: ${messageCount}`);
-            } else if (threadInArray) {
-                console.log(`[LOAD] Preserving database message_count: ${threadInArray.message_count}`);
-            }
-        }
-
-        // CRITICAL: Clear AppState.sessionId when thread loads into agent
-        // (Thread is now in agent, NOT in Prime)
-        if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
-            console.log(`[ISOLATION FIX] Clearing AppState.sessionId (thread ${thread.id} now in agent-${agentId})`);
-            AppState.sessionId = null;
-            AppState.chatMessages = [];
-        }
-
-        // Update thread-info container with unified structure
-        const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
-        if (threadInfoContainer) {
-            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
-                console.log(`[LOAD] Rendering thread info card for agent-${agentId}, thread ${thread.id}`);
-                const cardHtml = ThreadManager.renderThreadInfoContainer(
-                    `agent-${agentId}`,
-                    thread.id,
-                    true  // compact mode
-                );
-
-                if (cardHtml) {
-                    threadInfoContainer.innerHTML = cardHtml;
-                    console.log(`✅ [LOAD] Thread info card rendered (${cardHtml.length} chars)`);
-                } else {
-                    console.warn(`⚠️ [LOAD] Thread info card HTML is empty (ThreadManagerUI may not be loaded yet)`);
-                    threadInfoContainer.innerHTML = '<div class="empty-thread-info">Loading...</div>';
-                }
-            } else {
-                console.error(`❌ [LOAD] ThreadManager.renderThreadInfoContainer not available!`);
-                console.log('   ThreadManager exists?', typeof ThreadManager !== 'undefined');
-                console.log('   renderThreadInfoContainer exists?', typeof ThreadManager?.renderThreadInfoContainer);
-            }
-        } else {
-            console.error(`❌ [LOAD] thread-info-${agentId} container not found in DOM!`);
-        }
-
-        // CRITICAL: Always sync session_id with thread.id when loading thread
-        this.sessions[agentId] = thread.id;  // ? Use thread_slug as session_id
-        console.log(`[LOAD] Agent ${agentId} session_id synced to thread_slug: ${thread.id}`);
-
-        // Assign thread to this agent in backend ONLY if location changed
-        // During restoration, skip this call (thread.location already correct from database)
-        const expectedLocation = `agent-${agentId}`;
-        if (typeof ThreadManager !== 'undefined' && thread.location !== expectedLocation) {
-            console.log(` [loadThreadIntoAgent] Assigning thread ${thread.id} to ${expectedLocation} (location changed)`);
-            ThreadManager.assignThread(thread.id, expectedLocation);
-        } else {
-            console.log(` [loadThreadIntoAgent] Thread ${thread.id} already at ${expectedLocation} (skipping backend call)`);
-        }
-
-        // Clear agent's messages
-        const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
-        if (!messagesContainer) {
-            console.error(`[ERROR] Messages container not found for agent-${agentId}`);
-            return;
-        }
-
-        // Clear messages only (preserve scroll controls)
-        const messages = messagesContainer.querySelectorAll('.ai-message');
-        messages.forEach(msg => msg.remove());
-
-        // Remove any empty-state node if present (keeps outer container)
-        const emptyState = messagesContainer.querySelector('.empty-state');
-        if (emptyState) {
-            emptyState.remove();
-            console.log(`[LOAD] Removed empty state for agent-${agentId}`);
-        }
-
-        // Prefer the container itself as the canonical messages element to avoid duplicate IDs.
-        const canonicalId = `agent-messages-${agentId}`;
-        let messagesDiv = null;
-
-        if (messagesContainer.id === canonicalId) {
-            // Container already carries the canonical ID — use it directly.
-            messagesDiv = messagesContainer;
-        } else {
-            // If an element with the canonical ID exists elsewhere, adopt and move it under container.
-            const existing = document.getElementById(canonicalId);
-            if (existing) {
-                messagesDiv = existing;
-                if (existing.parentElement !== messagesContainer) {
-                    messagesContainer.appendChild(existing);
-                }
-            } else {
-                // No canonical element found — assign the ID to the container itself and use it.
-                messagesContainer.id = canonicalId;
-                messagesDiv = messagesContainer;
-            }
-        }
-
-        // Load messages from MessageStore (centralized storage)
-        const storedMessages = window.MessageStore.getMessages(thread.id);
-        console.log(`📦 [MessageStore] Retrieved ${storedMessages.length} messages for Agent ${agentId}`);
-
-        // ✅ REMOVED: Pagination state initialization - we load all messages immediately
-
-        if (!storedMessages || storedMessages.length === 0) {
-            if (thread.message_count > 0) {
-                console.log(`[LOAD] Fetching initial 5 messages for thread ${thread.id} from backend...`);
-
-                // Show processing indicator while loading messages
-                const processingIndicator = createProcessingIndicator(agentId);
-                messagesDiv.appendChild(processingIndicator);
-
-                if (typeof ThreadManager !== 'undefined' && ThreadManager.loadMessagesForThread) {
-                    // ✅ FIX: Load ALL messages (no pagination) - same as AI Prime
-                    // Changed from limit=5 to limit=null to load complete conversation history
-                    ThreadManager.loadMessagesForThread(thread.id, null, 0).then((result) => {
-                        // ✅ FIX: Handle missing threads gracefully
-                        if (result?.error === 'THREAD_NOT_FOUND') {
-                            console.warn(`[LOAD] ⚠️ Thread ${thread.id} not found in database - removing from UI`);
-                            removeProcessingIndicator(agentId);
-
-                            // Remove thread card from UI
-                            const threadCard = document.querySelector(`[data-thread-id="${thread.id}"]`);
-                            if (threadCard) {
-                                threadCard.remove();
-                            }
-
-                            // Clean up localStorage
-                            const storedThreads = JSON.parse(localStorage.getItem('agent_threads') || '{}');
-                            if (storedThreads[agentId]) {
-                                const filteredThreads = storedThreads[agentId].filter(t => t.id !== thread.id);
-                                storedThreads[agentId] = filteredThreads;
-                                localStorage.setItem('agent_threads', JSON.stringify(storedThreads));
-                            }
-
-                            return; // Exit early
-                        }
-
-                        // ✅ REMOVED: Pagination state - all messages loaded immediately
-
-                        // Re-fetch from MessageStore after backend load
-                        const loadedMessages = window.MessageStore.getMessages(thread.id);
-                        if (loadedMessages && loadedMessages.length > 0) {
-                            console.log(`[LOAD] Rendering ${loadedMessages.length} messages...`);
-
-                            // Remove processing indicator before rendering messages
-                            removeProcessingIndicator(agentId);
-
-                            loadedMessages.forEach((msg, index) => {
-                                // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
-                                console.log(`[LOAD] Rendering message ${index + 1}/${loadedMessages.length} (${msg.role})`);
-
-                                if (typeof UnifiedMessageRenderer !== 'undefined') {
-                                    // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
-                                    UnifiedMessageRenderer.render(
-                                        messagesDiv,
-                                        msg.role,
-                                        msg.content,
-                                        {
-                                            threadId: thread.id,
-                                            syncToBackend: false,
-                                            scrollToBottom: false,  // Manual scroll at end
-                                            createdAt: msg.created_at  // Pass timestamp
-                                        }
-                                    );
-                                } else {
-                                    console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
-                                    // Fallback: manual rendering (old pathway)
-                                    if (msg.role === 'user') {
-                                        let content;
-                                        if (typeof msg.content === 'string') {
-                                            content = msg.content;
-                                        } else if (Array.isArray(msg.content)) {
-                                            content = msg.content
-                                                .filter(block => !block.type || block.type === 'text')
-                                                .map(block => block.text || block.content || '')
-                                                .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
-                                        } else {
-                                            content = String(msg.content);
-                                        }
-                                        addAgentMessage(agentId, 'user', content);
-                                    } else if (msg.role === 'assistant') {
-                                        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-                                        addAgentMessage(agentId, 'ai', content);
+                        // CLEANUP: Destroy any active TwoRuleStreamProcessors before clearing
+                        const oldMessagesContainer = document.getElementById(`agent-messages-${oldAgentId}`);
+                        if (oldMessagesContainer) {
+                            const bubbles = oldMessagesContainer.querySelectorAll('[data-processor-initialized="true"]');
+                            bubbles.forEach(bubble => {
+                                if (bubble._processor) {
+                                    console.log(`[CLEANUP] Destroying TwoRuleStreamProcessor for agent-${oldAgentId} (thread moving)`);
+                                    if (window._twoRuleProcessors) {
+                                        window._twoRuleProcessors.delete(bubble._processor);
                                     }
+                                    bubble._processor = null;
+                                    bubble._agentId = null;
+                                    bubble._threadSlug = null;
                                 }
                             });
-                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                            console.log(`[OK] All ${loadedMessages.length} messages rendered for agent-${agentId}`);
-
-                            // ✅ Update scroll controls visibility after loading messages
-                            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.updateScrollControlsVisibility === 'function') {
-                                AgentColumn.updateScrollControlsVisibility(agentId);
-                            }
-
-                            // Setup scroll detection for infinite scroll
-                            setupScrollDetection(agentId, messagesContainer);
-                        } else {
-                            console.warn(`[WARN] No messages found after loading thread ${thread.id}`);
                         }
-                    }).catch(err => {
-                        console.error(`[ERROR] Failed to load messages for thread ${thread.id}:`, err);
-                    });
-                }
-            } else {
-                console.log(`[INFO] Thread ${thread.id} has no messages yet`);
-            }
-        } else {
-            // Load thread messages from MessageStore with proper rendering
-            console.log(`[LOAD] Rendering ${storedMessages.length} messages from MessageStore...`);
-            storedMessages.forEach((msg, index) => {
-                // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
-                console.log(`[LOAD] Rendering message ${index + 1}/${storedMessages.length} (${msg.role})`);
 
-                if (typeof UnifiedMessageRenderer !== 'undefined') {
-                    // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
-                    UnifiedMessageRenderer.render(
-                        messagesDiv,
-                        msg.role,
-                        msg.content,
-                        {
-                            threadId: thread.id,
-                            syncToBackend: false,
-                            scrollToBottom: false  // Manual scroll at end
-                        }
-                    );
-                } else {
-                    console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
-                    // Fallback: manual rendering (old pathway)
-                    if (msg.role === 'user') {
-                        let content;
-                        if (typeof msg.content === 'string') {
-                            content = msg.content;
-                        } else if (Array.isArray(msg.content)) {
-                            content = msg.content
-                                .filter(block => !block.type || block.type === 'text')
-                                .map(block => block.text || block.content || '')
-                                .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
-                        } else {
-                            content = String(msg.content);
-                        }
-                        addAgentMessage(agentId, 'user', content);
-                    } else if (msg.role === 'assistant') {
-                        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-                        addAgentMessage(agentId, 'ai', content);
+                        this.clearAgentThread(oldAgentId);
+                        console.log(`[ISOLATION] ✅ ${currentLocation} cleared and processors destroyed`);
                     }
                 }
-            });
-            console.log(`[OK] All ${storedMessages.length} messages rendered for agent-${agentId}`);
+            }
 
-            // ✅ Update scroll controls visibility after loading messages from MessageStore
-            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.updateScrollControlsVisibility === 'function') {
-                AgentColumn.updateScrollControlsVisibility(agentId);
+            // Store thread info with message count
+            // CRITICAL: Preserve original database message_count (don't overwrite with 0!)
+            // thread.messages may be empty/undefined when loading metadata, but message_count from DB is accurate
+            const originalMessageCount = thread.message_count || 0;
+            const messageCount = thread.messages ? thread.messages.length : originalMessageCount;
+
+            const metadata = {
+                synergyCardId: thread.synergy_card_id || null,
+                synergySessionName: thread.synergy_card_name || null,
+                workflowId: thread.workflow_id || null,
+                automationId: thread.automation_id || null
+            };
+            this.setLoadedThread(agentId, thread.id, thread.title, originalMessageCount, metadata);
+
+            // CRITICAL: DON'T overwrite thread.message_count if it's already set from database
+            // Only update if we have loaded messages in thread.messages array
+            if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
+                const threadInArray = ThreadManager.threads.find(t => t.id === thread.id);
+                if (threadInArray && thread.messages && thread.messages.length > 0) {
+                    threadInArray.message_count = messageCount;
+                    console.log(`[LOAD] Updated thread.message_count in ThreadManager.threads: ${messageCount}`);
+                } else if (threadInArray) {
+                    console.log(`[LOAD] Preserving database message_count: ${threadInArray.message_count}`);
+                }
+            }
+
+            // CRITICAL: Clear AppState.sessionId when thread loads into agent
+            // (Thread is now in agent, NOT in Prime)
+            if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
+                console.log(`[ISOLATION FIX] Clearing AppState.sessionId (thread ${thread.id} now in agent-${agentId})`);
+                AppState.sessionId = null;
+                AppState.chatMessages = [];
+            }
+
+            // Update thread-info container with unified structure
+            const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+            if (threadInfoContainer) {
+                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                    console.log(`[LOAD] Rendering thread info card for agent-${agentId}, thread ${thread.id}`);
+                    const cardHtml = ThreadManager.renderThreadInfoContainer(
+                        `agent-${agentId}`,
+                        thread.id,
+                        true  // compact mode
+                    );
+
+                    if (cardHtml) {
+                        threadInfoContainer.innerHTML = cardHtml;
+                        console.log(`✅ [LOAD] Thread info card rendered (${cardHtml.length} chars)`);
+                    } else {
+                        console.warn(`⚠️ [LOAD] Thread info card HTML is empty (ThreadManagerUI may not be loaded yet)`);
+                        threadInfoContainer.innerHTML = '<div class="empty-thread-info">Loading...</div>';
+                    }
+                } else {
+                    console.error(`❌ [LOAD] ThreadManager.renderThreadInfoContainer not available!`);
+                    console.log('   ThreadManager exists?', typeof ThreadManager !== 'undefined');
+                    console.log('   renderThreadInfoContainer exists?', typeof ThreadManager?.renderThreadInfoContainer);
+                }
+            } else {
+                console.error(`❌ [LOAD] thread-info-${agentId} container not found in DOM!`);
+            }
+
+            // CRITICAL: Always sync session_id with thread.id when loading thread
+            this.sessions[agentId] = thread.id;  // ? Use thread_slug as session_id
+            console.log(`[LOAD] Agent ${agentId} session_id synced to thread_slug: ${thread.id}`);
+
+            // Assign thread to this agent in backend ONLY if location changed
+            // During restoration, skip this call (thread.location already correct from database)
+            const expectedLocation = `agent-${agentId}`;
+            if (typeof ThreadManager !== 'undefined' && thread.location !== expectedLocation) {
+                console.log(` [loadThreadIntoAgent] Assigning thread ${thread.id} to ${expectedLocation} (location changed)`);
+                ThreadManager.assignThread(thread.id, expectedLocation);
+            } else {
+                console.log(` [loadThreadIntoAgent] Thread ${thread.id} already at ${expectedLocation} (skipping backend call)`);
+            }
+
+            // Clear agent's messages
+            const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
+            if (!messagesContainer) {
+                console.error(`[ERROR] Messages container not found for agent-${agentId}`);
+                return;
+            }
+
+            // ✅ CRITICAL FIX: Clear old thread from MessageStore if different thread being loaded
+            const oldThreadId = this.sessions[agentId];
+            if (oldThreadId && oldThreadId !== thread.id && typeof window.MessageStore !== 'undefined') {
+                const oldCount = window.MessageStore.getMessageCount(oldThreadId);
+                window.MessageStore.clearThread(oldThreadId);
+                console.log(`[LOAD] ✅ Cleared ${oldCount} messages from MessageStore for old thread ${oldThreadId}`);
+            }
+
+            // Clear ALL old messages (preserve scroll controls)
+            const messages = messagesContainer.querySelectorAll('.message-bubble, .ai-message');
+            console.log(`[LOAD] Clearing ${messages.length} old messages from DOM for agent-${agentId}`);
+            messages.forEach(msg => msg.remove());
+
+            // Remove any empty-state node if present (keeps outer container)
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+                console.log(`[LOAD] Removed empty state for agent-${agentId}`);
+            }
+
+            // CRITICAL FIX: Always use container directly for message rendering
+            // Container already has id="agent-messages-${agentId}" from agent-column.js
+            // DO NOT create child divs with duplicate IDs - causes messages to render out of order!
+            const messagesDiv = messagesContainer;
+            console.log(`[LOAD] Using container as messagesDiv: ${messagesContainer.id}`);
+
+            // Load messages from MessageStore (centralized storage)
+            const storedMessages = window.MessageStore.getMessages(thread.id);
+            console.log(`📦 [MessageStore] Retrieved ${storedMessages.length} messages for Agent ${agentId}`);
+
+            // ✅ REMOVED: Pagination state initialization - we load all messages immediately
+
+            if (!storedMessages || storedMessages.length === 0) {
+                if (thread.message_count > 0) {
+                    console.log(`[LOAD] Fetching initial 5 messages for thread ${thread.id} from backend...`);
+
+                    // Show processing indicator while loading messages
+                    const processingIndicator = createProcessingIndicator(agentId);
+                    messagesDiv.appendChild(processingIndicator);
+
+                    if (typeof ThreadManager !== 'undefined' && ThreadManager.loadMessagesForThread) {
+                        // ✅ FIX: Load ALL messages (no pagination) - same as AI Prime
+                        // Changed from limit=5 to limit=null to load complete conversation history
+                        ThreadManager.loadMessagesForThread(thread.id, null, 0).then(async (result) => {
+                            // ✅ FIX: Handle missing threads gracefully
+                            if (result?.error === 'THREAD_NOT_FOUND') {
+                                console.warn(`[LOAD] ⚠️ Thread ${thread.id} not found in database - removing from UI`);
+                                removeProcessingIndicator(agentId);
+
+                                // Remove thread card from UI
+                                const threadCard = document.querySelector(`[data-thread-id="${thread.id}"]`);
+                                if (threadCard) {
+                                    threadCard.remove();
+                                }
+
+                                // Clean up localStorage
+                                const storedThreads = JSON.parse(localStorage.getItem('agent_threads') || '{}');
+                                if (storedThreads[agentId]) {
+                                    const filteredThreads = storedThreads[agentId].filter(t => t.id !== thread.id);
+                                    storedThreads[agentId] = filteredThreads;
+                                    localStorage.setItem('agent_threads', JSON.stringify(storedThreads));
+                                }
+
+                                return; // Exit early
+                            }
+
+                            // ✅ REMOVED: Pagination state - all messages loaded immediately
+
+                            // Re-fetch from MessageStore after backend load
+                            const loadedMessages = window.MessageStore.getMessages(thread.id);
+                            if (loadedMessages && loadedMessages.length > 0) {
+                                console.log(`[LOAD] Rendering ${loadedMessages.length} messages...`);
+
+                                // Remove processing indicator before rendering messages
+                                removeProcessingIndicator(agentId);
+
+                                // CRITICAL: Use for...of with await instead of forEach
+                                for (const [index, msg] of loadedMessages.entries()) {
+                                    // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
+                                    console.log(`[LOAD] 📝 Rendering message ${index + 1}/${loadedMessages.length}`);
+                                    console.log(`[LOAD]    Role: ${msg.role}`);
+                                    console.log(`[LOAD]    Content type: ${typeof msg.content}`);
+                                    console.log(`[LOAD]    Content preview:`, Array.isArray(msg.content) ? `Array[${msg.content.length}]` : String(msg.content).substring(0, 100));
+
+                                    if (typeof UnifiedMessageRenderer !== 'undefined') {
+                                        // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
+                                        const rendered = await UnifiedMessageRenderer.render(
+                                            messagesDiv,
+                                            msg.role,
+                                            msg.content,
+                                            {
+                                                threadId: thread.id,
+                                                syncToBackend: false,
+                                                scrollToBottom: false,  // Manual scroll at end
+                                                createdAt: msg.created_at,  // Pass timestamp
+                                                checkDuplicates: false,  // Historical load, already in MessageStore
+                                                messageId: msg.id  // CRITICAL FIX: Pass message ID from database
+                                            }
+                                        );
+
+                                        if (!rendered) {
+                                            console.warn(`[LOAD] ❌ Message ${index + 1} NOT RENDERED (${msg.role})`);
+                                            console.log(`[LOAD]    Check console for skip reason from UnifiedMessageRenderer`);
+                                        } else {
+                                            console.log(`[LOAD] ✅ Message ${index + 1} rendered successfully`);
+                                        }
+                                    } else {
+                                        console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
+                                        // Fallback: manual rendering (old pathway)
+                                        if (msg.role === 'user') {
+                                            let content;
+                                            if (typeof msg.content === 'string') {
+                                                content = msg.content;
+                                            } else if (Array.isArray(msg.content)) {
+                                                content = msg.content
+                                                    .filter(block => !block.type || block.type === 'text')
+                                                    .map(block => block.text || block.content || '')
+                                                    .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
+                                            } else {
+                                                content = String(msg.content);
+                                            }
+                                            addAgentMessage(agentId, 'user', content);
+                                        } else if (msg.role === 'assistant') {
+                                            const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+                                            addAgentMessage(agentId, 'ai', content);
+                                        }
+                                    }
+                                }
+                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                                console.log(`[OK] All ${loadedMessages.length} messages rendered for agent-${agentId}`);
+
+                                // ✅ Update scroll controls visibility after loading messages
+                                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.updateScrollControlsVisibility === 'function') {
+                                    AgentColumn.updateScrollControlsVisibility(agentId);
+                                }
+
+                                // Setup scroll detection for infinite scroll
+                                setupScrollDetection(agentId, messagesContainer);
+                            } else {
+                                console.warn(`[WARN] No messages found after loading thread ${thread.id}`);
+                            }
+                        }).catch(err => {
+                            console.error(`[ERROR] Failed to load messages for thread ${thread.id}:`, err);
+                        });
+                    }
+                } else {
+                    console.log(`[INFO] Thread ${thread.id} has no messages yet`);
+                }
+            } else {
+                // Load thread messages from MessageStore with proper rendering
+                console.log(`[LOAD] Rendering ${storedMessages.length} messages from MessageStore...`);
+
+                // CRITICAL: Use for...of with await instead of forEach
+                for (const [index, msg] of storedMessages.entries()) {
+                    // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
+                    console.log(`[LOAD] Rendering message ${index + 1}/${storedMessages.length} (${msg.role})`);
+
+                    if (typeof UnifiedMessageRenderer !== 'undefined') {
+                        // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
+                        const rendered = await UnifiedMessageRenderer.render(
+                            messagesDiv,
+                            msg.role,
+                            msg.content,
+                            {
+                                threadId: thread.id,
+                                syncToBackend: false,
+                                scrollToBottom: false,  // Manual scroll at end
+                                checkDuplicates: false,  // Historical load, already in MessageStore
+                                messageId: msg.id  // CRITICAL FIX: Pass message ID from database
+                            }
+                        );
+
+                        if (!rendered) {
+                            console.log(`[LOAD] Message ${index + 1} skipped (duplicate or tool_result-only)`);
+                        }
+                    } else {
+                        console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
+                        // Fallback: manual rendering (old pathway)
+                        if (msg.role === 'user') {
+                            let content;
+                            if (typeof msg.content === 'string') {
+                                content = msg.content;
+                            } else if (Array.isArray(msg.content)) {
+                                content = msg.content
+                                    .filter(block => !block.type || block.type === 'text')
+                                    .map(block => block.text || block.content || '')
+                                    .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
+                            } else {
+                                content = String(msg.content);
+                            }
+                            addAgentMessage(agentId, 'user', content);
+                        } else if (msg.role === 'assistant') {
+                            const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+                            addAgentMessage(agentId, 'ai', content);
+                        }
+                    }
+                }
+                console.log(`[OK] All ${storedMessages.length} messages rendered for agent-${agentId}`);
+
+                // ✅ Update scroll controls visibility after loading messages from MessageStore
+                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.updateScrollControlsVisibility === 'function') {
+                    AgentColumn.updateScrollControlsVisibility(agentId);
+                }
+            }
+
+            // Update agent's session to use thread ID
+            this.sessions[agentId] = thread.id;
+            this.saveState();
+
+            // Scroll to bottom
+            if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // Update quick-nav badge to highlight it
+            this.updateQuickNavBadge(agentId);
+
+            // CRITICAL: Show input container wrapper now that thread is loaded (expandable Prime-style)
+            const agentInputContainer = document.querySelector(`#agent-column-${agentId} .agent-input-container`);
+            if (agentInputContainer) {
+                agentInputContainer.style.display = 'block';
+                console.log(`[UI] Showed agent-${agentId} input container (thread loaded)`);
+
+                // Initialize input handlers if not already done
+                if (typeof AgentInput !== 'undefined' && typeof AgentInput.setupHandlers === 'function') {
+                    AgentInput.setupHandlers(agentId);
+                }
+            } else {
+                console.warn(`[UI] Input container not found for agent-${agentId}`);
+            }
+
+            // Also ensure input field is enabled
+            const inputEl = document.querySelector(`#agent-column-${agentId} textarea`);
+            const sendBtn = document.querySelector(`#agent-column-${agentId} .agent-send-btn`);
+
+            if (inputEl) {
+                inputEl.disabled = false;
+                inputEl.placeholder = "Type your message...";
+            }
+
+            if (sendBtn) {
+                sendBtn.disabled = false;
+            }
+
+            console.log(`[OK] Thread loaded into ${this.getAgentName(agentId)} with ${thread.messages ? thread.messages.length : 0} messages (TwoRule rendering)`);
+
+            // Update agent header with thread info card
+            this.updateAgentHeader(agentId);
+
+            // ✅ VALIDATE: Check session isolation after loading
+            setTimeout(() => {
+                this.validateSessionIsolation(thread.id, `agent-${agentId}`);
+            }, 100);
+        } finally {
+            // GUARD: Release loading lock
+            const loadState = window.ThreadManager._loadingThreads.get(thread.id);
+            if (loadState) {
+                loadState.agents.delete(agentId);
+                if (!loadState.prime && loadState.agents.size === 0) {
+                    window.ThreadManager._loadingThreads.delete(thread.id);
+                }
             }
         }
-
-        // Update agent's session to use thread ID
-        this.sessions[agentId] = thread.id;
-        this.saveState();
-
-        // Scroll to bottom
-        if (messagesContainer) {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // Update quick-nav badge to highlight it
-        this.updateQuickNavBadge(agentId);
-
-        // CRITICAL: Show input container wrapper now that thread is loaded (expandable Prime-style)
-        const agentInputContainer = document.querySelector(`#agent-column-${agentId} .agent-input-container`);
-        if (agentInputContainer) {
-            agentInputContainer.style.display = 'block';
-            console.log(`[UI] Showed agent-${agentId} input container (thread loaded)`);
-
-            // Initialize input handlers if not already done
-            if (typeof AgentInput !== 'undefined' && typeof AgentInput.setupHandlers === 'function') {
-                AgentInput.setupHandlers(agentId);
-            }
-        } else {
-            console.warn(`[UI] Input container not found for agent-${agentId}`);
-        }
-
-        // Also ensure input field is enabled
-        const inputEl = document.querySelector(`#agent-column-${agentId} textarea`);
-        const sendBtn = document.querySelector(`#agent-column-${agentId} .agent-send-btn`);
-
-        if (inputEl) {
-            inputEl.disabled = false;
-            inputEl.placeholder = "Type your message...";
-        }
-
-        if (sendBtn) {
-            sendBtn.disabled = false;
-        }
-
-        console.log(`[OK] Thread loaded into ${this.getAgentName(agentId)} with ${thread.messages ? thread.messages.length : 0} messages (TwoRule rendering)`);
-
-        // Update agent header with thread info card
-        this.updateAgentHeader(agentId);
-
-        // ✅ VALIDATE: Check session isolation after loading
-        setTimeout(() => {
-            this.validateSessionIsolation(thread.id, `agent-${agentId}`);
-        }, 100);
     },
 
     // Unload thread from agent and move to Prime
@@ -2275,20 +2457,21 @@ async function initMultiAgent() {
         console.error('❌ [initMultiAgent] ThreadManager.loadThreadsFromBackend not available!');
     }
 
-    // STEP 1: Fetch thread assignments from backend (authoritative source)
-    let assignments = {};
-    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.getThreadAssignments === 'function') {
-        assignments = await ThreadManager.getThreadAssignments();
-        console.log('✅ [Multi-Agent] Fetched thread assignments from backend:', assignments);
-    } else {
-        console.warn('⚠️ [Multi-Agent] ThreadManager.getThreadAssignments not available');
-    }
+    // STEP 1: Calculate agent count from threads' location field (source of truth)
+    // ✅ FIX DEC 28: Use thread.location from database instead of separate assignments API
+    const agentIdsWithThreads = [];
 
-    // STEP 2: Calculate agent count from ACTUAL backend assignments
-    const agentIdsWithThreads = Object.keys(assignments)
-        .filter(loc => loc.startsWith('agent-'))
-        .map(loc => parseInt(loc.replace('agent-', '')))
-        .filter(id => !isNaN(id));
+    if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+        ThreadManager.threads.forEach(thread => {
+            if (thread.location && thread.location.startsWith('agent-')) {
+                const agentId = parseInt(thread.location.replace('agent-', ''));
+                if (!isNaN(agentId) && !agentIdsWithThreads.includes(agentId)) {
+                    agentIdsWithThreads.push(agentId);
+                }
+            }
+        });
+        agentIdsWithThreads.sort((a, b) => a - b);
+    }
 
     // Calculate max agent ID (minimum 3, or highest assigned + 1)
     const maxAssignedAgent = agentIdsWithThreads.length > 0 ? Math.max(...agentIdsWithThreads) : 0;
@@ -2297,7 +2480,7 @@ async function initMultiAgent() {
     // Update nextAgentId based on actual usage (not localStorage)
     MultiAgent.nextAgentId = maxAgentId + 1;
 
-    console.log(`📊 [Multi-Agent] Creating ${maxAgentId} agents (assigned agents: [${agentIdsWithThreads.sort().join(', ')}])`);
+    console.log(`📊 [Multi-Agent] Creating ${maxAgentId} agents (threads assigned to: [${agentIdsWithThreads.join(', ')}])`);
 
     // STEP 3: Create ALL agents from 1 to maxAgentId
     for (let i = 1; i <= maxAgentId; i++) {
@@ -2311,17 +2494,28 @@ async function initMultiAgent() {
             column.classList.remove('collapsed');
             console.log(`[SIZE][Multi-Agent] ${MultiAgent.getAgentName(i)} initialized at default width(400px)`);
         }
+    }
 
-        // [NEW] STEP 4: Check if this agent has a thread assigned
+    // ✅ FIX DEC 28: Build assignments map BEFORE using it (was causing temporal dead zone error)
+    // Create assignments map from thread locations for buildQuickNav and hasThread checks
+    const assignments = {};
+    if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+        ThreadManager.threads.forEach(thread => {
+            if (thread.location) {
+                assignments[thread.location] = thread.id;
+            }
+        });
+    }
+
+    // Now check which agents have threads (after assignments map is created)
+    for (let i = 1; i <= maxAgentId; i++) {
         const hasThread = assignments[`agent-${i}`];
-
         // ALL agents are EXPANDED by default now (no auto-collapse)
         console.log(`[OK][Multi-Agent] ${MultiAgent.getAgentName(i)} is EXPANDED (has thread: ${!!hasThread})`);
     }
 
-    // Build agent quick-nav bar (using actual agent count from backend)
     MultiAgent.buildQuickNav(maxAgentId, assignments);
-    console.log(`✅ [Command Center] Quick nav built with ${maxAgentId} agent badges (from backend assignments)`);
+    console.log(`✅ [Command Center] Quick nav built with ${maxAgentId} agent badges`);
 
     // Update stats
     MultiAgent.updateDashboardStats();
@@ -2418,32 +2612,31 @@ async function initMultiAgent() {
     }
 
     // STEP 5: LOAD threads on page initialization (not just restore to memory)
-    // CRITICAL: Load prime-loaded thread FIRST, then agent threads
+    // CRITICAL: Load prime thread FIRST, then agent threads
 
     // STEP 5A: INITIALIZE PRIME PANEL (same pattern as agent columns)
-    // Check if prime-loaded thread exists and render appropriate content
+    // Check if prime thread exists and render appropriate content
     const primeThreadInfoContainer = document.getElementById('prime-thread-info');
     if (!primeThreadInfoContainer) {
         console.warn(`⚠️ [initMultiAgent] Prime thread-info container NOT FOUND - thread info cards won't render`);
     } else {
         console.log(`✅ [initMultiAgent] Prime thread-info container ready`);
 
-        // Check for prime-loaded thread assignment
-        const primeLoadedThreadId = assignments['prime-loaded'];
-        const primeLoadedThread = primeLoadedThreadId
-            ? ThreadManager.threads.find(t => t.id === primeLoadedThreadId)
+        // ✅ FIX DEC 28: Find prime thread using thread.location field
+        const primeLoadedThread = typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)
+            ? ThreadManager.threads.find(t => t.location === 'prime')
             : null;
 
         if (primeLoadedThread && typeof ThreadManager !== 'undefined') {
             // Thread is assigned - load and render thread card
-            console.log(`🎯 [initMultiAgent] Prime has prime-loaded thread: ${primeLoadedThreadId}, loading...`);
-            await ThreadManager.loadThreadInPrime(primeLoadedThreadId);
+            console.log(`🎯 [initMultiAgent] Prime has prime thread: ${primeLoadedThread.id}, loading...`);
+            await ThreadManager.loadThreadInPrime(primeLoadedThread.id);
 
             // Update thread info card for Prime
             if (typeof ThreadManager.renderThreadInfoContainer === 'function') {
                 // Render with compact=false for full card display
-                // Use 'prime-loaded' location to show correct badge styling
-                const cardHtml = ThreadManager.renderThreadInfoContainer('prime-loaded', primeLoadedThreadId, false);
+                // Use 'prime' location to show correct badge styling
+                const cardHtml = ThreadManager.renderThreadInfoContainer('prime', primeLoadedThread.id, false);
                 if (cardHtml) {
                     primeThreadInfoContainer.innerHTML = cardHtml;
                     console.log(`✅ [initMultiAgent] Prime thread card rendered (${cardHtml.length} chars, replaced empty state)`);
@@ -2452,101 +2645,116 @@ async function initMultiAgent() {
                 }
             }
         } else {
-            // No prime-loaded thread - ensure empty state is shown
-            console.log(`📭 [initMultiAgent] No prime-loaded thread assigned, keeping empty state`);
+            // No prime thread - ensure empty state is shown
+            console.log(`📭 [initMultiAgent] No prime thread assigned, keeping empty state`);
             // Empty state already in HTML, no action needed
         }
     }
 
     // Then load all agent-assigned threads
+    // ✅ FIX DEC 28: Use thread.location as source of truth (not separate assignments API)
+    // The database sessions.threads.location field already contains the correct assignment
     const agentLoadPromises = [];
-    Object.keys(assignments).forEach(location => {
-        const threadId = assignments[location];
-        if (!threadId) return;
 
-        if (location === 'prime' || location === 'prime-loaded') {
-            // Already handled above or not a loaded thread
-            return;
-        } else if (location.startsWith('agent-')) {
-            // Thread assigned to agent column
-            const agentId = parseInt(location.replace('agent-', ''));
-            if (!isNaN(agentId) && typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
-                const thread = ThreadManager.threads.find(t => t.id === threadId);
-                if (thread) {
-                    // Update MultiAgent state
-                    MultiAgent.loadedThreads[agentId] = {
-                        threadId: thread.id,
-                        threadTitle: thread.title
-                    };
-                    MultiAgent.sessions[agentId] = threadId;
+    if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+        // Iterate through ALL threads and load those with agent locations
+        ThreadManager.threads.forEach(thread => {
+            const location = thread.location;
 
-                    // Tag thread with agent name
-                    const agentName = MultiAgent.getAgentName(agentId);
-                    thread.agent = agentName;
-                    console.log(`[OK] Tagged thread "${thread.title}" with agent: ${agentName}`);
-
-                    // Load thread immediately (no setTimeout delay)
-                    const loadPromise = (async () => {
-                        // Clear welcome message
-                        const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
-                        if (messagesContainer) {
-                            messagesContainer.innerHTML = '<div class="agent-messages" id="agent-messages-' + agentId + '"></div>';
-                        }
-
-                        // ✅ FIX DEC 17: Load messages into MessageStore FIRST before rendering
-                        console.log(`📥 [initMultiAgent] Pre-loading messages for thread ${thread.id} into MessageStore...`);
-                        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadMessagesForThread === 'function') {
-                            await ThreadManager.loadMessagesForThread(thread.id, null, 0);
-                            const messageCount = window.MessageStore.getMessages(thread.id).length;
-                            console.log(`✅ [initMultiAgent] ${messageCount} messages loaded into MessageStore for thread ${thread.id}`);
-                        }
-
-                        // Load thread with full rendering
-                        await MultiAgent.loadThreadIntoAgent(agentId, thread);
-                        console.log(`✅ [initMultiAgent] Loaded thread "${thread.title}" into ${agentName}`);
-
-                        // Update thread info card for agent column
-                        // CRITICAL FIX NOV 29: Use requestAnimationFrame to ensure DOM is ready
-                        await new Promise(resolve => {
-                            requestAnimationFrame(() => {
-                                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
-                                    console.log(`📋 [initMultiAgent] Rendering thread info card for agent-${agentId}, thread: ${thread.id}`);
-                                    // Use compact=true for agent columns (matches initial render during createAgentColumn)
-                                    const cardHtml = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, thread.id, true);
-                                    console.log(`📋 [initMultiAgent] Card HTML generated: ${cardHtml ? cardHtml.length + ' chars' : 'NULL'}`);
-
-                                    const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
-                                    console.log(`📋 [initMultiAgent] Container element:`, threadInfoContainer ? 'FOUND' : 'NOT FOUND');
-
-                                    if (threadInfoContainer && cardHtml) {
-                                        // CRITICAL: Replace entire innerHTML (removes empty state if present)
-                                        threadInfoContainer.innerHTML = cardHtml;
-                                        console.log(`✅ [initMultiAgent] Updated thread info card for ${agentName} (replaced empty state with thread card)`);
-                                        console.log(`✅ [initMultiAgent] Container HTML after injection:`, threadInfoContainer.innerHTML.substring(0, 100) + '...');
-                                    } else if (!threadInfoContainer) {
-                                        console.error(`❌ [initMultiAgent] thread-info-${agentId} container NOT FOUND in DOM!`);
-                                    } else {
-                                        console.error(`❌ [initMultiAgent] Card HTML is empty or null!`);
-                                    }
-                                } else {
-                                    console.error(`❌ [initMultiAgent] ThreadManager or renderThreadInfoContainer NOT available!`);
-                                }
-
-                                // Update header
-                                MultiAgent.updateAgentHeader(agentId);
-
-                                resolve();
-                            });
-                        });
-                    })();
-
-                    agentLoadPromises.push(loadPromise);
-                } else {
-                    console.warn(`[WARN] Thread ${threadId} not found for location ${location}`);
-                }
+            // Skip if not an agent location
+            if (!location || !location.startsWith('agent-')) {
+                return;
             }
-        }
-    });
+
+            // Extract agent ID from location (e.g., "agent-4" -> 4)
+            const agentId = parseInt(location.replace('agent-', ''));
+            if (isNaN(agentId)) {
+                console.warn(`[WARN] Invalid agent ID in location: ${location}`);
+                return;
+            }
+
+            console.log(`✅ [initMultiAgent] Found thread "${thread.title}" (${thread.id}) assigned to ${location}`);
+
+            // Only load if agent column exists (within maxAgentId range)
+            if (agentId <= maxAgentId) {
+                // Update MultiAgent state
+                MultiAgent.loadedThreads[agentId] = {
+                    threadId: thread.id,
+                    threadTitle: thread.title
+                };
+                MultiAgent.sessions[agentId] = thread.id;
+
+                // Tag thread with agent name
+                const agentName = MultiAgent.getAgentName(agentId);
+                thread.agent = agentName;
+                console.log(`[OK] Tagged thread "${thread.title}" with agent: ${agentName}`);
+
+                // Load thread immediately (no setTimeout delay)
+                const loadPromise = (async () => {
+                    // Clear welcome message - DO NOT create child div (causes duplicate ID)
+                    const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
+                    if (messagesContainer) {
+                        // Clear old messages but preserve scroll controls
+                        const oldMessages = messagesContainer.querySelectorAll('.ai-message, .message-bubble');
+                        oldMessages.forEach(msg => msg.remove());
+                        console.log(`[initMultiAgent] Cleared ${oldMessages.length} old messages from agent-${agentId}`);
+                    }
+
+                    // ✅ FIX DEC 17: Load messages into MessageStore FIRST before rendering
+                    console.log(`📥 [initMultiAgent] Pre-loading messages for thread ${thread.id} into MessageStore...`);
+                    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadMessagesForThread === 'function') {
+                        await ThreadManager.loadMessagesForThread(thread.id, null, 0);
+                        const messageCount = window.MessageStore.getMessages(thread.id).length;
+                        console.log(`✅ [initMultiAgent] ${messageCount} messages loaded into MessageStore for thread ${thread.id}`);
+                    }
+
+                    // Load thread with full rendering
+                    await MultiAgent.loadThreadIntoAgent(agentId, thread);
+                    console.log(`✅ [initMultiAgent] Loaded thread "${thread.title}" into ${agentName}`);
+
+                    // Update thread info card for agent column
+                    // CRITICAL FIX NOV 29: Use requestAnimationFrame to ensure DOM is ready
+                    await new Promise(resolve => {
+                        requestAnimationFrame(() => {
+                            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                                console.log(`📋 [initMultiAgent] Rendering thread info card for agent-${agentId}, thread: ${thread.id}`);
+                                // Use compact=true for agent columns (matches initial render during createAgentColumn)
+                                const cardHtml = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, thread.id, true);
+                                console.log(`📋 [initMultiAgent] Card HTML generated: ${cardHtml ? cardHtml.length + ' chars' : 'NULL'}`);
+
+                                const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+                                console.log(`📋 [initMultiAgent] Container element:`, threadInfoContainer ? 'FOUND' : 'NOT FOUND');
+
+                                if (threadInfoContainer && cardHtml) {
+                                    // CRITICAL: Replace entire innerHTML (removes empty state if present)
+                                    threadInfoContainer.innerHTML = cardHtml;
+                                    console.log(`✅ [initMultiAgent] Updated thread info card for ${agentName} (replaced empty state with thread card)`);
+                                    console.log(`✅ [initMultiAgent] Container HTML after injection:`, threadInfoContainer.innerHTML.substring(0, 100) + '...');
+                                } else if (!threadInfoContainer) {
+                                    console.error(`❌ [initMultiAgent] thread-info-${agentId} container NOT FOUND in DOM!`);
+                                } else {
+                                    console.error(`❌ [initMultiAgent] Card HTML is empty or null!`);
+                                }
+                            } else {
+                                console.error(`❌ [initMultiAgent] ThreadManager or renderThreadInfoContainer NOT available!`);
+                            }
+
+                            // Update header
+                            MultiAgent.updateAgentHeader(agentId);
+
+                            resolve();
+                        });
+                    });
+                })();
+
+                agentLoadPromises.push(loadPromise);
+            } else {
+                console.warn(`[WARN] Thread "${thread.title}" assigned to ${location} but agent column doesn't exist (maxAgentId=${maxAgentId})`);
+            }
+        });
+    } else {
+        console.error(`❌ [initMultiAgent] ThreadManager.threads not available!`);
+    }
 
     // ✅ FIX: Load threads sequentially to prevent connection pool exhaustion
     // OLD: await Promise.all(agentLoadPromises) - caused 5 parallel connections
@@ -2594,7 +2802,10 @@ async function initMultiAgent() {
                     setTimeout(() => {
                         const messagesContainer = document.querySelector(`#agent-${agentIdNum} .agent-messages-container`);
                         if (messagesContainer) {
-                            messagesContainer.innerHTML = '<div class="agent-messages" id="agent-messages-' + agentIdNum + '"></div>';
+                            // Clear old messages but preserve scroll controls
+                            const oldMessages = messagesContainer.querySelectorAll('.ai-message, .message-bubble');
+                            oldMessages.forEach(msg => msg.remove());
+                            console.log(`[Restore] Cleared ${oldMessages.length} old messages from agent-${agentIdNum}`);
                         }
 
                         MultiAgent.loadThreadIntoAgent(agentIdNum, thread);
@@ -2635,9 +2846,9 @@ async function initMultiAgent() {
 
             // Refresh Prime thread info card
             const primeContainer = document.getElementById('prime-thread-info');
-            if (primeContainer && assignments['prime-loaded']) {
+            if (primeContainer && assignments['prime']) {
                 if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
-                    const cardHtml = ThreadManager.renderThreadInfoContainer('prime-loaded', assignments['prime-loaded'], false);
+                    const cardHtml = ThreadManager.renderThreadInfoContainer('prime', assignments['prime'], false);
                     if (cardHtml && cardHtml.length > 600) {
                         primeContainer.innerHTML = cardHtml;
                         console.log(`✅ [initMultiAgent] Final refresh: Prime thread card rendered (${cardHtml.length} chars)`);
@@ -2649,6 +2860,16 @@ async function initMultiAgent() {
         });
     });
     console.log(`✅ [initMultiAgent] All thread info cards refreshed`);
+
+    // ✅ FIX (Jan 3, 2026): Emit event to notify other modules (e.g., CommunicationHub) that agent threads are loaded
+    window.dispatchEvent(new CustomEvent('multiagent-threads-loaded', {
+        detail: {
+            agentCount: maxAgentId,
+            threadsLoaded: agentIdsWithThreads.length,
+            timestamp: new Date().toISOString()
+        }
+    }));
+    console.log(`📢 [initMultiAgent] Emitted 'multiagent-threads-loaded' event`);
 
     // Add the "Add Agent" bar
     createAddAgentBar();
@@ -2773,7 +2994,8 @@ async function initMultiAgent() {
                     {
                         threadId: data.thread_id,
                         syncToBackend: false,
-                        contentBlocks: data.content_blocks
+                        contentBlocks: data.content_blocks,
+                        messageId: data.message_id || null  // Socket messages may not have ID yet
                     }
                 );
 
@@ -2789,7 +3011,7 @@ async function initMultiAgent() {
         });
 
         // Store Prime thread ID for lock checking (updated when Prime loads a thread)
-        window._primeThreadId = assignments['prime-loaded'] || null;
+        window._primeThreadId = assignments['prime'] || null;
 
         // Listen for Prime AI lock/unlock events
         socket.on('thread_locked', (data) => {
@@ -2839,7 +3061,8 @@ async function initMultiAgent() {
                     {
                         threadId: data.thread_id,
                         syncToBackend: false,
-                        contentBlocks: data.content_blocks
+                        contentBlocks: data.content_blocks,
+                        messageId: data.message_id || null  // Socket messages may not have ID yet
                     }
                 );
 
@@ -3235,7 +3458,7 @@ function showLoadThreadDialog(agentId) {
 }
 
 // Load thread into specific agent
-function loadThreadIntoAgent(agentId, sessionId) {
+async function loadThreadIntoAgent(agentId, sessionId) {
     // Find thread by session ID
     const thread = Array.isArray(ThreadManager.threads) ? ThreadManager.threads.find(t => t.id === sessionId) : null;
 
@@ -3280,17 +3503,191 @@ function loadThreadIntoAgent(agentId, sessionId) {
         const messages = window.MessageStore.getMessages(thread.id);
         console.log(`📦 [MessageStore] Loading ${messages.length} messages into Agent ${agentId} from thread ${thread.id}`);
 
-        // Add each message
-        messages.forEach(msg => {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `agent-message ${msg.role === 'user' ? 'user' : 'assistant'}`;
-            messageDiv.innerHTML = `
-            <div class="agent-message-bubble">
-                ${msg.content}
+        // CRITICAL FIX (Jan 4, 2026): FORCE SEQUENTIAL RENDERING WITH BATCHING
+        // TwoRuleStreamProcessor synchronous DOM operations can overwhelm browser
+        // Solution: Render in batches of 10, with delays between batches
+        const BATCH_SIZE = 10;
+        const BATCH_DELAY_MS = 100; // Delay between batches to let DOM settle
+        const MESSAGE_DELAY_MS = 10; // Tiny delay between messages for forced order
+
+        console.log(`[LOAD] 🔄 Starting BATCHED render of ${messages.length} messages (${BATCH_SIZE} per batch)`);
+
+        // Add loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.style.cssText = 'padding: 20px; text-align: center; color: #666; font-style: italic; background: #f0f0f0; border-radius: 8px; margin: 10px 0;';
+        loadingIndicator.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Loading messages... <span id="load-progress">0/${messages.length}</span>`;
+        messagesContainer.appendChild(loadingIndicator);
+
+        for (let batchStart = 0; batchStart < messages.length; batchStart += BATCH_SIZE) {
+            const batchEnd = Math.min(batchStart + BATCH_SIZE, messages.length);
+            const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
+            const totalBatches = Math.ceil(messages.length / BATCH_SIZE);
+
+            console.log(`[LOAD] 📦 Batch ${batchNum}/${totalBatches}: Rendering messages ${batchStart + 1}-${batchEnd}`);
+
+            for (let index = batchStart; index < batchEnd; index++) {
+                const msg = messages[index];
+
+                try {
+                    console.log(`[LOAD] 🎯 Message ${index + 1}/${messages.length} (${msg.role}) - RENDER START`);
+
+                    if (typeof UnifiedMessageRenderer !== 'undefined') {
+                        // PRIME PATHWAY: Use UnifiedMessageRenderer for proper content block handling
+                        const renderResult = await UnifiedMessageRenderer.render(
+                            messagesContainer,
+                            msg.role,
+                            msg.content,
+                            {
+                                threadId: thread.id,
+                                syncToBackend: false,
+                                scrollToBottom: false,  // Manual scroll at end
+                                createdAt: msg.created_at,
+                                messageId: msg.id  // CRITICAL: Pass message ID from database
+                            }
+                        );
+
+                        if (renderResult) {
+                            console.log(`[LOAD] ✅ Message ${index + 1} RENDERED SUCCESSFULLY`);
+                        } else {
+                            console.log(`[LOAD] ⏭️ Message ${index + 1} SKIPPED (duplicate or tool_result-only)`);
+                        }
+
+                        // FORCE DOM UPDATE: Tiny delay to ensure message appears in correct order
+                        await new Promise(resolve => setTimeout(resolve, MESSAGE_DELAY_MS));
+
+                    } else {
+                        console.warn(`[LOAD] ⚠️ UnifiedMessageRenderer not available! Using improved fallback renderer`);
+
+                        // IMPROVED FALLBACK RENDERER: Handle structured content blocks
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `ai-message ${msg.role === 'user' ? 'user' : 'assistant'}`;
+                        messageDiv.dataset.messageId = msg.id;
+
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'agent-message-bubble';
+
+                        if (typeof msg.content === 'string') {
+                            // Simple string content
+                            contentDiv.textContent = msg.content;
+                            console.log(`[LOAD] Rendered string content (${msg.content.length} chars)`);
+
+                        } else if (Array.isArray(msg.content)) {
+                            // CRITICAL FIX: Handle array content blocks properly
+                            let hasVisibleContent = false;
+
+                            msg.content.forEach((block, blockIdx) => {
+                                console.log(`[LOAD]   Block ${blockIdx + 1}: type=${block.type}`);
+
+                                if (block.type === 'thinking' && block.thinking) {
+                                    // Render thinking block with icon
+                                    const thinkingDiv = document.createElement('div');
+                                    thinkingDiv.className = 'content-block thinking-block';
+                                    thinkingDiv.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px; color: #888; font-style: italic; margin-bottom: 8px;">
+                                    <i class="fas fa-brain"></i>
+                                    <span style="font-size: 0.9em;">Extended Thinking</span>
+                                </div>
+                                <div style="font-size: 0.85em; color: #666; border-left: 2px solid #ddd; padding-left: 12px;">
+                                    ${block.thinking.substring(0, 200)}${block.thinking.length > 200 ? '...' : ''}
+                                </div>
+                            `;
+                                    contentDiv.appendChild(thinkingDiv);
+                                    hasVisibleContent = true;
+
+                                } else if (block.type === 'tool_use' && block.name) {
+                                    // Render tool_use block with icon
+                                    const toolDiv = document.createElement('div');
+                                    toolDiv.className = 'content-block tool-use-block';
+                                    toolDiv.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px; color: #4a90e2; font-weight: 500; margin-bottom: 4px;">
+                                    <i class="fas fa-cog"></i>
+                                    <span>Tool: ${block.name}</span>
+                                </div>
+                                <div style="font-size: 0.85em; color: #666; margin-left: 24px;">
+                                    ${JSON.stringify(block.input || {}, null, 2).substring(0, 100)}${JSON.stringify(block.input || {}).length > 100 ? '...' : ''}
+                                </div>
+                            `;
+                                    contentDiv.appendChild(toolDiv);
+                                    hasVisibleContent = true;
+
+                                } else if (block.type === 'text' && block.text) {
+                                    // Render text block
+                                    const textDiv = document.createElement('div');
+                                    textDiv.className = 'content-block text-block';
+                                    textDiv.style.marginTop = '8px';
+                                    textDiv.textContent = block.text;
+                                    contentDiv.appendChild(textDiv);
+                                    hasVisibleContent = true;
+
+                                } else if (block.type === 'tool_result') {
+                                    // Render tool_result block (shouldn't be in assistant messages, but handle gracefully)
+                                    const resultDiv = document.createElement('div');
+                                    resultDiv.className = 'content-block tool-result-block';
+                                    resultDiv.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px; color: #28a745; font-weight: 500; margin-bottom: 4px;">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Tool Result</span>
+                                </div>
+                            `;
+                                    contentDiv.appendChild(resultDiv);
+                                    hasVisibleContent = true;
+                                }
+                            });
+
+                            if (!hasVisibleContent) {
+                                console.warn(`[LOAD] ⚠️ Message ${index + 1} has array content but no renderable blocks!`);
+                                contentDiv.innerHTML = `<em style="color: #999;">[Message with ${msg.content.length} content blocks]</em>`;
+                            } else {
+                                console.log(`[LOAD] ✅ Rendered ${msg.content.length} content blocks`);
+                            }
+
+                        } else {
+                            // Unknown format - stringify
+                            contentDiv.textContent = String(msg.content);
+                            console.warn(`[LOAD] ⚠️ Unknown content format: ${typeof msg.content}`);
+                        }
+
+                        messageDiv.appendChild(contentDiv);
+                        messagesContainer.appendChild(messageDiv);
+                    }
+
+                    // Update progress indicator
+                    document.getElementById('load-progress').textContent = `${index + 1}/${messages.length}`;
+
+                } catch (renderError) {
+                    console.error(`[LOAD] ❌ Failed to render message ${index + 1} (ID: ${msg.id}):`, renderError);
+                    console.error('[LOAD]   Message role:', msg.role);
+                    console.error('[LOAD]   Content type:', Array.isArray(msg.content) ? `array[${msg.content.length}]` : typeof msg.content);
+
+                    // Create error placeholder so user knows a message failed
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'ai-message assistant error';
+                    errorDiv.innerHTML = `
+                    <div class="ai-message-content" style="background: #ffebee; border: 1px solid #ef5350; padding: 10px; border-radius: 4px;">
+                        <div style="color: #c62828; font-weight: 500;">⚠️ Message Rendering Error</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                            Message #${index + 1} (ID: ${msg.id}) failed to render. Check console for details.
                         </div>
-            `;
-            messagesContainer.appendChild(messageDiv);
-        });
+                    </div>
+                `;
+                    messagesContainer.appendChild(errorDiv);
+
+                    // Continue with next message instead of stopping the loop
+                    console.log('[LOAD] Continuing with next message...');
+                }
+            } // End of batch message loop
+
+            // BATCH DELAY: Give DOM time to settle before next batch
+            if (batchEnd < messages.length) {
+                console.log(`[LOAD] 🛑 Batch ${batchNum} complete. Pausing ${BATCH_DELAY_MS}ms before next batch...`);
+                await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+            }
+
+        } // End of batch loop
+
+        // Remove loading indicator
+        loadingIndicator.remove();
+        console.log(`[LOAD] ✅ ALL ${messages.length} messages rendered successfully in ${Math.ceil(messages.length / BATCH_SIZE)} batches`);
 
         // Scroll to bottom
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -3779,7 +4176,8 @@ async function sendAgentMessage(agentId) {
         displayMessage,
         {
             threadId: currentThread.id,
-            syncToBackend: false
+            syncToBackend: false,
+            messageId: null  // User-typed message, ID assigned after backend sync
         }
     );
     console.log(`[Agent ${agentId}] User message rendered`);
@@ -3900,8 +4298,27 @@ async function sendAgentMessage(agentId) {
                     use_tools: true,
                     verbose_tool_output: true,
                     streaming: true
-                }
+                },
+                // ✅ NEW: Team ID routing for multi-user collaboration
+                sender_team_id: window.UserAuth?.user?.username || null,  // Current user's username
+                recipient_team_id: _getRecipientTeamId(),  // Respects privacy mode
+                message_type: 'direct',  // User-to-agent message
+                privacy_mode: window.SynergyRealtime?.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central'
             };
+
+            // Helper: Determine recipient based on privacy mode
+            function _getRecipientTeamId() {
+                const privacyMode = window.SynergyRealtime?.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central';
+                const myUsername = window.UserAuth?.user?.username || null;
+
+                if (privacyMode === 'local') {
+                    // Local Ops: Message only for me
+                    return myUsername;
+                } else {
+                    // Central HQ: Broadcast to all team members
+                    return null;
+                }
+            }
 
             if (workflowContext) {
                 requestBody.workflow_designer = {
@@ -5479,6 +5896,14 @@ function renderStructuredAgentMessage(agentId, messageContent, threadId = null) 
 }
 
 async function addAgentMessage(agentId, role, content) {
+    // Safety check: Ensure UnifiedMessageRenderer is loaded
+    if (typeof UnifiedMessageRenderer === 'undefined') {
+        console.error('[addAgentMessage] UnifiedMessageRenderer not loaded yet - deferring render');
+        // Retry after a short delay to allow script to load
+        setTimeout(() => addAgentMessage(agentId, role, content), 100);
+        return;
+    }
+
     // Get current thread for this agent
     const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
     const threadId = currentThread ? currentThread.id : 'agent-' + agentId;
@@ -5492,7 +5917,8 @@ async function addAgentMessage(agentId, role, content) {
             isThinking: false,
             scrollToBottom: true,
             threadId: threadId,
-            syncToBackend: false
+            syncToBackend: false,
+            messageId: null  // Rendered without DB ID context
         }
     );
 

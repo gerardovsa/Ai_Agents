@@ -56,13 +56,9 @@ window.ThreadManagerUI = {
                 return;
             }
 
-            // Build location mapping
-            const threadToLocation = {};
-            threads.forEach(thread => {
-                if (thread.location && thread.location !== 'prime') {
-                    threadToLocation[thread.id] = thread.location;
-                }
-            });
+            // ✅ FIX (Dec 29, 2025): Remove threadToLocation map - use thread.location directly
+            // The map was causing stale data because it only stored non-unassigned locations
+            // This meant unassigned threads would fall back to 'unassigned' even if later assigned
 
             // Filter threads using ThreadManager's state
             const currentFilter = window.ThreadManager.currentFilter || 'active';
@@ -101,11 +97,11 @@ window.ThreadManagerUI = {
 
                 // Location filter
                 if (locationFilter && locationFilter !== 'all') {
-                    const threadLocation = thread.location || 'prime';
+                    const threadLocation = thread.location || 'unassigned';
 
-                    if (locationFilter === 'prime' && threadLocation !== 'prime') {
+                    if (locationFilter === 'unassigned' && threadLocation !== 'unassigned') {
                         return false;
-                    } else if (locationFilter === 'all-agents' && threadLocation === 'prime') {
+                    } else if (locationFilter === 'all-agents' && threadLocation === 'unassigned') {
                         return false;
                     } else if (locationFilter.startsWith('agent-') && threadLocation !== locationFilter) {
                         return false;
@@ -181,8 +177,21 @@ window.ThreadManagerUI = {
                 }
 
                 const thread = item.data;
-                // ✅ FIX: Use window.ThreadManagerUI explicitly
-                return window.ThreadManagerUI.renderThreadCard(thread, threadToLocation[thread.id] || 'prime');
+                // ✅ FIX (Dec 29, 2025): Use thread.location directly (single source of truth)
+                const currentLocation = thread.location || 'unassigned';
+
+                // 🔍 DEBUG: Log first 3 threads to verify location data
+                if (item.data && window._debugThreadCount < 3) {
+                    console.log(`🔍 [DEBUG] Thread ${window._debugThreadCount + 1}:`, {
+                        id: thread.id,
+                        title: thread.title,
+                        'thread.location': thread.location,
+                        currentLocation: currentLocation
+                    });
+                    window._debugThreadCount = (window._debugThreadCount || 0) + 1;
+                }
+
+                return window.ThreadManagerUI.renderThreadCard(thread, currentLocation);
             }).join('');
         };
 
@@ -209,6 +218,17 @@ window.ThreadManagerUI = {
      * ✅ ENHANCED: Added Team ID color coding with border-left styling
      */
     renderThreadCard(thread, currentLocation) {
+        // 🔍 DEBUG: Log input parameters
+        if (!window._renderThreadCardDebugCount || window._renderThreadCardDebugCount < 3) {
+            console.log(`🔍 [DEBUG] renderThreadCard called:`, {
+                'thread.id': thread.id,
+                'thread.title': thread.title,
+                'thread.location': thread.location,
+                'currentLocation parameter': currentLocation
+            });
+            window._renderThreadCardDebugCount = (window._renderThreadCardDebugCount || 0) + 1;
+        }
+
         const date = new Date(thread.updated);
         const meta = {
             msgCount: thread.message_count || 0,
@@ -216,16 +236,16 @@ window.ThreadManagerUI = {
             timeStr: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
         };
 
-        let agentLabel = 'Prime';
-        let agentIcon = 'fa-star';
-        let agentClass = 'main';
+        let agentLabel = 'Unassigned';
+        let agentIcon = 'fa-inbox';
+        let agentClass = 'unassigned';
 
-        // Check for prime-loaded (thread that loads on page reload)
-        if (currentLocation === 'prime-loaded') {
-            agentLabel = 'Prime-Loaded';
+        // Check for prime (thread in AI Prime sidebar)
+        if (currentLocation === 'prime') {
+            agentLabel = 'Prime';
             agentIcon = 'fa-star';
             agentClass = 'main-loaded';
-        } else if (currentLocation && currentLocation !== 'prime') {
+        } else if (currentLocation && currentLocation !== 'unassigned' && currentLocation.startsWith('agent-')) {
             const match = currentLocation.match(/agent-(\d+)/);
             if (match) {
                 const agentId = parseInt(match[1]);
@@ -250,6 +270,17 @@ window.ThreadManagerUI = {
 
         // Use ThreadCardTemplates if available
         if (typeof window.ThreadCardTemplates !== 'undefined') {
+            // 🔍 DEBUG: Log call to compactCard
+            if (!window._compactCardDebugCount || window._compactCardDebugCount < 3) {
+                console.log(`🔍 [DEBUG] Calling compactCard with:`, {
+                    'thread.id': thread.id,
+                    location: 'thread-history',
+                    'agent.name': agent.name,
+                    currentLocation: currentLocation
+                });
+                window._compactCardDebugCount = (window._compactCardDebugCount || 0) + 1;
+            }
+
             return window.ThreadCardTemplates.compactCard(thread, 'thread-history', agent, meta, slug, null, currentLocation);
         }
 
@@ -287,10 +318,10 @@ window.ThreadManagerUI = {
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                         ` : ''}
-                        ${thread.location === 'prime' || thread.location === 'prime-loaded' ? `
-                        <button class="thread-action-btn ${thread.location === 'prime-loaded' ? 'active' : ''}" 
+                        ${thread.location === 'unassigned' || thread.location === 'prime' ? `
+                        <button class="thread-action-btn ${thread.location === 'prime' ? 'active' : ''}" 
                             onclick="event.stopPropagation(); ThreadManager.markAsPrimeLoaded('${thread.id}')" 
-                            title="${thread.location === 'prime-loaded' ? 'Loads on startup (active)' : 'Set to load on startup'}">
+                            title="${thread.location === 'prime' ? 'Loaded in Prime (active)' : 'Set to load in Prime'}">
                             <i class="fas fa-home"></i>
                         </button>
                         ` : ''}
@@ -472,9 +503,9 @@ window.ThreadManagerUI = {
 
         // Agent metadata (varies by location)
         let agent = {
-            name: location === 'prime-loaded' ? 'Prime-Loaded' : 'Prime',
+            name: 'Prime',
             icon: 'fa-star',
-            class: location === 'prime-loaded' ? 'main-loaded' : 'main'
+            class: 'main'
         };
 
         if (location && location.startsWith('agent-')) {
@@ -500,7 +531,7 @@ window.ThreadManagerUI = {
         const slug = threadId.substring(0, 8);
 
         // Current location (for thread-history cards)
-        const currentLocation = thread.location || 'prime';
+        const currentLocation = thread.location || 'unassigned';
 
         // Use ThreadCardTemplates.compactCard() for all locations
         console.log(`[renderThreadInfoContainer] Calling ThreadCardTemplates.compactCard() with:`, { location, agent: agent.name, meta, slug, currentLocation });
@@ -548,7 +579,7 @@ window.ThreadManagerUI = {
             if (location === 'synergy') {
                 agentName = 'Synergy';
                 agentIcon = 'fa-users';
-            } else if (location !== 'prime') {
+            } else if (location !== 'unassigned') {
                 const match = location.match(/agent-(\d+)/);
                 if (match && typeof MultiAgent !== 'undefined') {
                     agentId = parseInt(match[1]);
@@ -590,8 +621,8 @@ window.ThreadManagerUI = {
         // Thread exists - show container and render thread info card
         container.style.display = 'block';
         // Render thread info card using ThreadCardTemplates
-        // Use 'prime-loaded' location to show correct badge styling
-        const html = this.renderThreadInfoContainer('prime-loaded', threadId, false);
+        // Use 'prime' location to show correct badge styling
+        const html = this.renderThreadInfoContainer('prime', threadId, false);
         if (html) {
             container.innerHTML = html;
             console.log(`[updatePrimeHeader] Rendered thread card for Prime: ${threadId}`);
@@ -632,18 +663,17 @@ window.ThreadManagerUI = {
             }
 
             // Get the thread's ACTUAL current location from memory
-            const actualLocation = thread.location || 'prime';
+            const actualLocation = thread.location || 'unassigned';
 
             // Find all thread-info cards with this thread ID
             const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
 
             threadCards.forEach(card => {
-                const cardLocation = card.getAttribute('data-location') || 'prime';
+                const cardLocation = card.getAttribute('data-location') || 'unassigned';
 
-                // CRITICAL FIX (Dec 15, 2025): Treat 'prime' and 'prime-loaded' as equivalent locations
-                // Normalize both to 'prime' for comparison to prevent removing valid cards
-                const normalizedActualLocation = actualLocation === 'prime-loaded' ? 'prime' : actualLocation;
-                const normalizedCardLocation = cardLocation === 'prime-loaded' ? 'prime' : cardLocation;
+                // Compare card location with actual thread location
+                const normalizedActualLocation = actualLocation;
+                const normalizedCardLocation = cardLocation;
 
                 // CRITICAL FIX (Dec 12, 2025): Remove card if location doesn't match actual thread location
                 // This handles the case where thread was unloaded from agent but card still shows in agent column
@@ -670,7 +700,7 @@ window.ThreadManagerUI = {
                 let wasExpanded = false;
                 if (cardLocation === 'thread-history') {
                     wasExpanded = card.classList.contains('expanded');
-                } else if (cardLocation === 'prime' || cardLocation === 'prime-loaded') {
+                } else if (cardLocation === 'unassigned' || cardLocation === 'prime') {
                     const primeContainer = document.getElementById('prime-thread-info');
                     wasExpanded = primeContainer?.classList.contains('expanded') || false;
                 } else {
@@ -823,7 +853,7 @@ window.ThreadManagerUI = {
         container.innerHTML = emptyStateHtml;
 
         // Hide input wrapper
-        if (location === 'prime') {
+        if (location === 'unassigned') {
             const primeInputWrapper = document.querySelector('.ai-chat-input-wrapper');
             if (primeInputWrapper) {
                 primeInputWrapper.style.display = 'none';

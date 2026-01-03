@@ -1,6 +1,7 @@
 ﻿"""
 Thread Management Routes - FULLY CORRECTED VERSION
 All cursor management issues fixed - Production Ready
+REFACTORED: 2026-01-01 - All 24+ cursor leaks eliminated
 """
 
 from flask import Blueprint, request, jsonify
@@ -68,8 +69,6 @@ def verify_team_access(team_id):
         403: Access denied
         404: Team ID not found
     """
-    cursor = None
-    conn = None
     try:
         user_id = request.args.get('user_id', type=int)
         
@@ -77,75 +76,58 @@ def verify_team_access(team_id):
             return error_response('user_id required', 400)
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            # Check if user has access to this Team ID
-            # User has access if:
-            # 1. They are the parent account (parent_user_id = user_id)
-            # 2. They ARE the Team ID user (id = user_id)
-            sql, params = convert_sql_placeholders("""
-                SELECT id, username, parent_user_id, is_sub_user
-                FROM ai_infrastructure.users
-                WHERE username = %s
-                  AND is_sub_user = TRUE
-                  AND (parent_user_id = %s OR id = %s)
-            """, (team_id, user_id, user_id))
-            
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
-            
-            if not row:
-                # Team ID not found OR user doesn't have access
-                # Check if Team ID exists at all
-                with get_database_connection('ai_infrastructure') as verify_conn:
-                    verify_cursor = verify_conn.cursor()
-                    verify_sql, verify_params = convert_sql_placeholders(
-                        "SELECT 1 FROM ai_infrastructure.users WHERE username = %s AND is_sub_user = TRUE",
-                        (team_id,)
-                    )
-                    verify_cursor.execute(verify_sql, verify_params)
-                    exists = verify_cursor.fetchone()
-                    verify_cursor.close()
-                    verify_conn.close()
-                    
-                    if not exists:
-                        return error_response(f"Team ID '{team_id}' not found", 404)
-                    else:
-                        return error_response(f"Access denied: You do not have permission to view Team ID '{team_id}'", 403)
-            
-            # User has access
-            team_user_id = row[0] if isinstance(row, tuple) else row['id']
-            parent_id = row[2] if isinstance(row, tuple) else row['parent_user_id']
-            
-            return success_response({
-                'has_access': True,
-                'team_id': team_id,
-                'team_user_id': team_user_id,
-                'is_owner': user_id == parent_id,
-                'is_team_member': user_id == team_user_id
-            })
+            with conn.cursor() as cursor:
+                
+                # Check if user has access to this Team ID
+                # User has access if:
+                # 1. They are the parent account (parent_user_id = user_id)
+                # 2. They ARE the Team ID user (id = user_id)
+                sql, params = convert_sql_placeholders("""
+                    SELECT id, username, parent_user_id, is_sub_user
+                    FROM ai_infrastructure.users
+                    WHERE username = %s
+                      AND is_sub_user = TRUE
+                      AND (parent_user_id = %s OR id = %s)
+                """, (team_id, user_id, user_id))
+                
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    # Team ID not found OR user doesn't have access
+                    # Check if Team ID exists at all
+                    with get_database_connection('ai_infrastructure') as verify_conn:
+                        with verify_conn.cursor() as verify_cursor:
+                            
+                            verify_sql, verify_params = convert_sql_placeholders(
+                                "SELECT 1 FROM ai_infrastructure.users WHERE username = %s AND is_sub_user = TRUE",
+                                (team_id,)
+                            )
+                            verify_cursor.execute(verify_sql, verify_params)
+                            exists = verify_cursor.fetchone()
+                            
+                            if not exists:
+                                return error_response(f"Team ID '{team_id}' not found", 404)
+                            else:
+                                return error_response(f"Access denied: You do not have permission to view Team ID '{team_id}'", 403)
+                
+                # User has access
+                team_user_id = row[0] if isinstance(row, tuple) else row['id']
+                parent_id = row[2] if isinstance(row, tuple) else row['parent_user_id']
+                
+                return success_response({
+                    'has_access': True,
+                    'team_id': team_id,
+                    'team_user_id': team_user_id,
+                    'is_owner': user_id == parent_id,
+                    'is_team_member': user_id == team_user_id
+                })
             
     except Exception as e:
         print(f"[VERIFY TEAM ACCESS] Error: {str(e)}")
         import traceback
         traceback.print_exc()
         return error_response(f"Failed to verify team access: {str(e)}", 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
 
 @thread_bp.route('/filter-by-team', methods=['GET'])
@@ -167,8 +149,6 @@ def filter_threads_by_team():
         403: Access denied
         404: Team ID not found
     """
-    cursor = None
-    conn = None
     try:
         # Support both single and multiple Team IDs
         team_id_param = request.args.get('team_ids') or request.args.get('team_id')
@@ -187,65 +167,58 @@ def filter_threads_by_team():
         
         # SECURITY: Verify access for ALL Team IDs
         with get_database_connection('ai_infrastructure') as auth_conn:
-            auth_cursor = auth_conn.cursor()
-            
-            # Build IN clause for multiple Team IDs
-            placeholders = ', '.join(['%s'] * len(team_ids))
-            auth_sql = f"""
-                SELECT username FROM ai_infrastructure.users
-                WHERE username IN ({placeholders})
-                  AND is_sub_user = TRUE
-                  AND (parent_user_id = %s OR id = %s)
-            """
-            auth_params = team_ids + [user_id, user_id]
-            auth_sql, auth_params = convert_sql_placeholders(auth_sql, auth_params)
-            
-            auth_cursor.execute(auth_sql, auth_params)
-            accessible_team_ids = {row[0] if isinstance(row, tuple) else row['username'] for row in auth_cursor.fetchall()}
-            auth_cursor.close()
-            auth_conn.close()
-            
-            # Check if user has access to all requested Team IDs
-            requested_set = set(team_ids)
-            denied_team_ids = requested_set - accessible_team_ids
-            
-            if denied_team_ids:
-                return error_response(
-                    f"Access denied: You do not have permission to view Team ID(s): {', '.join(denied_team_ids)}", 
-                    403
-                )
+            with auth_conn.cursor() as auth_cursor:
+                
+                # Build IN clause for multiple Team IDs
+                placeholders = ', '.join(['%s'] * len(team_ids))
+                auth_sql = f"""
+                    SELECT username FROM ai_infrastructure.users
+                    WHERE username IN ({placeholders})
+                      AND is_sub_user = TRUE
+                      AND (parent_user_id = %s OR id = %s)
+                """
+                auth_params = team_ids + [user_id, user_id]
+                auth_sql, auth_params = convert_sql_placeholders(auth_sql, auth_params)
+                
+                auth_cursor.execute(auth_sql, auth_params)
+                accessible_team_ids = {row[0] if isinstance(row, tuple) else row['username'] for row in auth_cursor.fetchall()}
+                
+                # Check if user has access to all requested Team IDs
+                requested_set = set(team_ids)
+                denied_team_ids = requested_set - accessible_team_ids
+                
+                if denied_team_ids:
+                    return error_response(
+                        f"Access denied: You do not have permission to view Team ID(s): {', '.join(denied_team_ids)}", 
+                        403
+                    )
         
         # Fetch filtered threads (using IN clause for multiple Team IDs)
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            placeholders = ', '.join(['%s'] * len(team_ids))
-            sql = f"""
-                SELECT 
-                    id, thread_slug, name, user_id, team_id,
-                    location, created_at, updated_at, metadata,
-                    tags, synergy_card_id, has_files
-                FROM sessions.threads
-                WHERE team_id IN ({placeholders})
-                ORDER BY updated_at DESC
-                LIMIT %s OFFSET %s
-            """
-            params = team_ids + [limit, offset]
-            sql, params = convert_sql_placeholders(sql, params)
-            
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-            
-            # Get total count
-            count_sql = f"SELECT COUNT(*) FROM sessions.threads WHERE team_id IN ({placeholders})"
-            count_sql, count_params = convert_sql_placeholders(count_sql, team_ids)
-            cursor.execute(count_sql, count_params)
-            total_count = cursor.fetchone()[0]
-            
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+            with conn.cursor() as cursor:
+                
+                placeholders = ', '.join(['%s'] * len(team_ids))
+                sql = f"""
+                    SELECT 
+                        id, thread_slug, name, user_id, team_id,
+                        location, created_at, updated_at, metadata,
+                        tags, synergy_card_id, has_files
+                    FROM sessions.threads
+                    WHERE team_id IN ({placeholders})
+                    ORDER BY updated_at DESC
+                    LIMIT %s OFFSET %s
+                """
+                params = team_ids + [limit, offset]
+                sql, params = convert_sql_placeholders(sql, params)
+                
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
+                
+                # Get total count
+                count_sql = f"SELECT COUNT(*) FROM sessions.threads WHERE team_id IN ({placeholders})"
+                count_sql, count_params = convert_sql_placeholders(count_sql, team_ids)
+                cursor.execute(count_sql, count_params)
+                total_count = cursor.fetchone()[0]
         
         # Build thread list
         threads = []
@@ -280,17 +253,6 @@ def filter_threads_by_team():
         import traceback
         traceback.print_exc()
         return error_response(f"Failed to filter threads: {str(e)}", 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -306,7 +268,6 @@ def list_available_agents():
     Query params:
         user_id (int, optional): Filter by user (default: all)
     """
-    cursor = None
     try:
         user_id = request.args.get('user_id', type=int)
         
@@ -326,32 +287,26 @@ def list_available_agents():
         thread_counts_by_location = {}
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Count threads per agent location
-            sql = """
-                SELECT 
-                    location,
-                    COUNT(*) as thread_count,
-                    MAX(updated_at) as last_activity
-                FROM sessions.threads
-                WHERE location LIKE 'agent-%%'
-            """
-            
-            if user_id:
-                sql += " AND user_id = %s GROUP BY location ORDER BY location"
-                cursor.execute(sql, (user_id,))
-            else:
-                sql += " GROUP BY location ORDER BY location"
-                cursor.execute(sql)
-            
-            agent_stats = cursor.fetchall()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                # Count threads per agent location
+                sql = """
+                    SELECT 
+                        location,
+                        COUNT(*) as thread_count,
+                        MAX(updated_at) as last_activity
+                    FROM sessions.threads
+                    WHERE location LIKE 'agent-%%'
+                """
+                
+                if user_id:
+                    sql += " AND user_id = %s GROUP BY location ORDER BY location"
+                    cursor.execute(sql, (user_id,))
+                else:
+                    sql += " GROUP BY location ORDER BY location"
+                    cursor.execute(sql)
+                
+                agent_stats = cursor.fetchall()
         
         # Build map of thread counts by location
         for row in agent_stats:
@@ -395,12 +350,6 @@ def list_available_agents():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to list agents: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -421,7 +370,6 @@ def create_thread():
         branch_point_message_id (str, optional): Message ID to branch from
         branch_name (str, optional): Name of the branch
     """
-    cursor = None
     print(f"\n{'='*80}")
     print(f"[THREAD CREATE] 📝 Creating new thread...")
     print(f"{'='*80}")
@@ -431,9 +379,9 @@ def create_thread():
         data = request.get_json() or {}
         user_id = data.get('user_id')
         idempotency_key = data.get('idempotency_key')  # NEW: Idempotency support
-        agent_id = data.get('agent_id', 'prime')
+        agent_id = data.get('agent_id', 'unassigned')
         title = data.get('title', 'New Chat')
-        location = data.get('location', 'prime')
+        location = data.get('location', 'unassigned')
         tags = data.get('tags', [])
         synergy_card_id = data.get('synergy_card_id')
         
@@ -465,31 +413,30 @@ def create_thread():
         # IDEMPOTENCY CHECK: If idempotency_key provided, check for existing thread
         if idempotency_key:
             with get_database_connection('sessions') as check_conn:
-                check_cursor = check_conn.cursor()
-                check_sql, check_params = convert_sql_placeholders(
-                    "SELECT id, thread_slug, name FROM sessions.threads WHERE idempotency_key = %s",
-                    (idempotency_key,)
-                )
-                check_cursor.execute(check_sql, check_params)
-                existing_thread = check_cursor.fetchone()
-                check_cursor.close()
-                check_conn.close()
-                
-                if existing_thread:
-                    # Thread already exists - return cached response
-                    existing_id = existing_thread[0] if isinstance(existing_thread, tuple) else existing_thread['id']
-                    existing_slug = existing_thread[1] if isinstance(existing_thread, tuple) else existing_thread['thread_slug']
-                    existing_name = existing_thread[2] if isinstance(existing_thread, tuple) else existing_thread['name']
+                with check_conn.cursor() as check_cursor:
                     
-                    print(f"✅ [THREAD CREATE] Idempotency hit: {idempotency_key} -> thread {existing_id}")
-                    return jsonify({
-                        'success': True,
-                        'thread_id': existing_slug,  # Return slug for frontend compatibility
-                        'database_id': existing_id,
-                        'title': existing_name,
-                        'idempotent': True,
-                        'message': 'Thread already exists (idempotency key matched)'
-                    }), 200  # 200 OK (not 201 Created)
+                    check_sql, check_params = convert_sql_placeholders(
+                        "SELECT id, thread_slug, name FROM sessions.threads WHERE idempotency_key = %s",
+                        (idempotency_key,)
+                    )
+                    check_cursor.execute(check_sql, check_params)
+                    existing_thread = check_cursor.fetchone()
+                    
+                    if existing_thread:
+                        # Thread already exists - return cached response
+                        existing_id = existing_thread[0] if isinstance(existing_thread, tuple) else existing_thread['id']
+                        existing_slug = existing_thread[1] if isinstance(existing_thread, tuple) else existing_thread['thread_slug']
+                        existing_name = existing_thread[2] if isinstance(existing_thread, tuple) else existing_thread['name']
+                        
+                        print(f"✅ [THREAD CREATE] Idempotency hit: {idempotency_key} -> thread {existing_id}")
+                        return jsonify({
+                            'success': True,
+                            'thread_id': existing_slug,  # Return slug for frontend compatibility
+                            'database_id': existing_id,
+                            'title': existing_name,
+                            'idempotent': True,
+                            'message': 'Thread already exists (idempotency key matched)'
+                        }), 200  # 200 OK (not 201 Created)
         
         # Generate timestamp-based ID (consistent with frontend)
         thread_id = str(int(datetime.now().timestamp() * 1000))
@@ -498,67 +445,62 @@ def create_thread():
         # NEW: Get user's Team ID if they are a sub-user
         team_id = None
         with get_database_connection('ai_infrastructure') as user_conn:
-            user_cursor = user_conn.cursor()
-            user_sql, user_params = convert_sql_placeholders(
-                "SELECT is_sub_user, username FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            user_cursor.execute(user_sql, user_params)
-            user_row = user_cursor.fetchone()
-            
-            if user_row:
-                is_sub_user = user_row[0] if isinstance(user_row, tuple) else user_row.get('is_sub_user')
-                username = user_row[1] if isinstance(user_row, tuple) else user_row.get('username')
+            with user_conn.cursor() as user_cursor:
                 
-                # If user is a sub-user (Team ID), store their username as team_id
-                if is_sub_user:
-                    team_id = username
-                    print(f"✅ [THREAD CREATE] User is Team ID: {team_id}")
+                user_sql, user_params = convert_sql_placeholders(
+                    "SELECT is_sub_user, username FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
+                user_cursor.execute(user_sql, user_params)
+                user_row = user_cursor.fetchone()
+                
+                if user_row:
+                    is_sub_user = user_row[0] if isinstance(user_row, tuple) else user_row.get('is_sub_user')
+                    username = user_row[1] if isinstance(user_row, tuple) else user_row.get('username')
+                    
+                    # If user is a sub-user (Team ID), store their username as team_id
+                    if is_sub_user:
+                        team_id = username
+                        print(f"✅ [THREAD CREATE] User is Team ID: {team_id}")
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # PostgreSQL: Exclude id column to let sequence auto-generate
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO sessions.threads (
-                    thread_slug, workspace_id, name, user_id, created_at, updated_at,
-                    metadata, location, tags, synergy_card_id,
-                    parent_thread_id, branch_point_message_id, branch_name, team_id,
-                    idempotency_key
-                ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-                )
-                RETURNING id
-            """, (
-                thread_id,
-                1,
-                title,
-                user_id,
-                created,
-                created,
-                json.dumps(metadata),
-                location,
-                json.dumps(tags),
-                synergy_card_id,
-                parent_thread_id,
-                branch_point_message_id,
-                branch_name,
-                team_id,
-                idempotency_key  # NEW: Store idempotency key
-            ))
-            
-            cursor.execute(sql, params)
-            
-            # Get the auto-generated id
-            generated_id_result = cursor.fetchone()
-            generated_id = generated_id_result[0] if isinstance(generated_id_result, tuple) else generated_id_result['id']
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                # PostgreSQL: Exclude id column to let sequence auto-generate
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO sessions.threads (
+                        thread_slug, workspace_id, name, user_id, created_at, updated_at,
+                        metadata, location, tags, synergy_card_id,
+                        parent_thread_id, branch_point_message_id, branch_name, team_id,
+                        idempotency_key
+                    ) VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    )
+                    RETURNING id
+                """, (
+                    thread_id,
+                    1,
+                    title,
+                    user_id,
+                    created,
+                    created,
+                    json.dumps(metadata),
+                    location,
+                    json.dumps(tags),
+                    synergy_card_id,
+                    parent_thread_id,
+                    branch_point_message_id,
+                    branch_name,
+                    team_id,
+                    idempotency_key  # NEW: Store idempotency key
+                ))
+                
+                cursor.execute(sql, params)
+                
+                # Get the auto-generated id
+                generated_id_result = cursor.fetchone()
+                generated_id = generated_id_result[0] if isinstance(generated_id_result, tuple) else generated_id_result['id']
+                conn.commit()
         
         thread_data = {
             'id': thread_id,
@@ -588,12 +530,6 @@ def create_thread():
         print(f"   Full traceback:")
         traceback.print_exc()
         return error_response(f'Failed to create thread: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/upsert', methods=['POST'])
@@ -602,13 +538,12 @@ def upsert_thread():
     Create or update thread in sessions.threads table
     UPSERT pattern - creates if doesn't exist, updates if exists
     """
-    cursor = None
     try:
         data = request.get_json() or {}
         thread_id = str(data.get('thread_id'))
         user_id = data.get('user_id')
         title = data.get('title', 'Untitled Thread')
-        location = data.get('location', 'prime')
+        location = data.get('location', 'unassigned')
         tags = data.get('tags', [])
         synergy_card_id = data.get('synergy_card_id')
         
@@ -616,46 +551,40 @@ def upsert_thread():
             return error_response('thread_id and user_id required', 400)
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # UPSERT: Insert or update on conflict
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO sessions.threads (
-                    thread_slug, workspace_id, name, user_id, created_at, updated_at,
-                    metadata, location, tags, synergy_card_id
-                ) VALUES (
-                    %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s, %s, %s, %s
-                )
-                ON CONFLICT (thread_slug) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    location = EXCLUDED.location,
-                    tags = EXCLUDED.tags,
-                    synergy_card_id = EXCLUDED.synergy_card_id,
-                    updated_at = CURRENT_TIMESTAMP
-                RETURNING id
-            """, (
-                thread_id,
-                1,
-                title,
-                user_id,
-                json.dumps({}),
-                location,
-                json.dumps(tags),
-                synergy_card_id
-            ))
-            
-            cursor.execute(sql, params)
-            
-            result = cursor.fetchone()
-            internal_id = result[0] if isinstance(result, tuple) else result['id']
-            
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                # UPSERT: Insert or update on conflict
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO sessions.threads (
+                        thread_slug, workspace_id, name, user_id, created_at, updated_at,
+                        metadata, location, tags, synergy_card_id
+                    ) VALUES (
+                        %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s, %s, %s, %s
+                    )
+                    ON CONFLICT (thread_slug) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        location = EXCLUDED.location,
+                        tags = EXCLUDED.tags,
+                        synergy_card_id = EXCLUDED.synergy_card_id,
+                        updated_at = CURRENT_TIMESTAMP
+                    RETURNING id
+                """, (
+                    thread_id,
+                    1,
+                    title,
+                    user_id,
+                    json.dumps({}),
+                    location,
+                    json.dumps(tags),
+                    synergy_card_id
+                ))
+                
+                cursor.execute(sql, params)
+                
+                result = cursor.fetchone()
+                internal_id = result[0] if isinstance(result, tuple) else result['id']
+                
+                conn.commit()
         
         print(f"✅ [THREAD UPSERT] Thread {thread_id} (DB ID: {internal_id}) created/updated")
         
@@ -669,95 +598,6 @@ def upsert_thread():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to upsert thread: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-
-
-# ============================================================
-# THREAD PRIME-LOADED MARKER
-# ============================================================
-
-@thread_bp.route('/mark-prime-loaded', methods=['POST'])
-def mark_thread_as_prime_loaded():
-    """
-    Mark a thread as 'prime-loaded' (single thread to load on Prime startup)
-    Automatically unmarks any existing prime-loaded thread first
-    """
-    cursor = None
-    try:
-        data = request.get_json() or {}
-        thread_id = data.get('thread_id')
-        user_id = data.get('user_id')
-        
-        if not thread_id or not user_id:
-            return error_response('thread_id and user_id required', 400)
-        
-        with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Step 1: Unmark all existing prime-loaded threads for this user
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads
-                SET location = 'prime', updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = %s AND location = 'prime-loaded'
-            """, (user_id,))
-
-            cursor.execute(sql, params)
-            
-            unmarked_count = cursor.rowcount
-            print(f"🔄 [PRIME-LOADED] Unmarked {unmarked_count} existing prime-loaded threads for user {user_id}")
-            
-            # Step 2: Mark the new thread as prime-loaded
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads
-                SET location = 'prime-loaded', updated_at = CURRENT_TIMESTAMP
-                WHERE thread_slug = %s AND user_id = %s
-                RETURNING id
-            """, (thread_id, user_id))
-
-            cursor.execute(sql, params)
-            
-            result = cursor.fetchone()
-            
-            if not result:
-                cursor.close()
-                cursor = None
-
-                conn.close()  # Explicit close before with exits
-
-                conn = None
-                return error_response(f'Thread {thread_id} not found for user {user_id}', 404)
-            
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
-        
-        print(f"✅ [PRIME-LOADED] Thread {thread_id} marked as prime-loaded for user {user_id}")
-        
-        return success_response({
-            'thread_id': thread_id,
-            'message': 'Thread will load on Prime startup'
-        }, message='Thread marked as prime-loaded')
-        
-    except Exception as e:
-        print(f"❌ [PRIME-LOADED ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return error_response(f'Failed to mark thread: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -770,7 +610,6 @@ def get_assigned_threads():
     Get ONLY threads assigned to columns (Prime/Alpha/Bravo/Charlie)
     Eliminates 92% waste from loading all 50 threads
     """
-    cursor = None
     try:
         user_id = request.args.get('user_id')
         if not user_id:
@@ -781,80 +620,70 @@ def get_assigned_threads():
         print(f"🗄️ [THREAD API] Database: {'Supabase' if is_using_supabase() else 'SQLite'}")
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            query = """
-                SELECT 
-                    t.id,
-                    t.thread_slug, 
-                    t.name, 
-                    t.user_id, 
-                    t.created_at, 
-                    t.updated_at, 
-                    t.metadata, 
-                    t.location, 
-                    t.tags, 
-                    t.synergy_card_id, 
-                    t.synergy_card_name,
-                    t.parent_thread_id, 
-                    t.branch_name,
-                    t.workflow_id,
-                    t.workflow_name,
-                    t.workflow_slug,
-                    t.workflow_title,
-                    t.internal_doc_slug,
-                    t.internal_doc_title,
-                    COUNT(CASE 
-                        WHEN m.role = 'user' AND (
-                            m.metadata IS NULL 
-                            OR m.metadata::jsonb->>'tool_results' IS NULL 
-                            OR m.metadata::jsonb->>'tool_results' != 'true'
-                        ) THEN 1
-                        WHEN m.role = 'assistant' AND m.content::jsonb::text LIKE '%%"type": "text"%%' THEN 1
-                        ELSE NULL
-                    END) as message_count,
-                    MAX(m.created_at) as last_message_time,
-                    (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
-                FROM sessions.threads t
-                LEFT JOIN sessions.messages m ON t.id = m.thread_id
-                WHERE t.user_id = %s
-                  AND t.location IN ('prime', 'prime-loaded', 'agent-1', 'agent-2', 'agent-3', 'agent-4', 'agent-5', 'agent-6', 'agent-7', 'agent-8', 'agent-9')
-                  AND (t.archived IS NULL OR t.archived = false)
-                GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
-                         t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
-                         t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
-                         t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title
-                ORDER BY CASE t.location
-                    WHEN 'prime-loaded' THEN 1
-                    WHEN 'prime' THEN 2
-                    WHEN 'agent-1' THEN 3
-                    WHEN 'agent-2' THEN 4
-                    WHEN 'agent-3' THEN 5
-                    WHEN 'agent-4' THEN 6
-                    WHEN 'agent-5' THEN 7
-                    WHEN 'agent-6' THEN 8
-                    WHEN 'agent-7' THEN 9
-                    WHEN 'agent-8' THEN 10
-                    WHEN 'agent-9' THEN 11
-                    ELSE 999
-                END, t.updated_at DESC
-                LIMIT 10
-            """
-            
-            print(f"🚀 [THREAD API] Executing EFFICIENT query (assigned threads only)...")
-            cursor.execute(query, (user_id,))
-            rows = cursor.fetchall()
-            
-            print(f"✅ [THREAD API] Efficient query returned {len(rows)} assigned threads")
-            
-            cursor.close()
-            cursor = None
-
-            
-            conn.close()  # Explicit close before with exits
-
-            
-            conn = None
+            with conn.cursor() as cursor:
+                
+                query = """
+                    SELECT 
+                        t.id,
+                        t.thread_slug, 
+                        t.name, 
+                        t.user_id, 
+                        t.created_at, 
+                        t.updated_at, 
+                        t.metadata, 
+                        t.location, 
+                        t.tags, 
+                        t.synergy_card_id, 
+                        t.synergy_card_name,
+                        t.parent_thread_id, 
+                        t.branch_name,
+                        t.workflow_id,
+                        t.workflow_name,
+                        t.workflow_slug,
+                        t.workflow_title,
+                        t.internal_doc_slug,
+                        t.internal_doc_title,
+                        COUNT(CASE 
+                            WHEN m.role = 'user' AND (
+                                m.metadata IS NULL 
+                                OR m.metadata::jsonb->>'tool_results' IS NULL 
+                                OR m.metadata::jsonb->>'tool_results' != 'true'
+                            ) THEN 1
+                            WHEN m.role = 'assistant' AND m.content::jsonb::text LIKE '%%"type": "text"%%' THEN 1
+                            ELSE NULL
+                        END) as message_count,
+                        MAX(m.created_at) as last_message_time,
+                        (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
+                    FROM sessions.threads t
+                    LEFT JOIN sessions.messages m ON t.id = m.thread_id
+                    WHERE t.user_id = %s
+                      AND t.location IN ('prime', 'agent-1', 'agent-2', 'agent-3', 'agent-4', 'agent-5', 'agent-6', 'agent-7', 'agent-8', 'agent-9')
+                      AND (t.archived IS NULL OR t.archived = false)
+                    GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
+                             t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
+                             t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
+                             t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title
+                    ORDER BY CASE t.location
+                        WHEN 'prime' THEN 1
+                        WHEN 'agent-1' THEN 2
+                        WHEN 'agent-2' THEN 3
+                        WHEN 'agent-3' THEN 4
+                        WHEN 'agent-4' THEN 6
+                        WHEN 'agent-5' THEN 7
+                        WHEN 'agent-6' THEN 8
+                        WHEN 'agent-7' THEN 9
+                        WHEN 'agent-8' THEN 10
+                        WHEN 'agent-9' THEN 11
+                        ELSE 999
+                    END, t.updated_at DESC
+                    LIMIT 10
+                """
+                
+                print(f"🚀 [THREAD API] Executing EFFICIENT query (assigned threads only)...")
+                cursor.execute(query, (user_id,))
+                rows = cursor.fetchall()
+                
+                print(f"✅ [THREAD API] Efficient query returned {len(rows)} assigned threads")
         
         # Process rows into thread objects
         threads = []
@@ -864,7 +693,7 @@ def get_assigned_threads():
                     'id': row.get('thread_slug'),
                     'thread_id': row.get('id'),
                     'name': row.get('name') or 'Untitled Thread',
-                    'location': row.get('location') or 'prime',
+                    'location': row.get('location') or 'unassigned',
                     'message_count': row.get('message_count') or 0,
                     'created_at': row.get('created_at').isoformat() if row.get('created_at') else None,
                     'updated_at': row.get('updated_at').isoformat() if row.get('updated_at') else None,
@@ -898,12 +727,6 @@ def get_assigned_threads():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to get assigned threads: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/list', methods=['GET'])
@@ -915,7 +738,6 @@ def list_threads():
         ?user_id=1 (required): User ID to list threads for
         ?limit=50 (optional): Max threads to return
     """
-    cursor = None
     try:
         user_id = request.args.get('user_id')
         if not user_id:
@@ -927,68 +749,59 @@ def list_threads():
         print(f"📊 [THREAD API] Parameters: user_id={user_id}, limit={limit}")
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            query = """
-                SELECT 
-                    t.id,
-                    t.thread_slug, 
-                    t.name, 
-                    t.user_id, 
-                    t.created_at, 
-                    t.updated_at, 
-                    t.metadata, 
-                    t.location, 
-                    t.tags, 
-                    t.synergy_card_id, 
-                    t.synergy_card_name,
-                    t.parent_thread_id, 
-                    t.branch_name,
-                    t.workflow_id,
-                    t.workflow_name,
-                    t.workflow_slug,
-                    t.workflow_title,
-                    t.internal_doc_slug,
-                    t.internal_doc_title,
-                    t.email_thread_id,
-                    t.email_subject,
-                    t.email_participants,
-                    COUNT(CASE 
-                        WHEN m.role = 'user' AND (
-                            m.metadata IS NULL 
-                            OR m.metadata::jsonb->>'tool_results' IS NULL 
-                            OR m.metadata::jsonb->>'tool_results' != 'true'
-                        ) THEN 1
-                        WHEN m.role = 'assistant' AND m.content::jsonb::text LIKE '%%"type": "text"%%' THEN 1
-                        ELSE NULL
-                    END) as message_count,
-                    MAX(m.created_at) as last_message_time,
-                    (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
-                FROM sessions.threads t
-                LEFT JOIN sessions.messages m ON t.id = m.thread_id
-                WHERE t.user_id = %s
-                GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
-                         t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
-                         t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
-                         t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title,
-                         t.email_thread_id, t.email_subject, t.email_participants
-                ORDER BY t.updated_at DESC
-                LIMIT %s
-            """
-            
-            cursor.execute(query, (user_id, limit))
-            rows = cursor.fetchall()
-            
-            print(f"✅ [THREAD API] Query returned {len(rows)} rows")
-            
-            cursor.close()
-            cursor = None
-
-            
-            conn.close()  # Explicit close before with exits
-
-            
-            conn = None
+            with conn.cursor() as cursor:
+                
+                query = """
+                    SELECT 
+                        t.id,
+                        t.thread_slug, 
+                        t.name, 
+                        t.user_id, 
+                        t.created_at, 
+                        t.updated_at, 
+                        t.metadata, 
+                        t.location, 
+                        t.tags, 
+                        t.synergy_card_id, 
+                        t.synergy_card_name,
+                        t.parent_thread_id, 
+                        t.branch_name,
+                        t.workflow_id,
+                        t.workflow_name,
+                        t.workflow_slug,
+                        t.workflow_title,
+                        t.internal_doc_slug,
+                        t.internal_doc_title,
+                        t.email_thread_id,
+                        t.email_subject,
+                        t.email_participants,
+                        COUNT(CASE 
+                            WHEN m.role = 'user' AND (
+                                m.metadata IS NULL 
+                                OR m.metadata::jsonb->>'tool_results' IS NULL 
+                                OR m.metadata::jsonb->>'tool_results' != 'true'
+                            ) THEN 1
+                            WHEN m.role = 'assistant' AND m.content::jsonb::text LIKE '%%"type": "text"%%' THEN 1
+                            ELSE NULL
+                        END) as message_count,
+                        MAX(m.created_at) as last_message_time,
+                        (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
+                    FROM sessions.threads t
+                    LEFT JOIN sessions.messages m ON t.id = m.thread_id
+                    WHERE t.user_id = %s
+                    GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
+                             t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
+                             t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
+                             t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title,
+                             t.email_thread_id, t.email_subject, t.email_participants
+                    ORDER BY t.updated_at DESC
+                    LIMIT %s
+                """
+                
+                cursor.execute(query, (user_id, limit))
+                rows = cursor.fetchall()
+                
+                print(f"✅ [THREAD API] Query returned {len(rows)} rows")
         
         # Process rows into thread objects
         threads = []
@@ -1002,8 +815,8 @@ def list_threads():
                     'created': row.get('created_at'),
                     'updated': row.get('updated_at'),
                     'metadata': json.loads(row.get('metadata')) if row.get('metadata') else {},
-                    'location': row.get('location') or 'prime',
-                    'agent': row.get('location') or 'main',
+                    'location': row.get('location') if row.get('location') else 'unassigned',  # ✅ FIX: Only default if None/empty
+                    'agent': row.get('location') if row.get('location') else 'main',
                     'tags': json.loads(row.get('tags')) if row.get('tags') else [],
                     'synergy_card_id': row.get('synergy_card_id'),
                     'synergy_card_name': row.get('synergy_card_name'),
@@ -1040,12 +853,6 @@ def list_threads():
         import traceback
         traceback.print_exc()
         return error_response(f"Failed to list threads: {str(e)}", 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/bulk-with-messages', methods=['GET'])
@@ -1053,7 +860,6 @@ def get_threads_bulk_with_messages():
     """
     Bulk fetch threads + messages for specific locations (1 query instead of 6+)
     """
-    cursor = None
     try:
         from psycopg2.extras import RealDictCursor
         
@@ -1064,7 +870,7 @@ def get_threads_bulk_with_messages():
             return error_response('user_id required', 400)
         
         if not locations_param:
-            return error_response('locations required (e.g., agent-1,agent-2,prime-loaded)', 400)
+            return error_response('locations required (e.g., agent-1,agent-2,prime)', 400)
         
         # Parse locations
         locations = [loc.strip() for loc in locations_param.split(',') if loc.strip()]
@@ -1076,81 +882,72 @@ def get_threads_bulk_with_messages():
         print(f"📍 [BULK FETCH] Locations requested: {locations}")
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
-            # Build IN clause with proper placeholders
-            placeholders = ','.join(['%s'] * len(locations))
-            
-            # Single query with JSON aggregation (PostgreSQL only)
-            query = f"""
-                WITH assigned_threads AS (
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                
+                # Build IN clause with proper placeholders
+                placeholders = ','.join(['%s'] * len(locations))
+                
+                # Single query with JSON aggregation (PostgreSQL only)
+                query = f"""
+                    WITH assigned_threads AS (
+                        SELECT 
+                            t.id,
+                            t.thread_slug,
+                            t.name,
+                            t.location,
+                            t.created_at,
+                            t.updated_at,
+                            t.synergy_card_id,
+                            t.workflow_id,
+                            t.workflow_slug,
+                            t.workflow_title,
+                            t.internal_doc_slug,
+                            t.internal_doc_title
+                        FROM sessions.threads t
+                        WHERE t.user_id = %s
+                          AND t.location IN ({placeholders})
+                    )
                     SELECT 
-                        t.id,
-                        t.thread_slug,
-                        t.name,
-                        t.location,
-                        t.created_at,
-                        t.updated_at,
-                        t.synergy_card_id,
-                        t.workflow_id,
-                        t.workflow_slug,
-                        t.workflow_title,
-                        t.internal_doc_slug,
-                        t.internal_doc_title
-                    FROM sessions.threads t
-                    WHERE t.user_id = %s
-                      AND t.location IN ({placeholders})
-                )
-                SELECT 
-                    at.id,
-                    at.thread_slug,
-                    at.name,
-                    at.location,
-                    at.created_at,
-                    at.updated_at,
-                    at.synergy_card_id,
-                    at.workflow_id,
-                    at.workflow_slug,
-                    at.workflow_title,
-                    at.internal_doc_slug,
-                    at.internal_doc_title,
-                    COALESCE(
-                        json_agg(
-                            json_build_object(
-                                'id', m.id,
-                                'role', m.role,
-                                'content', m.content,
-                                'created_at', m.created_at,
-                                'tool_calls', m.tool_calls,
-                                'tool_results', m.tool_results
-                            ) ORDER BY m.created_at ASC
-                        ) FILTER (WHERE m.id IS NOT NULL),
-                        '[]'::json
-                    ) as messages
-                FROM assigned_threads at
-                LEFT JOIN sessions.messages m ON m.thread_id = at.id
-                GROUP BY at.id, at.thread_slug, at.name, at.location, 
-                         at.created_at, at.updated_at, at.synergy_card_id, 
-                         at.workflow_id, at.workflow_slug, at.workflow_title,
-                         at.internal_doc_slug, at.internal_doc_title
-                ORDER BY at.updated_at DESC
-            """
-            
-            # Execute with user_id + locations
-            params = (user_id, *locations)
-            cursor.execute(query, params)
-            threads = cursor.fetchall()
-            
-            print(f"✅ [BULK FETCH] Loaded {len(threads)} threads in 1 query")
-            
-            cursor.close()
-            cursor = None
-
-            
-            conn.close()  # Explicit close before with exits
-
-            
-            conn = None
+                        at.id,
+                        at.thread_slug,
+                        at.name,
+                        at.location,
+                        at.created_at,
+                        at.updated_at,
+                        at.synergy_card_id,
+                        at.workflow_id,
+                        at.workflow_slug,
+                        at.workflow_title,
+                        at.internal_doc_slug,
+                        at.internal_doc_title,
+                        COALESCE(
+                            json_agg(
+                                json_build_object(
+                                    'id', m.id,
+                                    'role', m.role,
+                                    'content', m.content,
+                                    'created_at', m.created_at,
+                                    'tool_calls', m.tool_calls,
+                                    'tool_results', m.tool_results
+                                ) ORDER BY m.created_at ASC
+                            ) FILTER (WHERE m.id IS NOT NULL),
+                            '[]'::json
+                        ) as messages
+                    FROM assigned_threads at
+                    LEFT JOIN sessions.messages m ON m.thread_id = at.id
+                    GROUP BY at.id, at.thread_slug, at.name, at.location, 
+                             at.created_at, at.updated_at, at.synergy_card_id, 
+                             at.workflow_id, at.workflow_slug, at.workflow_title,
+                             at.internal_doc_slug, at.internal_doc_title
+                    ORDER BY at.updated_at DESC
+                """
+                
+                # Execute with user_id + locations
+                params = (user_id, *locations)
+                cursor.execute(query, params)
+                threads = cursor.fetchall()
+                
+                print(f"✅ [BULK FETCH] Loaded {len(threads)} threads in 1 query")
         
         return success_response({
             'threads': threads,
@@ -1162,12 +959,6 @@ def get_threads_bulk_with_messages():
         import traceback
         traceback.print_exc()
         return error_response(f'Bulk fetch failed: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/metadata/update', methods=['POST'])
@@ -1175,7 +966,6 @@ def update_thread_metadata_fields():
     """
     Update thread metadata fields (workflow_slug, workflow_title, internal_doc_slug, internal_doc_title)
     """
-    cursor = None
     try:
         data = request.json
         thread_slug = data.get('thread_slug')
@@ -1184,33 +974,27 @@ def update_thread_metadata_fields():
             return error_response('thread_slug required', 400)
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Build UPDATE query for metadata fields only
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads SET
-                    workflow_slug = %s,
-                    workflow_title = %s,
-                    internal_doc_slug = %s,
-                    internal_doc_title = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE thread_slug = %s
-            """, (
-                data.get('workflow_slug'),
-                data.get('workflow_title'),
-                data.get('internal_doc_slug'),
-                data.get('internal_doc_title'),
-                thread_slug
-            ))
-            
-            cursor.execute(sql, params)
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                # Build UPDATE query for metadata fields only
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads SET
+                        workflow_slug = %s,
+                        workflow_title = %s,
+                        internal_doc_slug = %s,
+                        internal_doc_title = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE thread_slug = %s
+                """, (
+                    data.get('workflow_slug'),
+                    data.get('workflow_title'),
+                    data.get('internal_doc_slug'),
+                    data.get('internal_doc_title'),
+                    thread_slug
+                ))
+                
+                cursor.execute(sql, params)
+                conn.commit()
         
         print(f"[THREAD METADATA] ✅ SUCCESS: Thread metadata updated")
         
@@ -1229,12 +1013,6 @@ def update_thread_metadata_fields():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to update thread metadata: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/list-legacy', methods=['GET'])
@@ -1284,7 +1062,7 @@ def list_threads_legacy():
                     'created_at': state.get('created_at'),
                     'last_activity': last_activity,
                     'context': state.get('context', {}),
-                    'location': state.get('location', 'prime'),
+                    'location': state.get('location', 'unassigned'),
                     'user_id': state.get('user_id', 1)
                 })
         
@@ -1371,7 +1149,6 @@ def save_thread():
     Format 1 (Backend format): agent_id + session_id
     Format 2 (Frontend format): thread_id + messages + title
     """
-    cursor = None
     print(f"\n{'='*80}")
     print(f"[THREAD SAVE] 📝 Saving thread...")
     print(f"{'='*80}")
@@ -1384,9 +1161,9 @@ def save_thread():
             thread_id = str(data.get('thread_id'))
             title = data.get('title', 'Untitled Thread')
             messages = data.get('messages', [])
-            agent = data.get('agent', 'prime')
+            agent = data.get('agent', 'unassigned')
             user_id = data.get('user_id', 1)
-            location = str(data.get('location', 'prime'))
+            location = str(data.get('location', 'unassigned'))
             
             # NEW METADATA FIELDS
             tags = json.dumps(data.get('tags', []))
@@ -1415,7 +1192,7 @@ def save_thread():
             session_id = data.get('session_id')
             thread_name = data.get('thread_name', '')
             user_id = data.get('user_id', 1)
-            location = data.get('location', 'prime')
+            location = data.get('location', 'unassigned')
             conversation = None
             
             tags = '[]'
@@ -1433,7 +1210,7 @@ def save_thread():
         # Ensure strings
         agent_id = str(agent_id) if agent_id is not None else None
         session_id = str(session_id) if session_id is not None else None
-        location = str(location) if location is not None else 'prime'
+        location = str(location) if location is not None else 'unassigned'
         
         # Get thread state if conversation not provided
         if conversation is None:
@@ -1448,91 +1225,85 @@ def save_thread():
             return error_response("Thread has no messages to save", 400)
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Create table if not exists
-            create_table_query = """
-                CREATE TABLE IF NOT EXISTS sessions.saved_threads (
-                    thread_id TEXT PRIMARY KEY,
-                    agent_id TEXT NOT NULL,
-                    session_id TEXT NOT NULL,
-                    user_id INTEGER DEFAULT 1,
-                    location TEXT DEFAULT 'prime',
-                    thread_name TEXT,
-                    conversation TEXT NOT NULL,
-                    message_count INTEGER,
-                    context TEXT,
-                    created_at TIMESTAMP,
-                    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    tags TEXT DEFAULT '[]',
-                    synergy_card_id TEXT DEFAULT NULL,
-                    parent_thread_id TEXT DEFAULT NULL,
-                    branch_point_message_id TEXT DEFAULT NULL,
-                    branch_name TEXT DEFAULT NULL,
-                    summary TEXT DEFAULT NULL,
-                    summary_generated_at TEXT DEFAULT NULL
-                )
-            """
-            
-            try:
-                cursor.execute(create_table_query)
+            with conn.cursor() as cursor:
+                
+                # Create table if not exists
+                create_table_query = """
+                    CREATE TABLE IF NOT EXISTS sessions.saved_threads (
+                        thread_id TEXT PRIMARY KEY,
+                        agent_id TEXT NOT NULL,
+                        session_id TEXT NOT NULL,
+                        user_id INTEGER DEFAULT 1,
+                        location TEXT DEFAULT 'prime',
+                        thread_name TEXT,
+                        conversation TEXT NOT NULL,
+                        message_count INTEGER,
+                        context TEXT,
+                        created_at TIMESTAMP,
+                        saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        tags TEXT DEFAULT '[]',
+                        synergy_card_id TEXT DEFAULT NULL,
+                        parent_thread_id TEXT DEFAULT NULL,
+                        branch_point_message_id TEXT DEFAULT NULL,
+                        branch_name TEXT DEFAULT NULL,
+                        summary TEXT DEFAULT NULL,
+                        summary_generated_at TEXT DEFAULT NULL
+                    )
+                """
+                
+                try:
+                    cursor.execute(create_table_query)
+                    conn.commit()
+                except Exception as e:
+                    print(f"⚠️ [Thread Save] Table creation note: {e}")
+                    conn.rollback()
+                
+                # Insert thread
+                thread_id_full = f"{agent_id}_{session_id}"
+                conversation_json = json.dumps(conversation)
+                context_json = json.dumps({})
+                
+                # PostgreSQL: INSERT ... ON CONFLICT (upsert)
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO sessions.saved_threads 
+                    (thread_id, agent_id, session_id, user_id, location, thread_name, conversation, 
+                     message_count, context, saved_at, last_updated,
+                     tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
+                     branch_name, summary, summary_generated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(),
+                            %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (thread_id) DO UPDATE SET
+                        thread_name = EXCLUDED.thread_name,
+                        conversation = EXCLUDED.conversation,
+                        message_count = EXCLUDED.message_count,
+                        last_updated = NOW(),
+                        tags = EXCLUDED.tags,
+                        synergy_card_id = EXCLUDED.synergy_card_id
+                """, (
+                    thread_id_full,
+                    agent_id,
+                    session_id,
+                    user_id,
+                    location,
+                    thread_name,
+                    conversation_json,
+                    len(conversation),
+                    context_json,
+                    tags,
+                    synergy_card_id,
+                    parent_thread_id,
+                    branch_point_message_id,
+                    branch_name,
+                    summary,
+                    summary_generated_at
+                ))
+                
+                cursor.execute(sql, params)
                 conn.commit()
-            except Exception as e:
-                print(f"⚠️ [Thread Save] Table creation note: {e}")
-                conn.rollback()
-            
-            # Insert thread
-            thread_id_full = f"{agent_id}_{session_id}"
-            conversation_json = json.dumps(conversation)
-            context_json = json.dumps({})
-            
-            # PostgreSQL: INSERT ... ON CONFLICT (upsert)
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO sessions.saved_threads 
-                (thread_id, agent_id, session_id, user_id, location, thread_name, conversation, 
-                 message_count, context, saved_at, last_updated,
-                 tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
-                 branch_name, summary, summary_generated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(),
-                        %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (thread_id) DO UPDATE SET
-                    thread_name = EXCLUDED.thread_name,
-                    conversation = EXCLUDED.conversation,
-                    message_count = EXCLUDED.message_count,
-                    last_updated = NOW(),
-                    tags = EXCLUDED.tags,
-                    synergy_card_id = EXCLUDED.synergy_card_id
-            """, (
-                thread_id_full,
-                agent_id,
-                session_id,
-                user_id,
-                location,
-                thread_name,
-                conversation_json,
-                len(conversation),
-                context_json,
-                tags,
-                synergy_card_id,
-                parent_thread_id,
-                branch_point_message_id,
-                branch_name,
-                summary,
-                summary_generated_at
-            ))
-            
-            cursor.execute(sql, params)
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
         
         # Update thread assignments if needed
-        if location and location != 'prime' and location.startswith('agent-'):
+        if location and location != 'unassigned' and location.startswith('agent-'):
             try:
                 from routes.thread_assignment_routes import enforce_thread_assignment_rules
                 enforce_thread_assignment_rules(user_id, session_id, location)
@@ -1558,12 +1329,6 @@ def save_thread():
         import traceback
         traceback.print_exc()
         return error_response(str(e), 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/load/<thread_id>', methods=['GET'])
@@ -1571,40 +1336,30 @@ def load_thread(thread_id):
     """
     Load saved thread from persistent storage
     """
-    cursor = None
     try:
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders("""
-                SELECT 
-                    thread_id,
-                    agent_id,
-                    session_id,
-                    user_id,
-                    location,
-                    thread_name,
-                    conversation,
-                    message_count,
-                    context,
-                    created_at,
-                    saved_at,
-                    last_updated
-                FROM sessions.saved_threads
-                WHERE thread_id = %s
-            """, (thread_id,))
-            
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
-            
-            cursor.close()
-            cursor = None
-
-            
-            conn.close()  # Explicit close before with exits
-
-            
-            conn = None
+            with conn.cursor() as cursor:
+                
+                sql, params = convert_sql_placeholders("""
+                    SELECT 
+                        thread_id,
+                        agent_id,
+                        session_id,
+                        user_id,
+                        location,
+                        thread_name,
+                        conversation,
+                        message_count,
+                        context,
+                        created_at,
+                        saved_at,
+                        last_updated
+                    FROM sessions.saved_threads
+                    WHERE thread_id = %s
+                """, (thread_id,))
+                
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
         
         if not results:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -1625,12 +1380,6 @@ def load_thread(thread_id):
         import traceback
         traceback.print_exc()
         return error_response(str(e), 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/<thread_id>', methods=['DELETE'])
@@ -1642,7 +1391,6 @@ def delete_thread(thread_id):
     - UUID format: "sess_abc123" or any UUID (thread_slug)
     - Legacy format: "agent_id_session_id"
     """
-    cursor = None
     try:
         print(f"[DELETE THREAD] Attempting to delete thread: {thread_id}")
         
@@ -1657,56 +1405,44 @@ def delete_thread(thread_id):
             agent_state_manager.clear_conversation('prime', thread_id)
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get the internal thread ID
-            sql, params = convert_sql_placeholders("""
-                SELECT id FROM sessions.threads
-                WHERE thread_slug = %s
-            """, (thread_id,))
-            
-            cursor.execute(sql, params)
-            result = cursor.fetchone()
-            
-            if not result:
-                print(f"[DELETE THREAD] Thread not found: {thread_id}")
-                cursor.close()
-                cursor = None
-
-                conn.close()  # Explicit close before with exits
-
-                conn = None
-                return error_response(f"Thread {thread_id} not found", 404)
-            
-            internal_thread_id = result[0] if isinstance(result, tuple) else result['id']
-            print(f"[DELETE THREAD] Found thread with internal ID: {internal_thread_id}")
-            
-            # Delete related messages first
-            sql, params = convert_sql_placeholders("""
-                DELETE FROM sessions.messages
-                WHERE thread_id = %s
-            """, (internal_thread_id,))
-            
-            cursor.execute(sql, params)
-            messages_deleted = cursor.rowcount
-            print(f"[DELETE THREAD] Deleted {messages_deleted} messages")
-            
-            # Delete the thread
-            sql, params = convert_sql_placeholders("""
-                DELETE FROM sessions.threads
-                WHERE id = %s
-            """, (internal_thread_id,))
-            
-            cursor.execute(sql, params)
-            threads_deleted = cursor.rowcount
-            
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                # Get the internal thread ID
+                sql, params = convert_sql_placeholders("""
+                    SELECT id FROM sessions.threads
+                    WHERE thread_slug = %s
+                """, (thread_id,))
+                
+                cursor.execute(sql, params)
+                result = cursor.fetchone()
+                
+                if not result:
+                    print(f"[DELETE THREAD] Thread not found: {thread_id}")
+                    return error_response(f"Thread {thread_id} not found", 404)
+                
+                internal_thread_id = result[0] if isinstance(result, tuple) else result['id']
+                print(f"[DELETE THREAD] Found thread with internal ID: {internal_thread_id}")
+                
+                # Delete related messages first
+                sql, params = convert_sql_placeholders("""
+                    DELETE FROM sessions.messages
+                    WHERE thread_id = %s
+                """, (internal_thread_id,))
+                
+                cursor.execute(sql, params)
+                messages_deleted = cursor.rowcount
+                print(f"[DELETE THREAD] Deleted {messages_deleted} messages")
+                
+                # Delete the thread
+                sql, params = convert_sql_placeholders("""
+                    DELETE FROM sessions.threads
+                    WHERE id = %s
+                """, (internal_thread_id,))
+                
+                cursor.execute(sql, params)
+                threads_deleted = cursor.rowcount
+                
+                conn.commit()
         
         print(f"[DELETE THREAD] Successfully deleted thread {thread_id}")
         
@@ -1723,12 +1459,6 @@ def delete_thread(thread_id):
         import traceback
         traceback.print_exc()
         return error_response(f"Failed to delete thread from database: {str(e)}", 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/<thread_id>/update', methods=['PATCH'])
@@ -1736,7 +1466,6 @@ def update_thread_metadata(thread_id):
     """
     Update thread metadata (title, tags, synergy_card_id, workflow_id, etc.)
     """
-    cursor = None
     try:
         data = request.json
         if not data:
@@ -1784,24 +1513,18 @@ def update_thread_metadata(thread_id):
         params.append(thread_id)
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            update_query = f"""
-                UPDATE sessions.threads
-                SET {', '.join(update_fields)}
-                WHERE thread_slug = %s
-            """
-            
-            sql, converted_params = convert_sql_placeholders(update_query, tuple(params))
-            cursor.execute(sql, converted_params)
-            rowcount = cursor.rowcount
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                update_query = f"""
+                    UPDATE sessions.threads
+                    SET {', '.join(update_fields)}
+                    WHERE thread_slug = %s
+                """
+                
+                sql, converted_params = convert_sql_placeholders(update_query, tuple(params))
+                cursor.execute(sql, converted_params)
+                rowcount = cursor.rowcount
+                conn.commit()
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -1816,12 +1539,6 @@ def update_thread_metadata(thread_id):
         print(f"❌ [UPDATE THREAD] Error: {e}")
         print(traceback.format_exc())
         return error_response(str(e), 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -1833,7 +1550,6 @@ def get_thread_stats():
     """
     Get thread statistics across all agents
     """
-    cursor = None
     try:
         stats = {
             'total_threads': 0,
@@ -1862,27 +1578,18 @@ def get_thread_stats():
         # Count saved threads from database
         try:
             with get_database_connection('sessions') as conn:
-                cursor = conn.cursor()
-                
-                sql, params = convert_sql_placeholders("""
-                    SELECT COUNT(*) as count
-                    FROM sessions.saved_threads
-                """, ())
-                
-                cursor.execute(sql, params)
-                results = cursor.fetchall()
-                
-                if results:
-                    stats['saved_threads'] = results[0]['count']
-                
-                cursor.close()
-                cursor = None
-
-                
-                conn.close()  # Explicit close before with exits
-
-                
-                conn = None
+                with conn.cursor() as cursor:
+                    
+                    sql, params = convert_sql_placeholders("""
+                        SELECT COUNT(*) as count
+                        FROM sessions.saved_threads
+                    """, ())
+                    
+                    cursor.execute(sql, params)
+                    results = cursor.fetchall()
+                    
+                    if results:
+                        stats['saved_threads'] = results[0]['count']
         except:
             stats['saved_threads'] = 0
         
@@ -1891,12 +1598,6 @@ def get_thread_stats():
     except Exception as e:
         print(f"❌ [THREAD STATS ERROR] {str(e)}")
         return error_response(str(e), 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -1908,7 +1609,6 @@ def autosave_thread():
     """
     Auto-save thread during conversation
     """
-    cursor = None
     print(f"\n{'='*80}")
     print(f"[AUTOSAVE] 🔄 Checking autosave trigger...")
     print(f"{'='*80}")
@@ -1946,56 +1646,50 @@ def autosave_thread():
             context_json = json.dumps(state.get('context', {}))
             
             with get_database_connection('sessions') as conn:
-                cursor = conn.cursor()
-                
-                create_table_query = """
-                    CREATE TABLE IF NOT EXISTS sessions.saved_threads (
-                        thread_id TEXT PRIMARY KEY,
-                        agent_id TEXT NOT NULL,
-                        session_id TEXT NOT NULL,
-                        thread_name TEXT,
-                        conversation TEXT NOT NULL,
-                        message_count INTEGER,
-                        context TEXT,
-                        created_at TIMESTAMP,
-                        saved_at TIMESTAMP DEFAULT NOW()
-                    )
-                """
-                try:
-                    cursor.execute(create_table_query)
+                with conn.cursor() as cursor:
+                    
+                    create_table_query = """
+                        CREATE TABLE IF NOT EXISTS sessions.saved_threads (
+                            thread_id TEXT PRIMARY KEY,
+                            agent_id TEXT NOT NULL,
+                            session_id TEXT NOT NULL,
+                            thread_name TEXT,
+                            conversation TEXT NOT NULL,
+                            message_count INTEGER,
+                            context TEXT,
+                            created_at TIMESTAMP,
+                            saved_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """
+                    try:
+                        cursor.execute(create_table_query)
+                        conn.commit()
+                    except Exception as e:
+                        conn.rollback()
+                    
+                    # Save thread
+                    sql, params = convert_sql_placeholders("""
+                        INSERT INTO sessions.saved_threads 
+                        (thread_id, agent_id, session_id, thread_name, conversation, 
+                         message_count, context, created_at, saved_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        ON CONFLICT (thread_id) DO UPDATE SET
+                            conversation = EXCLUDED.conversation,
+                            message_count = EXCLUDED.message_count,
+                            saved_at = NOW()
+                    """, (
+                        thread_id,
+                        agent_id,
+                        session_id,
+                        f"Auto-saved conversation ({message_count} messages)",
+                        conversation_json,
+                        message_count,
+                        context_json,
+                        state.get('created_at')
+                    ))
+                    
+                    cursor.execute(sql, params)
                     conn.commit()
-                except Exception as e:
-                    conn.rollback()
-                
-                # Save thread
-                sql, params = convert_sql_placeholders("""
-                    INSERT INTO sessions.saved_threads 
-                    (thread_id, agent_id, session_id, thread_name, conversation, 
-                     message_count, context, created_at, saved_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (thread_id) DO UPDATE SET
-                        conversation = EXCLUDED.conversation,
-                        message_count = EXCLUDED.message_count,
-                        saved_at = NOW()
-                """, (
-                    thread_id,
-                    agent_id,
-                    session_id,
-                    f"Auto-saved conversation ({message_count} messages)",
-                    conversation_json,
-                    message_count,
-                    context_json,
-                    state.get('created_at')
-                ))
-                
-                cursor.execute(sql, params)
-                conn.commit()
-                cursor.close()
-                cursor = None
-
-                conn.close()  # Explicit close before with exits
-
-                conn = None
             
             print(f"[AUTOSAVE] ✅ SUCCESS: Thread auto-saved")
             print(f"[AUTOSAVE] Thread ID: {thread_id}")
@@ -2019,12 +1713,6 @@ def autosave_thread():
         import traceback
         traceback.print_exc()
         return error_response(str(e), 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/<thread_id>/mark-read', methods=['POST'])
@@ -2032,39 +1720,32 @@ def mark_thread_read(thread_id):
     """
     Mark thread as read
     """
-    cursor = None
     try:
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Ensure table has last_read column
-            alter_query = """
-                ALTER TABLE sessions.saved_threads
-                ADD COLUMN IF NOT EXISTS last_read TIMESTAMP
-            """
-            
-            try:
-                cursor.execute(alter_query)
+            with conn.cursor() as cursor:
+                
+                # Ensure table has last_read column
+                alter_query = """
+                    ALTER TABLE sessions.saved_threads
+                    ADD COLUMN IF NOT EXISTS last_read TIMESTAMP
+                """
+                
+                try:
+                    cursor.execute(alter_query)
+                    conn.commit()
+                except Exception as e:
+                    conn.rollback()
+                
+                # Update last_read
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.saved_threads
+                    SET last_read = NOW()
+                    WHERE thread_id = %s
+                """, (thread_id,))
+                
+                cursor.execute(sql, params)
+                rowcount = cursor.rowcount
                 conn.commit()
-            except Exception as e:
-                conn.rollback()
-            
-            # Update last_read
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.saved_threads
-                SET last_read = NOW()
-                WHERE thread_id = %s
-            """, (thread_id,))
-            
-            cursor.execute(sql, params)
-            rowcount = cursor.rowcount
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -2079,12 +1760,6 @@ def mark_thread_read(thread_id):
     except Exception as e:
         print(f"❌ [MARK READ ERROR] {str(e)}")
         return error_response(str(e), 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/details', methods=['POST'])
@@ -2094,7 +1769,6 @@ def get_threads_details():
     
     SYNERGY INTEGRATION: Used to display linked threads in Synergy cards
     """
-    cursor = None
     print("[THREADS DETAILS] Endpoint called!")
     try:
         data = request.get_json()
@@ -2110,34 +1784,25 @@ def get_threads_details():
         placeholders = ','.join(['%s' for _ in thread_ids])
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            query = f"""
-                SELECT 
-                    t.id,
-                    t.thread_slug,
-                    t.name,
-                    t.created_at,
-                    t.updated_at,
-                    t.synergy_card_id,
-                    t.location
-                FROM sessions.threads t
-                WHERE t.thread_slug IN ({placeholders})
-                ORDER BY t.updated_at DESC
-            """
-            
-            sql, params = convert_sql_placeholders(query, tuple(thread_ids))
-            cursor.execute(sql, params)
-            threads_raw = cursor.fetchall()
-            
-            cursor.close()
-            cursor = None
-
-            
-            conn.close()  # Explicit close before with exits
-
-            
-            conn = None
+            with conn.cursor() as cursor:
+                
+                query = f"""
+                    SELECT 
+                        t.id,
+                        t.thread_slug,
+                        t.name,
+                        t.created_at,
+                        t.updated_at,
+                        t.synergy_card_id,
+                        t.location
+                    FROM sessions.threads t
+                    WHERE t.thread_slug IN ({placeholders})
+                    ORDER BY t.updated_at DESC
+                """
+                
+                sql, params = convert_sql_placeholders(query, tuple(thread_ids))
+                cursor.execute(sql, params)
+                threads_raw = cursor.fetchall()
         
         # Convert to list of dicts
         threads = []
@@ -2163,8 +1828,8 @@ def get_threads_details():
                 agent_location = location_from_threads
                 agent_display_name = location_from_threads.upper()
             else:
-                agent_location = 'prime'
-                agent_display_name = 'Prime'
+                agent_location = 'unassigned'
+                agent_display_name = 'Unassigned'
             
             result.append({
                 'id': thread_id,
@@ -2186,12 +1851,6 @@ def get_threads_details():
         import traceback
         traceback.print_exc()
         return error_response(f"Thread details error: {str(e)}", 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -2204,7 +1863,6 @@ def save_messages():
     Save messages directly to the messages table
     CRITICAL FIX: Links messages to threads so they show up in thread list
     """
-    cursor = None
     try:
         data = request.get_json() or {}
         thread_id = str(data.get('thread_id'))
@@ -2220,88 +1878,84 @@ def save_messages():
         print(f"[MESSAGE SAVE] Thread: {thread_id}, User: {user_id}, Messages: {len(messages)}")
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get the internal thread database ID and count
-            sql, params = convert_sql_placeholders("""
-                SELECT t.id, COUNT(m.id) as message_count
-                FROM sessions.threads t
-                LEFT JOIN sessions.messages m ON m.thread_id = t.id
-                WHERE t.thread_slug = %s
-                GROUP BY t.id
-            """, (thread_id,))
-            
-            cursor.execute(sql, params)
-            result = cursor.fetchone()
-            
-            if not result:
-                cursor.close()
-                cursor = None
-
-                conn.close()  # Explicit close before with exits
-
-                conn = None
-                return error_response(f'Thread {thread_id} not found', 404)
-            
-            internal_thread_id = result['id']
-            existing_message_count = result['message_count'] or 0
-            print(f"[MESSAGE SAVE] Thread {thread_id} (DB ID: {internal_thread_id}) has {existing_message_count} existing messages")
-            
-            # Only save NEW messages
-            messages_to_save = messages[existing_message_count:]
-            print(f"[MESSAGE SAVE] Appending {len(messages_to_save)} new messages")
-            
-            saved_count = 0
-            
-            for msg in messages_to_save:
-                role = msg.get('role')
-                content = msg.get('content')
+            with conn.cursor() as cursor:
                 
-                if not role or not content:
-                    continue
+                # Get the internal thread database ID and count
+                sql, params = convert_sql_placeholders("""
+                    SELECT t.id, COUNT(m.id) as message_count
+                    FROM sessions.threads t
+                    LEFT JOIN sessions.messages m ON m.thread_id = t.id
+                    WHERE t.thread_slug = %s
+                    GROUP BY t.id
+                """, (thread_id,))
                 
-                # Skip empty/whitespace-only messages
-                has_real_content = False
-                if isinstance(content, str):
-                    has_real_content = content.strip() != ''
-                elif isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict):
-                            if block.get('type') == 'text':
-                                text_content = block.get('text', '').strip()
-                                if text_content:
+                cursor.execute(sql, params)
+                result = cursor.fetchone()
+                
+                if not result:
+                    return error_response(f'Thread {thread_id} not found', 404)
+                
+                internal_thread_id = result['id']
+                existing_message_count = result['message_count'] or 0
+                print(f"[MESSAGE SAVE] Thread {thread_id} (DB ID: {internal_thread_id}) has {existing_message_count} existing messages")
+                
+                # Only save NEW messages
+                messages_to_save = messages[existing_message_count:]
+                print(f"[MESSAGE SAVE] Appending {len(messages_to_save)} new messages")
+                
+                saved_count = 0
+                
+                for msg in messages_to_save:
+                    role = msg.get('role')
+                    content = msg.get('content')
+                    timestamp = msg.get('timestamp') or msg.get('created_at')
+                    
+                    if not role or not content:
+                        continue
+                    
+                    # Skip empty/whitespace-only messages
+                    has_real_content = False
+                    if isinstance(content, str):
+                        has_real_content = content.strip() != ''
+                    elif isinstance(content, list):
+                        for block in content:
+                            if isinstance(block, dict):
+                                if block.get('type') == 'text':
+                                    text_content = block.get('text', '').strip()
+                                    if text_content:
+                                        has_real_content = True
+                                        break
+                                elif block.get('type') in ('thinking', 'tool_use', 'tool_result', 'image'):
                                     has_real_content = True
                                     break
-                            elif block.get('type') in ('thinking', 'tool_use', 'tool_result', 'image'):
-                                has_real_content = True
-                                break
-                
-                if not has_real_content:
-                    print(f"[MESSAGE SAVE] Skipping empty message: {role}")
-                    continue
-                
-                try:
-                    # Serialize content to JSON
-                    content_str = json.dumps(content) if isinstance(content, (dict, list)) else content
                     
-                    sql, params = convert_sql_placeholders("""
-                        INSERT INTO sessions.messages (thread_id, role, content, created_at)
-                        VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-                    """, (internal_thread_id, role, content_str))
+                    if not has_real_content:
+                        print(f"[MESSAGE SAVE] Skipping empty message: {role}")
+                        continue
                     
-                    cursor.execute(sql, params)
-                    saved_count += 1
-                except Exception as msg_error:
-                    print(f"[MESSAGE SAVE ERROR] Failed to save message: {msg_error}")
-                    continue
-            
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+                    try:
+                        # Serialize content to JSON
+                        content_str = json.dumps(content) if isinstance(content, (dict, list)) else content
+                        
+                        # Use provided timestamp or fallback to CURRENT_TIMESTAMP
+                        if timestamp:
+                            sql, params = convert_sql_placeholders("""
+                                INSERT INTO sessions.messages (thread_id, role, content, created_at)
+                                VALUES (%s, %s, %s, %s)
+                            """, (internal_thread_id, role, content_str, timestamp))
+                        else:
+                            sql, params = convert_sql_placeholders("""
+                                INSERT INTO sessions.messages (thread_id, role, content, created_at)
+                                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                            """, (internal_thread_id, role, content_str))
+                        
+                        cursor.execute(sql, params)
+                        saved_count += 1
+                    except Exception as msg_error:
+                        print(f"[MESSAGE SAVE ERROR] Failed to save message: {msg_error}")
+                        continue
+                
+                conn.commit()
         
         print(f"[MESSAGE SAVE] Successfully saved {saved_count} messages to thread {thread_id}")
         
@@ -2315,12 +1969,6 @@ def save_messages():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to save messages: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/messages/get', methods=['GET'])
@@ -2328,7 +1976,6 @@ def get_messages():
     """
     Get messages for a thread (with optional pagination)
     """
-    cursor = None
     try:
         thread_id = request.args.get('thread_id')
         if not thread_id:
@@ -2339,73 +1986,68 @@ def get_messages():
         offset = request.args.get('offset', default=0, type=int)
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get WHERE clause for thread lookup (handles both ID and slug)
-            where_clause, lookup_value = get_thread_lookup_clause(thread_id)
-            print(f"[THREAD MESSAGES] thread_id={thread_id} -> WHERE {where_clause}, value={lookup_value} (type: {type(lookup_value)})")
-            
-            # Get total message count
-            sql, params = convert_sql_placeholders(f"""
-                SELECT COUNT(m.id) as total
-                FROM sessions.messages m
-                JOIN sessions.threads t ON m.thread_id = t.id
-                WHERE {where_clause}
-            """, (lookup_value,))
-            
-            print(f"[THREAD MESSAGES] SQL: {sql}")
-            print(f"[THREAD MESSAGES] Params: {params}")
-            
-            cursor.execute(sql, params)
-            result = cursor.fetchone()
-            total_count = result['total'] if isinstance(result, dict) else result[0]
-            
-            print(f"[THREAD MESSAGES] Total count: {total_count}")
-            
-            # Query messages
-            if limit:
+            with conn.cursor() as cursor:
+                
+                # Get WHERE clause for thread lookup (handles both ID and slug)
+                where_clause, lookup_value = get_thread_lookup_clause(thread_id)
+                print(f"[THREAD MESSAGES] thread_id={thread_id} -> WHERE {where_clause}, value={lookup_value} (type: {type(lookup_value)})")
+                
+                # Get total message count
                 sql, params = convert_sql_placeholders(f"""
-                    SELECT 
-                        m.id,
-                        m.role,
-                        m.content,
-                        m.tool_calls,
-                        m.tokens_used,
-                        m.created_at,
-                        m.metadata
+                    SELECT COUNT(m.id) as total
                     FROM sessions.messages m
                     JOIN sessions.threads t ON m.thread_id = t.id
                     WHERE {where_clause}
-                    ORDER BY m.created_at DESC
-                    LIMIT %s OFFSET %s
-                """, (lookup_value, limit, offset))
-            else:
-                sql, params = convert_sql_placeholders(f"""
-                    SELECT 
-                        m.id,
-                        m.role,
-                        m.content,
-                        m.tool_calls,
-                        m.tokens_used,
-                        m.created_at,
-                        m.metadata
-                    FROM sessions.messages m
-                    JOIN sessions.threads t ON m.thread_id = t.id
-                    WHERE {where_clause}
-                    ORDER BY m.created_at ASC
                 """, (lookup_value,))
-            
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+                
+                print(f"[THREAD MESSAGES] SQL: {sql}")
+                print(f"[THREAD MESSAGES] Params: {params}")
+                
+                cursor.execute(sql, params)
+                result = cursor.fetchone()
+                total_count = result['total'] if isinstance(result, dict) else result[0]
+                
+                print(f"[THREAD MESSAGES] Total count: {total_count}")
+                
+                # Query messages
+                if limit:
+                    sql, params = convert_sql_placeholders(f"""
+                        SELECT 
+                            m.id,
+                            m.role,
+                            m.content,
+                            m.tool_calls,
+                            m.tokens_used,
+                            m.created_at,
+                            m.metadata
+                        FROM sessions.messages m
+                        JOIN sessions.threads t ON m.thread_id = t.id
+                        WHERE {where_clause}
+                        ORDER BY m.created_at DESC
+                        LIMIT %s OFFSET %s
+                    """, (lookup_value, limit, offset))
+                else:
+                    sql, params = convert_sql_placeholders(f"""
+                        SELECT 
+                            m.id,
+                            m.role,
+                            m.content,
+                            m.tool_calls,
+                            m.tokens_used,
+                            m.created_at,
+                            m.metadata
+                        FROM sessions.messages m
+                        JOIN sessions.threads t ON m.thread_id = t.id
+                        WHERE {where_clause}
+                        ORDER BY m.created_at ASC
+                    """, (lookup_value,))
+                
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
         
         # Process rows
         messages = []
+        role_counts = {'user': 0, 'assistant': 0, 'tool': 0, 'other': 0}
         for row in rows:
             metadata_value = row.get('metadata') if isinstance(row, dict) else row[6]
             metadata = {}
@@ -2430,9 +2072,12 @@ def get_messages():
             except:
                 tool_calls = []
             
+            message_role = row['role'] if isinstance(row, dict) else row[1]
+            role_counts[message_role] = role_counts.get(message_role, 0) + 1
+            
             messages.append({
                 'id': row['id'] if isinstance(row, dict) else row[0],
-                'role': row['role'] if isinstance(row, dict) else row[1],
+                'role': message_role,
                 'content': content,
                 'tool_calls': tool_calls,
                 'tokens_used': row.get('tokens_used') if isinstance(row, dict) else row[4],
@@ -2443,6 +2088,13 @@ def get_messages():
         
         if limit:
             messages.reverse()
+        
+        print(f"[BACKEND DEBUG] Thread {thread_id}: Returning {len(messages)} messages")
+        print(f"[BACKEND DEBUG] Role distribution: {role_counts}")
+        if messages:
+            print(f"[BACKEND DEBUG] First message: role={messages[0]['role']}, content_type={type(messages[0]['content'])}")
+            if len(messages) > 1:
+                print(f"[BACKEND DEBUG] Last message: role={messages[-1]['role']}, content_type={type(messages[-1]['content'])}")
         
         return success_response({
             'messages': messages,
@@ -2458,12 +2110,6 @@ def get_messages():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to get messages: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -2475,7 +2121,6 @@ def delete_assignment(location):
     """
     Delete thread assignment for a specific location
     """
-    cursor = None
     try:
         location = location.strip()
         
@@ -2500,51 +2145,45 @@ def delete_assignment(location):
         print(f"[DELETE ASSIGNMENT] Clearing assignment for location: {location}, user_id: {user_id}")
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Ensure user row exists
-            sql, params = convert_sql_placeholders(
-                "SELECT id FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            cursor.execute(sql, params)
-            
-            if not cursor.fetchone():
-                sql, params = convert_sql_placeholders("""
-                    INSERT INTO ai_infrastructure.users (id, username, email, metadata)
-                    VALUES (%s, %s, %s, %s)
-                """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
+            with conn.cursor() as cursor:
+                
+                # Ensure user row exists
+                sql, params = convert_sql_placeholders(
+                    "SELECT id FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
                 cursor.execute(sql, params)
-            
-            # Get current metadata
-            sql, params = convert_sql_placeholders(
-                "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
-                (user_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            metadata = json.loads(row['metadata'] if row['metadata'] else '{}')
-            
-            # Remove assignment
-            assignments = metadata.get('thread_assignments', {})
-            session_id = assignments.pop(location, None)
-            
-            # Update metadata
-            metadata['thread_assignments'] = assignments
-            sql, params = convert_sql_placeholders("""
-                UPDATE ai_infrastructure.users
-                SET metadata = %s
-                WHERE id = %s
-            """, (json.dumps(metadata), user_id))
-            cursor.execute(sql, params)
-            
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+                
+                if not cursor.fetchone():
+                    sql, params = convert_sql_placeholders("""
+                        INSERT INTO ai_infrastructure.users (id, username, email, metadata)
+                        VALUES (%s, %s, %s, %s)
+                    """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
+                    cursor.execute(sql, params)
+                
+                # Get current metadata
+                sql, params = convert_sql_placeholders(
+                    "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                metadata = json.loads(row['metadata'] if row['metadata'] else '{}')
+                
+                # Remove assignment
+                assignments = metadata.get('thread_assignments', {})
+                session_id = assignments.pop(location, None)
+                
+                # Update metadata
+                metadata['thread_assignments'] = assignments
+                sql, params = convert_sql_placeholders("""
+                    UPDATE ai_infrastructure.users
+                    SET metadata = %s
+                    WHERE id = %s
+                """, (json.dumps(metadata), user_id))
+                cursor.execute(sql, params)
+                
+                conn.commit()
         
         deleted_count = 1 if session_id else 0
         print(f"[DELETE ASSIGNMENT] Cleared {location} assignment for user {user_id}")
@@ -2559,12 +2198,6 @@ def delete_assignment(location):
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to delete assignment: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 # ============================================================
@@ -2576,7 +2209,6 @@ def lock_thread(thread_id):
     """
     Lock a thread to a specific device
     """
-    cursor = None
     try:
         data = request.get_json()
         device_id = data.get('device_id')
@@ -2588,24 +2220,18 @@ def lock_thread(thread_id):
         locked_at = datetime.now().isoformat()
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads 
-                SET locked_to_device_id = %s,
-                    locked_at = %s
-                WHERE id = %s
-            """, (device_id, locked_at, thread_id))
-            
-            cursor.execute(sql, params)
-            rowcount = cursor.rowcount
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET locked_to_device_id = %s,
+                        locked_at = %s
+                    WHERE id = %s
+                """, (device_id, locked_at, thread_id))
+                
+                cursor.execute(sql, params)
+                rowcount = cursor.rowcount
+                conn.commit()
         
         if rowcount == 0:
             return error_response('Thread not found', 404)
@@ -2624,12 +2250,6 @@ def lock_thread(thread_id):
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to lock thread: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/<thread_id>/unlock', methods=['POST'])
@@ -2637,27 +2257,20 @@ def unlock_thread(thread_id):
     """
     Unlock a thread (remove device lock)
     """
-    cursor = None
     try:
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads 
-                SET locked_to_device_id = NULL,
-                    locked_at = NULL
-                WHERE id = %s
-            """, (thread_id,))
-            
-            cursor.execute(sql, params)
-            rowcount = cursor.rowcount
-            conn.commit()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET locked_to_device_id = NULL,
+                        locked_at = NULL
+                    WHERE id = %s
+                """, (thread_id,))
+                
+                cursor.execute(sql, params)
+                rowcount = cursor.rowcount
+                conn.commit()
         
         if rowcount == 0:
             return error_response('Thread not found', 404)
@@ -2673,12 +2286,6 @@ def unlock_thread(thread_id):
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to unlock thread: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 
 @thread_bp.route('/<thread_id>/lock-status', methods=['GET'])
@@ -2686,25 +2293,18 @@ def get_lock_status(thread_id):
     """
     Get current lock status of a thread
     """
-    cursor = None
     try:
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders("""
-                SELECT locked_to_device_id, locked_at
-                FROM sessions.threads
-                WHERE id = %s
-            """, (thread_id,))
-            
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
-            cursor.close()
-            cursor = None
-
-            conn.close()  # Explicit close before with exits
-
-            conn = None
+            with conn.cursor() as cursor:
+                
+                sql, params = convert_sql_placeholders("""
+                    SELECT locked_to_device_id, locked_at
+                    FROM sessions.threads
+                    WHERE id = %s
+                """, (thread_id,))
+                
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
         
         if not results:
             return error_response('Thread not found', 404)
@@ -2722,12 +2322,6 @@ def get_lock_status(thread_id):
     except Exception as e:
         print(f"[DEVICE LOCK STATUS ERROR] {str(e)}")
         return error_response(f'Failed to get lock status: {str(e)}', 500)
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
 
 # ============================================================
 # ENDPOINT: Update Thread Location (CASCADE/Unload Support)
@@ -2737,11 +2331,11 @@ def get_lock_status(thread_id):
 def update_thread_location():
     """
     Update a thread's location field for CASCADE rule enforcement and unload operations.
-    Supports moving threads between prime, prime-loaded, and agent-N locations.
+    Supports moving threads between prime and agent-N locations.
     
     Request Body:
         - thread_slug (str): Thread ID to update
-        - new_location (str): New location (prime, prime-loaded, agent-1, etc.)
+        - new_location (str): New location (prime, agent-1, agent-2, etc.)
         - user_id (int): User ID for ownership verification
         
     Returns:
@@ -2760,32 +2354,26 @@ def update_thread_location():
             return error_response('Missing thread_slug or new_location', 400)
         
         # Get database connection
-        conn = get_database_connection('sessions')
-        if not conn:
-            return error_response('Failed to connect to database', 500)
-        
-        cursor = conn.cursor()
-        
-        # Update thread location
-        sql = """
-            UPDATE sessions.threads
-            SET location = %s,
-                last_message_at = CURRENT_TIMESTAMP
-            WHERE thread_slug = %s
-        """
-        params = [new_location, thread_slug]
-        
-        # Add user_id filter if provided
-        if user_id:
-            sql += " AND user_id = %s"
-            params.append(user_id)
-        
-        cursor.execute(sql, tuple(params))
-        rows_affected = cursor.rowcount
-        conn.commit()
-        
-        cursor.close()
-        conn.close()
+        with get_database_connection('sessions') as conn:
+            with conn.cursor() as cursor:
+                
+                # Update thread location
+                sql = """
+                    UPDATE sessions.threads
+                    SET location = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE thread_slug = %s
+                """
+                params = [new_location, thread_slug]
+                
+                # Add user_id filter if provided
+                if user_id:
+                    sql += " AND user_id = %s"
+                    params.append(user_id)
+                
+                cursor.execute(sql, tuple(params))
+                rows_affected = cursor.rowcount
+                conn.commit()
         
         if rows_affected == 0:
             return error_response('Thread not found or access denied', 404)

@@ -2,14 +2,15 @@
 Automation Visual Workflows API Routes
 =======================================
 REST API endpoints for visual automation canvas and AI-interpreted workflows.
-Last Modified: 2025-12-03 - Fixed ALL cursor leaks (explicit close added)
+Last Modified: 2026-01-01 - COMPLETE CURSOR LEAK FIX
 
-FIXED: 2025-01-XX - Complete cursor management overhaul
+✅ FIXED: All 19 cursor leaks converted to context managers
 CHANGES:
-- Added explicit cursor.close() to 14 functions (before exit from with block)
-- Fixed get_workflow_status() - now closes all 3 cursors independently
-- Standardized pattern: with conn → cursor → work → cursor.close() → process → return
-- All 19 database functions now follow best practices
+- Converted ALL cursor = conn.cursor() to: with conn.cursor() as cursor:
+- Removed all manual cursor.close() calls (now redundant)
+- Fixed get_workflow_status() - 3 cursors now properly managed
+- All database functions follow best practices
+- Zero cursor leaks remaining
 
 Endpoints:
     POST   /api/automation/parse            - Parse visual flow and interpret intent
@@ -70,10 +71,6 @@ def get_user_from_token(auth_header):
 automation_bp = Blueprint('automation', __name__, url_prefix='/api/automation')
 
 
-# DEPRECATED FUNCTION REMOVED - All callers now use get_database_connection('ai_infrastructure') directly
-# Previous helper: get_db_connection() - removed to prevent connection leak patterns
-
-
 def init_automation_tables():
     """
     Initialize database tables for visual automations
@@ -89,87 +86,81 @@ def init_automation_tables():
     - visual_automations: Stores automation metadata and visual flow JSON
     - automation_executions: Tracks execution history and results
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            # Check if we're using PostgreSQL or SQLite
-            from shared.database_utils import is_using_supabase
-            if is_using_supabase():
-                # PostgreSQL - tables created via migration, just validate
+            with conn.cursor() as cursor:
+                
+                # Check if we're using PostgreSQL or SQLite
+                from shared.database_utils import is_using_supabase
+                if is_using_supabase():
+                    # PostgreSQL - tables created via migration, just validate
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT 1 FROM information_schema.tables 
+                            WHERE table_name = 'visual_automations'
+                        )
+                    """)
+                    result = cursor.fetchone()
+                    exists = result['exists'] if isinstance(result, dict) else result[0]
+                    
+                    if not exists:
+                        print("⚠️  WARNING: visual_automations table not found in PostgreSQL")
+                        print("   Run migration: supabase_migrations/004_automation_tables.sql")
+                    else:
+                        print("✅ Automation tables exist in PostgreSQL")
+                    
+                    return
+                
+                # SQLite - create tables if they don't exist
                 cursor.execute("""
-                    SELECT EXISTS (
-                        SELECT 1 FROM information_schema.tables 
-                        WHERE table_name = 'visual_automations'
+                    CREATE TABLE IF NOT EXISTS visual_automations (
+                        automation_id TEXT PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        slug TEXT NOT NULL UNIQUE,
+                        description TEXT,
+                        category TEXT DEFAULT 'other',
+                        ui_json TEXT NOT NULL DEFAULT '{}',
+                        execution_json TEXT NOT NULL DEFAULT '{}',
+                        schedule_cron TEXT,
+                        schedule_datetime TEXT,
+                        timezone TEXT DEFAULT 'UTC',
+                        status TEXT DEFAULT 'draft',
+                        is_scheduled BOOLEAN DEFAULT 0,
+                        scheduler_task_id TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_executed_at TIMESTAMP,
+                        execution_count INTEGER DEFAULT 0,
+                        FOREIGN KEY (user_id) REFERENCES users(user_id)
                     )
                 """)
-                result = cursor.fetchone()
-                exists = result['exists'] if isinstance(result, dict) else result[0]
                 
-                # ✅ FIX: Close cursor before exit
-                cursor.close()
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS automation_executions (
+                        execution_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        automation_id TEXT NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        thread_id INTEGER,
+                        triggered_by TEXT NOT NULL,
+                        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TIMESTAMP,
+                        duration_ms INTEGER,
+                        status TEXT NOT NULL,
+                        tools_used TEXT DEFAULT '[]',
+                        result_summary TEXT,
+                        error_message TEXT,
+                        FOREIGN KEY (automation_id) REFERENCES visual_automations(automation_id),
+                        FOREIGN KEY (user_id) REFERENCES users(user_id),
+                        FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
+                    )
+                """)
                 
-                if not exists:
-                    print("⚠️  WARNING: visual_automations table not found in PostgreSQL")
-                    print("   Run migration: supabase_migrations/004_automation_tables.sql")
-                else:
-                    print("✅ Automation tables exist in PostgreSQL")
+                conn.commit()
                 
-                return
-            
-            # SQLite - create tables if they don't exist
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS visual_automations (
-                    automation_id TEXT PRIMARY KEY,
-                    user_id INTEGER NOT NULL,
-                    title TEXT NOT NULL,
-                    slug TEXT NOT NULL UNIQUE,
-                    description TEXT,
-                    category TEXT DEFAULT 'other',
-                    ui_json TEXT NOT NULL DEFAULT '{}',
-                    execution_json TEXT NOT NULL DEFAULT '{}',
-                    schedule_cron TEXT,
-                    schedule_datetime TEXT,
-                    timezone TEXT DEFAULT 'UTC',
-                    status TEXT DEFAULT 'draft',
-                    is_scheduled BOOLEAN DEFAULT 0,
-                    scheduler_task_id TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_executed_at TIMESTAMP,
-                    execution_count INTEGER DEFAULT 0,
-                    FOREIGN KEY (user_id) REFERENCES users(user_id)
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS automation_executions (
-                    execution_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    automation_id TEXT NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    thread_id INTEGER,
-                    triggered_by TEXT NOT NULL,
-                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    completed_at TIMESTAMP,
-                    duration_ms INTEGER,
-                    status TEXT NOT NULL,
-                    tools_used TEXT DEFAULT '[]',
-                    result_summary TEXT,
-                    error_message TEXT,
-                    FOREIGN KEY (automation_id) REFERENCES visual_automations(automation_id),
-                    FOREIGN KEY (user_id) REFERENCES users(user_id),
-                    FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
-                )
-            """)
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-            
-            print("✅ Automation tables initialized (SQLite)")
+                print("✅ Automation tables initialized (SQLite)")
     
     except Exception as e:
         print(f"❌ Error initializing automation tables: {e}")
@@ -298,7 +289,7 @@ def save_automation():
         "parent_automation_id": "auto_parent"
     }
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         data = request.json
@@ -336,63 +327,59 @@ def save_automation():
         execution_json_str = json.dumps(data.get('execution_json', {}))
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            from shared.database_utils import is_using_supabase
-            
-            if is_using_supabase():
-                # PostgreSQL - use ON CONFLICT (UPSERT)
-                cursor.execute("""
-                    INSERT INTO visual_automations (
-                        automation_id, user_id, title, slug, description, category,
-                        ui_json, execution_json, status, created_at, updated_at
-                    ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-                    )
-                    ON CONFLICT (slug) DO UPDATE SET
-                        title = EXCLUDED.title,
-                        description = EXCLUDED.description,
-                        category = EXCLUDED.category,
-                        ui_json = EXCLUDED.ui_json,
-                        execution_json = EXCLUDED.execution_json,
-                        status = EXCLUDED.status,
-                        updated_at = CURRENT_TIMESTAMP
-                """, (
-                    automation_id,
-                    user_id,
-                    title,
-                    slug,
-                    data.get('description', ''),
-                    data.get('category', 'workflow'),
-                    ui_json_str,
-                    execution_json_str,
-                    data.get('status', 'draft')
-                ))
-            else:
-                # SQLite - use INSERT OR REPLACE
-                cursor.execute("""
-                    INSERT OR REPLACE INTO visual_automations (
-                        automation_id, user_id, title, slug, description, category,
-                        ui_json, execution_json, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    automation_id,
-                    user_id,
-                    title,
-                    slug,
-                    data.get('description', ''),
-                    data.get('category', 'workflow'),
-                    ui_json_str,
-                    execution_json_str,
-                    data.get('status', 'draft')
-                ))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
+            with conn.cursor() as cursor:
+                
+                from shared.database_utils import is_using_supabase
+                
+                if is_using_supabase():
+                    # PostgreSQL - use ON CONFLICT (UPSERT)
+                    cursor.execute("""
+                        INSERT INTO visual_automations (
+                            automation_id, user_id, title, slug, description, category,
+                            ui_json, execution_json, status, created_at, updated_at
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        )
+                        ON CONFLICT (slug) DO UPDATE SET
+                            title = EXCLUDED.title,
+                            description = EXCLUDED.description,
+                            category = EXCLUDED.category,
+                            ui_json = EXCLUDED.ui_json,
+                            execution_json = EXCLUDED.execution_json,
+                            status = EXCLUDED.status,
+                            updated_at = CURRENT_TIMESTAMP
+                    """, (
+                        automation_id,
+                        user_id,
+                        title,
+                        slug,
+                        data.get('description', ''),
+                        data.get('category', 'workflow'),
+                        ui_json_str,
+                        execution_json_str,
+                        data.get('status', 'draft')
+                    ))
+                else:
+                    # SQLite - use INSERT OR REPLACE
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO visual_automations (
+                            automation_id, user_id, title, slug, description, category,
+                            ui_json, execution_json, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        automation_id,
+                        user_id,
+                        title,
+                        slug,
+                        data.get('description', ''),
+                        data.get('category', 'workflow'),
+                        ui_json_str,
+                        execution_json_str,
+                        data.get('status', 'draft')
+                    ))
+                
+                conn.commit()
         
-        # ✅ Connection auto-closed by context manager
         return jsonify({
             'success': True,
             'message': 'Workflow saved successfully',
@@ -421,7 +408,7 @@ def update_workflow():
         "update_metadata": {...}
     }
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         data = request.json
@@ -450,145 +437,137 @@ def update_workflow():
             return jsonify({'error': 'At least one update operation required'}), 400
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            # Get existing workflow
-            cursor.execute("""
-                SELECT automation_id, ui_json, execution_json, title, description, category
-                FROM visual_automations
-                WHERE slug = %s AND user_id = %s
-            """, (slug, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': f'Workflow not found: {slug}'}), 404
-            
-            # Parse existing data
-            automation_id = row['automation_id']
-            ui_json = json.loads(row['ui_json'])
-            execution_json = json.loads(row['execution_json'])
-            current_title = row['title']
-            current_description = row['description']
-            current_category = row['category']
-            
-            # Get current actions from execution_json
-            actions = execution_json.get('actions', [])
-            trigger = execution_json.get('trigger', {'type': 'manual'})
-            
-            # Apply updates
-            changes = []
-            
-            # 1. Remove actions (do this first, before adding)
-            if data.get('remove_actions'):
-                remove_positions = sorted(data['remove_actions'], reverse=True)
-                for pos in remove_positions:
-                    if 0 <= pos < len(actions):
-                        actions.pop(pos)
-                        changes.append(f'removed action at position {pos}')
-            
-            # 2. Add actions
-            if data.get('add_actions'):
-                for action_data in data['add_actions']:
-                    position = action_data.get('position')
-                    action = {
-                        'tool': action_data['tool'],
-                        'parameters': action_data.get('parameters', {})
-                    }
-                    if 'condition' in action_data:
-                        action['condition'] = action_data['condition']
-                    
-                    if position is not None and 0 <= position <= len(actions):
-                        actions.insert(position, action)
-                        changes.append(f'added action at position {position}')
-                    else:
-                        actions.append(action)
-                        changes.append('added action to end')
-            
-            # 3. Update trigger
-            if data.get('update_trigger'):
-                trigger = data['update_trigger']
-                changes.append('updated trigger')
-            
-            # 4. Update action parameters
-            if data.get('update_action_parameters'):
-                pos = data['update_action_parameters'].get('position')
-                new_params = data['update_action_parameters'].get('parameters', {})
-                if pos is not None and 0 <= pos < len(actions):
-                    actions[pos]['parameters'].update(new_params)
-                    changes.append(f'updated action {pos} parameters')
-            
-            # 5. Update metadata
-            if data.get('update_metadata'):
-                if 'title' in data['update_metadata']:
-                    current_title = data['update_metadata']['title']
-                    changes.append('updated title')
-                if 'description' in data['update_metadata']:
-                    current_description = data['update_metadata']['description']
-                    changes.append('updated description')
-            
-            # Rebuild execution_json
-            execution_json['actions'] = actions
-            execution_json['trigger'] = trigger
-            
-            # Rebuild ui_json (visual flow)
-            shapes = []
-            connections = []
-            
-            # Add trigger node
-            shapes.append({
-                'id': 'node_trigger',
-                'type': 'hexagon',
-                'text': f"TRIGGER: {trigger.get('type', 'manual')}",
-                'color': '#10B981',
-                'x': 100,
-                'y': 100
-            })
-            
-            # Add action nodes
-            for i, action in enumerate(actions):
+            with conn.cursor() as cursor:
+                
+                # Get existing workflow
+                cursor.execute("""
+                    SELECT automation_id, ui_json, execution_json, title, description, category
+                    FROM visual_automations
+                    WHERE slug = %s AND user_id = %s
+                """, (slug, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': f'Workflow not found: {slug}'}), 404
+                
+                # Parse existing data
+                automation_id = row['automation_id']
+                ui_json = json.loads(row['ui_json'])
+                execution_json = json.loads(row['execution_json'])
+                current_title = row['title']
+                current_description = row['description']
+                current_category = row['category']
+                
+                # Get current actions from execution_json
+                actions = execution_json.get('actions', [])
+                trigger = execution_json.get('trigger', {'type': 'manual'})
+                
+                # Apply updates
+                changes = []
+                
+                # 1. Remove actions (do this first, before adding)
+                if data.get('remove_actions'):
+                    remove_positions = sorted(data['remove_actions'], reverse=True)
+                    for pos in remove_positions:
+                        if 0 <= pos < len(actions):
+                            actions.pop(pos)
+                            changes.append(f'removed action at position {pos}')
+                
+                # 2. Add actions
+                if data.get('add_actions'):
+                    for action_data in data['add_actions']:
+                        position = action_data.get('position')
+                        action = {
+                            'tool': action_data['tool'],
+                            'parameters': action_data.get('parameters', {})
+                        }
+                        if 'condition' in action_data:
+                            action['condition'] = action_data['condition']
+                        
+                        if position is not None and 0 <= position <= len(actions):
+                            actions.insert(position, action)
+                            changes.append(f'added action at position {position}')
+                        else:
+                            actions.append(action)
+                            changes.append('added action to end')
+                
+                # 3. Update trigger
+                if data.get('update_trigger'):
+                    trigger = data['update_trigger']
+                    changes.append('updated trigger')
+                
+                # 4. Update action parameters
+                if data.get('update_action_parameters'):
+                    pos = data['update_action_parameters'].get('position')
+                    new_params = data['update_action_parameters'].get('parameters', {})
+                    if pos is not None and 0 <= pos < len(actions):
+                        actions[pos]['parameters'].update(new_params)
+                        changes.append(f'updated action {pos} parameters')
+                
+                # 5. Update metadata
+                if data.get('update_metadata'):
+                    if 'title' in data['update_metadata']:
+                        current_title = data['update_metadata']['title']
+                        changes.append('updated title')
+                    if 'description' in data['update_metadata']:
+                        current_description = data['update_metadata']['description']
+                        changes.append('updated description')
+                
+                # Rebuild execution_json
+                execution_json['actions'] = actions
+                execution_json['trigger'] = trigger
+                
+                # Rebuild ui_json (visual flow)
+                shapes = []
+                connections = []
+                
+                # Add trigger node
                 shapes.append({
-                    'id': f'node_action_{i}',
-                    'type': 'rectangle',
-                    'text': action['tool'],
-                    'color': '#3B82F6',
+                    'id': 'node_trigger',
+                    'type': 'hexagon',
+                    'text': f"TRIGGER: {trigger.get('type', 'manual')}",
+                    'color': '#10B981',
                     'x': 100,
-                    'y': 250 + (i * 150)
+                    'y': 100
                 })
                 
-                # Connect nodes
-                if i == 0:
-                    connections.append({'from': 'node_trigger', 'to': f'node_action_{i}'})
-                else:
-                    connections.append({'from': f'node_action_{i-1}', 'to': f'node_action_{i}'})
-            
-            ui_json['shapes'] = shapes
-            ui_json['connections'] = connections
-            
-            # Update database
-            cursor.execute("""
-                UPDATE visual_automations
-                SET ui_json = %s, execution_json = %s, title = %s, description = %s, 
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE slug = %s AND user_id = %s
-            """, (
-                json.dumps(ui_json),
-                json.dumps(execution_json),
-                current_title,
-                current_description,
-                slug,
-                user_id
-            ))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
+                # Add action nodes
+                for i, action in enumerate(actions):
+                    shapes.append({
+                        'id': f'node_action_{i}',
+                        'type': 'rectangle',
+                        'text': action['tool'],
+                        'color': '#3B82F6',
+                        'x': 100,
+                        'y': 250 + (i * 150)
+                    })
+                    
+                    # Connect nodes
+                    if i == 0:
+                        connections.append({'from': 'node_trigger', 'to': f'node_action_{i}'})
+                    else:
+                        connections.append({'from': f'node_action_{i-1}', 'to': f'node_action_{i}'})
+                
+                ui_json['shapes'] = shapes
+                ui_json['connections'] = connections
+                
+                # Update database
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET ui_json = %s, execution_json = %s, title = %s, description = %s, 
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE slug = %s AND user_id = %s
+                """, (
+                    json.dumps(ui_json),
+                    json.dumps(execution_json),
+                    current_title,
+                    current_description,
+                    slug,
+                    user_id
+                ))
+                
+                conn.commit()
         
-        # ✅ Connection auto-closed by context manager
-        
-        # Build response AFTER with block
         return jsonify({
             'success': True,
             'automation_id': automation_id,
@@ -607,7 +586,7 @@ def list_automations():
     """
     List user's automations with optional filters
     
-    ✅ ALREADY FIXED - Cursor explicitly closed
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -621,64 +600,59 @@ def list_automations():
         limit = int(request.args.get('limit', 50))
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            placeholder = '%s'
-            
-            # Query with LEFT JOIN to automation_workflows
-            query = f"""
-                SELECT 
-                    va.automation_id, 
-                    va.slug, 
-                    va.title, 
-                    va.description, 
-                    va.category, 
-                    va.status,
-                    va.ui_json, 
-                    va.execution_json, 
-                    va.is_scheduled, 
-                    va.schedule_cron,
-                    va.created_at, 
-                    va.updated_at, 
-                    va.last_executed_at, 
-                    va.execution_count,
-                    va.user_id,
-                    aw.workflow_id,
-                    aw.enabled AS automation_enabled,
-                    CASE 
-                        WHEN aw.workflow_id IS NOT NULL THEN 'production'
-                        ELSE 'draft'
-                    END AS workflow_state
-                FROM visual_automations va
-                LEFT JOIN automation_workflows aw ON va.slug = aw.slug AND va.user_id = aw.user_id
-                WHERE va.user_id = {placeholder} OR va.user_id = 1
-            """
-            params = [user_id]
-            
-            if slug:
-                query += f" AND slug = {placeholder}"
-                params.append(slug)
-            
-            if category:
-                query += f" AND category = {placeholder}"
-                params.append(category)
-            
-            if status:
-                query += f" AND status = {placeholder}"
-                params.append(status)
-            
-            query += f" ORDER BY updated_at DESC LIMIT {placeholder}"
-            params.append(limit)
-            
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            
-            # ✅ ALREADY FIXED: Cursor explicitly closed
-            cursor.close()
-            
-            print(f'[DEBUG /api/automation/list] SQL query returned {len(rows)} rows for user_id={user_id}')
-        
-        # ✅ Connection auto-closed by context manager
+            with conn.cursor() as cursor:
+                
+                placeholder = '%s'
+                
+                # Query with LEFT JOIN to automation_workflows
+                query = f"""
+                    SELECT 
+                        va.automation_id, 
+                        va.slug, 
+                        va.title, 
+                        va.description, 
+                        va.category, 
+                        va.status,
+                        va.ui_json, 
+                        va.execution_json, 
+                        va.is_scheduled, 
+                        va.schedule_cron,
+                        va.created_at, 
+                        va.updated_at, 
+                        va.last_executed_at, 
+                        va.execution_count,
+                        va.user_id,
+                        aw.workflow_id,
+                        aw.enabled AS automation_enabled,
+                        CASE 
+                            WHEN aw.workflow_id IS NOT NULL THEN 'production'
+                            ELSE 'draft'
+                        END AS workflow_state
+                    FROM visual_automations va
+                    LEFT JOIN automation_workflows aw ON va.slug = aw.slug AND va.user_id = aw.user_id
+                    WHERE va.user_id = {placeholder} OR va.user_id = 1
+                """
+                params = [user_id]
+                
+                if slug:
+                    query += f" AND slug = {placeholder}"
+                    params.append(slug)
+                
+                if category:
+                    query += f" AND category = {placeholder}"
+                    params.append(category)
+                
+                if status:
+                    query += f" AND status = {placeholder}"
+                    params.append(status)
+                
+                query += f" ORDER BY updated_at DESC LIMIT {placeholder}"
+                params.append(limit)
+                
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+                
+                print(f'[DEBUG /api/automation/list] SQL query returned {len(rows)} rows for user_id={user_id}')
         
         # Process rows (AFTER connection is closed)
         automations = []
@@ -834,7 +808,7 @@ def list_production_workflows():
     """
     List production workflows from automation_workflows table
     
-    ✅ ALREADY FIXED - Cursor explicitly closed
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -846,51 +820,46 @@ def list_production_workflows():
         limit = int(request.args.get('limit', 50))
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            placeholder = '%s'
-            
-            query = f"""
-                SELECT 
-                    workflow_id,
-                    user_id,
-                    name,
-                    slug,
-                    description,
-                    category,
-                    workflow_json,
-                    canvas_data,
-                    enabled,
-                    version,
-                    created_at,
-                    updated_at,
-                    last_run_at,
-                    run_count,
-                    success_count,
-                    error_count
-                FROM automation_workflows
-                WHERE user_id = {placeholder}
-            """
-            params = [user_id]
-            
-            if category:
-                query += f" AND category = {placeholder}"
-                params.append(category)
-            
-            if enabled is not None:
-                query += f" AND enabled = {placeholder}"
-                params.append(enabled.lower() == 'true')
-            
-            query += f" ORDER BY updated_at DESC LIMIT {placeholder}"
-            params.append(limit)
-            
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            
-            # ✅ ALREADY FIXED: Cursor explicitly closed
-            cursor.close()
-        
-        # ✅ Connection auto-closed by context manager
+            with conn.cursor() as cursor:
+                
+                placeholder = '%s'
+                
+                query = f"""
+                    SELECT 
+                        workflow_id,
+                        user_id,
+                        name,
+                        slug,
+                        description,
+                        category,
+                        workflow_json,
+                        canvas_data,
+                        enabled,
+                        version,
+                        created_at,
+                        updated_at,
+                        last_run_at,
+                        run_count,
+                        success_count,
+                        error_count
+                    FROM automation_workflows
+                    WHERE user_id = {placeholder}
+                """
+                params = [user_id]
+                
+                if category:
+                    query += f" AND category = {placeholder}"
+                    params.append(category)
+                
+                if enabled is not None:
+                    query += f" AND enabled = {placeholder}"
+                    params.append(enabled.lower() == 'true')
+                
+                query += f" ORDER BY updated_at DESC LIMIT {placeholder}"
+                params.append(limit)
+                
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
         
         workflows = []
         for row in rows:
@@ -946,146 +915,139 @@ def get_automation(automation_id):
     """
     Get full automation details
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
         if not user_id:
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
-        automation = None
-        
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM visual_automations 
-                WHERE (automation_id = %s OR slug = %s) AND (user_id = %s OR user_id = 1)
-            """, (automation_id, automation_id, user_id))
-            
-            row = cursor.fetchone()
-            
-            # ✅ FIX: Close cursor before checking result
-            cursor.close()
-            
-            if not row:
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            # Parse JSON fields (AFTER cursor closed)
-            ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else (row.get('ui_json') or {})
-            execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
-            
-            # Transform nodes/edges to shapes/connections
-            shapes = []
-            connections = []
-            
-            if isinstance(ui_json, dict):
-                canvas_data_str = row.get('canvas_data')
-                canvas_data = {}
-                if canvas_data_str:
-                    try:
-                        canvas_data = json.loads(canvas_data_str) if isinstance(canvas_data_str, str) else canvas_data_str
-                        if isinstance(canvas_data, dict) and 'nodes' in canvas_data:
-                            canvas_data = canvas_data['nodes']
-                    except:
-                        canvas_data = {}
+            with conn.cursor() as cursor:
                 
-                # Extract nodes and transform to shapes
-                nodes = ui_json.get('nodes', [])
-                for node in nodes:
-                    node_id = node.get('id')
-                    position = canvas_data.get(node_id, {}) if canvas_data else {}
-                    x = position.get('x', node.get('x', node.get('position', {}).get('x', 100)))
-                    y = position.get('y', node.get('y', node.get('position', {}).get('y', 100)))
-                    
-                    node_type = node.get('type', 'action')
-                    shape_type_map = {
-                        'email_trigger': 'trigger',
-                        'trigger': 'trigger',
-                        'ai_agent': 'tool',
-                        'send_email': 'output',
-                        'if_else': 'decision',
-                        'condition': 'decision'
-                    }
-                    shape_type = shape_type_map.get(node_type, 'rectangle')
-                    
-                    color_map = {
-                        'trigger': '#10B981',
-                        'tool': '#6B7280',
-                        'output': '#EAB308',
-                        'decision': '#F59E0B',
-                        'rectangle': '#58a6ff'
-                    }
-                    color = color_map.get(shape_type, '#58a6ff')
-                    
-                    config = node.get('config', {})
-                    text = config.get('role', config.get('subject', node_type.upper()))
-                    
-                    shape = {
-                        'id': node_id,
-                        'type': shape_type,
-                        'x': int(x),
-                        'y': int(y),
-                        'width': node.get('width', 150),
-                        'height': node.get('height', 80),
-                        'text': text,
-                        'color': color
-                    }
-                    shapes.append(shape)
+                cursor.execute("""
+                    SELECT * FROM visual_automations 
+                    WHERE (automation_id = %s OR slug = %s) AND (user_id = %s OR user_id = 1)
+                """, (automation_id, automation_id, user_id))
                 
-                # Extract edges and transform to connections
-                edges = ui_json.get('edges', [])
-                for edge in edges:
-                    connection = {
-                        'id': edge.get('id', f"conn_{edge.get('from')}_{edge.get('to')}"),
-                        'from': edge.get('from'),
-                        'to': edge.get('to')
-                    }
-                    connections.append(connection)
+                row = cursor.fetchone()
                 
-                # Backward compatibility
-                if not shapes and 'shapes' in ui_json:
-                    shapes = ui_json.get('shapes', [])
-                if not connections and 'connections' in ui_json:
-                    connections = ui_json.get('connections', [])
-            
-            # Build automation dict
-            automation = {
-                'workflow_id': row['automation_id'],
-                'id': row['automation_id'],
-                'automation_id': row['automation_id'],
-                'slug': row.get('slug', row['automation_id']),
-                'name': row['title'],
-                'title': row['title'],
-                'description': row['description'],
-                'category': row.get('category', 'other'),
-                'status': row.get('status', 'draft'),
-                'enabled': bool(row.get('is_active', True)),
-                'workflow_json': {
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                # Parse JSON fields
+                ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else (row.get('ui_json') or {})
+                execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
+                
+                # Transform nodes/edges to shapes/connections
+                shapes = []
+                connections = []
+                
+                if isinstance(ui_json, dict):
+                    canvas_data_str = row.get('canvas_data')
+                    canvas_data = {}
+                    if canvas_data_str:
+                        try:
+                            canvas_data = json.loads(canvas_data_str) if isinstance(canvas_data_str, str) else canvas_data_str
+                            if isinstance(canvas_data, dict) and 'nodes' in canvas_data:
+                                canvas_data = canvas_data['nodes']
+                        except:
+                            canvas_data = {}
+                    
+                    # Extract nodes and transform to shapes
+                    nodes = ui_json.get('nodes', [])
+                    for node in nodes:
+                        node_id = node.get('id')
+                        position = canvas_data.get(node_id, {}) if canvas_data else {}
+                        x = position.get('x', node.get('x', node.get('position', {}).get('x', 100)))
+                        y = position.get('y', node.get('y', node.get('position', {}).get('y', 100)))
+                        
+                        node_type = node.get('type', 'action')
+                        shape_type_map = {
+                            'email_trigger': 'trigger',
+                            'trigger': 'trigger',
+                            'ai_agent': 'tool',
+                            'send_email': 'output',
+                            'if_else': 'decision',
+                            'condition': 'decision'
+                        }
+                        shape_type = shape_type_map.get(node_type, 'rectangle')
+                        
+                        color_map = {
+                            'trigger': '#10B981',
+                            'tool': '#6B7280',
+                            'output': '#EAB308',
+                            'decision': '#F59E0B',
+                            'rectangle': '#58a6ff'
+                        }
+                        color = color_map.get(shape_type, '#58a6ff')
+                        
+                        config = node.get('config', {})
+                        text = config.get('role', config.get('subject', node_type.upper()))
+                        
+                        shape = {
+                            'id': node_id,
+                            'type': shape_type,
+                            'x': int(x),
+                            'y': int(y),
+                            'width': node.get('width', 150),
+                            'height': node.get('height', 80),
+                            'text': text,
+                            'color': color
+                        }
+                        shapes.append(shape)
+                    
+                    # Extract edges and transform to connections
+                    edges = ui_json.get('edges', [])
+                    for edge in edges:
+                        connection = {
+                            'id': edge.get('id', f"conn_{edge.get('from')}_{edge.get('to')}"),
+                            'from': edge.get('from'),
+                            'to': edge.get('to')
+                        }
+                        connections.append(connection)
+                    
+                    # Backward compatibility
+                    if not shapes and 'shapes' in ui_json:
+                        shapes = ui_json.get('shapes', [])
+                    if not connections and 'connections' in ui_json:
+                        connections = ui_json.get('connections', [])
+                
+                # Build automation dict
+                automation = {
+                    'workflow_id': row['automation_id'],
+                    'id': row['automation_id'],
+                    'automation_id': row['automation_id'],
+                    'slug': row.get('slug', row['automation_id']),
+                    'name': row['title'],
+                    'title': row['title'],
+                    'description': row['description'],
+                    'category': row.get('category', 'other'),
+                    'status': row.get('status', 'draft'),
+                    'enabled': bool(row.get('is_active', True)),
+                    'workflow_json': {
+                        'shapes': shapes,
+                        'connections': connections,
+                        'nodes': ui_json.get('nodes', []) if isinstance(ui_json, dict) else [],
+                        'edges': ui_json.get('edges', []) if isinstance(ui_json, dict) else []
+                    },
+                    'ui_json': ui_json,
                     'shapes': shapes,
                     'connections': connections,
-                    'nodes': ui_json.get('nodes', []) if isinstance(ui_json, dict) else [],
-                    'edges': ui_json.get('edges', []) if isinstance(ui_json, dict) else []
-                },
-                'ui_json': ui_json,
-                'shapes': shapes,
-                'connections': connections,
-                'execution_json': execution_json,
-                'visual_flow_json': row.get('visual_flow_json'),
-                'execution_prompt': row.get('execution_prompt'),
-                'tools_sequence': json.loads(row.get('tools_sequence', '[]')) if row.get('tools_sequence') else [],
-                'schedule_cron': row.get('schedule_cron'),
-                'schedule_datetime': row.get('schedule_datetime'),
-                'timezone': row.get('timezone'),
-                'is_active': bool(row.get('is_active', True)),
-                'is_scheduled': bool(row.get('is_scheduled', False)),
-                'scheduler_task_id': row.get('scheduler_task_id'),
-                'parent_automation_id': row.get('parent_automation_id'),
-                'created_at': str(row.get('created_at')) if row.get('created_at') else None,
-                'updated_at': str(row.get('updated_at')) if row.get('updated_at') else None
-            }
-        
-        # ✅ Connection auto-closed
+                    'execution_json': execution_json,
+                    'visual_flow_json': row.get('visual_flow_json'),
+                    'execution_prompt': row.get('execution_prompt'),
+                    'tools_sequence': json.loads(row.get('tools_sequence', '[]')) if row.get('tools_sequence') else [],
+                    'schedule_cron': row.get('schedule_cron'),
+                    'schedule_datetime': row.get('schedule_datetime'),
+                    'timezone': row.get('timezone'),
+                    'is_active': bool(row.get('is_active', True)),
+                    'is_scheduled': bool(row.get('is_scheduled', False)),
+                    'scheduler_task_id': row.get('scheduler_task_id'),
+                    'parent_automation_id': row.get('parent_automation_id'),
+                    'created_at': str(row.get('created_at')) if row.get('created_at') else None,
+                    'updated_at': str(row.get('updated_at')) if row.get('updated_at') else None
+                }
         
         return jsonify({
             'success': True,
@@ -1102,7 +1064,7 @@ def delete_automation(automation_id):
     """
     Delete automation
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1112,33 +1074,28 @@ def delete_automation(automation_id):
         scheduler_task_id = None
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT scheduler_task_id FROM visual_automations
-                WHERE automation_id = %s AND user_id = %s
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            scheduler_task_id = row['scheduler_task_id']
-            
-            # Delete automation
-            cursor.execute("""
-                DELETE FROM visual_automations 
-                WHERE automation_id = %s AND user_id = %s
-            """, (automation_id, user_id))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT scheduler_task_id FROM visual_automations
+                    WHERE automation_id = %s AND user_id = %s
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                scheduler_task_id = row['scheduler_task_id']
+                
+                # Delete automation
+                cursor.execute("""
+                    DELETE FROM visual_automations 
+                    WHERE automation_id = %s AND user_id = %s
+                """, (automation_id, user_id))
+                
+                conn.commit()
         
-        # ✅ Connection closed, now handle scheduler
+        # Handle scheduler (after connection closed)
         if scheduler_task_id:
             try:
                 scheduler = get_scheduler()
@@ -1160,7 +1117,7 @@ def activate_automation(automation_id):
     """
     Activate automation on scheduler
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1168,75 +1125,67 @@ def activate_automation(automation_id):
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         data = request.json
-        row = None
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM visual_automations
-                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            # Create scheduler task
-            scheduler = get_scheduler()
-            
-            task_data = {
-                'task_name': f'Automation: {row["title"]}',
-                'description': row['description'] or 'Visual automation execution',
-                'created_by': 'user',
-                'created_by_user_id': user_id,
-                'trigger_type': data.get('trigger_type', 'cron'),
-                'action_type': 'execute_automation',
-                'action_payload': json.dumps({
-                    'automation_id': automation_id,
-                    'visual_flow_json': row['visual_flow_json'],
-                    'execution_prompt': row['execution_prompt'],
-                    'tools_sequence': json.loads(row['tools_sequence']) if row['tools_sequence'] else []
-                }),
-                'requires_approval': data.get('requires_approval', False),
-                'enabled': True
-            }
-            
-            if data.get('trigger_type') == 'cron':
-                task_data['cron_expression'] = data.get('cron_schedule')
-            elif data.get('trigger_type') == 'datetime':
-                task_data['datetime_trigger'] = data.get('datetime_trigger')
-            
-            task_id = scheduler.create_task(task_data)
-            
-            # Update automation
-            cursor.execute("""
-                UPDATE visual_automations
-                SET is_active = 1,
-                    is_scheduled = 1, 
-                    scheduler_task_id = %s, 
-                    schedule_cron = %s, 
-                    schedule_datetime = %s, 
-                    timezone = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE automation_id = %s
-            """, (
-                task_id,
-                data.get('cron_schedule'),
-                data.get('datetime_trigger'),
-                data.get('timezone', 'UTC'),
-                automation_id
-            ))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before getting task
-            cursor.close()
-        
-        # ✅ Connection closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT * FROM visual_automations
+                    WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                # Create scheduler task
+                scheduler = get_scheduler()
+                
+                task_data = {
+                    'task_name': f'Automation: {row["title"]}',
+                    'description': row['description'] or 'Visual automation execution',
+                    'created_by': 'user',
+                    'created_by_user_id': user_id,
+                    'trigger_type': data.get('trigger_type', 'cron'),
+                    'action_type': 'execute_automation',
+                    'action_payload': json.dumps({
+                        'automation_id': automation_id,
+                        'visual_flow_json': row['visual_flow_json'],
+                        'execution_prompt': row['execution_prompt'],
+                        'tools_sequence': json.loads(row['tools_sequence']) if row['tools_sequence'] else []
+                    }),
+                    'requires_approval': data.get('requires_approval', False),
+                    'enabled': True
+                }
+                
+                if data.get('trigger_type') == 'cron':
+                    task_data['cron_expression'] = data.get('cron_schedule')
+                elif data.get('trigger_type') == 'datetime':
+                    task_data['datetime_trigger'] = data.get('datetime_trigger')
+                
+                task_id = scheduler.create_task(task_data)
+                
+                # Update automation
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET is_active = 1,
+                        is_scheduled = 1, 
+                        scheduler_task_id = %s, 
+                        schedule_cron = %s, 
+                        schedule_datetime = %s, 
+                        timezone = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE automation_id = %s
+                """, (
+                    task_id,
+                    data.get('cron_schedule'),
+                    data.get('datetime_trigger'),
+                    data.get('timezone', 'UTC'),
+                    automation_id
+                ))
+                
+                conn.commit()
         
         # Get next run time (AFTER connection closed)
         task = scheduler.get_task(task_id)
@@ -1257,7 +1206,7 @@ def deactivate_automation(automation_id):
     """
     Deactivate scheduled automation
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1267,37 +1216,32 @@ def deactivate_automation(automation_id):
         scheduler_task_id = None
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT scheduler_task_id FROM visual_automations
-                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            scheduler_task_id = row['scheduler_task_id']
-            
-            # Update automation
-            cursor.execute("""
-                UPDATE visual_automations
-                SET is_active = 0,
-                    is_scheduled = 0,
-                    scheduler_task_id = NULL,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE automation_id = %s
-            """, (automation_id,))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT scheduler_task_id FROM visual_automations
+                    WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                scheduler_task_id = row['scheduler_task_id']
+                
+                # Update automation
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET is_active = 0,
+                        is_scheduled = 0,
+                        scheduler_task_id = NULL,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE automation_id = %s
+                """, (automation_id,))
+                
+                conn.commit()
         
-        # ✅ Connection closed, now handle scheduler
+        # Handle scheduler (after connection closed)
         if scheduler_task_id:
             scheduler = get_scheduler()
             scheduler.delete_task(scheduler_task_id)
@@ -1316,7 +1260,7 @@ def toggle_automation_enabled(workflow_identifier):
     """
     Toggle automation enabled state
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1327,26 +1271,19 @@ def toggle_automation_enabled(workflow_identifier):
         enabled = data.get('enabled', False)
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                UPDATE automation_workflows
-                SET enabled = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE (workflow_id::text = %s OR slug = %s) AND user_id = %s
-            """, (enabled, workflow_identifier, workflow_identifier, user_id))
-            
-            if cursor.rowcount == 0:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Production workflow not found or not owned by user'}), 404
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    UPDATE automation_workflows
+                    SET enabled = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE (workflow_id::text = %s OR slug = %s) AND user_id = %s
+                """, (enabled, workflow_identifier, workflow_identifier, user_id))
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'error': 'Production workflow not found or not owned by user'}), 404
+                
+                conn.commit()
         
         return jsonify({
             'success': True,
@@ -1364,53 +1301,41 @@ def toggle_automation(automation_id):
     """
     Toggle automation between active and inactive
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
         if not user_id:
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
-        current_status = None
-        new_status = None
-        
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT status, is_scheduled, schedule_cron FROM visual_automations
-                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            current_status = row['status']
-            
-            if current_status == 'draft':
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Cannot toggle draft workflows. Use /convert endpoint first.'}), 400
-            
-            # Toggle status
-            new_status = 'inactive' if current_status == 'active' else 'active'
-            
-            cursor.execute("""
-                UPDATE visual_automations
-                SET status = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE automation_id = %s
-            """, (new_status, automation_id))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT status, is_scheduled, schedule_cron FROM visual_automations
+                    WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                current_status = row['status']
+                
+                if current_status == 'draft':
+                    return jsonify({'error': 'Cannot toggle draft workflows. Use /convert endpoint first.'}), 400
+                
+                # Toggle status
+                new_status = 'inactive' if current_status == 'active' else 'active'
+                
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET status = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE automation_id = %s
+                """, (new_status, automation_id))
+                
+                conn.commit()
         
         return jsonify({
             'success': True,
@@ -1429,7 +1354,7 @@ def convert_to_automation(automation_id):
     """
     Convert draft workflow to automation
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1437,37 +1362,28 @@ def convert_to_automation(automation_id):
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM visual_automations
-                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            if row['status'] != 'draft':
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Workflow is already automated'}), 400
-            
-            cursor.execute("""
-                UPDATE visual_automations
-                SET status = 'inactive',
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE automation_id = %s
-            """, (automation_id,))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT * FROM visual_automations
+                    WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                if row['status'] != 'draft':
+                    return jsonify({'error': 'Workflow is already automated'}), 400
+                
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET status = 'inactive',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE automation_id = %s
+                """, (automation_id,))
+                
+                conn.commit()
         
         return jsonify({
             'success': True,
@@ -1485,7 +1401,7 @@ def test_automation(automation_id):
     """
     Execute automation once manually
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1495,56 +1411,49 @@ def test_automation(automation_id):
         execution_id = None
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM visual_automations
-                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
-            
-            # Record execution start
-            cursor.execute("""
-                INSERT INTO automation_executions 
-                (automation_id, user_id, triggered_by, status, started_at)
-                VALUES (%s, %s, 'manual_test', 'running', CURRENT_TIMESTAMP)
-                RETURNING execution_id
-            """, (automation_id, user_id))
-            
-            result = cursor.fetchone()
-            execution_id = result['execution_id'] if isinstance(result, dict) else result[0]
-            
-            conn.commit()
-            
-            # TODO: Implement actual execution logic
-            cursor.execute("""
-                UPDATE automation_executions
-                SET status = 'completed',
-                    completed_at = CURRENT_TIMESTAMP,
-                    result_summary = 'Test execution completed successfully'
-                WHERE execution_id = %s
-            """, (execution_id,))
-            
-            cursor.execute("""
-                UPDATE visual_automations
-                SET last_executed_at = CURRENT_TIMESTAMP,
-                    execution_count = execution_count + 1
-                WHERE automation_id = %s
-            """, (automation_id,))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT * FROM visual_automations
+                    WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
+                
+                # Record execution start
+                cursor.execute("""
+                    INSERT INTO automation_executions 
+                    (automation_id, user_id, triggered_by, status, started_at)
+                    VALUES (%s, %s, 'manual_test', 'running', CURRENT_TIMESTAMP)
+                    RETURNING execution_id
+                """, (automation_id, user_id))
+                
+                result = cursor.fetchone()
+                execution_id = result['execution_id'] if isinstance(result, dict) else result[0]
+                
+                conn.commit()
+                
+                # TODO: Implement actual execution logic
+                cursor.execute("""
+                    UPDATE automation_executions
+                    SET status = 'completed',
+                        completed_at = CURRENT_TIMESTAMP,
+                        result_summary = 'Test execution completed successfully'
+                    WHERE execution_id = %s
+                """, (execution_id,))
+                
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET last_executed_at = CURRENT_TIMESTAMP,
+                        execution_count = execution_count + 1
+                    WHERE automation_id = %s
+                """, (automation_id,))
+                
+                conn.commit()
         
         return jsonify({
             'success': True,
@@ -1563,7 +1472,7 @@ def schedule_automation(automation_id):
     """
     Set or update automation schedule
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1577,35 +1486,28 @@ def schedule_automation(automation_id):
             return jsonify({'error': 'schedule_cron is required'}), 400
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM visual_automations
-                WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            cursor.execute("""
-                UPDATE visual_automations
-                SET schedule_cron = %s,
-                    timezone = %s,
-                    is_scheduled = TRUE,
-                    status = 'active',
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE automation_id = %s
-            """, (cron_expression, data.get('timezone', 'UTC'), automation_id))
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT * FROM visual_automations
+                    WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET schedule_cron = %s,
+                        timezone = %s,
+                        is_scheduled = TRUE,
+                        status = 'active',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE automation_id = %s
+                """, (cron_expression, data.get('timezone', 'UTC'), automation_id))
+                
+                conn.commit()
         
         return jsonify({
             'success': True,
@@ -1625,7 +1527,7 @@ def get_execution_history(automation_id):
     """
     Get automation execution history
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1635,21 +1537,16 @@ def get_execution_history(automation_id):
         limit = int(request.args.get('limit', 10))
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM automation_executions
-                WHERE automation_id = %s AND user_id = %s
-                ORDER BY started_at DESC
-                LIMIT %s
-            """, (automation_id, user_id, limit))
-            
-            rows = cursor.fetchall()
-            
-            # ✅ FIX: Close cursor before processing
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT * FROM automation_executions
+                    WHERE automation_id = %s AND user_id = %s
+                    ORDER BY started_at DESC
+                    LIMIT %s
+                """, (automation_id, user_id, limit))
+                
+                rows = cursor.fetchall()
         
         executions = []
         for row in rows:
@@ -1680,7 +1577,7 @@ def export_automation(automation_id):
     """
     Export automation for canvas rendering
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1690,48 +1587,43 @@ def export_automation(automation_id):
         format_type = request.args.get('format', 'detailed')
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM visual_automations
-                WHERE automation_id = %s AND user_id = %s
-            """, (automation_id, user_id))
-            
-            row = cursor.fetchone()
-            
-            # ✅ FIX: Close cursor before checking result
-            cursor.close()
-            
-            if not row:
-                return jsonify({'error': 'Automation not found'}), 404
-            
-            visual_flow = json.loads(row['visual_flow_json'])
-            
-            if format_type == 'simplified':
-                export_data = {
-                    'automation_id': automation_id,
-                    'title': row['title'],
-                    'shapes': visual_flow.get('shapes', []),
-                    'connections': visual_flow.get('connections', [])
-                }
-            else:
-                export_data = {
-                    'automation_id': automation_id,
-                    'title': row['title'],
-                    'description': row['description'],
-                    'shapes': visual_flow.get('shapes', []),
-                    'connections': visual_flow.get('connections', []),
-                    'execution_prompt': row['execution_prompt'],
-                    'tools_sequence': json.loads(row['tools_sequence']) if row['tools_sequence'] else [],
-                    'metadata': {
-                        'is_active': bool(row['is_active']),
-                        'is_scheduled': bool(row['is_scheduled']),
-                        'created_at': row['created_at'],
-                        'updated_at': row['updated_at']
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT * FROM visual_automations
+                    WHERE automation_id = %s AND user_id = %s
+                """, (automation_id, user_id))
+                
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'error': 'Automation not found'}), 404
+                
+                visual_flow = json.loads(row['visual_flow_json'])
+                
+                if format_type == 'simplified':
+                    export_data = {
+                        'automation_id': automation_id,
+                        'title': row['title'],
+                        'shapes': visual_flow.get('shapes', []),
+                        'connections': visual_flow.get('connections', [])
                     }
-                }
-        
-        # ✅ Connection auto-closed
+                else:
+                    export_data = {
+                        'automation_id': automation_id,
+                        'title': row['title'],
+                        'description': row['description'],
+                        'shapes': visual_flow.get('shapes', []),
+                        'connections': visual_flow.get('connections', []),
+                        'execution_prompt': row['execution_prompt'],
+                        'tools_sequence': json.loads(row['tools_sequence']) if row['tools_sequence'] else [],
+                        'metadata': {
+                            'is_active': bool(row['is_active']),
+                            'is_scheduled': bool(row['is_scheduled']),
+                            'created_at': row['created_at'],
+                            'updated_at': row['updated_at']
+                        }
+                    }
         
         return jsonify({
             'success': True,
@@ -1747,7 +1639,7 @@ def publish_workflow(slug):
     """
     Publish workflow as live automation
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1756,114 +1648,106 @@ def publish_workflow(slug):
         
         data = request.json or {}
         
-        row = None
         automation_title = None
         thread_id = data.get('thread_id')
         schedule_cron = data.get('schedule_cron')
         scheduled = False
         next_run = None
         task_id = None
+        automation_id = None
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT automation_id, slug, title, ui_json, execution_json, status
-                FROM visual_automations
-                WHERE slug = %s AND user_id = %s
-            """, (slug, user_id))
-            
-            row = cursor.fetchone()
-            if not row:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
-            
-            ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
-            
-            # Validate workflow structure
-            validation_result = validate_workflow_structure(ui_json)
-            if not validation_result['valid']:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({
-                    'success': False,
-                    'error': 'Workflow validation failed',
-                    'validation': validation_result
-                }), 400
-            
-            # Update workflow status
-            automation_title = data.get('automation_title', f"{row['title']} (Live)")
-            
-            cursor.execute("""
-                UPDATE visual_automations
-                SET status = 'active',
-                    title = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE slug = %s
-            """, (automation_title, slug))
-            
-            # Link to thread if provided
-            if thread_id:
-                try:
-                    cursor.execute("""
-                        UPDATE sessions.threads
-                        SET automation_slug = %s,
-                            automation_title = %s,
-                            updated_at = CURRENT_TIMESTAMP
-                        WHERE id = %s
-                    """, (slug, automation_title, thread_id))
-                except Exception as e:
-                    print(f"Warning: Could not link to thread {thread_id}: {e}")
-            
-            # Create schedule if provided
-            if schedule_cron:
-                try:
-                    scheduler = get_scheduler()
-                    execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
-                    
-                    task_data = {
-                        'task_name': f'Automation: {automation_title}',
-                        'description': f'Published workflow: {slug}',
-                        'created_by': 'user',
-                        'created_by_user_id': user_id,
-                        'trigger_type': 'cron',
-                        'cron_expression': schedule_cron,
-                        'action_type': 'execute_automation',
-                        'action_payload': json.dumps({
-                            'automation_id': row['automation_id'],
-                            'slug': slug,
-                            'ui_json': ui_json,
-                            'execution_json': execution_json
-                        }),
-                        'requires_approval': False,
-                        'enabled': True
-                    }
-                    
-                    task_id = scheduler.create_task(task_data)
-                    scheduled = True
-                    
-                    task = scheduler.get_task(task_id)
-                    next_run = task.get('next_run')
-                    
-                    cursor.execute("""
-                        UPDATE visual_automations
-                        SET is_scheduled = 1,
-                            scheduler_task_id = %s,
-                            schedule_cron = %s,
-                            timezone = %s
-                        WHERE slug = %s
-                    """, (task_id, schedule_cron, data.get('timezone', 'UTC'), slug))
-                    
-                except Exception as e:
-                    print(f"Warning: Could not create schedule: {e}")
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                cursor.execute("""
+                    SELECT automation_id, slug, title, ui_json, execution_json, status
+                    FROM visual_automations
+                    WHERE slug = %s AND user_id = %s
+                """, (slug, user_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
+                
+                automation_id = row['automation_id']
+                ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+                
+                # Validate workflow structure
+                validation_result = validate_workflow_structure(ui_json)
+                if not validation_result['valid']:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Workflow validation failed',
+                        'validation': validation_result
+                    }), 400
+                
+                # Update workflow status
+                automation_title = data.get('automation_title', f"{row['title']} (Live)")
+                
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET status = 'active',
+                        title = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE slug = %s
+                """, (automation_title, slug))
+                
+                # Link to thread if provided
+                if thread_id:
+                    try:
+                        cursor.execute("""
+                            UPDATE sessions.threads
+                            SET automation_slug = %s,
+                                automation_title = %s,
+                                updated_at = CURRENT_TIMESTAMP
+                            WHERE id = %s
+                        """, (slug, automation_title, thread_id))
+                    except Exception as e:
+                        print(f"Warning: Could not link to thread {thread_id}: {e}")
+                
+                # Create schedule if provided
+                if schedule_cron:
+                    try:
+                        scheduler = get_scheduler()
+                        execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
+                        
+                        task_data = {
+                            'task_name': f'Automation: {automation_title}',
+                            'description': f'Published workflow: {slug}',
+                            'created_by': 'user',
+                            'created_by_user_id': user_id,
+                            'trigger_type': 'cron',
+                            'cron_expression': schedule_cron,
+                            'action_type': 'execute_automation',
+                            'action_payload': json.dumps({
+                                'automation_id': row['automation_id'],
+                                'slug': slug,
+                                'ui_json': ui_json,
+                                'execution_json': execution_json
+                            }),
+                            'requires_approval': False,
+                            'enabled': True
+                        }
+                        
+                        task_id = scheduler.create_task(task_data)
+                        scheduled = True
+                        
+                        task = scheduler.get_task(task_id)
+                        next_run = task.get('next_run')
+                        
+                        cursor.execute("""
+                            UPDATE visual_automations
+                            SET is_scheduled = 1,
+                                scheduler_task_id = %s,
+                                schedule_cron = %s,
+                                timezone = %s
+                            WHERE slug = %s
+                        """, (task_id, schedule_cron, data.get('timezone', 'UTC'), slug))
+                        
+                    except Exception as e:
+                        print(f"Warning: Could not create schedule: {e}")
+                
+                conn.commit()
         
         response = {
             'success': True,
@@ -1896,7 +1780,7 @@ def link_workflow_to_thread():
     """
     Link workflow to thread
     
-    FIXED: Added explicit cursor.close()
+    ✅ FIXED: Using context manager for cursor
     """
     try:
         data = request.json
@@ -1911,40 +1795,33 @@ def link_workflow_to_thread():
         automation_title = data.get('automation_title')
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
-            update_fields = ['workflow_slug = %s', 'workflow_title = %s', 'updated_at = CURRENT_TIMESTAMP']
-            params = [workflow_slug, workflow_title]
-            
-            if automation_slug:
-                update_fields.append('automation_slug = %s')
-                params.append(automation_slug)
-            
-            if automation_title:
-                update_fields.append('automation_title = %s')
-                params.append(automation_title)
-            
-            params.append(thread_id)
-            
-            query = f"""
-                UPDATE sessions.threads SET
-                    {', '.join(update_fields)}
-                WHERE id = %s
-            """
-            
-            cursor.execute(query, params)
-            
-            if cursor.rowcount == 0:
-                # ✅ FIX: Close cursor before return
-                cursor.close()
-                return jsonify({'error': f'Thread {thread_id} not found'}), 404
-            
-            conn.commit()
-            
-            # ✅ FIX: Close cursor before exit
-            cursor.close()
-        
-        # ✅ Connection auto-closed
+            with conn.cursor() as cursor:
+                
+                update_fields = ['workflow_slug = %s', 'workflow_title = %s', 'updated_at = CURRENT_TIMESTAMP']
+                params = [workflow_slug, workflow_title]
+                
+                if automation_slug:
+                    update_fields.append('automation_slug = %s')
+                    params.append(automation_slug)
+                
+                if automation_title:
+                    update_fields.append('automation_title = %s')
+                    params.append(automation_title)
+                
+                params.append(thread_id)
+                
+                query = f"""
+                    UPDATE sessions.threads SET
+                        {', '.join(update_fields)}
+                    WHERE id = %s
+                """
+                
+                cursor.execute(query, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'error': f'Thread {thread_id} not found'}), 404
+                
+                conn.commit()
         
         response = {
             'success': True,
@@ -1971,7 +1848,7 @@ def get_workflow_status(slug):
     """
     Get workflow execution status
     
-    FIXED: Added explicit cursor.close() for ALL 3 cursors (CRITICAL FIX!)
+    ✅ FIXED: Using SEPARATE context managers for 3 cursors (CRITICAL FIX!)
     """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
@@ -1979,24 +1856,22 @@ def get_workflow_status(slug):
             return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         with get_database_connection('ai_infrastructure') as conn:
-            cursor = conn.cursor()
-            
             # Query 1: Get workflow
-            cursor.execute("""
-                SELECT automation_id, slug, title, status, is_scheduled, 
-                       schedule_cron, scheduler_task_id, execution_count,
-                       last_executed_at, created_at, updated_at
-                FROM visual_automations
-                WHERE slug = %s AND user_id = %s
-            """, (slug, user_id))
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT automation_id, slug, title, status, is_scheduled, 
+                           schedule_cron, scheduler_task_id, execution_count,
+                           last_executed_at, created_at, updated_at
+                    FROM visual_automations
+                    WHERE slug = %s AND user_id = %s
+                """, (slug, user_id))
+                
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
             
-            row = cursor.fetchone()
-            
-            # ✅ FIX: Close cursor1 IMMEDIATELY after fetch
-            cursor.close()
-            
-            if not row:
-                return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
+            automation_id = row['automation_id']
             
             # Get next run time
             next_run = None
@@ -2008,42 +1883,30 @@ def get_workflow_status(slug):
                 except:
                     pass
             
-            # ✅ FIX: Create NEW cursor for query 2
-            cursor2 = conn.cursor()
+            # Query 2: Get execution statistics
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total_executions,
+                        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful_executions,
+                        MAX(CASE WHEN status IN ('running', 'pending') THEN 1 ELSE 0 END) as currently_running
+                    FROM automation_executions
+                    WHERE automation_id = %s
+                """, (automation_id,))
+                
+                stats_row = cursor.fetchone()
             
-            # Get execution statistics
-            cursor2.execute("""
-                SELECT 
-                    COUNT(*) as total_executions,
-                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful_executions,
-                    MAX(CASE WHEN status IN ('running', 'pending') THEN 1 ELSE 0 END) as currently_running
-                FROM automation_executions
-                WHERE automation_id = %s
-            """, (row['automation_id'],))
-            
-            stats_row = cursor2.fetchone()
-            
-            # ✅ FIX: Close cursor2 IMMEDIATELY after fetch
-            cursor2.close()
-            
-            # ✅ FIX: Create NEW cursor for query 3
-            cursor3 = conn.cursor()
-            
-            # Get last execution
-            cursor3.execute("""
-                SELECT execution_id, started_at, completed_at, status, duration_ms, error_message
-                FROM automation_executions
-                WHERE automation_id = %s
-                ORDER BY started_at DESC
-                LIMIT 1
-            """, (row['automation_id'],))
-            
-            last_exec_row = cursor3.fetchone()
-            
-            # ✅ FIX: Close cursor3 IMMEDIATELY after fetch
-            cursor3.close()
-        
-        # ✅ Connection auto-closed (all cursors already closed)
+            # Query 3: Get last execution
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT execution_id, started_at, completed_at, status, duration_ms, error_message
+                    FROM automation_executions
+                    WHERE automation_id = %s
+                    ORDER BY started_at DESC
+                    LIMIT 1
+                """, (automation_id,))
+                
+                last_exec_row = cursor.fetchone()
         
         # Calculate success rate
         total_execs = stats_row['total_executions'] if stats_row else 0
@@ -2173,6 +2036,7 @@ def _apply_improvements(original_flow, improvements, tools_sequence):
     refined_flow['tools_sequence'] = tools_sequence
     
     return refined_flow
+
 
 def validate_workflow_structure(workflow_json):
     """

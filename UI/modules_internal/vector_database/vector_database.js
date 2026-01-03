@@ -156,9 +156,11 @@ window.VectorDatabaseModule = {
 
         // File upload zone click
         this.dom.on(this.container, 'click', '#upload-zone', (e) => {
+            this.log.info('[VECTOR DB] Upload zone clicked');
             if (e.target.id !== 'file-input') {
                 const fileInput = this.container.querySelector('#file-input');
                 if (fileInput) {
+                    this.log.info('[VECTOR DB] Triggering file input click');
                     fileInput.click();
                 } else {
                     this.log.error('[VECTOR DB] File input not found');
@@ -196,6 +198,7 @@ window.VectorDatabaseModule = {
         // File input change
         this.dom.on(this.container, 'change', '#file-input', (e) => {
             const files = Array.from(e.target.files);
+            this.log.info(`[VECTOR DB] File input changed: ${files.length} file(s) selected`);
             this.handleFileSelect(files);
         });
 
@@ -709,7 +712,7 @@ window.VectorDatabaseModule = {
         const category = this.container.querySelector('#upload-category')?.value || 'general';
         const tagsInput = this.container.querySelector('#upload-tags')?.value || '';
         const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
-        const visibility = this.container.querySelector('#upload-visibility')?.value || 'user';
+        const visibility = this.container.querySelector('#upload-visibility')?.value || 'private';
 
         const progressContainer = this.container.querySelector('#upload-progress');
         const progressFill = this.container.querySelector('#progress-fill');
@@ -735,6 +738,19 @@ window.VectorDatabaseModule = {
                 formData.append('category', category);
                 formData.append('tags', JSON.stringify(tags));
                 formData.append('visibility', visibility);
+
+                // Get actual logged-in user ID for ownership tracking
+                const ownerUserId = (window.UserAuth && window.UserAuth.user &&
+                    (window.UserAuth.user.id || window.UserAuth.user.user_id)) || 1;
+                formData.append('owner_user_id', ownerUserId);
+
+                // Get team ID (username for sub-users) if visibility is team
+                if (visibility === 'team' && window.UserAuth && window.UserAuth.user) {
+                    // For team visibility: use username as team_id (for sub-users)
+                    const teamId = window.UserAuth.user.username;
+                    if (teamId) formData.append('team_id', teamId);
+                }
+
                 formData.append('include_cloud_metadata', 'true');
                 formData.append('enable_ai_retrieval', 'true');
                 formData.append('file_type', file.type || 'application/octet-stream');

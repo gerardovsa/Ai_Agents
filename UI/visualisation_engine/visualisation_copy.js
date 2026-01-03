@@ -1417,6 +1417,53 @@ class VisualizationEngine {
             transform-origin: center;
         }
 
+        /* ative Browser Fullscreen Mode - Enable vertical scrolling for tall diagrams */
+        .viz-container:fullscreen {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .viz-container:fullscreen .viz-content-area {
+            overflow-y: visible !important;
+            overflow-x: auto !important;
+            max-width: 100%;
+            width: 100%;
+            height: auto;
+            min-height: 100%;
+        }
+
+        /* rowser-specific fullscreen selectors */
+        .viz-container:-webkit-full-screen {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+
+        .viz-container:-moz-full-screen {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+
+        .viz-container:-ms-fullscreen {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+
+        /* ullscreen backdrop styling */
+        .viz-container::backdrop {
+            background: rgba(0, 0, 0, 0.95);
+        }
+
+        .viz-container::-webkit-backdrop {
+            background: rgba(0, 0, 0, 0.95);
+        }
+
         .mermaid-zoom-indicator {
             position: absolute;
             bottom: 15px;
@@ -2410,10 +2457,17 @@ class VisualizationEngine {
     async renderSVGVisualization(item, contentArea, chartId) {
         try {
             // Extract SVG content
-            const svgContent = item.content
+            let svgContent = item.content
                 .replace(/<\/?MOLECULE>/g, '')
                 .replace(/<\/?SVG_VISUAL>/g, '')
                 .trim();
+
+            // 🔧 POST-PROCESS: Fix browser rendering bugs (bold text baseline issue)
+            if (typeof window.SVGPostProcessor !== 'undefined') {
+                svgContent = window.SVGPostProcessor.optimizeSVG(svgContent);
+            } else {
+                console.warn('[SVG_RENDERER] SVG post-processor not loaded, skipping fixes');
+            }
 
             // Create container
             const svgContainer = document.createElement('div');

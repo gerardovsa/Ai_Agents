@@ -167,6 +167,10 @@ class ToolCallProcessor:
         """
         Build tool_result content blocks for Claude API.
         
+        ✨ NEW (Jan 2026): Detects content_block in tool results and includes them
+        as structured content blocks (images/documents) instead of JSON strings.
+        This allows Claude to natively process files without token overflow.
+        
         Args:
             results: List of result dicts from execute_tool_calls()
             
@@ -176,7 +180,10 @@ class ToolCallProcessor:
                 {
                     "type": "tool_result",
                     "tool_use_id": "toolu_123",
-                    "content": "..." or [{"type": "text", "text": "..."}]
+                    "content": [
+                        {"type": "text", "text": "Processed file: report.pdf"},
+                        {"type": "document", "source": {"type": "base64", ...}}
+                    ]
                 }
             ]
             
@@ -193,8 +200,31 @@ class ToolCallProcessor:
         
         for result in results:
             if result['success']:
-                # Format result as JSON string
-                content = json.dumps(result['result'], indent=2)
+                tool_result = result['result']
+                
+                # Check if result contains a content_block (from file processing tools)
+                if isinstance(tool_result, dict) and 'content_block' in tool_result:
+                    # Multi-part content: text + content block
+                    content_block = tool_result['content_block']
+                    metadata = tool_result.get('metadata', {})
+                    
+                    # Build text description
+                    text_part = {
+                        "type": "text",
+                        "text": f"✅ Processed {metadata.get('source', 'file')}: {metadata.get('name', 'unknown')}\n"
+                                f"Size: {metadata.get('size', 0):,} bytes\n"
+                                f"Type: {metadata.get('type', 'unknown')}\n"
+                                f"Method: {tool_result.get('method', 'direct')}\n"
+                                f"Token estimate: ~{metadata.get('token_estimate', 0):,} tokens"
+                    }
+                    
+                    # Content is array with text + content_block
+                    content = [text_part, content_block]
+                    logger.info(f"📎 Including content_block for {result['tool_name']}: "
+                               f"{content_block['type']} ({metadata.get('size', 0):,} bytes)")
+                else:
+                    # Regular result - convert to JSON string
+                    content = json.dumps(tool_result, indent=2)
             else:
                 # Format error message
                 content = f"Error: {result['error']}"
@@ -208,7 +238,7 @@ class ToolCallProcessor:
             blocks.append(block)
             logger.debug(f"📦 Built result block for {result['tool_name']}")
         
-        logger.info(f"Built {len(blocks)} tool_result blocks")
+        logger.info(f"✅ Built {len(blocks)} tool_result blocks")
         return blocks
 
     def process_response(self, response, user_id: Optional[int] = None,

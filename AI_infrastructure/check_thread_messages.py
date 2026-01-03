@@ -1,33 +1,30 @@
-import psycopg2
+import sys
+sys.path.insert(0, '.')
+from shared.database_utils import execute_query
 
-conn = psycopg2.connect('postgresql://postgres.ryoicrdifiqhqpsnjmdo:inhouseprint@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres')
-cur = conn.cursor()
+# Get messages for thread 2112 from sessions schema
+messages = execute_query('''
+    SELECT id, role, content, created_at
+    FROM sessions.messages
+    WHERE thread_id = 2112
+    ORDER BY id ASC
+''', fetch_mode='all')
 
-# Check threads for user 14
-print("📋 Checking threads for user_id=14...")
-cur.execute("""
-    SELECT t.id, t.name, t.location, COUNT(m.id) as msg_count 
-    FROM sessions.threads t 
-    LEFT JOIN sessions.messages m ON m.thread_id = t.id 
-    WHERE t.user_id = 14
-    GROUP BY t.id, t.name, t.location
-    ORDER BY t.created_at DESC
-    LIMIT 10
-""")
+print(f'Total messages in DB: {len(messages)}')
 
-threads = cur.fetchall()
-print(f"\n✅ Found {len(threads)} threads for user 14:\n")
-for t in threads:
-    print(f"  ID {t[0]:15} | {t[2]:15} | {t[3]:3} msgs | {t[1]}")
+print('\n=== Message Roles Distribution ===')
+roles = {}
+for msg in messages:
+    role = msg['role']
+    roles[role] = roles.get(role, 0) + 1
+print(roles)
 
-# Check the specific thread
-print(f"\n🔍 Checking thread 1765854881504...")
-cur.execute("SELECT * FROM sessions.threads WHERE id = 1765854881504")
-row = cur.fetchone()
-if row:
-    print("✅ Thread exists but has different user_id!")
-else:
-    print("❌ Thread 1765854881504 does NOT exist in database")
+print('\n=== First 5 Messages ===')
+for i, msg in enumerate(messages[:5]):
+    content_preview = str(msg['content'])[:80] if msg['content'] else 'NULL'
+    print(f'{i+1}. ID={msg["id"]}, Role={msg["role"]}, Preview={content_preview}')
 
-cur.close()
-conn.close()
+print('\n=== Last 5 Messages ===')
+for i, msg in enumerate(messages[-5:]):
+    content_preview = str(msg['content'])[:80] if msg['content'] else 'NULL'
+    print(f'{len(messages)-5+i+1}. ID={msg["id"]}, Role={msg["role"]}, Preview={content_preview}')

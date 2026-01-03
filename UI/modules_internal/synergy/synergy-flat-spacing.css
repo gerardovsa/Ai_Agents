@@ -1180,8 +1180,8 @@
 
 /* Width toggle button styles */
 .synergy-width-toggle-btn {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     background: transparent;
     border: 1px solid var(--border-default);
@@ -1202,7 +1202,7 @@
 }
 
 .synergy-width-toggle-btn i {
-    font-size: 12px;
+    font-size: 14px;
     transition: transform 0.3s ease;
 }
 

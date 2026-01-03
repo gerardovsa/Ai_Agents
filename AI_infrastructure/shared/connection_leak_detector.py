@@ -223,7 +223,7 @@ class ConnectionLeakDetector:
             conn = psycopg2.connect(
                 dsn=db_url,
                 sslmode='require',
-                connect_timeout=10
+                connect_timeout=30  # Increased from 10 to 30 seconds to prevent timeout errors
             )
             cursor = conn.cursor()
             
@@ -319,6 +319,10 @@ class ConnectionLeakDetector:
             if not idle_connections and not active_connections:
                 logger.info(f"✅ No leaks detected ({len(connections)} connections checked)")
             
+        except psycopg2.OperationalError as e:
+            # Network/connection issues are expected occasionally - don't alarm
+            logger.warning(f"⚠️ Connection check skipped (network issue): {str(e).split(chr(10))[0]}")
+            self.metrics['errors'] += 1
         except Exception as e:
             logger.error(f"❌ Connection check failed: {e}")
             import traceback

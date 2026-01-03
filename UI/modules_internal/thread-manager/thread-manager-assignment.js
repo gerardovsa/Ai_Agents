@@ -101,12 +101,12 @@ Object.assign(window.ThreadManager, {
             return { skipped: true, reason: 'duplicate_within_1s' };
         }
 
-        // CRITICAL: Enforce single prime-loaded thread
-        if (location === 'prime-loaded') {
-            const existingPrimeLoaded = this.threads.find(t => t.location === 'prime-loaded' && t.id !== threadId);
+        // CRITICAL: Enforce single prime thread
+        if (location === 'prime') {
+            const existingPrimeLoaded = this.threads.find(t => t.location === 'prime' && t.id !== threadId);
             if (existingPrimeLoaded) {
-                console.log(`🔄 [Assignment] Clearing previous prime-loaded: ${existingPrimeLoaded.id}`);
-                existingPrimeLoaded.location = 'prime'; // Reset to resting state
+                console.log(`🔄 [Assignment] Clearing previous prime: ${existingPrimeLoaded.id}`);
+                existingPrimeLoaded.location = 'unassigned'; // Reset to resting state
                 // Update backend for cleared thread
                 try {
                     const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
@@ -116,12 +116,12 @@ Object.assign(window.ThreadManager, {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             session_id: existingPrimeLoaded.id,
-                            location: 'prime',
+                            location: 'unassigned',
                             user_id: userId
                         })
                     });
                 } catch (err) {
-                    console.error('Failed to clear previous prime-loaded:', err);
+                    console.error('Failed to clear previous prime:', err);
                 }
             }
         }
@@ -143,7 +143,7 @@ Object.assign(window.ThreadManager, {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     session_id: threadId,
-                    location: location || 'prime',
+                    location: location || 'unassigned',
                     user_id: userId
                 })
             });
@@ -164,7 +164,7 @@ Object.assign(window.ThreadManager, {
                 success: true,
                 assignment: {
                     session_id: threadId,
-                    location: location || 'prime',
+                    location: location || 'unassigned',
                     user_id: userId
                 }
             };
@@ -204,14 +204,14 @@ Object.assign(window.ThreadManager, {
 
         // STEP 1: Update thread object FIRST (before clearing UI)
         thread.location = newLocation;
-        thread.agent = newLocation === 'prime' ? null : newLocation;
+        thread.agent = newLocation === 'unassigned' ? null : newLocation;
         thread.updated = new Date().toISOString();
         console.log(`✅ [CASCADE] Updated thread object: location=${newLocation}`);
 
         // 🔔 NEW: Add notification for thread assignment
         if (typeof NotificationCenter !== 'undefined' && NotificationCenter.add) {
-            const locationName = newLocation === 'prime' ? 'Prime' :
-                newLocation === 'prime-loaded' ? 'Prime (Active)' :
+            const locationName = newLocation === 'unassigned' ? 'Unassigned' :
+                newLocation === 'prime' ? 'Prime (Active)' :
                     newLocation.startsWith('agent-') ? this.getAgentName(newLocation.replace('agent-', '')) : newLocation;
 
             NotificationCenter.add({
@@ -248,7 +248,7 @@ Object.assign(window.ThreadManager, {
             console.log(`🔄 [CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
             const displacedThread = this.threads.find(t => t.id === assignment.displaced_thread);
             if (displacedThread) {
-                displacedThread.location = 'prime';
+                displacedThread.location = 'unassigned';
                 displacedThread.agent = null;
                 displacedThread.updated = new Date().toISOString();
                 await this._clearLocationUI(newLocation, assignment.displaced_thread);
@@ -263,7 +263,7 @@ Object.assign(window.ThreadManager, {
                 threadInfoEl.innerHTML = this.renderThreadInfoContainer(newLocation, threadId, true);
                 console.log(`✅ [CASCADE] Updated thread-info for ${newLocation}`);
             }
-        } else if (newLocation === 'prime') {
+        } else if (newLocation === 'unassigned') {
             const primeThreadInfo = document.getElementById('thread-info-prime');
             if (primeThreadInfo && AppState.sessionId === threadId && typeof this.renderThreadInfoContainer === 'function') {
                 primeThreadInfo.innerHTML = this.renderThreadInfoContainer('prime', threadId, false);
@@ -322,7 +322,7 @@ Object.assign(window.ThreadManager, {
      * Only clears UI if this specific thread is loaded in that location
      */
     async _clearLocationUI(location, threadId) {
-        if (location === 'prime') {
+        if (location === 'unassigned') {
             // Clear Prime panel ONLY if this thread is loaded
             if (AppState.sessionId === threadId) {
                 AppState.sessionId = null;
@@ -418,7 +418,7 @@ Object.assign(window.ThreadManager, {
                 if (thread) {
                     const oldLocation = thread.location;
                     thread.location = assignment.location;
-                    thread.agent = assignment.location === 'prime' ? null : assignment.location;
+                    thread.agent = assignment.location === 'unassigned' ? null : assignment.location;
                     console.log(`   🔄 Updated thread ${thread.id}: "${thread.title}" | ${oldLocation} → ${assignment.location}`);
                     updatedCount++;
                 } else {
@@ -475,7 +475,7 @@ Object.assign(window.ThreadManager, {
                         } catch (error) {
                             console.error(`❌ [Assignment] Failed to load thread into agent-${agentId}:`, error);
                         }
-                    } else if (assignment.location === 'prime' && assignment.session_id === this.currentThreadId) {
+                    } else if (assignment.location === 'unassigned' && assignment.session_id === this.currentThreadId) {
                         // Load into Prime if it's the current thread
                         if (typeof this.loadThreadInPrime === 'function') {
                             await this.loadThreadInPrime(assignment.session_id);
@@ -613,8 +613,8 @@ Object.assign(window.ThreadManager, {
         if (!newRecord) return;
 
         const threadId = newRecord.id;
-        const oldLocation = oldRecord?.location || 'prime';
-        const newLocation = newRecord.location || 'prime';
+        const oldLocation = oldRecord?.location || 'unassigned';
+        const newLocation = newRecord.location || 'unassigned';
 
         if (oldLocation === newLocation) return;
 
@@ -624,7 +624,7 @@ Object.assign(window.ThreadManager, {
         const thread = this.threads.find(t => t.id === threadId);
         if (thread) {
             thread.location = newLocation;
-            thread.agent = newLocation === 'prime' ? null : newLocation;
+            thread.agent = newLocation === 'unassigned' ? null : newLocation;
         }
 
         // CRITICAL (Dec 12, 2025): Clear old location UI when realtime update arrives
@@ -713,19 +713,16 @@ Object.assign(window.ThreadManager, {
         }
 
         // Validate against AppState (Prime panel)
-        // NOTE: Check BOTH 'prime' and 'prime-loaded' - don't overwrite prime-loaded with prime!
         if (typeof AppState !== 'undefined' && AppState.sessionId) {
             const primeAssignment = assignments['prime'];
-            const primeLoadedAssignment = assignments['prime-loaded'];
 
-            // Only fix if there's a mismatch AND thread is not assigned to prime-loaded
-            if (primeAssignment !== AppState.sessionId && primeLoadedAssignment !== AppState.sessionId) {
+            // Only fix if there's a mismatch
+            if (primeAssignment !== AppState.sessionId) {
                 errors.push(`⚠️ Mismatch at prime: assignments=${primeAssignment}, AppState=${AppState.sessionId}`);
-                // Only assign to 'prime', not 'prime-loaded' (preserve loaded status)
                 assignments['prime'] = AppState.sessionId;
                 fixed = true;
-            } else if (primeLoadedAssignment === AppState.sessionId) {
-                console.log('✅ [Assignment] AppState thread is correctly in prime-loaded, not overwriting');
+            } else {
+                console.log('✅ [Assignment] AppState thread is correctly in prime');
             }
         }
 

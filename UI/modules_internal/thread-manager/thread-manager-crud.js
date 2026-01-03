@@ -55,7 +55,7 @@ Object.assign(window.ThreadManager, {
             updated: new Date().toISOString(),
             archived: false,
             agent: 'main',
-            location: 'prime',
+            location: 'unassigned',
             message_count: 0,
             tags: []
         };
@@ -76,7 +76,7 @@ Object.assign(window.ThreadManager, {
     /**
      * Create thread with full metadata (backend-first)
      */
-    async createThreadWithMetadata(title, tags, location = 'prime-loaded') {
+    async createThreadWithMetadata(title, tags, location = 'prime') {
         console.log('🔄 [CRUD] Creating thread with metadata:', { title, tags, location });
 
         try {
@@ -119,8 +119,8 @@ Object.assign(window.ThreadManager, {
                 title: title || 'Untitled Thread',
                 messages: [],
                 tags: tags || [],
-                location: location || 'prime',
-                agent: location === 'prime' ? null : location,
+                location: location || 'unassigned',
+                agent: location === 'unassigned' ? null : location,
                 created: newThread.created_at || new Date().toISOString(),
                 updated: newThread.updated_at || new Date().toISOString(),
                 message_count: 0,
@@ -149,9 +149,9 @@ Object.assign(window.ThreadManager, {
                 console.log(`[CRUD] 🔔 Notification added for thread creation: ${newThreadId}`);
             }
 
-            // Assign to location (force 'prime-loaded' instead of 'prime')
+            // Assign to location (force 'prime' instead of 'unassigned')
             if (typeof this.assignThread === 'function') {
-                await this.assignThread(newThreadId, location === 'prime' ? 'prime-loaded' : location);
+                await this.assignThread(newThreadId, location === 'unassigned' ? 'prime' : location);
             }
 
             // Refresh UI - IMMEDIATE (thread creation)
@@ -540,7 +540,7 @@ Object.assign(window.ThreadManager, {
             }
 
             titleEl.classList.remove('editing');
-            if (typeof this.updatePrimeHeader === 'function' && location === 'prime') {
+            if (typeof this.updatePrimeHeader === 'function' && location === 'unassigned') {
                 this.updatePrimeHeader(thread);
             }
             if (typeof this.renderThreadList === 'function') {
@@ -561,7 +561,7 @@ Object.assign(window.ThreadManager, {
             if (e.key === 'Escape') {
                 e.preventDefault();
                 titleEl.classList.remove('editing');
-                if (location === 'prime' && typeof this.updatePrimeHeader === 'function') {
+                if (location === 'unassigned' && typeof this.updatePrimeHeader === 'function') {
                     this.updatePrimeHeader(thread);
                 }
             }
@@ -569,8 +569,8 @@ Object.assign(window.ThreadManager, {
     },
 
     /**
-     * Mark thread as prime-loaded (single startup thread)
-     * Automatically unmarks any existing prime-loaded thread
+     * Mark thread as prime (main AI sidebar)
+     * Automatically unmarks any existing prime thread
      */
     async markAsPrimeLoaded(threadId) {
         try {
@@ -580,51 +580,35 @@ Object.assign(window.ThreadManager, {
                 return;
             }
 
-            // Check if already prime-loaded
-            if (thread.location === 'prime-loaded') {
-                showNotification('This thread already loads on startup', 'info');
+            // Check if already in prime
+            if (thread.location === 'prime') {
+                showNotification('This thread is already in Prime', 'info');
                 return;
             }
 
-            // Call backend to mark as prime-loaded
-            const response = await fetch('/api/threads/mark-prime-loaded', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${UserAuth.token}`
-                },
-                body: JSON.stringify({
-                    thread_id: threadId,
-                    user_id: UserAuth.user?.id || 1
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Failed to mark thread');
-            }
+            // Use assignThread to update location to 'prime'
+            await this.assignThread(threadId, 'prime');
 
             // Update local thread state
-            // Unmark all other prime-loaded threads
+            // Unmark all other prime threads
             this.threads.forEach(t => {
-                if (t.location === 'prime-loaded' && t.id !== threadId) {
-                    t.location = 'prime';
+                if (t.location === 'prime' && t.id !== threadId) {
+                    t.location = 'unassigned';
                 }
             });
 
             // Mark this thread
-            thread.location = 'prime-loaded';
+            thread.location = 'prime';
             thread.updated = new Date().toISOString();
 
             // Update UI
             this.renderThreadList();
 
-            showNotification('Thread will load on startup', 'success');
-            console.log(`🎯 [ThreadManager] Marked thread ${threadId} as prime-loaded`);
+            showNotification('Thread assigned to Prime', 'success');
+            console.log(`🎯 [ThreadManager] Marked thread ${threadId} as prime`);
 
         } catch (error) {
-            console.error('❌ [ThreadManager] Failed to mark as prime-loaded:', error);
+            console.error('❌ [ThreadManager] Failed to mark as prime:', error);
             showNotification('Failed to set startup thread', 'error');
         }
     }

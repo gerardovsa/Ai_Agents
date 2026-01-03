@@ -76,8 +76,16 @@ const EmailAIFormatter = {
         markdown.push('CURRENT EMAIL BODY');
         markdown.push('');
         markdown.push('```');
-        // ✅ FIX: Check body_text first (from full email fetch), then fallback to body or snippet
-        markdown.push(fullEmail.body_text || fullEmail.body || fullEmail.snippet || '(No content)');
+        // ✅ FIX: Use body_text (plain text), or convert body_html to text, or fallback to snippet
+        let bodyContent = fullEmail.body_text || '';
+        if (!bodyContent && fullEmail.body_html) {
+            // Strip HTML tags to get plain text
+            bodyContent = this.stripHtml(fullEmail.body_html);
+        }
+        if (!bodyContent) {
+            bodyContent = fullEmail.body || fullEmail.snippet || '(No content)';
+        }
+        markdown.push(bodyContent);
         markdown.push('```');
         markdown.push('');
 
@@ -159,13 +167,15 @@ Outline next steps for each option`
     formatAttachment(att) {
         const parts = [];
 
-        // Basic info
-        parts.push(`📎 ${att.filename || 'Unknown filename'}`);
+        // Basic info - handle both 'filename' (old) and 'name' (new) fields
+        const filename = att.filename || att.name || 'Unknown filename';
+        parts.push(`📎 ${filename}`);
 
         // File type and size
         const type = this.getAttachmentType(att);
         const size = att.size ? this.formatFileSize(att.size) : 'Unknown size';
-        parts.push(`(${type}, ${size})`);
+        const contentType = att.contentType || att.mimeType || 'unknown';
+        parts.push(`(${type}, ${size}, ${contentType})`);
 
         // Content handling
         if (type === 'Image') {
@@ -175,8 +185,13 @@ Outline next steps for each option`
             if (att.text_content) {
                 parts.push('\n  - Text content extracted and available for analysis');
                 parts.push(`\n  - Content preview: ${att.text_content.substring(0, 200)}...`);
-            } else if (att.download_url) {
-                parts.push(`\n  - Download URL available: \`${att.download_url}\``);
+            } else if (att.download_url || att.id) {
+                if (att.download_url) {
+                    parts.push(`\n  - Download URL available: \`${att.download_url}\``);
+                }
+                if (att.id) {
+                    parts.push(`\n  - Attachment ID: ${att.id}`);
+                }
                 parts.push('\n  - ⚠️ Text extraction may be needed');
             } else {
                 parts.push('\n  - ⚠️ Content not yet extracted - may need to request access');
@@ -184,6 +199,9 @@ Outline next steps for each option`
         } else {
             if (att.download_url) {
                 parts.push(`\n  - Download URL: \`${att.download_url}\``);
+            }
+            if (att.id && !att.download_url) {
+                parts.push(`\n  - Attachment ID: ${att.id}`);
             }
         }
 
@@ -196,8 +214,9 @@ Outline next steps for each option`
      * @returns {string} Human-readable type
      */
     getAttachmentType(att) {
-        const filename = (att.filename || '').toLowerCase();
-        const mimetype = (att.mimetype || '').toLowerCase();
+        // Handle both old and new field names
+        const filename = (att.filename || att.name || '').toLowerCase();
+        const mimetype = (att.mimetype || att.mimeType || att.contentType || '').toLowerCase();
 
         if (mimetype.startsWith('image/') || /\.(jpg|jpeg|png|gif|bmp|webp)$/.test(filename)) {
             return 'Image';
@@ -331,6 +350,35 @@ Outline next steps for each option`
         if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
         if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
         return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    },
+
+    /**
+     * Strip HTML tags to get plain text
+     * @param {string} html - HTML content
+     * @returns {string} Plain text
+     */
+    stripHtml(html) {
+        if (!html) return '';
+
+        // Create a temporary div to parse HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+
+        // Get text content (browsers handle entity decoding)
+        let text = tempDiv.textContent || tempDiv.innerText || '';
+
+        // Clean up extra whitespace
+        text = text.replace(/\s+/g, ' ').trim();
+
+        // Convert common HTML entities manually if needed
+        text = text.replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'");
+
+        return text;
     }
 };
 

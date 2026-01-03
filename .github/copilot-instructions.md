@@ -1,5 +1,7 @@
 # GitHub Copilot Instructions - AI Agents Project
-**Last Updated: December 17, 2025**
+**Last Updated: December 29, 2025**
+
+> **⚠️ When generating SVG diagrams:** Always reference `.github/SVG_CAD_GENERATION_RULES.md` for proper title block spacing and Y-coordinate calculations to prevent text overlap.
 
 ---
 
@@ -66,6 +68,11 @@ Multi-tenant AI agent system with Flask backend, custom HTML/JavaScript frontend
 - Pages: `UI/pages/*.html`
 - Fragments: `UI/fragments/`
 - Quote calculator UI: `UI/modules_external/quote-calculator/ui/`
+
+### **Generating CAD/SVG diagrams:**
+- **ALWAYS follow:** `.github/SVG_CAD_GENERATION_RULES.md`
+- Key rules: Title blocks need 40-60px clearance, text Y-position = block top + (font × 1.2)
+- Templates available for schematics (1200×900px) and blueprints (1400×1100px)
 
 ---
 

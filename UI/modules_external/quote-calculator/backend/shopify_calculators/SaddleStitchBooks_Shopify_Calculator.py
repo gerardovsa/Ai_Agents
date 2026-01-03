@@ -100,6 +100,9 @@ class SaddleStitchBooksShopifyCalculator:
         # Parse quantity from string
         qty = int(quantity)
         
+        # Convert artworks to int if it's a string
+        artworks = int(artworks) if isinstance(artworks, str) else artworks
+        
         # Extract pricing from config
         config = self.config['shopify_saddle_stitch_books']
         options = {opt['name']: opt for opt in config['options']}

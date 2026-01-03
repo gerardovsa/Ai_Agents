@@ -264,9 +264,15 @@ textarea.form-control {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 12px 16px;
     background: var(--bg-secondary, #161b22);
     border-bottom: 1px solid var(--border-default, #30363d);
+}
+
+.email-preview-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .email-preview-title {
@@ -286,7 +292,7 @@ textarea.form-control {
 .email-preview-body {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 12px;
 }
 
 /* ==================== EMAIL ACTION TOOLBAR BUTTONS ==================== */
@@ -344,7 +350,7 @@ textarea.form-control {
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
-/* Synergy icon button (close preview) */
+/* Synergy icon button (email actions) */
 .synergy-icon-btn {
     padding: 8px;
     background: transparent;
@@ -361,12 +367,38 @@ textarea.form-control {
 }
 
 .synergy-icon-btn:hover {
+    background: rgba(139, 148, 158, 0.1);
+    color: #f3f4f6;
+}
+
+.synergy-icon-btn[data-action="reply"]:hover,
+.synergy-icon-btn[data-action="reply-all"]:hover {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.synergy-icon-btn[data-action="forward"]:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.synergy-icon-btn[data-action="delete"]:hover {
+    background: rgba(248, 81, 73, 0.1);
+    color: #f85149;
+}
+
+.synergy-icon-btn[data-action="archive"]:hover {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.synergy-icon-btn[data-action="close-preview"]:hover {
     background: rgba(248, 81, 73, 0.1);
     color: #f85149;
 }
 
 .synergy-icon-btn i {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 @keyframes spin {
@@ -545,19 +577,28 @@ textarea.form-control {
     gap: 0;
     width: 100%;
     height: 100%;
-    margin: 0 20px;
+    margin: 0 5px;
     overflow-x: auto;
     /* Enable horizontal scroll at container level */
 }
 
 .email-workspace-container .email-table-wrapper {
-    flex: 1 1 800px;
-    /* flex-grow, flex-shrink, flex-basis */
-    min-width: 800px;
-    /* Prevent compression below minimum readable width */
+    flex: 1 1 auto;
+    /* Expand to fill all available space initially */
+    min-width: 600px;
+    /* Minimum readable width when sharing space */
+    width: 100%;
+    /* Take full width when preview is closed */
     overflow-x: auto;
     /* Enable horizontal scroll when needed */
-    transition: flex 0.3s ease, transform 0.3s ease;
+    transition: flex 0.3s ease, width 0.3s ease, transform 0.3s ease;
+}
+
+/* When preview is open, table wrapper shrinks to share space */
+.email-workspace-container:has(.email-preview-panel[data-mode="sibling"].show) .email-table-wrapper {
+    flex: 1 1 50%;
+    /* Share space equally with preview */
+    width: auto;
 }
 
 /* Preview in sibling mode (side-by-side) */
@@ -571,7 +612,8 @@ textarea.form-control {
     border-left: 1px solid var(--border-default, #2A3142);
     display: none;
     flex-direction: column;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     transform: translateX(20px);
     opacity: 0;
     transition: width 0.3s ease, min-width 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
@@ -579,8 +621,10 @@ textarea.form-control {
 
 .email-preview-panel[data-mode="sibling"].show {
     display: flex !important;
-    width: 620px;
+    flex: 1 1 620px;
+    width: auto;
     min-width: 400px;
+    max-width: none;
     transform: translateX(0);
     opacity: 1;
 }
@@ -703,8 +747,8 @@ textarea.form-control {
 
 /* Subject */
 .email-preview-subject {
-    margin-bottom: 16px;
-    padding-bottom: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--border-default, #2A3142);
 }
 
@@ -1353,8 +1397,8 @@ textarea.form-control {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 .email-ai-section {
-    margin-top: 24px;
-    padding: 20px;
+    margin-top: 5px;
+    padding: 5px;
     background: var(--bg-tertiary, #0F1419);
     border-radius: 12px;
     border: 1px solid var(--border-default, #2A3142);

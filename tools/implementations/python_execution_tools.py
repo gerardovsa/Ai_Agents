@@ -35,7 +35,8 @@ from contextlib import redirect_stdout, redirect_stderr
 
 try:
     from RestrictedPython import compile_restricted
-    from RestrictedPython.Guards import safe_builtins, guarded_iter_unpack_sequence
+    from RestrictedPython.Guards import safe_builtins, guarded_iter_unpack_sequence, safe_globals
+    from RestrictedPython.PrintCollector import PrintCollector
     RESTRICTED_PYTHON_AVAILABLE = True
 except ImportError:
     RESTRICTED_PYTHON_AVAILABLE = False
@@ -132,28 +133,44 @@ def python_exec(
     # Build safe globals
     safe_globals = _build_safe_globals(workspace_dir, globals_dict)
     
+    # Create custom print collector for RestrictedPython
+    class PrintCollector:
+        """Collector for print statements in RestrictedPython."""
+        def __init__(self):
+            self.output = []
+        
+        def __call__(self, _getattr):
+            """RestrictedPython calls _print_(getattr) to get the print object."""
+            return self
+        
+        def _call_print(self, *args, **kwargs):
+            """Method called by RestrictedPython for print statements."""
+            text = ' '.join(str(arg) for arg in args)
+            self.output.append(text)
+            return text
+    
+    _print = PrintCollector()
+    
+    # Add RestrictedPython guards
+    safe_globals['_print_'] = _print       # Print factory for RestrictedPython
+    safe_globals['_getattr_'] = getattr    # For attribute access
+    
     # Build safe locals (for variable capture)
     safe_locals = {}
     
     try:
         # Compile code with RestrictedPython
+        # Note: compile_restricted raises SyntaxError on compilation errors
+        # and returns code object directly on success
         byte_code = compile_restricted(
             code,
             filename='<agent_code>',
             mode='exec'
         )
         
-        if byte_code.errors:
-            return {
-                "success": False,
-                "error": f"Compilation errors: {'; '.join(byte_code.errors)}",
-                "output": "",
-                "execution_time": time.time() - start_time
-            }
-        
         # Execute with output capture
         with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
-            exec(byte_code.code, safe_globals, safe_locals)
+            exec(byte_code, safe_globals, safe_locals)
         
         execution_time = time.time() - start_time
         
@@ -167,9 +184,15 @@ def python_exec(
             if not k.startswith('_') and not callable(v)
         }
         
+        # Combine stdout and collected print output
+        all_output = '\n'.join(_print.output) if _print.output else ""
+        stdout_text = stdout_capture.getvalue()
+        if stdout_text:
+            all_output = stdout_text if not all_output else all_output + '\n' + stdout_text
+        
         return {
             "success": True,
-            "output": stdout_capture.getvalue(),
+            "output": all_output,
             "error": stderr_capture.getvalue() if stderr_capture.getvalue() else None,
             "variables": _serialize_variables(captured_vars),
             "execution_time": execution_time
@@ -192,39 +215,33 @@ def _build_safe_globals(workspace_dir: Optional[str], additional_globals: Option
     SECURITY: Only safe libraries and functions are exposed
     """
     
-    safe_globals = {
-        # Safe builtins from RestrictedPython
-        '__builtins__': {
-            'True': True,
-            'False': False,
-            'None': None,
-            'str': str,
-            'int': int,
-            'float': float,
-            'bool': bool,
-            'list': list,
-            'dict': dict,
-            'tuple': tuple,
-            'set': set,
-            'len': len,
-            'range': range,
-            'enumerate': enumerate,
-            'zip': zip,
-            'sum': sum,
-            'min': min,
-            'max': max,
-            'abs': abs,
-            'round': round,
-            'sorted': sorted,
-            'reversed': reversed,
-            'any': any,
-            'all': all,
-            'print': print,
-            # RestrictedPython guards
-            '_iter_unpack_sequence_': guarded_iter_unpack_sequence,
-        },
+    # Safe import function - only allows specific libraries
+    SAFE_MODULES = {
+        'pandas', 'pd', 'numpy', 'np', 'matplotlib', 'seaborn', 'sns',
+        'datetime', 'time', 'math', 'json', 're', 'collections', 'itertools',
+        'functools', 'operator', 'copy', 'typing'
+    }
+    
+    def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+        """Restricted import - only allows safe modules"""
+        if name.split('.')[0] not in SAFE_MODULES:
+            raise ImportError(f"Import of '{name}' is not allowed")
+        return __import__(name, globals, locals, fromlist, level)
+    
+    # Build safe builtins with controlled import
+    safe_builtins_with_import = safe_builtins.copy()
+    safe_builtins_with_import['__import__'] = safe_import
+    safe_builtins_with_import['_getitem_'] = lambda obj, index: obj[index]
+    safe_builtins_with_import['_getiter_'] = iter
+    
+    safe_globals_dict = {
+        # Safe builtins with controlled import
+        '__builtins__': safe_builtins_with_import,
         
-        # Safe libraries
+        # RestrictedPython guards  
+        '_iter_unpack_sequence_': guarded_iter_unpack_sequence,
+        
+        # Pre-imported safe libraries (for convenience)
         'pd': pd if ANALYSIS_LIBS_AVAILABLE else None,
         'pandas': pd if ANALYSIS_LIBS_AVAILABLE else None,
         'np': np if ANALYSIS_LIBS_AVAILABLE else None,
@@ -237,13 +254,13 @@ def _build_safe_globals(workspace_dir: Optional[str], additional_globals: Option
     
     # Add additional globals if provided
     if additional_globals:
-        safe_globals.update(additional_globals)
+        safe_globals_dict.update(additional_globals)
     
     # Add workspace directory if provided
     if workspace_dir:
-        safe_globals['WORKSPACE_DIR'] = workspace_dir
+        safe_globals_dict['WORKSPACE_DIR'] = workspace_dir
     
-    return safe_globals
+    return safe_globals_dict
 
 
 def _serialize_variables(variables: Dict[str, Any]) -> Dict[str, Any]:
@@ -303,15 +320,35 @@ def _serialize_variables(variables: Dict[str, Any]) -> Dict[str, Any]:
 
 def python_exec_with_dataframe(
     code: str,
-    dataframe: pd.DataFrame,
+    dataframe,  # Can be dict or pd.DataFrame
     timeout: int = 30,
     **kwargs
 ) -> Dict[str, Any]:
     """
     Execute Python code with a pre-loaded DataFrame
     
+    Args:
+        code: Python code to execute
+        dataframe: DataFrame or dict to convert to DataFrame
+        timeout: Max execution time in seconds
+        **kwargs: Additional arguments passed to python_exec
+    
+    Returns:
+        Execution result dictionary
+    
     Convenience function that injects 'df' variable
     """
+    # Convert dict to DataFrame if needed
+    if isinstance(dataframe, dict):
+        if ANALYSIS_LIBS_AVAILABLE:
+            dataframe = pd.DataFrame(dataframe)
+        else:
+            return {
+                "success": False,
+                "error": "pandas not available - cannot convert dict to DataFrame",
+                "output": ""
+            }
+    
     additional_globals = {'df': dataframe}
     
     return python_exec(

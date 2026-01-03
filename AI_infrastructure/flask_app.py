@@ -4,6 +4,8 @@ Uses unified session manager and AI client
 
 This is the NEW clean Flask app that replaces flask_triple_agent_app.py
 Run on port 5001 for testing, then swap to port 5000 when ready
+
+✅ REFACTORED: All cursor leaks fixed (10 locations)
 """
 
 # Fix Windows console encoding FIRST (before any prints or logging)
@@ -236,6 +238,12 @@ from routes.module_routes import module_bp  # NEW: Self-registering module syste
 from routes.session_management_routes import cloud_storage_bp  # NEW: Cloud storage sync (Google Drive folders to database, 6 endpoints)
 from routes.connection_routes import connections_bp  # Platform connections (2 endpoints)
 
+# Generate unique cache version on Flask startup (forces browser refresh)
+import time
+import random
+CACHE_VERSION = f"{int(time.time())}_{random.randint(1000, 9999)}"
+log_success(logger, f"🔄 Generated cache version: {CACHE_VERSION}")
+
 # Initialize Flask app with error handling
 try:
     app = Flask(__name__)
@@ -252,14 +260,16 @@ except Exception as e:
 # ============================================================================
 def initialize_semantic_search_on_startup():
     """
-    Pre-emptively initialize semantic search embeddings during server startup.
+    Pre-emptively initialize persistent semantic search during server startup.
     
     This runs BEFORE server starts to ensure embeddings are ready for first request.
+    Uses Supabase persistence - loads instantly if cache exists, regenerates if tools changed.
+    
     Called after Flask app is created but before routes are registered.
     """
     try:
         print("\n" + "=" * 80)
-        print("[STARTUP] PRE-COMPUTING SEMANTIC SEARCH EMBEDDINGS...")
+        print("[STARTUP] INITIALIZING PERSISTENT SEMANTIC SEARCH (Supabase-backed)")
         print("=" * 80)
         
         # Import registry and semantic search initializer
@@ -271,14 +281,16 @@ def initialize_semantic_search_on_startup():
         registry = get_registry()
         print(f"[STARTUP] [OK] Registry loaded with {len(registry.tools)} tools")
         
-        # Initialize semantic search (this computes embeddings)
-        print("[STARTUP] Computing embeddings for semantic tool search (this takes ~30 seconds)...")
+        # Initialize persistent semantic search (loads from Supabase or regenerates)
+        print("[STARTUP] Loading embeddings from Supabase (or regenerating if needed)...")
         semantic_search = get_semantic_search(registry)
         
         if semantic_search and semantic_search.available:
-            print(f"[STARTUP] [OK] Semantic search initialized with {len(semantic_search.tool_embeddings)} embeddings")
+            source = "Supabase" if semantic_search.db_available else "Generated (Database unavailable)"
+            print(f"[STARTUP] [OK] Loaded {len(semantic_search.tool_embeddings)} embeddings from {source}")
+            print(f"[STARTUP] Version Hash: {semantic_search.version_hash[:16]}...")
             print("=" * 80)
-            print("[STARTUP] SEMANTIC SEARCH READY - All tool embeddings pre-computed!")
+            print("[STARTUP] ✅ SEMANTIC SEARCH READY - Embeddings loaded and cached!")
             print("=" * 80 + "\n")
         else:
             print("[STARTUP] [WARNING] Semantic search not available (sentence-transformers not installed)")
@@ -312,35 +324,36 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to initialize prompt library table: {e}")
 
-# Initialize user authentication tables (users, oauth_tokens, etc.)
+# ✅ REFACTORED: Initialize user authentication tables (FIXED CURSOR LEAK #1)
 try:
     from auth.user_auth import user_auth_manager
     log_success(logger, f"User authentication tables initialized at {user_auth_manager.db_path}")
-    # Verify tables actually exist
-    conn = get_database_connection('ai_infrastructure')
-    try:
-        cursor = conn.cursor()
-        # Use is_using_supabase() to correctly detect database type
-        from shared.database_utils import is_using_supabase
-        if is_using_supabase():
-            cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
-        else:
-            cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
-        rows = cursor.fetchall()
-        # Handle PostgreSQL rows
-        if rows and len(rows) > 0:
-            # Try to access first element - works for both tuples and postgres rows
-            try:
-                tables = [row[0] if isinstance(row, (tuple, list)) else row['name' if 'name' in row else 'tablename'] for row in rows]
-            except (KeyError, TypeError, IndexError):
-                # Fallback: just get first item from each row
-                tables = [list(row.values())[0] if hasattr(row, 'values') else row[0] for row in rows]
-        else:
-            tables = []
-        log_success(logger, f"Database tables verified: {len(tables)} tables found")
-    finally:
-        # ✅ FIX: Always close connection, even if exception occurs
-        conn.close()
+    
+    # ✅ FIX: Use context manager for cursor
+    with get_database_connection('ai_infrastructure') as conn:
+        with conn.cursor() as cursor:
+            
+            # Use is_using_supabase() to correctly detect database type
+            from shared.database_utils import is_using_supabase
+            if is_using_supabase():
+                cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
+            else:
+                cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
+            rows = cursor.fetchall()
+            
+            # Handle PostgreSQL rows
+            if rows and len(rows) > 0:
+                # Try to access first element - works for both tuples and postgres rows
+                try:
+                    tables = [row[0] if isinstance(row, (tuple, list)) else row['name' if 'name' in row else 'tablename'] for row in rows]
+                except (KeyError, TypeError, IndexError):
+                    # Fallback: just get first item from each row
+                    tables = [list(row.values())[0] if hasattr(row, 'values') else row[0] for row in rows]
+            else:
+                tables = []
+            
+            log_success(logger, f"Database tables verified: {len(tables)} tables found")
+            
 except Exception as e:
     log_error(logger, f"Failed to initialize user authentication: {e}")
     import traceback
@@ -692,13 +705,33 @@ def serve_ui():
     """Serve the main UI page with aggressive no-cache headers"""
     # Force read from disk every time (no Flask caching)
     html_path = os.path.join(UI_DIR, 'business-ai-platform-v2.html')
-    with open(html_path, 'r', encoding='utf-8') as f:
-        html_content = f.read()
+    
+    # Get file modification time for ETag
+    file_mtime = os.path.getmtime(html_path)
+    etag = f'"{file_mtime}"'
+    
+    try:
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+    except UnicodeDecodeError:
+        # Fallback to utf-8-sig if utf-8 fails (handles BOM)
+        with open(html_path, 'r', encoding='utf-8-sig', errors='replace') as f:
+            html_content = f.read()
+    
+    # 🔥 INJECT RUNTIME CACHE VERSION - Forces browser to reload all JavaScript/CSS
+    html_content = html_content.replace(
+        'const HTML_VERSION = \'20260103_161616\';',
+        f'const HTML_VERSION = \'{CACHE_VERSION}\';'
+    )
+    # Also replace all ?v= query parameters with runtime cache version
+    import re
+    html_content = re.sub(r'\?v=\d+_\d+', f'?v={CACHE_VERSION}', html_content)
     
     response = Response(html_content, mimetype='text/html')
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
+    response.headers['ETag'] = etag
     response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     return response
 
@@ -804,6 +837,14 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to register verification routes: {e}")
     print(f"⚠️  Verification system not available: {e}")
+
+# ============================================================================
+# VAN LAYOUT DESIGNER - REMOVED (NOW STANDALONE)
+# ============================================================================
+# Van Thermal Manager now runs on its own standalone Flask server (port 5002)
+# See: MCP_Server/van-thermal-manager/van_server.py
+# To start: run start-van-server.bat
+# Access at: http://localhost:5002/van-thermal-manager/renderer/van-layout-designer-enhanced.html
 
 def cleanup_stale_sessions():
     """Remove sessions that haven't sent heartbeat within TTL"""
@@ -949,16 +990,24 @@ def default_connect():
     Handle connection attempts to default namespace (/)
     Accept but do nothing - prevents WSGI "write before start_response" errors
     """
-    log_warning(logger, f"[WS] Connection to default namespace from {request.sid}")
-    # Don't return False - let it connect to avoid WSGI errors
-    # Client should use /ws/synergy or /ws/streaming instead
+    try:
+        log_warning(logger, f"[WS] Connection to default namespace from {request.sid}")
+        # Don't return False - let it connect to avoid WSGI errors
+        # Client should use /ws/synergy or /ws/streaming instead
+        return True  # ✅ Explicitly return True to confirm connection
+    except Exception as e:
+        log_error(logger, f"[WS] Error in default_connect: {e}")
+        return True  # Still return True to prevent errors
 
 @socketio.on('disconnect')
 def default_disconnect():
     """
     Handle disconnection from default namespace (/)
     """
-    log_info(logger, f"[WS] Disconnection from default namespace: {request.sid}")
+    try:
+        log_info(logger, f"[WS] Disconnection from default namespace: {request.sid}")
+    except Exception as e:
+        log_error(logger, f"[WS] Error in default_disconnect: {e}")
 
 # ============================================================================
 # COMPREHENSIVE SOCKETIO HANDLERS FOR /ws/synergy NAMESPACE
@@ -2291,6 +2340,7 @@ def health_check():
     return response
 
 
+# ✅ REFACTORED: /api/connections endpoint (FIXED CURSOR LEAK #2)
 @app.route('/api/connections', methods=['GET', 'OPTIONS'])
 def get_connections():
     """Get OAuth connections for current user + platform global credentials"""
@@ -2314,74 +2364,70 @@ def get_connections():
             import psycopg2
             from psycopg2.extras import RealDictCursor
             
-            conn = psycopg2.connect(supabase_db_url, cursor_factory=RealDictCursor)
-            cursor = conn.cursor()
-            
-            try:
-                # ✅ FIX: Fetch user-specific + platform global credentials (user_id=1)
-                # Use UNION to combine both sources
-                cursor.execute("""
-                    -- User-specific credentials
-                    SELECT 
-                        platform,
-                        credential_type,
-                        credentials,
-                        metadata,
-                        updated_at,
-                        is_active,
-                        user_id,
-                        CASE WHEN user_id = 1 THEN true ELSE false END as is_platform_global
-                    FROM ai_infrastructure.user_platform_credentials
-                    WHERE user_id = %s 
-                      AND is_active = true
+            # ✅ FIX: Use context manager for connection AND cursor
+            with psycopg2.connect(supabase_db_url, cursor_factory=RealDictCursor) as conn:
+                with conn.cursor() as cursor:
                     
-                    UNION
+                    # ✅ FIX: Fetch user-specific + platform global credentials (user_id=1)
+                    # Use UNION to combine both sources
+                    cursor.execute("""
+                        -- User-specific credentials
+                        SELECT 
+                            platform,
+                            credential_type,
+                            credentials,
+                            metadata,
+                            updated_at,
+                            is_active,
+                            user_id,
+                            CASE WHEN user_id = 1 THEN true ELSE false END as is_platform_global
+                        FROM ai_infrastructure.user_platform_credentials
+                        WHERE user_id = %s 
+                          AND is_active = true
+                        
+                        UNION
+                        
+                        -- Platform global credentials (only if not already in user's list)
+                        SELECT 
+                            platform,
+                            credential_type,
+                            credentials,
+                            metadata,
+                            updated_at,
+                            is_active,
+                            user_id,
+                            true as is_platform_global
+                        FROM ai_infrastructure.user_platform_credentials
+                        WHERE user_id = 1
+                          AND is_active = true
+                          AND platform NOT IN (
+                              SELECT platform 
+                              FROM ai_infrastructure.user_platform_credentials 
+                              WHERE user_id = %s AND is_active = true
+                          )
+                        
+                        ORDER BY is_platform_global ASC, platform ASC
+                    """, (int(user_id), int(user_id)))
                     
-                    -- Platform global credentials (only if not already in user's list)
-                    SELECT 
-                        platform,
-                        credential_type,
-                        credentials,
-                        metadata,
-                        updated_at,
-                        is_active,
-                        user_id,
-                        true as is_platform_global
-                    FROM ai_infrastructure.user_platform_credentials
-                    WHERE user_id = 1
-                      AND is_active = true
-                      AND platform NOT IN (
-                          SELECT platform 
-                          FROM ai_infrastructure.user_platform_credentials 
-                          WHERE user_id = %s AND is_active = true
-                      )
+                    rows = cursor.fetchall()
                     
-                    ORDER BY is_platform_global ASC, platform ASC
-                """, (int(user_id), int(user_id)))
-                
-                rows = cursor.fetchall()
-                
-                for row in rows:
-                    connection = {
-                        'platform': row['platform'],
-                        'type': row['credential_type'],
-                        'is_active': row['is_active'],
-                        'is_platform_global': row['is_platform_global'],
-                        'created_at': row['updated_at'].isoformat() if row.get('updated_at') else None,
-                        'metadata': row.get('metadata', {}) or {}
-                    }
-                    
-                    # Add scope info if available
-                    if row.get('metadata'):
-                        meta = row['metadata']
-                        if isinstance(meta, dict):
-                            connection['scopes'] = meta.get('scopes', [])
-                    
-                    connections.append(connection)
-                    
-            finally:
-                cursor.close()
-                conn.close()
+                    for row in rows:
+                        connection = {
+                            'platform': row['platform'],
+                            'type': row['credential_type'],
+                            'is_active': row['is_active'],
+                            'is_platform_global': row['is_platform_global'],
+                            'created_at': row['updated_at'].isoformat() if row.get('updated_at') else None,
+                            'metadata': row.get('metadata', {}) or {}
+                        }
+                        
+                        # Add scope info if available
+                        if row.get('metadata'):
+                            meta = row['metadata']
+                            if isinstance(meta, dict):
+                                connection['scopes'] = meta.get('scopes', [])
+                        
+                        connections.append(connection)
         
         response = jsonify({
             'success': True,
@@ -2940,6 +2986,7 @@ def cleanup_sessions():
 # REST endpoints for chat sidebar - complements WebSocket real-time messaging
 # Uses MessageService for database operations with proper connection handling
 
+# ✅ REFACTORED: get_conversations() (FIXED CURSOR LEAK #3)
 @app.route('/api/messages/conversations', methods=['GET'])
 def get_conversations():
     """
@@ -2959,95 +3006,83 @@ def get_conversations():
         if not message_service:
             return jsonify({'error': 'Message service not available'}), 503
         
-        # Get all messages for user (direct messages only)
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            # Get conversations with last message and unread count
-            cursor.execute("""
-                WITH user_messages AS (
-                    SELECT 
-                        CASE 
-                            WHEN sender_user_id = %s THEN recipient_user_id
-                            ELSE sender_user_id
-                        END AS other_user_id,
-                        message_text,
-                        created_at,
-                        read_by,
-                        sender_user_id
-                    FROM ai_infrastructure.realtime_messages
-                    WHERE (sender_user_id = %s OR recipient_user_id = %s)
-                    AND message_type = 'direct'
-                ),
-                latest_messages AS (
-                    SELECT 
-                        other_user_id,
-                        message_text AS last_message,
-                        created_at AS last_message_time,
-                        sender_user_id AS last_sender_id
-                    FROM user_messages
-                    WHERE (other_user_id, created_at) IN (
-                        SELECT other_user_id, MAX(created_at)
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
+                
+                # Get conversations with last message and unread count
+                cursor.execute("""
+                    WITH user_messages AS (
+                        SELECT 
+                            CASE 
+                                WHEN sender_user_id = %s THEN recipient_user_id
+                                ELSE sender_user_id
+                            END AS other_user_id,
+                            message_text,
+                            created_at,
+                            read_by,
+                            sender_user_id
+                        FROM ai_infrastructure.realtime_messages
+                        WHERE (sender_user_id = %s OR recipient_user_id = %s)
+                        AND message_type = 'direct'
+                    ),
+                    latest_messages AS (
+                        SELECT 
+                            other_user_id,
+                            message_text AS last_message,
+                            created_at AS last_message_time,
+                            sender_user_id AS last_sender_id
                         FROM user_messages
-                        GROUP BY other_user_id
+                        WHERE (other_user_id, created_at) IN (
+                            SELECT other_user_id, MAX(created_at)
+                            FROM user_messages
+                            GROUP BY other_user_id
+                        )
+                    ),
+                    unread_counts AS (
+                        SELECT 
+                            sender_user_id AS other_user_id,
+                            COUNT(*) AS unread_count
+                        FROM ai_infrastructure.realtime_messages
+                        WHERE recipient_user_id = %s
+                        AND message_type = 'direct'
+                        AND NOT (%s = ANY(read_by))
+                        GROUP BY sender_user_id
                     )
-                ),
-                unread_counts AS (
                     SELECT 
-                        sender_user_id AS other_user_id,
-                        COUNT(*) AS unread_count
-                    FROM ai_infrastructure.realtime_messages
-                    WHERE recipient_user_id = %s
-                    AND message_type = 'direct'
-                    AND NOT (%s = ANY(read_by))
-                    GROUP BY sender_user_id
-                )
-                SELECT 
-                    lm.other_user_id,
-                    lm.last_message,
-                    lm.last_message_time,
-                    lm.last_sender_id,
-                    COALESCE(uc.unread_count, 0) AS unread_count
-                FROM latest_messages lm
-                LEFT JOIN unread_counts uc ON lm.other_user_id = uc.other_user_id
-                ORDER BY lm.last_message_time DESC
-            """, (user_id, user_id, user_id, user_id, user_id))
-            
-            rows = cursor.fetchall()
-            
-            conversations = []
-            for row in rows:
-                conversations.append({
-                    'user_id': row[0],
-                    'last_message': row[1],
-                    'last_message_time': row[2].isoformat() if row[2] else None,
-                    'last_sender_id': row[3],
-                    'unread_count': int(row[4])
+                        lm.other_user_id,
+                        lm.last_message,
+                        lm.last_message_time,
+                        lm.last_sender_id,
+                        COALESCE(uc.unread_count, 0) AS unread_count
+                    FROM latest_messages lm
+                    LEFT JOIN unread_counts uc ON lm.other_user_id = uc.other_user_id
+                    ORDER BY lm.last_message_time DESC
+                """, (user_id, user_id, user_id, user_id, user_id))
+                
+                rows = cursor.fetchall()
+                
+                conversations = []
+                for row in rows:
+                    conversations.append({
+                        'user_id': row[0],
+                        'last_message': row[1],
+                        'last_message_time': row[2].isoformat() if row[2] else None,
+                        'last_sender_id': row[3],
+                        'unread_count': int(row[4])
+                    })
+                
+                return jsonify({
+                    'status': 'success',
+                    'conversations': conversations
                 })
-            
-            return jsonify({
-                'status': 'success',
-                'conversations': conversations
-            })
-            
-        except Exception as e:
-            log_error(logger, f"[CHAT API] get_conversations failed: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
     
     except Exception as e:
         log_error(logger, f"[CHAT API] get_conversations error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
+# ✅ REFACTORED: get_conversation() (FIXED CURSOR LEAK #4)
 @app.route('/api/messages/conversation/<int:other_user_id>', methods=['GET'])
 def get_conversation(other_user_id):
     """
@@ -3075,64 +3110,52 @@ def get_conversation(other_user_id):
         if not message_service:
             return jsonify({'error': 'Message service not available'}), 503
         
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            # Get messages between two users
-            cursor.execute("""
-                SELECT 
-                    message_id,
-                    sender_user_id,
-                    recipient_user_id,
-                    message_text,
-                    created_at,
-                    delivered_to,
-                    read_by,
-                    message_metadata
-                FROM ai_infrastructure.realtime_messages
-                WHERE (
-                    (sender_user_id = %s AND recipient_user_id = %s)
-                    OR (sender_user_id = %s AND recipient_user_id = %s)
-                )
-                AND message_type = 'direct'
-                ORDER BY created_at DESC
-                LIMIT %s OFFSET %s
-            """, (user_id, other_user_id, other_user_id, user_id, limit, offset))
-            
-            rows = cursor.fetchall()
-            
-            messages = []
-            for row in rows:
-                messages.append({
-                    'message_id': row[0],
-                    'sender_user_id': row[1],
-                    'recipient_user_id': row[2],
-                    'message_text': row[3],
-                    'created_at': row[4].isoformat() if row[4] else None,
-                    'delivered': user_id in (row[5] or []),
-                    'read': user_id in (row[6] or []),
-                    'metadata': row[7]
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
+                
+                # Get messages between two users
+                cursor.execute("""
+                    SELECT 
+                        message_id,
+                        sender_user_id,
+                        recipient_user_id,
+                        message_text,
+                        created_at,
+                        delivered_to,
+                        read_by,
+                        message_metadata
+                    FROM ai_infrastructure.realtime_messages
+                    WHERE (
+                        (sender_user_id = %s AND recipient_user_id = %s)
+                        OR (sender_user_id = %s AND recipient_user_id = %s)
+                    )
+                    AND message_type = 'direct'
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                """, (user_id, other_user_id, other_user_id, user_id, limit, offset))
+                
+                rows = cursor.fetchall()
+                
+                messages = []
+                for row in rows:
+                    messages.append({
+                        'message_id': row[0],
+                        'sender_user_id': row[1],
+                        'recipient_user_id': row[2],
+                        'message_text': row[3],
+                        'created_at': row[4].isoformat() if row[4] else None,
+                        'delivered': user_id in (row[5] or []),
+                        'read': user_id in (row[6] or []),
+                        'metadata': row[7]
+                    })
+                
+                return jsonify({
+                    'status': 'success',
+                    'messages': messages,
+                    'limit': limit,
+                    'offset': offset
                 })
-            
-            return jsonify({
-                'status': 'success',
-                'messages': messages,
-                'limit': limit,
-                'offset': offset
-            })
-            
-        except Exception as e:
-            log_error(logger, f"[CHAT API] get_conversation failed: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
     
     except Exception as e:
         log_error(logger, f"[CHAT API] get_conversation error: {e}")
@@ -3214,6 +3237,7 @@ def send_direct_message():
         return jsonify({'error': str(e)}), 500
 
 
+# ✅ REFACTORED: mark_messages_read() (FIXED CURSOR LEAK #5)
 @app.route('/api/messages/mark-read', methods=['POST'])
 def mark_messages_read():
     """
@@ -3240,57 +3264,44 @@ def mark_messages_read():
         if not message_service:
             return jsonify({'error': 'Message service not available'}), 503
         
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            if message_ids:
-                # Mark specific messages as read
-                cursor.execute("""
-                    UPDATE ai_infrastructure.realtime_messages
-                    SET read_by = array_append(read_by, %s)
-                    WHERE message_id = ANY(%s)
-                    AND recipient_user_id = %s
-                    AND NOT (%s = ANY(read_by))
-                """, (user_id, message_ids, user_id, user_id))
-            else:
-                # Mark all unread messages from other_user_id as read
-                cursor.execute("""
-                    UPDATE ai_infrastructure.realtime_messages
-                    SET read_by = array_append(read_by, %s)
-                    WHERE sender_user_id = %s
-                    AND recipient_user_id = %s
-                    AND message_type = 'direct'
-                    AND NOT (%s = ANY(read_by))
-                """, (user_id, other_user_id, user_id, user_id))
-            
-            marked_count = cursor.rowcount
-            conn.commit()
-            
-            return jsonify({
-                'status': 'success',
-                'marked_count': marked_count
-            })
-            
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            log_error(logger, f"[CHAT API] mark_messages_read failed: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
+                
+                if message_ids:
+                    # Mark specific messages as read
+                    cursor.execute("""
+                        UPDATE ai_infrastructure.realtime_messages
+                        SET read_by = array_append(read_by, %s)
+                        WHERE message_id = ANY(%s)
+                        AND recipient_user_id = %s
+                        AND NOT (%s = ANY(read_by))
+                    """, (user_id, message_ids, user_id, user_id))
+                else:
+                    # Mark all unread messages from other_user_id as read
+                    cursor.execute("""
+                        UPDATE ai_infrastructure.realtime_messages
+                        SET read_by = array_append(read_by, %s)
+                        WHERE sender_user_id = %s
+                        AND recipient_user_id = %s
+                        AND message_type = 'direct'
+                        AND NOT (%s = ANY(read_by))
+                    """, (user_id, other_user_id, user_id, user_id))
+                
+                marked_count = cursor.rowcount
+                conn.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'marked_count': marked_count
+                })
     
     except Exception as e:
         log_error(logger, f"[CHAT API] mark_messages_read error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
+# ✅ REFACTORED: delete_message() (FIXED CURSOR LEAK #6)
 @app.route('/api/messages/delete/<int:message_id>', methods=['DELETE'])
 def delete_message(message_id):
     """
@@ -3314,67 +3325,54 @@ def delete_message(message_id):
         if not message_service:
             return jsonify({'error': 'Message service not available'}), 503
         
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            # Check if user is sender or recipient
-            cursor.execute("""
-                SELECT sender_user_id, recipient_user_id, message_metadata
-                FROM ai_infrastructure.realtime_messages
-                WHERE message_id = %s
-            """, (message_id,))
-            
-            row = cursor.fetchone()
-            if not row:
-                return jsonify({'error': 'Message not found'}), 404
-            
-            sender_id, recipient_id, metadata = row
-            
-            # Authorization check
-            if user_id not in [sender_id, recipient_id]:
-                return jsonify({'error': 'Unauthorized'}), 403
-            
-            # Soft delete by adding deleted flag to metadata
-            import json
-            meta = metadata or {}
-            if isinstance(meta, str):
-                meta = json.loads(meta)
-            meta['deleted_by'] = user_id
-            meta['deleted_at'] = datetime.now().isoformat()
-            
-            cursor.execute("""
-                UPDATE ai_infrastructure.realtime_messages
-                SET message_metadata = %s
-                WHERE message_id = %s
-            """, (json.dumps(meta), message_id))
-            
-            conn.commit()
-            
-            return jsonify({
-                'status': 'success',
-                'message': 'Message deleted'
-            })
-            
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            log_error(logger, f"[CHAT API] delete_message failed: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
+                
+                # Check if user is sender or recipient
+                cursor.execute("""
+                    SELECT sender_user_id, recipient_user_id, message_metadata
+                    FROM ai_infrastructure.realtime_messages
+                    WHERE message_id = %s
+                """, (message_id,))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'error': 'Message not found'}), 404
+                
+                sender_id, recipient_id, metadata = row
+                
+                # Authorization check
+                if user_id not in [sender_id, recipient_id]:
+                    return jsonify({'error': 'Unauthorized'}), 403
+                
+                # Soft delete by adding deleted flag to metadata
+                import json
+                meta = metadata or {}
+                if isinstance(meta, str):
+                    meta = json.loads(meta)
+                meta['deleted_by'] = user_id
+                meta['deleted_at'] = datetime.now().isoformat()
+                
+                cursor.execute("""
+                    UPDATE ai_infrastructure.realtime_messages
+                    SET message_metadata = %s
+                    WHERE message_id = %s
+                """, (json.dumps(meta), message_id))
+                
+                conn.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Message deleted'
+                })
     
     except Exception as e:
         log_error(logger, f"[CHAT API] delete_message error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
+# ✅ REFACTORED: get_user_info() (FIXED CURSOR LEAK #7)
 @app.route('/api/users/<int:user_id>/info', methods=['GET'])
 def get_user_info(user_id):
     """
@@ -3402,56 +3400,45 @@ def get_user_info(user_id):
                         last_seen = last_heartbeat
         
         # Get user details from database
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT username, email, created_at
-                FROM ai_infrastructure.users
-                WHERE user_id = %s
-            """, (user_id,))
-            
-            row = cursor.fetchone()
-            
-            if row:
-                return jsonify({
-                    'status': 'success',
-                    'user_id': user_id,
-                    'username': row[0],
-                    'email': row[1],
-                    'is_online': is_online,
-                    'session_count': session_count,
-                    'last_seen': last_seen,
-                    'member_since': row[2].isoformat() if row[2] else None
-                })
-            else:
-                return jsonify({'error': 'User not found'}), 404
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
                 
-        except Exception as e:
-            log_error(logger, f"[CHAT API] get_user_info database query failed: {e}")
-            # Return basic info even if database query fails
-            return jsonify({
-                'status': 'success',
-                'user_id': user_id,
-                'is_online': is_online,
-                'session_count': session_count,
-                'last_seen': last_seen
-            })
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+                cursor.execute("""
+                    SELECT username, email, created_at
+                    FROM ai_infrastructure.users
+                    WHERE user_id = %s
+                """, (user_id,))
+                
+                row = cursor.fetchone()
+                
+                if row:
+                    return jsonify({
+                        'status': 'success',
+                        'user_id': user_id,
+                        'username': row[0],
+                        'email': row[1],
+                        'is_online': is_online,
+                        'session_count': session_count,
+                        'last_seen': last_seen,
+                        'member_since': row[2].isoformat() if row[2] else None
+                    })
+                else:
+                    return jsonify({'error': 'User not found'}), 404
     
     except Exception as e:
         log_error(logger, f"[CHAT API] get_user_info error: {e}")
-        return jsonify({'error': str(e)}), 500
+        # Return basic info even if database query fails
+        return jsonify({
+            'status': 'success',
+            'user_id': user_id,
+            'is_online': is_online,
+            'session_count': session_count,
+            'last_seen': last_seen
+        })
 
 
+# ✅ REFACTORED: get_team_members() (FIXED CURSOR LEAK #8)
 @app.route('/api/users/team-members', methods=['GET'])
 def get_team_members():
     """
@@ -3468,57 +3455,46 @@ def get_team_members():
         if not user_id:
             return jsonify({'error': 'user_id required'}), 400
         
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            # Get all users except current user
-            cursor.execute("""
-                SELECT id, username, email, created_at
-                FROM ai_infrastructure.users
-                WHERE id != %s
-                ORDER BY username ASC
-            """, (user_id,))
-            
-            rows = cursor.fetchall()
-            
-            users = []
-            for row in rows:
-                uid = row[0]
-                is_online = uid in active_users
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
                 
-                users.append({
-                    'user_id': uid,
-                    'name': row[1],
-                    'email': row[2],
-                    'is_online': is_online,
-                    'avatar_url': f'/api/user/avatar/{uid}',
-                    'member_since': row[3].isoformat() if row[3] else None
+                # Get all users except current user
+                cursor.execute("""
+                    SELECT id, username, email, created_at
+                    FROM ai_infrastructure.users
+                    WHERE id != %s
+                    ORDER BY username ASC
+                """, (user_id,))
+                
+                rows = cursor.fetchall()
+                
+                users = []
+                for row in rows:
+                    uid = row[0]
+                    is_online = uid in active_users
+                    
+                    users.append({
+                        'user_id': uid,
+                        'name': row[1],
+                        'email': row[2],
+                        'is_online': is_online,
+                        'avatar_url': f'/api/user/avatar/{uid}',
+                        'member_since': row[3].isoformat() if row[3] else None
+                    })
+                
+                return jsonify({
+                    'status': 'success',
+                    'users': users,
+                    'total': len(users)
                 })
-            
-            return jsonify({
-                'status': 'success',
-                'users': users,
-                'total': len(users)
-            })
-            
-        except Exception as e:
-            log_error(logger, f"[CHAT API] get_team_members database query failed: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
     
     except Exception as e:
         log_error(logger, f"[CHAT API] get_team_members error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
+# ✅ REFACTORED: get_call_history() (FIXED CURSOR LEAK #9)
 @app.route('/api/calls/history', methods=['GET'])
 def get_call_history():
     """
@@ -3538,113 +3514,100 @@ def get_call_history():
         if not user_id:
             return jsonify({'error': 'user_id required'}), 400
         
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            # Create call_history table if it doesn't exist
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS ai_infrastructure.call_history (
-                    call_id SERIAL PRIMARY KEY,
-                    caller_user_id INTEGER NOT NULL,
-                    recipient_user_id INTEGER NOT NULL,
-                    call_type VARCHAR(20) NOT NULL,
-                    duration INTERVAL,
-                    started_at TIMESTAMP DEFAULT NOW(),
-                    ended_at TIMESTAMP,
-                    created_at TIMESTAMP DEFAULT NOW()
-                )
-            """)
-            
-            # Create indexes if they don't exist
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_call_history_caller 
-                ON ai_infrastructure.call_history(caller_user_id, created_at DESC)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_call_history_recipient 
-                ON ai_infrastructure.call_history(recipient_user_id, created_at DESC)
-            """)
-            
-            conn.commit()
-            
-            # Get call history
-            cursor.execute("""
-                SELECT 
-                    ch.call_id,
-                    ch.caller_user_id,
-                    ch.recipient_user_id,
-                    ch.call_type,
-                    ch.duration,
-                    ch.started_at,
-                    ch.ended_at,
-                    u.username as other_user_name
-                FROM ai_infrastructure.call_history ch
-                LEFT JOIN ai_infrastructure.users u ON (
-                    CASE 
-                        WHEN ch.caller_user_id = %s THEN ch.recipient_user_id
-                        ELSE ch.caller_user_id
-                    END = u.id
-                )
-                WHERE ch.caller_user_id = %s OR ch.recipient_user_id = %s
-                ORDER BY ch.created_at DESC
-                LIMIT %s
-            """, (user_id, user_id, user_id, limit))
-            
-            rows = cursor.fetchall()
-            
-            calls = []
-            for row in rows:
-                # Determine call type from perspective of current user
-                if row[1] == user_id:
-                    call_type = 'outgoing'
-                else:
-                    call_type = 'incoming' if row[3] != 'missed' else 'missed'
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
                 
-                other_user_id = row[2] if row[1] == user_id else row[1]
+                # Create call_history table if it doesn't exist
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ai_infrastructure.call_history (
+                        call_id SERIAL PRIMARY KEY,
+                        caller_user_id INTEGER NOT NULL,
+                        recipient_user_id INTEGER NOT NULL,
+                        call_type VARCHAR(20) NOT NULL,
+                        duration INTERVAL,
+                        started_at TIMESTAMP DEFAULT NOW(),
+                        ended_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """)
                 
-                # Format duration
-                duration_str = None
-                if row[4]:
-                    total_seconds = int(row[4].total_seconds())
-                    minutes = total_seconds // 60
-                    seconds = total_seconds % 60
-                    duration_str = f"{minutes:02d}:{seconds:02d}"
+                # Create indexes if they don't exist
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_call_history_caller 
+                    ON ai_infrastructure.call_history(caller_user_id, created_at DESC)
+                """)
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_call_history_recipient 
+                    ON ai_infrastructure.call_history(recipient_user_id, created_at DESC)
+                """)
                 
-                calls.append({
-                    'call_id': row[0],
-                    'user_id': other_user_id,
-                    'user_name': row[7] or 'Unknown User',
-                    'type': call_type,
-                    'duration': duration_str,
-                    'timestamp': row[5].isoformat() if row[5] else None
+                conn.commit()
+                
+                # Get call history
+                cursor.execute("""
+                    SELECT 
+                        ch.call_id,
+                        ch.caller_user_id,
+                        ch.recipient_user_id,
+                        ch.call_type,
+                        ch.duration,
+                        ch.started_at,
+                        ch.ended_at,
+                        u.username as other_user_name
+                    FROM ai_infrastructure.call_history ch
+                    LEFT JOIN ai_infrastructure.users u ON (
+                        CASE 
+                            WHEN ch.caller_user_id = %s THEN ch.recipient_user_id
+                            ELSE ch.caller_user_id
+                        END = u.id
+                    )
+                    WHERE ch.caller_user_id = %s OR ch.recipient_user_id = %s
+                    ORDER BY ch.created_at DESC
+                    LIMIT %s
+                """, (user_id, user_id, user_id, limit))
+                
+                rows = cursor.fetchall()
+                
+                calls = []
+                for row in rows:
+                    # Determine call type from perspective of current user
+                    if row[1] == user_id:
+                        call_type = 'outgoing'
+                    else:
+                        call_type = 'incoming' if row[3] != 'missed' else 'missed'
+                    
+                    other_user_id = row[2] if row[1] == user_id else row[1]
+                    
+                    # Format duration
+                    duration_str = None
+                    if row[4]:
+                        total_seconds = int(row[4].total_seconds())
+                        minutes = total_seconds // 60
+                        seconds = total_seconds % 60
+                        duration_str = f"{minutes:02d}:{seconds:02d}"
+                    
+                    calls.append({
+                        'call_id': row[0],
+                        'user_id': other_user_id,
+                        'user_name': row[7] or 'Unknown User',
+                        'type': call_type,
+                        'duration': duration_str,
+                        'timestamp': row[5].isoformat() if row[5] else None
+                    })
+                
+                return jsonify({
+                    'status': 'success',
+                    'calls': calls,
+                    'total': len(calls)
                 })
-            
-            return jsonify({
-                'status': 'success',
-                'calls': calls,
-                'total': len(calls)
-            })
-            
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            log_error(logger, f"[CHAT API] get_call_history failed: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
     
     except Exception as e:
         log_error(logger, f"[CHAT API] get_call_history error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
+# ✅ REFACTORED: clear_call_history() (FIXED CURSOR LEAK #10)
 @app.route('/api/calls/clear-history', methods=['DELETE'])
 def clear_call_history():
     """
@@ -3662,38 +3625,24 @@ def clear_call_history():
         if not user_id:
             return jsonify({'error': 'user_id required'}), 400
         
-        conn = None
-        cursor = None
-        try:
-            from shared.database_utils import get_database_connection
-            conn = get_database_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            
-            # Delete all calls involving this user
-            cursor.execute("""
-                DELETE FROM ai_infrastructure.call_history
-                WHERE caller_user_id = %s OR recipient_user_id = %s
-            """, (user_id, user_id))
-            
-            deleted_count = cursor.rowcount
-            conn.commit()
-            
-            return jsonify({
-                'status': 'success',
-                'message': 'Call history cleared',
-                'deleted_count': deleted_count
-            })
-            
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            log_error(logger, f"[CHAT API] clear_call_history failed: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        # ✅ FIX: Use context manager for connection AND cursor
+        with get_database_connection('ai_infrastructure') as conn:
+            with conn.cursor() as cursor:
+                
+                # Delete all calls involving this user
+                cursor.execute("""
+                    DELETE FROM ai_infrastructure.call_history
+                    WHERE caller_user_id = %s OR recipient_user_id = %s
+                """, (user_id, user_id))
+                
+                deleted_count = cursor.rowcount
+                conn.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Call history cleared',
+                    'deleted_count': deleted_count
+                })
     
     except Exception as e:
         log_error(logger, f"[CHAT API] clear_call_history error: {e}")
@@ -3708,396 +3657,6 @@ def clear_call_history():
 # - /single-agent-viewer → single_agent_viewer.html
 # - /triple-agent or / → triple_agent.html
 # - /static/<file> → static files
-
-
-# ============================================================================
-# STOCK MANAGEMENT API ENDPOINTS - MOVED TO stock_routes.py
-# ============================================================================
-# NOTE: All stock endpoints now handled by stock_routes.py (thin wrappers)
-# Old inline implementations commented out below for reference
-# Delete this section once confirmed working
-
-# # @app.route('/api/stock/test', methods=['GET', 'OPTIONS'])
-# @cross_origin()
-# def stock_health_check():
-    """
-    Health check endpoint - tests database connection
-    Returns stock count and connection status
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        if not STOCK_DB_AVAILABLE:
-            return jsonify({
-                'status': 'error',
-                'message': 'Stock database connection not configured',
-                'db_connected': False
-            }), 503
-        
-        # Test database connection
-        db = InHousePrintDB(STOCK_DB_CONFIG)
-        result = db.execute_query("SELECT COUNT(*) as count FROM Quote_DigitalStocks")
-        db.close()
-        
-        # Extract count from DataFrame
-        import pandas as pd
-        if isinstance(result, pd.DataFrame) and not result.empty:
-            stock_count = int(result.iloc[0]['count'])
-        else:
-            stock_count = 0
-        
-        return jsonify({
-            'status': 'ok',
-            'db_connected': True,
-            'stock_count': stock_count,
-            'database': 'In HousePrint',
-            'server': '3.25.76.138\\INHPSQLSERVER',
-            'config': STOCK_DB_CONFIG
-        })
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  Stock health check failed: {error_details}")
-        return jsonify({
-            'status': 'error',
-            'message': str(e),
-            'db_connected': False,
-            'details': error_details
-        }), 500
-
-
-# @app.route('/api/stock/usage-analytics', methods=['GET', 'OPTIONS'])
-# @cross_origin()
-# def stock_usage_analytics():
-    """
-    Usage Analytics - Thin wrapper calling stock_manager.py
-    Query params: days (30, 90, 180, 365)
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        if not STOCK_DB_AVAILABLE:
-            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
-        
-        days = int(request.args.get('days', 30))
-        
-        # Stock management disabled - standalone mode
-        raise ImportError("Stock management not available in standalone mode")
-        
-        # TODO: Implement standalone stock manager in AI_agents
-        # manager = StockManager(STOCK_DB_CONFIG)
-        result = manager.get_usage_analytics_complete(days=days)
-        
-        # Return result directly (stock_manager.py already formats for Chart.js)
-        return jsonify({
-            'status': 'ok',
-            'days': days,
-            'data': result
-        })
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  Usage analytics failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-# @app.route('/api/stock/reorder-dashboard', methods=['GET', 'OPTIONS'])
-# @cross_origin()
-# def stock_reorder_dashboard():
-    """
-    Reorder Dashboard - Returns stock alerts and recommendations
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        if not STOCK_DB_AVAILABLE:
-            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
-        
-        db = InHousePrintDB(STOCK_DB_CONFIG)
-        
-        # Get all stocks with usage metrics (via JobTickets → GSM)
-        query = """
-        SELECT 
-            ds.StockID,
-            dst.StockType,
-            ds.GSM,
-            ds.Length,
-            ds.Width,
-            ds.CostPerThousand,
-            COUNT(jt.TicketID) as recent_jobs,
-            SUM(jt.QTY) as total_quantity_used,
-            MAX(o.OrderDate) as last_used_date
-        FROM Quote_DigitalStocks ds
-        LEFT JOIN Quote_DigitalStockType dst ON ds.StockTypeID = dst.StockTypeID
-        LEFT JOIN GSM gsm 
-            ON ds.GSM = CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT)
-        LEFT JOIN JobTickets jt ON jt.GSM_ID = gsm.GSM_ID
-        LEFT JOIN Orders o ON jt.OrderID = o.OrderID 
-            AND o.OrderDate >= DATEADD(day, -90, GETDATE())
-        GROUP BY ds.StockID, dst.StockType, ds.GSM, ds.Length, ds.Width, ds.CostPerThousand
-        ORDER BY recent_jobs DESC
-        """
-        stocks_data = db.execute_query(query)
-        db.close()
-        
-        import pandas as pd
-        if not isinstance(stocks_data, pd.DataFrame):
-            return jsonify({'status': 'ok', 'critical': [], 'warning': [], 'healthy': []})
-        
-        # Classify stocks by usage
-        critical = []
-        warning = []
-        healthy = []
-        
-        for _, row in stocks_data.iterrows():
-            stock_info = {
-                'stock_id': int(row['StockID']) if pd.notna(row['StockID']) else 0,
-                'stock_type': str(row['StockType']) if pd.notna(row['StockType']) else 'Unknown',
-                'gsm': int(row['GSM']) if pd.notna(row['GSM']) else 0,
-                'recent_jobs': int(row['recent_jobs']) if pd.notna(row['recent_jobs']) else 0,
-                'last_used': str(row['last_used_date']) if pd.notna(row['last_used_date']) else 'Never',
-                'cost': float(row['CostPerThousand']) if pd.notna(row['CostPerThousand']) else 0
-            }
-            
-            # Categorize based on usage
-            if stock_info['recent_jobs'] > 20:
-                critical.append(stock_info)
-            elif stock_info['recent_jobs'] > 5:
-                warning.append(stock_info)
-            else:
-                healthy.append(stock_info)
-        
-        return jsonify({
-            'status': 'ok',
-            'critical': critical,
-            'warning': warning,
-            'healthy': healthy
-        })
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  Reorder dashboard failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-# @app.route('/api/stock/profit-analysis', methods=['GET', 'OPTIONS'])
-# @cross_origin()
-# def stock_profit_analysis():
-    """
-    Profit Analysis - Returns profitability data by stock
-    Query params: days (30, 90, 180, 365)
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        if not STOCK_DB_AVAILABLE:
-            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
-        
-        days = int(request.args.get('days', 30))
-        
-        db = InHousePrintDB(STOCK_DB_CONFIG)
-        
-        # Profitability by stock (via JobTickets → GSM)
-        query = f"""
-        SELECT 
-            ds.StockID,
-            dst.StockType,
-            ds.GSM,
-            ds.CostPerThousand as cost_per_thousand,
-            ds.Markup,
-            COUNT(jt.TicketID) as job_count,
-            SUM(jt.QTY) as total_quantity,
-            SUM(jt.QTY * ds.CostPerThousand / 1000) as total_cost,
-            SUM(jt.QTY * ds.CostPerThousand * ds.Markup / 1000) as total_revenue,
-            SUM((jt.QTY * ds.CostPerThousand * ds.Markup / 1000) - (jt.QTY * ds.CostPerThousand / 1000)) as total_profit
-        FROM JobTickets jt
-        INNER JOIN Orders o ON jt.OrderID = o.OrderID
-        LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
-        LEFT JOIN Quote_DigitalStocks ds 
-            ON ds.GSM = CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT)
-        LEFT JOIN Quote_DigitalStockType dst ON ds.StockTypeID = dst.StockTypeID
-        WHERE o.OrderDate >= DATEADD(day, -{days}, GETDATE())
-        GROUP BY ds.StockID, dst.StockType, ds.GSM, ds.CostPerThousand, ds.Markup
-        ORDER BY total_profit DESC
-        """
-        profit_data = db.execute_query(query)
-        db.close()
-        
-        import pandas as pd
-        return jsonify({
-            'status': 'ok',
-            'days': days,
-            'profit_by_stock': profit_data.to_dict('records') if isinstance(profit_data, pd.DataFrame) else []
-        })
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  Profit analysis failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-# @app.route('/api/stock/sql-query', methods=['POST', 'OPTIONS'])
-# @cross_origin()
-# def stock_sql_query():
-    """
-    SQL Viewer - Execute SELECT queries
-    Body: { "query": "SELECT ..." }
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        if not STOCK_DB_AVAILABLE:
-            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
-        
-        data = request.get_json()
-        query = data.get('query', '')
-        
-        # Security: only allow SELECT queries
-        if not query.strip().upper().startswith('SELECT'):
-            return jsonify({'status': 'error', 'message': 'Only SELECT queries allowed'}), 400
-        
-        db = InHousePrintDB(STOCK_DB_CONFIG)
-        result = db.execute_query(query)
-        db.close()
-        
-        import pandas as pd
-        return jsonify({
-            'status': 'ok',
-            'columns': list(result.columns) if isinstance(result, pd.DataFrame) else [],
-            'rows': result.to_dict('records') if isinstance(result, pd.DataFrame) else []
-        })
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  SQL query failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-# @app.route('/api/stock/update-cell', methods=['POST', 'OPTIONS'])
-# @cross_origin()
-# def stock_update_cell():
-    """
-    SQL Viewer - Update single cell
-    Body: { "table": "...", "column": "...", "value": "...", "where": "..." }
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        if not STOCK_DB_AVAILABLE:
-            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
-        
-        data = request.get_json()
-        table = data.get('table')
-        column = data.get('column')
-        value = data.get('value')
-        where_clause = data.get('where')
-        
-        if not all([table, column, value, where_clause]):
-            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
-        
-        # Build UPDATE query
-        query = f"UPDATE {table} SET {column} = '{value}' WHERE {where_clause}"
-        
-        db = InHousePrintDB(STOCK_DB_CONFIG)
-        result = db.execute_query(query)
-        db.close()
-        
-        return jsonify({'status': 'ok', 'message': 'Cell updated successfully'})
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  Cell update failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-# @app.route('/api/stock/ai-analytics', methods=['GET', 'OPTIONS'])
-# @cross_origin()
-# def stock_ai_analytics():
-    """
-    AI Analytics - Placeholder for AI usage metrics
-    Query params: days (30, 90, 180, 365)
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        days = int(request.args.get('days', 30))
-        
-        # Placeholder data - in real implementation would track AI usage
-        return jsonify({
-            'status': 'ok',
-            'days': days,
-            'total_queries': 0,
-            'cost_estimate': 0,
-            'recent_operations': []
-        })
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  AI analytics failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-# @app.route('/api/stock/invoice-process', methods=['POST', 'OPTIONS'])
-# @cross_origin()
-# def stock_invoice_process():
-    """
-    Invoice Processing - Upload and extract invoice data
-    Multipart form: invoice_file
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        if not STOCK_DB_AVAILABLE:
-            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
-        
-        if 'invoice_file' not in request.files:
-            return jsonify({'status': 'error', 'message': 'No file uploaded'}), 400
-        
-        file = request.files['invoice_file']
-        if file.filename == '':
-            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
-        
-        # Save file temporarily
-        import os
-        import tempfile
-        temp_dir = tempfile.gettempdir()
-        file_path = os.path.join(temp_dir, file.filename)
-        file.save(file_path)
-        
-        # Placeholder for AI extraction
-        # In real implementation, would use Claude API here
-        
-        return jsonify({
-            'status': 'ok',
-            'message': 'Invoice uploaded successfully',
-            'filename': file.filename,
-            'extracted_data': {
-                'supplier': 'Unknown',
-                'invoice_number': 'TBD',
-                'items': []
-            }
-        })
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"  Invoice processing failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 # ============================================================================
@@ -4232,6 +3791,13 @@ def log_request_info():
     """Log incoming requests for debugging (throttled for /health endpoint)"""
     global _last_health_log_time
     
+    # Handle Socket.IO WebSocket upgrade requests specially
+    if request.path.startswith('/socket.io/'):
+        # Ensure proper headers for WebSocket upgrade
+        if request.environ.get('HTTP_UPGRADE', '').lower() == 'websocket':
+            # This is a WebSocket upgrade - ensure no buffering
+            request.environ['wsgi.input_terminated'] = True
+    
     # Only log non-static requests
     if not request.path.startswith('/static') and not request.path.startswith('/UI'):
         # Throttle /health endpoint logging to once every 30 seconds
@@ -4342,10 +3908,10 @@ if __name__ == '__main__':
     
     # 🚀 PRE-EMPTIVE SEMANTIC SEARCH INITIALIZATION
     # Initialize BEFORE server starts to ensure embeddings are ready for first request
-    # TEMPORARILY DISABLED FOR XERO TESTING (re-enable after debugging)
-    # print("[STARTUP] Initializing semantic search (this will take ~30 seconds)...")
-    # print("[STARTUP] Server will start accepting requests after initialization completes.\n")
-    # initialize_semantic_search_on_startup()
+    # Uses Supabase persistence - loads instantly if cache exists, regenerates if tools changed
+    print("[STARTUP] Initializing persistent semantic search (loads from Supabase)...")
+    print("[STARTUP] Server will start accepting requests after initialization completes.\n")
+    initialize_semantic_search_on_startup()
     
     if USE_SOCKETIO:
         # Use SocketIO server (supports WebSockets + HTTP)

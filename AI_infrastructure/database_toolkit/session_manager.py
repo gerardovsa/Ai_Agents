@@ -6,6 +6,7 @@ Manage user sessions and cleanup expired sessions.
 """
 
 import secrets
+import psycopg2  # ✅ Added missing import
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
@@ -39,21 +40,24 @@ class SessionManager:
             Session token
         """
         conn = self.get_connection()
-        cursor = conn.cursor()
         
-        # Generate secure token
-        token = secrets.token_urlsafe(32)
+        # ✅ Fixed: cursor now uses context manager
+        with conn.cursor() as cursor:
+            
+            # Generate secure token
+            token = secrets.token_urlsafe(32)
+            
+            # Calculate expiry
+            hours = expiry_hours or self.default_expiry_hours
+            expires_at = datetime.now() + timedelta(hours=hours)
+            
+            cursor.execute("""
+                INSERT INTO user_sessions (user_id, token, ip_address, user_agent, expires_at)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (user_id, token, ip_address, user_agent, expires_at))
+            
+            conn.commit()
         
-        # Calculate expiry
-        hours = expiry_hours or self.default_expiry_hours
-        expires_at = datetime.now() + timedelta(hours=hours)
-        
-        cursor.execute("""
-            INSERT INTO user_sessions (user_id, token, ip_address, user_agent, expires_at)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (user_id, token, ip_address, user_agent, expires_at))
-        
-        conn.commit()
         conn.close()
         
         return token
@@ -69,14 +73,17 @@ class SessionManager:
             Session dict if valid, None if invalid/expired
         """
         conn = self.get_connection()
-        cursor = conn.cursor()
         
-        cursor.execute("""
-            SELECT * FROM user_sessions 
-            WHERE token = %s AND expires_at > %s
-        """, (token, datetime.now()))
+        # ✅ Fixed: cursor now uses context manager
+        with conn.cursor() as cursor:
+            
+            cursor.execute("""
+                SELECT * FROM user_sessions 
+                WHERE token = %s AND expires_at > %s
+            """, (token, datetime.now()))
+            
+            row = cursor.fetchone()
         
-        row = cursor.fetchone()
         conn.close()
         
         if row:
@@ -103,22 +110,25 @@ class SessionManager:
             List of active session dicts
         """
         conn = self.get_connection()
-        cursor = conn.cursor()
         
-        if user_id:
-            cursor.execute("""
-                SELECT * FROM user_sessions 
-                WHERE user_id = %s AND expires_at > %s
-                ORDER BY created_at DESC
-            """, (user_id, datetime.now()))
-        else:
-            cursor.execute("""
-                SELECT * FROM user_sessions 
-                WHERE expires_at > %s
-                ORDER BY created_at DESC
-            """, (datetime.now(),))
+        # ✅ Fixed: cursor now uses context manager
+        with conn.cursor() as cursor:
+            
+            if user_id:
+                cursor.execute("""
+                    SELECT * FROM user_sessions 
+                    WHERE user_id = %s AND expires_at > %s
+                    ORDER BY created_at DESC
+                """, (user_id, datetime.now()))
+            else:
+                cursor.execute("""
+                    SELECT * FROM user_sessions 
+                    WHERE expires_at > %s
+                    ORDER BY created_at DESC
+                """, (datetime.now(),))
+            
+            rows = cursor.fetchall()
         
-        rows = cursor.fetchall()
         conn.close()
         
         sessions = []
@@ -138,12 +148,15 @@ class SessionManager:
     def delete_session(self, token: str) -> bool:
         """Delete specific session"""
         conn = self.get_connection()
-        cursor = conn.cursor()
         
-        cursor.execute("DELETE FROM user_sessions WHERE token = %s", (token,))
-        deleted = cursor.rowcount > 0
+        # ✅ Fixed: cursor now uses context manager
+        with conn.cursor() as cursor:
+            
+            cursor.execute("DELETE FROM user_sessions WHERE token = %s", (token,))
+            deleted = cursor.rowcount > 0
+            
+            conn.commit()
         
-        conn.commit()
         conn.close()
         
         return deleted
@@ -156,15 +169,18 @@ class SessionManager:
             Number of sessions deleted
         """
         conn = self.get_connection()
-        cursor = conn.cursor()
         
-        cursor.execute("""
-            DELETE FROM user_sessions 
-            WHERE expires_at <= %s
-        """, (datetime.now(),))
+        # ✅ Fixed: cursor now uses context manager
+        with conn.cursor() as cursor:
+            
+            cursor.execute("""
+                DELETE FROM user_sessions 
+                WHERE expires_at <= %s
+            """, (datetime.now(),))
+            
+            deleted_count = cursor.rowcount
+            conn.commit()
         
-        deleted_count = cursor.rowcount
-        conn.commit()
         conn.close()
         
         return deleted_count
@@ -172,28 +188,30 @@ class SessionManager:
     def get_session_stats(self) -> Dict:
         """Get session statistics"""
         conn = self.get_connection()
-        cursor = conn.cursor()
         
-        # Total sessions
-        cursor.execute("SELECT COUNT(*) FROM user_sessions")
-        total = cursor.fetchone()[0]
-        
-        # Active sessions
-        cursor.execute("""
-            SELECT COUNT(*) FROM user_sessions 
-            WHERE expires_at > %s
-        """, (datetime.now(),))
-        active = cursor.fetchone()[0]
-        
-        # Expired sessions
-        expired = total - active
-        
-        # Unique users with active sessions
-        cursor.execute("""
-            SELECT COUNT(DISTINCT user_id) FROM user_sessions 
-            WHERE expires_at > %s
-        """, (datetime.now(),))
-        active_users = cursor.fetchone()[0]
+        # ✅ Fixed: All queries now in single cursor context
+        with conn.cursor() as cursor:
+            
+            # Total sessions
+            cursor.execute("SELECT COUNT(*) FROM user_sessions")
+            total = cursor.fetchone()[0]
+            
+            # Active sessions
+            cursor.execute("""
+                SELECT COUNT(*) FROM user_sessions 
+                WHERE expires_at > %s
+            """, (datetime.now(),))
+            active = cursor.fetchone()[0]
+            
+            # Expired sessions
+            expired = total - active
+            
+            # Unique users with active sessions
+            cursor.execute("""
+                SELECT COUNT(DISTINCT user_id) FROM user_sessions 
+                WHERE expires_at > %s
+            """, (datetime.now(),))
+            active_users = cursor.fetchone()[0]
         
         conn.close()
         
@@ -232,4 +250,3 @@ if __name__ == "__main__":
     stats = manager.get_session_stats()
     print(f"Session Stats: {stats}")
     manager.print_active_sessions()
-

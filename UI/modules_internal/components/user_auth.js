@@ -446,6 +446,19 @@ const UserAuth = {
             this.setLoadingProgress(47, 'Initializing application...');
             console.log('🔵 [AUTH] Starting initializeMainApp()...');
 
+            // ✅ CRITICAL: Retry Supabase config if not loaded during pre-auth phase
+            if (!window.SUPABASE_CONFIG_LOADED && window.loadSupabaseConfig) {
+                console.log('🔄 [AUTH] Retrying Supabase config load (backend now available)...');
+                try {
+                    await window.loadSupabaseConfig();
+                    if (window.SUPABASE_CONFIG_LOADED) {
+                        console.log('✅ [AUTH] Supabase config loaded successfully');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ [AUTH] Supabase config load failed (non-critical):', error);
+                }
+            }
+
             // ✅ CRITICAL FIX (Dec 13, 2025): Wait for deferred scripts to load
             // Scripts with `defer` attribute execute AFTER DOMContentLoaded fires
             // This creates a race condition where initializeMainApp() runs before agent-js.js loads

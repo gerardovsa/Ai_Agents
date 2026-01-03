@@ -163,7 +163,7 @@ window.ThreadCardExpansion = {
 
     /**
      * Find thread card element by thread ID
-     * Searches across all locations (prime, agent-1, agent-2, agent-3, thread-history, prime-loaded, etc.)
+     * Searches across all locations (prime, agent-1 through agent-26, thread-history, synergy, etc.)
      * 
      * CRITICAL BEHAVIOR (Dec 9, 2025 - FIXED):
      * - ALWAYS returns the CARD element itself (the element with data-thread-id)
@@ -196,12 +196,12 @@ window.ThreadCardExpansion = {
     /**
      * Get the element that should have the .expanded class added
      * - Thread History: The card itself
-     * - Prime/Prime-Loaded: The #prime-thread-info container
+     * - Prime: The #prime-thread-info container
      * - Agent columns: The #thread-info-N container
      * 
      * CRITICAL FIX (Dec 12, 2025):
      * Check ACTUAL parent container in DOM, NOT data-location attribute!
-     * Thread History cards can have data-location="prime-loaded" or "agent-1" but physically live in .thread-list
+     * Thread History cards can have data-location="prime" or "agent-1" but physically live in .thread-list
      * 
      * BUG FIXED: Previous logic used closest() which would traverse UP and find containers that
      * the card isn't actually inside. Now we check if card is DIRECTLY CONTAINED within the container.
@@ -228,7 +228,7 @@ window.ThreadCardExpansion = {
         // CSS selectors expect: #prime-thread-info .ai-chat-header-info.expanded
         // This means the .expanded class must be on the card, not the container
         const cardLocation = card.dataset.location;
-        if (cardLocation === 'prime' || cardLocation === 'prime-loaded') {
+        if (cardLocation === 'unassigned' || cardLocation === 'prime') {
             const parentPrimeContainer = card.closest('#prime-thread-info');
             if (parentPrimeContainer && parentPrimeContainer.contains(card)) {
                 // Card is inside #prime-thread-info container → expand the CARD ITSELF

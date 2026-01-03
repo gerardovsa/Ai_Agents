@@ -115,8 +115,8 @@ def get_connection_pool(schema_name: str):
         psycopg2.pool.ThreadedConnectionPool
     
     Pool Configuration:
-        - Min connections: 1 (minimal ready connections)
-        - Max connections: 3 (small pool for Supabase free tier)
+        - Min connections: 4 (ready for burst traffic)
+        - Max connections: 12 (optimized for Supabase Micro tier - 60 connection limit)
         - Connection timeout: 30s
         - Statement timeout: 60s
     """
@@ -186,7 +186,7 @@ def get_connection_pool(schema_name: str):
                 maxconn=12,     # Allow up to 12 concurrent connections (increased from 8 to handle UI bursts + GC delays)
                 dsn=db_url,
                 sslmode='require',
-                connect_timeout=10,
+                connect_timeout=30,  # Increased from 10 to 30 seconds to handle network latency
                 keepalives=1,
                 keepalives_idle=30,
                 keepalives_interval=10,

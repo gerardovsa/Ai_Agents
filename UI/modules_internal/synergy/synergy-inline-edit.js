@@ -450,23 +450,146 @@ class SynergyInlineEditClass {
         console.log('[SYNERGY INLINE EDIT] User choice:', choice);
 
         if (choice === 'create') {
-            // TODO: Implement internal doc creation inline
-            // For now, show a simple form
-            const docName = prompt('Enter document name:');
-            if (docName) {
-                console.log('[SYNERGY INLINE EDIT] Creating doc:', docName);
-                // Call backend to create doc and link it
-                alert('Document creation coming soon. Use "Link Existing" for now.');
+            // Use the existing working UI from internalDocsManager
+            if (window.internalDocsManager && typeof window.internalDocsManager.createInternalDoc === 'function') {
+                console.log('[SYNERGY INLINE EDIT] Opening document creation UI...');
+                await window.internalDocsManager.createInternalDoc(sessionId);
+            } else {
+                console.error('[SYNERGY INLINE EDIT] ❌ internalDocsManager not available');
+                alert('Document creation UI not loaded. Please refresh the page.');
             }
         } else if (choice === 'existing') {
-            // TODO: Implement doc picker inline
-            // For now, ask for doc ID
-            const docId = prompt('Enter document ID to link:');
-            if (docId) {
-                console.log('[SYNERGY INLINE EDIT] Linking doc:', docId);
-                await this.linkDocument(sessionId, docId, { doc_id: docId });
+            // Show document picker
+            try {
+                const documents = await this.fetchInternalDocs(sessionId);
+
+                if (documents.length === 0) {
+                    alert('No documents available to link');
+                    return;
+                }
+
+                const selectedDoc = await this.showDocumentPicker(documents);
+
+                if (selectedDoc) {
+                    console.log('[SYNERGY INLINE EDIT] Linking doc:', selectedDoc.doc_id);
+                    await this.linkDocument(sessionId, selectedDoc.doc_id, selectedDoc);
+                }
+            } catch (error) {
+                console.error('[SYNERGY INLINE EDIT] Error in document picker:', error);
+                alert('Failed to load documents: ' + error.message);
             }
         }
+    }
+
+    // Fetch internal documents for picker
+    async fetchInternalDocs(sessionId) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/synergy/internal-docs/list`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch documents');
+
+            const data = await response.json();
+            return data.documents || [];
+
+        } catch (error) {
+            console.error('[SYNERGY INLINE EDIT] Fetch documents error:', error);
+            throw error;
+        }
+    }
+
+    // Show document picker modal
+    showDocumentPicker(documents) {
+        return new Promise((resolve) => {
+            const modalHTML = `
+                <div id="synergy-doc-picker-modal" class="synergy-doc-choice-overlay">
+                    <div class="synergy-doc-choice-modal" style="max-width: 600px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+                        <div class="synergy-doc-choice-header">
+                            <h3>Link Document</h3>
+                            <button onclick="document.getElementById('synergy-doc-picker-modal').dispatchEvent(new CustomEvent('cancel')); return false;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style="padding: 16px; flex: 1; overflow-y: auto;">
+                            <input type="text" id="doc-search-input" placeholder="Search documents..." 
+                                style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px; margin-bottom: 16px;">
+                            <div id="doc-list" style="display: flex; flex-direction: column; gap: 8px;">
+                                ${documents.map(doc => `
+                                    <div class="doc-picker-item" data-doc-id="${doc.doc_id}" 
+                                        style="padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                            <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}" style="color: var(--accent-primary);"></i>
+                                            <div style="font-weight: 600; color: var(--text-primary);">
+                                                ${doc.title || 'Untitled Document'}
+                                            </div>
+                                        </div>
+                                        ${doc.description ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">${doc.description}</div>` : ''}
+                                        <div style="font-size: 11px; color: var(--text-muted);">
+                                            Created: ${new Date(doc.created_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modal = document.getElementById('synergy-doc-picker-modal');
+            const searchInput = document.getElementById('doc-search-input');
+            const docList = document.getElementById('doc-list');
+
+            // Focus search input
+            setTimeout(() => searchInput.focus(), 100);
+
+            // Search functionality
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const items = docList.querySelectorAll('.doc-picker-item');
+
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(query) ? 'block' : 'none';
+                });
+            });
+
+            // Doc item click handlers
+            docList.querySelectorAll('.doc-picker-item').forEach(item => {
+                item.addEventListener('mouseenter', () => {
+                    item.style.borderColor = 'var(--accent-primary)';
+                    item.style.background = 'rgba(79, 108, 255, 0.1)';
+                });
+
+                item.addEventListener('mouseleave', () => {
+                    item.style.borderColor = 'var(--border-default)';
+                    item.style.background = 'var(--bg-tertiary)';
+                });
+
+                item.addEventListener('click', () => {
+                    const docId = item.dataset.docId;
+                    const doc = documents.find(d => String(d.doc_id) === String(docId));
+                    modal.remove();
+                    resolve(doc);
+                });
+            });
+
+            modal.addEventListener('cancel', () => {
+                modal.remove();
+                resolve(null);
+            });
+
+            // ESC key to cancel
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    modal.dispatchEvent(new CustomEvent('cancel'));
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        });
     }
 
     // Show document choice modal (Create New vs Link Existing)
@@ -554,6 +677,156 @@ class SynergyInlineEditClass {
             console.error('[SYNERGY INLINE EDIT] Remove link error:', error);
             alert('Failed to remove link');
         }
+    }
+
+    // Add Thread - Link existing thread to Synergy session
+    async addThread(sessionId) {
+        console.log('[SYNERGY INLINE EDIT] 🚀 addThread method called for session:', sessionId);
+
+        try {
+            // Fetch user's threads
+            const userId = (window.UserAuth && window.UserAuth.user && (window.UserAuth.user.id || window.UserAuth.user.user_id)) || 1;
+            const response = await fetch(`${this.API_BASE_URL}/api/threads/list?user_id=${userId}`);
+
+            if (!response.ok) throw new Error('Failed to fetch threads');
+
+            const data = await response.json();
+            const threads = data.threads || [];
+
+            if (threads.length === 0) {
+                alert('No threads available to link');
+                return;
+            }
+
+            // Show thread picker
+            const selectedThread = await this.showThreadPicker(threads);
+
+            if (!selectedThread) {
+                console.log('[SYNERGY INLINE EDIT] Thread picker cancelled');
+                return;
+            }
+
+            console.log('[SYNERGY INLINE EDIT] Linking thread:', selectedThread);
+
+            // Link thread to session
+            const linkResponse = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/link-thread`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    thread_id: selectedThread.thread_id,
+                    user_id: userId
+                })
+            });
+
+            if (!linkResponse.ok) throw new Error('Failed to link thread');
+
+            const result = await linkResponse.json();
+
+            if (result.success) {
+                console.log('[SYNERGY INLINE EDIT] ✅ Thread linked successfully');
+                if (window.showNotification) {
+                    window.showNotification('Thread linked to Synergy session', 'success');
+                }
+
+                // Reload card to show new thread
+                await this.reloadCard(sessionId);
+            } else {
+                throw new Error(result.error || 'Unknown error');
+            }
+
+        } catch (error) {
+            console.error('[SYNERGY INLINE EDIT] Add thread error:', error);
+            alert('Failed to link thread: ' + error.message);
+        }
+    }
+
+    // Show thread picker modal
+    showThreadPicker(threads) {
+        return new Promise((resolve) => {
+            const modalHTML = `
+                <div id="synergy-thread-picker-modal" class="synergy-doc-choice-overlay">
+                    <div class="synergy-doc-choice-modal" style="max-width: 600px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+                        <div class="synergy-doc-choice-header">
+                            <h3>Link Thread</h3>
+                            <button onclick="document.getElementById('synergy-thread-picker-modal').dispatchEvent(new CustomEvent('cancel')); return false;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style="padding: 16px; flex: 1; overflow-y: auto;">
+                            <input type="text" id="thread-search-input" placeholder="Search threads..." 
+                                style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px; margin-bottom: 16px;">
+                            <div id="thread-list" style="display: flex; flex-direction: column; gap: 8px;">
+                                ${threads.map(thread => `
+                                    <div class="thread-picker-item" data-thread-id="${thread.thread_id}" 
+                                        style="padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                                            ${thread.thread_name || 'Untitled Thread'}
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">
+                                            Created: ${new Date(thread.created_at).toLocaleDateString()}
+                                            ${thread.message_count ? ` • ${thread.message_count} messages` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modal = document.getElementById('synergy-thread-picker-modal');
+            const searchInput = document.getElementById('thread-search-input');
+            const threadList = document.getElementById('thread-list');
+
+            // Focus search input
+            setTimeout(() => searchInput.focus(), 100);
+
+            // Search functionality
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const items = threadList.querySelectorAll('.thread-picker-item');
+
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(query) ? 'block' : 'none';
+                });
+            });
+
+            // Thread item click handlers
+            threadList.querySelectorAll('.thread-picker-item').forEach(item => {
+                item.addEventListener('mouseenter', () => {
+                    item.style.borderColor = 'var(--accent-primary)';
+                    item.style.background = 'rgba(79, 108, 255, 0.1)';
+                });
+
+                item.addEventListener('mouseleave', () => {
+                    item.style.borderColor = 'var(--border-default)';
+                    item.style.background = 'var(--bg-tertiary)';
+                });
+
+                item.addEventListener('click', () => {
+                    const threadId = item.dataset.threadId;
+                    const thread = threads.find(t => String(t.thread_id) === String(threadId));
+                    modal.remove();
+                    resolve(thread);
+                });
+            });
+
+            modal.addEventListener('cancel', () => {
+                modal.remove();
+                resolve(null);
+            });
+
+            // ESC key to cancel
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    modal.dispatchEvent(new CustomEvent('cancel'));
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        });
     }
 
     // Add Milestone
@@ -1125,11 +1398,14 @@ document.addEventListener('click', function (e) {
 
     // Open thread history button (for linking threads)
     if (target.classList.contains('synergy-open-thread-history-btn')) {
-        // Toggle the thread history sidebar
-        const threadMenu = document.getElementById('thread-menu-overlay');
-        if (threadMenu) {
-            threadMenu.classList.toggle('collapsed');
-            console.log('[SYNERGY] Thread history sidebar toggled for thread linking');
+        console.log('[SYNERGY INLINE EDIT] 🔗 Link thread button clicked');
+        const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
+        console.log('[SYNERGY INLINE EDIT] Session ID:', sessionId);
+        if (window.SynergyInlineEdit) {
+            console.log('[SYNERGY INLINE EDIT] Calling addThread method...');
+            window.SynergyInlineEdit.addThread(sessionId);
+        } else {
+            console.error('[SYNERGY INLINE EDIT] ❌ SynergyInlineEdit not found on window');
         }
         return;
     }

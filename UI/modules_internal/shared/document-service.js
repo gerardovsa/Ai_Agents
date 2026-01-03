@@ -351,3 +351,10 @@ export class DocumentService {
 
 // Export singleton instance
 export const documentService = new DocumentService();
+
+// Also expose to window for non-module scripts
+if (typeof window !== 'undefined') {
+    window.DocumentService = DocumentService;
+    window.documentService = documentService;
+    console.log('✅ [DocumentService] Exposed to window for non-module scripts');
+}

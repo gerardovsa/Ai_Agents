@@ -78,6 +78,7 @@ const ThreadManager = {
     // ==================== STATE ====================
     currentThreadId: null,
     threads: [],
+    _loadingThreads: new Map(),  // Guard: threadId → { prime: boolean, agents: Set<agentId> }
     threadsLoaded: false,
     autoSaveInterval: null,
     _initialized: false,  // ✅ NEW: Flag to prevent duplicate initialization
@@ -234,8 +235,8 @@ const ThreadManager = {
             return AppState.currentThreadId;
         }
 
-        // Fallback: Find thread at location='prime-loaded'
-        const primeThread = this.threads.find(t => t.location === 'prime-loaded');
+        // Fallback: Find thread at location='prime'
+        const primeThread = this.threads.find(t => t.location === 'prime');
         if (primeThread) {
             return primeThread.id;
         }
@@ -308,7 +309,7 @@ const ThreadManager = {
                 this.renderThreadList();
 
                 // ✅ SMART: Only auto-load prime if not already loaded
-                const primeThreadId = this.threads.find(t => t.location === 'prime-loaded')?.id;
+                const primeThreadId = this.threads.find(t => t.location === 'prime')?.id;
                 const primeAlreadyLoaded = typeof AppState !== 'undefined' && AppState.currentThreadId === primeThreadId;
 
                 if (!primeAlreadyLoaded && primeThreadId) {
@@ -453,9 +454,9 @@ const ThreadManager = {
             }
 
             console.log(`📥 [ThreadManager] Loading threads for user_id: ${userId}`);
-            console.log(`🌐 [ThreadManager] API URL: ${this.apiBaseUrl}/api/threads/list?user_id=${userId}`);
+            console.log(`🌐 [ThreadManager] API URL: ${this.apiBaseUrl}/api/threads/list?user_id=${userId}&limit=200`);
 
-            const response = await fetch(`${this.apiBaseUrl}/api/threads/list?user_id=${userId}`);
+            const response = await fetch(`${this.apiBaseUrl}/api/threads/list?user_id=${userId}&limit=200`);
             console.log(`📡 [ThreadManager] Response status: ${response.status} ${response.statusText}`);
 
             const data = await response.json();
@@ -468,7 +469,9 @@ const ThreadManager = {
                 console.log(`🔄 [ThreadManager] Processing ${threads.length} threads...`);
 
                 this.threads = threads.map((thread, idx) => {
-                    const location = thread.location || thread.agent || 'prime';
+                    // ✅ FIX (Dec 29, 2025): Use ONLY thread.location (single source of truth)
+                    // thread.agent is legacy field from backend - ignore it to prevent conflicts
+                    const location = thread.location || 'unassigned';
                     const threadTitle = thread.name || thread.title || 'Untitled Thread';
 
                     // Sanitize thread ID to remove any whitespace/newlines
@@ -496,6 +499,42 @@ const ThreadManager = {
                         return msg; // Already an object/array
                     });
 
+                    // ✅ FIX: Parse tags from JSON string to array
+                    let parsedTags = [];
+                    if (thread.tags) {
+                        if (Array.isArray(thread.tags)) {
+                            parsedTags = thread.tags;
+                        } else if (typeof thread.tags === 'string') {
+                            try {
+                                parsedTags = JSON.parse(thread.tags);
+                                if (!Array.isArray(parsedTags)) {
+                                    parsedTags = []; // Fallback if not an array after parsing
+                                }
+                            } catch (e) {
+                                console.warn(`⚠️ [ThreadManager] Failed to parse tags for thread ${threadId}:`, e);
+                                parsedTags = [];
+                            }
+                        }
+                    }
+
+                    // ✅ FIX: Parse email_participants from JSON string to array
+                    let parsedParticipants = null;
+                    if (thread.email_participants) {
+                        if (Array.isArray(thread.email_participants)) {
+                            parsedParticipants = thread.email_participants;
+                        } else if (typeof thread.email_participants === 'string') {
+                            try {
+                                parsedParticipants = JSON.parse(thread.email_participants);
+                                if (!Array.isArray(parsedParticipants)) {
+                                    parsedParticipants = null;
+                                }
+                            } catch (e) {
+                                console.warn(`⚠️ [ThreadManager] Failed to parse email_participants for thread ${threadId}:`, e);
+                                parsedParticipants = null;
+                            }
+                        }
+                    }
+
                     return {
                         id: threadId,
                         thread_id: thread.thread_id,
@@ -507,15 +546,15 @@ const ThreadManager = {
                         updated: thread.updated || thread.updated_at || new Date().toISOString(),
                         archived: thread.archived || false,
                         location: location,
-                        agent: location === 'prime' ? null : location,
-                        tags: thread.tags || [],
+                        agent: location === 'unassigned' ? null : location,
+                        tags: parsedTags,
                         synergy_card_id: thread.synergy_card_id || null,
                         workflow_slug: thread.workflow_slug || null,
                         workflow_title: thread.workflow_title || null,
                         // ✅ Email metadata fields
                         email_thread_id: thread.email_thread_id || null,
                         email_subject: thread.email_subject || null,
-                        email_participants: thread.email_participants || null
+                        email_participants: parsedParticipants
                     };
                 });
 
@@ -524,7 +563,7 @@ const ThreadManager = {
                 // Calculate location distribution
                 const locationCounts = {};
                 this.threads.forEach(t => {
-                    const loc = t.location || 'prime';
+                    const loc = t.location || 'unassigned';
                     locationCounts[loc] = (locationCounts[loc] || 0) + 1;
                 });
 
@@ -551,9 +590,9 @@ const ThreadManager = {
             return;
         }
 
-        // ONLY load prime-loaded thread (explicit startup thread)
+        // ONLY load prime thread (main AI sidebar thread)
         // Do NOT fallback to first prime thread - show empty state instead
-        const primeLoadedThread = this.threads.find(t => t.location === 'prime-loaded');
+        const primeLoadedThread = this.threads.find(t => t.location === 'prime');
 
         if (primeLoadedThread) {
             // ✅ FIX: Skip if already loaded AND assigned by initMultiAgent (prevents duplicate assignment query)
@@ -571,7 +610,7 @@ const ThreadManager = {
                 return;
             }
 
-            console.log(`🎯 [ThreadManager] Auto-loading PRIME-LOADED thread: ${primeLoadedThread.title}`);
+            console.log(`🎯 [ThreadManager] Auto-loading PRIME thread: ${primeLoadedThread.title}`);
             await this.loadThreadInPrime(primeLoadedThread.id);
 
             // Update thread info card after loading
@@ -581,8 +620,8 @@ const ThreadManager = {
             return;
         }
 
-        // No prime-loaded thread - show empty state with thread selector
-        console.log('📝 [ThreadManager] No prime-loaded thread - showing empty state');
+        // No prime thread - show empty state with thread selector
+        console.log('📝 [ThreadManager] No prime thread - showing empty state');
         this.showStartNewChatButton('ai-chat-messages', 'prime');
     },
 
@@ -1074,6 +1113,74 @@ const ThreadManager = {
         } else {
             console.warn('⚠️ [ThreadManager] ThreadManagerFilters not loaded yet');
         }
+    },
+
+    /**
+     * Toggle thread menu
+     * Delegates to ThreadManagerInteractions module
+     */
+    toggleThreadMenu() {
+        if (typeof window.ThreadManagerInteractions !== 'undefined' &&
+            typeof window.ThreadManagerInteractions.toggleThreadMenu === 'function') {
+            window.ThreadManagerInteractions.toggleThreadMenu();
+        } else {
+            console.warn('⚠️ [ThreadManager] ThreadManagerInteractions not loaded yet, using fallback');
+            // Fallback implementation
+            const menu = document.getElementById('thread-menu');
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+        }
+    },
+
+    /**
+     * Load thread in Prime column
+     * Delegates to ThreadManagerInteractions module
+     */
+    async loadThreadInPrime(threadId) {
+        if (typeof window.ThreadManagerInteractions !== 'undefined' &&
+            typeof window.ThreadManagerInteractions.loadThreadInPrime === 'function') {
+            return await window.ThreadManagerInteractions.loadThreadInPrime(threadId);
+        } else {
+            console.error('⚠️ [ThreadManager] ThreadManagerInteractions not loaded - cannot load thread in Prime');
+            return false;
+        }
+    },
+
+    /**
+     * Close thread menu
+     */
+    closeThreadMenu() {
+        const menu = document.getElementById('thread-menu');
+        if (menu) {
+            menu.classList.remove('show');
+        }
+    },
+
+    /**
+     * Unload thread from Prime
+     */
+    unloadThread() {
+        console.log('[ThreadManager] Unloading current thread from Prime');
+
+        // Clear Prime's session ID
+        if (typeof AppState !== 'undefined') {
+            AppState.sessionId = null;
+            AppState.chatMessages = [];
+        }
+
+        // Clear messages from UI
+        const chatMessages = document.getElementById('ai-chat-messages');
+        if (chatMessages) {
+            chatMessages.innerHTML = '';
+        }
+
+        // Show empty state
+        if (typeof window.showPrimeEmptyState === 'function') {
+            window.showPrimeEmptyState();
+        }
+
+        console.log('[ThreadManager] Thread unloaded from Prime');
     }
 };
 

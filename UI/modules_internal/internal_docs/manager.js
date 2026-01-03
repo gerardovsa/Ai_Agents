@@ -1042,8 +1042,6 @@ class InternalDocsManager {
                 tags: tags
             });
 
-            const data = await response.json();
-
             if (data.success) {
                 console.log('✅ Document created:', data.doc_id);
                 this.closePopup(popupId);

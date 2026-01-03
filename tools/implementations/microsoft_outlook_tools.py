@@ -285,16 +285,39 @@ class MicrosoftOutlookTools:
         return result
     
     def outlook_get_message(self, message_id: str, include_attachments: bool = False, **kwargs) -> Dict:
-        """Get full message details"""
+        """Get full message details with COMPLETE body content"""
         
-        endpoint = f'/me/messages/{message_id}'
+        # Build endpoint with explicit field selection to get FULL body content
+        # Use $select to ensure we get body, uniqueBody (full content without quoted replies)
+        select_fields = 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,sentDateTime,isRead,hasAttachments,importance,body,uniqueBody,bodyPreview'
         
         if include_attachments:
-            endpoint += '?$expand=attachments'
+            endpoint = f'/me/messages/{message_id}?$select={select_fields}&$expand=attachments'
+        else:
+            endpoint = f'/me/messages/{message_id}?$select={select_fields}'
         
         result = self._make_request('GET', endpoint, **kwargs)
         
         if result['success']:
+            # 🔍 DEBUG: Log body content from Microsoft Graph API
+            message_data = result['data']
+            body = message_data.get('body', {})
+            body_content = body.get('content', '')
+            unique_body = message_data.get('uniqueBody', {})
+            unique_body_content = unique_body.get('content', '')
+            body_preview = message_data.get('bodyPreview', '')
+            
+            print(f"\n🔍 [OUTLOOK API DEBUG] Message ID: {message_id}")
+            print(f"🔍 [OUTLOOK API DEBUG] Body content length: {len(body_content)}")
+            print(f"🔍 [OUTLOOK API DEBUG] UniqueBody content length: {len(unique_body_content)}")
+            print(f"🔍 [OUTLOOK API DEBUG] Body preview length: {len(body_preview)}")
+            print(f"🔍 [OUTLOOK API DEBUG] Body content type: {body.get('contentType', 'N/A')}")
+            print(f"🔍 [OUTLOOK API DEBUG] UniqueBody content type: {unique_body.get('contentType', 'N/A')}")
+            print(f"🔍 [OUTLOOK API DEBUG] Body content first 200 chars: {body_content[:200]}")
+            print(f"🔍 [OUTLOOK API DEBUG] Body content last 200 chars: {body_content[-200:]}")
+            print(f"🔍 [OUTLOOK API DEBUG] UniqueBody first 200 chars: {unique_body_content[:200]}")
+            print(f"🔍 [OUTLOOK API DEBUG] UniqueBody last 200 chars: {unique_body_content[-200:]}")
+            
             return {
                 'success': True,
                 'message': result['data']
@@ -841,20 +864,73 @@ class MicrosoftOutlookTools:
             }
         return result
     
-    def outlook_download_attachment(self, message_id: str, attachment_id: str, **kwargs) -> Dict:
-        """Download specific attachment"""
+    def outlook_download_attachment(self, message_id: str, attachment_id: str, save_to_disk: bool = True, **kwargs) -> Dict:
+        """Download specific attachment
+        
+        ⚠️ IMPORTANT: This tool saves files to disk by default.
+        For AI analysis, use microsoft_outlook_process_attachment_for_ai instead!
+        
+        Args:
+            message_id: Outlook message ID
+            attachment_id: Attachment ID
+            save_to_disk: If True (default), saves to temp folder and returns path.
+                         If False, returns base64 (WARNING: causes token overflow!)
+        
+        Returns:
+            If save_to_disk=True:
+                {'success': True, 'file_path': '/path/to/file.pdf', 'name': '...', 'size': 123456}
+            If save_to_disk=False:
+                {'success': True, 'content': 'base64...', 'name': '...', 'size': 123456}
+        """
         
         result = self._make_request('GET', f'/me/messages/{message_id}/attachments/{attachment_id}', **kwargs)
         
         if result['success']:
+            import base64
+            import tempfile
+            import os
+            
             attachment = result['data']
-            return {
-                'success': True,
-                'name': attachment.get('name'),
-                'content_type': attachment.get('contentType'),
-                'size': attachment.get('size'),
-                'content': attachment.get('contentBytes')  # Base64 encoded
-            }
+            name = attachment.get('name', 'attachment')
+            content_type = attachment.get('contentType', 'application/octet-stream')
+            size = attachment.get('size', 0)
+            content_base64 = attachment.get('contentBytes')
+            
+            if save_to_disk:
+                # Save to temp folder
+                temp_dir = tempfile.gettempdir()
+                downloads_dir = os.path.join(temp_dir, 'outlook_attachments')
+                os.makedirs(downloads_dir, exist_ok=True)
+                
+                # Generate unique filename
+                import time
+                timestamp = int(time.time() * 1000)
+                file_name = f"{timestamp}_{name}"
+                file_path = os.path.join(downloads_dir, file_name)
+                
+                # Decode and save
+                file_bytes = base64.b64decode(content_base64)
+                with open(file_path, 'wb') as f:
+                    f.write(file_bytes)
+                
+                return {
+                    'success': True,
+                    'file_path': file_path,
+                    'name': name,
+                    'content_type': content_type,
+                    'size': size,
+                    'message': f"✅ Attachment saved to: {file_path}"
+                }
+            else:
+                # Return base64 (WARNING: token overflow risk!)
+                return {
+                    'success': True,
+                    'name': name,
+                    'content_type': content_type,
+                    'size': size,
+                    'content': content_base64,  # Base64 encoded
+                    'warning': '⚠️ Returning base64 content can cause token overflow! Use save_to_disk=True or microsoft_outlook_process_attachment_for_ai for AI analysis.'
+                }
         return result
     
     def outlook_create_inbox_rule(self, display_name: str, conditions: Dict, actions: Dict, **kwargs) -> Dict:

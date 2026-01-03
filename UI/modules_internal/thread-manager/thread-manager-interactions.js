@@ -54,7 +54,7 @@ Object.assign(window.ThreadManager, {
         console.log(`🔄 [Interactions] Switching to thread: ${thread.title}`);
 
         // Check if thread is in an agent (unless forcing)
-        if (!forceSwitch && thread.location && thread.location !== 'prime') {
+        if (!forceSwitch && thread.location && thread.location !== 'unassigned') {
             console.log(`ℹ️ [Interactions] Thread in ${thread.location}, showing options`);
 
             const agentId = parseInt(thread.location.replace('agent-', ''));
@@ -74,183 +74,206 @@ Object.assign(window.ThreadManager, {
      * Load thread in Prime panel
      */
     async loadThreadInPrime(threadId) {
-        const thread = this.threads.find(t => t.id === threadId);
-        if (!thread) {
-            console.error('❌ [Interactions] Thread not found:', threadId);
+        // SAFETY CHECK: Ensure UnifiedMessageRenderer is loaded before proceeding
+        if (typeof UnifiedMessageRenderer === 'undefined') {
+            console.error('[loadThreadInPrime] UnifiedMessageRenderer not loaded yet - deferring load');
+            setTimeout(() => this.loadThreadInPrime(threadId), 100);
             return;
         }
 
-        console.log(`📖 [Interactions] Loading thread in Prime: ${thread.title}`);
+        // GUARD: Prevent concurrent loads of same thread in Prime
+        if (!this._loadingThreads) {
+            this._loadingThreads = new Map();
+        }
 
-        // Check if thread is in an agent and clear it
-        if (typeof MultiAgent !== 'undefined') {
-            const currentLocation = MultiAgent.getThreadCurrentLocation?.(threadId);
-            if (currentLocation && currentLocation.startsWith('agent-')) {
-                const agentId = parseInt(currentLocation.replace('agent-', ''));
-                MultiAgent.clearAgentThread?.(agentId);
-                console.log(`✅ [Interactions] Cleared thread from ${currentLocation}`);
+        const loadState = this._loadingThreads.get(threadId) || { prime: false, agents: new Set() };
+        if (loadState.prime) {
+            console.warn(`⚠️ [Interactions] Thread ${threadId} already loading in Prime, skipping duplicate load`);
+            return;
+        }
+
+        loadState.prime = true;
+        this._loadingThreads.set(threadId, loadState);
+
+        try {
+            const thread = this.threads.find(t => t.id === threadId);
+            if (!thread) {
+                console.error('❌ [Interactions] Thread not found:', threadId);
+                return;
             }
-        }
 
-        // CRITICAL: Set thread location to 'prime-loaded' (only ONE thread can be prime-loaded at a time)
-        await this.assignThread(threadId, 'prime-loaded', true);
-        console.log(`✅ [Interactions] Thread assigned to prime-loaded: ${threadId}`);
+            console.log(`📖 [Interactions] Loading thread in Prime: ${thread.title}`);
 
-        // Update global Prime thread ID for lock system
-        window._primeThreadId = threadId;
-        console.log(`✅ [Interactions] Updated window._primeThreadId: ${threadId}`);
+            // Check if thread is in an agent and clear it
+            if (typeof MultiAgent !== 'undefined') {
+                const currentLocation = MultiAgent.getThreadCurrentLocation?.(threadId);
+                if (currentLocation && currentLocation.startsWith('agent-')) {
+                    const agentId = parseInt(currentLocation.replace('agent-', ''));
+                    MultiAgent.clearAgentThread?.(agentId);
+                    console.log(`✅ [Interactions] Cleared thread from ${currentLocation}`);
+                }
+            }
 
-        this.currentThreadId = threadId;
+            // CRITICAL: Set thread location to 'prime' (main AI sidebar)
+            await this.assignThread(threadId, 'prime', true);
+            console.log(`✅ [Interactions] Thread assigned to prime: ${threadId}`);
 
-        // ✅ FIX: Sync AppState.currentThreadId so autoLoadPrimeThread() knows thread is loaded
-        if (typeof this.syncAppState === 'function') {
-            this.syncAppState(threadId);
-            console.log(`✅ [Interactions] AppState synced with thread: ${threadId}`);
-        } else if (typeof AppState !== 'undefined') {
-            // Fallback if syncAppState not loaded yet
-            AppState.currentThreadId = threadId;
-            console.log(`✅ [Interactions] AppState.currentThreadId set: ${threadId}`);
-        }
+            // Update global Prime thread ID for lock system
+            window._primeThreadId = threadId;
+            console.log(`✅ [Interactions] Updated window._primeThreadId: ${threadId}`);
 
-        // Clear attached files
-        if (window.clearChatAttachedFiles) {
-            window.clearChatAttachedFiles();
-        }
+            this.currentThreadId = threadId;
 
-        // Clear messages container (preserve scroll controls)
-        const messagesContainer = document.getElementById('ai-chat-messages');
-        if (messagesContainer) {
-            // Remove only message elements, keep scroll controls and other UI
-            const messages = messagesContainer.querySelectorAll('.ai-message');
-            messages.forEach(msg => msg.remove());
-        }
+            // ✅ FIX: Sync AppState.currentThreadId so autoLoadPrimeThread() knows thread is loaded
+            if (typeof this.syncAppState === 'function') {
+                this.syncAppState(threadId);
+                console.log(`✅ [Interactions] AppState synced with thread: ${threadId}`);
+            } else if (typeof AppState !== 'undefined') {
+                // Fallback if syncAppState not loaded yet
+                AppState.currentThreadId = threadId;
+                console.log(`✅ [Interactions] AppState.currentThreadId set: ${threadId}`);
+            }
 
-        // Hide welcome container
-        const welcomeContainer = document.getElementById('prime-welcome-container');
-        if (welcomeContainer) {
-            welcomeContainer.style.display = 'none';
-        }
+            // Clear attached files
+            if (window.clearChatAttachedFiles) {
+                window.clearChatAttachedFiles();
+            }
 
-        // Load messages
-        if (!Array.isArray(thread.messages)) {
-            thread.messages = [];
-        }
+            // Clear messages container (preserve scroll controls)
+            const messagesContainer = document.getElementById('ai-chat-messages');
+            if (messagesContainer) {
+                // Remove only message elements, keep scroll controls and other UI
+                const messages = messagesContainer.querySelectorAll('.ai-message');
+                messages.forEach(msg => msg.remove());
+            }
 
-        if (thread.messages.length === 0 && thread.message_count > 0) {
-            console.log(`📥 [Interactions] Loading ${thread.message_count} messages from backend...`);
-            // AI Prime loads ALL messages (no pagination) - pass null for limit
-            const result = await this.loadMessagesForThread(threadId, null, 0);
-            const messages = result?.messages || (Array.isArray(result) ? result : []);
-            thread.messages = Array.isArray(messages) ? messages : [];
-        }
+            // Hide welcome container
+            const welcomeContainer = document.getElementById('prime-welcome-container');
+            if (welcomeContainer) {
+                welcomeContainer.style.display = 'none';
+            }
 
-        // Ensure messages is always an array before iteration
-        if (!Array.isArray(thread.messages)) {
-            console.warn(`⚠️ [Interactions] thread.messages is not an array, resetting to []`);
-            thread.messages = [];
-        }
+            // Load messages
+            if (!Array.isArray(thread.messages)) {
+                thread.messages = [];
+            }
 
-        // Render messages (skip tool_use/tool_result messages - they're internal only)
-        if (thread.messages.length > 0 && messagesContainer) {
-            console.log(`📋 [Interactions] Rendering ${thread.messages.length} messages...`);
-            let renderedCount = 0;
-            let skippedCount = 0;
+            if (thread.messages.length === 0 && thread.message_count > 0) {
+                console.log(`📥 [Interactions] Loading ${thread.message_count} messages from backend...`);
+                // AI Prime loads ALL messages (no pagination) - pass null for limit
+                const result = await this.loadMessagesForThread(threadId, null, 0);
+                const messages = result?.messages || (Array.isArray(result) ? result : []);
+                thread.messages = Array.isArray(messages) ? messages : [];
+            }
 
-            thread.messages.forEach((msg, idx) => {
-                // Only render user and assistant messages
-                // Skip: tool_use, tool_result (internal API mechanics)
-                if (msg.role === 'user' || msg.role === 'assistant') {
-                    // Check if message has actual text content
-                    const hasTextContent = checkMessageHasTextContent(msg.content);
+            // Ensure messages is always an array before iteration
+            if (!Array.isArray(thread.messages)) {
+                console.warn(`⚠️ [Interactions] thread.messages is not an array, resetting to []`);
+                thread.messages = [];
+            }
 
-                    if (hasTextContent && typeof addChatMessage === 'function') {
-                        addChatMessage(msg.role, msg.content);
-                        renderedCount++;
-                    } else {
-                        if (window.DEBUG_TWO_RULE) {
-                            console.log(`[Interactions] Skipping message ${idx + 1} (role: ${msg.role}, content type: ${typeof msg.content})`);
+            // Render messages (skip tool_use/tool_result messages - they're internal only)
+            if (thread.messages.length > 0 && messagesContainer) {
+                console.log(`📋 [Interactions] Rendering ${thread.messages.length} messages in BATCHES...`);
+
+                // CRITICAL FIX (Jan 4, 2026): FORCE SEQUENTIAL RENDERING WITH BATCHING
+                // Same fix as agent-js.js - prevent DOM overload from rapid TwoRuleStreamProcessor calls
+                const BATCH_SIZE = 10;
+                const BATCH_DELAY_MS = 100;
+                const MESSAGE_DELAY_MS = 10;
+
+                // Add loading indicator to Prime chat
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.style.cssText = 'padding: 20px; text-align: center; color: #666; font-style: italic; background: #f0f0f0; border-radius: 8px; margin: 10px;';
+                loadingIndicator.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Loading messages... <span id="prime-load-progress">0/${thread.messages.length}</span>`;
+                messagesContainer.appendChild(loadingIndicator);
+
+                let renderedCount = 0;
+                let skippedCount = 0;
+
+                for (let batchStart = 0; batchStart < thread.messages.length; batchStart += BATCH_SIZE) {
+                    const batchEnd = Math.min(batchStart + BATCH_SIZE, thread.messages.length);
+                    const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
+                    const totalBatches = Math.ceil(thread.messages.length / BATCH_SIZE);
+
+                    console.log(`[PRIME-LOAD] 📦 Batch ${batchNum}/${totalBatches}: Rendering messages ${batchStart + 1}-${batchEnd}`);
+
+                    for (let idx = batchStart; idx < batchEnd; idx++) {
+                        const msg = thread.messages[idx];
+
+                        try {
+                            console.log(`[PRIME-LOAD] 🎯 Message ${idx + 1}/${thread.messages.length} (${msg.role}) - RENDER START`);
+
+                            // Only render user and assistant messages
+                            // Skip: tool_use, tool_result (internal API mechanics)
+                            if (msg.role === 'user' || msg.role === 'assistant') {
+                                if (typeof addChatMessage === 'function') {
+                                    const rendered = await addChatMessage(msg.role, msg.content, false, false);  // isThinking=false, checkDuplicates=false
+                                    if (rendered) {
+                                        renderedCount++;
+                                        console.log(`[PRIME-LOAD] ✅ Message ${idx + 1} RENDERED SUCCESSFULLY`);
+                                    } else {
+                                        // Message was skipped (empty content, tool_result-only, etc.)
+                                        skippedCount++;
+                                        console.log(`[PRIME-LOAD] ⏭️ Message ${idx + 1} SKIPPED (no renderable content)`);
+                                    }
+
+                                    // FORCE DOM UPDATE: Tiny delay to ensure message appears in correct order
+                                    await new Promise(resolve => setTimeout(resolve, MESSAGE_DELAY_MS));
+
+                                } else {
+                                    console.warn(`[PRIME-LOAD] addChatMessage not available`);
+                                }
+                            } else {
+                                // Skip tool/system/other messages
+                                skippedCount++;
+                            }
+
+                            // Update progress indicator
+                            document.getElementById('prime-load-progress').textContent = `${idx + 1}/${thread.messages.length}`;
+
+                        } catch (renderError) {
+                            console.error(`❌ [PRIME-LOAD] Failed to render message ${idx + 1} (ID: ${msg.id}):`, renderError);
+                            console.error('[PRIME-LOAD]   Message role:', msg.role);
+                            console.error('[PRIME-LOAD]   Content type:', Array.isArray(msg.content) ? `array[${msg.content.length}]` : typeof msg.content);
+
+                            // Create error placeholder so user knows a message failed
+                            if (messagesContainer && typeof addChatMessage === 'function') {
+                                try {
+                                    await addChatMessage('assistant', `⚠️ **Message Rendering Error**\n\nMessage #${idx + 1} (ID: ${msg.id}) failed to render. Check console for details.`, false, false);
+                                } catch (e) {
+                                    console.error('❌ [PRIME-LOAD] Failed to add error placeholder:', e);
+                                }
+                            }
+
+                            skippedCount++;
+                            // Continue with next message instead of stopping the loop
+                            console.log('[PRIME-LOAD] Continuing with next message...');
                         }
-                        skippedCount++;
+                    } // End of batch message loop
+
+                    // BATCH DELAY: Give DOM time to settle before next batch
+                    if (batchEnd < thread.messages.length) {
+                        console.log(`[PRIME-LOAD] 🛑 Batch ${batchNum} complete. Pausing ${BATCH_DELAY_MS}ms before next batch...`);
+                        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
                     }
-                } else {
-                    // Skip tool messages
-                    skippedCount++;
-                }
-            });
 
-            console.log(`✅ [Interactions] Rendered ${renderedCount} messages, skipped ${skippedCount}`);
-        }
+                } // End of batch loop
 
-        /**
-         * Check if message content has actual text to display
-         * @param {string|object|array} content - Message content
-         * @returns {boolean} True if message has displayable text
-         */
-        function checkMessageHasTextContent(content) {
-            if (typeof content === 'string' && content.trim()) {
-                return true;
+                // Remove loading indicator
+                loadingIndicator.remove();
+                console.log(`[PRIME-LOAD] ✅ ALL ${thread.messages.length} messages processed in ${Math.ceil(thread.messages.length / BATCH_SIZE)} batches`);
+                console.log(`✅ [Interactions] Rendered ${renderedCount} messages, skipped ${skippedCount}`);
             }
 
-            if (Array.isArray(content)) {
-                // Check if any block has text or thinking
-                return content.some(block =>
-                    (block.type === 'text' && block.text && block.text.trim()) ||
-                    (block.type === 'thinking' && block.thinking)
-                );
-            }
-
-            if (content && typeof content === 'object') {
-                if (content.type === 'text' && content.text && content.text.trim()) {
-                    return true;
-                }
-                if (content.type === 'thinking' && content.thinking) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        // Update AppState
-        if (typeof AppState !== 'undefined') {
-            // Ensure thread.messages is an array before spreading
-            AppState.chatMessages = Array.isArray(thread.messages) ? [...thread.messages] : [];
-            AppState.sessionId = threadId;
-        }
-
-        // Assign to Prime location (use 'prime-loaded' for page reload restoration)
-        if (typeof this.assignThread === 'function') {
-            await this.assignThread(threadId, 'prime-loaded');
-        }
-
-        // Update UI
-        if (typeof this.updatePrimeHeader === 'function') {
+            // Update Prime header with thread info
             this.updatePrimeHeader(threadId);
-        }
-        if (typeof this.syncAppState === 'function') {
-            this.syncAppState(threadId);
-        }
-        if (typeof this.renderThreadList === 'function') {
-            this.renderThreadList();
-        }
 
-        // Show input wrapper
-        const primeInputWrapper = document.querySelector('.ai-chat-input-wrapper');
-        if (primeInputWrapper) {
-            primeInputWrapper.style.display = 'flex';
+        } finally {
+            // Release load lock
+            loadState.prime = false;
+            this._loadingThreads.set(threadId, loadState);
         }
-
-        // Enable send button
-        const primeSendBtn = document.querySelector('.send-btn');
-        if (primeSendBtn) {
-            primeSendBtn.disabled = false;
-            primeSendBtn.style.opacity = '1';
-        }
-
-        console.log(`✅ [Interactions] Thread loaded in Prime: ${threadId}`);
-
-        // Close thread menu
-        this.closeThreadMenu();
     },
 
     /**
@@ -287,7 +310,7 @@ Object.assign(window.ThreadManager, {
 
         switch (option) {
             case 'move-to-prime':
-                await this.assignThread(threadId, 'prime-loaded');
+                await this.assignThread(threadId, 'prime');
                 await this.switchThread(threadId, true);
 
                 // Open AI Prime sidebar to show the thread
@@ -319,7 +342,7 @@ Object.assign(window.ThreadManager, {
                     MultiAgent.clearAgentThread?.(parseInt(agentId));
                 }
 
-                // Load thread in Prime properly (this sets prime-loaded and loads messages)
+                // Load thread in Prime properly (this sets prime location and loads messages)
                 await this.loadThreadInPrime(threadId);
 
                 // Open AI Prime sidebar to show the thread
@@ -390,11 +413,12 @@ Object.assign(window.ThreadManager, {
         const thread = this.threads.find(t => t.id === threadId);
         if (!thread) return;
 
-        const currentLocation = thread.location || 'prime';
+        const currentLocation = thread.location || 'unassigned';
 
-        if (currentLocation === 'prime') {
+        // If thread is already unassigned, nothing to do
+        if (currentLocation === 'unassigned') {
             if (typeof showNotification === 'function') {
-                showNotification('Thread is already in Prime', 'info');
+                showNotification('Thread is already unassigned', 'info');
             }
             return;
         }
@@ -404,13 +428,23 @@ Object.assign(window.ThreadManager, {
                 'Unload Thread?',
                 `Move "${thread.title}" from ${currentLocation} back to Prime?`,
                 async () => {
-                    // CRITICAL FIX (Dec 12, 2025): Unload to 'prime' NOT 'prime-loaded'
-                    // Unload means remove from agent and return to unassigned pool (prime)
-                    // 'prime-loaded' is reserved for the ONE thread actively loaded in Prime panel
-                    await this.assignThread(threadId, 'prime');
+                    // Update thread location to 'unassigned' (unassigned pool)
+                    await this.assignThread(threadId, 'unassigned');
 
-                    // Clear from agent - BOTH thread info AND messages
-                    // CRITICAL FIX (Dec 15, 2025): Extract agentId from currentLocation and ALWAYS clear
+                    // Handle Prime AI panel unload
+                    if (currentLocation === 'prime') {
+                        console.log(`🧹 [unloadThread] Unloading from Prime AI panel`);
+
+                        // Call PrimeAI.unloadThread() to clear UI
+                        if (typeof PrimeAI !== 'undefined' && typeof PrimeAI.unloadThread === 'function') {
+                            PrimeAI.unloadThread();
+                            console.log(`✅ [unloadThread] Called PrimeAI.unloadThread()`);
+                        } else {
+                            console.warn(`⚠️ [unloadThread] PrimeAI.unloadThread not available`);
+                        }
+                    }
+
+                    // Handle Agent column unload
                     if (currentLocation && currentLocation.startsWith('agent-')) {
                         const match = currentLocation.match(/agent-(\d+)/);
                         if (match) {
@@ -450,8 +484,8 @@ Object.assign(window.ThreadManager, {
                     if (threadCard) {
                         const agentBadge = threadCard.querySelector('.thread-item-agent-badge');
                         if (agentBadge) {
-                            agentBadge.className = 'thread-item-agent-badge prime';
-                            agentBadge.innerHTML = '<i class="fas fa-crown"></i> Prime';
+                            agentBadge.className = 'thread-item-agent-badge unassigned';
+                            agentBadge.innerHTML = '<i class="fas fa-inbox"></i> Unassigned';
                         }
 
                         const unloadBtn = threadCard.querySelector('.thread-action-btn.unload');
@@ -463,7 +497,7 @@ Object.assign(window.ThreadManager, {
                     await this.loadThreadsFromBackend();
 
                     if (typeof showNotification === 'function') {
-                        showNotification('Thread moved to Prime', 'success');
+                        showNotification('Thread unassigned', 'success');
                     }
                 }
             );
@@ -501,7 +535,7 @@ Object.assign(window.ThreadManager, {
 
         // Set thread data using custom MIME types (NOT text/plain to avoid browser including visible text)
         event.dataTransfer.setData('application/x-thread-id', threadId);  // Primary format
-        event.dataTransfer.setData('application/x-source-location', threadElement.dataset.currentLocation || 'prime');
+        event.dataTransfer.setData('application/x-source-location', threadElement.dataset.currentLocation || 'unassigned');
         event.dataTransfer.effectAllowed = 'move';
 
         // Prevent browser from including text content by clearing selection
@@ -604,7 +638,7 @@ Object.assign(window.ThreadManager, {
 
         // Check if dropping in same location - no action needed (EXCEPT for Prime)
         // Prime should always load the thread when dropped, even if already marked as in Prime
-        if (sourceLocation === targetLocation && targetLocation !== 'prime') {
+        if (sourceLocation === targetLocation && targetLocation !== 'unassigned') {
             console.log('🔄 [Drop] Same location - no change needed');
             if (typeof showNotification === 'function') {
                 showNotification('Thread already in this location', 'info');
@@ -612,7 +646,7 @@ Object.assign(window.ThreadManager, {
             return;
         }
 
-        if (targetLocation === 'prime') {
+        if (targetLocation === 'unassigned') {
             console.log(`🎯 [Drop] Loading thread ${threadId} in Prime`);
 
             // Find the thread
@@ -625,7 +659,7 @@ Object.assign(window.ThreadManager, {
                 return;
             }
 
-            // Load in Prime using loadThreadInPrime (this will set prime-loaded internally)
+            // Load in Prime using loadThreadInPrime (this will set prime location internally)
             await this.loadThreadInPrime(threadId);
 
             // Open AI Prime sidebar to show the thread
@@ -879,10 +913,10 @@ Object.assign(window.ThreadManager, {
     /**
      * Show new chat modal
      */
-    async showNewChatModal(location = 'prime', buttonElement = null) {
+    async showNewChatModal(location = 'unassigned', buttonElement = null) {
         console.log(`➕ [Interactions] Opening new chat modal for ${location}`);
 
-        const locationName = location === 'prime' ? 'Prime Agent' :
+        const locationName = location === 'unassigned' ? 'Unassigned' :
             (location.startsWith('agent-') ? `Agent ${location.split('-')[1]}` : location);
 
         // Calculate modal position if button element provided
@@ -1083,7 +1117,7 @@ Object.assign(window.ThreadManager, {
                 }
 
                 // Load thread
-                if (location === 'prime') {
+                if (location === 'unassigned') {
                     await this.loadThreadInPrime(newThreadId);
                 } else if (location.startsWith('agent-')) {
                     const agentId = parseInt(location.replace('agent-', ''));

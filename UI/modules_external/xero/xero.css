@@ -17,6 +17,66 @@
 }
 
 /* ============================================================================
+   XERO MODULE STRUCTURE (FIXED HEADER/NAV + SCROLLABLE CONTENT)
+   ============================================================================ */
+.xero-module-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.module-header {
+    flex-shrink: 0;
+    /* Header stays fixed at top */
+}
+
+.xero-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.xero-subtabs-nav {
+    flex-shrink: 0;
+    /* Nav stays fixed below header */
+}
+
+.xero-tab-content-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Only this area scrolls */
+}
+
+.xero-dashboard-wrapper {
+    /* Content inside scrollable area */
+    padding: 20px;
+    height: 100%;
+}
+
+/* Chart containers need explicit minimum dimensions for Plotly */
+#seasonality-heatmap,
+#seasonality-bar-chart {
+    min-height: 400px !important;
+    height: 400px;
+    width: 100%;
+}
+
+/* All chart containers */
+[id^="xero-chart-"],
+[id*="-chart"],
+.xero-chart-card>div[id] {
+    min-height: 350px !important;
+}
+
+/* Ensure chart parent containers have proper dimensions */
+.xero-chart-card {
+    min-height: 400px;
+}
+
+/* ============================================================================
    BUSINESS SELECTOR
    ============================================================================ */
 .xero-business-selector {
@@ -37,10 +97,10 @@
 
 .xero-select {
     padding: 8px 12px;
-    border: 1px solid var(--border-color);
+    border: 1px solid #30363d;
     border-radius: 6px;
-    background: var(--background-primary);
-    color: var(--text-primary);
+    background: #161b22;
+    color: #c9d1d9;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
@@ -48,6 +108,7 @@
 
 .xero-select:hover {
     border-color: var(--xero-primary);
+    background: #1c2128;
 }
 
 .xero-select:focus {
@@ -280,11 +341,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    background: var(--card-background);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin-bottom: 20px;
+    padding: 16px;
+    background: #0d1117;
+    border-bottom: 1px solid #30363d;
+    margin-bottom: 16px;
 }
 
 .xero-toolbar-left,
@@ -296,10 +356,10 @@
 
 .xero-btn {
     padding: 10px 16px;
-    border: 1px solid var(--border-color);
+    border: 1px solid #30363d;
     border-radius: 6px;
-    background: var(--background-primary);
-    color: var(--text-primary);
+    background: #21262d;
+    color: #c9d1d9;
     font-size: 14px;
     /* font-weight: 500; */
     cursor: pointer;
@@ -310,8 +370,13 @@
 }
 
 .xero-btn:hover {
-    background: var(--background-hover);
+    background: #30363d;
     border-color: var(--xero-primary);
+}
+
+.xero-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .xero-btn-primary {
@@ -327,10 +392,10 @@
 
 .xero-search {
     padding: 10px 14px;
-    border: 1px solid var(--border-color);
+    border: 1px solid #30363d;
     border-radius: 6px;
-    background: var(--background-primary);
-    color: var(--text-primary);
+    background: #0d1117;
+    color: #c9d1d9;
     font-size: 14px;
     width: 250px;
     transition: all 0.2s;
@@ -340,6 +405,7 @@
     outline: none;
     border-color: var(--xero-primary);
     box-shadow: 0 0 0 3px rgba(19, 181, 234, 0.1);
+    background: #161b22;
 }
 
 .xero-filter {
@@ -710,4 +776,111 @@
 .tabulator-placeholder {
     color: #8b949e !important;
     background-color: #0d1117 !important;
+}
+
+/* ============================================================================
+   DASHBOARD INFO TOOLTIPS
+   ============================================================================ */
+.xero-info-icon {
+    color: #8b949e;
+    font-size: 14px;
+    margin-left: 8px;
+    cursor: help;
+    transition: color 0.2s ease;
+    position: relative;
+    display: inline-block;
+}
+
+.xero-info-icon:hover {
+    color: #13B5EA;
+}
+
+.xero-info-tooltip {
+    position: absolute;
+    z-index: 10000;
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.xero-info-tooltip.show {
+    opacity: 1;
+}
+
+.xero-info-tooltip h5 {
+    color: #13B5EA;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #30363d;
+}
+
+.xero-info-tooltip .tooltip-section {
+    margin-bottom: 12px;
+}
+
+.xero-info-tooltip .tooltip-section:last-child {
+    margin-bottom: 0;
+}
+
+.xero-info-tooltip .tooltip-label {
+    color: #8b949e;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.xero-info-tooltip .tooltip-text {
+    color: #c9d1d9;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.xero-info-tooltip ul {
+    margin: 4px 0 0 0;
+    padding-left: 20px;
+    list-style: none;
+}
+
+.xero-info-tooltip ul li {
+    color: #c9d1d9;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+.xero-info-tooltip ul li:before {
+    content: "\u2022";
+    color: #13B5EA;
+    font-weight: bold;
+    position: absolute;
+    left: -15px;
+}
+
+.xero-info-tooltip .tooltip-highlight {
+    color: #13B5EA;
+    font-weight: 600;
+}
+
+.xero-info-tooltip .tooltip-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(19, 181, 234, 0.15);
+    border: 1px solid rgba(19, 181, 234, 0.3);
+    border-radius: 4px;
+    color: #13B5EA;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
 }

@@ -323,7 +323,7 @@ const AgentColumn = (function () {
                             </button>
                             <button class="agent-attach-btn" 
                                     id="agent-attach-${agentId}"
-                                    onclick="event.stopPropagation(); AgentInput.showFileDialog(${agentId})"
+                                    onclick="AgentInput.showFileDialog(${agentId}, event)"
                                     title="Attach files"
                                     aria-label="Attach files">
                                 <i class="fas fa-paperclip"></i>

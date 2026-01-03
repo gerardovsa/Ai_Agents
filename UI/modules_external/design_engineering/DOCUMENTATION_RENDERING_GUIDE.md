@@ -1,11 +1,14 @@
 # How to Make Full Documentation Renderable in Chat
 
+> **⚠️ CRITICAL:** When generating SVG diagrams in CAD output, **ALWAYS follow** `.github/SVG_CAD_GENERATION_RULES.md` to prevent title/content overlap.
+
 ## Current Status ✓
 
 **Already Working:**
 - ✓ CAD output renders with delimiters (```ENGINEERING_CAD, ```3D_MODEL, ```TECHNICAL_DRAWING)
 - ✓ New ```CONSTRAINTS_INFO delimiter added and integrated
 - ✓ Constraints render in dedicated tab with validation status
+- ✓ SVG spacing rules documented in `.github/SVG_CAD_GENERATION_RULES.md`
 
 ## Making Full Guides Renderable
 
@@ -47,6 +50,51 @@ result = ai_generate_constrained_beam(
 - ✓ Leverages existing markdown renderer
 - ✓ Code syntax highlighting already supported
 - ✓ Links, images, tables all work
+
+---
+
+## SVG CAD Generation Rules
+
+When generating SVG technical drawings or schematics, follow these critical spacing rules:
+
+### Title Block Positioning Formula
+```
+Title Block Height = (Largest Font Size × Number of Lines × 1.5) + 20px padding
+Text Y-Position = Block Top + (Font Size × 1.2)
+Content Start = Title Block Bottom + 40-60px clearance
+```
+
+### Quick Template (Schematic 1200×900px)
+```svg
+<svg viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#1a1a2e"/>
+  
+  <!-- Title Block: y=20 to y=110 (90px) -->
+  <rect x="20" y="20" width="1160" height="90" fill="none" stroke="#ffd700" stroke-width="2"/>
+  <text x="600" y="55" text-anchor="middle" font-size="28" fill="#ffd700" font-weight="bold">
+    MAIN TITLE (28px font at y=55)
+  </text>
+  <text x="600" y="85" text-anchor="middle" font-size="14" fill="#ffd700">
+    Subtitle (14px font at y=85)
+  </text>
+  
+  <!-- Content: starts at y=160 (50px clearance) -->
+  <text x="150" y="160" font-size="16" fill="#4db8ff" font-weight="bold">
+    Section Heading
+  </text>
+  <rect x="80" y="180" width="140" height="180" fill="none" stroke="#ffd700" stroke-width="3"/>
+</svg>
+```
+
+### Validation Checklist
+Before outputting SVG, verify:
+- [ ] Title block height = (Font sizes × 1.5 × line count) + 20px
+- [ ] Title text Y = Block top + (font size × 1.2)
+- [ ] Content clearance = Title block bottom + 40-60px minimum
+- [ ] No overlapping text or components
+
+**Full reference:** See `.github/SVG_CAD_GENERATION_RULES.md` for complete templates, formulas, and debugging guide.
 
 ---
 

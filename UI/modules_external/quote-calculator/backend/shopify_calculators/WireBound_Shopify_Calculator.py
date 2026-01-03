@@ -142,6 +142,11 @@ class WireBoundShopifyCalculator:
             WireBoundQuoteResult with total price, unit price, and breakdown
         """
         
+        # Convert parameters to correct types if needed
+        quantity = int(quantity) if isinstance(quantity, str) else quantity
+        artworks = int(artworks) if isinstance(artworks, str) else artworks
+        internal_pages = int(internal_pages) if isinstance(internal_pages, str) else internal_pages
+        
         # ========================================================================
         # STEP 1: Calculate Artwork Costs (F2)
         # ========================================================================
@@ -406,7 +411,7 @@ class WireBoundShopifyCalculator:
             return Decimal('0.14')
         elif "350GSM" in stock:
             return Decimal('0.18')
-        elif "None" in stock:
+        elif "None" in stock or stock.lower() == "none":
             return Decimal('0')
         return Decimal('0.14')  # Default 300GSM
     

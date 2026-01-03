@@ -62,11 +62,11 @@ window.ThreadCardTemplates = {
                     Your AI assistant with ${toolCount} tools and interactive visualizations
                 </div>
                 <div style="display: flex; gap: 12px; justify-content: center;">
-                    <button onclick="ThreadManager.createNewThread('prime')" 
+                    <button onclick="ThreadManager.createNewThread('unassigned')" 
                             style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-plus"></i> Start New Chat
                     </button>
-                    <button onclick="ThreadManager.showThreadHistory('prime')" 
+                    <button onclick="ThreadManager.showThreadHistory('unassigned')" 
                             style="background: white; color: #667eea; border: 2px solid #667eea; padding: 12px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-history"></i> Thread History
                     </button>
@@ -98,7 +98,7 @@ window.ThreadCardTemplates = {
                 </div>
             `;
         } else if (agentName === 'Prime') {
-            // For Prime: clickable selector dropdown (same as agents but with 'prime' identifier)
+            // For Prime: clickable selector dropdown (same as agents but with 'unassigned' identifier)
             // CRITICAL: No inline onclick - event delegation with stopPropagation handles clicks
             return `
                 <div class="thread-info-wrapper">
@@ -156,8 +156,58 @@ window.ThreadCardTemplates = {
 
         // Use different header based on location
         const isThreadHistory = location === 'thread-history';
-        const isPrime = location === 'prime';
+        const isPrime = location === 'unassigned';
         const isAgent = location && location.startsWith('agent-');
+
+        // ✅ FIX (Dec 29, 2025): Re-compute agent badge from currentLocation for Thread History
+        // The pre-passed 'agent' param may be stale/incorrect for Thread History rendering
+        let agentBadge = agent;
+        if (isThreadHistory && currentLocation) {
+            // 🔍 DEBUG: Log badge re-computation
+            if (!window._badgeRecomputeDebugCount || window._badgeRecomputeDebugCount < 3) {
+                console.log(`🔍 [DEBUG] Re-computing badge in compactCard:`, {
+                    'thread.id': thread.id,
+                    currentLocation: currentLocation,
+                    'pre-computed agent.name': agent.name
+                });
+                window._badgeRecomputeDebugCount = (window._badgeRecomputeDebugCount || 0) + 1;
+            }
+
+            let agentLabel = 'Unassigned';
+            let agentIcon = 'fa-inbox';
+            let agentClass = 'unassigned';
+
+            if (currentLocation === 'prime') {
+                agentLabel = 'Prime';
+                agentIcon = 'fa-star';
+                agentClass = 'main-loaded';
+            } else if (currentLocation !== 'unassigned' && currentLocation.startsWith('agent-')) {
+                const match = currentLocation.match(/agent-(\d+)/);
+                if (match) {
+                    const agentId = parseInt(match[1]);
+                    agentLabel = (typeof MultiAgent !== 'undefined' && MultiAgent.getAgentName)
+                        ? (MultiAgent.getAgentName(agentId) || `Agent-${agentId}`)
+                        : `Agent-${agentId}`;
+                    agentIcon = (typeof MultiAgent !== 'undefined' && MultiAgent.getAgentIcon)
+                        ? (MultiAgent.getAgentIcon(agentId) || 'fa-atom')
+                        : 'fa-atom';
+                    agentClass = 'agent';
+                }
+            }
+
+            agentBadge = { name: agentLabel, icon: agentIcon, class: agentClass };
+
+            // 🔍 DEBUG: Log final computed badge
+            if (!window._finalBadgeDebugCount || window._finalBadgeDebugCount < 3) {
+                console.log(`🔍 [DEBUG] Final re-computed badge:`, {
+                    'thread.id': thread.id,
+                    currentLocation: currentLocation,
+                    'agentBadge.name': agentBadge.name,
+                    'agentBadge.class': agentBadge.class
+                });
+                window._finalBadgeDebugCount = (window._finalBadgeDebugCount || 0) + 1;
+            }
+        }
 
         let headerHtml;
         if (isThreadHistory) {
@@ -197,8 +247,8 @@ window.ThreadCardTemplates = {
                     <span class="thread-item-title" style="flex: 1; font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         ${thread.title || 'Untitled'}
                     </span>
-                    <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0; font-size: 13px;">
-                        <i class="fas ${agent.icon}"></i> ${agent.name}
+                    <div class="thread-item-agent-badge ${agentBadge.class}" style="flex-shrink: 0; font-size: 13px;">
+                        <i class="fas ${agentBadge.icon}"></i> ${agentBadge.name}
                     </div>
                     <button class="thread-card-expand-btn" 
                             onclick="ThreadCardExpansion.toggleCard(event, '${thread.id}'); return false;"
@@ -254,7 +304,7 @@ window.ThreadCardTemplates = {
      * 
      * @deprecated Use compactCard() instead
      * @param {Object} thread - Thread object from database
-     * @param {string} location - Location identifier (should be "prime")
+     * @param {string} location - Location identifier (should be "unassigned")
      * @param {Object} agent - Agent metadata {name, icon, class}
      * @param {Object} meta - Display metadata {msgCount, dateStr, timeStr}
      * @param {string} slug - Shortened thread slug for display
@@ -465,7 +515,7 @@ window.ThreadCardTemplates = {
             </button>
         ` : '';
 
-        const unloadButton = !compact && location !== 'synergy' && location !== 'prime' && location.startsWith('agent-') ? `
+        const unloadButton = !compact && location !== 'synergy' && location !== 'unassigned' && location.startsWith('agent-') ? `
             <button class="agent-unload-btn"
                 onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
                 title="Unload thread from agent (move to Prime)">
@@ -743,7 +793,7 @@ window.ThreadCardTemplates = {
                 `}
 
                 <!-- Email Thread (TEAL pill) - Shows when thread has email data AND is assigned to an agent -->
-                ${thread.email_thread_id && thread.location && (thread.location.startsWith('agent-') || thread.location === 'prime' || thread.location === 'prime-loaded') ? `
+                ${thread.email_thread_id && thread.location && (thread.location.startsWith('agent-') || thread.location === 'unassigned' || thread.location === 'prime') ? `
                     <div class="thread-item-email thread-item-email-linked" data-email-id="${safeEscape(thread.email_thread_id)}">
                         <button class="email-badge" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); color: white; border: none; padding: 8px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;"
                             onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(20, 184, 166, 0.4)'"

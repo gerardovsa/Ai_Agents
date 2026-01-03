@@ -580,12 +580,69 @@ async function loadUserProfile() {
             const isMicrosoftUser = authPlatform === 'microsoft';
             const isLocalUser = !authPlatform; // Local accounts rely on service-account provisioning
 
+            // ✅ ALWAYS show both sections - change labels based on primary vs storage-only
             if (googleWorkspaceSection) {
-                googleWorkspaceSection.style.display = (isGoogleUser || isLocalUser) ? 'block' : 'none';
+                googleWorkspaceSection.style.display = 'block'; // Always show
+
+                const connectBtn = googleWorkspaceSection.querySelector('button[onclick*="connectOAuth"]');
+                const titleEl = googleWorkspaceSection.querySelector('.dropdown-item-title');
+                const subtitleEl = googleWorkspaceSection.querySelector('.dropdown-item-subtitle');
+
+                if (authPlatform === 'google') {
+                    // User logged in with Google - this is primary account (full access)
+                    if (titleEl) titleEl.textContent = 'Google Workspace OAuth';
+                    if (subtitleEl) subtitleEl.textContent = googleOAuthConnected ? 'Connected (Primary Account)' : 'Not connected';
+                    if (connectBtn && googleOAuthConnected) {
+                        connectBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
+                        connectBtn.disabled = true;
+                    }
+                } else {
+                    // User logged in with Microsoft - Google is for STORAGE ONLY
+                    if (titleEl) titleEl.textContent = 'Google Drive (Storage)';
+                    if (subtitleEl) {
+                        subtitleEl.textContent = googleOAuthConnected
+                            ? 'Linked for File Storage'
+                            : 'Link for additional storage';
+                        subtitleEl.style.color = googleOAuthConnected ? 'var(--success-color)' : 'var(--text-muted)';
+                    }
+                    if (connectBtn) {
+                        connectBtn.innerHTML = googleOAuthConnected
+                            ? '<i class="fas fa-check"></i> Linked for Storage'
+                            : '<i class="fas fa-link"></i> Link Google Drive';
+                    }
+                }
             }
 
             if (microsoft365Section) {
-                microsoft365Section.style.display = (isMicrosoftUser || isLocalUser) ? 'block' : 'none';
+                microsoft365Section.style.display = 'block'; // Always show
+
+                const connectBtn = microsoft365Section.querySelector('button[onclick*="connectMicrosoft365"]');
+                const titleEl = microsoft365Section.querySelector('.dropdown-item-title');
+                const subtitleEl = microsoft365Section.querySelector('.dropdown-item-subtitle');
+
+                if (authPlatform === 'microsoft') {
+                    // User logged in with Microsoft - this is primary account (full access)
+                    if (titleEl) titleEl.textContent = 'Microsoft 365 OAuth';
+                    if (subtitleEl) subtitleEl.textContent = microsoftOAuthConnected ? 'Connected (Primary Account)' : 'Not connected';
+                    if (connectBtn && microsoftOAuthConnected) {
+                        connectBtn.innerHTML = '<i class="fas fa-check"></i> Connected';
+                        connectBtn.disabled = true;
+                    }
+                } else {
+                    // User logged in with Google - Microsoft is for STORAGE ONLY
+                    if (titleEl) titleEl.textContent = 'OneDrive (Storage)';
+                    if (subtitleEl) {
+                        subtitleEl.textContent = microsoftOAuthConnected
+                            ? 'Linked for File Storage'
+                            : 'Link for additional storage';
+                        subtitleEl.style.color = microsoftOAuthConnected ? 'var(--success-color)' : 'var(--text-muted)';
+                    }
+                    if (connectBtn) {
+                        connectBtn.innerHTML = microsoftOAuthConnected
+                            ? '<i class="fas fa-check"></i> Linked for Storage'
+                            : '<i class="fas fa-link"></i> Link OneDrive';
+                    }
+                }
             }
 
             if (gmailSmtpSection) {

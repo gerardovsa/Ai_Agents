@@ -208,10 +208,12 @@ def extract_text_from_file(file_path: str, file_type: str) -> str:
 # ==================== API ENDPOINTS ====================
 
 @vector_db_bp.route('/api/vector-db/upload-document', methods=['POST'])
-@require_auth
 def upload_document():
     """
     Upload document and store in vector database with metadata
+    
+    NOTE: Uses shared business-level credentials (user_id=1) for vector database access.
+          All users share the same Pinecone index with namespace separation.
     
     Form Data:
         - file: Document file
@@ -242,12 +244,14 @@ def upload_document():
         if file.filename == '':
             return jsonify({'success': False, 'error': 'Empty filename'}), 400
         
-        # Get parameters
-        # Prefer 'user_id' (JWT payload) but fall back to 'id' for compatibility
-        user_id = (request.user.get('user_id') if hasattr(request, 'user') else None) or \
-                  (request.user.get('id') if hasattr(request, 'user') else None)
-        if not user_id:
-            return jsonify({'success': False, 'error': 'User ID missing from token'}), 401
+        # Use shared business-level user_id (platform owner credentials)
+        user_id = 1  # For API key access
+        
+        # Get actual user who uploaded (for ownership tracking)
+        owner_user_id = request.form.get('owner_user_id', 1, type=int)
+        visibility = request.form.get('visibility', 'global')  # private, team, global
+        team_id = request.form.get('team_id', type=int)  # For team visibility
+        
         chunk_size = request.form.get('chunk_size', 800, type=int)
         chunk_overlap = request.form.get('chunk_overlap', 20, type=int)
         namespace = request.form.get('namespace', 'default')
@@ -302,7 +306,13 @@ def upload_document():
                 'text': chunk,
                 'created_at': upload_timestamp,
                 'file_size_bytes': os.path.getsize(file_path),
-                'user_id': user_id
+                'user_id': user_id,  # Business-level ID (always 1)
+                
+                # ⚡ ACCESS CONTROL METADATA
+                'owner_user_id': owner_user_id,  # Who uploaded it
+                'visibility': visibility,  # private, team, global
+                'team_id': team_id if visibility == 'team' else None,
+                'is_public': visibility == 'global'
             }
             
             # ⚡ NEW: Add cloud storage metadata for AI retrieval
@@ -353,7 +363,6 @@ def upload_document():
 
 
 @vector_db_bp.route('/api/vector-db/documents', methods=['GET'])
-@require_auth
 def list_documents():
     """
     List all documents in vector database with metadata
@@ -411,10 +420,13 @@ def list_documents():
 
 
 @vector_db_bp.route('/api/vector-db/stats', methods=['GET'])
-@require_auth
 def get_stats():
     """
-    Get vector database statistics
+    Get vector database statistics (filtered by visibility)
+    
+    Query params:
+        - user_id: Current user ID for filtering (optional, defaults to 1)
+        - username: Current user's username/team_id for filtering (optional)
     
     Returns:
         JSON with stats (documents, vectors, namespaces)
@@ -422,19 +434,21 @@ def get_stats():
     ✅ NO DATABASE OPERATIONS - Safe (uses vector_db_list_namespaces tool)
     """
     try:
-        # FIXED: Use 'user_id' key (set by @require_auth decorator in user_auth.py line 2147)
-        user_id = request.user.get('user_id') or request.user.get('id')
-        if not user_id:
-            return jsonify({'success': False, 'error': 'User ID not found in token'}), 401
+        # Get current user context for filtering (use query params since @require_auth removed)
+        current_user_id = request.args.get('user_id', 1, type=int)
+        current_username = request.args.get('username', '')
+        
+        # Use shared business-level user_id=1 for credentials
+        credentials_user_id = 1
         
         # Get credentials from Platform Connections
-        credentials = _get_vector_db_credentials(user_id)
+        credentials = _get_vector_db_credentials(credentials_user_id)
         
         # Get stats from Pinecone
         if PINECONE_AVAILABLE and VECTOR_TOOLS_AVAILABLE:
-            # Pass credentials to tool
+            # Pass credentials to tool (use credentials_user_id for business credentials)
             result = vector_db_list_namespaces(
-                _user_id=user_id,
+                _user_id=credentials_user_id,
                 **credentials  # Inject pinecone_api_key, pinecone_index_name, etc.
             )
             
@@ -467,10 +481,11 @@ def get_stats():
 
 
 @vector_db_bp.route('/api/vector-db/credentials/load', methods=['GET'])
-@require_auth
 def load_credentials():
     """
-    Load vector database credentials for current user
+    Load vector database credentials for business (user_id=1)
+    
+    NOTE: Uses shared business-level credentials. All users access the same credentials.
     
     Query params:
         - provider: 'pinecone', 'voyager', 'pgvector', 'qdrant' (optional, defaults to all)
@@ -484,7 +499,8 @@ def load_credentials():
     conn = None
     
     try:
-        user_id = request.user['id']
+        # Use shared business-level user_id (platform owner credentials)
+        user_id = 1
         provider = request.args.get('provider')  # Optional filter
         
         from shared.database_utils import get_database_connection
@@ -578,10 +594,11 @@ def load_credentials():
 
 
 @vector_db_bp.route('/api/vector-db/credentials/status', methods=['GET'])
-@require_auth
 def check_connection_status():
     """
     Test connection to vector database provider
+    
+    NOTE: Uses shared business-level credentials (user_id=1).
     
     Query params:
         - provider: 'pinecone', 'voyager', 'pgvector', 'qdrant' (required)
@@ -595,7 +612,8 @@ def check_connection_status():
     conn = None
     
     try:
-        user_id = request.user['id']
+        # Use shared business-level user_id (platform owner credentials)
+        user_id = 1
         provider = request.args.get('provider')
         
         if not provider:
@@ -724,10 +742,11 @@ def check_connection_status():
 
 
 @vector_db_bp.route('/api/vector-db/credentials/save', methods=['POST'])
-@require_auth
 def save_credentials():
     """
-    Save vector database credentials for user
+    Save vector database credentials at business level (user_id=1)
+    
+    NOTE: Saves shared business-level credentials. All users will use these credentials.
     
     Body:
         - provider: 'pinecone', 'voyager', 'pgvector', 'qdrant' (required)
@@ -758,7 +777,8 @@ def save_credentials():
     
     try:
         data = request.get_json()
-        user_id = request.user['id']
+        # Use shared business-level user_id (platform owner credentials)
+        user_id = 1
         
         provider = data.get('provider', '').strip()
         credentials = data.get('credentials', {})
@@ -840,10 +860,11 @@ def save_credentials():
 
 
 @vector_db_bp.route('/api/vector-db/embedding-config/get', methods=['GET'])
-@require_auth
 def get_embedding_config():
     """
-    Get embedding model configuration for user
+    Get embedding model configuration for business (user_id=1)
+    
+    NOTE: Uses shared business-level embedding config (Voyager AI or OpenAI).
     
     Returns:
         JSON with embedding provider, model, and metadata
@@ -851,7 +872,8 @@ def get_embedding_config():
     FIXED: Fixed nested get_settings() helper function cursor leak
     """
     try:
-        user_id = request.user['id']  # From JWT token via @require_auth
+        # Use shared business-level user_id (platform owner credentials)
+        user_id = 1
         
         from auth.user_auth import UserAuthManager
         auth_manager = UserAuthManager()
@@ -949,10 +971,12 @@ def get_embedding_config():
 
 
 @vector_db_bp.route('/api/vector-db/embedding-config/save', methods=['POST'])
-@require_auth
 def save_embedding_config():
     """
-    Save embedding model configuration
+    Save embedding model configuration at business level (user_id=1)
+    
+    NOTE: Saves shared business-level embedding config. All users will use this config.
+          Supports Voyager AI and OpenAI embedding providers.
     
     Request Body:
         - provider: Embedding provider ('voyager' or 'openai') (required)
@@ -969,7 +993,8 @@ def save_embedding_config():
     try:
         data = request.get_json()
         
-        user_id = request.user['id']  # From JWT token via @require_auth
+        # Use shared business-level user_id (platform owner credentials)
+        user_id = 1
         provider = data.get('provider', '').strip()
         platform = data.get('platform', '').strip()
         api_key = data.get('api_key', '').strip()

@@ -2,6 +2,8 @@
 
 **Real-Time Collaborative Design Engineering with Granular Updates**
 
+> **⚠️ SVG Generation:** When creating technical drawings or schematics, **always follow** `.github/SVG_CAD_GENERATION_RULES.md` for proper title block spacing (title block bottom + 40-60px clearance before content).
+
 ---
 
 ## 🎯 What Problem Does This Solve?
@@ -683,6 +685,33 @@ MIT License - See LICENSE file
 - **Operational Transformation** - Conflict resolution algorithm
 - **GPT-4 Vision** - AI visual understanding
 - **FastAPI** - WebSocket server framework
+
+---
+
+## 🎨 SVG Technical Drawing Guidelines
+
+When generating SVG schematics or blueprints in AI responses:
+
+**Critical Spacing Rules:**
+```
+Title Block Height = (Font Size × Lines × 1.5) + 20px
+Text Y-Position = Block Top + (Font × 1.2)  
+Content Start = Block Bottom + 40-60px clearance
+```
+
+**Example:**
+```svg
+<!-- Title block 90px tall (28px + 14px fonts) -->
+<rect x="20" y="20" width="1160" height="90"/>
+<text x="600" y="55" font-size="28">Title</text>      <!-- 20 + (28×1.2) -->
+<text x="600" y="85" font-size="14">Subtitle</text>   <!-- 55 + 30 -->
+
+<!-- Content starts at y=160 (50px clearance) -->
+<text x="150" y="160">Section Heading</text>
+<rect x="80" y="180" width="140" height="180"/>
+```
+
+**Full reference:** `.github/SVG_CAD_GENERATION_RULES.md`
 
 ---
 

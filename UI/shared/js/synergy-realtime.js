@@ -67,17 +67,19 @@ window.SynergyRealtime = {
             // Increased timeout for Render cold starts (can take 30-60 seconds)
             // Server config: ping_interval=25s, ping_timeout=60s
             // Client heartbeat: 20s (see _startHeartbeat) - must be < server ping_interval
+            // 
+            // RENDER DEPLOYMENT FIX: Use polling first, then upgrade to WebSocket
+            // This avoids timeout issues with Render's load balancer dropping WebSocket handshakes
             this.socket = io(apiUrl + this.config.namespace, {
-                // Prefer WebSocket first to reduce sticky-session issues behind load balancers.
-                // Keep polling as fallback for environments that block WebSockets.
-                transports: ['websocket', 'polling'],
+                // Start with polling (more reliable through load balancers), then upgrade to WebSocket
+                transports: ['polling', 'websocket'],
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
                 reconnectionDelay: this.reconnectDelay,
                 reconnectionDelayMax: 10000,
-                timeout: 60000,  // 60 seconds (handles Render cold starts)
+                timeout: 20000,  // 20 seconds (reduced from 60s - polling connects faster)
                 forceNew: false,
-                upgrade: true,
+                upgrade: true,  // Allow upgrade to WebSocket after polling connects
                 rememberUpgrade: true,
                 autoConnect: true
             });
@@ -227,18 +229,38 @@ window.SynergyRealtime = {
     },
 
     _handleError(error) {
-        console.error('[REALTIME] Connection error:', error);
+        // Only log first 3 errors to avoid console spam
+        if (this.reconnectAttempts <= 3) {
+            console.error('[REALTIME] Connection error:', error);
+        }
 
         // Provide helpful error messages
         if (error.message === 'timeout') {
-            console.warn('[REALTIME] Connection timeout - Server may be starting (Render cold start). Retrying...');
-            this._showConnectionStatus('connecting', 'Server starting, please wait...');
+            if (this.reconnectAttempts <= 3) {
+                console.warn('[REALTIME] Connection timeout - Backend server not responding.');
+            }
+            this._showConnectionStatus('disconnected', 'Backend server offline');
+
+            // Stop retrying after 5 attempts to avoid infinite console spam
+            if (this.reconnectAttempts >= 5) {
+                if (this.reconnectAttempts === 5) {
+                    console.warn('[REALTIME] ⚠️ Backend server is DOWN. Stopping reconnection attempts. Working in offline mode.');
+                }
+                this.maxReconnectAttempts = this.reconnectAttempts; // Stop further attempts
+                if (this.socket) {
+                    this.socket.close();
+                }
+            }
         } else if (error.message && error.message.includes('Invalid frame header')) {
-            console.warn('[REALTIME] WebSocket handshake failed - Server may not be running or Socket.IO not initialized');
-            this._showConnectionStatus('disconnected', 'Backend not responding. Synergy will work in offline mode.');
+            if (this.reconnectAttempts <= 3) {
+                console.warn('[REALTIME] WebSocket handshake failed - Server may not be running or Socket.IO not initialized');
+            }
+            this._showConnectionStatus('disconnected', 'Backend not responding. Working in offline mode.');
             // Stop trying to reconnect after 3 attempts for this specific error
             if (this.reconnectAttempts >= 3) {
-                console.warn('[REALTIME] Stopping reconnection attempts - working in offline mode');
+                if (this.reconnectAttempts === 3) {
+                    console.warn('[REALTIME] Stopping reconnection attempts - working in offline mode');
+                }
                 this.maxReconnectAttempts = this.reconnectAttempts; // Stop further attempts
             }
         } else {

@@ -314,6 +314,7 @@ class UniversalFileHandler:
         result = microsoft_outlook_download_attachment(
             message_id=source_id['message_id'],
             attachment_id=source_id['attachment_id'],
+            save_to_disk=False,  # Need base64 for file processing
             _user_id=self.user_id,
             _injected_credentials=True,
             **kwargs

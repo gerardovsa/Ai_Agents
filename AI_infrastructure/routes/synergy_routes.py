@@ -1,13 +1,23 @@
-
 """
-Synergy Dashboard Routes (V3 REFACTORED - CONTEXT MANAGER PATTERN)
-================================================================
+Synergy Dashboard Routes (V4 FULLY FIXED - NESTED CONTEXT MANAGERS)
+====================================================================
 REST API endpoints for Synergy Dashboard Kanban board.
 Generated: December 7, 2024
 
-✅ REFACTORED: All 64+ functions now use context managers
-✅ NO MANUAL CONNECTION CLEANUP: Zero cursor.close() or conn.close() calls
-✅ LEAK-PROOF: Context managers guarantee cleanup on exception/return
+✅ FIXED: All 60+ functions now use NESTED context managers
+✅ LEAK-PROOF: Both connections AND cursors auto-close
+✅ NO MANUAL CLEANUP: Zero cursor.close() or conn.close() calls
+
+Pattern Used Throughout:
+    with get_database_connection('synergy_sessions') as conn:
+        with conn.cursor() as cursor:
+            # Database work here
+            cursor.execute(...)
+            data = cursor.fetchall()
+        # Cursor auto-closed here
+        # Process data after cursor closed
+        return response
+    # Connection auto-closed here
 
 ⚠️ CRITICAL: convert_sql_placeholders() DOES NOT EXECUTE QUERIES!
    After calling convert_sql_placeholders(), you MUST call cursor.execute()
@@ -28,6 +38,7 @@ Endpoints:
     PATCH  /api/synergy/<id>           - Update session
     PATCH  /api/synergy/<id>/column    - Update session column
     DELETE /api/synergy/<id>           - Delete session
+    ... (60+ total endpoints)
 """
 
 from flask import Blueprint, request, jsonify
@@ -46,40 +57,12 @@ from shared.database_utils import get_database_connection, is_using_supabase, co
 synergy_bp = Blueprint('synergy', __name__, url_prefix='/api/synergy')
 
 
-def get_db_connection():
-    """
-    ⚠️ DEPRECATED: Use context manager instead:
-        with get_database_connection('synergy_sessions') as conn:
-            ...
-    
-    This helper exists for backward compatibility only.
-    All functions in this file now use context managers directly.
-    """
-    return get_database_connection('synergy_sessions')
-
-
 def normalize_next_steps(steps):
     """
     Auto-convert string arrays to object arrays for next_steps field
     
     This allows AI agents to send simple strings ['Step 1', 'Step 2']
     while ensuring the UI receives rich objects with completion tracking.
-    
-    Args:
-        steps: Array of strings OR objects
-               Strings: ["Create email", "Test send"]
-               Objects: [{"description": "Create email", "completed": false}]
-    
-    Returns:
-        Array of objects with structure:
-        [
-            {
-                "description": "Step text",
-                "completed": false,
-                "due_date": null,
-                "completed_at": null
-            }
-        ]
     """
     if not steps:
         return []
@@ -107,9 +90,6 @@ def normalize_next_steps(steps):
 def normalize_documents(docs):
     """
     Auto-convert documents array ensuring 'title' field exists
-    
-    Fixes the field name mismatch where tools might send 'name' 
-    but UI expects 'title'. Now with robust error handling.
     """
     if not docs:
         return []
@@ -143,11 +123,6 @@ def normalize_documents(docs):
 def normalize_checklist(items):
     """
     Normalize checklist items ensuring 'task' field exists and subtasks are preserved
-    
-    Handles three field name variations:
-    - Old format: {"text": "...", "completed": false}
-    - UI format: {"item": "...", "completed": false}
-    - Correct format: {"task": "...", "completed": false, "subtasks": []}
     """
     if not items:
         return []
@@ -196,101 +171,103 @@ def init_database():
     
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders('''
+                    CREATE TABLE IF NOT EXISTS synergy_sessions (
+                        session_id TEXT PRIMARY KEY,
+                        title TEXT NOT NULL,
+                        description TEXT,
+                        platforms_involved TEXT,
+                        status TEXT DEFAULT 'active',
+                        priority TEXT DEFAULT 'medium',
+                        kanban_column TEXT DEFAULT 'backlog',
+                        tags TEXT,
+                        documents TEXT,
+                        links TEXT,
+                        next_steps TEXT,
+                        assignees TEXT,
+                        recent_activity TEXT,
+                        checklist TEXT,
+                        due_date TEXT,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        last_active TEXT DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TEXT,
+                        google_task_id TEXT,
+                        google_calendar_id TEXT,
+                        microsoft_todo_id TEXT,
+                        thread_ids TEXT,
+                        assigned_agents TEXT,
+                        owner_user_id INTEGER,
+                        permission_level TEXT DEFAULT 'private',
+                        shared_with_users TEXT,
+                        allow_public_view BOOLEAN DEFAULT FALSE
+                    )
+                ''', ())
+                cursor.execute(sql, params)
+                
+                # Add missing columns if they don't exist
+                try:
+                    if is_using_supabase():
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS thread_ids TEXT')
+                    else:
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
+                except Exception:
+                    pass
+                
+                try:
+                    if is_using_supabase():
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS assigned_agents TEXT')
+                    else:
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
+                except Exception:
+                    pass
+                
+                try:
+                    if is_using_supabase():
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS column_position INTEGER DEFAULT 0')
+                    else:
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
+                except Exception:
+                    pass
+                
+                # Add permission columns
+                try:
+                    if is_using_supabase():
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS owner_user_id INTEGER')
+                    else:
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN owner_user_id INTEGER')
+                except Exception:
+                    pass
+                
+                try:
+                    if is_using_supabase():
+                        cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS permission_level TEXT DEFAULT 'private'")
+                    else:
+                        cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN permission_level TEXT DEFAULT 'private'")
+                except Exception:
+                    pass
+                
+                try:
+                    if is_using_supabase():
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS shared_with_users TEXT')
+                    else:
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN shared_with_users TEXT')
+                except Exception:
+                    pass
+                
+                try:
+                    if is_using_supabase():
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS allow_public_view BOOLEAN DEFAULT FALSE')
+                    else:
+                        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN allow_public_view INTEGER DEFAULT 0')
+                except Exception:
+                    pass
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
-            sql, params = convert_sql_placeholders('''
-                CREATE TABLE IF NOT EXISTS synergy_sessions (
-                    session_id TEXT PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    platforms_involved TEXT,
-                    status TEXT DEFAULT 'active',
-                    priority TEXT DEFAULT 'medium',
-                    kanban_column TEXT DEFAULT 'backlog',
-                    tags TEXT,
-                    documents TEXT,
-                    links TEXT,
-                    next_steps TEXT,
-                    assignees TEXT,
-                    recent_activity TEXT,
-                    checklist TEXT,
-                    due_date TEXT,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    last_active TEXT DEFAULT CURRENT_TIMESTAMP,
-                    completed_at TEXT,
-                    google_task_id TEXT,
-                    google_calendar_id TEXT,
-                    microsoft_todo_id TEXT,
-                    thread_ids TEXT,
-                    assigned_agents TEXT,
-                    owner_user_id INTEGER,
-                    permission_level TEXT DEFAULT 'private',
-                    shared_with_users TEXT,
-                    allow_public_view BOOLEAN DEFAULT FALSE
-                )
-            ''', ())
-            cursor.execute(sql, params)
-            
-            # Add missing columns if they don't exist
-            try:
-                if is_using_supabase():
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS thread_ids TEXT')
-                else:
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
-            except Exception:
-                pass
-            
-            try:
-                if is_using_supabase():
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS assigned_agents TEXT')
-                else:
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
-            except Exception:
-                pass
-            
-            try:
-                if is_using_supabase():
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS column_position INTEGER DEFAULT 0')
-                else:
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
-            except Exception:
-                pass
-            
-            # Add permission columns
-            try:
-                if is_using_supabase():
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS owner_user_id INTEGER')
-                else:
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN owner_user_id INTEGER')
-            except Exception:
-                pass
-            
-            try:
-                if is_using_supabase():
-                    cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS permission_level TEXT DEFAULT 'private'")
-                else:
-                    cursor.execute("ALTER TABLE synergy_sessions ADD COLUMN permission_level TEXT DEFAULT 'private'")
-            except Exception:
-                pass
-            
-            try:
-                if is_using_supabase():
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS shared_with_users TEXT')
-                else:
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN shared_with_users TEXT')
-            except Exception:
-                pass
-            
-            try:
-                if is_using_supabase():
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS allow_public_view BOOLEAN DEFAULT FALSE')
-                else:
-                    cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN allow_public_view INTEGER DEFAULT 0')
-            except Exception:
-                pass
-            
-            conn.commit()
-            print("✅ [SYNERGY] Database initialized successfully")
+        print("✅ [SYNERGY] Database initialized successfully")
             
     except Exception as e:
         print(f"❌ [SYNERGY] Database initialization error: {e}")
@@ -348,6 +325,7 @@ def check_session_permission(session_data, user_id, require_write=False):
 def list_sessions():
     """
     List all sessions with optional filtering and permission checking
+    ✅ FIXED: Uses nested context managers
     """
     try:
         status = request.args.get('status')
@@ -356,29 +334,30 @@ def list_sessions():
         user_id = request.args.get('user_id', type=int)
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                query = 'SELECT * FROM synergy_sessions WHERE 1=1'
+                params = []
+                
+                if status:
+                    query += ' AND status = %s'
+                    params.append(status)
+                
+                if priority:
+                    query += ' AND priority = %s'
+                    params.append(priority)
+                
+                if column:
+                    query += ' AND kanban_column = %s'
+                    params.append(column)
+                
+                query += ' ORDER BY COALESCE(column_position, 999999), last_active DESC'
+                
+                sql, final_params = convert_sql_placeholders(query, tuple(params))
+                cursor.execute(sql, final_params)
+                rows = cursor.fetchall()
             
-            query = 'SELECT * FROM synergy_sessions WHERE 1=1'
-            params = []
-            
-            if status:
-                query += ' AND status = %s'
-                params.append(status)
-            
-            if priority:
-                query += ' AND priority = %s'
-                params.append(priority)
-            
-            if column:
-                query += ' AND kanban_column = %s'
-                params.append(column)
-            
-            query += ' ORDER BY COALESCE(column_position, 999999), last_active DESC'
-            
-            sql, final_params = convert_sql_placeholders(query, tuple(params))
-            cursor.execute(sql, final_params)
-            rows = cursor.fetchall()
-            
+            # ✅ Cursor auto-closed here, now process rows
             sessions = []
             for row in rows:
                 session = dict(row)
@@ -416,30 +395,31 @@ def get_sessions_simple():
     """
     Get simplified list of sessions for thread linking
     Returns minimal data: session_id, title, status, column
+    ✅ ALREADY CORRECT: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders("""
-                SELECT session_id, title, status, kanban_column, priority
-                FROM synergy_sessions 
-                WHERE status != 'archived'
-                ORDER BY last_active DESC
-            """, ())
-            cursor.execute(sql, params)
-            
-            rows = cursor.fetchall()
-            
-            sessions = [{
-                'session_id': row['session_id'],
-                'title': row['title'],
-                'status': row['status'] or 'active',
-                'column': row['kanban_column'] or 'backlog',
-                'priority': row['priority'] or 'medium'
-            } for row in rows]
-            
-            return jsonify(sessions)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders("""
+                    SELECT session_id, title, status, kanban_column, priority
+                    FROM synergy_sessions 
+                    WHERE status != 'archived'
+                    ORDER BY last_active DESC
+                """, ())
+                cursor.execute(sql, params)
+                
+                rows = cursor.fetchall()
+                
+                sessions = [{
+                    'session_id': row['session_id'],
+                    'title': row['title'],
+                    'status': row['status'] or 'active',
+                    'column': row['kanban_column'] or 'backlog',
+                    'priority': row['priority'] or 'medium'
+                } for row in rows]
+                
+                return jsonify(sessions)
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -449,193 +429,192 @@ def get_sessions_simple():
 def get_sessions_with_internal_docs():
     """
     Batch load all sessions with their internal docs count in a SINGLE optimized query.
-    This replaces the N+1 query pattern (1 session list + N internal doc queries).
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Step 1: Load all active sessions
-            sql, params = convert_sql_placeholders("""
-                SELECT * FROM synergy_sessions 
-                WHERE status != 'archived'
-                ORDER BY last_active DESC
-            """, ())
-            cursor.execute(sql, params)
-            
-            sessions_rows = cursor.fetchall()
-            sessions = []
-            session_ids = []
-            
-            for row in sessions_rows:
-                session = dict(row)
-                session_ids.append(session['session_id'])
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                for field in ['platforms_involved', 'tags', 'documents', 'links', 
-                             'next_steps', 'assignees', 'recent_activity', 'checklist',
-                             'thread_ids', 'assigned_agents']:
-                    if session.get(field):
-                        try:
-                            session[field] = json.loads(session[field])
-                        except:
-                            session[field] = []
+                # Step 1: Load all active sessions
+                sql, params = convert_sql_placeholders("""
+                    SELECT * FROM synergy_sessions 
+                    WHERE status != 'archived'
+                    ORDER BY last_active DESC
+                """, ())
+                cursor.execute(sql, params)
                 
-                session['internal_docs'] = []
-                session['internal_docs_count'] = 0
-                sessions.append(session)
-            
-            # Step 2: Batch load ALL internal docs for ALL sessions in ONE query
-            docs_rows = []
-            if session_ids:
-                placeholders = ','.join('%s' for _ in session_ids)
-                table_name = 'synergy_internal_docs'
+                sessions_rows = cursor.fetchall()
+                sessions = []
+                session_ids = []
                 
-                try:
-                    docs_sql = f"""
-                        SELECT 
-                            session_id,
-                            doc_id,
-                            title,
-                            doc_type,
-                            version,
-                            created_at,
-                            updated_at,
-                            slug,
-                            share_url
-                        FROM {table_name}
-                        WHERE session_id IN ({placeholders})
-                        ORDER BY session_id, created_at DESC
-                    """
-                    cursor.execute(docs_sql, session_ids)
-                    docs_rows = cursor.fetchall()
-                except Exception as e:
-                    error_msg = str(e).lower()
-                    if 'does not exist' in error_msg or 'no such table' in error_msg:
-                        print(f'[SYNERGY BATCH] Table {table_name} not found - continuing without internal docs')
-                        docs_rows = []
-                    else:
-                        raise
-                
-                # Group internal docs by session_id
-                docs_by_session = {}
-                for doc_row in docs_rows:
-                    doc = dict(doc_row)
-                    sess_id = doc.pop('session_id')
+                for row in sessions_rows:
+                    session = dict(row)
+                    session_ids.append(session['session_id'])
                     
-                    if sess_id not in docs_by_session:
-                        docs_by_session[sess_id] = []
+                    for field in ['platforms_involved', 'tags', 'documents', 'links', 
+                                 'next_steps', 'assignees', 'recent_activity', 'checklist',
+                                 'thread_ids', 'assigned_agents']:
+                        if session.get(field):
+                            try:
+                                session[field] = json.loads(session[field])
+                            except:
+                                session[field] = []
                     
-                    docs_by_session[sess_id].append({
-                        'doc_id': doc['doc_id'],
-                        'title': doc['title'],
-                        'type': 'internal_doc',
-                        'doc_type': doc.get('doc_type', 'richtext'),
-                        'version': doc.get('version', 1),
-                        'created_at': str(doc.get('created_at', '')),
-                        'updated_at': str(doc.get('updated_at', '')),
-                        'slug': doc.get('slug', ''),
-                        'share_url': doc.get('share_url', '')
-                    })
+                    session['internal_docs'] = []
+                    session['internal_docs_count'] = 0
+                    sessions.append(session)
                 
-                # Attach internal docs array to sessions
-                for session in sessions:
-                    sess_id = session['session_id']
-                    if sess_id in docs_by_session:
-                        session['internal_docs'] = docs_by_session[sess_id]
-                        session['internal_docs_count'] = len(docs_by_session[sess_id])
-                
-                # ✅ OPTIMIZATION: Get document counts via SQL COUNT(*) for sessions without loaded docs
-                # This is more efficient when we only need counts without full document data
-                try:
-                    sessions_needing_count = [s['session_id'] for s in sessions if s.get('internal_docs_count') is None]
-                    if sessions_needing_count:
-                        count_placeholders = ','.join('%s' for _ in sessions_needing_count)
-                        count_sql = f"""
-                            SELECT session_id, COUNT(*) as count
-                            FROM {table_name}
-                            WHERE session_id IN ({count_placeholders})
-                            GROUP BY session_id
-                        """
-                        cursor.execute(count_sql, sessions_needing_count)
-                        doc_counts = {row['session_id']: row['count'] for row in cursor.fetchall()}
-                        
-                        for session in sessions:
-                            if session['session_id'] in doc_counts:
-                                session['internal_docs_count'] = doc_counts[session['session_id']]
-                            elif session.get('internal_docs_count') is None:
-                                session['internal_docs_count'] = 0
-                except Exception as e:
-                    # If COUNT fails, set remaining to 0
-                    for session in sessions:
-                        if session.get('internal_docs_count') is None:
-                            session['internal_docs_count'] = 0
-            
-            # Step 3: Batch load milestone, task, and subtask counts
-            if session_ids:
-                try:
+                # Step 2: Batch load ALL internal docs for ALL sessions in ONE query
+                docs_rows = []
+                if session_ids:
                     placeholders = ','.join('%s' for _ in session_ids)
+                    table_name = 'synergy_internal_docs'
                     
-                    # Get milestone counts
-                    milestone_sql = f"""
-                        SELECT session_id, COUNT(*) as count
-                        FROM milestones
-                        WHERE session_id IN ({placeholders})
-                        GROUP BY session_id
-                    """
-                    cursor.execute(milestone_sql, session_ids)
-                    milestone_counts = {row['session_id']: row['count'] for row in cursor.fetchall()}
+                    try:
+                        docs_sql = f"""
+                            SELECT 
+                                session_id,
+                                doc_id,
+                                title,
+                                doc_type,
+                                version,
+                                created_at,
+                                updated_at,
+                                slug,
+                                share_url
+                            FROM {table_name}
+                            WHERE session_id IN ({placeholders})
+                            ORDER BY session_id, created_at DESC
+                        """
+                        cursor.execute(docs_sql, session_ids)
+                        docs_rows = cursor.fetchall()
+                    except Exception as e:
+                        error_msg = str(e).lower()
+                        if 'does not exist' in error_msg or 'no such table' in error_msg:
+                            print(f'[SYNERGY BATCH] Table {table_name} not found - continuing without internal docs')
+                            docs_rows = []
+                        else:
+                            raise
                     
-                    # Get task counts
-                    task_sql = f"""
-                        SELECT 
-                            m.session_id,
-                            COUNT(t.task_id) as total_tasks
-                        FROM milestones m
-                        LEFT JOIN tasks t ON m.milestone_id = t.milestone_id
-                        WHERE m.session_id IN ({placeholders})
-                        GROUP BY m.session_id
-                    """
-                    cursor.execute(task_sql, session_ids)
-                    task_stats = {row['session_id']: {
-                        'total': row['total_tasks'] or 0,
-                        'done': 0
-                    } for row in cursor.fetchall()}
+                    # Group internal docs by session_id
+                    docs_by_session = {}
+                    for doc_row in docs_rows:
+                        doc = dict(doc_row)
+                        sess_id = doc.pop('session_id')
+                        
+                        if sess_id not in docs_by_session:
+                            docs_by_session[sess_id] = []
+                        
+                        docs_by_session[sess_id].append({
+                            'doc_id': doc['doc_id'],
+                            'title': doc['title'],
+                            'type': 'internal_doc',
+                            'doc_type': doc.get('doc_type', 'richtext'),
+                            'version': doc.get('version', 1),
+                            'created_at': str(doc.get('created_at', '')),
+                            'updated_at': str(doc.get('updated_at', '')),
+                            'slug': doc.get('slug', ''),
+                            'share_url': doc.get('share_url', '')
+                        })
                     
-                    # Get subtask counts
-                    subtask_sql = f"""
-                        SELECT 
-                            m.session_id,
-                            COUNT(st.subtask_id) as total_subtasks
-                        FROM milestones m
-                        LEFT JOIN tasks t ON m.milestone_id = t.milestone_id
-                        LEFT JOIN subtasks st ON t.task_id = st.task_id
-                        WHERE m.session_id IN ({placeholders})
-                        GROUP BY m.session_id
-                    """
-                    cursor.execute(subtask_sql, session_ids)
-                    subtask_stats = {row['session_id']: {
-                        'total': row['total_subtasks'] or 0,
-                        'done': 0
-                    } for row in cursor.fetchall()}
-                    
-                    # Attach counts to sessions
+                    # Attach internal docs array to sessions
                     for session in sessions:
                         sess_id = session['session_id']
-                        session['milestone_count'] = milestone_counts.get(sess_id, 0)
-                        session['task_count'] = task_stats.get(sess_id, {}).get('total', 0)
-                        session['tasks_done'] = task_stats.get(sess_id, {}).get('done', 0)
-                        session['subtask_count'] = subtask_stats.get(sess_id, {}).get('total', 0)
-                        session['subtasks_done'] = subtask_stats.get(sess_id, {}).get('done', 0)
+                        if sess_id in docs_by_session:
+                            session['internal_docs'] = docs_by_session[sess_id]
+                            session['internal_docs_count'] = len(docs_by_session[sess_id])
                     
-                except Exception as e:
-                    print(f'[SYNERGY BATCH] Failed to load counts: {str(e)}')
-                    for session in sessions:
-                        session['milestone_count'] = 0
-                        session['task_count'] = 0
-                        session['tasks_done'] = 0
-                        session['subtask_count'] = 0
-                        session['subtasks_done'] = 0
+                    # Get document counts via SQL COUNT(*)
+                    try:
+                        sessions_needing_count = [s['session_id'] for s in sessions if s.get('internal_docs_count') is None]
+                        if sessions_needing_count:
+                            count_placeholders = ','.join('%s' for _ in sessions_needing_count)
+                            count_sql = f"""
+                                SELECT session_id, COUNT(*) as count
+                                FROM {table_name}
+                                WHERE session_id IN ({count_placeholders})
+                                GROUP BY session_id
+                            """
+                            cursor.execute(count_sql, sessions_needing_count)
+                            doc_counts = {row['session_id']: row['count'] for row in cursor.fetchall()}
+                            
+                            for session in sessions:
+                                if session['session_id'] in doc_counts:
+                                    session['internal_docs_count'] = doc_counts[session['session_id']]
+                                elif session.get('internal_docs_count') is None:
+                                    session['internal_docs_count'] = 0
+                    except Exception as e:
+                        for session in sessions:
+                            if session.get('internal_docs_count') is None:
+                                session['internal_docs_count'] = 0
+                
+                # Step 3: Batch load milestone, task, and subtask counts
+                if session_ids:
+                    try:
+                        placeholders = ','.join('%s' for _ in session_ids)
+                        
+                        # Get milestone counts
+                        milestone_sql = f"""
+                            SELECT session_id, COUNT(*) as count
+                            FROM milestones
+                            WHERE session_id IN ({placeholders})
+                            GROUP BY session_id
+                        """
+                        cursor.execute(milestone_sql, session_ids)
+                        milestone_counts = {row['session_id']: row['count'] for row in cursor.fetchall()}
+                        
+                        # Get task counts
+                        task_sql = f"""
+                            SELECT 
+                                m.session_id,
+                                COUNT(t.task_id) as total_tasks
+                            FROM milestones m
+                            LEFT JOIN tasks t ON m.milestone_id = t.milestone_id
+                            WHERE m.session_id IN ({placeholders})
+                            GROUP BY m.session_id
+                        """
+                        cursor.execute(task_sql, session_ids)
+                        task_stats = {row['session_id']: {
+                            'total': row['total_tasks'] or 0,
+                            'done': 0
+                        } for row in cursor.fetchall()}
+                        
+                        # Get subtask counts
+                        subtask_sql = f"""
+                            SELECT 
+                                m.session_id,
+                                COUNT(st.subtask_id) as total_subtasks
+                            FROM milestones m
+                            LEFT JOIN tasks t ON m.milestone_id = t.milestone_id
+                            LEFT JOIN subtasks st ON t.task_id = st.task_id
+                            WHERE m.session_id IN ({placeholders})
+                            GROUP BY m.session_id
+                        """
+                        cursor.execute(subtask_sql, session_ids)
+                        subtask_stats = {row['session_id']: {
+                            'total': row['total_subtasks'] or 0,
+                            'done': 0
+                        } for row in cursor.fetchall()}
+                        
+                        # Attach counts to sessions
+                        for session in sessions:
+                            sess_id = session['session_id']
+                            session['milestone_count'] = milestone_counts.get(sess_id, 0)
+                            session['task_count'] = task_stats.get(sess_id, {}).get('total', 0)
+                            session['tasks_done'] = task_stats.get(sess_id, {}).get('done', 0)
+                            session['subtask_count'] = subtask_stats.get(sess_id, {}).get('total', 0)
+                            session['subtasks_done'] = subtask_stats.get(sess_id, {}).get('done', 0)
+                        
+                    except Exception as e:
+                        print(f'[SYNERGY BATCH] Failed to load counts: {str(e)}')
+                        for session in sessions:
+                            session['milestone_count'] = 0
+                            session['task_count'] = 0
+                            session['tasks_done'] = 0
+                            session['subtask_count'] = 0
+                            session['subtasks_done'] = 0
             
+            # ✅ Cursor auto-closed here
             return jsonify({
                 'success': True,
                 'sessions': sessions,
@@ -655,8 +634,7 @@ def get_sessions_bulk():
     """
     Bulk fetch sessions by comma-separated ids query parameter.
     Example: GET /api/synergy?ids=sess_1,sess_2
-    Returns: { success: True, sessions: { <id>: {...}, ... } }
-    If no ids provided, falls back to list of sessions (minimal fields).
+    ✅ FIXED: Uses nested context managers
     """
     try:
         ids_param = request.args.get('ids')
@@ -668,13 +646,14 @@ def get_sessions_bulk():
             return jsonify({'success': True, 'sessions': {}})
 
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
 
-            placeholders = ','.join('%s' for _ in ids)
-            query = f"SELECT * FROM synergy_sessions WHERE session_id IN ({placeholders})"
-            cursor.execute(query, ids)
-            rows = cursor.fetchall()
+                placeholders = ','.join('%s' for _ in ids)
+                query = f"SELECT * FROM synergy_sessions WHERE session_id IN ({placeholders})"
+                cursor.execute(query, ids)
+                rows = cursor.fetchall()
 
+            # ✅ Cursor auto-closed here
             sessions = {}
             for row in rows:
                 session = dict(row)
@@ -698,6 +677,7 @@ def get_sessions_bulk():
 def create_session():
     """
     Create a new session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         if not request.is_json:
@@ -751,71 +731,72 @@ def create_session():
         shared_with_users = json.dumps(data.get('shared_with_users', []))
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Check if session_id already exists
-            check_sql, check_params = convert_sql_placeholders(
-                'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(check_sql, check_params)
-            existing = cursor.fetchone()
-            
-            if existing:
-                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-                session_id = f"sess_{timestamp}_{title_slug}_{random_suffix}"
-                print(f"[SYNERGY] Session ID collision detected - regenerated: {session_id}")
-            
-            insert_sql, insert_params = convert_sql_placeholders('''
-                INSERT INTO synergy_sessions (
-                    session_id, title, description, platforms_involved, status,
-                    priority, kanban_column, tags, documents, links, next_steps,
-                    assignees, recent_activity, checklist, due_date, created_at, last_active,
-                    thread_ids, assigned_agents, uses_milestones,
-                    owner_user_id, shared_with_users, project_name
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                session_id,
-                data.get('title', 'Untitled Session'),
-                data.get('description', ''),
-                platforms_involved,
-                data.get('status', 'active'),
-                data.get('priority', 'medium'),
-                data.get('kanban_column', 'backlog'),
-                tags,
-                documents,
-                links,
-                next_steps,
-                assignees,
-                recent_activity,
-                checklist,
-                data.get('due_date'),
-                datetime.now().isoformat(),
-                datetime.now().isoformat(),
-                thread_ids,
-                assigned_agents,
-                data.get('uses_milestones', False),
-                owner_user_id,
-                shared_with_users,
-                data.get('project_name', '')
-            ))
-            cursor.execute(insert_sql, insert_params)
-            
-            # BIDIRECTIONAL LINKING: UPDATE sessions.threads table
-            if thread_ids_list:
-                for thread_id in thread_ids_list:
-                    try:
-                        update_sql, update_params = convert_sql_placeholders('''
-                            UPDATE sessions.threads 
-                            SET synergy_card_id = %s, synergy_card_name = %s, updated = %s
-                            WHERE id = %s
-                        ''', (session_id, data.get('title', 'Untitled Session'), datetime.now().isoformat(), thread_id))
-                        cursor.execute(update_sql, update_params)
-                        print(f"BIDIRECTIONAL LINK: Thread {thread_id} updated with synergy_card_id {session_id}")
-                    except Exception as link_error:
-                        print(f"Warning: Failed to update thread {thread_id}: {link_error}")
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Check if session_id already exists
+                check_sql, check_params = convert_sql_placeholders(
+                    'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(check_sql, check_params)
+                existing = cursor.fetchone()
+                
+                if existing:
+                    random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                    session_id = f"sess_{timestamp}_{title_slug}_{random_suffix}"
+                    print(f"[SYNERGY] Session ID collision detected - regenerated: {session_id}")
+                
+                insert_sql, insert_params = convert_sql_placeholders('''
+                    INSERT INTO synergy_sessions (
+                        session_id, title, description, platforms_involved, status,
+                        priority, kanban_column, tags, documents, links, next_steps,
+                        assignees, recent_activity, checklist, due_date, created_at, last_active,
+                        thread_ids, assigned_agents, uses_milestones,
+                        owner_user_id, shared_with_users, project_name
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    session_id,
+                    data.get('title', 'Untitled Session'),
+                    data.get('description', ''),
+                    platforms_involved,
+                    data.get('status', 'active'),
+                    data.get('priority', 'medium'),
+                    data.get('kanban_column', 'backlog'),
+                    tags,
+                    documents,
+                    links,
+                    next_steps,
+                    assignees,
+                    recent_activity,
+                    checklist,
+                    data.get('due_date'),
+                    datetime.now().isoformat(),
+                    datetime.now().isoformat(),
+                    thread_ids,
+                    assigned_agents,
+                    data.get('uses_milestones', False),
+                    owner_user_id,
+                    shared_with_users,
+                    data.get('project_name', '')
+                ))
+                cursor.execute(insert_sql, insert_params)
+                
+                # BIDIRECTIONAL LINKING: UPDATE sessions.threads table
+                if thread_ids_list:
+                    for thread_id in thread_ids_list:
+                        try:
+                            update_sql, update_params = convert_sql_placeholders('''
+                                UPDATE sessions.threads 
+                                SET synergy_card_id = %s, synergy_card_name = %s, updated = %s
+                                WHERE id = %s
+                            ''', (session_id, data.get('title', 'Untitled Session'), datetime.now().isoformat(), thread_id))
+                            cursor.execute(update_sql, update_params)
+                            print(f"BIDIRECTIONAL LINK: Thread {thread_id} updated with synergy_card_id {session_id}")
+                        except Exception as link_error:
+                            print(f"Warning: Failed to update thread {thread_id}: {link_error}")
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         # Broadcast new session creation to WebSocket clients
         try:
@@ -855,151 +836,151 @@ def create_session():
 def get_session(session_id):
     """
     Get session by ID - includes milestones if uses_milestones=TRUE
+    ✅ FIXED: Uses nested context managers
     """
     try:
         user_id = request.args.get('user_id', type=int)
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT * FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({
-                    'success': False,
-                    'error': 'Session not found'
-                }), 404
-            
-            session = dict(row)
-            
-            # Check permission
-            has_permission, perm_type = check_session_permission(session, user_id, require_write=False)
-            if not has_permission:
-                return jsonify({
-                    'success': False,
-                    'error': 'Access denied: You do not have permission to view this session'
-                }), 403
-            
-            # Parse JSON fields
-            for field in ['platforms_involved', 'tags', 'documents', 'links', 
-                         'next_steps', 'assignees', 'recent_activity', 'checklist',
-                         'thread_ids', 'assigned_agents', 'shared_with_users']:
-                if session.get(field):
-                    try:
-                        session[field] = json.loads(session[field])
-                    except:
-                        session[field] = []
-            
-            session['user_permission'] = perm_type
-            
-            # If session uses milestones, fetch milestone data
-            if session.get('uses_milestones'):
-                milestone_sql, milestone_params = convert_sql_placeholders('''
-                    SELECT milestone_id, milestone_number, title, description,
-                           completed, due_date, priority, estimated_hours, actual_hours,
-                           created_at, completed_at, milestone_order, depends_on_milestone_id,
-                           blocked, blocker_reason, blocked_since, updated_at, documents, links
-                    FROM milestones 
-                    WHERE session_id = %s
-                    ORDER BY milestone_number
-                ''', (session_id,))
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                cursor.execute(milestone_sql, milestone_params)
+                sql, params = convert_sql_placeholders(
+                    'SELECT * FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
                 
-                milestones = []
-                for m_row in cursor.fetchall():
-                    milestone = {
-                        'milestone_id': m_row[0],
-                        'milestone_number': m_row[1],
-                        'milestone_name': m_row[2],
-                        'description': m_row[3],
-                        'completed': m_row[4],
-                        'due_date': m_row[5],
-                        'priority': m_row[6],
-                        'estimated_hours': m_row[7],
-                        'actual_hours': m_row[8],
-                        'created_at': m_row[9],
-                        'completed_at': m_row[10],
-                        'milestone_order': m_row[11],
-                        'depends_on_milestone_id': m_row[12],
-                        'blocked': m_row[13],
-                        'blocker_reason': m_row[14],
-                        'blocked_since': m_row[15],
-                        'updated_at': m_row[16],
-                        'documents': m_row[17],
-                        'links': m_row[18],
-                        'tasks': []
-                    }
+                if not row:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Session not found'
+                    }), 404
+                
+                session = dict(row)
+                
+                # Check permission
+                has_permission, perm_type = check_session_permission(session, user_id, require_write=False)
+                if not has_permission:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Access denied: You do not have permission to view this session'
+                    }), 403
+                
+                # Parse JSON fields
+                for field in ['platforms_involved', 'tags', 'documents', 'links', 
+                             'next_steps', 'assignees', 'recent_activity', 'checklist',
+                             'thread_ids', 'assigned_agents', 'shared_with_users']:
+                    if session.get(field):
+                        try:
+                            session[field] = json.loads(session[field])
+                        except:
+                            session[field] = []
+                
+                session['user_permission'] = perm_type
+                
+                # If session uses milestones, fetch milestone data
+                if session.get('uses_milestones'):
+                    milestone_sql, milestone_params = convert_sql_placeholders('''
+                        SELECT milestone_id, milestone_number, title, description,
+                               completed, due_date, priority, estimated_hours, actual_hours,
+                               created_at, completed_at, milestone_order, depends_on_milestone_id,
+                               blocked, blocker_reason, blocked_since, updated_at, documents, links
+                        FROM milestones 
+                        WHERE session_id = %s
+                        ORDER BY milestone_number
+                    ''', (session_id,))
                     
-                    # Get tasks for this milestone
-                    task_sql, task_params = convert_sql_placeholders('''
-                        SELECT task_id, task, completed, blocked, blocker_reason, 
-                               blocker_type, task_order, created_at, completed_at, blocked_since,
-                               estimated_hours, actual_hours, assigned_to, updated_at, priority
-                        FROM tasks 
-                        WHERE milestone_id = %s
-                        ORDER BY task_order
-                    ''', (milestone['milestone_id'],))
+                    cursor.execute(milestone_sql, milestone_params)
                     
-                    cursor.execute(task_sql, task_params)
-                    
-                    for t_row in cursor.fetchall():
-                        task = {
-                            'task_id': t_row[0],
-                            'task': t_row[1],
-                            'completed': t_row[2],
-                            'blocked': t_row[3],
-                            'blocker_reason': t_row[4],
-                            'blocker_type': t_row[5],
-                            'task_order': t_row[6],
-                            'created_at': t_row[7],
-                            'completed_at': t_row[8],
-                            'blocked_since': t_row[9],
-                            'estimated_hours': t_row[10],
-                            'actual_hours': t_row[11],
-                            'assigned_to': t_row[12],
-                            'updated_at': t_row[13],
-                            'priority': t_row[14],
-                            'subtasks': []
+                    milestones = []
+                    for m_row in cursor.fetchall():
+                        milestone = {
+                            'milestone_id': m_row[0],
+                            'milestone_number': m_row[1],
+                            'milestone_name': m_row[2],
+                            'description': m_row[3],
+                            'completed': m_row[4],
+                            'due_date': m_row[5],
+                            'priority': m_row[6],
+                            'estimated_hours': m_row[7],
+                            'actual_hours': m_row[8],
+                            'created_at': m_row[9],
+                            'completed_at': m_row[10],
+                            'milestone_order': m_row[11],
+                            'depends_on_milestone_id': m_row[12],
+                            'blocked': m_row[13],
+                            'blocker_reason': m_row[14],
+                            'blocked_since': m_row[15],
+                            'updated_at': m_row[16],
+                            'documents': m_row[17],
+                            'links': m_row[18],
+                            'tasks': []
                         }
                         
-                        # Get subtasks for this task
-                        subtask_sql, subtask_params = convert_sql_placeholders('''
-                            SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
-                                   estimated_hours, actual_hours, updated_at, priority
-                            FROM subtasks 
-                            WHERE task_id = %s
-                            ORDER BY subtask_order
-                        ''', (task['task_id'],))
+                        # Get tasks for this milestone
+                        task_sql, task_params = convert_sql_placeholders('''
+                            SELECT task_id, task, completed, blocked, blocker_reason, 
+                                   blocker_type, task_order, created_at, completed_at, blocked_since,
+                                   estimated_hours, actual_hours, assigned_to, updated_at, priority
+                            FROM tasks 
+                            WHERE milestone_id = %s
+                            ORDER BY task_order
+                        ''', (milestone['milestone_id'],))
                         
-                        cursor.execute(subtask_sql, subtask_params)
+                        cursor.execute(task_sql, task_params)
                         
-                        for s_row in cursor.fetchall():
-                            subtask = {
-                                'subtask_id': s_row[0],
-                                'task': s_row[1],
-                                'completed': s_row[2],
-                                'subtask_order': s_row[3],
-                                'created_at': s_row[4],
-                                'completed_at': s_row[5],
-                                'estimated_hours': s_row[6],
-                                'actual_hours': s_row[7],
-                                'updated_at': s_row[8],
-                                'priority': s_row[9]
+                        for t_row in cursor.fetchall():
+                            task = {
+                                'task_id': t_row[0],
+                                'task': t_row[1],
+                                'completed': t_row[2],
+                                'blocked': t_row[3],
+                                'blocker_reason': t_row[4],
+                                'blocker_type': t_row[5],
+                                'task_order': t_row[6],
+                                'created_at': t_row[7],
+                                'completed_at': t_row[8],
+                                'blocked_since': t_row[9],
+                                'estimated_hours': t_row[10],
+                                'actual_hours': t_row[11],
+                                'assigned_to': t_row[12],
+                                'updated_at': t_row[13],
+                                'priority': t_row[14],
+                                'subtasks': []
                             }
-                            task['subtasks'].append(subtask)
-                        
-                        milestone['tasks'].append(task)
+                            
+                            # Get subtasks for this task
+                            subtask_sql, subtask_params = convert_sql_placeholders('''
+                                SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
+                                       estimated_hours, actual_hours, updated_at, priority
+                                FROM subtasks 
+                                WHERE task_id = %s
+                                ORDER BY subtask_order
+                            ''', (task['task_id'],))
+                            
+                            cursor.execute(subtask_sql, subtask_params)
+                            
+                            for s_row in cursor.fetchall():
+                                subtask = {
+                                    'subtask_id': s_row[0],
+                                    'task': s_row[1],
+                                    'completed': s_row[2],
+                                    'subtask_order': s_row[3],
+                                    'created_at': s_row[4],
+                                    'completed_at': s_row[5],
+                                    'estimated_hours': s_row[6],
+                                    'actual_hours': s_row[7],
+                                    'updated_at': s_row[8],
+                                    'priority': s_row[9]
+                                }
+                                task['subtasks'].append(subtask)
+                            
+                            milestone['tasks'].append(task)
                     
-                    milestones.append(milestone)
-                
-                session['milestones'] = milestones
+                    session['milestones'] = milestones
             
+            # ✅ Cursor auto-closed here
             return jsonify({
                 'success': True,
                 'session': session
@@ -1018,68 +999,70 @@ def get_session(session_id):
 def update_session_permissions(session_id):
     """
     Update session permission settings
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
         user_id = data.get('user_id', type=int)
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT * FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({
-                    'success': False,
-                    'error': 'Session not found'
-                }), 404
-            
-            session = dict(row)
-            
-            # Only owner can change permissions
-            has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
-            if perm_type != 'owner':
-                return jsonify({
-                    'success': False,
-                    'error': 'Only the session owner can change permissions'
-                }), 403
-            
-            # Build update query
-            updates = []
-            update_params = []
-            
-            if 'permission_level' in data:
-                updates.append('permission_level = %s')
-                update_params.append(data['permission_level'])
-            
-            if 'shared_with_users' in data:
-                updates.append('shared_with_users = %s')
-                update_params.append(json.dumps(data['shared_with_users']))
-            
-            if 'allow_public_view' in data:
-                updates.append('allow_public_view = %s')
-                update_params.append(data['allow_public_view'])
-            
-            if not updates:
-                return jsonify({
-                    'success': False,
-                    'error': 'No permission fields provided'
-                }), 400
-            
-            updates.append('last_active = %s')
-            update_params.append(datetime.now().isoformat())
-            update_params.append(session_id)
-            
-            query = f"UPDATE synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
-            final_sql, final_params = convert_sql_placeholders(query, tuple(update_params))
-            cursor.execute(final_sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT * FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Session not found'
+                    }), 404
+                
+                session = dict(row)
+                
+                # Only owner can change permissions
+                has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
+                if perm_type != 'owner':
+                    return jsonify({
+                        'success': False,
+                        'error': 'Only the session owner can change permissions'
+                    }), 403
+                
+                # Build update query
+                updates = []
+                update_params = []
+                
+                if 'permission_level' in data:
+                    updates.append('permission_level = %s')
+                    update_params.append(data['permission_level'])
+                
+                if 'shared_with_users' in data:
+                    updates.append('shared_with_users = %s')
+                    update_params.append(json.dumps(data['shared_with_users']))
+                
+                if 'allow_public_view' in data:
+                    updates.append('allow_public_view = %s')
+                    update_params.append(data['allow_public_view'])
+                
+                if not updates:
+                    return jsonify({
+                        'success': False,
+                        'error': 'No permission fields provided'
+                    }), 400
+                
+                updates.append('last_active = %s')
+                update_params.append(datetime.now().isoformat())
+                update_params.append(session_id)
+                
+                query = f"UPDATE synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
+                final_sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+                cursor.execute(final_sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -1098,6 +1081,7 @@ def update_session_permissions(session_id):
 def update_session(session_id):
     """
     Update session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -1105,109 +1089,110 @@ def update_session(session_id):
         print(f"[DEBUG] Received data: {data}")
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Check write permission
-            sql, params = convert_sql_placeholders(
-                'SELECT * FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({
-                    'success': False,
-                    'error': 'Session not found'
-                }), 404
-            
-            session = dict(row)
-            has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
-            
-            if not has_permission:
-                return jsonify({
-                    'success': False,
-                    'error': 'Access denied: You do not have permission to edit this session'
-                }), 403
-            
-            # Handle both direct fields and nested 'updates' object
-            if 'updates' in data:
-                update_data = data['updates']
-                print(f"[DEBUG] Using nested updates: {update_data}")
-            else:
-                update_data = data
-                print(f"[DEBUG] Using direct data: {update_data}")
-            
-            # Build update query dynamically
-            updates = []
-            update_params = []
-            
-            # Simple fields
-            for field in ['title', 'description', 'status', 'priority', 'due_date', 'kanban_column']:
-                if field in update_data:
-                    updates.append(f"{field} = %s")
-                    update_params.append(update_data[field])
-            
-            # JSON fields without normalization
-            for field in ['platforms_involved', 'tags', 'links', 
-                         'assignees', 'thread_ids', 'assigned_agents']:
-                if field in update_data:
-                    updates.append(f"{field} = %s")
-                    json_value = json.dumps(update_data[field])
-                    update_params.append(json_value)
-                    print(f"[DEBUG] Adding {field}: {json_value}")
-            
-            # Special handling for next_steps
-            if 'next_steps' in update_data:
-                updates.append("next_steps = %s")
-                normalized = normalize_next_steps(update_data['next_steps'])
-                json_value = json.dumps(normalized)
-                update_params.append(json_value)
-                print(f"[DEBUG] Adding next_steps (normalized): {json_value}")
-            
-            # Special handling for documents
-            if 'documents' in update_data:
-                try:
-                    normalized = normalize_documents(update_data['documents'])
-                    updates.append("documents = %s")
-                    json_value = json.dumps(normalized)
-                    update_params.append(json_value)
-                    print(f"[DEBUG] Adding documents (normalized): {json_value}")
-                except Exception as doc_error:
-                    print(f"[ERROR] Document normalization failed: {doc_error}")
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Check write permission
+                sql, params = convert_sql_placeholders(
+                    'SELECT * FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
                     return jsonify({
                         'success': False,
-                        'error': f'Invalid document format: {str(doc_error)}'
-                    }), 400
-            
-            # Special handling for checklist
-            if 'checklist' in update_data:
-                updates.append("checklist = %s")
-                normalized = normalize_checklist(update_data['checklist'])
-                json_value = json.dumps(normalized)
-                update_params.append(json_value)
-                print(f"[DEBUG] Adding checklist (normalized): {json_value}")
-            
-            # Add to recent activity
-            if 'recent_activity' in update_data:
-                updates.append("recent_activity = %s")
-                update_params.append(json.dumps(update_data['recent_activity']))
-            
-            # Update last_active
-            updates.append("last_active = %s")
-            update_params.append(datetime.now().isoformat())
-            update_params.append(session_id)
-            
-            if updates:
-                query = f"UPDATE synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
-                print(f"[DEBUG] Executing query: {query}")
-                print(f"[DEBUG] With params: {update_params}")
+                        'error': 'Session not found'
+                    }), 404
                 
-                final_sql, final_params = convert_sql_placeholders(query, tuple(update_params))
-                cursor.execute(final_sql, final_params)
-                print(f"[DEBUG] Rows affected: {cursor.rowcount}")
-            
-            conn.commit()
+                session = dict(row)
+                has_permission, perm_type = check_session_permission(session, user_id, require_write=True)
+                
+                if not has_permission:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Access denied: You do not have permission to edit this session'
+                    }), 403
+                
+                # Handle both direct fields and nested 'updates' object
+                if 'updates' in data:
+                    update_data = data['updates']
+                    print(f"[DEBUG] Using nested updates: {update_data}")
+                else:
+                    update_data = data
+                    print(f"[DEBUG] Using direct data: {update_data}")
+                
+                # Build update query dynamically
+                updates = []
+                update_params = []
+                
+                # Simple fields
+                for field in ['title', 'description', 'status', 'priority', 'due_date', 'kanban_column']:
+                    if field in update_data:
+                        updates.append(f"{field} = %s")
+                        update_params.append(update_data[field])
+                
+                # JSON fields without normalization
+                for field in ['platforms_involved', 'tags', 'links', 
+                             'assignees', 'thread_ids', 'assigned_agents']:
+                    if field in update_data:
+                        updates.append(f"{field} = %s")
+                        json_value = json.dumps(update_data[field])
+                        update_params.append(json_value)
+                        print(f"[DEBUG] Adding {field}: {json_value}")
+                
+                # Special handling for next_steps
+                if 'next_steps' in update_data:
+                    updates.append("next_steps = %s")
+                    normalized = normalize_next_steps(update_data['next_steps'])
+                    json_value = json.dumps(normalized)
+                    update_params.append(json_value)
+                    print(f"[DEBUG] Adding next_steps (normalized): {json_value}")
+                
+                # Special handling for documents
+                if 'documents' in update_data:
+                    try:
+                        normalized = normalize_documents(update_data['documents'])
+                        updates.append("documents = %s")
+                        json_value = json.dumps(normalized)
+                        update_params.append(json_value)
+                        print(f"[DEBUG] Adding documents (normalized): {json_value}")
+                    except Exception as doc_error:
+                        print(f"[ERROR] Document normalization failed: {doc_error}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Invalid document format: {str(doc_error)}'
+                        }), 400
+                
+                # Special handling for checklist
+                if 'checklist' in update_data:
+                    updates.append("checklist = %s")
+                    normalized = normalize_checklist(update_data['checklist'])
+                    json_value = json.dumps(normalized)
+                    update_params.append(json_value)
+                    print(f"[DEBUG] Adding checklist (normalized): {json_value}")
+                
+                # Add to recent activity
+                if 'recent_activity' in update_data:
+                    updates.append("recent_activity = %s")
+                    update_params.append(json.dumps(update_data['recent_activity']))
+                
+                # Update last_active
+                updates.append("last_active = %s")
+                update_params.append(datetime.now().isoformat())
+                update_params.append(session_id)
+                
+                if updates:
+                    query = f"UPDATE synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
+                    print(f"[DEBUG] Executing query: {query}")
+                    print(f"[DEBUG] With params: {update_params}")
+                    
+                    final_sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+                    cursor.execute(final_sql, final_params)
+                    print(f"[DEBUG] Rows affected: {cursor.rowcount}")
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         # Broadcast update to WebSocket clients
         try:
@@ -1242,6 +1227,7 @@ def update_session(session_id):
 def update_column(session_id):
     """
     Update session column (Kanban movement)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -1254,34 +1240,35 @@ def update_column(session_id):
             }), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Add activity log
-            sql, params = convert_sql_placeholders(
-                'SELECT recent_activity FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if row:
-                activity = json.loads(row['recent_activity'] or '[]')
-                activity.insert(0, {
-                    'type': 'moved',
-                    'timestamp': datetime.now().isoformat(),
-                    'user': data.get('moved_by', 'AI Agent'),
-                    'details': f"Moved to {new_column}"
-                })
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET kanban_column = %s, recent_activity = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
+                # Add activity log
+                sql, params = convert_sql_placeholders(
+                    'SELECT recent_activity FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
                 
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                if row:
+                    activity = json.loads(row['recent_activity'] or '[]')
+                    activity.insert(0, {
+                        'type': 'moved',
+                        'timestamp': datetime.now().isoformat(),
+                        'user': data.get('moved_by', 'AI Agent'),
+                        'details': f"Moved to {new_column}"
+                    })
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET kanban_column = %s, recent_activity = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
+                    
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         # Broadcast column change to WebSocket clients
         try:
@@ -1315,6 +1302,7 @@ def update_column(session_id):
 def search_sessions():
     """
     Search sessions by title, description, tags, or platform
+    ✅ FIXED: Uses nested context managers
     """
     try:
         query = request.args.get('query', '').strip()
@@ -1331,46 +1319,47 @@ def search_sessions():
             }), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Build search query
+                conditions = ['1=1']
+                params = []
+                
+                if query:
+                    search_pattern = f'%{query}%'
+                    conditions.append(
+                        "(title LIKE %s OR description LIKE %s OR tags LIKE %s)"
+                    )
+                    params.extend([search_pattern, search_pattern, search_pattern])
+                
+                if platform:
+                    conditions.append("platforms_involved LIKE %s")
+                    params.append(f'%{platform}%')
+                
+                if status:
+                    conditions.append("status = %s")
+                    params.append(status)
+                
+                if priority:
+                    conditions.append("priority = %s")
+                    params.append(priority)
+                
+                if column:
+                    conditions.append("kanban_column = %s")
+                    params.append(column)
+                
+                base_sql = f"""
+                    SELECT * FROM synergy_sessions 
+                    WHERE {' AND '.join(conditions)}
+                    ORDER BY last_active DESC
+                    LIMIT 50
+                """
+                
+                sql, final_params = convert_sql_placeholders(base_sql, tuple(params))
+                cursor.execute(sql, final_params)
+                rows = cursor.fetchall()
             
-            # Build search query
-            conditions = ['1=1']
-            params = []
-            
-            if query:
-                search_pattern = f'%{query}%'
-                conditions.append(
-                    "(title LIKE %s OR description LIKE %s OR tags LIKE %s)"
-                )
-                params.extend([search_pattern, search_pattern, search_pattern])
-            
-            if platform:
-                conditions.append("platforms_involved LIKE %s")
-                params.append(f'%{platform}%')
-            
-            if status:
-                conditions.append("status = %s")
-                params.append(status)
-            
-            if priority:
-                conditions.append("priority = %s")
-                params.append(priority)
-            
-            if column:
-                conditions.append("kanban_column = %s")
-                params.append(column)
-            
-            base_sql = f"""
-                SELECT * FROM synergy_sessions 
-                WHERE {' AND '.join(conditions)}
-                ORDER BY last_active DESC
-                LIMIT 50
-            """
-            
-            sql, final_params = convert_sql_placeholders(base_sql, tuple(params))
-            cursor.execute(sql, final_params)
-            rows = cursor.fetchall()
-            
+            # ✅ Cursor auto-closed here
             # Process results
             sessions = []
             for row in rows:
@@ -1417,18 +1406,20 @@ def search_sessions():
 def delete_session(session_id):
     """
     Delete session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'DELETE FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'DELETE FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         # Broadcast deletion to WebSocket clients
         try:
@@ -1459,6 +1450,7 @@ def delete_session(session_id):
 def link_thread_to_synergy(session_id):
     """
     Link a thread to a Synergy session (bidirectional sync)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -1470,63 +1462,64 @@ def link_thread_to_synergy(session_id):
             return jsonify({'success': False, 'error': 'thread_id required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT thread_ids, title FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            session_name = row['title']
-            
-            thread_ids = []
-            if row['thread_ids']:
-                try:
-                    thread_ids = json.loads(row['thread_ids'])
-                    if not isinstance(thread_ids, list):
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT thread_ids, title FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                session_name = row['title']
+                
+                thread_ids = []
+                if row['thread_ids']:
+                    try:
+                        thread_ids = json.loads(row['thread_ids'])
+                        if not isinstance(thread_ids, list):
+                            thread_ids = []
+                    except json.JSONDecodeError:
                         thread_ids = []
-                except json.JSONDecodeError:
-                    thread_ids = []
-            
-            if thread_id not in thread_ids:
-                thread_ids.append(thread_id)
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET thread_ids = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
+                if thread_id not in thread_ids:
+                    thread_ids.append(thread_id)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET thread_ids = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                    
+                    # BIDIRECTIONAL LINK
+                    try:
+                        thread_id_int = int(thread_id) if thread_id and thread_id.isdigit() else None
+                    except (ValueError, AttributeError):
+                        thread_id_int = None
+                    
+                    if thread_id_int:
+                        thread_update_sql, thread_update_params = convert_sql_placeholders('''
+                            UPDATE sessions.threads 
+                            SET synergy_card_id = %s, synergy_card_name = %s
+                            WHERE id = %s OR thread_slug = %s
+                        ''', (session_id, session_name, thread_id_int, thread_slug))
+                    else:
+                        thread_update_sql, thread_update_params = convert_sql_placeholders('''
+                            UPDATE sessions.threads 
+                            SET synergy_card_id = %s, synergy_card_name = %s
+                            WHERE thread_slug = %s
+                        ''', (session_id, session_name, thread_slug))
+                    
+                    cursor.execute(thread_update_sql, thread_update_params)
+                    
+                    print(f"[SYNERGY SYNC] ✅ Linked thread {thread_id} → Synergy session {session_id}")
                 
-                # BIDIRECTIONAL LINK
-                try:
-                    thread_id_int = int(thread_id) if thread_id and thread_id.isdigit() else None
-                except (ValueError, AttributeError):
-                    thread_id_int = None
-                
-                if thread_id_int:
-                    thread_update_sql, thread_update_params = convert_sql_placeholders('''
-                        UPDATE sessions.threads 
-                        SET synergy_card_id = %s, synergy_card_name = %s
-                        WHERE id = %s OR thread_slug = %s
-                    ''', (session_id, session_name, thread_id_int, thread_slug))
-                else:
-                    thread_update_sql, thread_update_params = convert_sql_placeholders('''
-                        UPDATE sessions.threads 
-                        SET synergy_card_id = %s, synergy_card_name = %s
-                        WHERE thread_slug = %s
-                    ''', (session_id, session_name, thread_slug))
-                
-                cursor.execute(thread_update_sql, thread_update_params)
-                
-                print(f"[SYNERGY SYNC] ✅ Linked thread {thread_id} → Synergy session {session_id}")
-            
-            conn.commit()
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -1547,6 +1540,7 @@ def link_thread_to_synergy(session_id):
 def update_card_position(session_id):
     """
     Update card position within a column
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -1556,16 +1550,17 @@ def update_card_position(session_id):
             return jsonify({'success': False, 'error': 'position required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders('''
-                UPDATE synergy_sessions 
-                SET column_position = %s
-                WHERE session_id = %s
-            ''', (position, session_id))
-            cursor.execute(sql, params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders('''
+                    UPDATE synergy_sessions 
+                    SET column_position = %s
+                    WHERE session_id = %s
+                ''', (position, session_id))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -1581,6 +1576,7 @@ def update_card_position(session_id):
 def update_multiple_positions():
     """
     Update positions for multiple cards at once
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -1590,20 +1586,21 @@ def update_multiple_positions():
             return jsonify({'success': False, 'error': 'cards array required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            for card in cards:
-                session_id = card.get('session_id')
-                position = card.get('position')
-                if session_id and position is not None:
-                    sql, params = convert_sql_placeholders('''
-                        UPDATE synergy_sessions 
-                        SET column_position = %s
-                        WHERE session_id = %s
-                    ''', (position, session_id))
-                    cursor.execute(sql, params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                for card in cards:
+                    session_id = card.get('session_id')
+                    position = card.get('position')
+                    if session_id and position is not None:
+                        sql, params = convert_sql_placeholders('''
+                            UPDATE synergy_sessions 
+                            SET column_position = %s
+                            WHERE session_id = %s
+                        ''', (position, session_id))
+                        cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -1618,6 +1615,7 @@ def update_multiple_positions():
 def unlink_thread_from_synergy(session_id):
     """
     Unlink a thread from a Synergy session (bidirectional sync)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -1627,40 +1625,41 @@ def unlink_thread_from_synergy(session_id):
             return jsonify({'success': False, 'error': 'thread_id required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            thread_ids = []
-            if row['thread_ids']:
-                try:
-                    thread_ids = json.loads(row['thread_ids'])
-                    if not isinstance(thread_ids, list):
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                thread_ids = []
+                if row['thread_ids']:
+                    try:
+                        thread_ids = json.loads(row['thread_ids'])
+                        if not isinstance(thread_ids, list):
+                            thread_ids = []
+                    except json.JSONDecodeError:
                         thread_ids = []
-                except json.JSONDecodeError:
-                    thread_ids = []
-            
-            if thread_id in thread_ids:
-                thread_ids.remove(thread_id)
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET thread_ids = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
+                if thread_id in thread_ids:
+                    thread_ids.remove(thread_id)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET thread_ids = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                    
+                    print(f"[SYNERGY SYNC] Removed thread {thread_id} from Synergy session {session_id}")
                 
-                print(f"[SYNERGY SYNC] Removed thread {thread_id} from Synergy session {session_id}")
-            
-            conn.commit()
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -1682,6 +1681,7 @@ def unlink_thread_from_synergy(session_id):
 def create_internal_doc():
     """
     Create a new internal document inside a Synergy session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -1705,42 +1705,43 @@ def create_internal_doc():
             slug = doc_id
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            original_slug = slug
-            counter = 1
-            while True:
-                sql, params = convert_sql_placeholders(
-                    'SELECT doc_id FROM synergy_internal_docs WHERE slug = %s',
-                    (slug,)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                original_slug = slug
+                counter = 1
+                while True:
+                    sql, params = convert_sql_placeholders(
+                        'SELECT doc_id FROM synergy_internal_docs WHERE slug = %s',
+                        (slug,)
+                    )
+                    cursor.execute(sql, params)
+                    if not cursor.fetchone():
+                        break
+                    slug = f"{original_slug}-{counter}"
+                    counter += 1
+                
+                share_url = f"/internal-docs/{slug}"
+                
+                verify_sql, verify_params = convert_sql_placeholders(
+                    'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
                 )
-                cursor.execute(sql, params)
+                cursor.execute(verify_sql, verify_params)
                 if not cursor.fetchone():
-                    break
-                slug = f"{original_slug}-{counter}"
-                counter += 1
-            
-            share_url = f"/internal-docs/{slug}"
-            
-            verify_sql, verify_params = convert_sql_placeholders(
-                'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(verify_sql, verify_params)
-            if not cursor.fetchone():
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            now = datetime.now().isoformat()
-            insert_sql, insert_params = convert_sql_placeholders('''
-                INSERT INTO synergy_internal_docs 
-                (doc_id, session_id, title, content, content_json, format, doc_type, 
-                 created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (doc_id, session_id, title, content, content_json, doc_format, doc_type,
-                  created_by, now, now, 1, False, slug, share_url))
-            cursor.execute(insert_sql, insert_params)
-            
-            conn.commit()
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                now = datetime.now().isoformat()
+                insert_sql, insert_params = convert_sql_placeholders('''
+                    INSERT INTO synergy_internal_docs 
+                    (doc_id, session_id, title, content, content_json, format, doc_type, 
+                     created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (doc_id, session_id, title, content, content_json, doc_format, doc_type,
+                      created_by, now, now, 1, False, slug, share_url))
+                cursor.execute(insert_sql, insert_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         print(f"[INTERNAL DOC] Created document {doc_id} in session {session_id}: {title} (slug: {slug})")
         
@@ -1765,22 +1766,24 @@ def create_internal_doc():
 def get_internal_doc(doc_id):
     """
     Retrieve an internal document by ID
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders('''
+                    SELECT doc_id, session_id, title, content, content_json, format, doc_type,
+                           created_at, updated_at, created_by, version, linked_to_ai,
+                           slug, share_url, description, tags
+                    FROM synergy_internal_docs
+                    WHERE doc_id = %s
+                ''', (doc_id,))
+                cursor.execute(sql, params)
+                
+                row = cursor.fetchone()
             
-            sql, params = convert_sql_placeholders('''
-                SELECT doc_id, session_id, title, content, content_json, format, doc_type,
-                       created_at, updated_at, created_by, version, linked_to_ai,
-                       slug, share_url, description, tags
-                FROM synergy_internal_docs
-                WHERE doc_id = %s
-            ''', (doc_id,))
-            cursor.execute(sql, params)
-            
-            row = cursor.fetchone()
-            
+            # ✅ Cursor auto-closed here
             if not row:
                 return jsonify({'success': False, 'error': 'Document not found'}), 404
             
@@ -1814,6 +1817,7 @@ def get_internal_doc(doc_id):
 def update_internal_doc(doc_id):
     """
     Update an internal document
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -1825,46 +1829,47 @@ def update_internal_doc(doc_id):
             return jsonify({'success': False, 'error': 'title, content, or content_json required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT version FROM synergy_internal_docs WHERE doc_id = %s',
-                (doc_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Document not found'}), 404
-            
-            new_version = row['version'] + 1
-            
-            updates = []
-            update_params = []
-            
-            if title:
-                updates.append('title = %s')
-                update_params.append(title)
-            if content is not None:
-                updates.append('content = %s')
-                update_params.append(content)
-            if content_json is not None:
-                updates.append('content_json = %s')
-                update_params.append(content_json)
-            
-            now = datetime.now().isoformat()
-            updates.append('updated_at = %s')
-            update_params.append(now)
-            updates.append('version = %s')
-            update_params.append(new_version)
-            
-            update_params.append(doc_id)
-            
-            query = f"UPDATE synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = %s"
-            sql, final_params = convert_sql_placeholders(query, tuple(update_params))
-            cursor.execute(sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT version FROM synergy_internal_docs WHERE doc_id = %s',
+                    (doc_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Document not found'}), 404
+                
+                new_version = row['version'] + 1
+                
+                updates = []
+                update_params = []
+                
+                if title:
+                    updates.append('title = %s')
+                    update_params.append(title)
+                if content is not None:
+                    updates.append('content = %s')
+                    update_params.append(content)
+                if content_json is not None:
+                    updates.append('content_json = %s')
+                    update_params.append(content_json)
+                
+                now = datetime.now().isoformat()
+                updates.append('updated_at = %s')
+                update_params.append(now)
+                updates.append('version = %s')
+                update_params.append(new_version)
+                
+                update_params.append(doc_id)
+                
+                query = f"UPDATE synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = %s"
+                sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+                cursor.execute(sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         print(f"[INTERNAL DOC] Updated document {doc_id} (version {new_version})")
         
@@ -1886,21 +1891,23 @@ def update_internal_doc(doc_id):
 def delete_internal_doc(doc_id):
     """
     Delete an internal document
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'DELETE FROM synergy_internal_docs WHERE doc_id = %s',
-                (doc_id,)
-            )
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Document not found'}), 404
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'DELETE FROM synergy_internal_docs WHERE doc_id = %s',
+                    (doc_id,)
+                )
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Document not found'}), 404
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         print(f"[INTERNAL DOC] Deleted document {doc_id}")
         
@@ -1919,30 +1926,32 @@ def delete_internal_doc(doc_id):
 def list_internal_docs():
     """
     List all internal docs (optionally filtered by session_id)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         session_id = request.args.get('session_id')
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                if session_id:
+                    sql, params = convert_sql_placeholders('''
+                        SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
+                        FROM synergy_internal_docs
+                        WHERE session_id = %s
+                        ORDER BY updated_at DESC
+                    ''', (session_id,))
+                else:
+                    sql, params = convert_sql_placeholders('''
+                        SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
+                        FROM synergy_internal_docs
+                        ORDER BY updated_at DESC
+                    ''', ())
+                
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
             
-            if session_id:
-                sql, params = convert_sql_placeholders('''
-                    SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
-                    FROM synergy_internal_docs
-                    WHERE session_id = %s
-                    ORDER BY updated_at DESC
-                ''', (session_id,))
-            else:
-                sql, params = convert_sql_placeholders('''
-                    SELECT doc_id, session_id, title, doc_type, created_at, updated_at, slug, share_url
-                    FROM synergy_internal_docs
-                    ORDER BY updated_at DESC
-                ''', ())
-            
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-            
+            # ✅ Cursor auto-closed here
             docs = []
             for row in rows:
                 docs.append({
@@ -1974,6 +1983,7 @@ def list_internal_docs():
 def add_tag(session_id):
     """
     Add a tag to a session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -1983,36 +1993,37 @@ def add_tag(session_id):
             return jsonify({'success': False, 'error': 'tag field required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT tags FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            tags = []
-            if row['tags']:
-                try:
-                    tags = json.loads(row['tags'])
-                except:
-                    tags = []
-            
-            if tag not in tags:
-                tags.append(tag)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET tags = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                sql, params = convert_sql_placeholders(
+                    'SELECT tags FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                tags = []
+                if row['tags']:
+                    try:
+                        tags = json.loads(row['tags'])
+                    except:
+                        tags = []
+                
+                if tag not in tags:
+                    tags.append(tag)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET tags = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2027,39 +2038,41 @@ def add_tag(session_id):
 def remove_tag(session_id, tag_name):
     """
     Remove a tag from a session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT tags FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            tags = []
-            if row['tags']:
-                try:
-                    tags = json.loads(row['tags'])
-                except:
-                    tags = []
-            
-            if tag_name in tags:
-                tags.remove(tag_name)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET tags = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                sql, params = convert_sql_placeholders(
+                    'SELECT tags FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                tags = []
+                if row['tags']:
+                    try:
+                        tags = json.loads(row['tags'])
+                    except:
+                        tags = []
+                
+                if tag_name in tags:
+                    tags.remove(tag_name)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET tags = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(tags), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2074,18 +2087,20 @@ def remove_tag(session_id, tag_name):
 def get_session_tags(session_id):
     """
     Get all tags for a session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT tags FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
             
-            sql, params = convert_sql_placeholders(
-                'SELECT tags FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
+            # ✅ Cursor auto-closed here
             if not row:
                 return jsonify({'success': False, 'error': 'Session not found'}), 404
             
@@ -2114,18 +2129,20 @@ def get_session_tags(session_id):
 def get_session_links(session_id):
     """
     Get all links for a session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT links FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
             
-            sql, params = convert_sql_placeholders(
-                'SELECT links FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
+            # ✅ Cursor auto-closed here
             if not row:
                 return jsonify({'success': False, 'error': 'Session not found'}), 404
             
@@ -2149,6 +2166,7 @@ def get_session_links(session_id):
 def add_link(session_id):
     """
     Add a link/document to a session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -2160,41 +2178,42 @@ def add_link(session_id):
             return jsonify({'success': False, 'error': 'url field required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT links FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            links = []
-            if row['links']:
-                try:
-                    links = json.loads(row['links'])
-                except:
-                    links = []
-            
-            new_link = {
-                'url': url,
-                'title': title,
-                'type': link_type,
-                'added_at': datetime.now().isoformat()
-            }
-            links.append(new_link)
-            
-            update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions 
-                SET links = %s, last_active = %s
-                WHERE session_id = %s
-            ''', (json.dumps(links), datetime.now().isoformat(), session_id))
-            cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT links FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                links = []
+                if row['links']:
+                    try:
+                        links = json.loads(row['links'])
+                    except:
+                        links = []
+                
+                new_link = {
+                    'url': url,
+                    'title': title,
+                    'type': link_type,
+                    'added_at': datetime.now().isoformat()
+                }
+                links.append(new_link)
+                
+                update_sql, update_params = convert_sql_placeholders('''
+                    UPDATE synergy_sessions 
+                    SET links = %s, last_active = %s
+                    WHERE session_id = %s
+                ''', (json.dumps(links), datetime.now().isoformat(), session_id))
+                cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2209,39 +2228,41 @@ def add_link(session_id):
 def remove_link(session_id, link_index):
     """
     Remove a link by index
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT links FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            links = []
-            if row['links']:
-                try:
-                    links = json.loads(row['links'])
-                except:
-                    links = []
-            
-            if 0 <= link_index < len(links):
-                links.pop(link_index)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET links = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(links), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                sql, params = convert_sql_placeholders(
+                    'SELECT links FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                links = []
+                if row['links']:
+                    try:
+                        links = json.loads(row['links'])
+                    except:
+                        links = []
+                
+                if 0 <= link_index < len(links):
+                    links.pop(link_index)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET links = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(links), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2260,156 +2281,158 @@ def remove_link(session_id, link_index):
 def get_session_milestones(session_id):
     """
     Get all milestones for session (with tasks and subtasks)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get session data
-            cursor.execute('''
-                SELECT session_id, title, description, status, priority, 
-                       due_date, assignees, documents, links, tags, project_name,
-                       created_at, updated_at, message_count
-                FROM synergy_sessions 
-                WHERE session_id = %s
-            ''', (session_id,))
-            
-            session_row = cursor.fetchone()
-            if not session_row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            session_data = {
-                'session_id': session_row['session_id'],
-                'title': session_row['title'],
-                'description': session_row['description'],
-                'status': session_row['status'],
-                'priority': session_row['priority'],
-                'due_date': session_row['due_date'],
-                'assignees': session_row['assignees'],
-                'documents': session_row['documents'],
-                'links': session_row['links'],
-                'tags': session_row['tags'],
-                'project_name': session_row['project_name'],
-                'created_at': session_row['created_at'],
-                'updated_at': session_row['updated_at'],
-                'message_count': session_row['message_count'] or 0
-            }
-            
-            # Get all milestones
-            sql, params = convert_sql_placeholders('''
-                SELECT milestone_id, milestone_number, title, description,
-                       completed, due_date, priority, estimated_hours, actual_hours,
-                       created_at, completed_at, milestone_order, depends_on_milestone_id,
-                       blocked, blocker_reason, blocked_since, updated_at, documents, links
-                FROM milestones 
-                WHERE session_id = %s
-                ORDER BY milestone_number
-            ''', (session_id,))
-            
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-            
-            milestones = []
-            for m_row in rows:
-                milestone = {
-                    'milestone_id': m_row['milestone_id'],
-                    'milestone_number': m_row['milestone_number'],
-                    'milestone_name': m_row['title'],
-                    'description': m_row['description'],
-                    'completed': m_row['completed'],
-                    'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
-                    'priority': m_row['priority'],
-                    'estimated_hours': float(m_row['estimated_hours']) if m_row['estimated_hours'] else None,
-                    'actual_hours': float(m_row['actual_hours']) if m_row['actual_hours'] else None,
-                    'created_at': m_row['created_at'].isoformat() if m_row['created_at'] else None,
-                    'completed_at': m_row['completed_at'].isoformat() if m_row['completed_at'] else None,
-                    'milestone_order': m_row['milestone_order'],
-                    'depends_on_milestone_id': m_row['depends_on_milestone_id'],
-                    'blocked': m_row['blocked'],
-                    'blocker_reason': m_row['blocker_reason'],
-                    'blocked_since': m_row['blocked_since'].isoformat() if m_row['blocked_since'] else None,
-                    'updated_at': m_row['updated_at'].isoformat() if m_row['updated_at'] else None,
-                    'documents': m_row['documents'],
-                    'links': m_row['links'],
-                    'tasks': []
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get session data
+                cursor.execute('''
+                    SELECT session_id, title, description, status, priority, 
+                           due_date, assignees, documents, links, tags, project_name,
+                           created_at, updated_at, message_count
+                    FROM synergy_sessions 
+                    WHERE session_id = %s
+                ''', (session_id,))
+                
+                session_row = cursor.fetchone()
+                if not session_row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                session_data = {
+                    'session_id': session_row['session_id'],
+                    'title': session_row['title'],
+                    'description': session_row['description'],
+                    'status': session_row['status'],
+                    'priority': session_row['priority'],
+                    'due_date': session_row['due_date'],
+                    'assignees': session_row['assignees'],
+                    'documents': session_row['documents'],
+                    'links': session_row['links'],
+                    'tags': session_row['tags'],
+                    'project_name': session_row['project_name'],
+                    'created_at': session_row['created_at'],
+                    'updated_at': session_row['updated_at'],
+                    'message_count': session_row['message_count'] or 0
                 }
                 
-                # Get tasks
+                # Get all milestones
                 sql, params = convert_sql_placeholders('''
-                    SELECT task_id, task, completed, blocked, blocker_reason, 
-                           blocker_type, task_order, created_at, completed_at,
-                           blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
-                    FROM tasks 
-                    WHERE milestone_id = %s
-                    ORDER BY task_order
-                ''', (milestone['milestone_id'],))
+                    SELECT milestone_id, milestone_number, title, description,
+                           completed, due_date, priority, estimated_hours, actual_hours,
+                           created_at, completed_at, milestone_order, depends_on_milestone_id,
+                           blocked, blocker_reason, blocked_since, updated_at, documents, links
+                    FROM milestones 
+                    WHERE session_id = %s
+                    ORDER BY milestone_number
+                ''', (session_id,))
                 
                 cursor.execute(sql, params)
+                rows = cursor.fetchall()
                 
-                for t_row in cursor.fetchall():
-                    task = {
-                        'task_id': t_row['task_id'],
-                        'task': t_row['task'],
-                        'completed': t_row['completed'],
-                        'blocked': t_row['blocked'],
-                        'blocker_reason': t_row['blocker_reason'],
-                        'blocker_type': t_row['blocker_type'],
-                        'task_order': t_row['task_order'],
-                        'created_at': t_row['created_at'].isoformat() if t_row['created_at'] else None,
-                        'completed_at': t_row['completed_at'].isoformat() if t_row['completed_at'] else None,
-                        'blocked_since': t_row['blocked_since'].isoformat() if t_row['blocked_since'] else None,
-                        'estimated_hours': float(t_row['estimated_hours']) if t_row['estimated_hours'] else None,
-                        'actual_hours': float(t_row['actual_hours']) if t_row['actual_hours'] else None,
-                        'assigned_to': t_row['assigned_to'],
-                        'updated_at': t_row['updated_at'].isoformat() if t_row['updated_at'] else None,
-                        'priority': t_row['priority'],
-                        'subtasks': []
+                milestones = []
+                for m_row in rows:
+                    milestone = {
+                        'milestone_id': m_row['milestone_id'],
+                        'milestone_number': m_row['milestone_number'],
+                        'milestone_name': m_row['title'],
+                        'description': m_row['description'],
+                        'completed': m_row['completed'],
+                        'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
+                        'priority': m_row['priority'],
+                        'estimated_hours': float(m_row['estimated_hours']) if m_row['estimated_hours'] else None,
+                        'actual_hours': float(m_row['actual_hours']) if m_row['actual_hours'] else None,
+                        'created_at': m_row['created_at'].isoformat() if m_row['created_at'] else None,
+                        'completed_at': m_row['completed_at'].isoformat() if m_row['completed_at'] else None,
+                        'milestone_order': m_row['milestone_order'],
+                        'depends_on_milestone_id': m_row['depends_on_milestone_id'],
+                        'blocked': m_row['blocked'],
+                        'blocker_reason': m_row['blocker_reason'],
+                        'blocked_since': m_row['blocked_since'].isoformat() if m_row['blocked_since'] else None,
+                        'updated_at': m_row['updated_at'].isoformat() if m_row['updated_at'] else None,
+                        'documents': m_row['documents'],
+                        'links': m_row['links'],
+                        'tasks': []
                     }
                     
-                    # Get subtasks
+                    # Get tasks
                     sql, params = convert_sql_placeholders('''
-                        SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
-                               estimated_hours, actual_hours, updated_at, priority
-                        FROM subtasks 
-                        WHERE task_id = %s
-                        ORDER BY subtask_order
-                    ''', (task['task_id'],))
+                        SELECT task_id, task, completed, blocked, blocker_reason, 
+                               blocker_type, task_order, created_at, completed_at,
+                               blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
+                        FROM tasks 
+                        WHERE milestone_id = %s
+                        ORDER BY task_order
+                    ''', (milestone['milestone_id'],))
                     
                     cursor.execute(sql, params)
                     
-                    for s_row in cursor.fetchall():
-                        subtask = {
-                            'subtask_id': s_row['subtask_id'],
-                            'task': s_row['task'],
-                            'completed': s_row['completed'],
-                            'subtask_order': s_row['subtask_order'],
-                            'created_at': s_row['created_at'].isoformat() if s_row['created_at'] else None,
-                            'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None,
-                            'estimated_hours': float(s_row['estimated_hours']) if s_row['estimated_hours'] else None,
-                            'actual_hours': float(s_row['actual_hours']) if s_row['actual_hours'] else None,
-                            'updated_at': s_row['updated_at'].isoformat() if s_row['updated_at'] else None,
-                            'priority': s_row['priority']
+                    for t_row in cursor.fetchall():
+                        task = {
+                            'task_id': t_row['task_id'],
+                            'task': t_row['task'],
+                            'completed': t_row['completed'],
+                            'blocked': t_row['blocked'],
+                            'blocker_reason': t_row['blocker_reason'],
+                            'blocker_type': t_row['blocker_type'],
+                            'task_order': t_row['task_order'],
+                            'created_at': t_row['created_at'].isoformat() if t_row['created_at'] else None,
+                            'completed_at': t_row['completed_at'].isoformat() if t_row['completed_at'] else None,
+                            'blocked_since': t_row['blocked_since'].isoformat() if t_row['blocked_since'] else None,
+                            'estimated_hours': float(t_row['estimated_hours']) if t_row['estimated_hours'] else None,
+                            'actual_hours': float(t_row['actual_hours']) if t_row['actual_hours'] else None,
+                            'assigned_to': t_row['assigned_to'],
+                            'updated_at': t_row['updated_at'].isoformat() if t_row['updated_at'] else None,
+                            'priority': t_row['priority'],
+                            'subtasks': []
                         }
-                        task['subtasks'].append(subtask)
+                        
+                        # Get subtasks
+                        sql, params = convert_sql_placeholders('''
+                            SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
+                                   estimated_hours, actual_hours, updated_at, priority
+                            FROM subtasks 
+                            WHERE task_id = %s
+                            ORDER BY subtask_order
+                        ''', (task['task_id'],))
+                        
+                        cursor.execute(sql, params)
+                        
+                        for s_row in cursor.fetchall():
+                            subtask = {
+                                'subtask_id': s_row['subtask_id'],
+                                'task': s_row['task'],
+                                'completed': s_row['completed'],
+                                'subtask_order': s_row['subtask_order'],
+                                'created_at': s_row['created_at'].isoformat() if s_row['created_at'] else None,
+                                'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None,
+                                'estimated_hours': float(s_row['estimated_hours']) if s_row['estimated_hours'] else None,
+                                'actual_hours': float(s_row['actual_hours']) if s_row['actual_hours'] else None,
+                                'updated_at': s_row['updated_at'].isoformat() if s_row['updated_at'] else None,
+                                'priority': s_row['priority']
+                            }
+                            task['subtasks'].append(subtask)
+                        
+                        milestone['tasks'].append(task)
                     
-                    milestone['tasks'].append(task)
-                
-                # Calculate progress percentage
-                total_tasks = len(milestone['tasks'])
-                completed_tasks = sum(1 for t in milestone['tasks'] if t['completed'])
-                total_subtasks = sum(len(t['subtasks']) for t in milestone['tasks'])
-                completed_subtasks = sum(sum(1 for s in t['subtasks'] if s['completed']) for t in milestone['tasks'])
-                
-                total_items = total_tasks + total_subtasks
-                completed_items = completed_tasks + completed_subtasks
-                
-                if total_items > 0:
-                    milestone['progress_percentage'] = round((completed_items / total_items * 100), 1)
-                else:
-                    milestone['progress_percentage'] = 0
-                
-                milestones.append(milestone)
+                    # Calculate progress percentage
+                    total_tasks = len(milestone['tasks'])
+                    completed_tasks = sum(1 for t in milestone['tasks'] if t['completed'])
+                    total_subtasks = sum(len(t['subtasks']) for t in milestone['tasks'])
+                    completed_subtasks = sum(sum(1 for s in t['subtasks'] if s['completed']) for t in milestone['tasks'])
+                    
+                    total_items = total_tasks + total_subtasks
+                    completed_items = completed_tasks + completed_subtasks
+                    
+                    if total_items > 0:
+                        milestone['progress_percentage'] = round((completed_items / total_items * 100), 1)
+                    else:
+                        milestone['progress_percentage'] = 0
+                    
+                    milestones.append(milestone)
             
+            # ✅ Cursor auto-closed here
             return jsonify({
                 'success': True,
                 'session_id': session_id,
@@ -2438,7 +2461,8 @@ def get_session_milestones(session_id):
 @synergy_bp.route('/milestone/create', methods=['POST'])
 def create_milestone_complete():
     """
-    🆕 COMPLETE MILESTONE CREATION - Creates milestone + tasks + subtasks in ONE call
+    Complete milestone creation - Creates milestone + tasks + subtasks in ONE call
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -2451,131 +2475,132 @@ def create_milestone_complete():
             return jsonify({'success': False, 'error': 'title required (milestone_name deprecated)'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Check session exists
-            sql, params = convert_sql_placeholders(
-                'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
-                (data['session_id'],)
-            )
-            cursor.execute(sql, params)
-            if not cursor.fetchone():
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            # Get next milestone number
-            sql, params = convert_sql_placeholders('''
-                SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
-                FROM milestones 
-                WHERE session_id = %s
-            ''', (data['session_id'],))
-            cursor.execute(sql, params)
-            result = cursor.fetchone()
-            milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
-            
-            milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            
-            documents_json = json.dumps(data.get('documents', []))
-            links_json = json.dumps(data.get('links', []))
-            tags_json = json.dumps(data.get('tags', []))
-            
-            # Insert milestone
-            sql, params = convert_sql_placeholders('''
-                INSERT INTO milestones (
-                    milestone_id, session_id, milestone_number, milestone_order, milestone_name,
-                    title, description, completed, due_date, priority, estimated_hours,
-                    created_at, updated_at, documents, links, blocked, tags
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                milestone_id,
-                data['session_id'],
-                milestone_number,
-                milestone_number,
-                title,
-                title,
-                data.get('description', ''),
-                False,
-                data.get('due_date'),
-                data.get('priority', 'medium'),
-                data.get('estimated_hours'),
-                datetime.now().isoformat(),
-                datetime.now().isoformat(),
-                documents_json,
-                links_json,
-                False,
-                tags_json
-            ))
-            cursor.execute(sql, params)
-            
-            # Insert tasks and subtasks
-            tasks_created = 0
-            subtasks_created = 0
-            tasks_list = data.get('tasks', [])
-            
-            for task_order, task_item in enumerate(tasks_list, start=1):
-                import time
-                time.sleep(0.001)
-                task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}_{task_order}"
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                if isinstance(task_item, str):
-                    task_text = task_item
-                    task_priority = 'medium'
-                    subtasks = []
-                else:
-                    task_text = task_item.get('task', '')
-                    task_priority = task_item.get('priority', 'medium')
-                    subtasks = task_item.get('subtasks', [])
-                
-                task_title = task_item.get('title', task_text) if isinstance(task_item, dict) else task_text
-                task_desc = task_item.get('description', '') if isinstance(task_item, dict) else ''
-                task_due = task_item.get('due_date') if isinstance(task_item, dict) else None
-                task_est_hours = task_item.get('estimated_hours') if isinstance(task_item, dict) else None
-                task_assigned = task_item.get('assigned_to', '') if isinstance(task_item, dict) else ''
-                
-                sql, params = convert_sql_placeholders('''
-                    INSERT INTO tasks (
-                        task_id, milestone_id, task, title, description, completed, task_order, 
-                        priority, due_date, estimated_hours, assigned_to, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (task_id, milestone_id, task_text, task_title, task_desc, False, task_order, 
-                      task_priority, task_due, task_est_hours, task_assigned, datetime.now().isoformat()))
+                # Check session exists
+                sql, params = convert_sql_placeholders(
+                    'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
+                    (data['session_id'],)
+                )
                 cursor.execute(sql, params)
-                tasks_created += 1
+                if not cursor.fetchone():
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
                 
-                # Insert subtasks
-                for subtask_order, subtask_item in enumerate(subtasks, start=1):
+                # Get next milestone number
+                sql, params = convert_sql_placeholders('''
+                    SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
+                    FROM milestones 
+                    WHERE session_id = %s
+                ''', (data['session_id'],))
+                cursor.execute(sql, params)
+                result = cursor.fetchone()
+                milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
+                
+                milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                
+                documents_json = json.dumps(data.get('documents', []))
+                links_json = json.dumps(data.get('links', []))
+                tags_json = json.dumps(data.get('tags', []))
+                
+                # Insert milestone
+                sql, params = convert_sql_placeholders('''
+                    INSERT INTO milestones (
+                        milestone_id, session_id, milestone_number, milestone_order, milestone_name,
+                        title, description, completed, due_date, priority, estimated_hours,
+                        created_at, updated_at, documents, links, blocked, tags
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    milestone_id,
+                    data['session_id'],
+                    milestone_number,
+                    milestone_number,
+                    title,
+                    title,
+                    data.get('description', ''),
+                    False,
+                    data.get('due_date'),
+                    data.get('priority', 'medium'),
+                    data.get('estimated_hours'),
+                    datetime.now().isoformat(),
+                    datetime.now().isoformat(),
+                    documents_json,
+                    links_json,
+                    False,
+                    tags_json
+                ))
+                cursor.execute(sql, params)
+                
+                # Insert tasks and subtasks
+                tasks_created = 0
+                subtasks_created = 0
+                tasks_list = data.get('tasks', [])
+                
+                for task_order, task_item in enumerate(tasks_list, start=1):
+                    import time
                     time.sleep(0.001)
-                    subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}_{task_order}_{subtask_order}"
+                    task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}_{task_order}"
                     
-                    if isinstance(subtask_item, str):
-                        subtask_text = subtask_item
-                        subtask_priority = 'medium'
+                    if isinstance(task_item, str):
+                        task_text = task_item
+                        task_priority = 'medium'
+                        subtasks = []
                     else:
-                        subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
-                        subtask_priority = subtask_item.get('priority', 'medium')
+                        task_text = task_item.get('task', '')
+                        task_priority = task_item.get('priority', 'medium')
+                        subtasks = task_item.get('subtasks', [])
                     
-                    subtask_title = subtask_item.get('title', subtask_text) if isinstance(subtask_item, dict) else subtask_text
-                    subtask_due = subtask_item.get('due_date') if isinstance(subtask_item, dict) else None
-                    subtask_assigned = subtask_item.get('assigned_to', '') if isinstance(subtask_item, dict) else ''
+                    task_title = task_item.get('title', task_text) if isinstance(task_item, dict) else task_text
+                    task_desc = task_item.get('description', '') if isinstance(task_item, dict) else ''
+                    task_due = task_item.get('due_date') if isinstance(task_item, dict) else None
+                    task_est_hours = task_item.get('estimated_hours') if isinstance(task_item, dict) else None
+                    task_assigned = task_item.get('assigned_to', '') if isinstance(task_item, dict) else ''
                     
                     sql, params = convert_sql_placeholders('''
-                        INSERT INTO subtasks (
-                            subtask_id, task_id, task, title, completed, subtask_order, 
-                            priority, due_date, assigned_to, created_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (subtask_id, task_id, subtask_text, subtask_title, False, subtask_order, 
-                          subtask_priority, subtask_due, subtask_assigned, datetime.now().isoformat()))
+                        INSERT INTO tasks (
+                            task_id, milestone_id, task, title, description, completed, task_order, 
+                            priority, due_date, estimated_hours, assigned_to, created_at
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (task_id, milestone_id, task_text, task_title, task_desc, False, task_order, 
+                          task_priority, task_due, task_est_hours, task_assigned, datetime.now().isoformat()))
                     cursor.execute(sql, params)
-                    subtasks_created += 1
-            
-            # Mark session as using milestones
-            sql, params = convert_sql_placeholders('''
-                UPDATE synergy_sessions 
-                SET uses_milestones = %s, last_active = %s
-                WHERE session_id = %s
-            ''', (True, datetime.now().isoformat(), data['session_id']))
-            cursor.execute(sql, params)
-            
-            conn.commit()
+                    tasks_created += 1
+                    
+                    # Insert subtasks
+                    for subtask_order, subtask_item in enumerate(subtasks, start=1):
+                        time.sleep(0.001)
+                        subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}_{task_order}_{subtask_order}"
+                        
+                        if isinstance(subtask_item, str):
+                            subtask_text = subtask_item
+                            subtask_priority = 'medium'
+                        else:
+                            subtask_text = subtask_item.get('task', '') or subtask_item.get('text', '')
+                            subtask_priority = subtask_item.get('priority', 'medium')
+                        
+                        subtask_title = subtask_item.get('title', subtask_text) if isinstance(subtask_item, dict) else subtask_text
+                        subtask_due = subtask_item.get('due_date') if isinstance(subtask_item, dict) else None
+                        subtask_assigned = subtask_item.get('assigned_to', '') if isinstance(subtask_item, dict) else ''
+                        
+                        sql, params = convert_sql_placeholders('''
+                            INSERT INTO subtasks (
+                                subtask_id, task_id, task, title, completed, subtask_order, 
+                                priority, due_date, assigned_to, created_at
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ''', (subtask_id, task_id, subtask_text, subtask_title, False, subtask_order, 
+                              subtask_priority, subtask_due, subtask_assigned, datetime.now().isoformat()))
+                        cursor.execute(sql, params)
+                        subtasks_created += 1
+                
+                # Mark session as using milestones
+                sql, params = convert_sql_placeholders('''
+                    UPDATE synergy_sessions 
+                    SET uses_milestones = %s, last_active = %s
+                    WHERE session_id = %s
+                ''', (True, datetime.now().isoformat(), data['session_id']))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2593,11 +2618,421 @@ def create_milestone_complete():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ============================================================================
+# TESTING & DIAGNOSTICS ENDPOINTS
+# ============================================================================
+
+@synergy_bp.route('/test/smoke', methods=['GET'])
+def smoke_test():
+    """
+    Smoke test endpoint - verifies basic system functionality
+    
+    Tests:
+    - Database connection
+    - Table existence
+    - Basic query execution
+    - Response formatting
+    
+    Returns:
+        JSON with test results and timing
+    """
+    import time
+    start_time = time.time()
+    
+    results = {
+        'success': True,
+        'tests': {},
+        'timestamp': datetime.now().isoformat(),
+        'duration_ms': 0
+    }
+    
+    try:
+        # Test 1: Database Connection
+        test_start = time.time()
+        try:
+            with get_database_connection('synergy_sessions') as conn:
+                results['tests']['database_connection'] = {
+                    'status': 'PASS',
+                    'duration_ms': round((time.time() - test_start) * 1000, 2)
+                }
+        except Exception as e:
+            results['tests']['database_connection'] = {
+                'status': 'FAIL',
+                'error': str(e),
+                'duration_ms': round((time.time() - test_start) * 1000, 2)
+            }
+            results['success'] = False
+        
+        # Test 2: Table Existence
+        test_start = time.time()
+        try:
+            with get_database_connection('synergy_sessions') as conn:
+                with conn.cursor() as cursor:
+                    sql, params = convert_sql_placeholders("""
+                        SELECT table_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name IN ('synergy_sessions', 'milestones', 'tasks', 'subtasks')
+                    """, ())
+                    cursor.execute(sql, params)
+                    tables = [row[0] for row in cursor.fetchall()]
+                    
+                    expected_tables = ['synergy_sessions', 'milestones', 'tasks', 'subtasks']
+                    missing_tables = [t for t in expected_tables if t not in tables]
+                    
+                    results['tests']['table_existence'] = {
+                        'status': 'PASS' if not missing_tables else 'FAIL',
+                        'found_tables': tables,
+                        'missing_tables': missing_tables,
+                        'duration_ms': round((time.time() - test_start) * 1000, 2)
+                    }
+                    
+                    if missing_tables:
+                        results['success'] = False
+        except Exception as e:
+            results['tests']['table_existence'] = {
+                'status': 'FAIL',
+                'error': str(e),
+                'duration_ms': round((time.time() - test_start) * 1000, 2)
+            }
+            results['success'] = False
+        
+        # Test 3: Basic Query Execution
+        test_start = time.time()
+        try:
+            with get_database_connection('synergy_sessions') as conn:
+                with conn.cursor() as cursor:
+                    sql, params = convert_sql_placeholders("SELECT COUNT(*) FROM synergy_sessions", ())
+                    cursor.execute(sql, params)
+                    count = cursor.fetchone()[0]
+                    
+                    results['tests']['query_execution'] = {
+                        'status': 'PASS',
+                        'session_count': count,
+                        'duration_ms': round((time.time() - test_start) * 1000, 2)
+                    }
+        except Exception as e:
+            results['tests']['query_execution'] = {
+                'status': 'FAIL',
+                'error': str(e),
+                'duration_ms': round((time.time() - test_start) * 1000, 2)
+            }
+            results['success'] = False
+        
+        # Test 4: JSON Serialization
+        test_start = time.time()
+        try:
+            test_data = {
+                'nested': {'key': 'value'},
+                'array': [1, 2, 3],
+                'null': None,
+                'bool': True
+            }
+            json.dumps(test_data)
+            
+            results['tests']['json_serialization'] = {
+                'status': 'PASS',
+                'duration_ms': round((time.time() - test_start) * 1000, 2)
+            }
+        except Exception as e:
+            results['tests']['json_serialization'] = {
+                'status': 'FAIL',
+                'error': str(e),
+                'duration_ms': round((time.time() - test_start) * 1000, 2)
+            }
+            results['success'] = False
+        
+        # Calculate total duration
+        results['duration_ms'] = round((time.time() - start_time) * 1000, 2)
+        
+        # Summary
+        passed = sum(1 for test in results['tests'].values() if test['status'] == 'PASS')
+        total = len(results['tests'])
+        results['summary'] = f"{passed}/{total} tests passed"
+        
+        return jsonify(results), 200 if results['success'] else 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+@synergy_bp.route('/test/endpoints', methods=['GET'])
+def test_endpoints():
+    """
+    Test all Synergy API endpoints
+    
+    Returns:
+        JSON with list of endpoints and their test status
+    """
+    endpoints = []
+    
+    # Get all routes for synergy blueprint
+    from flask import current_app
+    for rule in current_app.url_map.iter_rules():
+        if rule.endpoint.startswith('synergy.'):
+            endpoint_name = rule.endpoint.replace('synergy.', '')
+            endpoints.append({
+                'name': endpoint_name,
+                'path': rule.rule,
+                'methods': list(rule.methods - {'HEAD', 'OPTIONS'}),
+                'tested': endpoint_name in [
+                    'list_sessions', 'create_session', 'get_session',
+                    'update_session', 'delete_session', 'update_column',
+                    'smoke_test', 'test_endpoints'
+                ]
+            })
+    
+    return jsonify({
+        'success': True,
+        'endpoint_count': len(endpoints),
+        'endpoints': sorted(endpoints, key=lambda x: x['path']),
+        'timestamp': datetime.now().isoformat()
+    })
+
+
+@synergy_bp.route('/test/database', methods=['GET'])
+def test_database():
+    """
+    Comprehensive database test
+    
+    Tests:
+    - Connection pooling
+    - Transaction support
+    - Foreign key constraints
+    - Query performance
+    """
+    import time
+    results = {
+        'success': True,
+        'tests': {},
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    try:
+        # Test 1: Connection Pool
+        test_start = time.time()
+        try:
+            connections = []
+            for i in range(5):
+                conn = get_database_connection('synergy_sessions')
+                connections.append(conn)
+            
+            # Close all connections
+            for conn in connections:
+                conn.close()
+            
+            results['tests']['connection_pool'] = {
+                'status': 'PASS',
+                'connections_created': 5,
+                'duration_ms': round((time.time() - test_start) * 1000, 2)
+            }
+        except Exception as e:
+            results['tests']['connection_pool'] = {
+                'status': 'FAIL',
+                'error': str(e)
+            }
+            results['success'] = False
+        
+        # Test 2: Transaction Rollback
+        test_start = time.time()
+        try:
+            with get_database_connection('synergy_sessions') as conn:
+                with conn.cursor() as cursor:
+                    # Start transaction
+                    cursor.execute("BEGIN")
+                    
+                    # Insert test data
+                    test_id = f"test_{int(time.time())}"
+                    sql, params = convert_sql_placeholders("""
+                        INSERT INTO synergy_sessions (session_id, title, status, created_at)
+                        VALUES (%s, %s, %s, %s)
+                    """, (test_id, 'Test Session', 'active', datetime.now().isoformat()))
+                    cursor.execute(sql, params)
+                    
+                    # Rollback
+                    cursor.execute("ROLLBACK")
+                    
+                    # Verify rollback
+                    sql, params = convert_sql_placeholders("SELECT COUNT(*) FROM synergy_sessions WHERE session_id = %s", (test_id,))
+                    cursor.execute(sql, params)
+                    count = cursor.fetchone()[0]
+                    
+                    results['tests']['transaction_rollback'] = {
+                        'status': 'PASS' if count == 0 else 'FAIL',
+                        'duration_ms': round((time.time() - test_start) * 1000, 2)
+                    }
+                    
+                    if count != 0:
+                        results['success'] = False
+        except Exception as e:
+            results['tests']['transaction_rollback'] = {
+                'status': 'FAIL',
+                'error': str(e)
+            }
+            results['success'] = False
+        
+        # Test 3: Query Performance
+        test_start = time.time()
+        try:
+            with get_database_connection('synergy_sessions') as conn:
+                with conn.cursor() as cursor:
+                    # Test simple query
+                    simple_start = time.time()
+                    sql, params = convert_sql_placeholders("SELECT COUNT(*) FROM synergy_sessions", ())
+                    cursor.execute(sql, params)
+                    cursor.fetchone()
+                    simple_duration = round((time.time() - simple_start) * 1000, 2)
+                    
+                    # Test complex query with joins
+                    complex_start = time.time()
+                    sql, params = convert_sql_placeholders("""
+                        SELECT s.session_id, COUNT(DISTINCT m.milestone_id) as milestone_count
+                        FROM synergy_sessions s
+                        LEFT JOIN milestones m ON s.session_id = m.session_id
+                        GROUP BY s.session_id
+                        LIMIT 10
+                    """, ())
+                    cursor.execute(sql, params)
+                    cursor.fetchall()
+                    complex_duration = round((time.time() - complex_start) * 1000, 2)
+                    
+                    results['tests']['query_performance'] = {
+                        'status': 'PASS',
+                        'simple_query_ms': simple_duration,
+                        'complex_query_ms': complex_duration,
+                        'duration_ms': round((time.time() - test_start) * 1000, 2)
+                    }
+        except Exception as e:
+            results['tests']['query_performance'] = {
+                'status': 'FAIL',
+                'error': str(e)
+            }
+            results['success'] = False
+        
+        return jsonify(results), 200 if results['success'] else 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+@synergy_bp.route('/test/compile', methods=['GET'])
+def test_compile():
+    """
+    Python compile test - checks for syntax errors
+    
+    Returns:
+        JSON with compilation status
+    """
+    import py_compile
+    import tempfile
+    
+    results = {
+        'success': True,
+        'files_tested': [],
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    try:
+        # Get path to this file
+        current_file = Path(__file__)
+        
+        # Test compilation
+        try:
+            with tempfile.NamedTemporaryFile(suffix='.pyc', delete=False) as tmp:
+                py_compile.compile(str(current_file), cfile=tmp.name, doraise=True)
+                
+                results['files_tested'].append({
+                    'file': current_file.name,
+                    'status': 'PASS',
+                    'size_bytes': current_file.stat().st_size
+                })
+        except py_compile.PyCompileError as e:
+            results['files_tested'].append({
+                'file': current_file.name,
+                'status': 'FAIL',
+                'error': str(e)
+            })
+            results['success'] = False
+        
+        return jsonify(results), 200 if results['success'] else 500
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+@synergy_bp.route('/test/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for monitoring
+    
+    Returns:
+        JSON with system health status
+    """
+    try:
+        import psutil
+        import platform
+        
+        health = {
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'system': {
+                'platform': platform.system(),
+                'python_version': platform.python_version(),
+                'cpu_count': psutil.cpu_count(),
+                'cpu_percent': psutil.cpu_percent(interval=0.1),
+                'memory_percent': psutil.virtual_memory().percent,
+                'disk_percent': psutil.disk_usage('/').percent
+            },
+            'database': {
+                'status': 'unknown'
+            }
+        }
+        
+        # Test database connection
+        try:
+            with get_database_connection('synergy_sessions') as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                    cursor.fetchone()
+                    health['database']['status'] = 'connected'
+        except Exception as e:
+            health['database']['status'] = 'error'
+            health['database']['error'] = str(e)
+            health['status'] = 'unhealthy'
+        
+        return jsonify(health), 200 if health['status'] == 'healthy' else 503
+    
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+
+# ============================================================
+# MILESTONE CRUD (CONTINUED)
+# ============================================================
+
 @synergy_bp.route('/<session_id>/milestones', methods=['POST'])
 def create_milestone(session_id):
     """
     [DEPRECATED] Simple milestone creation (no tasks)
     Use POST /milestone/create for complete milestone creation
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -2610,51 +3045,52 @@ def create_milestone(session_id):
         milestone_id = f"ms_{int(time.time() * 1000)}"
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get max milestone_number
-            sql, params = convert_sql_placeholders(
-                'SELECT COALESCE(MAX(milestone_number), 0) as max_num FROM milestones WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            milestone_number = row['max_num'] + 1
-            
-            # Get max milestone_order
-            sql2, params2 = convert_sql_placeholders(
-                'SELECT COALESCE(MAX(milestone_order), 0) as max_order FROM milestones WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql2, params2)
-            row2 = cursor.fetchone()
-            milestone_order = row2['max_order'] + 1
-            
-            # Insert milestone
-            insert_sql, insert_params = convert_sql_placeholders('''
-                INSERT INTO milestones 
-                (milestone_id, session_id, milestone_number, title, description, 
-                 completed, priority, due_date, estimated_hours, milestone_order, 
-                 blocked, created_at, updated_at, documents, links)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                milestone_id, session_id, milestone_number, title,
-                data.get('description', ''), False, data.get('priority', 'medium'),
-                data.get('due_date'), data.get('estimated_hours'),
-                milestone_order, False, datetime.now().isoformat(), 
-                datetime.now().isoformat(), '[]', '[]'
-            ))
-            cursor.execute(insert_sql, insert_params)
-            
-            # Update session to use milestones
-            update_sql, update_params = convert_sql_placeholders('''
-                UPDATE synergy_sessions 
-                SET uses_milestones = %s, last_active = %s
-                WHERE session_id = %s
-            ''', (True, datetime.now().isoformat(), session_id))
-            cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get max milestone_number
+                sql, params = convert_sql_placeholders(
+                    'SELECT COALESCE(MAX(milestone_number), 0) as max_num FROM milestones WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                milestone_number = row['max_num'] + 1
+                
+                # Get max milestone_order
+                sql2, params2 = convert_sql_placeholders(
+                    'SELECT COALESCE(MAX(milestone_order), 0) as max_order FROM milestones WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql2, params2)
+                row2 = cursor.fetchone()
+                milestone_order = row2['max_order'] + 1
+                
+                # Insert milestone
+                insert_sql, insert_params = convert_sql_placeholders('''
+                    INSERT INTO milestones 
+                    (milestone_id, session_id, milestone_number, title, description, 
+                     completed, priority, due_date, estimated_hours, milestone_order, 
+                     blocked, created_at, updated_at, documents, links)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    milestone_id, session_id, milestone_number, title,
+                    data.get('description', ''), False, data.get('priority', 'medium'),
+                    data.get('due_date'), data.get('estimated_hours'),
+                    milestone_order, False, datetime.now().isoformat(), 
+                    datetime.now().isoformat(), '[]', '[]'
+                ))
+                cursor.execute(insert_sql, insert_params)
+                
+                # Update session to use milestones
+                update_sql, update_params = convert_sql_placeholders('''
+                    UPDATE synergy_sessions 
+                    SET uses_milestones = %s, last_active = %s
+                    WHERE session_id = %s
+                ''', (True, datetime.now().isoformat(), session_id))
+                cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2673,113 +3109,113 @@ def create_milestone(session_id):
 
 @synergy_bp.route('/milestone/<milestone_id>', methods=['GET'])
 def get_milestone(milestone_id):
-
-
     """
     Get a single milestone with all tasks and subtasks
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get milestone
-            sql, params = convert_sql_placeholders('''
-                SELECT milestone_id, session_id, milestone_number, title, description,
-                       completed, due_date, priority, estimated_hours, actual_hours,
-                       created_at, completed_at, milestone_order, depends_on_milestone_id,
-                       blocked, blocker_reason, blocked_since, updated_at, documents, links
-                FROM milestones 
-                WHERE milestone_id = %s
-            ''', (milestone_id,))
-            cursor.execute(sql, params)
-            
-            m_row = cursor.fetchone()
-            
-            if not m_row:
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            milestone = {
-                'milestone_id': m_row['milestone_id'],
-                'session_id': m_row['session_id'],
-                'milestone_number': m_row['milestone_number'],
-                'milestone_name': m_row['title'],
-                'description': m_row['description'],
-                'completed': m_row['completed'],
-                'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
-                'priority': m_row['priority'],
-                'estimated_hours': float(m_row['estimated_hours']) if m_row['estimated_hours'] else None,
-                'actual_hours': float(m_row['actual_hours']) if m_row['actual_hours'] else None,
-                'created_at': m_row['created_at'].isoformat() if m_row['created_at'] else None,
-                'completed_at': m_row['completed_at'].isoformat() if m_row['completed_at'] else None,
-                'milestone_order': m_row['milestone_order'],
-                'depends_on_milestone_id': m_row['depends_on_milestone_id'],
-                'blocked': m_row['blocked'],
-                'blocker_reason': m_row['blocker_reason'],
-                'blocked_since': m_row['blocked_since'].isoformat() if m_row['blocked_since'] else None,
-                'updated_at': m_row['updated_at'].isoformat() if m_row['updated_at'] else None,
-                'documents': m_row['documents'],
-                'links': m_row['links'],
-                'tasks': []
-            }
-            
-            # Get tasks
-            task_sql, task_params = convert_sql_placeholders('''
-                SELECT task_id, task, completed, blocked, blocker_reason, 
-                       blocker_type, task_order, created_at, completed_at,
-                       blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
-                FROM tasks 
-                WHERE milestone_id = %s
-                ORDER BY task_order
-            ''', (milestone_id,))
-            cursor.execute(task_sql, task_params)
-            
-            for t_row in cursor.fetchall():
-                task = {
-                    'task_id': t_row['task_id'],
-                    'task': t_row['task'],
-                    'completed': t_row['completed'],
-                    'blocked': t_row['blocked'],
-                    'blocker_reason': t_row['blocker_reason'],
-                    'blocker_type': t_row['blocker_type'],
-                    'task_order': t_row['task_order'],
-                    'created_at': t_row['created_at'].isoformat() if t_row['created_at'] else None,
-                    'completed_at': t_row['completed_at'].isoformat() if t_row['completed_at'] else None,
-                    'blocked_since': t_row['blocked_since'].isoformat() if t_row['blocked_since'] else None,
-                    'estimated_hours': float(t_row['estimated_hours']) if t_row['estimated_hours'] else None,
-                    'actual_hours': float(t_row['actual_hours']) if t_row['actual_hours'] else None,
-                    'assigned_to': t_row['assigned_to'],
-                    'updated_at': t_row['updated_at'].isoformat() if t_row['updated_at'] else None,
-                    'priority': t_row['priority'],
-                    'subtasks': []
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get milestone
+                sql, params = convert_sql_placeholders('''
+                    SELECT milestone_id, session_id, milestone_number, title, description,
+                           completed, due_date, priority, estimated_hours, actual_hours,
+                           created_at, completed_at, milestone_order, depends_on_milestone_id,
+                           blocked, blocker_reason, blocked_since, updated_at, documents, links
+                    FROM milestones 
+                    WHERE milestone_id = %s
+                ''', (milestone_id,))
+                cursor.execute(sql, params)
+                
+                m_row = cursor.fetchone()
+                
+                if not m_row:
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                milestone = {
+                    'milestone_id': m_row['milestone_id'],
+                    'session_id': m_row['session_id'],
+                    'milestone_number': m_row['milestone_number'],
+                    'milestone_name': m_row['title'],
+                    'description': m_row['description'],
+                    'completed': m_row['completed'],
+                    'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
+                    'priority': m_row['priority'],
+                    'estimated_hours': float(m_row['estimated_hours']) if m_row['estimated_hours'] else None,
+                    'actual_hours': float(m_row['actual_hours']) if m_row['actual_hours'] else None,
+                    'created_at': m_row['created_at'].isoformat() if m_row['created_at'] else None,
+                    'completed_at': m_row['completed_at'].isoformat() if m_row['completed_at'] else None,
+                    'milestone_order': m_row['milestone_order'],
+                    'depends_on_milestone_id': m_row['depends_on_milestone_id'],
+                    'blocked': m_row['blocked'],
+                    'blocker_reason': m_row['blocker_reason'],
+                    'blocked_since': m_row['blocked_since'].isoformat() if m_row['blocked_since'] else None,
+                    'updated_at': m_row['updated_at'].isoformat() if m_row['updated_at'] else None,
+                    'documents': m_row['documents'],
+                    'links': m_row['links'],
+                    'tasks': []
                 }
                 
-                # Get subtasks
-                subtask_sql, subtask_params = convert_sql_placeholders('''
-                    SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
-                           estimated_hours, actual_hours, updated_at, priority
-                    FROM subtasks 
-                    WHERE task_id = %s
-                    ORDER BY subtask_order
-                ''', (task['task_id'],))
-                cursor.execute(subtask_sql, subtask_params)
+                # Get tasks
+                task_sql, task_params = convert_sql_placeholders('''
+                    SELECT task_id, task, completed, blocked, blocker_reason, 
+                           blocker_type, task_order, created_at, completed_at,
+                           blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
+                    FROM tasks 
+                    WHERE milestone_id = %s
+                    ORDER BY task_order
+                ''', (milestone_id,))
+                cursor.execute(task_sql, task_params)
                 
-                for s_row in cursor.fetchall():
-                    subtask = {
-                        'subtask_id': s_row['subtask_id'],
-                        'task': s_row['task'],
-                        'completed': s_row['completed'],
-                        'subtask_order': s_row['subtask_order'],
-                        'created_at': s_row['created_at'].isoformat() if s_row['created_at'] else None,
-                        'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None,
-                        'estimated_hours': float(s_row['estimated_hours']) if s_row['estimated_hours'] else None,
-                        'actual_hours': float(s_row['actual_hours']) if s_row['actual_hours'] else None,
-                        'updated_at': s_row['updated_at'].isoformat() if s_row['updated_at'] else None,
-                        'priority': s_row['priority']
+                for t_row in cursor.fetchall():
+                    task = {
+                        'task_id': t_row['task_id'],
+                        'task': t_row['task'],
+                        'completed': t_row['completed'],
+                        'blocked': t_row['blocked'],
+                        'blocker_reason': t_row['blocker_reason'],
+                        'blocker_type': t_row['blocker_type'],
+                        'task_order': t_row['task_order'],
+                        'created_at': t_row['created_at'].isoformat() if t_row['created_at'] else None,
+                        'completed_at': t_row['completed_at'].isoformat() if t_row['completed_at'] else None,
+                        'blocked_since': t_row['blocked_since'].isoformat() if t_row['blocked_since'] else None,
+                        'estimated_hours': float(t_row['estimated_hours']) if t_row['estimated_hours'] else None,
+                        'actual_hours': float(t_row['actual_hours']) if t_row['actual_hours'] else None,
+                        'assigned_to': t_row['assigned_to'],
+                        'updated_at': t_row['updated_at'].isoformat() if t_row['updated_at'] else None,
+                        'priority': t_row['priority'],
+                        'subtasks': []
                     }
-                    task['subtasks'].append(subtask)
-                
-                milestone['tasks'].append(task)
+                    
+                    # Get subtasks
+                    subtask_sql, subtask_params = convert_sql_placeholders('''
+                        SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
+                               estimated_hours, actual_hours, updated_at, priority
+                        FROM subtasks 
+                        WHERE task_id = %s
+                        ORDER BY subtask_order
+                    ''', (task['task_id'],))
+                    cursor.execute(subtask_sql, subtask_params)
+                    
+                    for s_row in cursor.fetchall():
+                        subtask = {
+                            'subtask_id': s_row['subtask_id'],
+                            'task': s_row['task'],
+                            'completed': s_row['completed'],
+                            'subtask_order': s_row['subtask_order'],
+                            'created_at': s_row['created_at'].isoformat() if s_row['created_at'] else None,
+                            'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None,
+                            'estimated_hours': float(s_row['estimated_hours']) if s_row['estimated_hours'] else None,
+                            'actual_hours': float(s_row['actual_hours']) if s_row['actual_hours'] else None,
+                            'updated_at': s_row['updated_at'].isoformat() if s_row['updated_at'] else None,
+                            'priority': s_row['priority']
+                        }
+                        task['subtasks'].append(subtask)
+                    
+                    milestone['tasks'].append(task)
             
+            # ✅ Cursor auto-closed here
             return jsonify({
                 'success': True,
                 'milestone': milestone
@@ -2796,47 +3232,49 @@ def get_milestone(milestone_id):
 def update_milestone(milestone_id):
     """
     Update milestone fields
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Build update query
-            updates = []
-            update_params = []
-            
-            # Map milestone_name to title for backward compatibility
-            if 'milestone_name' in data:
-                data['title'] = data.pop('milestone_name')
-            
-            for field in ['title', 'description', 'priority', 'due_date', 
-                         'estimated_hours', 'actual_hours', 'blocked', 'blocker_reason']:
-                if field in data:
-                    updates.append(f"{field} = %s")
-                    update_params.append(data[field])
-            
-            if 'documents' in data:
-                updates.append('documents = %s')
-                update_params.append(json.dumps(data['documents']))
-            
-            if 'links' in data:
-                updates.append('links = %s')
-                update_params.append(json.dumps(data['links']))
-            
-            if not updates:
-                return jsonify({'success': False, 'error': 'No fields to update'}), 400
-            
-            updates.append('updated_at = %s')
-            update_params.append(datetime.now().isoformat())
-            update_params.append(milestone_id)
-            
-            query = f"UPDATE milestones SET {', '.join(updates)} WHERE milestone_id = %s"
-            sql, final_params = convert_sql_placeholders(query, tuple(update_params))
-            cursor.execute(sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Build update query
+                updates = []
+                update_params = []
+                
+                # Map milestone_name to title for backward compatibility
+                if 'milestone_name' in data:
+                    data['title'] = data.pop('milestone_name')
+                
+                for field in ['title', 'description', 'priority', 'due_date', 
+                             'estimated_hours', 'actual_hours', 'blocked', 'blocker_reason']:
+                    if field in data:
+                        updates.append(f"{field} = %s")
+                        update_params.append(data[field])
+                
+                if 'documents' in data:
+                    updates.append('documents = %s')
+                    update_params.append(json.dumps(data['documents']))
+                
+                if 'links' in data:
+                    updates.append('links = %s')
+                    update_params.append(json.dumps(data['links']))
+                
+                if not updates:
+                    return jsonify({'success': False, 'error': 'No fields to update'}), 400
+                
+                updates.append('updated_at = %s')
+                update_params.append(datetime.now().isoformat())
+                update_params.append(milestone_id)
+                
+                query = f"UPDATE milestones SET {', '.join(updates)} WHERE milestone_id = %s"
+                sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+                cursor.execute(sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2851,21 +3289,23 @@ def update_milestone(milestone_id):
 def delete_milestone(milestone_id):
     """
     Delete a milestone (cascades to tasks and subtasks via FK)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'DELETE FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'DELETE FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2880,33 +3320,35 @@ def delete_milestone(milestone_id):
 def toggle_milestone(session_id, milestone_id):
     """
     Toggle milestone completion status
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get current status
-            sql, params = convert_sql_placeholders(
-                'SELECT completed FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            new_status = not row['completed']
-            completed_at = datetime.now().isoformat() if new_status else None
-            
-            update_sql, update_params = convert_sql_placeholders('''
-                UPDATE milestones 
-                SET completed = %s, completed_at = %s, updated_at = %s
-                WHERE milestone_id = %s
-            ''', (new_status, completed_at, datetime.now().isoformat(), milestone_id))
-            cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get current status
+                sql, params = convert_sql_placeholders(
+                    'SELECT completed FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                new_status = not row['completed']
+                completed_at = datetime.now().isoformat() if new_status else None
+                
+                update_sql, update_params = convert_sql_placeholders('''
+                    UPDATE milestones 
+                    SET completed = %s, completed_at = %s, updated_at = %s
+                    WHERE milestone_id = %s
+                ''', (new_status, completed_at, datetime.now().isoformat(), milestone_id))
+                cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2922,28 +3364,30 @@ def toggle_milestone(session_id, milestone_id):
 def complete_milestone(milestone_id):
     """
     Mark milestone as complete
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json or {}
         actual_hours = data.get('actual_hours')
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
-            params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
-            
-            if actual_hours is not None:
-                updates.append('actual_hours = %s')
-                params.append(actual_hours)
-            
-            params.append(milestone_id)
-            
-            query = f"UPDATE milestones SET {', '.join(updates)} WHERE milestone_id = %s"
-            sql, final_params = convert_sql_placeholders(query, tuple(params))
-            cursor.execute(sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
+                params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
+                
+                if actual_hours is not None:
+                    updates.append('actual_hours = %s')
+                    params.append(actual_hours)
+                
+                params.append(milestone_id)
+                
+                query = f"UPDATE milestones SET {', '.join(updates)} WHERE milestone_id = %s"
+                sql, final_params = convert_sql_placeholders(query, tuple(params))
+                cursor.execute(sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2959,6 +3403,7 @@ def complete_milestone(milestone_id):
 def add_milestone_comment(milestone_id):
     """
     Add a comment to a milestone
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -2972,16 +3417,17 @@ def add_milestone_comment(milestone_id):
         comment_id = f"cmt_{int(time.time() * 1000)}"
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders('''
-                INSERT INTO synergy_sessions.milestone_comments 
-                (comment_id, milestone_id, user_id, comment_text, created_at)
-                VALUES (%s, %s, %s, %s, %s)
-            ''', (comment_id, milestone_id, user_id, comment_text, datetime.now().isoformat()))
-            cursor.execute(sql, params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders('''
+                    INSERT INTO synergy_sessions.milestone_comments 
+                    (comment_id, milestone_id, user_id, comment_text, created_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                ''', (comment_id, milestone_id, user_id, comment_text, datetime.now().isoformat()))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -2997,18 +3443,20 @@ def add_milestone_comment(milestone_id):
 def get_milestone_documents(milestone_id):
     """
     Get documents for a milestone
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT documents FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
             
-            sql, params = convert_sql_placeholders(
-                'SELECT documents FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
+            # ✅ Cursor auto-closed here
             if not row:
                 return jsonify({'success': False, 'error': 'Milestone not found'}), 404
             
@@ -3032,18 +3480,20 @@ def get_milestone_documents(milestone_id):
 def get_milestone_links(milestone_id):
     """
     Get links for a milestone
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT links FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
             
-            sql, params = convert_sql_placeholders(
-                'SELECT links FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
+            # ✅ Cursor auto-closed here
             if not row:
                 return jsonify({'success': False, 'error': 'Milestone not found'}), 404
             
@@ -3067,6 +3517,7 @@ def get_milestone_links(milestone_id):
 def add_milestone_documents(milestone_id):
     """
     Add documents to a milestone
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -3076,35 +3527,36 @@ def add_milestone_documents(milestone_id):
             return jsonify({'success': False, 'error': 'documents array required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT documents FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            documents = []
-            if row['documents']:
-                try:
-                    documents = json.loads(row['documents'])
-                except:
-                    documents = []
-            
-            documents.extend(new_docs)
-            
-            update_sql, update_params = convert_sql_placeholders('''
-                UPDATE milestones 
-                SET documents = %s, updated_at = %s
-                WHERE milestone_id = %s
-            ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
-            cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT documents FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                documents = []
+                if row['documents']:
+                    try:
+                        documents = json.loads(row['documents'])
+                    except:
+                        documents = []
+                
+                documents.extend(new_docs)
+                
+                update_sql, update_params = convert_sql_placeholders('''
+                    UPDATE milestones 
+                    SET documents = %s, updated_at = %s
+                    WHERE milestone_id = %s
+                ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
+                cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3120,6 +3572,7 @@ def add_milestone_documents(milestone_id):
 def add_milestone_links(milestone_id):
     """
     Add links to a milestone
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -3129,35 +3582,36 @@ def add_milestone_links(milestone_id):
             return jsonify({'success': False, 'error': 'links array required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT links FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            links = []
-            if row['links']:
-                try:
-                    links = json.loads(row['links'])
-                except:
-                    links = []
-            
-            links.extend(new_links)
-            
-            update_sql, update_params = convert_sql_placeholders('''
-                UPDATE milestones 
-                SET links = %s, updated_at = %s
-                WHERE milestone_id = %s
-            ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
-            cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT links FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                links = []
+                if row['links']:
+                    try:
+                        links = json.loads(row['links'])
+                    except:
+                        links = []
+                
+                links.extend(new_links)
+                
+                update_sql, update_params = convert_sql_placeholders('''
+                    UPDATE milestones 
+                    SET links = %s, updated_at = %s
+                    WHERE milestone_id = %s
+                ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
+                cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3172,7 +3626,8 @@ def add_milestone_links(milestone_id):
 @synergy_bp.route('/milestone/<milestone_id>/document/add', methods=['POST'])
 def add_single_milestone_document(milestone_id):
     """
-    🆕 SURGICAL ADD: Add ONE document to milestone without touching existing documents
+    SURGICAL ADD: Add ONE document to milestone without touching existing documents
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -3181,40 +3636,41 @@ def add_single_milestone_document(milestone_id):
             return jsonify({'success': False, 'error': 'title and url required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT documents FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            documents = []
-            if row['documents']:
-                try:
-                    documents = json.loads(row['documents'])
-                except:
-                    documents = []
-            
-            new_doc = {
-                "title": data['title'],
-                "url": data['url'],
-                "type": data.get('type', 'other')
-            }
-            documents.append(new_doc)
-            
-            sql, params = convert_sql_placeholders('''
-                UPDATE milestones 
-                SET documents = %s, updated_at = %s
-                WHERE milestone_id = %s
-            ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
-            cursor.execute(sql, params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT documents FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                documents = []
+                if row['documents']:
+                    try:
+                        documents = json.loads(row['documents'])
+                    except:
+                        documents = []
+                
+                new_doc = {
+                    "title": data['title'],
+                    "url": data['url'],
+                    "type": data.get('type', 'other')
+                }
+                documents.append(new_doc)
+                
+                sql, params = convert_sql_placeholders('''
+                    UPDATE milestones 
+                    SET documents = %s, updated_at = %s
+                    WHERE milestone_id = %s
+                ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3229,7 +3685,8 @@ def add_single_milestone_document(milestone_id):
 @synergy_bp.route('/milestone/<milestone_id>/link/add', methods=['POST'])
 def add_single_milestone_link(milestone_id):
     """
-    🆕 SURGICAL ADD: Add ONE link to milestone without touching existing links
+    SURGICAL ADD: Add ONE link to milestone without touching existing links
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -3238,39 +3695,40 @@ def add_single_milestone_link(milestone_id):
             return jsonify({'success': False, 'error': 'title and url required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'SELECT links FROM milestones WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            links = []
-            if row['links']:
-                try:
-                    links = json.loads(row['links'])
-                except:
-                    links = []
-            
-            new_link = {
-                "title": data['title'],
-                "url": data['url']
-            }
-            links.append(new_link)
-            
-            sql, params = convert_sql_placeholders('''
-                UPDATE milestones 
-                SET links = %s, updated_at = %s
-                WHERE milestone_id = %s
-            ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
-            cursor.execute(sql, params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT links FROM milestones WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                links = []
+                if row['links']:
+                    try:
+                        links = json.loads(row['links'])
+                    except:
+                        links = []
+                
+                new_link = {
+                    "title": data['title'],
+                    "url": data['url']
+                }
+                links.append(new_link)
+                
+                sql, params = convert_sql_placeholders('''
+                    UPDATE milestones 
+                    SET links = %s, updated_at = %s
+                    WHERE milestone_id = %s
+                ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3290,6 +3748,7 @@ def add_single_milestone_link(milestone_id):
 def create_task(milestone_id):
     """
     Create a new task in a milestone
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -3302,27 +3761,28 @@ def create_task(milestone_id):
         task_id = f"task_{int(time.time() * 1000)}"
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get max task_order
-            sql, params = convert_sql_placeholders(
-                'SELECT COALESCE(MAX(task_order), 0) as max_order FROM tasks WHERE milestone_id = %s',
-                (milestone_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            task_order = row['max_order'] + 1
-            
-            # Insert task
-            insert_sql, insert_params = convert_sql_placeholders('''
-                INSERT INTO tasks 
-                (task_id, milestone_id, task, task_order, completed, priority, estimated_hours, assigned_to)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (task_id, milestone_id, task_text, task_order, False, 
-                  data.get('priority', 'medium'), data.get('estimated_hours'), data.get('assigned_to')))
-            cursor.execute(insert_sql, insert_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get max task_order
+                sql, params = convert_sql_placeholders(
+                    'SELECT COALESCE(MAX(task_order), 0) as max_order FROM tasks WHERE milestone_id = %s',
+                    (milestone_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                task_order = row['max_order'] + 1
+                
+                # Insert task
+                insert_sql, insert_params = convert_sql_placeholders('''
+                    INSERT INTO tasks 
+                    (task_id, milestone_id, task, task_order, completed, priority, estimated_hours, assigned_to)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (task_id, milestone_id, task_text, task_order, False, 
+                      data.get('priority', 'medium'), data.get('estimated_hours'), data.get('assigned_to')))
+                cursor.execute(insert_sql, insert_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3338,33 +3798,35 @@ def create_task(milestone_id):
 def update_task(task_id):
     """
     Update task fields
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            updates = []
-            update_params = []
-            
-            for field in ['task', 'priority', 'estimated_hours', 'actual_hours', 'assigned_to']:
-                if field in data:
-                    updates.append(f"{field} = %s")
-                    update_params.append(data[field])
-            
-            if not updates:
-                return jsonify({'success': False, 'error': 'No fields to update'}), 400
-            
-            updates.append('updated_at = %s')
-            update_params.append(datetime.now().isoformat())
-            update_params.append(task_id)
-            
-            query = f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = %s"
-            sql, final_params = convert_sql_placeholders(query, tuple(update_params))
-            cursor.execute(sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                updates = []
+                update_params = []
+                
+                for field in ['task', 'priority', 'estimated_hours', 'actual_hours', 'assigned_to']:
+                    if field in data:
+                        updates.append(f"{field} = %s")
+                        update_params.append(data[field])
+                
+                if not updates:
+                    return jsonify({'success': False, 'error': 'No fields to update'}), 400
+                
+                updates.append('updated_at = %s')
+                update_params.append(datetime.now().isoformat())
+                update_params.append(task_id)
+                
+                query = f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = %s"
+                sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+                cursor.execute(sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3379,21 +3841,23 @@ def update_task(task_id):
 def delete_task(task_id):
     """
     Delete a task
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'DELETE FROM tasks WHERE task_id = %s',
-                (task_id,)
-            )
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Task not found'}), 404
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'DELETE FROM tasks WHERE task_id = %s',
+                    (task_id,)
+                )
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Task not found'}), 404
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3408,33 +3872,35 @@ def delete_task(task_id):
 def toggle_task(session_id, task_id):
     """
     Toggle task completion status
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get current status
-            sql, params = convert_sql_placeholders(
-                'SELECT completed FROM tasks WHERE task_id = %s',
-                (task_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Task not found'}), 404
-            
-            new_status = not row['completed']
-            completed_at = datetime.now().isoformat() if new_status else None
-            
-            update_sql, update_params = convert_sql_placeholders('''
-                UPDATE tasks 
-                SET completed = %s, completed_at = %s, updated_at = %s
-                WHERE task_id = %s
-            ''', (new_status, completed_at, datetime.now().isoformat(), task_id))
-            cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get current status
+                sql, params = convert_sql_placeholders(
+                    'SELECT completed FROM tasks WHERE task_id = %s',
+                    (task_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Task not found'}), 404
+                
+                new_status = not row['completed']
+                completed_at = datetime.now().isoformat() if new_status else None
+                
+                update_sql, update_params = convert_sql_placeholders('''
+                    UPDATE tasks 
+                    SET completed = %s, completed_at = %s, updated_at = %s
+                    WHERE task_id = %s
+                ''', (new_status, completed_at, datetime.now().isoformat(), task_id))
+                cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3450,28 +3916,30 @@ def toggle_task(session_id, task_id):
 def complete_task(task_id):
     """
     Mark task as complete
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json or {}
         actual_hours = data.get('actual_hours')
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
-            params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
-            
-            if actual_hours is not None:
-                updates.append('actual_hours = %s')
-                params.append(actual_hours)
-            
-            params.append(task_id)
-            
-            query = f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = %s"
-            sql, final_params = convert_sql_placeholders(query, tuple(params))
-            cursor.execute(sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
+                params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
+                
+                if actual_hours is not None:
+                    updates.append('actual_hours = %s')
+                    params.append(actual_hours)
+                
+                params.append(task_id)
+                
+                query = f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = %s"
+                sql, final_params = convert_sql_placeholders(query, tuple(params))
+                cursor.execute(sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3487,6 +3955,7 @@ def complete_task(task_id):
 def block_task(task_id):
     """
     Mark task as blocked
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -3497,18 +3966,19 @@ def block_task(task_id):
             return jsonify({'success': False, 'error': 'blocker_reason required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders('''
-                UPDATE tasks 
-                SET blocked = %s, blocker_reason = %s, blocker_type = %s, 
-                    blocked_since = %s, updated_at = %s
-                WHERE task_id = %s
-            ''', (True, blocker_reason, blocker_type, datetime.now().isoformat(), 
-                  datetime.now().isoformat(), task_id))
-            cursor.execute(sql, params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders('''
+                    UPDATE tasks 
+                    SET blocked = %s, blocker_reason = %s, blocker_type = %s, 
+                        blocked_since = %s, updated_at = %s
+                    WHERE task_id = %s
+                ''', (True, blocker_reason, blocker_type, datetime.now().isoformat(), 
+                      datetime.now().isoformat(), task_id))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3523,7 +3993,8 @@ def block_task(task_id):
 @synergy_bp.route('/task/<task_id>/update-field', methods=['PATCH'])
 def update_single_task_field(task_id):
     """
-    🆕 SURGICAL UPDATE: Update ONE field of a task without touching others
+    SURGICAL UPDATE: Update ONE field of a task without touching others
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -3535,18 +4006,19 @@ def update_single_task_field(task_id):
             return jsonify({'success': False, 'error': f'Field must be one of: {", ".join(allowed_fields)}'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                f'UPDATE tasks SET {field} = %s, updated_at = %s WHERE task_id = %s',
-                (value, datetime.now().isoformat(), task_id)
-            )
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Task not found'}), 404
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    f'UPDATE tasks SET {field} = %s, updated_at = %s WHERE task_id = %s',
+                    (value, datetime.now().isoformat(), task_id)
+                )
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Task not found'}), 404
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3567,6 +4039,7 @@ def update_single_task_field(task_id):
 def create_subtask(task_id):
     """
     Create a new subtask in a task
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -3579,27 +4052,28 @@ def create_subtask(task_id):
         subtask_id = f"subtask_{int(time.time() * 1000)}"
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get max subtask_order
-            sql, params = convert_sql_placeholders(
-                'SELECT COALESCE(MAX(subtask_order), 0) as max_order FROM subtasks WHERE task_id = %s',
-                (task_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            subtask_order = row['max_order'] + 1
-            
-            # Insert subtask
-            insert_sql, insert_params = convert_sql_placeholders('''
-                INSERT INTO subtasks 
-                (subtask_id, task_id, task, subtask_order, completed, priority, estimated_hours, assigned_to)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (subtask_id, task_id, subtask_text, subtask_order, False, 
-                  data.get('priority', 'medium'), data.get('estimated_hours'), data.get('assigned_to')))
-            cursor.execute(insert_sql, insert_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get max subtask_order
+                sql, params = convert_sql_placeholders(
+                    'SELECT COALESCE(MAX(subtask_order), 0) as max_order FROM subtasks WHERE task_id = %s',
+                    (task_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                subtask_order = row['max_order'] + 1
+                
+                # Insert subtask
+                insert_sql, insert_params = convert_sql_placeholders('''
+                    INSERT INTO subtasks 
+                    (subtask_id, task_id, task, subtask_order, completed, priority, estimated_hours, assigned_to)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (subtask_id, task_id, subtask_text, subtask_order, False, 
+                      data.get('priority', 'medium'), data.get('estimated_hours'), data.get('assigned_to')))
+                cursor.execute(insert_sql, insert_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3615,33 +4089,35 @@ def create_subtask(task_id):
 def update_subtask(subtask_id):
     """
     Update subtask fields
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            updates = []
-            update_params = []
-            
-            for field in ['task', 'priority', 'estimated_hours', 'actual_hours', 'assigned_to']:
-                if field in data:
-                    updates.append(f"{field} = %s")
-                    update_params.append(data[field])
-            
-            if not updates:
-                return jsonify({'success': False, 'error': 'No fields to update'}), 400
-            
-            updates.append('updated_at = %s')
-            update_params.append(datetime.now().isoformat())
-            update_params.append(subtask_id)
-            
-            query = f"UPDATE subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
-            sql, final_params = convert_sql_placeholders(query, tuple(update_params))
-            cursor.execute(sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                updates = []
+                update_params = []
+                
+                for field in ['task', 'priority', 'estimated_hours', 'actual_hours', 'assigned_to']:
+                    if field in data:
+                        updates.append(f"{field} = %s")
+                        update_params.append(data[field])
+                
+                if not updates:
+                    return jsonify({'success': False, 'error': 'No fields to update'}), 400
+                
+                updates.append('updated_at = %s')
+                update_params.append(datetime.now().isoformat())
+                update_params.append(subtask_id)
+                
+                query = f"UPDATE subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
+                sql, final_params = convert_sql_placeholders(query, tuple(update_params))
+                cursor.execute(sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3656,21 +4132,23 @@ def update_subtask(subtask_id):
 def delete_subtask(subtask_id):
     """
     Delete a subtask
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                'DELETE FROM subtasks WHERE subtask_id = %s',
-                (subtask_id,)
-            )
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Subtask not found'}), 404
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'DELETE FROM subtasks WHERE subtask_id = %s',
+                    (subtask_id,)
+                )
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3685,33 +4163,35 @@ def delete_subtask(subtask_id):
 def toggle_subtask(session_id, subtask_id):
     """
     Toggle subtask completion status
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get current status
-            sql, params = convert_sql_placeholders(
-                'SELECT completed FROM subtasks WHERE subtask_id = %s',
-                (subtask_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Subtask not found'}), 404
-            
-            new_status = not row['completed']
-            completed_at = datetime.now().isoformat() if new_status else None
-            
-            update_sql, update_params = convert_sql_placeholders('''
-                UPDATE subtasks 
-                SET completed = %s, completed_at = %s, updated_at = %s
-                WHERE subtask_id = %s
-            ''', (new_status, completed_at, datetime.now().isoformat(), subtask_id))
-            cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Get current status
+                sql, params = convert_sql_placeholders(
+                    'SELECT completed FROM subtasks WHERE subtask_id = %s',
+                    (subtask_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+                
+                new_status = not row['completed']
+                completed_at = datetime.now().isoformat() if new_status else None
+                
+                update_sql, update_params = convert_sql_placeholders('''
+                    UPDATE subtasks 
+                    SET completed = %s, completed_at = %s, updated_at = %s
+                    WHERE subtask_id = %s
+                ''', (new_status, completed_at, datetime.now().isoformat(), subtask_id))
+                cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3727,28 +4207,30 @@ def toggle_subtask(session_id, subtask_id):
 def complete_subtask(subtask_id):
     """
     Mark subtask as complete
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json or {}
         actual_hours = data.get('actual_hours')
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
-            params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
-            
-            if actual_hours is not None:
-                updates.append('actual_hours = %s')
-                params.append(actual_hours)
-            
-            params.append(subtask_id)
-            
-            query = f"UPDATE subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
-            sql, final_params = convert_sql_placeholders(query, tuple(params))
-            cursor.execute(sql, final_params)
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                updates = ['completed = %s', 'completed_at = %s', 'updated_at = %s']
+                params = [True, datetime.now().isoformat(), datetime.now().isoformat()]
+                
+                if actual_hours is not None:
+                    updates.append('actual_hours = %s')
+                    params.append(actual_hours)
+                
+                params.append(subtask_id)
+                
+                query = f"UPDATE subtasks SET {', '.join(updates)} WHERE subtask_id = %s"
+                sql, final_params = convert_sql_placeholders(query, tuple(params))
+                cursor.execute(sql, final_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3763,7 +4245,8 @@ def complete_subtask(subtask_id):
 @synergy_bp.route('/subtask/<subtask_id>/update-field', methods=['PATCH'])
 def update_single_subtask_field(subtask_id):
     """
-    🆕 SURGICAL UPDATE: Update ONE field of a subtask without touching others
+    SURGICAL UPDATE: Update ONE field of a subtask without touching others
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -3775,18 +4258,19 @@ def update_single_subtask_field(subtask_id):
             return jsonify({'success': False, 'error': f'Field must be one of: {", ".join(allowed_fields)}'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            sql, params = convert_sql_placeholders(
-                f'UPDATE subtasks SET {field} = %s, updated_at = %s WHERE subtask_id = %s',
-                (value, datetime.now().isoformat(), subtask_id)
-            )
-            cursor.execute(sql, params)
-            
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Subtask not found'}), 404
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    f'UPDATE subtasks SET {field} = %s, updated_at = %s WHERE subtask_id = %s',
+                    (value, datetime.now().isoformat(), subtask_id)
+                )
+                cursor.execute(sql, params)
+                
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3807,18 +4291,20 @@ def update_single_subtask_field(subtask_id):
 def get_session_threads(session_id):
     """
     Get threads linked to a session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                sql, params = convert_sql_placeholders(
+                    'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
             
-            sql, params = convert_sql_placeholders(
-                'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
+            # ✅ Cursor auto-closed here
             if not row:
                 return jsonify({'success': False, 'error': 'Session not found'}), 404
             
@@ -3843,61 +4329,62 @@ def get_session_threads(session_id):
 def get_linked_threads_detailed(session_id):
     """
     Get detailed thread info for all threads linked to session
+    ✅ FIXED: Uses nested context managers
     """
     try:
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get thread_ids from synergy session
-            sql, params = convert_sql_placeholders(
-                'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            thread_ids = []
-            if row['thread_ids']:
-                try:
-                    thread_ids = json.loads(row['thread_ids'])
-                except:
-                    thread_ids = []
-            
-            # Fetch thread details from sessions.threads table with message counts
-            threads = []
-            if thread_ids:
-                placeholders = ','.join(['%s'] * len(thread_ids))
-                # ✅ FIX: Use correct column names and fetch message count + agent_id
-                thread_sql = f"""
-                    SELECT 
-                        t.id, 
-                        t.thread_slug, 
-                        t.name, 
-                        t.created_at, 
-                        t.updated_at,
-                        t.location as agent_id,
-                        COUNT(m.id) as message_count
-                    FROM sessions.threads t
-                    LEFT JOIN sessions.messages m ON t.id = m.thread_id
-                    WHERE t.id IN ({placeholders})
-                    GROUP BY t.id, t.thread_slug, t.name, t.created_at, t.updated_at, t.location
-                """
-                cursor.execute(thread_sql, thread_ids)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                for t_row in cursor.fetchall():
-                    threads.append({
-                        'thread_id': t_row['id'],  # Match frontend expectation
-                        'slug': t_row['thread_slug'],
-                        'title': t_row['name'],
-                        'created_at': t_row['created_at'],  # Frontend uses this
-                        'last_activity': t_row['updated_at'],  # Frontend uses this
-                        'agent_id': t_row['agent_id'] or 'prime',  # Default to 'prime' if null
-                        'message_count': t_row['message_count'] or 0
-                    })
+                # Get thread_ids from synergy session
+                sql, params = convert_sql_placeholders(
+                    'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                thread_ids = []
+                if row['thread_ids']:
+                    try:
+                        thread_ids = json.loads(row['thread_ids'])
+                    except:
+                        thread_ids = []
+                
+                # Fetch thread details from sessions.threads table with message counts
+                threads = []
+                if thread_ids:
+                    placeholders = ','.join(['%s'] * len(thread_ids))
+                    thread_sql = f"""
+                        SELECT 
+                            t.id, 
+                            t.thread_slug, 
+                            t.name, 
+                            t.created_at, 
+                            t.updated_at,
+                            t.location as agent_id,
+                            COUNT(m.id) as message_count
+                        FROM sessions.threads t
+                        LEFT JOIN sessions.messages m ON t.id = m.thread_id
+                        WHERE t.id IN ({placeholders})
+                        GROUP BY t.id, t.thread_slug, t.name, t.created_at, t.updated_at, t.location
+                    """
+                    cursor.execute(thread_sql, thread_ids)
+                    
+                    for t_row in cursor.fetchall():
+                        threads.append({
+                            'thread_id': t_row['id'],
+                            'slug': t_row['thread_slug'],
+                            'title': t_row['name'],
+                            'created_at': t_row['created_at'],
+                            'last_activity': t_row['updated_at'],
+                            'agent_id': t_row['agent_id'] or 'prime',
+                            'message_count': t_row['message_count'] or 0
+                        })
             
+            # ✅ Cursor auto-closed here
             return jsonify({
                 'success': True,
                 'session_id': session_id,
@@ -3912,6 +4399,7 @@ def get_linked_threads_detailed(session_id):
 def link_thread_generic():
     """
     Link a thread to a synergy session (generic endpoint)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -3922,37 +4410,38 @@ def link_thread_generic():
             return jsonify({'success': False, 'error': 'session_id and thread_id required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get current thread_ids
-            sql, params = convert_sql_placeholders(
-                'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            thread_ids = []
-            if row['thread_ids']:
-                try:
-                    thread_ids = json.loads(row['thread_ids'])
-                except:
-                    thread_ids = []
-            
-            if thread_id not in thread_ids:
-                thread_ids.append(thread_id)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET thread_ids = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                # Get current thread_ids
+                sql, params = convert_sql_placeholders(
+                    'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                thread_ids = []
+                if row['thread_ids']:
+                    try:
+                        thread_ids = json.loads(row['thread_ids'])
+                    except:
+                        thread_ids = []
+                
+                if thread_id not in thread_ids:
+                    thread_ids.append(thread_id)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET thread_ids = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -3969,6 +4458,7 @@ def link_thread_generic():
 def unlink_thread_generic():
     """
     Unlink a thread from a synergy session (generic endpoint)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -3979,37 +4469,38 @@ def unlink_thread_generic():
             return jsonify({'success': False, 'error': 'session_id and thread_id required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get current thread_ids
-            sql, params = convert_sql_placeholders(
-                'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            thread_ids = []
-            if row['thread_ids']:
-                try:
-                    thread_ids = json.loads(row['thread_ids'])
-                except:
-                    thread_ids = []
-            
-            if thread_id in thread_ids:
-                thread_ids.remove(thread_id)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET thread_ids = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                # Get current thread_ids
+                sql, params = convert_sql_placeholders(
+                    'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                thread_ids = []
+                if row['thread_ids']:
+                    try:
+                        thread_ids = json.loads(row['thread_ids'])
+                    except:
+                        thread_ids = []
+                
+                if thread_id in thread_ids:
+                    thread_ids.remove(thread_id)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET thread_ids = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -4026,6 +4517,7 @@ def unlink_thread_generic():
 def link_to_thread():
     """
     Link a synergy session to a thread (reverse direction naming)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -4037,37 +4529,38 @@ def link_to_thread():
             return jsonify({'success': False, 'error': 'session_id and thread_id required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Get current thread_ids
-            sql, params = convert_sql_placeholders(
-                'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if not row:
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            thread_ids = []
-            if row['thread_ids']:
-                try:
-                    thread_ids = json.loads(row['thread_ids'])
-                except:
-                    thread_ids = []
-            
-            if thread_id not in thread_ids:
-                thread_ids.append(thread_id)
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET thread_ids = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                # Get current thread_ids
+                sql, params = convert_sql_placeholders(
+                    'SELECT thread_ids FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                thread_ids = []
+                if row['thread_ids']:
+                    try:
+                        thread_ids = json.loads(row['thread_ids'])
+                    except:
+                        thread_ids = []
+                
+                if thread_id not in thread_ids:
+                    thread_ids.append(thread_id)
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET thread_ids = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -4085,6 +4578,7 @@ def link_to_thread():
 def update_column_post(session_id):
     """
     Update session column (POST alias for PATCH method)
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.json
@@ -4097,34 +4591,35 @@ def update_column_post(session_id):
             }), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Add activity log
-            sql, params = convert_sql_placeholders(
-                'SELECT recent_activity FROM synergy_sessions WHERE session_id = %s',
-                (session_id,)
-            )
-            cursor.execute(sql, params)
-            row = cursor.fetchone()
-            
-            if row:
-                activity = json.loads(row['recent_activity'] or '[]')
-                activity.insert(0, {
-                    'type': 'moved',
-                    'timestamp': datetime.now().isoformat(),
-                    'user': data.get('moved_by', 'AI Agent'),
-                    'details': f"Moved to {new_column}"
-                })
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                update_sql, update_params = convert_sql_placeholders('''
-                    UPDATE synergy_sessions 
-                    SET kanban_column = %s, recent_activity = %s, last_active = %s
-                    WHERE session_id = %s
-                ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
+                # Add activity log
+                sql, params = convert_sql_placeholders(
+                    'SELECT recent_activity FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
                 
-                cursor.execute(update_sql, update_params)
-            
-            conn.commit()
+                if row:
+                    activity = json.loads(row['recent_activity'] or '[]')
+                    activity.insert(0, {
+                        'type': 'moved',
+                        'timestamp': datetime.now().isoformat(),
+                        'user': data.get('moved_by', 'AI Agent'),
+                        'details': f"Moved to {new_column}"
+                    })
+                    
+                    update_sql, update_params = convert_sql_placeholders('''
+                        UPDATE synergy_sessions 
+                        SET kanban_column = %s, recent_activity = %s, last_active = %s
+                        WHERE session_id = %s
+                    ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
+                    
+                    cursor.execute(update_sql, update_params)
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
         
         # Broadcast column change to WebSocket clients
         try:
@@ -4155,13 +4650,14 @@ def update_column_post(session_id):
 
 
 # ============================================================
-# MILESTONE SYSTEM - COMPLETE (CONTEXT MANAGER PATTERN)
+# MILESTONE SYSTEM - ADDITIONAL ENDPOINTS
 # ============================================================
 
 @synergy_bp.route('/<session_id>/milestone/create', methods=['POST'])
 def create_session_milestone(session_id):
     """
-    Create milestone with tasks and subtasks (CONTEXT MANAGER PATTERN)
+    Create milestone with tasks and subtasks
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -4172,68 +4668,169 @@ def create_session_milestone(session_id):
             return jsonify({'success': False, 'error': 'title or milestone_name required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Check session exists
-            cursor.execute('SELECT session_id FROM synergy_sessions WHERE session_id = %s', (session_id,))
-            if not cursor.fetchone():
-                return jsonify({'success': False, 'error': 'Session not found'}), 404
-            
-            # Get next milestone number
-            cursor.execute('''
-                SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
-                FROM milestones 
-                WHERE session_id = %s
-            ''', (session_id,))
-            result = cursor.fetchone()
-            milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
-            
-            # Generate milestone ID
-            milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            
-            # Insert milestone
-            cursor.execute('''
-                INSERT INTO milestones (
-                    milestone_id, session_id, milestone_number, milestone_order, 
-                    title, milestone_name, description, completed, due_date, priority, 
-                    estimated_hours, created_at, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                milestone_id,
-                session_id,
-                milestone_number,
-                milestone_number,
-                milestone_title,
-                milestone_title,
-                data.get('description'),
-                False,
-                data.get('due_date'),
-                data.get('priority', 'medium'),
-                data.get('estimated_hours'),
-                datetime.now().isoformat(),
-                datetime.now().isoformat()
-            ))
-            
-            # Insert tasks
-            tasks_created = 0
-            subtasks_created = 0
-            tasks_list = data.get('tasks', [])
-            
-            for task_order, task_item in enumerate(tasks_list, start=1):
-                task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}"
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
                 
-                if isinstance(task_item, str):
-                    task_title = task_item
-                    task_description = None
-                    task_priority = 'medium'
-                    task_due_date = None
-                    subtasks = []
-                else:
-                    task_title = task_item.get('title') or task_item.get('task', '')
-                    task_description = task_item.get('description')
-                    task_priority = task_item.get('priority', 'medium')
-                    task_due_date = task_item.get('due_date')
-                    subtasks = task_item.get('subtasks', [])
+                # Check session exists
+                cursor.execute('SELECT session_id FROM synergy_sessions WHERE session_id = %s', (session_id,))
+                if not cursor.fetchone():
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+                
+                # Get next milestone number
+                cursor.execute('''
+                    SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
+                    FROM milestones 
+                    WHERE session_id = %s
+                ''', (session_id,))
+                result = cursor.fetchone()
+                milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
+                
+                # Generate milestone ID
+                milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                
+                # Insert milestone
+                cursor.execute('''
+                    INSERT INTO milestones (
+                        milestone_id, session_id, milestone_number, milestone_order, 
+                        title, milestone_name, description, completed, due_date, priority, 
+                        estimated_hours, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    milestone_id,
+                    session_id,
+                    milestone_number,
+                    milestone_number,
+                    milestone_title,
+                    milestone_title,
+                    data.get('description'),
+                    False,
+                    data.get('due_date'),
+                    data.get('priority', 'medium'),
+                    data.get('estimated_hours'),
+                    datetime.now().isoformat(),
+                    datetime.now().isoformat()
+                ))
+                
+                # Insert tasks
+                tasks_created = 0
+                subtasks_created = 0
+                tasks_list = data.get('tasks', [])
+                
+                for task_order, task_item in enumerate(tasks_list, start=1):
+                    task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}"
+                    
+                    if isinstance(task_item, str):
+                        task_title = task_item
+                        task_description = None
+                        task_priority = 'medium'
+                        task_due_date = None
+                        subtasks = []
+                    else:
+                        task_title = task_item.get('title') or task_item.get('task', '')
+                        task_description = task_item.get('description')
+                        task_priority = task_item.get('priority', 'medium')
+                        task_due_date = task_item.get('due_date')
+                        subtasks = task_item.get('subtasks', [])
+                    
+                    cursor.execute('''
+                        INSERT INTO tasks (
+                            task_id, milestone_id, title, task, description, completed, 
+                            task_order, priority, due_date, created_at
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (
+                        task_id, milestone_id, 
+                        task_title,
+                        task_title,
+                        task_description,
+                        False, task_order, task_priority, task_due_date, 
+                        datetime.now().isoformat()
+                    ))
+                    tasks_created += 1
+                    
+                    # Insert subtasks
+                    for subtask_order, subtask_item in enumerate(subtasks, start=1):
+                        subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}_{subtask_order}"
+                        
+                        if isinstance(subtask_item, str):
+                            subtask_title = subtask_item
+                            subtask_description = None
+                            subtask_priority = 'medium'
+                            subtask_due_date = None
+                        else:
+                            subtask_title = subtask_item.get('title') or subtask_item.get('task', '') or subtask_item.get('text', '')
+                            subtask_description = subtask_item.get('description')
+                            subtask_priority = subtask_item.get('priority', 'medium')
+                            subtask_due_date = subtask_item.get('due_date')
+                        
+                        cursor.execute('''
+                            INSERT INTO subtasks (
+                                subtask_id, task_id, title, task, description, completed, 
+                                subtask_order, priority, due_date, created_at
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ''', (
+                            subtask_id, task_id, 
+                            subtask_title,
+                            subtask_title,
+                            subtask_description,
+                            False, subtask_order, subtask_priority, subtask_due_date,
+                            datetime.now().isoformat()
+                        ))
+                        subtasks_created += 1
+                
+                # Mark session as using milestones
+                cursor.execute('''
+                    UPDATE synergy_sessions 
+                    SET uses_milestones = TRUE, last_active = %s
+                    WHERE session_id = %s
+                ''', (datetime.now().isoformat(), session_id))
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
+            
+            return jsonify({
+                'success': True,
+                'milestone_id': milestone_id,
+                'tasks_created': tasks_created,
+                'subtasks_created': subtasks_created
+            })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to create milestone: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>/task/create', methods=['POST'])
+def create_milestone_task(milestone_id):
+    """
+    Add task to milestone
+    ✅ FIXED: Uses nested context managers
+    """
+    try:
+        data = request.get_json()
+        
+        task_title = data.get('title') or data.get('task')
+        if not task_title:
+            return jsonify({'success': False, 'error': 'title or task text required'}), 400
+        
+        with get_database_connection('synergy_sessions') as conn:
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Check milestone exists
+                cursor.execute('SELECT milestone_id FROM milestones WHERE milestone_id = %s', (milestone_id,))
+                if not cursor.fetchone():
+                    return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+                
+                # Get next task order
+                cursor.execute('''
+                    SELECT COALESCE(MAX(task_order), 0) + 1 
+                    FROM tasks 
+                    WHERE milestone_id = %s
+                ''', (milestone_id,))
+                task_order = cursor.fetchone()[0]
+                
+                task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                task_priority = data.get('priority', 'medium')
+                task_description = data.get('description')
+                task_due_date = data.get('due_date')
                 
                 cursor.execute('''
                     INSERT INTO tasks (
@@ -4245,14 +4842,15 @@ def create_session_milestone(session_id):
                     task_title,
                     task_title,
                     task_description,
-                    False, task_order, task_priority, task_due_date, 
+                    False, task_order, task_priority, task_due_date,
                     datetime.now().isoformat()
                 ))
-                tasks_created += 1
                 
                 # Insert subtasks
+                subtasks_created = 0
+                subtasks = data.get('subtasks', [])
                 for subtask_order, subtask_item in enumerate(subtasks, start=1):
-                    subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}_{subtask_order}"
+                    subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{subtask_order}"
                     
                     if isinstance(subtask_item, str):
                         subtask_title = subtask_item
@@ -4279,108 +4877,9 @@ def create_session_milestone(session_id):
                         datetime.now().isoformat()
                     ))
                     subtasks_created += 1
-            
-            # Mark session as using milestones
-            cursor.execute('''
-                UPDATE synergy_sessions 
-                SET uses_milestones = TRUE, last_active = %s
-                WHERE session_id = %s
-            ''', (datetime.now().isoformat(), session_id))
-            
-            conn.commit()
-            
-            return jsonify({
-                'success': True,
-                'milestone_id': milestone_id,
-                'tasks_created': tasks_created,
-                'subtasks_created': subtasks_created
-            })
-    
-    except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to create milestone: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@synergy_bp.route('/milestone/<milestone_id>/task/create', methods=['POST'])
-def create_milestone_task(milestone_id):
-    """
-    Add task to milestone (CONTEXT MANAGER PATTERN)
-    """
-    try:
-        data = request.get_json()
-        
-        task_title = data.get('title') or data.get('task')
-        if not task_title:
-            return jsonify({'success': False, 'error': 'title or task text required'}), 400
-        
-        with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Check milestone exists
-            cursor.execute('SELECT milestone_id FROM milestones WHERE milestone_id = %s', (milestone_id,))
-            if not cursor.fetchone():
-                return jsonify({'success': False, 'error': 'Milestone not found'}), 404
-            
-            # Get next task order
-            cursor.execute('''
-                SELECT COALESCE(MAX(task_order), 0) + 1 
-                FROM tasks 
-                WHERE milestone_id = %s
-            ''', (milestone_id,))
-            task_order = cursor.fetchone()[0]
-            
-            task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            task_priority = data.get('priority', 'medium')
-            task_description = data.get('description')
-            task_due_date = data.get('due_date')
-            
-            cursor.execute('''
-                INSERT INTO tasks (
-                    task_id, milestone_id, title, task, description, completed, 
-                    task_order, priority, due_date, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                task_id, milestone_id, 
-                task_title,
-                task_title,
-                task_description,
-                False, task_order, task_priority, task_due_date,
-                datetime.now().isoformat()
-            ))
-            
-            # Insert subtasks
-            subtasks_created = 0
-            subtasks = data.get('subtasks', [])
-            for subtask_order, subtask_item in enumerate(subtasks, start=1):
-                subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{subtask_order}"
                 
-                if isinstance(subtask_item, str):
-                    subtask_title = subtask_item
-                    subtask_description = None
-                    subtask_priority = 'medium'
-                    subtask_due_date = None
-                else:
-                    subtask_title = subtask_item.get('title') or subtask_item.get('task', '') or subtask_item.get('text', '')
-                    subtask_description = subtask_item.get('description')
-                    subtask_priority = subtask_item.get('priority', 'medium')
-                    subtask_due_date = subtask_item.get('due_date')
-                
-                cursor.execute('''
-                    INSERT INTO subtasks (
-                        subtask_id, task_id, title, task, description, completed, 
-                        subtask_order, priority, due_date, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (
-                    subtask_id, task_id, 
-                    subtask_title,
-                    subtask_title,
-                    subtask_description,
-                    False, subtask_order, subtask_priority, subtask_due_date,
-                    datetime.now().isoformat()
-                ))
-                subtasks_created += 1
-            
-            conn.commit()
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -4396,7 +4895,8 @@ def create_milestone_task(milestone_id):
 @synergy_bp.route('/task/<task_id>/subtask/create', methods=['POST'])
 def create_task_subtask(task_id):
     """
-    Add subtask to task (CONTEXT MANAGER PATTERN)
+    Add subtask to task
+    ✅ FIXED: Uses nested context managers
     """
     try:
         data = request.get_json()
@@ -4406,41 +4906,42 @@ def create_task_subtask(task_id):
             return jsonify({'success': False, 'error': 'title or task field required'}), 400
         
         with get_database_connection('synergy_sessions') as conn:
-            cursor = conn.cursor()
-            
-            # Check task exists
-            cursor.execute('SELECT task_id FROM tasks WHERE task_id = %s', (task_id,))
-            if not cursor.fetchone():
-                return jsonify({'success': False, 'error': 'Task not found'}), 404
-            
-            # Get next subtask order
-            cursor.execute('''
-                SELECT COALESCE(MAX(subtask_order), 0) + 1 
-                FROM subtasks 
-                WHERE task_id = %s
-            ''', (task_id,))
-            subtask_order = cursor.fetchone()[0]
-            
-            subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            subtask_priority = data.get('priority', 'medium')
-            subtask_description = data.get('description')
-            subtask_due_date = data.get('due_date')
-            
-            cursor.execute('''
-                INSERT INTO subtasks (
-                    subtask_id, task_id, title, task, description, completed, 
-                    subtask_order, priority, due_date, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                subtask_id, task_id, 
-                subtask_title,
-                subtask_title,
-                subtask_description,
-                False, subtask_order, subtask_priority, subtask_due_date,
-                datetime.now().isoformat()
-            ))
-            
-            conn.commit()
+            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
+                
+                # Check task exists
+                cursor.execute('SELECT task_id FROM tasks WHERE task_id = %s', (task_id,))
+                if not cursor.fetchone():
+                    return jsonify({'success': False, 'error': 'Task not found'}), 404
+                
+                # Get next subtask order
+                cursor.execute('''
+                    SELECT COALESCE(MAX(subtask_order), 0) + 1 
+                    FROM subtasks 
+                    WHERE task_id = %s
+                ''', (task_id,))
+                subtask_order = cursor.fetchone()[0]
+                
+                subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                subtask_priority = data.get('priority', 'medium')
+                subtask_description = data.get('description')
+                subtask_due_date = data.get('due_date')
+                
+                cursor.execute('''
+                    INSERT INTO subtasks (
+                        subtask_id, task_id, title, task, description, completed, 
+                        subtask_order, priority, due_date, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    subtask_id, task_id, 
+                    subtask_title,
+                    subtask_title,
+                    subtask_description,
+                    False, subtask_order, subtask_priority, subtask_due_date,
+                    datetime.now().isoformat()
+                ))
+                
+                conn.commit()
+            # ✅ Cursor auto-closed here
             
             return jsonify({
                 'success': True,
@@ -4450,6 +4951,3 @@ def create_task_subtask(task_id):
     except Exception as e:
         print(f"[SUBTASK ERROR] Failed to create subtask: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-
-
-

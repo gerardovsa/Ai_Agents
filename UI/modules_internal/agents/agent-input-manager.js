@@ -337,7 +337,13 @@ const AgentInput = (function () {
      * Show file dialog for specific agent
      * @param {number} agentId - Agent ID
      */
-    function showFileDialog(agentId) {
+    function showFileDialog(agentId, event) {
+        // Prevent event bubbling to avoid double trigger
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
         const fileInput = document.getElementById(`agent-file-input-${agentId}`);
         if (fileInput) {
             fileInput.click();

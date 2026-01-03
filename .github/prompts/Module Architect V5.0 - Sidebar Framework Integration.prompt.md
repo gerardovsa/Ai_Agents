@@ -1725,6 +1725,78 @@ Study these for reference:
 
 ### Common Issues & Solutions
 
+
+#### Issue #0: Module Sidebar Button Not Appearing
+
+**Symptoms:**
+- Module exists in `modules_external/` with manifest.json
+- Module loads correctly (no errors)
+- Sidebar button is missing from UI navigation
+
+**Causes & Fixes:**
+
+**Cause A: Missing `show_in_sidebar` flag in manifest**
+``json
+//  BAD: No visibility flag
+{
+  "id": "xero",
+  "name": "Xero Accounting",
+  "icon": "fas fa-file-invoice-dollar",
+  "main_script": "xero.js"
+}
+
+//  GOOD: Explicit sidebar visibility
+{
+  "id": "xero",
+  "name": "Xero Accounting",
+  "icon": "fas fa-file-invoice-dollar",
+  "show_in_sidebar": true,  //  Required for sidebar button
+  "main_script": "xero.js"
+}
+``
+
+**Real-World Example: Xero Module**
+The Xero module was invisible in production because `show_in_sidebar: true` was missing from `UI/modules_external/xero/manifest.json`. Adding this flag enabled the sidebar button to appear.
+
+**Cause B: Module disabled for production**
+``html
+<!-- In business-ai-platform-v2.html -->
+
+<!--  BAD: Button commented out -->
+<!-- <button class="sidebar-icon-btn" data-tab="sales" title="Sales & E-Commerce">
+    <i class="fas fa-shopping-cart"></i>
+</button> -->
+
+<!--  GOOD: Button active -->
+<button class="sidebar-icon-btn" data-tab="sales" title="Sales & E-Commerce">
+    <i class="fas fa-shopping-cart"></i>
+</button>
+``
+
+**Real-World Example: WooCommerce Module**
+The WooCommerce/Sales dashboard was removed from production deployment (December 24, 2025) by commenting out:
+1. Sidebar button (line 17777-17780)
+2. Tab content container (lines 18418-18933)
+3. JavaScript initialization (lines 25987-26039)
+4. CSS styles (lines 13659-13730)
+
+The module directory `UI/modules_internal/woocommerce/` was preserved for local development.
+
+**To re-enable for local dev:**
+Uncomment sections marked with:
+- `<!--  DISABLED FOR PRODUCTION: WooCommerce/Sales Dashboard -->`
+- `/* UNCOMMENT FOR LOCAL DEVELOPMENT */`
+
+**Verification Steps:**
+1. Check manifest.json has `"show_in_sidebar": true`
+2. Check button exists in HTML (not commented out)
+3. Check module is enabled in modules_external/manifest.json
+4. Restart Flask server to reload manifests
+5. Hard refresh browser (Ctrl+F5)
+
+---
+
+
 #### Issue #1: Blank Dashboard / Module Not Loading
 
 **Symptoms:**
