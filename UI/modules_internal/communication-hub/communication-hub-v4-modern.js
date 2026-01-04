@@ -4186,6 +4186,15 @@ Draft questions for the customer listing all missing details required for accura
             });
 
             if (!response.ok) {
+                // Try to read error message from response body
+                let errorMsg = response.statusText;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                } catch (e) {
+                    // Failed to parse error JSON, use statusText
+                }
+                
                 // Retry on 5xx errors or timeouts (not 404s)
                 if (response.status >= 500 && retryCount < 2) {
                     const delay = Math.pow(2, retryCount) * 1000;  // 1s, 2s, 4s
@@ -4193,7 +4202,7 @@ Draft questions for the customer listing all missing details required for accura
                     await new Promise(resolve => setTimeout(resolve, delay));
                     return this.fetchEmailContent(emailId, retryCount + 1);
                 }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(`HTTP ${response.status}: ${errorMsg}`);
             }
 
             const result = await response.json();

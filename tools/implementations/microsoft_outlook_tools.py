@@ -319,7 +319,8 @@ class MicrosoftOutlookTools:
         if include_attachments:
             # 🚀 CRITICAL: Only request attachment METADATA - exclude contentBytes to prevent 1M+ token responses
             # This prevents base64 attachment content from being returned by Microsoft Graph API
-            attachment_select = '$select=id,name,contentType,size,isInline,contentId,lastModifiedDateTime'
+            # Note: contentId is not a valid field in Graph API attachment schema (removed)
+            attachment_select = '$select=id,name,contentType,size,isInline,lastModifiedDateTime'
             endpoint = f'/me/messages/{message_id}?$select={select_fields}&$expand=attachments({attachment_select})'
         else:
             endpoint = f'/me/messages/{message_id}?$select={select_fields}'
@@ -336,11 +337,10 @@ class MicrosoftOutlookTools:
                 
                 for att in message_data.get('attachments', []):
                     # 🎯 FILTER: Skip inline attachments (email footers, signature images)
-                    # Inline attachments have isInline=True or contentId set (embedded in HTML body)
+                    # Inline attachments have isInline=True (embedded in HTML body)
                     is_inline = att.get('isInline', False)
-                    has_content_id = att.get('contentId') is not None
                     
-                    if is_inline or has_content_id:
+                    if is_inline:
                         inline_filtered_count += 1
                         continue  # Skip email footer/signature images
                     
@@ -350,7 +350,6 @@ class MicrosoftOutlookTools:
                         'contentType': att.get('contentType'),
                         'size': att.get('size'),
                         'isInline': False,  # Guaranteed false at this point
-                        'contentId': att.get('contentId'),
                         'download_url': f"https://graph.microsoft.com/v1.0/me/messages/{message_id}/attachments/{att.get('id')}",
                         'note': '⚠️ Binary content stripped. Use microsoft_outlook_download_attachment to retrieve.'
                     }

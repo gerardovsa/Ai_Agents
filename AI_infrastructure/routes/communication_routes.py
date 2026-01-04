@@ -633,12 +633,20 @@ def get_email(email_id):
         }), 404
     
     except Exception as e:
-        print(f"[Communication Hub] Error fetching email: {e}")
+        print(f"\n❌❌❌ [COMMUNICATION ROUTES] EXCEPTION in get_email() ❌❌❌")
+        print(f"❌ Email ID: {email_id}")
+        print(f"❌ Provider: {provider if 'provider' in locals() else 'UNKNOWN'}")
+        print(f"❌ Message ID: {message_id if 'message_id' in locals() else 'UNKNOWN'}")
+        print(f"❌ User ID: {user_id}")
+        print(f"❌ Exception type: {type(e).__name__}")
+        print(f"❌ Exception message: {str(e)}")
+        print(f"❌ Full traceback:")
         import traceback
         traceback.print_exc()
+        print(f"❌❌❌ END EXCEPTION ❌❌❌\n")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'{type(e).__name__}: {str(e)}' if str(e) else f'{type(e).__name__} (no message)'
         }), 500
 
 
