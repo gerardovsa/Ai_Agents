@@ -717,6 +717,7 @@ def start_agent(agent_id):
             sender_team_id = request.form.get('sender_team_id')
             recipient_team_id = request.form.get('recipient_team_id')
             message_type = request.form.get('message_type', 'direct')
+            session_token = request.form.get('session_token')
         else:
             print(f"[START] Processing as JSON")
             data = request.json or {}
@@ -727,6 +728,13 @@ def start_agent(agent_id):
             sender_team_id = data.get('sender_team_id')  # Username of sender (sub-user)
             recipient_team_id = data.get('recipient_team_id')  # Username of recipient (None = broadcast)
             message_type = data.get('message_type', 'direct')  # 'direct' for user messages
+            session_token = data.get('session_token')
+        
+        # ✅ REALTIME SYNC: Extract session token from header if not in body
+        if not session_token:
+            session_token = request.headers.get('X-Session-Token') or request.headers.get('Session-Token')
+        
+        print(f"[START] session_token: {session_token[:20] if session_token else 'none'}...")
         
         # ============================================
         # VALIDATION
@@ -793,13 +801,23 @@ def start_agent(agent_id):
         max_retries = 3
         save_success = False
         
+        # ✅ REALTIME SYNC: Include session token in metadata
+        message_metadata = {
+            'source': 'web_ui',
+            'has_files': bool(file_data)
+        }
+        if session_token:
+            from datetime import datetime, timezone
+            message_metadata['session_token'] = session_token
+            message_metadata['timestamp'] = datetime.now(timezone.utc).isoformat()
+        
         for attempt in range(max_retries):
             save_success = save_message_to_database(
                 thread_slug=thread_slug,
                 role='user',
                 content=user_message_content,
                 user_id=user_id,
-                metadata={'source': 'web_ui', 'has_files': bool(file_data)},
+                metadata=message_metadata,
                 sender_team_id=sender_team_id,  # ✅ Username of sender
                 recipient_team_id=recipient_team_id,  # ✅ Respects privacy mode (None=Central HQ, username=Local Ops)
                 message_type=message_type  # 'direct' for user messages
