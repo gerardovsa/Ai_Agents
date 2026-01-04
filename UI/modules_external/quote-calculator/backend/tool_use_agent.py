@@ -42,19 +42,20 @@ def _safe_print(*args, **kwargs):
     _original_print(*safe_args, **kwargs)
 builtins.print = _safe_print
 
-# Setup paths
+# Setup paths - ENVIRONMENT-AGNOSTIC (works on Windows, Linux, macOS)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 implementations_dir = os.path.join(current_dir, '..', 'implementations')
-in_house_sql_root = 'C:/Users/gpoli/GIT/In_House_SQL'
-shopify_calc_path = os.path.join(in_house_sql_root, 'G_Folder', 'Quote_Calculator', 'shopify_calculators')
-quote_calc_path = os.path.join(in_house_sql_root, 'G_Folder', 'Quote_Calculator')
 
 # Path to inhouse-print module (contains db_connector.py)
 # From: backend/ -> quote-calculator/ -> modules_external/ -> inhouse-print/
 inhouse_print_module = os.path.abspath(os.path.join(current_dir, '..', '..', 'inhouse-print'))
 
+# ✅ All Shopify calculators are now in quote-calculator/backend/shopify_calculators/ (same repo)
+# No need for external paths - everything is self-contained in AI_agents repo
+shopify_calc_path = os.path.join(current_dir, 'shopify_calculators')
+
 # Add paths to sys.path
-for path in [current_dir, implementations_dir, shopify_calc_path, quote_calc_path, inhouse_print_module]:
+for path in [current_dir, implementations_dir, shopify_calc_path, inhouse_print_module]:
     abs_path = os.path.abspath(path)
     if abs_path not in sys.path:
         sys.path.insert(0, abs_path)
@@ -68,16 +69,11 @@ from complete_calculator_implementation import ComprehensiveQuoteCalculator
 # Import query library from same folder (backend)
 from query_library import QueryLibrary
 
-# Import stock database tools from In_House_SQL
-try:
-    stock_tools_path = os.path.join(quote_calc_path, 'stocks')
-    if stock_tools_path not in sys.path:
-        sys.path.insert(0, stock_tools_path)
-    from stock_database_tools import StockDatabaseTools
-except ImportError:
-    StockDatabaseTools = None
+# ✅ Stock data moved to Supabase PostgreSQL
+# Stock tools removed - use Supabase queries for inventory data
+StockDatabaseTools = None
 
-# Import Shopify calculator classes from In_House_SQL (source of truth)
+# ✅ Import Shopify calculator classes from local shopify_calculators/ folder
 from WireBound_Shopify_Calculator import WireBoundShopifyCalculator
 from SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
 from PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator

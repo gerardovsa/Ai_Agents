@@ -4,6 +4,8 @@ class BaseModule {
         this.moduleId = moduleId;
         this.manifest = null;
         this.backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+        this.container = null;
+        this.activeSubTab = null;
         console.log(` BaseModule constructor - moduleId: ${moduleId}`);
     }
 
@@ -14,9 +16,144 @@ class BaseModule {
             if (response.ok) {
                 this.manifest = await response.json();
                 console.log(` Manifest loaded for ${this.moduleId}:`, this.manifest);
+                
+                // Create module structure after manifest is loaded
+                if (this.container && this.manifest) {
+                    this.createModuleStructure();
+                }
             }
         } catch (error) {
             console.warn(` Failed to load manifest for ${this.moduleId}:`, error);
+        }
+    }
+
+    /**
+     * Create module UI structure (sub-tabs and containers)
+     */
+    createModuleStructure() {
+        if (!this.container || !this.manifest) {
+            console.warn(`[BaseModule] Cannot create structure - missing container or manifest`);
+            return;
+        }
+
+        console.log(`[BaseModule] Creating UI structure for ${this.moduleId}`);
+
+        // Clear existing content
+        this.container.innerHTML = '';
+
+        // Module header
+        const header = document.createElement('div');
+        header.className = 'module-header';
+        header.innerHTML = `
+            <div class="module-header-left">
+                <h2 class="module-title">
+                    <i class="${this.manifest.icon || 'fas fa-cube'}"></i> ${this.manifest.name || this.moduleId}
+                </h2>
+                <p class="module-description">${this.manifest.description || ''}</p>
+            </div>
+            <div class="module-header-right">
+                <button class="module-action-btn" data-action="refresh" title="Refresh">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        `;
+        this.container.appendChild(header);
+
+        // Sub-tabs navigation (if module has tabs)
+        if (this.manifest.tabs && this.manifest.tabs.length > 0) {
+            const subTabsNav = document.createElement('div');
+            subTabsNav.className = 'module-subtabs-nav';
+
+            this.manifest.tabs.forEach((tab, index) => {
+                const button = document.createElement('button');
+                button.className = 'module-subtab-btn';
+
+                // Set first tab or default tab as active
+                if (tab.default || index === 0) {
+                    button.classList.add('active');
+                    this.activeSubTab = tab.id;
+                }
+
+                button.setAttribute('data-subtab', tab.id);
+                button.innerHTML = `<i class="${tab.icon}"></i> ${tab.name}`;
+                button.addEventListener('click', () => this.switchSubTab(tab.id));
+                subTabsNav.appendChild(button);
+            });
+
+            this.container.appendChild(subTabsNav);
+        }
+
+        // Sub-tabs content container
+        const subTabsContent = document.createElement('div');
+        subTabsContent.className = 'module-subtabs-content';
+        subTabsContent.id = `${this.moduleId}-subtabs-content`;
+        this.container.appendChild(subTabsContent);
+
+        // Create sub-tab containers
+        if (this.manifest.tabs && this.manifest.tabs.length > 0) {
+            console.log(`[BaseModule] Creating ${this.manifest.tabs.length} sub-tab containers for ${this.moduleId}`);
+            this.manifest.tabs.forEach((tab, index) => {
+                const subTabDiv = document.createElement('div');
+                subTabDiv.className = 'module-subtab-content';
+
+                // Set first tab or default tab as active
+                if (tab.default || index === 0) {
+                    subTabDiv.classList.add('active');
+                }
+
+                const containerId = `${this.moduleId}-subtab-${tab.id}`;
+                subTabDiv.id = containerId;
+                subTabDiv.setAttribute('data-subtab', tab.id);
+                subTabsContent.appendChild(subTabDiv);
+                console.log(`   ✅ Created container: ${containerId}`);
+            });
+        } else {
+            // If no sub-tabs, create single content area
+            const singleContent = document.createElement('div');
+            singleContent.className = 'module-subtab-content active';
+            singleContent.id = `${this.moduleId}-content`;
+            subTabsContent.appendChild(singleContent);
+        }
+
+        console.log(`[BaseModule] ✅ UI structure created for ${this.moduleId}`);
+    }
+
+    /**
+     * Switch sub-tab
+     */
+    switchSubTab(subTabId) {
+        if (!this.container) return;
+
+        console.log(`[BaseModule] Switching to sub-tab: ${subTabId}`);
+
+        // Hide all sub-tabs
+        this.container.querySelectorAll('.module-subtab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Remove active from all buttons
+        this.container.querySelectorAll('.module-subtab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected sub-tab
+        const subTab = document.getElementById(`${this.moduleId}-subtab-${subTabId}`);
+        if (subTab) {
+            subTab.classList.add('active');
+        }
+
+        // Activate button
+        const button = this.container.querySelector(`.module-subtab-btn[data-subtab="${subTabId}"]`);
+        if (button) {
+            button.classList.add('active');
+        }
+
+        // Update active sub-tab
+        this.activeSubTab = subTabId;
+
+        // Call lifecycle hook (if module implements it)
+        if (typeof this.onSubTabActivate === 'function') {
+            this.onSubTabActivate(subTabId);
         }
     }
 
@@ -569,7 +706,118 @@ class ShopifyModule extends BaseModule {
         // Store module instance globally for Tabulator actions
         window.shopifyModule = this;
 
+        // Create the UI structure first (like Xero does)
+        this.createUIStructure();
+        
+        // Then initialize sub-tabs
         this.initializeSubTabs();
+    }
+
+    /**
+     * Create UI structure with sub-tab navigation
+     */
+    createUIStructure() {
+        if (!this.container) {
+            console.error('[Shopify] No container found!');
+            return;
+        }
+
+        console.log('[Shopify] Creating UI structure...');
+
+        // Create main structure with sub-tabs
+        this.container.innerHTML = `
+            <div class="shopify-wrapper">
+                <!-- Header -->
+                <div class="shopify-header">
+                    <div class="shopify-header-left">
+                        <h2 class="shopify-title">
+                            <i class="fas fa-shopping-cart"></i> Shopify E-Commerce
+                        </h2>
+                        <p class="shopify-description">Order management, analytics, and product performance</p>
+                    </div>
+                    <div class="shopify-header-right">
+                        <button class="shopify-action-btn" onclick="window.shopifyModule?.loadDashboardData('month')" title="Refresh">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sub-tabs Navigation -->
+                <div class="shopify-subtabs-nav">
+                    <button class="module-subtab-btn active" data-subtab="dashboard">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </button>
+                    <button class="module-subtab-btn" data-subtab="orders">
+                        <i class="fas fa-receipt"></i> Orders
+                    </button>
+                    <button class="module-subtab-btn" data-subtab="customers">
+                        <i class="fas fa-users"></i> Customers
+                    </button>
+                    <button class="module-subtab-btn" data-subtab="products">
+                        <i class="fas fa-box"></i> Products
+                    </button>
+                    <button class="module-subtab-btn" data-subtab="webhooks">
+                        <i class="fas fa-broadcast-tower"></i> Webhooks
+                    </button>
+                    <button class="module-subtab-btn" data-subtab="sql">
+                        <i class="fas fa-database"></i> SQL Viewer
+                    </button>
+                </div>
+
+                <!-- Sub-tab Content Containers -->
+                <div class="shopify-content-area">
+                    <div id="shopify-subtab-dashboard" class="shopify-subtab-content active"></div>
+                    <div id="shopify-subtab-orders" class="shopify-subtab-content" style="display: none;"></div>
+                    <div id="shopify-subtab-customers" class="shopify-subtab-content" style="display: none;"></div>
+                    <div id="shopify-subtab-products" class="shopify-subtab-content" style="display: none;"></div>
+                    <div id="shopify-subtab-webhooks" class="shopify-subtab-content" style="display: none;"></div>
+                    <div id="shopify-subtab-sql" class="shopify-subtab-content" style="display: none;"></div>
+                </div>
+            </div>
+        `;
+
+        // Add click handlers to sub-tab buttons
+        const buttons = this.container.querySelectorAll('.module-subtab-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const subTabId = btn.getAttribute('data-subtab');
+                this.switchToSubTab(subTabId);
+            });
+        });
+
+        console.log('[Shopify] ✅ UI structure created with 6 sub-tabs');
+    }
+
+    /**
+     * Switch to a sub-tab
+     */
+    switchToSubTab(subTabId) {
+        console.log(`[Shopify] Switching to sub-tab: ${subTabId}`);
+
+        // Update button states
+        const buttons = this.container.querySelectorAll('.module-subtab-btn');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('data-subtab') === subTabId) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Hide all sub-tab content
+        const contents = this.container.querySelectorAll('.shopify-subtab-content');
+        contents.forEach(content => {
+            content.style.display = 'none';
+        });
+
+        // Show selected sub-tab
+        const selectedContent = document.getElementById(`shopify-subtab-${subTabId}`);
+        if (selectedContent) {
+            selectedContent.style.display = 'block';
+        }
+
+        // Call activation hook
+        this.onSubTabActivate(subTabId);
     }
 
     /**

@@ -3381,18 +3381,18 @@ Draft questions for the customer listing all missing details required for accura
     hideEmailPreview() {
         const previewPanel = document.getElementById('emailPreview');
         if (!previewPanel) return;
-        
+
         // Hide preview panel
         previewPanel.classList.remove('show');
         previewPanel.style.display = 'none';
         previewPanel.style.flex = '0 0 0%';
-        
+
         // Clear content
         const previewContent = document.getElementById('previewContent');
         if (previewContent) {
             previewContent.innerHTML = '';
         }
-        
+
         // Remove row highlights
         if (this.state.tabulatorTable) {
             const allRows = this.state.tabulatorTable.getRows();
@@ -3405,7 +3405,7 @@ Draft questions for the customer listing all missing details required for accura
                 element.style.zIndex = '';
             });
         }
-        
+
         this.log.debug('Email preview hidden');
     }
 
@@ -3580,11 +3580,11 @@ Draft questions for the customer listing all missing details required for accura
             const isNotFound = error.message.includes('404');
             const isTimeout = error.message.includes('timeout') || error.name === 'TypeError';
             const errorIcon = isNotFound ? 'fa-file-slash' : isTimeout ? 'fa-clock' : 'fa-exclamation-triangle';
-            const errorText = isNotFound 
+            const errorText = isNotFound
                 ? 'Email not found in provider account'
-                : isTimeout 
-                ? 'Connection timeout - showing preview'
-                : 'Unable to load full content';
+                : isTimeout
+                    ? 'Connection timeout - showing preview'
+                    : 'Unable to load full content';
 
             // Show snippet view with graceful degradation
             const snippetHtml = `
@@ -4139,7 +4139,7 @@ Draft questions for the customer listing all missing details required for accura
     closePreview() {
         // ✅ FIX (Jan 4, 2026): Use hideEmailPreview for proper layout restoration
         this.hideEmailPreview();
-        
+
         // Clear current email reference
         this.state.currentPreviewEmail = null;
     },

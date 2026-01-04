@@ -36,6 +36,7 @@ import sys
 import os
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+import pandas as pd  # ✅ For DataFrame detection and conversion
 
 # Add paths for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -301,17 +302,29 @@ def execute_query_library(
                 "parameters": parameters
             }
         
+        # ✅ Convert DataFrame to JSON-serializable format
+        data_raw = result.get("data")
+        if isinstance(data_raw, pd.DataFrame):
+            # Convert DataFrame to list of dicts (records orientation)
+            # This is JSON-serializable and preserves column names
+            data_json = data_raw.to_dict(orient='records')
+            row_count = len(data_raw)
+        else:
+            # Already a list or empty
+            data_json = data_raw if data_raw else []
+            row_count = len(data_json) if data_json else 0
+        
         # Return formatted result
         return {
             "success": True,
             "query_name": query_name,
             "parameters_used": result.get("parameters_used", parameters or {}),
-            "data": result.get("data", []),
+            "data": data_json,  # ✅ Now JSON serializable
             "metadata": {
                 "description": query_def.get("description", ""),
                 "category": query_def.get("category", ""),
                 "visualization": query_def.get("visualization", "table"),
-                "row_count": len(result.get("data", [])),
+                "row_count": row_count,
                 "best_for": query_def.get("best_for", "")
             }
         }

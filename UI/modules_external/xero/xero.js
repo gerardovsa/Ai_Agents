@@ -4444,7 +4444,7 @@ class XeroModule extends BaseModule {
 
         // Determine which tabs to show based on available data
         const hasIntelligenceData = data.rfm_segment || data.unified_risk_score || data.ml_churn_probability;
-        
+
         return `
             <div class="xero-modal-header" style="
                 padding: 16px 20px;
@@ -4583,9 +4583,9 @@ class XeroModule extends BaseModule {
                             border-radius: 6px;
                             font-weight: 700;
                             ${contact.rfm_segment === 'Champions' ? 'background: rgba(35, 134, 54, 0.2); color: #238636;' :
-                                contact.rfm_segment === 'At Risk' ? 'background: rgba(210, 153, 34, 0.2); color: #d29922;' :
-                                contact.rfm_segment === 'Lost' ? 'background: rgba(248, 81, 73, 0.2); color: #f85149;' :
-                                'background: rgba(31, 111, 235, 0.2); color: #1f6feb;'}
+                contact.rfm_segment === 'At Risk' ? 'background: rgba(210, 153, 34, 0.2); color: #d29922;' :
+                    contact.rfm_segment === 'Lost' ? 'background: rgba(248, 81, 73, 0.2); color: #f85149;' :
+                        'background: rgba(31, 111, 235, 0.2); color: #1f6feb;'}
                         ">
                             ${contact.rfm_segment || 'N/A'}
                         </span>
@@ -4663,8 +4663,8 @@ class XeroModule extends BaseModule {
                         <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Recommended Action</div>
                         <div style="font-size: 16px; color: #58a6ff; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                             ${contact.recommended_action === 'call_now' ? '📞 Call Now - Immediate attention required' :
-                                contact.recommended_action === 'email_campaign' ? '✉️ Email Campaign - Re-engagement needed' :
-                                contact.recommended_action === 'monitor' ? '👀 Monitor - Keep watching' : contact.recommended_action}
+                    contact.recommended_action === 'email_campaign' ? '✉️ Email Campaign - Re-engagement needed' :
+                        contact.recommended_action === 'monitor' ? '👀 Monitor - Keep watching' : contact.recommended_action}
                         </div>
                     </div>
                 ` : ''}
@@ -9900,10 +9900,10 @@ class XeroModule extends BaseModule {
 
                     // Apply filter to table
                     table.setFilter('ml_segment', '=', mlSegment);
-                    
+
                     // Scroll to table
                     document.getElementById('customer-intelligence-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    
+
                     console.log(`[Xero] Filtering by ML segment: ${mlSegment}`);
                 });
             });

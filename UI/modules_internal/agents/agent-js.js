@@ -931,17 +931,17 @@ const MultiAgent = {
 
     getSessionColor(sessionToken) {
         if (!sessionToken) return this.PRESENCE_COLORS[0];
-        
+
         // Check if we already assigned a color to this session
         if (this.sessionColorMap.has(sessionToken)) {
             return this.sessionColorMap.get(sessionToken);
         }
-        
+
         // Assign new color based on hash
         const hash = sessionToken.split('').reduce((acc, char) =>
             acc + char.charCodeAt(0), 0);
         const color = this.PRESENCE_COLORS[hash % this.PRESENCE_COLORS.length];
-        
+
         // Store for future lookups
         this.sessionColorMap.set(sessionToken, color);
         return color;
