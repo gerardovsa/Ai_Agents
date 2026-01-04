@@ -339,9 +339,9 @@
       }
     },
     {
-      "name": "calculate_corflute_signs",
-      "short_description": "Calculate corflute sign quotes with size, thickness, and single or double-sided printing",
-      "description": "Calculate quote for corflute signs (rigid plastic signage). Used for outdoor signs, real estate signs, event signage.",
+      "name": "calculate_corflute_signs_bulk_god",
+      "short_description": "GOD CALCULATOR - Database-driven bulk pricing (100+ units only) - Use calculate_corflute_signs_shopify for customer quotes",
+      "description": "⚠️ GOD (DATABASE-DRIVEN) BULK CALCULATOR: Queries live database for real-time material costs. Only for quantities 100, 250, 500, 1000, 2000, 5000, 10000. For customer quotes or quantities under 100, use calculate_corflute_signs_shopify instead (hardcoded website pricing, supports 1+ units with 43-tier pricing). This GOD calculator is for internal cost analysis of bulk orders of corflute signs (rigid plastic signage) for outdoor signs, real estate signs, event signage.",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
@@ -661,8 +661,8 @@
     },
     {
       "name": "calculate_corflute_signs_shopify",
-      "short_description": "Calculate corflute sign quotes - MAIN corflute calculator for general corflute signs",
-      "description": "PRIMARY corflute signs calculator - Use this for all standard corflute sign quotes unless user specifically requests a different corflute product (e.g., A-frame inserts). Tier-based Shopify pricing matching inhouseprint.com.au. Supports preset sizes (450x600, 600x900, 900x1200, 1200x2400) or custom dimensions, 3mm/5mm thickness, single/double sided printing, eyelets/grommets, and multiple artworks. Features 43-tier volume pricing with automatic 5% discount and $135 minimum order.",
+      "short_description": "PRIMARY CORFLUTE CALCULATOR - Use this for ALL corflute quotes (1-10000+ units)",
+      "description": "✅ PRIMARY corflute signs calculator - Use this for ALL standard corflute sign quotes including small quantities (1-99 units) and bulk orders (100+ units). Supports 43-tier volume pricing from 1 unit up with automatic discounts. DO NOT use calculate_corflute_signs_bulk unless specifically doing bulk-only analysis. Tier-based Shopify pricing matching inhouseprint.com.au. Supports preset sizes (450x600, 600x900, 900x1200, 1200x2400) or custom dimensions, 3mm/5mm thickness, single/double sided printing, eyelets/grommets, and multiple artworks. Features 43-tier volume pricing with automatic 5% discount and $135 minimum order.",
       "platform": "quote_calculator",
       "parameters": {
         "type": "object",

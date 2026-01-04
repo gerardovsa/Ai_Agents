@@ -1177,7 +1177,7 @@ Object.assign(window.ThreadManager, {
      */
     async copyThreadConversation(threadId) {
         console.log('📋 [Copy Thread] Starting copy operation for thread:', threadId);
-        
+
         const thread = this.threads.find(t => t.id === threadId);
         if (!thread) {
             console.error('❌ [Copy Thread] Thread not found:', threadId);
@@ -1195,7 +1195,7 @@ Object.assign(window.ThreadManager, {
             if (typeof showNotification === 'function') {
                 showNotification('Loading thread messages...', 'info', 1500);
             }
-            
+
             const messages = await this.loadMessagesForThread(threadId);
             if (messages && messages.length > 0) {
                 thread.messages = messages;
@@ -1230,18 +1230,18 @@ Object.assign(window.ThreadManager, {
         // Copy to clipboard
         console.log('📋 [Copy Thread] Formatted text ready, copying to clipboard...');
         console.log('📋 [Copy Thread] Text length:', formattedText.length, 'characters');
-        
+
         try {
             await navigator.clipboard.writeText(formattedText);
             console.log('✅ [Copy Thread] Successfully copied full conversation');
             console.log('✅ [Copy Thread] Thread:', thread.title || 'Untitled');
             console.log('✅ [Copy Thread] Messages:', thread.messages.length);
             console.log('✅ [Copy Thread] Characters:', formattedText.length);
-            
+
             if (typeof showNotification === 'function') {
                 showNotification(`Copied ${thread.messages.length} messages to clipboard`, 'success', 3000);
             }
-            
+
             // Close the menu
             this.toggleCopyMenu(threadId);
         } catch (err) {

@@ -197,8 +197,33 @@ def inhouse_execute_sql(query: str, **kwargs) -> List[Dict[str, Any]]:
     Raises:
         Exception: If SQL error or connection failure
     """
-    agent = _get_agent()
-    return agent._execute_client_tool('execute_sql', {'query': query})
+    # ✅ FIX: Bypass ToolUseAgent and use InHousePrintDB directly
+    try:
+        from db_connector import InHousePrintDB
+        
+        # Initialize DB connection (auto-detects Supabase vs local config)
+        db = InHousePrintDB()
+        
+        # Execute query and return results as list of dicts
+        results = db.execute_query(query)
+        
+        if results is None:
+            return []
+        
+        # Convert DataFrame to list of dicts if needed
+        if hasattr(results, 'to_dict'):
+            return results.to_dict('records')
+        
+        return results
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        raise RuntimeError(
+            f"SQL execution failed: {e}\n"
+            f"Query: {query}\n"
+            f"Details: {error_details}"
+        )
 
 
 def inhouse_get_calculator_requirements(product_type: str, **kwargs) -> Dict[str, Any]:

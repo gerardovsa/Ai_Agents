@@ -513,7 +513,16 @@ def get_email(email_id):
                 }
             })
         
-        elif provider == 'outlook' and OUTLOOK_AVAILABLE:
+        elif provider == 'outlook':
+            # Check if Outlook tools are available
+            if not OUTLOOK_AVAILABLE:
+                return jsonify({
+                    'success': False,
+                    'error': 'Outlook email viewing is currently unavailable. Microsoft Outlook tools failed to load. Please check server logs or contact your administrator.',
+                    'provider': provider,
+                    'outlook_available': OUTLOOK_AVAILABLE
+                }), 503
+            
             # Request message WITH attachments expanded to get full attachment metadata
             result = microsoft_outlook_get_message(
                 message_id=message_id,
@@ -598,26 +607,12 @@ def get_email(email_id):
                     }
                 })
         
-        # Provide specific error based on provider availability
-        if provider == 'outlook' and not OUTLOOK_AVAILABLE:
-            return jsonify({
-                'success': False,
-                'error': 'Outlook email viewing is currently unavailable. Microsoft Outlook tools failed to load. Please check server logs or contact your administrator.',
-                'provider': provider,
-                'outlook_available': OUTLOOK_AVAILABLE
-            }), 503
-        elif provider == 'gmail':
-            return jsonify({
-                'success': False,
-                'error': 'Gmail email not found or access denied. The email may have been deleted or you may not have permission to view it.',
-                'provider': provider
-            }), 404
-        else:
-            return jsonify({
-                'success': False,
-                'error': f'Email provider "{provider}" is not supported or the email was not found.',
-                'provider': provider
-            }), 404
+        # If we reach here, provider matched but email fetch failed
+        return jsonify({
+            'success': False,
+            'error': f'Email not found or access denied for provider "{provider}". The email may have been deleted or you may not have permission to view it.',
+            'provider': provider
+        }), 404
     
     except Exception as e:
         print(f"[Communication Hub] Error fetching email: {e}")
@@ -867,7 +862,12 @@ def mark_email_as_read(email_id):
             )
             return jsonify(result)
         
-        elif provider == 'outlook' and OUTLOOK_AVAILABLE:
+        elif provider == 'outlook':
+            if not OUTLOOK_AVAILABLE:
+                return jsonify({
+                    'success': False,
+                    'error': 'Outlook tools not available'
+                }), 503
             # TODO: Implement Outlook mark as read
             return jsonify({
                 'success': True,
@@ -911,7 +911,12 @@ def mark_email_as_unread(email_id):
                 'message': 'Gmail mark as unread not yet implemented'
             })
         
-        elif provider == 'outlook' and OUTLOOK_AVAILABLE:
+        elif provider == 'outlook':
+            if not OUTLOOK_AVAILABLE:
+                return jsonify({
+                    'success': False,
+                    'error': 'Outlook tools not available'
+                }), 503
             # TODO: Implement Outlook mark as unread
             return jsonify({
                 'success': True,
@@ -1019,7 +1024,12 @@ def delete_email(email_id):
             )
             return jsonify(result)
         
-        elif provider == 'outlook' and OUTLOOK_AVAILABLE:
+        elif provider == 'outlook':
+            if not OUTLOOK_AVAILABLE:
+                return jsonify({
+                    'success': False,
+                    'error': 'Outlook tools not available'
+                }), 503
             # TODO: Implement Outlook delete
             return jsonify({
                 'success': True,

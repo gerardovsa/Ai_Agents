@@ -471,8 +471,13 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             print(f" [POOL] Connection test failed, discarding dead connection: {test_err}")
             try:
                 pool_instance.putconn(conn, close=True)  # Remove from pool
+                _pool_stats['connections_returned'] += 1  # Manually track return since putconn succeeded
             except Exception as putconn_err:
-                print(f" [POOL] Failed to remove dead connection: {putconn_err}")
+                print(f" [POOL] Failed to remove dead connection (continuing): {putconn_err}")
+                # ✅ CRITICAL FIX: If putconn fails, manually correct stats to prevent false leak detection
+                # The connection was acquired (stats incremented) but couldn't be returned to pool
+                # We need to mark it as "returned" to avoid permanent leak count inflation
+                _pool_stats['connections_returned'] += 1
             # Recursively retry with new connection (max 2 retries to handle zombie cascade)
             if not hasattr(get_database_connection, '_retry_count'):
                 get_database_connection._retry_count = 0

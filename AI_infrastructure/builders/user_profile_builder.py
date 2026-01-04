@@ -95,6 +95,7 @@ class UserProfileBuilder:
         """
         logger.debug(f"📂 Fetching profile for user_id={user_id}")
         
+        conn = None
         try:
             conn = self._get_db_connection()
             cursor = conn.cursor()
@@ -108,7 +109,6 @@ class UserProfileBuilder:
             """, (user_id,))
             
             row = cursor.fetchone()
-            conn.close()
             
             if not row:
                 logger.error(f" User not found: user_id={user_id}")
@@ -122,6 +122,13 @@ class UserProfileBuilder:
         except Error as e:
             logger.error(f" Database error: {e}")
             raise
+        finally:
+            # ✅ CRITICAL FIX: Always close connection even if exception occurs
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
 
     def get_oauth_status(self, user_id: int) -> Dict[str, bool]:
         """
@@ -146,6 +153,7 @@ class UserProfileBuilder:
         """
         logger.debug(f"🔐 Checking OAuth status for user_id={user_id}")
         
+        conn = None
         try:
             conn = self._get_db_connection()
             cursor = conn.cursor()
@@ -158,7 +166,6 @@ class UserProfileBuilder:
             """, (user_id,))
             
             row = cursor.fetchone()
-            conn.close()
             
             if not row:
                 logger.warning(f"⚠️ User not found: user_id={user_id}")
@@ -180,6 +187,13 @@ class UserProfileBuilder:
         except Error as e:
             logger.warning(f"⚠️ Could not fetch OAuth status: {e}")
             return {'google': False, 'microsoft': False, 'has_any_oauth': False}
+        finally:
+            # ✅ CRITICAL FIX: Always close connection even if exception occurs
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
 
     def build_prompt_context(self, user_id: int) -> str:
         """

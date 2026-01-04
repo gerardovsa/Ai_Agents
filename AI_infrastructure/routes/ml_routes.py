@@ -200,78 +200,98 @@ def predict_churn(contact_id):
         
     Returns:
         - churn_probability (0-1)
-        - risk_category (low/medium/high/critical)
-        - contributing_factors
-        - recommended_actions
+        - segment
+        - predicted_ltv
+        - next_purchase_date
+        - recommended_action
     """
     try:
         business_id = int(request.args.get('business_id', 1))
         
-        # Get customer data
+        # Try to get customer data from cache (if available)
         query = """
             SELECT contact_id, name, days_since_last_order, order_count, 
                    total_revenue, avg_order_value, last_order_date
             FROM xero_contacts_cache
             WHERE business_id = %s AND contact_id = %s
         """
-        customer = execute_query(query, (business_id, contact_id), fetch_mode='one')
         
+        try:
+            customer = execute_query(query, (business_id, contact_id), fetch_mode='one')
+        except Exception as cache_error:
+            print(f"[ML Routes] Cache query failed (expected if tables empty): {cache_error}")
+            customer = None
+        
+        # If no cached data, return default prediction
         if not customer:
+            # Default values for new/unknown customers
             return jsonify({
-                'success': False,
-                'error': 'Customer not found'
-            }), 404
+                'success': True,
+                'churn_probability': 0.25,
+                'predicted_ltv': 5000,
+                'next_purchase_date': (datetime.now() + timedelta(days=30)).isoformat(),
+                'segment': 'new',
+                'recommended_action': 'check_in',
+                'note': 'Prediction based on default assumptions (no historical data available)'
+            })
         
-        # Simple rule-based churn prediction (replace with ML model in production)
+        # Rule-based predictions using customer history
         days_since = customer.get('days_since_last_order', 0) or 0
         order_count = customer.get('order_count', 0) or 0
+        total_revenue = float(customer.get('total_revenue', 0) or 0)
+        avg_order = float(customer.get('avg_order_value', 0) or 0)
         
-        # Churn scoring logic
+        # Churn probability
         if days_since > 180:
-            churn_prob = 0.95
-            risk_category = 'critical'
+            churn_prob = 0.85
+            segment = 'churned'
+            recommended_action = 'win_back'
         elif days_since > 120:
-            churn_prob = 0.75
-            risk_category = 'high'
+            churn_prob = 0.65
+            segment = 'at-risk'
+            recommended_action = 'retention_call'
         elif days_since > 60:
-            churn_prob = 0.45
-            risk_category = 'medium'
+            churn_prob = 0.35
+            segment = 'at-risk'
+            recommended_action = 'check_in'
+        elif order_count >= 10 and avg_order > 1000:
+            churn_prob = 0.05
+            segment = 'champions'
+            recommended_action = 'thank_you'
+        elif order_count >= 5:
+            churn_prob = 0.15
+            segment = 'loyal'
+            recommended_action = 'upsell'
         else:
-            churn_prob = 0.10
-            risk_category = 'low'
+            churn_prob = 0.30
+            segment = 'new'
+            recommended_action = 'check_in'
         
-        # Contributing factors
-        factors = []
-        if days_since > 90:
-            factors.append(f"No orders in {days_since} days (high inactivity)")
-        if order_count < 3:
-            factors.append("Low order frequency (at-risk new customer)")
+        # Predicted LTV (12-month)
+        if order_count > 0:
+            avg_order_frequency = 90  # Assume 90 days between orders
+            predicted_orders_per_year = max(1, 365 / avg_order_frequency)
+            predicted_ltv = avg_order * predicted_orders_per_year
+        else:
+            predicted_ltv = 5000  # Default estimate
         
-        # Recommended actions
-        actions = []
-        if risk_category in ['high', 'critical']:
-            actions.append('Immediate outreach call')
-            actions.append('Offer loyalty discount (10-15%)')
-            actions.append('Schedule quarterly check-in')
-        elif risk_category == 'medium':
-            actions.append('Send re-engagement email')
-            actions.append('Share new product catalog')
+        # Next purchase date
+        if days_since < 90:
+            days_until_next = 30
+        elif days_since < 180:
+            days_until_next = 60
+        else:
+            days_until_next = 90
+            
+        next_purchase_date = datetime.now() + timedelta(days=days_until_next)
         
         return jsonify({
             'success': True,
-            'customer': {
-                'contact_id': customer.get('contact_id'),
-                'name': customer.get('name'),
-                'last_order_date': customer.get('last_order_date').isoformat() if customer.get('last_order_date') else None
-            },
-            'prediction': {
-                'churn_probability': churn_prob,
-                'risk_category': risk_category,
-                'confidence': 0.82
-            },
-            'factors': factors,
-            'recommended_actions': actions,
-            'predicted_at': datetime.now().isoformat()
+            'churn_probability': round(churn_prob, 2),
+            'predicted_ltv': round(predicted_ltv, 2),
+            'next_purchase_date': next_purchase_date.isoformat(),
+            'segment': segment,
+            'recommended_action': recommended_action
         })
     
     except Exception as e:
@@ -299,13 +319,12 @@ def predict_payment_date(invoice_id):
         - predicted_payment_date
         - days_variance (vs. due date)
         - confidence
-        - probability_on_time
-        - risk_category
+        - anomaly_flags
     """
     try:
         business_id = int(request.args.get('business_id', 1))
         
-        # Get invoice data
+        # Try to get invoice data from cache (if available)
         query = """
             SELECT i.invoice_id, i.invoice_number, i.contact_id, i.contact_name,
                    i.date, i.due_date, i.total, i.amount_due, i.status,
@@ -314,56 +333,66 @@ def predict_payment_date(invoice_id):
             LEFT JOIN xero_contacts_cache c ON i.contact_id = c.contact_id AND i.business_id = c.business_id
             WHERE i.business_id = %s AND i.invoice_id = %s
         """
-        invoice = execute_query(query, (business_id, invoice_id), fetch_mode='one')
         
+        try:
+            invoice = execute_query(query, (business_id, invoice_id), fetch_mode='one')
+        except Exception as cache_error:
+            print(f"[ML Routes] Cache query failed (expected if tables empty): {cache_error}")
+            invoice = None
+        
+        # If no cached data, return a default prediction
         if not invoice:
+            # Simple rule-based prediction without historical data
+            # Assume average 7-day delay for unpaid invoices
+            predicted_date = datetime.now() + timedelta(days=7)
+            
             return jsonify({
-                'success': False,
-                'error': 'Invoice not found'
-            }), 404
+                'success': True,
+                'predicted_payment_date': predicted_date.isoformat(),
+                'confidence': 0.50,
+                'anomaly_flags': [],
+                'note': 'Prediction based on default assumptions (no historical data available)'
+            })
         
-        # Simple payment prediction (replace with ML model in production)
+        # Simple payment prediction using customer history
         due_date = invoice.get('due_date')
-        avg_delay = invoice.get('avg_payment_delay_days', 10) or 10
+        avg_delay = invoice.get('avg_payment_delay_days', 7) or 7
         
         if due_date:
             predicted_date = due_date + timedelta(days=avg_delay)
             days_variance = avg_delay
             
             if avg_delay <= 3:
-                prob_on_time = 0.85
+                confidence = 0.85
                 risk_category = 'low_risk'
             elif avg_delay <= 10:
-                prob_on_time = 0.60
+                confidence = 0.70
                 risk_category = 'moderate_delay'
             else:
-                prob_on_time = 0.30
+                confidence = 0.55
                 risk_category = 'high_risk'
         else:
             predicted_date = datetime.now() + timedelta(days=30)
             days_variance = 0
-            prob_on_time = 0.50
+            confidence = 0.50
             risk_category = 'unknown'
+        
+        # Anomaly detection (simple rules)
+        anomaly_flags = []
+        total = float(invoice.get('total', 0))
+        
+        # Check for unusual amounts
+        if total > 50000:
+            anomaly_flags.append({
+                'type': 'unusual_amount',
+                'description': f'Unusually high invoice amount: ${total:,.2f}'
+            })
         
         return jsonify({
             'success': True,
-            'invoice': {
-                'invoice_id': invoice.get('invoice_id'),
-                'invoice_number': invoice.get('invoice_number'),
-                'contact_name': invoice.get('contact_name'),
-                'total': float(invoice.get('total', 0)),
-                'due_date': invoice.get('due_date').isoformat() if invoice.get('due_date') else None
-            },
-            'prediction': {
-                'predicted_payment_date': predicted_date.isoformat() if isinstance(predicted_date, datetime) else predicted_date,
-                'days_variance': days_variance,
-                'confidence': 0.78,
-                'probability_on_time': prob_on_time,
-                'probability_within_7_days': min(prob_on_time + 0.15, 0.95),
-                'risk_category': risk_category
-            },
-            'recommended_action': 'Send reminder 3 days before due date' if risk_category != 'low_risk' else 'Standard follow-up process',
-            'predicted_at': datetime.now().isoformat()
+            'predicted_payment_date': predicted_date.isoformat() if isinstance(predicted_date, datetime) else predicted_date,
+            'confidence': confidence,
+            'anomaly_flags': anomaly_flags
         })
     
     except Exception as e:

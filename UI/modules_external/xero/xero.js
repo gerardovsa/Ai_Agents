@@ -1497,7 +1497,7 @@ class XeroModule extends BaseModule {
                 </div>
             </div>
         `;
-        
+
         // Load ML dashboard summary
         this.loadMLDashboardSummary();
     }
@@ -1757,7 +1757,7 @@ class XeroModule extends BaseModule {
 
     async loadMLDashboardSummary() {
         console.log('[Xero ML] Loading ML dashboard summary...');
-        
+
         try {
             const response = await fetch(`${this.API_BASE_URL}/api/ml/dashboard/summary?business_id=${this.currentBusiness}`);
             if (!response.ok) {
@@ -1787,12 +1787,11 @@ class XeroModule extends BaseModule {
             if (data.alerts && data.alerts.length > 0) {
                 const alertsSection = this.container.querySelector('#xero-critical-alerts-section');
                 const alertsContainer = this.container.querySelector('#xero-critical-alerts-container');
-                
+
                 if (alertsSection && alertsContainer) {
                     alertsSection.style.display = 'block';
                     alertsContainer.innerHTML = data.alerts.map(alert => `
-                        <div class="xero-alert xero-alert-${alert.severity}" style="padding: 12px 16px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid ${
-                            alert.severity === 'high' ? '#ef4444' : 
+                        <div class="xero-alert xero-alert-${alert.severity}" style="padding: 12px 16px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid ${alert.severity === 'high' ? '#ef4444' :
                             alert.severity === 'medium' ? '#f59e0b' : '#3b82f6'
                         }; background: var(--bg-tertiary);">
                             <div style="display: flex; align-items: flex-start; gap: 12px;">
@@ -1815,8 +1814,7 @@ class XeroModule extends BaseModule {
                 const prioritiesList = this.container.querySelector('#xero-priorities-list');
                 if (prioritiesList) {
                     prioritiesList.innerHTML = data.priorities.map((priority, index) => `
-                        <div class="xero-priority-item" style="padding: 12px 16px; margin-bottom: 8px; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid ${
-                            priority.urgency === 'high' ? '#ef4444' : 
+                        <div class="xero-priority-item" style="padding: 12px 16px; margin-bottom: 8px; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid ${priority.urgency === 'high' ? '#ef4444' :
                             priority.urgency === 'medium' ? '#f59e0b' : '#3b82f6'
                         };">
                             <div style="display: flex; align-items: center; gap: 12px;">
@@ -1825,13 +1823,11 @@ class XeroModule extends BaseModule {
                                     <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${priority.title}</div>
                                     <div style="font-size: 13px; color: var(--text-secondary);">${priority.description}</div>
                                 </div>
-                                <div class="xero-priority-badge" style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${
-                                    priority.urgency === 'high' ? 'rgba(239, 68, 68, 0.2)' : 
-                                    priority.urgency === 'medium' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)'
-                                }; color: ${
-                                    priority.urgency === 'high' ? '#ef4444' : 
-                                    priority.urgency === 'medium' ? '#f59e0b' : '#3b82f6'
-                                };">
+                                <div class="xero-priority-badge" style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${priority.urgency === 'high' ? 'rgba(239, 68, 68, 0.2)' :
+                            priority.urgency === 'medium' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)'
+                        }; color: ${priority.urgency === 'high' ? '#ef4444' :
+                            priority.urgency === 'medium' ? '#f59e0b' : '#3b82f6'
+                        };">
                                     ${priority.urgency}
                                 </div>
                             </div>
@@ -1890,7 +1886,7 @@ class XeroModule extends BaseModule {
 
             // Get unpaid invoices
             const unpaidInvoices = this.data.invoices.filter(inv => inv.status !== 'PAID' && inv.status !== 'VOIDED');
-            
+
             if (unpaidInvoices.length === 0) {
                 console.log('[Xero ML] No unpaid invoices to predict');
                 this.updateInvoiceAnalytics();
@@ -1902,7 +1898,7 @@ class XeroModule extends BaseModule {
             console.log(`[Xero ML] Fetching predictions for ${invoicesToPredict.length} invoices`);
 
             const predictions = await Promise.allSettled(
-                invoicesToPredict.map(inv => 
+                invoicesToPredict.map(inv =>
                     fetch(`${this.API_BASE_URL}/api/ml/predict/payment/${inv.invoice_id}?business_id=${this.currentBusiness}`)
                         .then(res => res.ok ? res.json() : null)
                         .then(data => ({ invoice_id: inv.invoice_id, data }))
@@ -1916,7 +1912,7 @@ class XeroModule extends BaseModule {
                 if (result.status === 'fulfilled' && result.value.data && result.value.data.success) {
                     const invoiceId = result.value.invoice_id;
                     const prediction = result.value.data;
-                    
+
                     // Find invoice in data array
                     const invoice = this.data.invoices.find(i => i.invoice_id === invoiceId);
                     if (invoice) {
@@ -1981,7 +1977,7 @@ class XeroModule extends BaseModule {
         }
 
         // Calculate anomaly count
-        const anomalyCount = this.data.invoices.filter(inv => 
+        const anomalyCount = this.data.invoices.filter(inv =>
             inv.ml_anomaly_flags && inv.ml_anomaly_flags.length > 0
         ).length;
 
@@ -1989,6 +1985,193 @@ class XeroModule extends BaseModule {
         if (anomalyCountEl) {
             anomalyCountEl.textContent = anomalyCount;
         }
+    }
+
+    async loadMLContactPredictions() {
+        try {
+            console.log('[Xero ML] Loading contact predictions...');
+
+            // Get customer contacts only
+            const customers = this.data.contacts.filter(c => c.is_customer);
+
+            if (customers.length === 0) {
+                console.log('[Xero ML] No customer contacts to predict');
+                this.updateContactAnalytics();
+                return;
+            }
+
+            // Fetch predictions in batch (limit to 50 for performance)
+            const contactsToPredict = customers.slice(0, 50);
+            console.log(`[Xero ML] Fetching predictions for ${contactsToPredict.length} contacts`);
+
+            const predictions = await Promise.allSettled(
+                contactsToPredict.map(contact =>
+                    fetch(`${this.API_BASE_URL}/api/ml/predict/churn/${contact.contact_id}?business_id=${this.currentBusiness}`)
+                        .then(res => res.ok ? res.json() : null)
+                        .then(data => ({ contact_id: contact.contact_id, data }))
+                        .catch(() => ({ contact_id: contact.contact_id, data: null }))
+                )
+            );
+
+            // Apply predictions to contact data
+            let predictedCount = 0;
+            predictions.forEach((result) => {
+                if (result.status === 'fulfilled' && result.value.data && result.value.data.success) {
+                    const contactId = result.value.contact_id;
+                    const prediction = result.value.data;
+
+                    // Find contact in data array
+                    const contact = this.data.contacts.find(c => c.contact_id === contactId);
+                    if (contact) {
+                        contact.ml_churn_probability = prediction.churn_probability || 0;
+                        contact.ml_predicted_ltv = prediction.predicted_ltv || 0;
+                        contact.ml_next_purchase_date = prediction.next_purchase_date;
+                        contact.ml_segment = prediction.segment || 'unknown';
+                        contact.ml_recommended_action = prediction.recommended_action;
+                        predictedCount++;
+                    }
+                }
+            });
+
+            console.log(`[Xero ML] Applied ${predictedCount} predictions to contacts`);
+
+            // Update analytics cards
+            this.updateContactAnalytics();
+
+        } catch (error) {
+            console.error('[Xero ML] Error loading contact predictions:', error);
+            this.updateContactAnalytics();
+        }
+    }
+
+    updateContactAnalytics() {
+        // Count segments
+        const segmentCounts = this.data.contacts.reduce((acc, contact) => {
+            const segment = contact.ml_segment || 'unknown';
+            acc[segment] = (acc[segment] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Update Champions count
+        const championsEl = this.container.querySelector('#xero-contact-champions-count');
+        if (championsEl) {
+            championsEl.textContent = segmentCounts.champions || 0;
+        }
+
+        // Update At-Risk count
+        const atRiskEl = this.container.querySelector('#xero-contact-atrisk-count');
+        if (atRiskEl) {
+            atRiskEl.textContent = segmentCounts['at-risk'] || 0;
+        }
+
+        // Calculate average LTV
+        const ltvValues = this.data.contacts
+            .map(c => c.ml_predicted_ltv || 0)
+            .filter(ltv => ltv > 0);
+        const avgLTV = ltvValues.length > 0
+            ? ltvValues.reduce((sum, ltv) => sum + ltv, 0) / ltvValues.length
+            : 0;
+
+        const avgLTVEl = this.container.querySelector('#xero-contact-avg-ltv');
+        if (avgLTVEl) {
+            avgLTVEl.textContent = this.formatCurrency(avgLTV);
+        }
+
+        // Calculate retention rate (% not churned)
+        const totalCustomers = this.data.contacts.filter(c => c.is_customer).length;
+        const churnedCount = segmentCounts.churned || 0;
+        const retentionRate = totalCustomers > 0
+            ? ((totalCustomers - churnedCount) / totalCustomers * 100).toFixed(1)
+            : 0;
+
+        const retentionRateEl = this.container.querySelector('#xero-contact-retention-rate');
+        if (retentionRateEl) {
+            retentionRateEl.textContent = `${retentionRate}%`;
+        }
+    }
+
+    executeRecommendedAction(action, contact) {
+        console.log(`[Xero ML] Executing action: ${action} for contact:`, contact.name);
+
+        // Action templates
+        const actions = {
+            win_back: {
+                title: 'Win-Back Email',
+                template: `Hi ${contact.name},\n\nWe noticed you haven't placed an order recently and wanted to reach out.\n\nAs a valued customer, we'd love to have you back! Here's a special 15% discount code for your next order: WELCOME15\n\nLet us know if there's anything we can do to improve your experience.\n\nBest regards`
+            },
+            retention_call: {
+                title: 'Retention Call',
+                script: `Call ${contact.name} at ${contact.phone || 'N/A'}\n\nTalk track:\n1. Thank them for their business\n2. Ask about their recent experience\n3. Address any concerns\n4. Offer personalized solutions\n5. Schedule follow-up if needed`
+            },
+            upsell: {
+                title: 'Upsell Opportunity',
+                message: `${contact.name} is a great candidate for upselling!\n\nRecommended products based on purchase history:\n- Premium tier upgrade\n- Complementary products\n- Volume discounts\n\nNext step: Schedule a discovery call`
+            },
+            thank_you: {
+                title: 'Thank You Note',
+                template: `Hi ${contact.name},\n\nThank you for being a valued customer! We truly appreciate your continued business.\n\nYour feedback helps us improve, so please don't hesitate to reach out if you have any suggestions.\n\nBest regards`
+            },
+            check_in: {
+                title: 'Check-In Email',
+                template: `Hi ${contact.name},\n\nJust checking in to see how everything is going with your recent orders.\n\nIs there anything we can help you with? Any questions or concerns?\n\nWe're here to help!\n\nBest regards`
+            }
+        };
+
+        const actionData = actions[action];
+        if (!actionData) {
+            alert(`Action "${action}" not implemented yet.`);
+            return;
+        }
+
+        // Show modal with action template
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+
+        modal.innerHTML = `
+            <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #c9d1d9; font-size: 18px;">${actionData.title} - ${contact.name}</h3>
+                    <button id="close-action-modal" style="background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer;">&times;</button>
+                </div>
+                <textarea id="action-content" style="width: 100%; min-height: 200px; padding: 12px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-family: monospace; font-size: 13px; resize: vertical;">${actionData.template || actionData.script || actionData.message}</textarea>
+                <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: flex-end;">
+                    <button id="copy-action" style="padding: 10px 20px; background: #238636; border: none; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-copy"></i> Copy to Clipboard
+                    </button>
+                    <button id="cancel-action" style="padding: 10px 20px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-weight: 600; cursor: pointer;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Event listeners
+        modal.querySelector('#close-action-modal').addEventListener('click', () => modal.remove());
+        modal.querySelector('#cancel-action').addEventListener('click', () => modal.remove());
+        modal.querySelector('#copy-action').addEventListener('click', () => {
+            const content = modal.querySelector('#action-content').value;
+            navigator.clipboard.writeText(content);
+            alert('Copied to clipboard!');
+            modal.remove();
+        });
+
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
     }
 
     // ========================================================================
@@ -2715,23 +2898,23 @@ class XeroModule extends BaseModule {
                         const rowData = cell.getRow().getData();
                         const predicted = rowData.ml_predicted_payment_date;
                         const dueDate = rowData.due_date;
-                        
+
                         if (!predicted || rowData.status === 'PAID') {
                             return '<span style="color: #8b949e; font-size: 11px;">N/A</span>';
                         }
-                        
+
                         const predictedDate = predicted instanceof Date ? predicted : this.parseXeroDate(predicted);
                         const dueDateObj = dueDate instanceof Date ? dueDate : this.parseXeroDate(dueDate);
-                        
+
                         if (!predictedDate || !dueDateObj) {
                             return '<span style="color: #8b949e; font-size: 11px;">N/A</span>';
                         }
-                        
+
                         // Calculate days variance (+ means late, - means early)
                         const variance = Math.round((predictedDate - dueDateObj) / (1000 * 60 * 60 * 24));
                         const varianceText = variance > 0 ? `+${variance}d` : variance < 0 ? `${variance}d` : '0d';
                         const varianceColor = variance > 7 ? '#f85149' : variance > 0 ? '#f0883e' : '#3fb950';
-                        
+
                         return `
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <span style="color: #ffffff; font-size: 12px;">${this.formatDate(predictedDate)}</span>
@@ -2753,11 +2936,11 @@ class XeroModule extends BaseModule {
                     formatter: (cell) => {
                         const rowData = cell.getRow().getData();
                         const flags = rowData.ml_anomaly_flags || [];
-                        
+
                         if (!flags || flags.length === 0) {
                             return '<span style="color: #3fb950; font-size: 14px;">✓</span>';
                         }
-                        
+
                         const flagIcons = {
                             pricing_error: '💰',
                             duplicate: '📋',
@@ -2765,10 +2948,10 @@ class XeroModule extends BaseModule {
                             unusual_amount: '📊',
                             unusual_terms: '📝'
                         };
-                        
+
                         const iconList = flags.map(f => flagIcons[f.type] || '⚠️').slice(0, 3).join(' ');
                         const tooltip = flags.map(f => f.description).join('; ');
-                        
+
                         return `<span style="font-size: 14px; cursor: help;" title="${tooltip}">${iconList}</span>`;
                     }
                 },
@@ -2928,6 +3111,74 @@ class XeroModule extends BaseModule {
                     </div>
                 </div>
 
+                <!-- ML Customer Segments Filter -->
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-users-cog" style="color: #8957e5;"></i>
+                        Customer Segments (AI)
+                    </label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="xero-segment-filter active" data-segment="all" style="padding: 6px 12px; background: var(--xero-primary); border: 1px solid var(--xero-primary); border-radius: 6px; color: white; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-globe"></i> All Customers
+                        </button>
+                        <button class="xero-segment-filter" data-segment="champions" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-trophy" style="color: #ffd700;"></i> Champions
+                        </button>
+                        <button class="xero-segment-filter" data-segment="loyal" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-heart" style="color: #3fb950;"></i> Loyal
+                        </button>
+                        <button class="xero-segment-filter" data-segment="at-risk" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-exclamation-triangle" style="color: #f0883e;"></i> At-Risk
+                        </button>
+                        <button class="xero-segment-filter" data-segment="churned" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-user-times" style="color: #f85149;"></i> Churned
+                        </button>
+                        <button class="xero-segment-filter" data-segment="new" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-user-plus" style="color: #1f6feb;"></i> New Customers
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contact Analytics Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #3fb950 0%, #2ea043 100%); padding: 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(63, 185, 80, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <i class="fas fa-trophy" style="font-size: 20px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; text-transform: uppercase;">Champions</div>
+                                <div id="xero-contact-champions-count" style="color: white; font-size: 20px; font-weight: 700;">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f0883e 0%, #e07628 100%); padding: 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(240, 136, 62, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 20px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; text-transform: uppercase;">At-Risk</div>
+                                <div id="xero-contact-atrisk-count" style="color: white; font-size: 20px; font-weight: 700;">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #8957e5 0%, #7643d1 100%); padding: 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(137, 87, 229, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <i class="fas fa-dollar-sign" style="font-size: 20px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; text-transform: uppercase;">Avg LTV</div>
+                                <div id="xero-contact-avg-ltv" style="color: white; font-size: 20px; font-weight: 700;">$0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #1f6feb 0%, #1a56db 100%); padding: 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <i class="fas fa-calendar-check" style="font-size: 20px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; text-transform: uppercase;">Retention Rate</div>
+                                <div id="xero-contact-retention-rate" style="color: white; font-size: 20px; font-weight: 700;">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Bulk Actions Toolbar -->
                 <div class="xero-bulk-actions" id="xero-contacts-bulk-actions" style="display: none;">
                     <div class="xero-bulk-left">
@@ -3027,6 +3278,30 @@ class XeroModule extends BaseModule {
             });
         }
 
+        // Segment filter buttons (ML-powered)
+        const segmentFilters = container.querySelectorAll('.xero-segment-filter');
+        segmentFilters.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active state
+                segmentFilters.forEach(b => {
+                    b.style.background = '#30363d';
+                    b.style.color = '#8b949e';
+                });
+                btn.style.background = 'var(--xero-primary)';
+                btn.style.color = 'white';
+
+                // Apply segment filter
+                const segment = btn.dataset.segment;
+                if (this.tables.contacts) {
+                    if (segment === 'all') {
+                        this.tables.contacts.clearFilter();
+                    } else {
+                        this.tables.contacts.setFilter('ml_segment', '=', segment);
+                    }
+                }
+            });
+        });
+
         // Contacts report buttons
         const customerIntelligenceBtn = container.querySelector('#xero-show-customer-intelligence');
 
@@ -3079,6 +3354,9 @@ class XeroModule extends BaseModule {
             this.data.contacts = data.contacts || [];
             console.log(`[Xero] ✅ Loaded ${this.data.contacts.length} contacts into memory`);
 
+            // Load ML predictions for contacts
+            await this.loadMLContactPredictions();
+
             console.log('[Xero] 📊 Creating contacts table...');
             this.createContactsTable();
             console.log('[Xero] ✅ Contacts table created');
@@ -3115,23 +3393,155 @@ class XeroModule extends BaseModule {
                         cell.getRow().toggleSelect();
                     }
                 },
-                { title: 'Name', field: 'name', minWidth: 120, maxWidth: 300, widthGrow: 2, widthShrink: 1 },
-                { title: 'Email', field: 'email', minWidth: 150, maxWidth: 250, widthGrow: 2, widthShrink: 1 },
-                { title: 'Phone', field: 'phone', minWidth: 100, maxWidth: 150, widthGrow: 1, widthShrink: 1 },
                 {
-                    title: 'Type',
-                    field: 'is_customer',
-                    minWidth: 80,
-                    maxWidth: 120,
+                    title: 'Name',
+                    field: 'name',
+                    minWidth: 120,
+                    maxWidth: 300,
+                    widthGrow: 2,
+                    widthShrink: 1,
+                    formatter: (cell) => `<span style="font-weight: 600; color: #ffffff;">${cell.getValue()}</span>`
+                },
+                {
+                    title: '🎯 Segment',
+                    field: 'ml_segment',
+                    minWidth: 100,
+                    maxWidth: 140,
                     widthGrow: 1,
                     widthShrink: 1,
+                    headerSort: true,
+                    headerTooltip: 'AI-assigned customer segment',
                     formatter: (cell) => {
-                        const isCustomer = cell.getValue();
-                        const row = cell.getRow().getData();
-                        const types = [];
-                        if (isCustomer) types.push('Customer');
-                        if (row.is_supplier) types.push('Supplier');
-                        return types.join(', ') || 'N/A';
+                        const segment = cell.getValue() || 'unknown';
+                        const segmentStyles = {
+                            champions: { bg: '#2ea043', icon: '🏆', text: 'Champions' },
+                            loyal: { bg: '#3fb950', icon: '💚', text: 'Loyal' },
+                            'at-risk': { bg: '#f0883e', icon: '⚠️', text: 'At-Risk' },
+                            churned: { bg: '#f85149', icon: '❌', text: 'Churned' },
+                            new: { bg: '#1f6feb', icon: '✨', text: 'New' },
+                            unknown: { bg: '#6e7681', icon: '❓', text: 'Unknown' }
+                        };
+                        const style = segmentStyles[segment] || segmentStyles.unknown;
+                        return `<span style="background: ${style.bg}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">${style.icon} ${style.text}</span>`;
+                    }
+                },
+                {
+                    title: '🔮 Churn Risk',
+                    field: 'ml_churn_probability',
+                    minWidth: 110,
+                    maxWidth: 140,
+                    widthGrow: 1,
+                    widthShrink: 1,
+                    headerSort: true,
+                    headerTooltip: 'Probability of customer churning (0-100%)',
+                    hozAlign: 'center',
+                    formatter: (cell) => {
+                        const prob = cell.getValue();
+                        if (prob === undefined || prob === null) {
+                            return '<span style="color: #8b949e; font-size: 11px;">N/A</span>';
+                        }
+                        const percentage = Math.round(prob * 100);
+                        let color, icon, label;
+                        if (percentage < 20) {
+                            color = '#3fb950';
+                            icon = '🟢';
+                            label = 'Low';
+                        } else if (percentage < 50) {
+                            color = '#f0883e';
+                            icon = '🟡';
+                            label = 'Medium';
+                        } else {
+                            color = '#f85149';
+                            icon = '🔴';
+                            label = 'High';
+                        }
+                        return `
+                            <div style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+                                <span style="font-size: 14px;">${icon}</span>
+                                <span style="color: ${color}; font-weight: 600; font-size: 12px;">${percentage}%</span>
+                                <span style="color: #8b949e; font-size: 10px;">(${label})</span>
+                            </div>
+                        `;
+                    }
+                },
+                {
+                    title: '💰 Predicted LTV',
+                    field: 'ml_predicted_ltv',
+                    minWidth: 120,
+                    maxWidth: 160,
+                    widthGrow: 1,
+                    widthShrink: 1,
+                    headerSort: true,
+                    headerTooltip: 'Predicted 12-month lifetime value',
+                    hozAlign: 'right',
+                    formatter: (cell) => {
+                        const ltv = cell.getValue();
+                        if (!ltv) return '<span style="color: #8b949e; font-size: 11px;">N/A</span>';
+                        return `<span style="font-weight: 600; color: #8957e5; font-size: 13px;">${this.formatCurrency(ltv)}</span>`;
+                    }
+                },
+                {
+                    title: '📅 Next Purchase',
+                    field: 'ml_next_purchase_date',
+                    minWidth: 120,
+                    maxWidth: 150,
+                    widthGrow: 1,
+                    widthShrink: 1,
+                    headerSort: true,
+                    headerTooltip: 'Predicted next order date',
+                    formatter: (cell) => {
+                        const date = cell.getValue();
+                        if (!date) return '<span style="color: #8b949e; font-size: 11px;">N/A</span>';
+                        const dateObj = date instanceof Date ? date : new Date(date);
+                        const daysUntil = Math.round((dateObj - new Date()) / (1000 * 60 * 60 * 24));
+                        const color = daysUntil < 7 ? '#3fb950' : daysUntil < 30 ? '#1f6feb' : '#8b949e';
+                        return `
+                            <div style="display: flex; flex-direction: column; gap: 2px;">
+                                <span style="color: #ffffff; font-size: 12px;">${this.formatDate(dateObj)}</span>
+                                <span style="color: ${color}; font-size: 10px;">(${daysUntil > 0 ? daysUntil + ' days' : 'Overdue'})</span>
+                            </div>
+                        `;
+                    }
+                },
+                {
+                    title: 'Email',
+                    field: 'email',
+                    minWidth: 150,
+                    maxWidth: 250,
+                    widthGrow: 2,
+                    widthShrink: 1,
+                    formatter: (cell) => `<span style="color: #8b949e; font-size: 12px;">${cell.getValue() || 'N/A'}</span>`
+                },
+                {
+                    title: '🎬 Recommended Action',
+                    field: 'ml_recommended_action',
+                    minWidth: 160,
+                    maxWidth: 220,
+                    widthGrow: 1.5,
+                    widthShrink: 1,
+                    headerSort: false,
+                    headerTooltip: 'AI-suggested next best action',
+                    formatter: (cell) => {
+                        const action = cell.getValue();
+                        if (!action) return '<span style="color: #8b949e; font-size: 11px;">No action needed</span>';
+
+                        const actionStyles = {
+                            'win_back': { bg: '#f0883e', icon: '🎁', text: 'Win-Back Email' },
+                            'retention_call': { bg: '#f85149', icon: '📞', text: 'Retention Call' },
+                            'upsell': { bg: '#3fb950', icon: '⬆️', text: 'Upsell Opportunity' },
+                            'thank_you': { bg: '#1f6feb', icon: '🙏', text: 'Thank You Note' },
+                            'check_in': { bg: '#8957e5', icon: '👋', text: 'Check-In Email' }
+                        };
+
+                        const style = actionStyles[action] || { bg: '#6e7681', icon: '💼', text: action };
+                        return `<button class="xero-action-quick" data-action="${action}" style="background: ${style.bg}; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">${style.icon} ${style.text}</button>`;
+                    },
+                    cellClick: (e, cell) => {
+                        if (e.target.classList.contains('xero-action-quick')) {
+                            const action = e.target.dataset.action;
+                            const contact = cell.getRow().getData();
+                            this.executeRecommendedAction(action, contact);
+                        }
                     }
                 },
                 {

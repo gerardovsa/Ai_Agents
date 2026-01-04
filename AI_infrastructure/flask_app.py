@@ -2605,6 +2605,80 @@ def get_supabase_config():
         }), 500
 
 
+@app.route('/api/admin/connection-stats', methods=['GET', 'OPTIONS'])
+def connection_stats():
+    """
+    Get real-time database connection pool statistics
+    
+    Provides:
+    - Connections acquired vs returned per schema
+    - Leaked connection count
+    - Pool size and utilization
+    - Pool hits vs misses (cache efficiency)
+    
+    ✅ ADMIN ENDPOINT - For monitoring connection health
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response
+    
+    try:
+        from AI_infrastructure.shared.database_utils import _pool_stats, _pools
+        
+        stats_by_schema = {}
+        total_leaked = 0
+        
+        # Aggregate stats by schema
+        for schema_name in _pools.keys():
+            acquired = _pool_stats.get(f'{schema_name}_acquired', 0)
+            returned = _pool_stats.get(f'{schema_name}_returned', 0)
+            leaked = acquired - returned
+            pool_hits = _pool_stats.get(f'{schema_name}_pool_hits', 0)
+            pool_miss = _pool_stats.get(f'{schema_name}_pool_miss', 0)
+            
+            stats_by_schema[schema_name] = {
+                'acquired': acquired,
+                'returned': returned,
+                'leaked': leaked,
+                'pool_hits': pool_hits,
+                'pool_miss': pool_miss,
+                'pool_size': 4,  # Hard-coded max pool size per schema
+                'utilization_pct': (leaked / 4) * 100 if leaked > 0 else 0
+            }
+            
+            total_leaked += leaked
+        
+        # Overall stats
+        overall = {
+            'total_acquired': _pool_stats.get('connections_acquired', 0),
+            'total_returned': _pool_stats.get('connections_returned', 0),
+            'total_leaked': total_leaked,
+            'total_wait_time': _pool_stats.get('total_wait_time', 0),
+            'avg_wait_time': (_pool_stats.get('total_wait_time', 0) / _pool_stats.get('connections_acquired', 1)) if _pool_stats.get('connections_acquired', 0) > 0 else 0
+        }
+        
+        response = jsonify({
+            'success': True,
+            'schemas': stats_by_schema,
+            'overall': overall,
+            'health': 'critical' if total_leaked >= 4 else 'warning' if total_leaked >= 2 else 'healthy',
+            'timestamp': datetime.utcnow().isoformat() + 'Z'
+        })
+        
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        log_error(logger, f"Failed to get connection stats: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 # ============================================================================
 # TEMPLATE SERVING - Connect to existing HTML UIs
 # ============================================================================

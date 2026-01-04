@@ -1,7 +1,9 @@
 # GitHub Copilot Instructions - AI Agents Project
-**Last Updated: December 29, 2025**
+**Last Updated: January 5, 2026**
 
 > **⚠️ When generating SVG diagrams:** Always reference `.github/SVG_CAD_GENERATION_RULES.md` for proper title block spacing and Y-coordinate calculations to prevent text overlap.
+
+> **🔒 CRITICAL FILE ENCODING:** All JavaScript, HTML, CSS, and JSON files MUST be saved as **UTF-8 without BOM**. BOM causes production module loading failures. Run `.vscode/fix-bom.ps1` before committing.
 
 ---
 
@@ -40,6 +42,8 @@ Multi-tenant AI agent system with Flask backend, custom HTML/JavaScript frontend
 
 ### **Key Configuration Files**
 - `.env` - Environment variables (SUPABASE_URL, API keys, POOL_ENABLED)
+- `.vscode/settings.json` - **UTF-8 encoding enforced** (prevents BOM issues)
+- `.vscode/fix-bom.ps1` - **BOM removal script** (run before commits)
 - `requirements.txt` - Python dependencies (grouped by function)
 - `.github/workflows/` - CI/CD deployment to Render
 - `tasks.json` - VS Code tasks (BISTART command to start server)
@@ -194,6 +198,12 @@ UI/modules_external/my-module/
 → Review `backend/query_library.py` (5,958 lines of SQL queries)
 → Check migrations `005_custom_calculators_tables.sql`
 
+**"InHouse Print database tools failing"**
+→ Check `UI/modules_external/inhouse-print/implementations/inhouse_wrapper.py`
+→ Verify credentials in Supabase table `ai_infrastructure.user_platform_credentials`
+→ Check `db_connector.py` has proper Supabase credential fetching (line 42-56)
+→ **CRITICAL FIX (Jan 5, 2026)**: Bypass ToolUseAgent dependency, use `InHousePrintDB` directly
+
 ---
 
 ## Testing & Debugging
@@ -224,6 +234,16 @@ python AI_infrastructure/migrations/run_my_migration.py
 python AI_infrastructure/tools/audit_connection_leaks.py
 # Scans all route files for missing conn.close() or context managers
 # Note: Flags "No finally block" but context managers (with statements) are safe
+```
+
+### **Test InHouse Print database access:**
+```python
+# Verify credentials are in Supabase
+python -c "from AI_infrastructure.shared.database_utils import execute_query; print(execute_query('SELECT platform, connection_string FROM ai_infrastructure.user_platform_credentials WHERE user_id=1', fetch_mode='all'))"
+
+# Test SQL execution (requires Flask server running)
+# Use inhouse_execute_sql tool via AI agent or test db_connector directly:
+python -c "from UI.modules_external.inhouse-print.db_connector import InHousePrintDB; db = InHousePrintDB(); print(db.execute_query('SELECT TOP 5 * FROM JobTickets'))"
 ```
 
 ---
@@ -269,6 +289,9 @@ python flask_app.py
 - ✅ Use conventional commits format: `feat(scope): description`
 - ✅ Add IF NOT EXISTS to all migrations
 - ✅ Add CASCADE to foreign keys for clean deletions
+- ✅ **Save all .js/.html/.css/.json files as UTF-8 without BOM**
+- ✅ **Run `.vscode/fix-bom.ps1` before committing changes**
+- ✅ **Verify no emoji corruption in column titles or string literals**
 
 ### **DON'T:**
 - ❌ Never create raw `psycopg2.connect()` connections
@@ -277,6 +300,9 @@ python flask_app.py
 - ❌ Never use synchronous operations in async contexts
 - ❌ Never skip idempotent checks (IF NOT EXISTS) in migrations
 - ❌ Never import database_utils at module level in tools (circular imports)
+- ❌ **Never save files with UTF-8 BOM encoding (breaks ES6 modules)**
+- ❌ **Never use emoji characters in code without verifying UTF-8 encoding**
+- ❌ **Never bypass `.vscode/fix-bom.ps1` when editing .js files**
 
 ---
 
@@ -378,6 +404,11 @@ GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
 - Missing docstrings warning
 - Code style consistency
 
+**Encoding Validation:**
+- ✅ **Run `.vscode/fix-bom.ps1`** to remove BOM from all files
+- ✅ Verify no emoji corruption in JavaScript files
+- ✅ Check VS Code settings enforce UTF-8 without BOM
+
 **Commit Message Validation:**
 - Conventional commits format required
 - Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `build`, `ci`, `revert`
@@ -391,6 +422,20 @@ GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
 ```powershell
 cd AI_infrastructure
 python flask_app.py
+```
+
+### **Fix File Encoding Issues (CRITICAL)**
+```powershell
+# Remove BOM from all JS/HTML/CSS/JSON files
+.\.vscode\fix-bom.ps1
+
+# Check specific file for BOM
+$bytes = Get-Content "path/to/file.js" -Encoding Byte -TotalCount 3
+if ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+    Write-Host "BOM DETECTED" -ForegroundColor Red
+} else {
+    Write-Host "No BOM" -ForegroundColor Green
+}
 ```
 
 ### **Run Migration**
@@ -421,4 +466,160 @@ Get-Content AI_infrastructure/flask_app.log -Tail 50 -Wait
 
 ---
 
-**Remember:** This is a modular plugin-based architecture. New features should be added as modules in `UI/modules_external/` with proper tool definitions and implementations following the Registry V3 pattern.
+## File Encoding Rules (CRITICAL FOR PRODUCTION)
+
+### **Why UTF-8 without BOM Matters**
+
+**BOM (Byte Order Mark)** = `EF BB BF` hex bytes at file start
+- ❌ **BREAKS** ES6 module imports in production
+- ❌ **BREAKS** JavaScript parsing in browsers
+- ❌ **BREAKS** build tools and minifiers
+- ✅ **SAFE** UTF-8 without BOM works everywhere
+
+**Production Failure Example:**
+```javascript
+// File with BOM (invisible in editor):
+[EF BB BF]export default { name: 'Module' };
+
+// Browser error:
+Uncaught SyntaxError: Unexpected token '﻿'
+// Module fails to load silently
+```
+
+### **VS Code Settings (Already Configured)**
+
+`.vscode/settings.json` enforces UTF-8 without BOM:
+```json
+{
+    "files.encoding": "utf8",
+    "files.autoGuessEncoding": false,
+    "[javascript]": { "files.encoding": "utf8" },
+    "[html]": { "files.encoding": "utf8" },
+    "[css]": { "files.encoding": "utf8" },
+    "[json]": { "files.encoding": "utf8" }
+}
+```
+
+### **Pre-Commit Workflow**
+
+```powershell
+# 1. Fix any BOM issues
+.\.vscode\fix-bom.ps1
+
+# 2. Verify clean
+# Output should show: "Files fixed: 0" (all clean)
+
+# 3. Commit safely
+git add -A
+git commit -m "feat(module): description"
+git push
+```
+
+### **Emoji Character Safety**
+
+When using emoji in code:
+```javascript
+// ❌ UNSAFE (can corrupt with BOM):
+title: "💬"  // May render as � in production
+
+// ✅ SAFE (use text labels):
+title: "Messages"
+tooltip: "💬 Messages in conversation"  // OK in tooltip/title attributes
+```
+
+---
+
+## Troubleshooting: InHouse Print Database Access (Jan 5, 2026)
+
+### **Problem: "ToolUseAgent could not be imported" Error**
+
+**Symptoms:**
+- `inhouse_execute_sql` tool fails with import error
+- Error message: "ToolUseAgent could not be imported - check backend path and dependencies"
+- Credentials ARE properly stored in Supabase table `ai_infrastructure.user_platform_credentials`
+
+**Root Cause:**
+- `inhouse_wrapper.py` tried to initialize `ToolUseAgent` from `quote-calculator/backend/tool_use_agent.py`
+- `tool_use_agent.py` line 69-71 imports `complete_calculator_implementation`
+- This file doesn't exist in AI_agents project (only in external In_House_SQL project)
+- Import fails → `ToolUseAgent = None` → raises error when SQL tool tries to use it
+
+**Solution Applied (Jan 5, 2026):**
+
+Modified `UI/modules_external/inhouse-print/implementations/inhouse_wrapper.py` line 201:
+
+```python
+def inhouse_execute_sql(query: str, **kwargs) -> List[Dict[str, Any]]:
+    """Execute SQL query against InHouse Print database (Fred)"""
+    # ✅ FIX: Bypass ToolUseAgent and use InHousePrintDB directly
+    try:
+        from db_connector import InHousePrintDB
+        
+        # Initialize DB connection (auto-detects Supabase vs local config)
+        db = InHousePrintDB()
+        
+        # Execute query and return results as list of dicts
+        results = db.execute_query(query)
+        
+        if results is None:
+            return []
+        
+        # Convert DataFrame to list of dicts if needed
+        if hasattr(results, 'to_dict'):
+            return results.to_dict('records')
+        
+        return results
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        raise RuntimeError(
+            f"SQL execution failed: {e}\n"
+            f"Query: {query}\n"
+            f"Details: {error_details}"
+        )
+```
+
+**Why This Works:**
+1. `InHousePrintDB` class in `db_connector.py` already has Supabase credential fetching (line 42-56)
+2. Auto-detects Render environment vs local development
+3. No dependency on ToolUseAgent or calculator implementations
+4. Direct SQL execution with proper error handling
+
+**Testing:**
+```python
+# Test credential fetching
+from AI_infrastructure.shared.database_utils import execute_query
+creds = execute_query(
+    "SELECT platform, connection_string FROM ai_infrastructure.user_platform_credentials WHERE user_id=1",
+    fetch_mode='all'
+)
+print(creds)
+
+# Test SQL execution via db_connector
+from UI.modules_external.inhouse-print.db_connector import InHousePrintDB
+db = InHousePrintDB()
+results = db.execute_query("SELECT TOP 5 * FROM JobTickets ORDER BY DateCreated DESC")
+print(results)
+```
+
+**Key Lessons:**
+- ToolUseAgent was unnecessary dependency for simple SQL execution
+- `db_connector.py` already had all needed functionality
+- Bypass complex import chains when simpler solution exists
+- Always verify credentials are in Supabase before debugging connection logic
+
+---
+
+**Remember:** 
+1. This is a modular plugin-based architecture - add features as modules in `UI/modules_external/`
+2. **Always save files as UTF-8 without BOM** - run `.vscode/fix-bom.ps1` before commits
+3. Use Registry V3 pattern for tool definitions and implementations
+4. Test locally before deploying to Render (v10 branch auto-deploys)
+
+**Production Checklist:**
+- [ ] Run `.vscode/fix-bom.ps1` to verify encoding
+- [ ] Check no emoji corruption in JavaScript files  
+- [ ] Verify no console errors in browser DevTools
+- [ ] Test module loading in production URL
+- [ ] Monitor Render deployment logs

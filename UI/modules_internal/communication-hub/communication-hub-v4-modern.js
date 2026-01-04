@@ -1438,55 +1438,7 @@ export default {
                         </span>`;
                     }
                 },
-                {
-                    title: "Msgs",
-                    field: "thread_id",
-                    width: 90,
-                    hozAlign: "center",
-                    headerSort: false,
-                    tooltip: "Messages in conversation",
-                    formatter: (cell) => {
-                        const data = cell.getRow().getData();
-                        const threadId = data.thread_id;
 
-                        if (!threadId) {
-                            return '<span style="color: #6b7280;">â€”</span>';
-                        }
-
-                        // Count emails with same thread_id
-                        const chainCount = this.state.emails.filter(e => e.thread_id === threadId).length;
-
-                        if (chainCount > 1) {
-                            return `<div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                                <i class="fas fa-comments" style="color: #6366f1;" title="${chainCount} messages in conversation"></i>
-                                <span style="font-size: 12px; color: #6366f1; font-weight: 600;">${chainCount}</span>
-                            </div>`;
-                        }
-
-                        return '<span style="color: #6b7280; font-size: 11px;">1</span>';
-                    }
-                },
-                {
-                    title: "Attachments",
-                    field: "has_attachments",
-                    width: 60,
-                    hozAlign: "center",
-                    headerSort: false,
-                    tooltip: "Attachments",
-                    formatter: (cell) => {
-                        const data = cell.getRow().getData();
-                        const hasAttachments = data.has_attachments;
-                        const count = data.attachment_count || 0;
-
-                        if (hasAttachments && count > 0) {
-                            return `<div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                                <i class="fas fa-paperclip" style="color: #6366f1;" title="${count} attachment(s)"></i>
-                                <span style="font-size: 11px; color: #6366f1; font-weight: 600;">${count}</span>
-                            </div>`;
-                        }
-                        return '<span style="color: #d1d5db;">â€”</span>';
-                    }
-                },
                 {
                     title: "Account",
                     field: "provider",
@@ -3607,7 +3559,9 @@ Draft questions for the customer listing all missing details required for accura
         previewPanel.classList.add('show');
         // âœ… FIX (Jan 4, 2026): Show preview with proper flex sizing
         previewPanel.style.display = 'flex';
-        previewPanel.style.flex = '1 1 50%';  // Take 50% width when visible
+        previewPanel.style.flex = '0 0 600px';  // Fixed 600px width (user requested Jan 4, 2026)
+        previewPanel.style.maxWidth = '600px';
+        previewPanel.style.minWidth = '400px';
 
         // Fetch full email content
         try {
@@ -6723,9 +6677,10 @@ Draft questions for the customer listing all missing details required for accura
         sorted.forEach((email, index) => {
             const isLatest = email.id === currentEmailId;
             const isExpanded = isLatest || index === sorted.length - 1;
+            const isLastItem = index === sorted.length - 1;
 
             html += `
-                <div class="thread-email-item" data-email-id="${email.id}" style="border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden; ${isLatest ? 'border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1;' : ''}">
+                <div class="thread-email-item" data-email-id="${email.id}" style="border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden; ${isLatest ? 'border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1;' : ''}; ${!isLastItem ? 'margin-bottom: 16px; padding-bottom: 16px; border-bottom: 2px solid var(--border-subtle, #21262d);' : ''}">
                     <div class="thread-email-header" 
                          style="padding: 12px 16px; background: var(--bg-secondary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; ${isLatest ? 'background: rgba(99, 102, 241, 0.1);' : ''}" 
                          onclick="window.CommunicationHub.toggleThreadEmail('${email.id}')">
