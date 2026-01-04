@@ -476,7 +476,8 @@ export default {
                     </div>
                     
                     <!-- Email Preview Panel (sibling to dashboard-card) -->
-                    <div id="emailPreview" class="email-preview-panel" data-mode="sibling" style="display: none; flex: 1; height: 92%; display: flex; flex-direction: column; overflow: hidden;">
+                    <!-- ✅ FIX (Jan 4, 2026): Hidden by default, only shows when email selected -->
+                    <div id="emailPreview" class="email-preview-panel" data-mode="sibling" style="display: none; flex: 0 0 0%; height: 92%; flex-direction: column; overflow: hidden;">
                     <div class="email-preview-header" style="flex-shrink: 0;">
                         <div class="email-preview-title">
                             <i class="fas fa-envelope"></i>
@@ -3375,6 +3376,40 @@ Draft questions for the customer listing all missing details required for accura
     },
 
     /**
+     * Hide email preview panel and restore full-width table
+     */
+    hideEmailPreview() {
+        const previewPanel = document.getElementById('emailPreview');
+        if (!previewPanel) return;
+        
+        // Hide preview panel
+        previewPanel.classList.remove('show');
+        previewPanel.style.display = 'none';
+        previewPanel.style.flex = '0 0 0%';
+        
+        // Clear content
+        const previewContent = document.getElementById('previewContent');
+        if (previewContent) {
+            previewContent.innerHTML = '';
+        }
+        
+        // Remove row highlights
+        if (this.state.tabulatorTable) {
+            const allRows = this.state.tabulatorTable.getRows();
+            allRows.forEach(row => {
+                const element = row.getElement();
+                element.style.outline = '';
+                element.style.outlineOffset = '';
+                element.style.boxShadow = '';
+                element.style.position = '';
+                element.style.zIndex = '';
+            });
+        }
+        
+        this.log.debug('Email preview hidden');
+    }
+
+    /**
      * Show email preview panel (supports multiple popups)
      */
     async showEmailPreview(emailData) {
@@ -3470,7 +3505,9 @@ Draft questions for the customer listing all missing details required for accura
 
         this.dom.injectHTML(previewContent, loadingHtml);
         previewPanel.classList.add('show');
-        this.dom.show(previewPanel);
+        // ✅ FIX (Jan 4, 2026): Show preview with proper flex sizing
+        previewPanel.style.display = 'flex';
+        previewPanel.style.flex = '1 1 50%';  // Take 50% width when visible
 
         // Fetch full email content
         try {
@@ -4100,13 +4137,9 @@ Draft questions for the customer listing all missing details required for accura
      * Close email preview panel
      */
     closePreview() {
-        const previewPanel = document.getElementById('emailPreview');
-        if (previewPanel) {
-            previewPanel.classList.remove('show');
-            setTimeout(() => {
-                this.dom.hide(previewPanel);
-            }, 300); // Wait for slide-out animation
-        }
+        // ✅ FIX (Jan 4, 2026): Use hideEmailPreview for proper layout restoration
+        this.hideEmailPreview();
+        
         // Clear current email reference
         this.state.currentPreviewEmail = null;
     },

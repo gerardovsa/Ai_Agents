@@ -2342,8 +2342,8 @@ class XeroModule extends BaseModule {
                     width: 100,
                     hozAlign: 'center',
                     formatter: () => `
-                        <button class="xero-action-btn" title="View Details">
-                            <i class="fas fa-eye"></i>
+                        <button class="xero-action-btn" style="padding: 6px 12px; background: #1f6feb; border: 1px solid #1f6feb; border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
+                            <i class="fas fa-eye"></i> View
                         </button>
                     `,
                     cellClick: (e, cell) => {
@@ -2663,8 +2663,8 @@ class XeroModule extends BaseModule {
                     widthShrink: 0,
                     hozAlign: 'center',
                     formatter: () => `
-                        <button class="xero-action-btn" title="View Details">
-                            <i class="fas fa-eye"></i>
+                        <button class="xero-action-btn" style="padding: 6px 12px; background: #1f6feb; border: 1px solid #1f6feb; border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
+                            <i class="fas fa-eye"></i> View
                         </button>
                     `,
                     cellClick: (e, cell) => {
