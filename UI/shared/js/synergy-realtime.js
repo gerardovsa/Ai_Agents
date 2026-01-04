@@ -63,25 +63,47 @@ window.SynergyRealtime = {
 
             this._log('Connecting to WebSocket:', apiUrl + this.config.namespace);
 
-            // Create Socket.IO connection
-            // Increased timeout for Render cold starts (can take 30-60 seconds)
+            // ========================================
+            // INTELLIGENT TRANSPORT SELECTION
+            // ========================================
+            // Render production: WebSocket-first (avoids load balancer polling issues)
+            // Local development: Polling-first (more reliable for localhost)
+            const isRenderProduction = apiUrl.includes('onrender.com');
+            const isLocalhost = apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
+            
+            // Transport priority based on environment
+            const transports = isRenderProduction 
+                ? ['websocket', 'polling']  // Render: Try WebSocket first to avoid load balancer interference
+                : ['polling', 'websocket']; // Local: Polling first (more stable for dev)
+            
+            // Timeout configuration based on environment
+            const timeout = isRenderProduction ? 30000 : 20000;  // 30s for Render cold starts, 20s local
+            
+            this._log(`Environment: ${isRenderProduction ? 'Render Production' : isLocalhost ? 'Local Development' : 'Unknown'}`);
+            this._log(`Transport priority: ${transports.join(' -> ')}`);
+            this._log(`Connection timeout: ${timeout}ms`);
+
+            // Create Socket.IO connection with environment-aware configuration
             // Server config: ping_interval=25s, ping_timeout=60s
             // Client heartbeat: 20s (see _startHeartbeat) - must be < server ping_interval
-            // 
-            // RENDER DEPLOYMENT FIX: Use polling first, then upgrade to WebSocket
-            // This avoids timeout issues with Render's load balancer dropping WebSocket handshakes
             this.socket = io(apiUrl + this.config.namespace, {
-                // Start with polling (more reliable through load balancers), then upgrade to WebSocket
-                transports: ['polling', 'websocket'],
+                // Intelligent transport selection (see above)
+                transports: transports,
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
                 reconnectionDelay: this.reconnectDelay,
                 reconnectionDelayMax: 10000,
-                timeout: 20000,  // 20 seconds (reduced from 60s - polling connects faster)
+                timeout: timeout,  // Environment-aware timeout
                 forceNew: false,
-                upgrade: true,  // Allow upgrade to WebSocket after polling connects
+                upgrade: true,  // Allow transport upgrade (polling -> WebSocket or vice versa)
                 rememberUpgrade: true,
-                autoConnect: true
+                autoConnect: true,
+                // Render-specific: Explicit path to avoid proxy routing issues
+                path: '/socket.io/',
+                // Disable credentials to prevent CORS issues on Render
+                withCredentials: false,
+                // Enhanced error recovery
+                closeOnBeforeunload: false  // Keep connection alive during page navigation
             });
 
             // Connection events

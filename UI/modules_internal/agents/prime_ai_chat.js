@@ -2716,32 +2716,27 @@ function initChatPanelResize() {
 function unloadThreadFromPrime() {
     console.log('[PrimeAI] Unloading thread from Prime...');
 
-    // STEP 1: Clear messages
-    const messagesContainer = document.querySelector('.ai-chat-messages');
-    if (messagesContainer) {
-        messagesContainer.innerHTML = `
-            <div class="empty-state" style="padding-top: 40%; text-align: center;">
-                <div style="line-height: 1.8; padding: 0 20px; max-width: 500px; margin: 0 auto;">
-                    <div style="font-size: 3em; margin-bottom: 20px;">
-                        💬
-                    </div>
-                    <div style="font-size: 1.3em; margin-bottom: 15px; font-weight: 600; color: var(--text-primary, #e5e7eb);">
-                        Prime AI Ready
-                    </div>
-                    <div style="margin-bottom: 20px; opacity: 0.8; font-size: 0.95em; color: var(--text-secondary, #9ca3af);">
-                        No active thread. Start a new conversation or load from history.
-                    </div>
-                </div>
-            </div>
-        `;
-        console.log('[PrimeAI] Cleared messages and showed empty state');
+    // STEP 1: Show welcome container (with greeting, tip, and buttons)
+    const welcomeContainer = document.getElementById('prime-welcome-container');
+    if (welcomeContainer) {
+        welcomeContainer.style.display = 'flex';
+
+        // Initialize with fresh time-based greeting and random tip
+        if (typeof ThreadManagerWelcome !== 'undefined' && typeof ThreadManagerWelcome.initWelcomeMessage === 'function') {
+            ThreadManagerWelcome.initWelcomeMessage('prime');
+        }
+
+        console.log('[PrimeAI] Shown welcome container with greeting and tip');
+    } else {
+        console.warn('[PrimeAI] Welcome container not found - showing fallback empty state');
     }
 
-    // STEP 2: Clear thread info
+    // STEP 2: Clear thread info and show selector
     const threadInfoContainer = document.getElementById('prime-thread-info');
     if (threadInfoContainer && typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
         threadInfoContainer.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
-        console.log('[PrimeAI] Reset thread info');
+        threadInfoContainer.style.display = 'block'; // Show container with selector
+        console.log('[PrimeAI] Reset thread info and shown selector');
     } else {
         console.warn('[PrimeAI] Failed to reset thread info:', {
             containerFound: !!threadInfoContainer,

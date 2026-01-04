@@ -1,0 +1,919 @@
+{
+    "platform": "quote_calculator",
+    "description": "Custom Calculator Builder Schema Guide - Complete documentation for TIER 2E custom calculator system (6 tables, formula-based execution)",
+    "tools": [
+        {
+            "name": "custom_calculator_get_schema_guide",
+            "short_description": "GET THIS FIRST! Complete schema guide for Custom Calculator Builder System (6 tables, universal executor)",
+            "description": "CALL THIS FIRST when building custom calculators! Returns comprehensive schema documentation for the 6-table Custom Calculator System on Supabase PostgreSQL. This is your MASTER REFERENCE for understanding the entire TIER 2E builder system. Returns: (1) System architecture overview explaining formula-based execution vs hardcoded calculators, (2) All 6 table schemas with columns/types/constraints/indexes, (3) JSON definition structure for calculator configurations, (4) Complete formula syntax guide with asteval rules, (5) Component library reference (11 reusable components), (6) Parameter resolution flow (override precedence logic), (7) 10+ complete example calculators with formulas and components, (8) Step-by-step workflow for building calculators, (9) Testing and validation best practices, (10) Performance optimization strategies. Also includes parameter types, allowed operations, error handling patterns, and integration with existing calculator_pricing_parameters system. Use this to learn the complete system before creating any custom calculators.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete schema guide with 6 tables, JSON definition structure, formula syntax rules, component library (11 components), parameter resolution flow, 10+ examples, workflow guide, and testing best practices"
+            },
+            "examples": [
+                {
+                    "description": "Get complete schema guide (no parameters needed)",
+                    "parameters": {},
+                    "expected_result": "Returns guide object with system overview, all 6 table schemas, JSON definition structure, formula syntax (asteval), component library reference, parameter resolution algorithm, example calculators, workflow guide, and testing strategies"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "FIRST TIME building or modifying custom calculators",
+                    "Need to understand formula-based calculator system architecture",
+                    "Want to see the 11 available reusable components (tiered pricing, discounts, margins, tax, labor, etc.)",
+                    "Need formula syntax reference for asteval safe evaluation engine",
+                    "Want to understand parameter resolution flow (custom overrides vs global defaults)",
+                    "Need example calculator JSON structures for reference",
+                    "Want to learn calculation step sequencing and variable context",
+                    "Need to understand JSONB definition structure and required fields"
+                ],
+                "workflow": [
+                    "Step 1: Call custom_calculator_get_schema_guide() to get complete reference",
+                    "Step 2: Review system_architecture section to understand formula-based approach",
+                    "Step 3: Study json_definition_structure to learn required fields and format",
+                    "Step 4: Read formula_syntax_guide to learn allowed operations and functions",
+                    "Step 5: Review component_library to see 11 reusable calculation functions",
+                    "Step 6: Study parameter_resolution_flow to understand override precedence",
+                    "Step 7: Review example_calculators section for complete working examples",
+                    "Step 8: Follow workflow_guide for step-by-step calculator creation process",
+                    "Step 9: Use calculator_builder_start() to create new calculator",
+                    "Step 10: Add parameters, formulas, and components per workflow guide"
+                ],
+                "best_practices": [
+                    "ALWAYS call this tool FIRST when working with custom calculators",
+                    "Study example calculators before creating your own - they show best practices",
+                    "Use components from component_library instead of reinventing calculations",
+                    "Follow formula_syntax_guide exactly - asteval has restricted operations for security",
+                    "Understand parameter_resolution_flow before adding parameter references",
+                    "Reference existing calculator_pricing_parameters when possible for consistency",
+                    "Use calculation steps sequentially - each step can reference previous steps",
+                    "Test calculators with calculator_builder_test() before saving",
+                    "Add clear descriptions and usage_instructions for future users",
+                    "Use tags for discoverability and category for organization"
+                ],
+                "error_handling": [
+                    "Tool always succeeds and returns guide object",
+                    "If database connection fails: Guide still returns with schema documentation",
+                    "Guide is static documentation - always available for reference"
+                ],
+                "related_tools": [
+                    "calculator_builder_start",
+                    "calculator_builder_add_parameter",
+                    "calculator_builder_set_formula",
+                    "calculator_builder_add_component",
+                    "calculator_builder_test",
+                    "calculator_builder_save",
+                    "custom_calculator_list",
+                    "custom_calculator_get_detail"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_get_schema_guide -> calculator_builder_start -> calculator_builder_add_parameter -> calculator_builder_set_formula",
+                    "custom_calculator_get_schema_guide -> custom_calculator_list -> custom_calculator_get_detail"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "guide",
+                        "6 tables",
+                        "formula syntax",
+                        "component library"
+                    ],
+                    "behavioral": [
+                        "User proceeds to build calculator with calculator_builder_start",
+                        "User references formula syntax or component names from guide"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [],
+                    "behavioral": [
+                        "User asks for schema again",
+                        "User writes invalid formula syntax",
+                        "User references non-existent components"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 50,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 1
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "custom_calculator_schema",
+                    "formula_syntax",
+                    "component_library",
+                    "tier_2e_builder"
+                ],
+                "search_keywords": [
+                    "custom calculator schema",
+                    "formula syntax",
+                    "component library",
+                    "tier 2e",
+                    "calculator builder",
+                    "asteval",
+                    "parameter resolution"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Developer learning custom calculator builder system for first time",
+                    "AI agent creating non-standard pricing calculators for specialty jobs",
+                    "Business user building quote calculator for new product offering",
+                    "System administrator understanding formula-based calculator architecture",
+                    "Data analyst checking available components before writing custom formulas"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Table names, JSON definition structure, formula syntax rules, component names, parameter resolution flow, workflow steps",
+                    "search_context": "When user asks about custom calculators, building calculators, formula syntax, components, or TIER 2E system"
+                }
+            },
+            "schema_guide_content": {
+                "system_architecture": {
+                    "overview": "Custom Calculator Builder System (TIER 2E) enables dynamic creation of pricing calculators without code changes. Unlike hardcoded calculators (TIER 1), custom calculators are stored as JSON definitions in database and executed by universal wrapper. Supports formula-based calculations with parameter references, component reuse, and calculator-specific parameter overrides.",
+                    "key_differences": {
+                        "hardcoded_calculators": "Python classes with fixed logic. Fast but require code deploy to change. Used for standard products with stable pricing.",
+                        "custom_calculators": "JSON definitions with formula steps. Flexible and user-editable. Used for specialty jobs, rush orders, non-standard substrates, custom quotes."
+                    },
+                    "execution_engine": "UniversalCalculatorExecutor uses asteval library for safe formula evaluation. Prevents code injection - no imports, no file I/O, no system calls. Supports: arithmetic (+, -, *, /, **, %), comparisons (<, >, <=, >=, ==, !=), logic (and, or, not), functions (min, max, abs, round).",
+                    "parameter_resolution": "Two-tier system: (1) Check custom_calculator_parameters for calculator-specific override, (2) Fall back to calculator_pricing_parameters for global default. All values converted to Decimal for precision."
+                },
+                "table_schemas": {
+                    "custom_calculators": {
+                        "description": "Main table storing calculator definitions as JSON. Each row is a complete calculator with inputs, formulas, and execution steps.",
+                        "columns": {
+                            "calculator_id": "UUID PRIMARY KEY - Unique identifier for calculator",
+                            "name": "VARCHAR(255) UNIQUE NOT NULL - Calculator name for references (e.g., 'CustomVinylRushJob')",
+                            "description": "TEXT - Detailed explanation of what calculator is for and when to use it",
+                            "short_description": "VARCHAR(500) - Brief one-line summary for listings",
+                            "category": "VARCHAR(100) - Grouping category (custom_quote, specialty_substrate, rush_job, large_format, etc.)",
+                            "tags": "TEXT[] - Array of searchable tags for discovery",
+                            "json_definition": "JSONB NOT NULL - Complete calculator configuration (inputs, steps, components). See json_definition_structure below.",
+                            "usage_instructions": "TEXT - How to use this calculator, what inputs mean, typical use cases",
+                            "is_active": "BOOLEAN DEFAULT FALSE - Whether calculator is ready for production use",
+                            "is_template": "BOOLEAN DEFAULT FALSE - Whether this can be cloned as starting point",
+                            "based_on_calculator": "VARCHAR(255) - Name of calculator this was cloned from (if any)",
+                            "usage_count": "INTEGER DEFAULT 0 - How many times calculator has been executed",
+                            "last_used_at": "TIMESTAMPTZ - Last execution timestamp",
+                            "avg_calculation_time_ms": "NUMERIC - Average execution time for performance monitoring",
+                            "created_by": "VARCHAR(255) - User who created calculator",
+                            "created_at": "TIMESTAMPTZ DEFAULT NOW()",
+                            "updated_at": "TIMESTAMPTZ DEFAULT NOW()"
+                        },
+                        "indexes": [
+                            "idx_custom_calculators_name ON name",
+                            "idx_custom_calculators_category ON category",
+                            "idx_custom_calculators_active ON is_active WHERE is_active = TRUE",
+                            "idx_custom_calculators_tags ON tags USING GIN",
+                            "idx_custom_calculators_json ON json_definition USING GIN"
+                        ],
+                        "constraints": [
+                            "UNIQUE(name) - Calculator names must be unique",
+                            "CHECK(json_definition IS NOT NULL) - Must have definition"
+                        ]
+                    },
+                    "custom_calculator_parameters": {
+                        "description": "Tracks which pricing parameters each calculator uses. Enables impact analysis when parameters change.",
+                        "columns": {
+                            "id": "SERIAL PRIMARY KEY",
+                            "calculator_id": "UUID REFERENCES custom_calculators(calculator_id) ON DELETE CASCADE",
+                            "parameter_name": "VARCHAR(255) NOT NULL - Name of parameter (e.g., 'labor_rate_trade', 'gst_rate')",
+                            "source_table": "VARCHAR(100) - Where parameter comes from ('calculator_pricing_parameters' or 'custom_calculator_parameters')",
+                            "formula_variable_name": "VARCHAR(255) - Variable name used in formulas (e.g., 'labor_rate' in formula references 'param:labor_rate_trade')",
+                            "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+                        },
+                        "indexes": [
+                            "idx_ccp_calculator ON calculator_id",
+                            "idx_ccp_parameter ON parameter_name"
+                        ],
+                        "constraints": [
+                            "UNIQUE(calculator_id, parameter_name) - No duplicate parameters per calculator"
+                        ]
+                    },
+                    "custom_calculator_components": {
+                        "description": "Tracks which pre-built components each calculator uses. Enables component usage analytics and dependency tracking.",
+                        "columns": {
+                            "id": "SERIAL PRIMARY KEY",
+                            "calculator_id": "UUID REFERENCES custom_calculators(calculator_id) ON DELETE CASCADE",
+                            "component_name": "VARCHAR(255) NOT NULL - Name of component function (e.g., 'tiered_pricing_lookup', 'calculate_gst')",
+                            "component_type": "VARCHAR(100) - Component category (pricing, tax, labor, material, etc.)",
+                            "usage_count": "INTEGER DEFAULT 0 - How many times component is called in calculation steps",
+                            "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+                        },
+                        "indexes": [
+                            "idx_ccc_calculator ON calculator_id",
+                            "idx_ccc_component ON component_name"
+                        ],
+                        "constraints": [
+                            "UNIQUE(calculator_id, component_name) - Track each component once per calculator"
+                        ]
+                    },
+                    "pricing_scenario_models": {
+                        "description": "What-if analysis scenarios for testing pricing changes before applying them. Used for business intelligence.",
+                        "columns": {
+                            "scenario_id": "UUID PRIMARY KEY",
+                            "scenario_name": "VARCHAR(255) NOT NULL - Descriptive name (e.g., '2025 Q1 Price Increase')",
+                            "description": "TEXT - What this scenario tests",
+                            "parameter_changes": "JSONB - Map of parameter_name -> new_value for testing",
+                            "created_by": "VARCHAR(255)",
+                            "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+                        }
+                    },
+                    "quote_history_archive": {
+                        "description": "Historical record of all custom calculator executions for BI and auditing. Auto-populated when calculators run.",
+                        "columns": {
+                            "quote_id": "UUID PRIMARY KEY",
+                            "calculator_id": "UUID REFERENCES custom_calculators(calculator_id)",
+                            "input_values": "JSONB - What inputs were provided",
+                            "output_breakdown": "JSONB - Step-by-step calculation results",
+                            "total_price": "NUMERIC(10,2) - Final calculated price",
+                            "execution_time_ms": "INTEGER - Performance metric",
+                            "created_by": "VARCHAR(255)",
+                            "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+                        },
+                        "indexes": [
+                            "idx_qha_calculator ON calculator_id",
+                            "idx_qha_created ON created_at"
+                        ]
+                    },
+                    "pricing_impact_projections": {
+                        "description": "Per-calculator impact forecasts for parameter changes. Links scenarios to specific calculators.",
+                        "columns": {
+                            "projection_id": "UUID PRIMARY KEY",
+                            "scenario_id": "UUID REFERENCES pricing_scenario_models(scenario_id)",
+                            "calculator_id": "UUID REFERENCES custom_calculators(calculator_id)",
+                            "projected_impact": "JSONB - Estimated price changes, volume impact, revenue impact",
+                            "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+                        }
+                    }
+                },
+                "json_definition_structure": {
+                    "description": "The json_definition column in custom_calculators table stores complete calculator configuration as JSONB.",
+                    "required_fields": {
+                        "inputs": "ARRAY - Defines user input parameters for calculator",
+                        "calculation_steps": "ARRAY - Ordered sequence of formula and component executions"
+                    },
+                    "inputs_structure": [
+                        {
+                            "name": "width_mm",
+                            "type": "number",
+                            "label": "Width (mm)",
+                            "description": "Width of product in millimeters",
+                            "required": true,
+                            "default": null,
+                            "validation": {
+                                "min": 1,
+                                "max": 10000
+                            }
+                        }
+                    ],
+                    "inputs_field_types": {
+                        "name": "STRING - Variable name to use in formulas (e.g., 'width_mm', 'quantity')",
+                        "type": "ENUM - Data type: 'integer', 'number', 'select', 'boolean'",
+                        "label": "STRING - User-facing label for input field",
+                        "description": "STRING - Help text explaining what this input is",
+                        "required": "BOOLEAN - Whether input is mandatory",
+                        "default": "ANY - Default value if not provided",
+                        "options": "ARRAY - For type='select', array of {value, label} objects",
+                        "source": "STRING - For parameter library references: 'calculator_pricing_parameters:labor_rate_trade'",
+                        "validation": "OBJECT - Optional validation rules {min, max, pattern, etc.}"
+                    },
+                    "calculation_steps_structure": [
+                        {
+                            "step": 1,
+                            "type": "formula",
+                            "variable": "area_m2",
+                            "formula": "(width_mm * height_mm) / 1000000",
+                            "description": "Calculate area in square meters"
+                        },
+                        {
+                            "step": 2,
+                            "type": "component",
+                            "variable": "base_price",
+                            "component": "tiered_pricing_lookup",
+                            "inputs": {
+                                "lookup_value": "area_m2",
+                                "tier_table": "pricing.vinyl_tiers"
+                            },
+                            "description": "Lookup price from vinyl pricing tiers"
+                        }
+                    ],
+                    "calculation_step_types": {
+                        "formula": {
+                            "description": "Execute mathematical formula using asteval",
+                            "required_fields": [
+                                "step",
+                                "type",
+                                "variable",
+                                "formula"
+                            ],
+                            "optional_fields": [
+                                "description"
+                            ],
+                            "formula_rules": "Can reference: input parameters, previous step variables, pricing constants (param:parameter_name). Supports: +, -, *, /, **, %, <, >, <=, >=, ==, !=, and, or, not, min, max, abs, round"
+                        },
+                        "component": {
+                            "description": "Call pre-built component function from common_components.py",
+                            "required_fields": [
+                                "step",
+                                "type",
+                                "variable",
+                                "component",
+                                "inputs"
+                            ],
+                            "optional_fields": [
+                                "description"
+                            ],
+                            "component_rules": "Must be one of 11 available components. Inputs map formula variables to component parameters."
+                        }
+                    }
+                },
+                "formula_syntax_guide": {
+                    "engine": "asteval - Safe Python expression evaluator (subset of Python)",
+                    "security": "Prevents code injection: No imports, no file I/O, no system calls, no exec/eval, no lambda, no class definitions",
+                    "allowed_operations": {
+                        "arithmetic": "+ (add), - (subtract), * (multiply), / (divide), ** (power), % (modulo)",
+                        "comparison": "< (less than), > (greater than), <= (less or equal), >= (greater or equal), == (equal), != (not equal)",
+                        "logical": "and (logical and), or (logical or), not (logical not)",
+                        "functions": "min(a, b, ...), max(a, b, ...), abs(x), round(x, digits)",
+                        "parentheses": "( ) for grouping and order of operations"
+                    },
+                    "variable_references": {
+                        "input_parameters": "Direct reference by name: width_mm, height_mm, quantity",
+                        "previous_steps": "Reference by variable name: area_m2 (from step that calculated it)",
+                        "pricing_constants": "Use param: prefix: param:labor_rate_trade, param:gst_rate"
+                    },
+                    "examples": {
+                        "simple_arithmetic": "(width_mm * height_mm) / 1000000",
+                        "with_parameters": "base_cost * (1 + param:profit_margin_standard)",
+                        "conditional_logic": "quantity * unit_price if quantity >= 100 else quantity * unit_price * 1.1",
+                        "using_functions": "max(calculated_price, param:minimum_order_value)",
+                        "complex_formula": "round((area_m2 * param:price_per_sqm * (1 + param:profit_margin_standard)) * (1 + param:gst_rate), 2)"
+                    },
+                    "common_mistakes": {
+                        "importing": "import math - NOT ALLOWED - Use built-in functions only",
+                        "file_operations": "open('file.txt') - NOT ALLOWED - No file I/O",
+                        "system_calls": "os.system('command') - NOT ALLOWED - No system access",
+                        "undefined_variables": "price * markup - ERROR if 'markup' not defined in previous step or inputs",
+                        "type_mismatches": "'100' + 50 - ERROR - String and number (inputs auto-converted to correct types)"
+                    }
+                },
+                "component_library": {
+                    "description": "11 pre-built reusable calculation functions in common_components.py. All return Decimal for precision.",
+                    "components": {
+                        "tiered_pricing_lookup": {
+                            "description": "Lookup price from 51-tier pricing table based on quantity or area",
+                            "parameters": {
+                                "lookup_value": "NUMBER - Value to lookup (quantity, area_m2, weight_kg, etc.)",
+                                "tier_table": "STRING - Which tier table to use (e.g., 'pricing.vinyl_tiers', 'pricing.banner_tiers')"
+                            },
+                            "returns": "DECIMAL - Price per unit from matching tier",
+                            "example": {
+                                "inputs": {
+                                    "lookup_value": "area_m2",
+                                    "tier_table": "pricing.vinyl_tiers"
+                                },
+                                "description": "Find vinyl price per m2 based on job area"
+                            }
+                        },
+                        "quantity_break_discount": {
+                            "description": "Apply volume discount based on quantity break points",
+                            "parameters": {
+                                "quantity": "INTEGER - Order quantity",
+                                "break_points": "OBJECT - Discount tiers {100: 0.05, 500: 0.10, 1000: 0.15}"
+                            },
+                            "returns": "DECIMAL - Discount rate to apply (0.05 = 5% off)",
+                            "example": {
+                                "inputs": {
+                                    "quantity": "quantity",
+                                    "break_points": "{100: 0.05, 500: 0.10}"
+                                },
+                                "description": "5% off for 100+, 10% off for 500+"
+                            }
+                        },
+                        "calculate_profit_margin": {
+                            "description": "Add profit margin to base cost",
+                            "parameters": {
+                                "base_cost": "DECIMAL - Cost before profit",
+                                "margin_rate": "DECIMAL - Margin rate (0.20 = 20% markup)"
+                            },
+                            "returns": "DECIMAL - Cost with profit margin added",
+                            "example": {
+                                "inputs": {
+                                    "base_cost": "material_cost",
+                                    "margin_rate": "param:profit_margin_standard"
+                                },
+                                "description": "Add standard profit margin to material cost"
+                            }
+                        },
+                        "apply_complexity_multiplier": {
+                            "description": "Adjust price based on job complexity (standard/challenging/rush)",
+                            "parameters": {
+                                "base_cost": "DECIMAL - Cost before complexity adjustment",
+                                "complexity": "STRING - Complexity level: 'standard', 'challenging', 'rush'",
+                                "multipliers": "OBJECT - Multiplier map {standard: 1.0, challenging: 1.25, rush: 1.5}"
+                            },
+                            "returns": "DECIMAL - Cost with complexity multiplier applied",
+                            "example": {
+                                "inputs": {
+                                    "base_cost": "subtotal",
+                                    "complexity": "job_complexity",
+                                    "multipliers": "{standard: 1.0, rush: 1.5}"
+                                },
+                                "description": "50% surcharge for rush jobs"
+                            }
+                        },
+                        "calculate_gst": {
+                            "description": "Calculate GST/sales tax (standard 10%)",
+                            "parameters": {
+                                "subtotal": "DECIMAL - Pre-tax subtotal",
+                                "gst_rate": "DECIMAL - GST rate (0.10 = 10%)"
+                            },
+                            "returns": "DECIMAL - GST amount to add",
+                            "example": {
+                                "inputs": {
+                                    "subtotal": "subtotal",
+                                    "gst_rate": "param:gst_rate"
+                                },
+                                "description": "Calculate 10% GST on subtotal"
+                            }
+                        },
+                        "calculate_double_gst_shopify": {
+                            "description": "Shopify double GST calculation: (price * 1.1) * 1.1",
+                            "parameters": {
+                                "subtotal": "DECIMAL - Pre-tax subtotal"
+                            },
+                            "returns": "DECIMAL - Final price with double GST applied",
+                            "example": {
+                                "inputs": {
+                                    "subtotal": "subtotal"
+                                },
+                                "description": "Apply Shopify's double GST pattern"
+                            }
+                        },
+                        "calculate_area_m2": {
+                            "description": "Calculate area in square meters from mm dimensions",
+                            "parameters": {
+                                "width_mm": "NUMBER - Width in millimeters",
+                                "height_mm": "NUMBER - Height in millimeters"
+                            },
+                            "returns": "DECIMAL - Area in square meters",
+                            "example": {
+                                "inputs": {
+                                    "width_mm": "width_mm",
+                                    "height_mm": "height_mm"
+                                },
+                                "description": "Convert mm dimensions to m2 area"
+                            }
+                        },
+                        "calculate_labor_cost": {
+                            "description": "Calculate labor cost with time multipliers (after hours, public holidays)",
+                            "parameters": {
+                                "hours": "DECIMAL - Labor hours required",
+                                "labor_rate": "DECIMAL - Base hourly rate",
+                                "multiplier": "DECIMAL - Time multiplier (1.0=normal, 1.5=after hours, 2.0=public holiday)"
+                            },
+                            "returns": "DECIMAL - Total labor cost",
+                            "example": {
+                                "inputs": {
+                                    "hours": "estimated_hours",
+                                    "labor_rate": "param:labor_rate_trade",
+                                    "multiplier": "param:labor_multiplier_after_hours"
+                                },
+                                "description": "Calculate after-hours labor cost"
+                            }
+                        },
+                        "calculate_material_waste": {
+                            "description": "Add material waste factor (typically 10%)",
+                            "parameters": {
+                                "base_amount": "DECIMAL - Material cost or quantity",
+                                "waste_percentage": "DECIMAL - Waste factor (0.10 = 10% waste)"
+                            },
+                            "returns": "DECIMAL - Amount with waste added",
+                            "example": {
+                                "inputs": {
+                                    "base_amount": "vinyl_sheets",
+                                    "waste_percentage": "0.10"
+                                },
+                                "description": "Add 10% waste to vinyl sheet count"
+                            }
+                        },
+                        "calculate_setup_cost": {
+                            "description": "Calculate setup cost with artwork charges",
+                            "parameters": {
+                                "base_setup": "DECIMAL - Base setup fee",
+                                "artworks": "INTEGER - Number of unique artworks",
+                                "additional_cost": "DECIMAL - Cost per additional artwork"
+                            },
+                            "returns": "DECIMAL - Total setup cost",
+                            "example": {
+                                "inputs": {
+                                    "base_setup": "param:setup_base",
+                                    "artworks": "artwork_count",
+                                    "additional_cost": "param:setup_per_artwork"
+                                },
+                                "description": "Base setup + per-artwork charges"
+                            }
+                        },
+                        "minimum_order_check": {
+                            "description": "Enforce minimum order value with handling fee if below threshold",
+                            "parameters": {
+                                "calculated_price": "DECIMAL - Calculated price",
+                                "minimum_order": "DECIMAL - Minimum order value (e.g., $45)",
+                                "handling_fee": "DECIMAL - Fee if below minimum (e.g., $10)"
+                            },
+                            "returns": "DECIMAL - Final price (max of calculated price and minimum + fee)",
+                            "example": {
+                                "inputs": {
+                                    "calculated_price": "subtotal",
+                                    "minimum_order": "45",
+                                    "handling_fee": "10"
+                                },
+                                "description": "Enforce $45 minimum + $10 handling fee"
+                            }
+                        }
+                    }
+                },
+                "parameter_resolution_flow": {
+                    "description": "Two-tier system for resolving pricing parameter values. Custom calculator overrides take precedence over global defaults.",
+                    "resolution_algorithm": [
+                        "Step 1: Check custom_calculator_parameters table for calculator-specific override",
+                        "Step 2: If override exists use that value",
+                        "Step 3: If no override check calculator_pricing_parameters for global default",
+                        "Step 4: If global default exists use that value",
+                        "Step 5: If neither exists throw error (missing parameter)",
+                        "Step 6: Convert all values to Decimal for precision in calculations"
+                    ],
+                    "override_precedence": "custom_calculator_parameters > calculator_pricing_parameters > error",
+                    "example_scenario": {
+                        "parameter": "labor_rate_trade",
+                        "global_value": "55.00 (from calculator_pricing_parameters)",
+                        "custom_override": "75.00 (from custom_calculator_parameters for CustomRushJob calculator)",
+                        "resolved_value": "75.00 (override takes precedence)",
+                        "usage_in_formula": "param:labor_rate_trade resolves to Decimal('75.00')"
+                    },
+                    "when_to_override": [
+                        "Calculator needs different pricing than standard (e.g., rush job premium)",
+                        "Testing what-if scenarios without changing global parameters",
+                        "Seasonal pricing adjustments for specific calculators",
+                        "Customer-specific pricing agreements",
+                        "Regional pricing variations"
+                    ]
+                },
+                "example_calculators": {
+                    "example_1_simple_area_pricing": {
+                        "name": "SimpleVinylSticker",
+                        "description": "Basic area-based pricing for vinyl stickers",
+                        "json_definition": {
+                            "inputs": [
+                                {
+                                    "name": "width_mm",
+                                    "type": "number",
+                                    "label": "Width (mm)",
+                                    "required": true
+                                },
+                                {
+                                    "name": "height_mm",
+                                    "type": "number",
+                                    "label": "Height (mm)",
+                                    "required": true
+                                },
+                                {
+                                    "name": "quantity",
+                                    "type": "integer",
+                                    "label": "Quantity",
+                                    "required": true,
+                                    "default": 1
+                                }
+                            ],
+                            "calculation_steps": [
+                                {
+                                    "step": 1,
+                                    "type": "component",
+                                    "variable": "area_m2",
+                                    "component": "calculate_area_m2",
+                                    "inputs": {
+                                        "width_mm": "width_mm",
+                                        "height_mm": "height_mm"
+                                    },
+                                    "description": "Calculate area in m2"
+                                },
+                                {
+                                    "step": 2,
+                                    "type": "formula",
+                                    "variable": "unit_price",
+                                    "formula": "area_m2 * param:vinyl_price_per_sqm",
+                                    "description": "Price per sticker"
+                                },
+                                {
+                                    "step": 3,
+                                    "type": "formula",
+                                    "variable": "subtotal",
+                                    "formula": "unit_price * quantity",
+                                    "description": "Total before GST"
+                                },
+                                {
+                                    "step": 4,
+                                    "type": "component",
+                                    "variable": "gst",
+                                    "component": "calculate_gst",
+                                    "inputs": {
+                                        "subtotal": "subtotal",
+                                        "gst_rate": "param:gst_rate"
+                                    },
+                                    "description": "Calculate 10% GST"
+                                },
+                                {
+                                    "step": 5,
+                                    "type": "formula",
+                                    "variable": "total",
+                                    "formula": "subtotal + gst",
+                                    "description": "Final price"
+                                }
+                            ]
+                        }
+                    },
+                    "example_2_tiered_pricing_with_discount": {
+                        "name": "VinylBannerBulkPricing",
+                        "description": "Tiered pricing with quantity discounts for vinyl banners",
+                        "json_definition": {
+                            "inputs": [
+                                {
+                                    "name": "width_mm",
+                                    "type": "number",
+                                    "label": "Width (mm)",
+                                    "required": true
+                                },
+                                {
+                                    "name": "height_mm",
+                                    "type": "number",
+                                    "label": "Height (mm)",
+                                    "required": true
+                                },
+                                {
+                                    "name": "quantity",
+                                    "type": "integer",
+                                    "label": "Quantity",
+                                    "required": true
+                                }
+                            ],
+                            "calculation_steps": [
+                                {
+                                    "step": 1,
+                                    "type": "component",
+                                    "variable": "area_m2",
+                                    "component": "calculate_area_m2",
+                                    "inputs": {
+                                        "width_mm": "width_mm",
+                                        "height_mm": "height_mm"
+                                    }
+                                },
+                                {
+                                    "step": 2,
+                                    "type": "component",
+                                    "variable": "price_per_m2",
+                                    "component": "tiered_pricing_lookup",
+                                    "inputs": {
+                                        "lookup_value": "area_m2",
+                                        "tier_table": "pricing.banner_tiers"
+                                    }
+                                },
+                                {
+                                    "step": 3,
+                                    "type": "formula",
+                                    "variable": "base_price",
+                                    "formula": "area_m2 * price_per_m2 * quantity"
+                                },
+                                {
+                                    "step": 4,
+                                    "type": "component",
+                                    "variable": "discount_rate",
+                                    "component": "quantity_break_discount",
+                                    "inputs": {
+                                        "quantity": "quantity",
+                                        "break_points": "{100: 0.05, 500: 0.10, 1000: 0.15}"
+                                    }
+                                },
+                                {
+                                    "step": 5,
+                                    "type": "formula",
+                                    "variable": "discounted_price",
+                                    "formula": "base_price * (1 - discount_rate)"
+                                },
+                                {
+                                    "step": 6,
+                                    "type": "component",
+                                    "variable": "final_price",
+                                    "component": "calculate_double_gst_shopify",
+                                    "inputs": {
+                                        "subtotal": "discounted_price"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "example_3_rush_job_with_complexity": {
+                        "name": "CustomRushJob",
+                        "description": "Rush job calculator with complexity multipliers and after-hours labor",
+                        "json_definition": {
+                            "inputs": [
+                                {
+                                    "name": "base_material_cost",
+                                    "type": "number",
+                                    "label": "Material Cost",
+                                    "required": true
+                                },
+                                {
+                                    "name": "estimated_hours",
+                                    "type": "number",
+                                    "label": "Estimated Hours",
+                                    "required": true
+                                },
+                                {
+                                    "name": "job_complexity",
+                                    "type": "select",
+                                    "label": "Complexity",
+                                    "required": true,
+                                    "options": [
+                                        {
+                                            "value": "standard",
+                                            "label": "Standard"
+                                        },
+                                        {
+                                            "value": "challenging",
+                                            "label": "Challenging"
+                                        },
+                                        {
+                                            "value": "rush",
+                                            "label": "Rush (24hr)"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "is_after_hours",
+                                    "type": "boolean",
+                                    "label": "After Hours?",
+                                    "default": false
+                                }
+                            ],
+                            "calculation_steps": [
+                                {
+                                    "step": 1,
+                                    "type": "formula",
+                                    "variable": "labor_multiplier",
+                                    "formula": "param:labor_multiplier_after_hours if is_after_hours else 1.0"
+                                },
+                                {
+                                    "step": 2,
+                                    "type": "component",
+                                    "variable": "labor_cost",
+                                    "component": "calculate_labor_cost",
+                                    "inputs": {
+                                        "hours": "estimated_hours",
+                                        "labor_rate": "param:labor_rate_specialist",
+                                        "multiplier": "labor_multiplier"
+                                    }
+                                },
+                                {
+                                    "step": 3,
+                                    "type": "formula",
+                                    "variable": "base_total",
+                                    "formula": "base_material_cost + labor_cost"
+                                },
+                                {
+                                    "step": 4,
+                                    "type": "component",
+                                    "variable": "complexity_adjusted",
+                                    "component": "apply_complexity_multiplier",
+                                    "inputs": {
+                                        "base_cost": "base_total",
+                                        "complexity": "job_complexity",
+                                        "multipliers": "{\"standard\": 1.0, \"challenging\": 1.25, \"rush\": 1.5}"
+                                    }
+                                },
+                                {
+                                    "step": 5,
+                                    "type": "component",
+                                    "variable": "with_margin",
+                                    "component": "calculate_profit_margin",
+                                    "inputs": {
+                                        "base_cost": "complexity_adjusted",
+                                        "margin_rate": "param:profit_margin_premium"
+                                    }
+                                },
+                                {
+                                    "step": 6,
+                                    "type": "component",
+                                    "variable": "final_price",
+                                    "component": "calculate_double_gst_shopify",
+                                    "inputs": {
+                                        "subtotal": "with_margin"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "workflow_guide": {
+                    "step_by_step_process": [
+                        "Step 1: Call custom_calculator_get_schema_guide() to learn system",
+                        "Step 2: Call calculator_builder_start() with name, description, category",
+                        "Step 3: Add user input parameters with calculator_builder_add_parameter() for each input field",
+                        "Step 4: Add calculation steps with calculator_builder_set_formula() for formulas",
+                        "Step 5: Add component steps with calculator_builder_add_component() for reusable logic",
+                        "Step 6: Test calculator with calculator_builder_test() using sample inputs",
+                        "Step 7: Review test results and adjust formulas/components if needed",
+                        "Step 8: Save and activate with calculator_builder_save() when ready",
+                        "Step 9: Query calculator with custom_calculator_get_detail() to verify",
+                        "Step 10: Execute calculator via API or UI for production quotes"
+                    ],
+                    "design_considerations": [
+                        "Start simple - test each step before adding complexity",
+                        "Use components when possible - they're tested and optimized",
+                        "Reference existing parameters for consistency across calculators",
+                        "Add clear descriptions for each input and step",
+                        "Test with edge cases: minimum values, maximum values, zero quantity",
+                        "Consider adding validation rules to inputs (min, max ranges)",
+                        "Use meaningful variable names that describe what they contain",
+                        "Order steps logically - each step can reference previous steps only",
+                        "Add usage_instructions to explain when to use this calculator",
+                        "Use tags liberally for discoverability"
+                    ],
+                    "testing_best_practices": [
+                        "Test with minimum valid inputs first",
+                        "Test with maximum valid inputs",
+                        "Test with typical customer order values",
+                        "Test edge cases: quantity = 1, very large quantities",
+                        "Verify rounding produces sensible prices (no $45.3333333)",
+                        "Check GST calculation is correct (10% or double GST if Shopify)",
+                        "Verify minimum order enforcement works",
+                        "Test parameter overrides if using custom values",
+                        "Compare against similar hardcoded calculator for sanity check",
+                        "Test execution time - should be under 100ms for simple calculators"
+                    ]
+                },
+                "performance_optimization": {
+                    "execution_efficiency": [
+                        "Keep calculation_steps array minimal - each step adds overhead",
+                        "Use components for complex logic - they're optimized",
+                        "Avoid redundant calculations - store intermediate results in variables",
+                        "Use formulas for simple arithmetic - faster than component calls",
+                        "Test execution time with calculator_builder_test() - check execution_time_ms",
+                        "Target under 100ms for simple calculators, under 500ms for complex"
+                    ],
+                    "query_optimization": [
+                        "custom_calculators table has GIN indexes on json_definition and tags for fast search",
+                        "Use custom_calculator_list() with filters instead of querying full table",
+                        "Use custom_calculator_search() for text search - leverages indexes",
+                        "Cache frequently used calculators in application memory",
+                        "Batch calculator executions when possible for bulk quotes"
+                    ]
+                },
+                "error_handling_patterns": {
+                    "common_errors": {
+                        "missing_parameter": "Formula references param:xyz but parameter doesn't exist in calculator_pricing_parameters",
+                        "undefined_variable": "Formula references previous_step but that step doesn't exist or is after current step",
+                        "type_error": "Formula tries to add string and number - ensure inputs are correct type",
+                        "component_not_found": "Component name doesn't match any of the 11 available components",
+                        "invalid_formula_syntax": "Formula has syntax error - check parentheses, operators, function names",
+                        "division_by_zero": "Formula divides by zero - add check or default value"
+                    },
+                    "error_prevention": [
+                        "Validate all parameter references exist before saving calculator",
+                        "Test formulas with calculator_builder_test() before activating",
+                        "Use try/except in formulas where division might be zero",
+                        "Add input validation rules to prevent invalid values",
+                        "Check component names against component_library list",
+                        "Verify calculation step order - each step can only reference previous steps"
+                    ]
+                },
+                "integration_notes": {
+                    "with_existing_system": [
+                        "Custom calculators coexist with hardcoded calculators (TIER 1)",
+                        "Share calculator_pricing_parameters table for pricing constants",
+                        "calculator_parameter_overrides table extended to support custom_calculator_id",
+                        "QueryLibrary extended with custom calculator queries",
+                        "API endpoints support both calculator types transparently"
+                    ],
+                    "migration_path": [
+                        "No migration needed - new system is additive",
+                        "Existing hardcoded calculators continue to work unchanged",
+                        "New specialty jobs use custom calculator builder",
+                        "Can gradually convert hardcoded calculators to JSON definitions if desired",
+                        "Parameter overrides work for both calculator types"
+                    ]
+                }
+            }
+        }
+    ]
+}

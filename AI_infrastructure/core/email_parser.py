@@ -243,6 +243,25 @@ class UniversalEmailParser:
                 if not filename:
                     continue
                 
+                # 🎯 FILTER: Skip inline attachments (email footers, signature images)
+                # Check for Content-ID header which indicates inline embedding
+                headers = part.get('headers', [])
+                content_disposition = None
+                content_id = None
+                
+                for header in headers:
+                    header_name = header.get('name', '').lower()
+                    if header_name == 'content-disposition':
+                        content_disposition = header.get('value', '').lower()
+                    elif header_name == 'content-id':
+                        content_id = header.get('value')
+                
+                # Skip if marked as inline or has Content-ID (embedded in HTML)
+                if content_disposition and 'inline' in content_disposition:
+                    continue
+                if content_id:
+                    continue
+                
                 attachment_data = part.get('body', {})
                 size = attachment_data.get('size', 0)
                 attachment_id = attachment_data.get('attachmentId')
@@ -330,7 +349,9 @@ class UniversalEmailParser:
             # Here we just parse what's provided
             attachments_data = raw_message.get('attachments', [])
             result['attachments'] = [
-                self._parse_outlook_attachment(att) for att in attachments_data
+                parsed for parsed in [
+                    self._parse_outlook_attachment(att) for att in attachments_data
+                ] if parsed is not None  # Filter out None (inline attachments)
             ]
         else:
             result['attachments'] = []
@@ -353,8 +374,18 @@ class UniversalEmailParser:
         }
     
     
-    def _parse_outlook_attachment(self, attachment: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse Outlook attachment object"""
+    def _parse_outlook_attachment(self, attachment: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Parse Outlook attachment object
+        
+        Returns None if attachment should be filtered (inline/footer images)
+        """
+        # 🎯 FILTER: Skip inline attachments (email footers, signature images)
+        is_inline = attachment.get('isInline', False)
+        has_content_id = attachment.get('contentId') is not None
+        
+        if is_inline or has_content_id:
+            return None  # Skip email footer/signature images
+        
         filename = attachment.get('name', 'unknown')
         content_type = attachment.get('contentType', 'application/octet-stream')
         size = attachment.get('size', 0)

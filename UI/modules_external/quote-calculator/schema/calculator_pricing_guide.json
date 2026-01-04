@@ -1,0 +1,131 @@
+{
+    "platform": "quote_calculator",
+    "description": "Calculator Pricing Database Schema Guide - Complete documentation for 8-table Supabase system (pricing constants + product options)",
+    "tools": [
+        {
+            "name": "calculator_database_get_schema_guide",
+            "short_description": "GET THIS FIRST! Complete schema guide for Calculator Pricing Database (8 tables, 690+ rows)",
+            "description": "CALL THIS FIRST when working with calculator pricing! Returns comprehensive schema documentation for the 8-table Calculator Pricing Database on Supabase PostgreSQL. This is your MASTER REFERENCE for understanding the entire system. Returns: (1) Database overview with TWO SYSTEMS architecture explained, (2) All 8 table schemas with columns/types/constraints/indexes, (3) JSONB field structures and access patterns, (4) Foreign key relationships and data flow, (5) Query construction best practices, (6) 20+ copy-paste ready example queries, (7) Available pre-built queries DYNAMICALLY INJECTED from QueryLibrary, (8) Decision tree for when to use direct SQL vs pre-built queries vs API endpoints. Also includes data quality notes, migration history, and optimization strategies. Use this to learn the complete system before writing any queries.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete schema guide with 8 tables, JSONB structures, relationships, query patterns, 20+ examples, dynamically injected pre-built query list, and decision tree"
+            },
+            "examples": [
+                {
+                    "description": "Get complete schema guide (no parameters needed)",
+                    "parameters": {},
+                    "expected_result": "Returns guide object with overview, all 8 table schemas, JSONB structures, relationships, query patterns, 20+ example queries, list of available pre-built queries (dynamically injected from QueryLibrary), and decision tree for when to use which tool"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "FIRST TIME working with calculator pricing database",
+                    "Need to understand the TWO SYSTEMS architecture (pricing constants vs product options)",
+                    "Writing custom SQL queries and need column names/types/constraints",
+                    "Want to see example queries for common tasks",
+                    "Need to understand JSONB field structures and access patterns",
+                    "Want to check what pre-built queries are available before writing custom SQL",
+                    "Need to understand foreign key relationships and data flow"
+                ],
+                "workflow": [
+                    "Step 1: Call calculator_database_get_schema_guide() to get complete reference",
+                    "Step 2: Review overview section to understand TWO SYSTEMS architecture",
+                    "Step 3: Check available_queries list to see if pre-built query exists for your task",
+                    "Step 4: If match found use execute_query_library() with that query name",
+                    "Step 5: If no match review example_queries section for similar patterns",
+                    "Step 6: Use query_patterns section to learn JSONB access syntax",
+                    "Step 7: Write custom query using calculator_database_query()",
+                    "Step 8: For updates use calculator_database_modify() with reason"
+                ],
+                "best_practices": [
+                    "ALWAYS call this tool FIRST when working with calculator pricing",
+                    "Check available_queries list BEFORE writing custom SQL",
+                    "Use example queries as templates for your custom queries",
+                    "Follow JSONB access patterns exactly (use ->> for text, ::numeric for numbers, @> for contains)",
+                    "Always cast JSONB fields to appropriate types for sorting and filtering",
+                    "Check is_active=TRUE when querying overrides for current values",
+                    "Use array_agg() and json_build_object() to avoid N+1 queries",
+                    "Include reason parameter when modifying data for audit trail"
+                ],
+                "error_handling": [
+                    "Tool always succeeds and returns guide object",
+                    "If QueryLibrary unavailable: available_queries will be empty list",
+                    "If database connection fails: Guide still returns with schema documentation"
+                ],
+                "related_tools": [
+                    "calculator_database_query",
+                    "calculator_database_modify",
+                    "calculator_database_list_queries",
+                    "execute_query_library"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_database_get_schema_guide -> calculator_database_query",
+                    "calculator_database_get_schema_guide -> calculator_database_list_queries -> execute_query_library",
+                    "calculator_database_get_schema_guide -> calculator_database_modify"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "guide",
+                        "8 tables",
+                        "690+ rows"
+                    ],
+                    "behavioral": [
+                        "User proceeds to query or modify database",
+                        "User references table names or columns from guide"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [],
+                    "behavioral": [
+                        "User asks for schema again",
+                        "User writes incorrect SQL syntax"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 50,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 1
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "schema_guide",
+                    "calculator_pricing",
+                    "database_structure"
+                ],
+                "search_keywords": [
+                    "calculator pricing schema",
+                    "database structure",
+                    "table definitions",
+                    "JSONB fields",
+                    "query examples"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator",
+                    "inhouse_print"
+                ],
+                "typical_use_cases": [
+                    "Developer learning calculator pricing database structure for first time",
+                    "AI agent writing custom queries and needs table and column names",
+                    "Data analyst checking what pre-built queries exist before custom SQL",
+                    "System administrator understanding relationships between 8 tables",
+                    "Report builder needing example queries for common tasks"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Table names, column names, JSONB structures, available query names, TWO SYSTEMS architecture",
+                    "search_context": "When user asks about calculator pricing, database structure, table schemas, or available queries"
+                }
+            }
+        }
+    ]
+}

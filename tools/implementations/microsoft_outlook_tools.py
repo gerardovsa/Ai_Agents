@@ -285,22 +285,83 @@ class MicrosoftOutlookTools:
         return result
     
     def outlook_get_message(self, message_id: str, include_attachments: bool = False, **kwargs) -> Dict:
-        """Get full message details with COMPLETE body content"""
+        """Get full message details with COMPLETE body content
+        
+        ⚠️ RENDER DEPLOYMENT FIX: Strips attachment binary content to prevent timeout
+        
+        Args:
+            message_id: Outlook message ID
+            include_attachments: If True, returns attachment METADATA only (no binary content)
+        
+        Returns:
+            {
+                'success': True,
+                'message': {
+                    'id': '...',
+                    'subject': '...',
+                    'body': {...},
+                    'attachments': [{  # Only if include_attachments=True
+                        'id': 'att123',
+                        'name': 'invoice.pdf',
+                        'size': 250000,
+                        'contentType': 'application/pdf',
+                        'download_url': 'https://...',  # ✅ Download separately
+                        'note': 'Use microsoft_outlook_download_attachment to get content'
+                    }]
+                }
+            }
+        """
         
         # Build endpoint with explicit field selection to get FULL body content
         # Use $select to ensure we get body, uniqueBody (full content without quoted replies)
         select_fields = 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,sentDateTime,isRead,hasAttachments,importance,body,uniqueBody,bodyPreview'
         
         if include_attachments:
-            endpoint = f'/me/messages/{message_id}?$select={select_fields}&$expand=attachments'
+            # 🚀 CRITICAL: Only request attachment METADATA - exclude contentBytes to prevent 1M+ token responses
+            # This prevents base64 attachment content from being returned by Microsoft Graph API
+            attachment_select = '$select=id,name,contentType,size,isInline,contentId,lastModifiedDateTime'
+            endpoint = f'/me/messages/{message_id}?$select={select_fields}&$expand=attachments({attachment_select})'
         else:
             endpoint = f'/me/messages/{message_id}?$select={select_fields}'
         
         result = self._make_request('GET', endpoint, **kwargs)
         
         if result['success']:
-            # 🔍 DEBUG: Log body content from Microsoft Graph API
             message_data = result['data']
+            
+            # 🚀 RENDER FIX: Strip attachment binary content to prevent token overflow
+            if include_attachments and 'attachments' in message_data:
+                safe_attachments = []
+                inline_filtered_count = 0
+                
+                for att in message_data.get('attachments', []):
+                    # 🎯 FILTER: Skip inline attachments (email footers, signature images)
+                    # Inline attachments have isInline=True or contentId set (embedded in HTML body)
+                    is_inline = att.get('isInline', False)
+                    has_content_id = att.get('contentId') is not None
+                    
+                    if is_inline or has_content_id:
+                        inline_filtered_count += 1
+                        continue  # Skip email footer/signature images
+                    
+                    safe_att = {
+                        'id': att.get('id'),
+                        'name': att.get('name'),
+                        'contentType': att.get('contentType'),
+                        'size': att.get('size'),
+                        'isInline': False,  # Guaranteed false at this point
+                        'contentId': att.get('contentId'),
+                        'download_url': f"https://graph.microsoft.com/v1.0/me/messages/{message_id}/attachments/{att.get('id')}",
+                        'note': '⚠️ Binary content stripped. Use microsoft_outlook_download_attachment to retrieve.'
+                    }
+                    safe_attachments.append(safe_att)
+                
+                message_data['attachments'] = safe_attachments
+                print(f"🚀 [RENDER FIX] Stripped binary content from {len(safe_attachments)} attachment(s)")
+                if inline_filtered_count > 0:
+                    print(f"🎯 [INLINE FILTER] Excluded {inline_filtered_count} inline attachment(s) (email footers/signatures)")
+            
+            # 🔍 DEBUG: Log body content from Microsoft Graph API
             body = message_data.get('body', {})
             body_content = body.get('content', '')
             unique_body = message_data.get('uniqueBody', {})
@@ -313,14 +374,10 @@ class MicrosoftOutlookTools:
             print(f"🔍 [OUTLOOK API DEBUG] Body preview length: {len(body_preview)}")
             print(f"🔍 [OUTLOOK API DEBUG] Body content type: {body.get('contentType', 'N/A')}")
             print(f"🔍 [OUTLOOK API DEBUG] UniqueBody content type: {unique_body.get('contentType', 'N/A')}")
-            print(f"🔍 [OUTLOOK API DEBUG] Body content first 200 chars: {body_content[:200]}")
-            print(f"🔍 [OUTLOOK API DEBUG] Body content last 200 chars: {body_content[-200:]}")
-            print(f"🔍 [OUTLOOK API DEBUG] UniqueBody first 200 chars: {unique_body_content[:200]}")
-            print(f"🔍 [OUTLOOK API DEBUG] UniqueBody last 200 chars: {unique_body_content[-200:]}")
             
             return {
                 'success': True,
-                'message': result['data']
+                'message': message_data
             }
         return result
     
