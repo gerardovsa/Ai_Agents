@@ -4,8 +4,11 @@
     "version": "1.2.1",
     "description": "Shopify order management, customer analytics, product performance tracking, and webhook monitoring",
     "icon": "fas fa-shopping-cart",
-    "scriptPath": "external/modules/shopify/shopify.js",
-    "stylePath": "external/modules/shopify/shopify.css",
+    "type": "external",
+    "category": "business",
+    "main_script": "shopify.js",
+    "styles": ["shopify.css"],
+    "show_in_sidebar": true,
     "dependencies": [
         "https://cdn.plot.ly/plotly-2.27.0.min.js",
         "https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css",
