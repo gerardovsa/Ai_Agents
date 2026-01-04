@@ -60,6 +60,9 @@ class ApexChartsRenderer {
             config = item.content;
         }
 
+        // Convert string functions to real functions (CRITICAL FIX)
+        this.convertStringFunctionsToReal(config);
+
         // Apply theme with dynamic detection
         const isDark = window.ThemeDetector ? window.ThemeDetector.isDark() :
             (this.vizEngine?.options?.theme === 'dark');
@@ -90,6 +93,39 @@ class ApexChartsRenderer {
         }
 
         return chart;
+    }
+
+    /**
+     * Convert string functions to real JavaScript functions
+     * Recursively walks the config object and converts strings like 
+     * "function(val) { return val; }" into actual executable functions.
+     * 
+     * @param {Object} obj - Config object to process (mutated in place)
+     */
+    convertStringFunctionsToReal(obj) {
+        if (!obj || typeof obj !== 'object') return;
+
+        for (const key in obj) {
+            const value = obj[key];
+
+            // Check if value is a string that looks like a function
+            if (typeof value === 'string' && 
+                value.trim().startsWith('function') && 
+                value.includes('(') && 
+                value.includes(')')) {
+                try {
+                    // Convert string to actual function
+                    obj[key] = new Function('return ' + value)();
+                    console.log(`✅ ApexCharts: Converted formatter "${key}" from string to function`);
+                } catch (e) {
+                    console.warn(`⚠️ ApexCharts: Failed to convert formatter "${key}":`, e.message);
+                }
+            }
+            // Recursively process nested objects/arrays
+            else if (typeof value === 'object' && value !== null) {
+                this.convertStringFunctionsToReal(value);
+            }
+        }
     }
 
     /**
