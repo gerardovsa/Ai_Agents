@@ -540,12 +540,31 @@ def init_xero_routes(app):
 # DASHBOARD ENDPOINTS
 # ============================================================================
 
+def _check_credentials(client, business_id):
+    """
+    Check if Xero credentials are configured for the client.
+    Returns tuple of (error_response, status_code) if credentials missing, or (None, None) if OK.
+    """
+    if not client.client_id or not client.client_secret:
+        return jsonify({
+            'error': 'Xero credentials not configured',
+            'message': 'Please configure Xero API credentials in Account Settings → Integrations',
+            'business_id': business_id,
+            'setup_required': True
+        }), 401
+    return None, None
+
 @cross_origin()
 def xero_dashboard():
     """Get dashboard metrics and data"""
     try:
         business_id = int(request.args.get('business_id', 1))
         client = XeroAPIClient(business_id)
+        
+        # Check if credentials are available
+        error_response, status_code = _check_credentials(client, business_id)
+        if error_response:
+            return error_response, status_code
         
         # Get invoices for calculations
         invoices_data = client.make_request('GET', 'Invoices')
