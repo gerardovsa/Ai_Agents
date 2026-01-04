@@ -6734,10 +6734,12 @@ Draft questions for the customer listing all missing details required for accura
         this.log.info(`Downloading attachment: ${filename}`);
 
         try {
-            // Get email data to determine provider
-            const email = await this.fetchEmailContent(emailId);
-            const provider = email.provider;
+            // ✅ FIX: Parse provider from emailId (format: "provider_messageId")
+            // No need to fetch full email - provider is in the ID!
+            const provider = emailId.split('_')[0];
             const userId = window.UserAuth?.user?.id || 1;
+
+            this.log.debug(`📎 Downloading from ${provider}: ${filename}`);
 
             let downloadUrl;
             if (provider === 'gmail') {
