@@ -84,7 +84,7 @@ window.SynergyRealtime = {
             this._log(`Connection timeout: ${timeout}ms`);
 
             // Create Socket.IO connection with environment-aware configuration
-            // Server config: ping_interval=25s, ping_timeout=60s
+            // Server config: ping_interval=25s, ping_timeout=90s (Render) / 60s (local)
             // Client heartbeat: 20s (see _startHeartbeat) - must be < server ping_interval
             this.socket = io(apiUrl + this.config.namespace, {
                 // Intelligent transport selection (see above)

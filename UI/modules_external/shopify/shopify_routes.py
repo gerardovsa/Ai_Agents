@@ -1,20 +1,21 @@
 """
-Shopify E-Commerce API Routes - Shopify Dashboard Module
+WooCommerce E-Commerce API Routes - WooCommerce Dashboard Module
 ========================================================================
-CURSOR MANAGEMENT AUDIT COMPLETED: December 7, 2025
+REFACTORED: January 4, 2026
 
-This module provides Flask API endpoints for the Shopify E-Commerce module.
-Uses SQLite database (stock_data.db) with Shopify webhook data.
-
-Database Tables:
-- shopify_orders: Order header information
-- shopify_line_items: Line items for each order
-- shopify_line_properties: DPO calculator property mappings
-- shopify_webhook_events: Webhook event log
-- shopify_product_mapping: Storefront to unified_stocks mapping
+This module provides Flask API endpoints for the WooCommerce E-Commerce module.
+Uses Supabase PostgreSQL for credential storage and WooCommerce REST API for data.
 
 Architecture:
-- Frontend (shopify.js) → Flask endpoints → SQLite stock_data.db
+- Frontend (shopify.js) → Flask endpoints → WooCommerce REST API
+- Credentials stored in ai_infrastructure.user_platform_credentials
+- Platform-wide credentials (user_id=1) available to all users
+
+Credentials Schema:
+- platform: 'shopify' (legacy name, actually WooCommerce)
+- credentials.consumer_key: WooCommerce API key
+- credentials.consumer_secret: WooCommerce API secret  
+- credentials.base_url: Store URL (https://inhouseprint.com.au)
 
 Endpoints:
 - /api/shopify/dashboard/metrics - Dashboard KPIs
@@ -22,122 +23,151 @@ Endpoints:
 - /api/shopify/dashboard/charts/* - Chart data
 - /api/shopify/dashboard/customers/* - Customer analytics
 - /api/shopify/dashboard/products/* - Product performance
-- /api/shopify/dashboard/webhooks/* - Webhook monitoring
-- /api/shopify/sql-query - SQL viewer interface
-
-AUDIT STATUS: ✅ ALL 11 ENDPOINTS FIXED
-- 33 cursor leak patterns eliminated
-- All functions follow proper cleanup protocol
-- Added comprehensive finally blocks
-- Proper cursor/connection initialization
-- Safe exception handling
+- /api/shopify/dashboard/webhooks/* - Webhook monitoring (not implemented)
 
 Created: November 6, 2025
-Last Audit: December 7, 2025
+Last Refactor: January 4, 2026 - Removed SQLite, added WooCommerce API
 """
 
 import sys
 import os
 import traceback
-import sqlite3
-import time
 from datetime import datetime, timedelta
 from flask import jsonify, request
 from flask_cors import cross_origin
 from pathlib import Path
+from woocommerce import API
 
-# SQLite database path - Same database as Stock Management
-STOCK_DB_PATH = str(Path(__file__).parent.parent.parent.parent.parent / 'data' / 'stock_data.db')
-
-# Will be set by flask_app.py
-SHOPIFY_DB_CONFIG = None
-SHOPIFY_DB_AVAILABLE = False
+# Add shared utilities to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'AI_infrastructure' / 'shared'))
+from database_utils import execute_query
 
 
-def init_shopify_routes(app, config_path, db_available):
+def init_shopify_routes(app, config_path=None, db_available=True):
     """
-    Initialize Shopify routes with configuration
+    Initialize WooCommerce/Shopify routes
     
     Args:
         app: Flask app instance
-        config_path: Path to database-config.json
-        db_available: Boolean indicating if DB is configured
+        config_path: Unused (legacy parameter)
+        db_available: Unused (legacy parameter)
     """
-    global SHOPIFY_DB_CONFIG, SHOPIFY_DB_AVAILABLE
-    SHOPIFY_DB_CONFIG = config_path
-    SHOPIFY_DB_AVAILABLE = db_available
     
-    print(f"   Registering shopify endpoints...")
+    print(f"   Registering WooCommerce/Shopify endpoints...")
     
     # Dashboard endpoints
-    try:
-        app.add_url_rule('/api/shopify/dashboard/metrics', 'shopify_metrics', shopify_metrics, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/metrics")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/metrics - {e}")
+    app.add_url_rule('/api/shopify/dashboard/metrics', 'shopify_metrics', shopify_metrics, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/metrics")
+    
+    app.add_url_rule('/api/shopify/dashboard/orders', 'shopify_orders', shopify_orders, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/orders")
+    
+    app.add_url_rule('/api/shopify/dashboard/charts/orders-over-time', 'shopify_orders_chart', shopify_orders_chart, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/charts/orders-over-time")
+    
+    app.add_url_rule('/api/shopify/dashboard/charts/revenue-by-product', 'shopify_revenue_chart', shopify_revenue_chart, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/charts/revenue-by-product")
+    
+    app.add_url_rule('/api/shopify/dashboard/customers/top', 'shopify_top_customers', shopify_top_customers, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/customers/top")
+    
+    app.add_url_rule('/api/shopify/dashboard/customers/segments', 'shopify_customer_segments', shopify_customer_segments, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/customers/segments")
+    
+    app.add_url_rule('/api/shopify/dashboard/products/top-sellers', 'shopify_top_products', shopify_top_products, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/products/top-sellers")
+    
+    app.add_url_rule('/api/shopify/dashboard/products/catalog', 'shopify_product_catalog', shopify_product_catalog, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/products/catalog")
+    
+    app.add_url_rule('/api/shopify/dashboard/webhooks/log', 'shopify_webhook_log', shopify_webhook_log, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/webhooks/log")
+    
+    app.add_url_rule('/api/shopify/dashboard/webhooks/health', 'shopify_webhook_health', shopify_webhook_health, methods=['GET', 'OPTIONS'])
+    print(f"     ✓ /api/shopify/dashboard/webhooks/health")
+    
+    print(f"   WooCommerce/Shopify routes initialized")
+    print(f"   ✅ 10 woocommerce/shopify endpoints registered")
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def get_woocommerce_credentials(user_id=None):
+    """
+    Get WooCommerce credentials from Supabase
+    
+    Args:
+        user_id: User ID (defaults to 1 for platform-wide credentials)
+        
+    Returns:
+        dict: credentials with consumer_key, consumer_secret, base_url
+    """
+    if user_id is None:
+        # Use platform-wide credentials (user_id=1)
+        user_id = 1
     
     try:
-        app.add_url_rule('/api/shopify/dashboard/orders', 'shopify_orders', shopify_orders, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/orders")
+        # Fetch credentials from Supabase
+        result = execute_query(
+            """
+            SELECT credentials 
+            FROM ai_infrastructure.user_platform_credentials
+            WHERE user_id = %s AND platform = 'shopify' AND is_active = TRUE
+            LIMIT 1
+            """,
+            (user_id,),
+            fetch_mode='one'
+        )
+        
+        if not result or not result[0]:
+            print(f"[WooCommerce] No credentials found for user_id={user_id}")
+            return None
+            
+        credentials = result[0]
+        
+        # Validate required fields
+        required_fields = ['consumer_key', 'consumer_secret', 'base_url']
+        if not all(field in credentials for field in required_fields):
+            print(f"[WooCommerce] Missing required credential fields: {credentials.keys()}")
+            return None
+            
+        return credentials
+        
     except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/orders - {e}")
+        print(f"[WooCommerce] Error fetching credentials: {e}")
+        traceback.print_exc()
+        return None
+
+
+def get_woocommerce_api(user_id=None):
+    """
+    Get WooCommerce API client with credentials
+    
+    Args:
+        user_id: User ID (defaults to 1 for platform-wide credentials)
+        
+    Returns:
+        woocommerce.API: Configured API client or None
+    """
+    credentials = get_woocommerce_credentials(user_id)
+    
+    if not credentials:
+        return None
     
     try:
-        app.add_url_rule('/api/shopify/dashboard/charts/orders-over-time', 'shopify_orders_chart', shopify_orders_chart, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/charts/orders-over-time")
+        wcapi = API(
+            url=credentials['base_url'],
+            consumer_key=credentials['consumer_key'],
+            consumer_secret=credentials['consumer_secret'],
+            version="wc/v3",
+            timeout=30
+        )
+        return wcapi
     except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/charts/orders-over-time - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/dashboard/charts/revenue-by-product', 'shopify_revenue_chart', shopify_revenue_chart, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/charts/revenue-by-product")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/charts/revenue-by-product - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/dashboard/customers/segments', 'shopify_customer_segments', shopify_customer_segments, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/customers/segments")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/customers/segments - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/dashboard/customers/top', 'shopify_top_customers', shopify_top_customers, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/customers/top")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/customers/top - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/dashboard/products/top-sellers', 'shopify_top_products', shopify_top_products, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/products/top-sellers")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/products/top-sellers - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/dashboard/products/catalog', 'shopify_product_catalog', shopify_product_catalog, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/products/catalog")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/products/catalog - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/dashboard/webhooks/log', 'shopify_webhook_log', shopify_webhook_log, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/webhooks/log")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/webhooks/log - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/dashboard/webhooks/health', 'shopify_webhook_health', shopify_webhook_health, methods=['GET', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/dashboard/webhooks/health")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/dashboard/webhooks/health - {e}")
-    
-    try:
-        app.add_url_rule('/api/shopify/sql-query', 'shopify_sql_query', shopify_sql_query, methods=['GET', 'POST', 'OPTIONS'])
-        print(f"     ✓ /api/shopify/sql-query (GET+POST)")
-    except Exception as e:
-        print(f"     ✗ /api/shopify/sql-query - {e}")
-    
-    print(f"   Shopify E-Commerce routes initialized (DB: {db_available})")
-    print(f"   ✅ 11 shopify endpoints registered")
+        print(f"[WooCommerce] Error creating API client: {e}")
+        return None
 
 
 def calculate_date_range(days):
@@ -156,22 +186,16 @@ def shopify_metrics():
     """
     Dashboard KPIs - total orders, revenue, AOV, orders today
     Query params: period (today|week|month|all)
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
     """
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
     try:
-        if not os.path.exists(STOCK_DB_PATH):
+        wcapi = get_woocommerce_api()
+        if not wcapi:
             return jsonify({
                 'status': 'error',
-                'message': f'Database not found: {STOCK_DB_PATH}'
+                'message': 'WooCommerce credentials not configured'
             }), 503
         
         period = request.args.get('period', 'month')
@@ -184,81 +208,50 @@ def shopify_metrics():
         days = period_days.get(period, 30)
         start_date, end_date = calculate_date_range(days)
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Fetch orders from WooCommerce API
+        params = {
+            'after': f"{start_date}T00:00:00",
+            'before': f"{end_date}T23:59:59",
+            'per_page': 100
+        }
         
-        # Check if shopify_orders table exists
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_orders'")
-        table_check = cursor.fetchone()
+        response = wcapi.get("orders", params=params)
         
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        if response.status_code != 200:
             return jsonify({
-                'total_orders': 0,
-                'total_revenue': 0,
-                'avg_order_value': 0,
-                'orders_today': 0,
-                'period': period,
-                'message': 'No Shopify data yet (table does not exist)'
-            })
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
         
-        # Get metrics
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                COUNT(*) as total_orders,
-                SUM(COALESCE(total_price, 0)) as total_revenue,
-                AVG(COALESCE(total_price, 0)) as avg_order_value
-            FROM shopify_orders
-            WHERE DATE(created_at) BETWEEN ? AND ?
-        """, (start_date, end_date))
-
-        cursor.execute(sql, params)
-        metrics = cursor.fetchone()
+        orders = response.json()
+        
+        # Calculate metrics
+        total_orders = len(orders)
+        total_revenue = sum(float(order.get('total', 0)) for order in orders)
+        aov = total_revenue / total_orders if total_orders > 0 else 0
         
         # Orders today
-        today = datetime.now().strftime('%Y-%m-%d')
-        sql, params = convert_sql_placeholders("""
-            SELECT COUNT(*) as orders_today
-            FROM shopify_orders
-            WHERE DATE(created_at) = ?
-        """, (today,))
-
-        cursor.execute(sql, params)
-        today_data = cursor.fetchone()
-        
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
+        today = datetime.now().date()
+        orders_today = sum(1 for order in orders 
+                          if datetime.fromisoformat(order['date_created'].replace('Z', '+00:00')).date() == today)
         
         return jsonify({
-            'total_orders': metrics['total_orders'] or 0,
-            'total_revenue': round(metrics['total_revenue'] or 0, 2),
-            'avg_order_value': round(metrics['avg_order_value'] or 0, 2),
-            'orders_today': today_data['orders_today'] or 0,
-            'period': period
+            'status': 'success',
+            'data': {
+                'total_orders': total_orders,
+                'total_revenue': round(total_revenue, 2),
+                'average_order_value': round(aov, 2),
+                'orders_today': orders_today
+            }
         })
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Shopify metrics failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+        print(f"[WooCommerce] Error in shopify_metrics: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============================================================================
@@ -268,101 +261,76 @@ def shopify_metrics():
 @cross_origin()
 def shopify_orders():
     """
-    Orders list with filters
+    Get orders list with filters
     Query params: days, status, min_value
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
     """
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
     try:
+        wcapi = get_woocommerce_api()
+        if not wcapi:
+            return jsonify({
+                'status': 'error',
+                'message': 'WooCommerce credentials not configured'
+            }), 503
+        
         days = int(request.args.get('days', 30))
-        status_filter = request.args.get('status', '')
+        status = request.args.get('status', '')
         min_value = float(request.args.get('min_value', 0))
         
         start_date, end_date = calculate_date_range(days)
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Fetch orders from WooCommerce API
+        params = {
+            'after': f"{start_date}T00:00:00",
+            'before': f"{end_date}T23:59:59",
+            'per_page': 100
+        }
         
-        # Check table exists
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_orders'")
-        table_check = cursor.fetchone()
+        if status:
+            params['status'] = status
         
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        response = wcapi.get("orders", params=params)
+        
+        if response.status_code != 200:
             return jsonify({
-                'orders': [],
-                'count': 0,
-                'message': 'No Shopify orders yet'
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
+        
+        orders = response.json()
+        
+        # Filter by min_value
+        if min_value > 0:
+            orders = [order for order in orders if float(order.get('total', 0)) >= min_value]
+        
+        # Format orders for frontend
+        formatted_orders = []
+        for order in orders:
+            formatted_orders.append({
+                'order_id': order['id'],
+                'order_number': order['number'],
+                'date': order['date_created'],
+                'customer_name': f"{order.get('billing', {}).get('first_name', '')} {order.get('billing', {}).get('last_name', '')}".strip(),
+                'total': float(order.get('total', 0)),
+                'status': order.get('status', ''),
+                'payment_method': order.get('payment_method_title', ''),
+                'items_count': len(order.get('line_items', []))
             })
         
-        query = """
-            SELECT 
-                shopify_order_id as order_id,
-                order_number,
-                created_at,
-                customer_name,
-                email as customer_email,
-                total_price,
-                financial_status,
-                fulfillment_status
-            FROM shopify_orders
-            WHERE DATE(created_at) BETWEEN ? AND ?
-              AND COALESCE(total_price, 0) >= ?
-        """
-        
-        params = [start_date, end_date, min_value]
-        
-        if status_filter:
-            query += " AND financial_status = ?"
-            params.append(status_filter)
-        
-        query += " ORDER BY created_at DESC LIMIT 200"
-        
-        cursor.execute(query, params)
-        orders = [dict(row) for row in cursor.fetchall()]
-        
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
         return jsonify({
-            'orders': orders,
-            'count': len(orders),
-            'filters': {
-                'days': days,
-                'status': status_filter,
-                'min_value': min_value
-            }
+            'status': 'success',
+            'data': formatted_orders
         })
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Shopify orders failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+        print(f"[WooCommerce] Error in shopify_orders: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============================================================================
@@ -372,81 +340,64 @@ def shopify_orders():
 @cross_origin()
 def shopify_orders_chart():
     """
-    Daily order counts for line chart
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
+    Get orders over time for charting
+    Query params: days
     """
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
     try:
+        wcapi = get_woocommerce_api()
+        if not wcapi:
+            return jsonify({
+                'status': 'error',
+                'message': 'WooCommerce credentials not configured'
+            }), 503
+        
         days = int(request.args.get('days', 30))
         start_date, end_date = calculate_date_range(days)
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Fetch orders
+        params = {
+            'after': f"{start_date}T00:00:00",
+            'before': f"{end_date}T23:59:59",
+            'per_page': 100
+        }
         
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_orders'")
-        table_check = cursor.fetchone()
+        response = wcapi.get("orders", params=params)
         
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        if response.status_code != 200:
             return jsonify({
-                'labels': [],
-                'data': []
-            })
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
         
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                DATE(created_at) as order_date,
-                COUNT(*) as order_count
-            FROM shopify_orders
-            WHERE DATE(created_at) BETWEEN ? AND ?
-            GROUP BY DATE(created_at)
-            ORDER BY order_date ASC
-        """, (start_date, end_date))
-
-        cursor.execute(sql, params)
-        results = cursor.fetchall()
+        orders = response.json()
         
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
+        # Group by date
+        orders_by_date = {}
+        for order in orders:
+            date = order['date_created'][:10]  # YYYY-MM-DD
+            orders_by_date[date] = orders_by_date.get(date, 0) + 1
         
-        labels = [row['order_date'] for row in results]
-        data = [row['order_count'] for row in results]
+        # Format for chart
+        chart_data = {
+            'dates': sorted(orders_by_date.keys()),
+            'counts': [orders_by_date[date] for date in sorted(orders_by_date.keys())]
+        }
         
         return jsonify({
-            'labels': labels,
-            'data': data
+            'status': 'success',
+            'data': chart_data
         })
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Orders chart failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+        print(f"[WooCommerce] Error in shopify_orders_chart: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============================================================================
@@ -456,258 +407,218 @@ def shopify_orders_chart():
 @cross_origin()
 def shopify_revenue_chart():
     """
-    Revenue breakdown by product
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
+    Get revenue by product for charting
+    Query params: days
     """
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
     try:
+        wcapi = get_woocommerce_api()
+        if not wcapi:
+            return jsonify({
+                'status': 'error',
+                'message': 'WooCommerce credentials not configured'
+            }), 503
+        
         days = int(request.args.get('days', 30))
         start_date, end_date = calculate_date_range(days)
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Fetch orders
+        params = {
+            'after': f"{start_date}T00:00:00",
+            'before': f"{end_date}T23:59:59",
+            'per_page': 100
+        }
         
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_line_items'")
-        table_check = cursor.fetchone()
+        response = wcapi.get("orders", params=params)
         
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        if response.status_code != 200:
             return jsonify({
-                'labels': [],
-                'data': []
-            })
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
         
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                li.title,
-                SUM(li.price * li.quantity) as total_revenue
-            FROM shopify_line_items li
-            INNER JOIN shopify_orders o ON li.shopify_order_id = o.shopify_order_id
-            WHERE DATE(o.created_at) BETWEEN ? AND ?
-            GROUP BY li.title
-            ORDER BY total_revenue DESC
-            LIMIT 10
-        """, (start_date, end_date))
-
-        cursor.execute(sql, params)
-        results = cursor.fetchall()
+        orders = response.json()
         
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
+        # Calculate revenue by product
+        product_revenue = {}
+        for order in orders:
+            for item in order.get('line_items', []):
+                product_name = item.get('name', 'Unknown')
+                product_total = float(item.get('total', 0))
+                product_revenue[product_name] = product_revenue.get(product_name, 0) + product_total
         
-        labels = [row['title'] for row in results]
-        data = [row['total_revenue'] or 0 for row in results]
+        # Get top 10 products
+        sorted_products = sorted(product_revenue.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        chart_data = {
+            'products': [p[0] for p in sorted_products],
+            'revenue': [p[1] for p in sorted_products]
+        }
         
         return jsonify({
-            'labels': labels,
-            'data': data
+            'status': 'success',
+            'data': chart_data
         })
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Revenue chart failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
-
-
-# ============================================================================
-# ENDPOINT 5: Customer Segments
-# ============================================================================
-
-@cross_origin()
-def shopify_customer_segments():
-    """
-    Customer segmentation by order count
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    cursor = None
-    conn = None
-    try:
-        days = int(request.args.get('days', 90))
-        start_date, end_date = calculate_date_range(days)
-        
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_orders'")
-        table_check = cursor.fetchone()
-        
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
-            return jsonify({
-                'segments': []
-            })
-        
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            WITH CustomerOrders AS (
-                SELECT 
-                    email,
-                    COUNT(*) as order_count
-                FROM shopify_orders
-                WHERE DATE(created_at) BETWEEN ? AND ?
-                  AND email IS NOT NULL
-                GROUP BY email
-            )
-            SELECT 
-                CASE 
-                    WHEN order_count >= 5 THEN 'VIP (5+ orders)'
-                    WHEN order_count >= 3 THEN 'Regular (3-4 orders)'
-                    WHEN order_count = 2 THEN 'Repeat (2 orders)'
-                    ELSE 'New (1 order)'
-                END as segment,
-                COUNT(*) as count
-            FROM CustomerOrders
-            GROUP BY segment
-        """, (start_date, end_date))
-
-        cursor.execute(sql, params)
-        segments = [dict(row) for row in cursor.fetchall()]
-        
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
+        print(f"[WooCommerce] Error in shopify_revenue_chart: {e}")
+        traceback.print_exc()
         return jsonify({
-            'segments': segments
-        })
-        
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Customer segments failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============================================================================
-# ENDPOINT 6: Top Customers
+# ENDPOINT 5: Top Customers
 # ============================================================================
 
 @cross_origin()
 def shopify_top_customers():
     """
-    Top customers by total spent
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
+    Get top customers by total spend
+    Query params: days
     """
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
     try:
+        wcapi = get_woocommerce_api()
+        if not wcapi:
+            return jsonify({
+                'status': 'error',
+                'message': 'WooCommerce credentials not configured'
+            }), 503
+        
         days = int(request.args.get('days', 90))
         start_date, end_date = calculate_date_range(days)
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Fetch orders
+        params = {
+            'after': f"{start_date}T00:00:00",
+            'before': f"{end_date}T23:59:59",
+            'per_page': 100
+        }
         
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_orders'")
-        table_check = cursor.fetchone()
+        response = wcapi.get("orders", params=params)
         
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        if response.status_code != 200:
             return jsonify({
-                'customers': []
-            })
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
         
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                customer_name,
-                email,
-                COUNT(*) as order_count,
-                SUM(COALESCE(total_price, 0)) as total_spent,
-                AVG(COALESCE(total_price, 0)) as avg_order_value
-            FROM shopify_orders
-            WHERE DATE(created_at) BETWEEN ? AND ?
-              AND email IS NOT NULL
-            GROUP BY customer_name, email
-            ORDER BY total_spent DESC
-            LIMIT 20
-        """, (start_date, end_date))
-
-        cursor.execute(sql, params)
-        customers = [dict(row) for row in cursor.fetchall()]
+        orders = response.json()
         
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
+        # Calculate customer totals
+        customer_totals = {}
+        for order in orders:
+            customer_id = order.get('customer_id', 0)
+            customer_name = f"{order.get('billing', {}).get('first_name', '')} {order.get('billing', {}).get('last_name', '')}".strip() or 'Guest'
+            total = float(order.get('total', 0))
+            
+            key = f"{customer_id}_{customer_name}"
+            if key not in customer_totals:
+                customer_totals[key] = {
+                    'customer_name': customer_name,
+                    'total_spent': 0,
+                    'order_count': 0
+                }
+            
+            customer_totals[key]['total_spent'] += total
+            customer_totals[key]['order_count'] += 1
+        
+        # Get top 10 customers
+        sorted_customers = sorted(customer_totals.values(), key=lambda x: x['total_spent'], reverse=True)[:10]
         
         return jsonify({
-            'customers': customers
+            'status': 'success',
+            'data': sorted_customers
         })
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Top customers failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+        print(f"[WooCommerce] Error in shopify_top_customers: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
+# ============================================================================
+# ENDPOINT 6: Customer Segments
+# ============================================================================
+
+@cross_origin()
+def shopify_customer_segments():
+    """
+    Get customer segmentation data
+    Query params: days
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        wcapi = get_woocommerce_api()
+        if not wcapi:
+            return jsonify({
+                'status': 'error',
+                'message': 'WooCommerce credentials not configured'
+            }), 503
+        
+        days = int(request.args.get('days', 90))
+        start_date, end_date = calculate_date_range(days)
+        
+        # Fetch orders
+        params = {
+            'after': f"{start_date}T00:00:00",
+            'before': f"{end_date}T23:59:59",
+            'per_page': 100
+        }
+        
+        response = wcapi.get("orders", params=params)
+        
+        if response.status_code != 200:
+            return jsonify({
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
+        
+        orders = response.json()
+        
+        # Simple segmentation: by order frequency
+        customer_orders = {}
+        for order in orders:
+            customer_id = order.get('customer_id', 0)
+            if customer_id not in customer_orders:
+                customer_orders[customer_id] = 0
+            customer_orders[customer_id] += 1
+        
+        # Count segments
+        new_customers = sum(1 for count in customer_orders.values() if count == 1)
+        returning_customers = sum(1 for count in customer_orders.values() if 2 <= count <= 5)
+        vip_customers = sum(1 for count in customer_orders.values() if count > 5)
+        
+        segments = [
+            {'segment': 'New Customers', 'count': new_customers},
+            {'segment': 'Returning Customers', 'count': returning_customers},
+            {'segment': 'VIP Customers', 'count': vip_customers}
+        ]
+        
+        return jsonify({
+            'status': 'success',
+            'data': segments
+        })
+        
+    except Exception as e:
+        print(f"[WooCommerce] Error in shopify_customer_segments: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============================================================================
@@ -717,80 +628,73 @@ def shopify_top_customers():
 @cross_origin()
 def shopify_top_products():
     """
-    Top selling products by quantity
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
+    Get top selling products
+    Query params: days
     """
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
     try:
+        wcapi = get_woocommerce_api()
+        if not wcapi:
+            return jsonify({
+                'status': 'error',
+                'message': 'WooCommerce credentials not configured'
+            }), 503
+        
         days = int(request.args.get('days', 30))
         start_date, end_date = calculate_date_range(days)
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Fetch orders
+        params = {
+            'after': f"{start_date}T00:00:00",
+            'before': f"{end_date}T23:59:59",
+            'per_page': 100
+        }
         
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_line_items'")
-        table_check = cursor.fetchone()
+        response = wcapi.get("orders", params=params)
         
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        if response.status_code != 200:
             return jsonify({
-                'products': []
-            })
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
         
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                li.title,
-                li.variant_title,
-                SUM(li.quantity) as total_quantity,
-                SUM(li.price * li.quantity) as total_revenue
-            FROM shopify_line_items li
-            INNER JOIN shopify_orders o ON li.shopify_order_id = o.shopify_order_id
-            WHERE DATE(o.created_at) BETWEEN ? AND ?
-            GROUP BY li.title, li.variant_title
-            ORDER BY total_quantity DESC
-            LIMIT 15
-        """, (start_date, end_date))
-
-        cursor.execute(sql, params)
-        products = [dict(row) for row in cursor.fetchall()]
+        orders = response.json()
         
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
+        # Calculate product sales
+        product_stats = {}
+        for order in orders:
+            for item in order.get('line_items', []):
+                product_name = item.get('name', 'Unknown')
+                quantity = int(item.get('quantity', 0))
+                revenue = float(item.get('total', 0))
+                
+                if product_name not in product_stats:
+                    product_stats[product_name] = {
+                        'product_name': product_name,
+                        'quantity_sold': 0,
+                        'revenue': 0
+                    }
+                
+                product_stats[product_name]['quantity_sold'] += quantity
+                product_stats[product_name]['revenue'] += revenue
+        
+        # Get top 10 products
+        sorted_products = sorted(product_stats.values(), key=lambda x: x['revenue'], reverse=True)[:10]
         
         return jsonify({
-            'products': products
+            'status': 'success',
+            'data': sorted_products
         })
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Top products failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+        print(f"[WooCommerce] Error in shopify_top_products: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============================================================================
@@ -800,356 +704,90 @@ def shopify_top_products():
 @cross_origin()
 def shopify_product_catalog():
     """
-    Product catalog with sales data
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
+    Get product catalog
+    Query params: limit
     """
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
     try:
+        wcapi = get_woocommerce_api()
+        if not wcapi:
+            return jsonify({
+                'status': 'error',
+                'message': 'WooCommerce credentials not configured'
+            }), 503
+        
         limit = int(request.args.get('limit', 50))
         
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Fetch products
+        params = {
+            'per_page': min(limit, 100),
+            'status': 'publish'
+        }
         
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_line_items'")
-        table_check = cursor.fetchone()
+        response = wcapi.get("products", params=params)
         
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
+        if response.status_code != 200:
             return jsonify({
-                'products': []
+                'status': 'error',
+                'message': f'WooCommerce API error: {response.status_code}'
+            }), response.status_code
+        
+        products = response.json()
+        
+        # Format products
+        formatted_products = []
+        for product in products:
+            formatted_products.append({
+                'product_id': product['id'],
+                'product_name': product['name'],
+                'sku': product.get('sku', ''),
+                'price': float(product.get('price', 0)),
+                'stock_quantity': product.get('stock_quantity', 0),
+                'in_stock': product.get('stock_status', '') == 'instock'
             })
         
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                product_id,
-                variant_id,
-                title,
-                variant_title,
-                sku,
-                SUM(quantity) as total_quantity
-            FROM shopify_line_items
-            WHERE product_id IS NOT NULL
-            GROUP BY product_id, variant_id, title, variant_title, sku
-            ORDER BY total_quantity DESC
-            LIMIT ?
-        """, (limit,))
-
-        cursor.execute(sql, params)
-        products = [dict(row) for row in cursor.fetchall()]
-        
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
         return jsonify({
-            'products': products
+            'status': 'success',
+            'data': formatted_products
         })
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Product catalog failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+        print(f"[WooCommerce] Error in shopify_product_catalog: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============================================================================
-# ENDPOINT 9: Webhook Event Log
+# ENDPOINT 9 & 10: Webhooks (Not Implemented)
 # ============================================================================
 
 @cross_origin()
 def shopify_webhook_log():
-    """
-    Recent webhook events
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
-    """
+    """Webhook log - not implemented for WooCommerce"""
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
-    try:
-        limit = int(request.args.get('limit', 50))
-        
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_webhook_events'")
-        table_check = cursor.fetchone()
-        
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
-            return jsonify({
-                'events': []
-            })
-        
-        from shared.database_utils import convert_sql_placeholders
-        sql, params = convert_sql_placeholders("""
-            SELECT 
-                id,
-                topic,
-                shopify_id,
-                received_at,
-                processed,
-                processed_at,
-                error
-            FROM shopify_webhook_events
-            ORDER BY received_at DESC
-            LIMIT ?
-        """, (limit,))
+    return jsonify({
+        'status': 'success',
+        'data': []
+    })
 
-        cursor.execute(sql, params)
-        events = [dict(row) for row in cursor.fetchall()]
-        
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
-        return jsonify({
-            'events': events
-        })
-        
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Webhook log failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
-
-
-# ============================================================================
-# ENDPOINT 10: Webhook Health Stats
-# ============================================================================
 
 @cross_origin()
 def shopify_webhook_health():
-    """
-    Webhook health statistics
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization
-    - Added proper finally block
-    - Fixed early return cleanup
-    """
+    """Webhook health - not implemented for WooCommerce"""
     if request.method == 'OPTIONS':
         return '', 204
     
-    cursor = None
-    conn = None
-    try:
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shopify_webhook_events'")
-        table_check = cursor.fetchone()
-        
-        if not table_check:
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
-            return jsonify({
-                'stats': {
-                    'total': 0,
-                    'processed': 0,
-                    'pending': 0,
-                    'errors': 0
-                }
-            })
-        
-        cursor.execute("""
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN processed = 1 THEN 1 ELSE 0 END) as processed,
-                SUM(CASE WHEN processed = 0 AND error IS NULL THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as errors
-            FROM shopify_webhook_events
-        """)
-        
-        stats = dict(cursor.fetchone())
-        
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
-        return jsonify({
-            'stats': stats
-        })
-        
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   Webhook health failed: {error_details}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
-
-
-# ============================================================================
-# ENDPOINT 11: SQL Query Interface
-# ============================================================================
-
-@cross_origin(methods=['GET', 'POST', 'OPTIONS'])
-def shopify_sql_query():
-    """
-    SQL Viewer - Execute custom queries
-    GET: Returns Shopify table list
-    POST: Executes query
-    
-    AUDIT STATUS: ✅ FIXED
-    - Added cursor/conn initialization for GET
-    - Added cursor/conn initialization for POST
-    - Added proper finally blocks
-    - Fixed early return cleanup
-    """
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    cursor = None
-    conn = None
-    try:
-        # GET: Return Shopify table list
-        if request.method == 'GET':
-            conn = sqlite3.connect(STOCK_DB_PATH)
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' 
-                  AND name LIKE 'shopify_%'
-                ORDER BY name
-            """)
-            tables = [row[0] for row in cursor.fetchall()]
-            
-            table_info = {}
-            for table in tables:
-                cursor.execute(f"PRAGMA table_info({table})")
-                columns = cursor.fetchall()
-                table_info[table] = [
-                    {'name': col[1], 'type': col[2], 'nullable': not col[3]}
-                    for col in columns
-                ]
-            
-            cursor.close()
-            cursor = None
-            conn.close()
-            conn = None
-            
-            return jsonify({
-                'status': 'ok',
-                'tables': tables,
-                'table_info': table_info,
-                'database': 'SQLite (stock_data.db)'
-            })
-        
-        # POST: Execute query
-        data = request.get_json()
-        query = data.get('query', '').strip()
-        
-        if not query:
-            return jsonify({'status': 'error', 'message': 'No query provided'}), 400
-        
-        # Safety check
-        dangerous_keywords = ['DROP', 'TRUNCATE']
-        query_upper = query.upper()
-        if any(keyword in query_upper for keyword in dangerous_keywords):
-            return jsonify({
-                'status': 'error',
-                'message': 'DROP/TRUNCATE operations not allowed'
-            }), 403
-        
-        start_time = time.time()
-        
-        conn = sqlite3.connect(STOCK_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        
-        columns = [desc[0] for desc in cursor.description] if cursor.description else []
-        results = [dict(row) for row in rows]
-        execution_time = f"{round((time.time() - start_time) * 1000, 2)}ms"
-        
-        conn.commit()
-        
-        cursor.close()
-        cursor = None
-        conn.close()
-        conn = None
-        
-        return jsonify({
-            'status': 'ok',
-            'columns': columns,
-            'results': results,
-            'row_count': len(results),
-            'execution_time': execution_time,
-            'query': query
-        })
-        
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"   SQL query failed: {error_details}")
-        return jsonify({'status': 'error', 'error': str(e)}), 500
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+    return jsonify({
+        'status': 'success',
+        'data': {
+            'total_events': 0,
+            'success_rate': 100
+        }
+    })

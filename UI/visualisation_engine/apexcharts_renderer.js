@@ -109,9 +109,9 @@ class ApexChartsRenderer {
             const value = obj[key];
 
             // Check if value is a string that looks like a function
-            if (typeof value === 'string' && 
-                value.trim().startsWith('function') && 
-                value.includes('(') && 
+            if (typeof value === 'string' &&
+                value.trim().startsWith('function') &&
+                value.includes('(') &&
                 value.includes(')')) {
                 try {
                     // Convert string to actual function

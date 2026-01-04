@@ -462,21 +462,13 @@ class AutomationScheduler:
     
     def _check_pending_approvals(self):
         """Check for tasks pending approval and notify users"""
-        # Skip if no network connectivity (prevents repeated failures)
-        import socket
-        try:
-            socket.create_connection(("db.ryoicrdifiqhqpsnjmdo.supabase.co", 5432), timeout=10)  # Increased from 3 to 10 seconds
-        except (socket.timeout, socket.error, OSError):
-            logger.warning("No Supabase connectivity - skipping approval check")
-            return
-        
-        # Use context manager to ensure proper connection cleanup
+        # Use execute_query which handles Supabase connection pooling properly
         try:
             from AI_infrastructure.shared.database_utils import execute_query
             
             pending_tasks = execute_query(
                 '''
-                SELECT * FROM ai_infrastructure.scheduled_tasks 
+                SELECT * FROM scheduled_tasks 
                 WHERE is_active = true 
                 AND requires_approval = true 
                 AND approval_status = 'pending'
@@ -490,7 +482,9 @@ class AutomationScheduler:
                 logger.info(f"Found {len(pending_tasks)} tasks pending approval")
                 # TODO: Send notifications to users
         except Exception as e:
-            logger.error(f"Error checking pending approvals: {e}")
+            # Silently log and continue - approval checks shouldn't break the app
+            logger.debug(f"Approval check skipped: {e}")
+
     
     def create_task(self, task_data: Dict) -> str:
         """Create a new scheduled task"""

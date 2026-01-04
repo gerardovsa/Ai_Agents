@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication Hub - Smoke Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 20px;
+            background: #0d1117;
+            color: #c9d1d9;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #58a6ff;
+            border-bottom: 2px solid #21262d;
+            padding-bottom: 10px;
+        }
+        
+        .test-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            background: #2ea043;
+        }
+        
+        .btn-secondary {
+            background: #1f6feb;
+        }
+        
+        .btn-secondary:hover {
+            background: #388bfd;
+        }
+        
+        #console-output {
+            background: #010409;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-success {
+            background: #238636;
+            color: white;
+        }
+        
+        .status-fail {
+            background: #da3633;
+            color: white;
+        }
+        
+        .status-warn {
+            background: #d29922;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>📧 Communication Hub - Smoke Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Environment</h2>
+        <p><strong>API Base URL:</strong> <span id="api-url"></span></p>
+        <p><strong>Current Tab:</strong> <span id="current-tab"></span></p>
+        <p><strong>Module Loaded:</strong> <span id="module-status"></span></p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Quick Actions</h2>
+        <button class="btn" onclick="runSmokeTests()">🧪 Run Smoke Tests</button>
+        <button class="btn btn-secondary" onclick="switchToCommTab()">📧 Switch to Communication Tab</button>
+        <button class="btn btn-secondary" onclick="checkInitState()">⚙️ Check Init State</button>
+        <button class="btn btn-secondary" onclick="clearConsole()">🗑️ Clear Console</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+        <div id="console-output"></div>
+    </div>
+    
+    <!-- Load Communication Hub Module -->
+    <script type="module">
+        import CommunicationHub from './UI/modules_internal/communication-hub/communication-hub-v4-modern.js';
+        window.communicationHub = CommunicationHub;
+        console.log('✅ Communication Hub module imported');
+    </script>
+    
+    <!-- Load Smoke Test Script -->
+    <script src="test_communication_hub_smoke.js"></script>
+    
+    <!-- Test Page Logic -->
+    <script>
+        // Override console.log to capture output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const consoleOutput = document.getElementById('console-output');
+        
+        function appendConsole(type, ...args) {
+            const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+            const line = `[${type}] ${msg}\n`;
+            consoleOutput.textContent += line;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // Call original
+            if (type === 'LOG') originalLog(...args);
+            else if (type === 'ERROR') originalError(...args);
+            else if (type === 'WARN') originalWarn(...args);
+        }
+        
+        console.log = (...args) => appendConsole('LOG', ...args);
+        console.error = (...args) => appendConsole('ERROR', ...args);
+        console.warn = (...args) => appendConsole('WARN', ...args);
+        
+        // Set API_BASE_URL
+        window.API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5001'
+            : window.location.origin;
+        
+        // Update environment display
+        document.getElementById('api-url').textContent = window.API_BASE_URL;
+        document.getElementById('current-tab').textContent = window.AppState?.currentTab || 'N/A';
+        document.getElementById('module-status').innerHTML = typeof window.communicationHub !== 'undefined' 
+            ? '<span class="status-badge status-success">LOADED</span>'
+            : '<span class="status-badge status-fail">NOT LOADED</span>';
+        
+        // Test actions
+        async function runSmokeTests() {
+            console.log('🚀 Starting smoke tests...\n');
+            document.getElementById('test-results').innerHTML = '<p>⏳ Running tests...</p>';
+            
+            if (typeof window.communicationHubSmokeTest === 'function') {
+                const results = await window.communicationHubSmokeTest();
+                
+                let html = '<h3>Test Summary</h3>';
+                html += '<ul>';
+                html += `<li>TEST 1 - Module Import: ${results.individual.test1 ? '<span class="status-badge status-success">PASS</span>' : '<span class="status-badge status-fail">FAIL</span>'}</li>`;
+                html += `<li>TEST 2 - Container Lookup: ${results.individual.test2 ? '<span class="status-badge status-success">PASS</span>' : '<span class="status-badge status-fail">FAIL</span>'}</li>`;
+                html += `<li>TEST 3 - Initialization State: ${results.individual.test3 ? '<span class="status-badge status-success">PASS</span>' : '<span class="status-badge status-fail">FAIL</span>'}</li>`;
+                html += `<li>TEST 4 - Backend Endpoints: ${results.individual.test4 ? '<span class="status-badge status-success">PASS</span>' : '<span class="status-badge status-warn">PARTIAL</span>'}</li>`;
+                html += `<li>TEST 5 - Tab Switch: ${results.individual.test5 ? '<span class="status-badge status-success">PASS</span>' : '<span class="status-badge status-fail">FAIL</span>'}</li>`;
+                html += `<li>TEST 6 - Dependencies: ${results.individual.test6 ? '<span class="status-badge status-success">PASS</span>' : '<span class="status-badge status-fail">FAIL</span>'}</li>`;
+                html += '</ul>';
+                html += `<p><strong>Result:</strong> ${results.criticalPassed ? '<span class="status-badge status-success">CRITICAL TESTS PASSED</span>' : '<span class="status-badge status-fail">CRITICAL TESTS FAILED</span>'}</p>`;
+                
+                document.getElementById('test-results').innerHTML = html;
+            } else {
+                document.getElementById('test-results').innerHTML = '<p class="status-badge status-fail">Smoke test script not loaded</p>';
+            }
+        }
+        
+        function switchToCommTab() {
+            console.log('🔄 Attempting to switch to communication tab...');
+            const tab = document.getElementById('tab-communication');
+            if (tab) {
+                console.log('✅ Tab found, activating...');
+                tab.classList.add('active');
+            } else {
+                console.error('❌ Tab not found in DOM');
+            }
+        }
+        
+        function checkInitState() {
+            console.log('⚙️ Checking initialization state...');
+            console.log('  Module:', typeof window.communicationHub);
+            console.log('  Dashboard Container:', window.communicationHub?.dashboardContainer);
+            console.log('  API Base:', window.communicationHub?.state?.apiBase);
+            console.log('  Utilities:', {
+                dom: !!window.communicationHub?.dom,
+                api: !!window.communicationHub?.api,
+                log: !!window.communicationHub?.log
+            });
+        }
+        
+        function clearConsole() {
+            consoleOutput.textContent = '';
+        }
+        
+        // Make functions global
+        window.runSmokeTests = runSmokeTests;
+        window.switchToCommTab = switchToCommTab;
+        window.checkInitState = checkInitState;
+        window.clearConsole = clearConsole;
+        
+        console.log('✅ Test page loaded - Click "Run Smoke Tests" to begin');
+    </script>
+    
+    <!-- Mock DOM elements for testing -->
+    <div style="display:none;">
+        <div id="tab-communication" class="tab-content"></div>
+        <div id="communication-hub-main-container"></div>
+    </div>
+</body>
+</html>
