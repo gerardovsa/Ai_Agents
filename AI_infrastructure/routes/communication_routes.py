@@ -289,7 +289,8 @@ def list_emails():
                             'date': headers.get('date', ''),
                             'is_read': 'UNREAD' not in msg.get('labelIds', []),
                             'snippet': msg.get('snippet', ''),
-                            'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', []))
+                            'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
+                            'thread_id': msg.get('threadId')  # ✅ Gmail conversation threading
                         }
                     except Exception as msg_err:
                         print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
@@ -347,7 +348,8 @@ def list_emails():
                         'date': msg.get('receivedDateTime', ''),
                         'is_read': msg.get('isRead', False),
                         'snippet': msg.get('bodyPreview', ''),
-                        'has_attachments': msg.get('hasAttachments', False)
+                        'has_attachments': msg.get('hasAttachments', False),
+                        'thread_id': msg.get('conversationId')  # ✅ Outlook conversation threading
                     })
             else:
                 print(f"[Communication Hub] ⚠️  Outlook returned no messages or error: {outlook_result.get('error', 'Unknown')}")
