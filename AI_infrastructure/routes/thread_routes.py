@@ -6,7 +6,7 @@ REFACTORED: 2026-01-01 - All 24+ cursor leaks eliminated
 
 from flask import Blueprint, request, jsonify
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Import infrastructure
 from core.agent_state_manager import agent_state_manager
@@ -1862,6 +1862,7 @@ def save_messages():
     """
     Save messages directly to the messages table
     CRITICAL FIX: Links messages to threads so they show up in thread list
+    ENHANCED (Jan 4, 2026): Adds session token for cross-session sync
     """
     try:
         data = request.get_json() or {}
@@ -1875,7 +1876,12 @@ def save_messages():
         if not messages or not isinstance(messages, list):
             return error_response('messages array required', 400)
         
-        print(f"[MESSAGE SAVE] Thread: {thread_id}, User: {user_id}, Messages: {len(messages)}")
+        # Get session token for cross-session sync
+        session_token = request.headers.get('X-Session-Token') or \
+                       request.headers.get('Session-Token') or \
+                       data.get('session_token')
+        
+        print(f"[MESSAGE SAVE] Thread: {thread_id}, User: {user_id}, Messages: {len(messages)}, Session: {session_token[:8] if session_token else 'none'}...")
         
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
@@ -1913,6 +1919,18 @@ def save_messages():
                     if not role or not content:
                         continue
                     
+                    # Add session token to metadata for duplicate detection
+                    metadata = msg.get('metadata', {})
+                    if isinstance(metadata, str):
+                        try:
+                            metadata = json.loads(metadata)
+                        except:
+                            metadata = {}
+                    
+                    if session_token:
+                        metadata['session_token'] = session_token
+                        metadata['timestamp'] = datetime.now(timezone.utc).isoformat()
+                    
                     # Skip empty/whitespace-only messages
                     has_real_content = False
                     if isinstance(content, str):
@@ -1936,18 +1954,19 @@ def save_messages():
                     try:
                         # Serialize content to JSON
                         content_str = json.dumps(content) if isinstance(content, (dict, list)) else content
+                        metadata_str = json.dumps(metadata) if metadata else None
                         
                         # Use provided timestamp or fallback to CURRENT_TIMESTAMP
                         if timestamp:
                             sql, params = convert_sql_placeholders("""
-                                INSERT INTO sessions.messages (thread_id, role, content, created_at)
-                                VALUES (%s, %s, %s, %s)
-                            """, (internal_thread_id, role, content_str, timestamp))
+                                INSERT INTO sessions.messages (thread_id, role, content, metadata, user_id, created_at)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                            """, (internal_thread_id, role, content_str, metadata_str, user_id, timestamp))
                         else:
                             sql, params = convert_sql_placeholders("""
-                                INSERT INTO sessions.messages (thread_id, role, content, created_at)
-                                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-                            """, (internal_thread_id, role, content_str))
+                                INSERT INTO sessions.messages (thread_id, role, content, metadata, user_id, created_at)
+                                VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                            """, (internal_thread_id, role, content_str, metadata_str, user_id))
                         
                         cursor.execute(sql, params)
                         saved_count += 1

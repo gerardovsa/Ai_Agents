@@ -186,8 +186,8 @@ window.RealtimeSubscriptionsInit = (function () {
             // 3. THREADS - Thread metadata updates
             await subscribeToThreads(userId);
 
-            // 4. ✅ NEW: THREAD MESSAGES - Real-time message sync (CRITICAL for multi-session)
-            await subscribeToThreadMessages(userId);
+            // 4. ✅ NEW: MESSAGES - Real-time message sync (CRITICAL for multi-session)
+            await subscribeToMessages(userId);
 
             // 5. SYNERGY - Kanban board updates
             await subscribeToSynergy(userId);
@@ -291,116 +291,179 @@ window.RealtimeSubscriptionsInit = (function () {
     }
 
     /**
-     * ✅ FIXED (Dec 29, 2025): Subscribe to CONVERSATION MESSAGES with Team ID routing
+     * ✅ ENHANCED (Jan 4, 2026): Subscribe to MESSAGES with cross-session sync
      * 
-     * MULTI-USER COLLABORATION SUPPORT:
-     * - Listens to messages where user_id matches (personal messages)
-     * - Filters out messages not intended for this user (based on Team ID routing)
-     * - Shows broadcast messages (AI responses to all users in thread)
-     * - Shows direct messages to user's Team ID
+     * REAL-TIME CROSS-SESSION SYNCHRONIZATION:
+     * - Messages appear instantly on all devices/browsers for the same user
+     * - Session token prevents duplicate rendering on sending device
+     * - Handles both agent columns and Prime AI chat
+     * - Shows notifications for messages from other sessions
+     * - Updates live viewer indicators
      * 
      * MESSAGE ROUTING (sessions.messages columns):
      * - sender_team_id: Who sent the message (Team ID username)
      * - recipient_team_id: Who receives (NULL = broadcast, specific Team ID = direct)
      * - message_type: 'private' (default), 'direct', 'broadcast', 'team'
      * - user_id: Thread owner (may differ from sender in multi-user threads)
+     * - metadata: Contains session_token for duplicate detection
      */
-    async function subscribeToThreadMessages(userId) {
+    async function subscribeToMessages(userId) {
         try {
-            console.log('💬 [Realtime Init] Subscribing to CONVERSATION MESSAGES (sessions.messages)...');
+            console.log('💬 [Realtime Init] Subscribing to message updates...');
 
-            SupabaseRealtimeManager.subscribe('conversation-messages', {
-                event: 'INSERT',  // Only listen for NEW messages (AI responses, user messages)
+            SupabaseRealtimeManager.subscribe('messages', {
+                event: 'INSERT',  // Only listen for new messages
                 schema: 'sessions',
-                table: 'messages',  // ✅ CORRECT TABLE: sessions.messages (actual conversation data)
-                filter: `user_id=eq.${userId}`,
-                onChange: (eventType, payload) => {
-                    console.log('🔔 [Conversation Messages] New message received:', eventType, payload);
+                table: 'messages',
+                filter: `user_id=eq.${userId}`
+            }, async (payload) => {
+                console.log('🔔 [Messages] New message received:', payload);
 
-                    const message = payload.new || payload.old;
-                    const threadId = message.thread_id;
+                const newMessage = payload.new;
 
-                    // ✅ TEAM ID ROUTING: Check if this user should see this message
-                    // Supabase Realtime filters are limited (can't do OR/NULL in filter)
-                    // So we filter client-side for Team ID routing
-                    const userTeamId = window.UserAuth?.user?.username;
-                    const shouldDisplay = (
-                        message.user_id === userId ||  // User owns the thread
-                        message.message_type === 'broadcast' ||  // AI broadcast response
-                        message.recipient_team_id === null ||  // Broadcast (NULL recipient)
-                        message.recipient_team_id === userTeamId ||  // Direct to this Team ID
-                        !message.recipient_team_id  // Undefined = broadcast
-                    );
+                // Don't process if no thread_id
+                if (!newMessage.thread_id) {
+                    console.warn('⚠️ [Messages] Message has no thread_id, skipping');
+                    return;
+                }
 
-                    if (!shouldDisplay) {
-                        console.log('⏭️ [Messages] Message not for this user (Team ID routing)');
-                        console.log(`   sender=${message.sender_team_id}, recipient=${message.recipient_team_id}, type=${message.message_type}`);
+                // Get session token for duplicate detection
+                const mySessionToken = localStorage.getItem('session_token');
+                let messageSessionToken = null;
+
+                try {
+                    const metadata = typeof newMessage.metadata === 'string'
+                        ? JSON.parse(newMessage.metadata)
+                        : newMessage.metadata;
+                    messageSessionToken = metadata?.session_token;
+                } catch (e) {
+                    console.log('⚠️ [Messages] Could not parse metadata');
+                }
+
+                // Skip if this message came from this session (already rendered)
+                if (messageSessionToken && messageSessionToken === mySessionToken) {
+                    console.log('✅ [Messages] Message from this session, skipping (already rendered)');
+                    return;
+                }
+
+                console.log('📥 [Messages] Message from another session, rendering...');
+
+                // Get the thread to find which agent/location it belongs to
+                try {
+                    const threadResponse = await fetch(`/api/threads/load/${newMessage.thread_id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                        }
+                    });
+
+                    if (!threadResponse.ok) {
+                        console.warn('⚠️ [Messages] Could not load thread info');
                         return;
                     }
 
-                    // ✅ INSTANT UPDATE: Add message to MessageStore (all tabs get this)
-                    if (eventType === 'INSERT' && window.MessageStore) {
-                        window.MessageStore.addMessage(threadId, message, {
-                            checkDuplicates: true,
-                            syncToBackend: false,  // Already in backend
-                            silent: false
-                        });
+                    const threadData = await threadResponse.json();
+                    const thread = threadData.thread || threadData;
 
-                        // ✅ RENDER MESSAGE: If agent column has this thread loaded, render immediately
-                        if (window.MultiAgent && window.MultiAgent.loadedThreads) {
-                            // Find which agent has this thread
-                            for (const [agentId, threadInfo] of Object.entries(window.MultiAgent.loadedThreads)) {
-                                if (threadInfo.threadId === threadId) {
-                                    console.log(`📥 [Messages] Rendering new message in agent-${agentId} column`);
+                    console.log(`📍 [Messages] Thread location: ${thread.location}`);
 
-                                    // Get messages container
-                                    const messagesDiv = document.getElementById(`agent-messages-${agentId}`);
-                                    if (messagesDiv && window.UnifiedMessageRenderer) {
-                                        window.UnifiedMessageRenderer.render(
-                                            messagesDiv,
-                                            message.role,
-                                            message.content,
-                                            {
-                                                threadId: threadId,
-                                                syncToBackend: false,
-                                                scrollToBottom: true,
-                                                createdAt: message.created_at
-                                            }
-                                        );
-                                    }
-                                }
-                            }
+                    // Determine which agent column or Prime to update
+                    let targetAgentId = null;
+                    let targetContainer = null;
+                    let targetName = null;
+
+                    if (thread.location === 'prime' || thread.location === 'prime-loaded') {
+                        // Message is for Prime chat
+                        targetContainer = document.getElementById('chat-messages');
+                        targetName = 'Prime';
+                        console.log('📍 [Messages] Target: Prime Chat');
+                    } else if (thread.location && thread.location.startsWith('agent-')) {
+                        // Message is for an agent column
+                        targetAgentId = parseInt(thread.location.replace('agent-', ''));
+                        targetContainer = document.getElementById(`agent-messages-${targetAgentId}`);
+                        targetName = typeof window.MultiAgent !== 'undefined' && window.MultiAgent.getAgentName
+                            ? window.MultiAgent.getAgentName(targetAgentId)
+                            : `Agent ${targetAgentId}`;
+                        console.log(`📍 [Messages] Target: ${targetName}`);
+                    }
+
+                    // Only render if container exists and message doesn't exist yet
+                    if (targetContainer) {
+                        // Check if message already exists (by timestamp or ID)
+                        const existingMessage = targetContainer.querySelector(
+                            `[data-message-id="${newMessage.id}"]`
+                        );
+
+                        if (existingMessage) {
+                            console.log('✅ [Messages] Message already rendered, skipping');
+                            return;
                         }
 
-                        // ✅ ALSO UPDATE PRIME if this thread is in Prime
-                        if (window.ThreadManager && window.ThreadManager.currentThreadId === threadId) {
-                            const primeMessages = document.getElementById('ai-chat-messages');
-                            if (primeMessages && window.UnifiedMessageRenderer) {
-                                console.log('📥 [Messages] Rendering new message in Prime AI');
-                                window.UnifiedMessageRenderer.render(
-                                    primeMessages,
-                                    message.role,
-                                    message.content,
-                                    {
-                                        threadId: threadId,
-                                        syncToBackend: false,
-                                        scrollToBottom: true,
-                                        createdAt: message.created_at
+                        // Render the message using UnifiedMessageRenderer
+                        if (typeof window.UnifiedMessageRenderer !== 'undefined') {
+                            const containerSelector = targetAgentId
+                                ? `#agent-messages-${targetAgentId}`
+                                : '#chat-messages';
+
+                            console.log(`🎨 [Messages] Rendering message in ${containerSelector}`);
+
+                            const messageDiv = window.UnifiedMessageRenderer.render(
+                                containerSelector,
+                                newMessage.role,
+                                newMessage.content,
+                                {
+                                    threadId: thread.id || thread.thread_slug,
+                                    syncToBackend: false,  // Already in backend
+                                    contentBlocks: Array.isArray(newMessage.content)
+                                        ? newMessage.content
+                                        : null,
+                                    messageId: newMessage.id,
+                                    skipDuplicateCheck: false  // Check for duplicates
+                                }
+                            );
+
+                            if (messageDiv) {
+                                // Add data attribute for duplicate detection
+                                messageDiv.setAttribute('data-message-id', newMessage.id);
+
+                                // Auto-scroll to new message
+                                if (targetAgentId) {
+                                    // Agent column scroll
+                                    if (typeof window.scrollAgentToBottom === 'function') {
+                                        window.scrollAgentToBottom(targetAgentId);
                                     }
-                                );
+                                } else {
+                                    // Prime scroll
+                                    messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                }
+
+                                // Show notification (message from another session)
+                                if (typeof window.showNotification === 'function') {
+                                    window.showNotification(
+                                        `New message in ${targetName}`,
+                                        'info'
+                                    );
+                                }
+
+                                // Update live viewer badge
+                                if (targetAgentId && typeof window.updateLiveViewersBadge === 'function') {
+                                    window.updateLiveViewersBadge(targetAgentId, 1);
+                                }
+
+                                console.log('✅ [Messages] Message rendered successfully');
                             }
                         }
                     }
 
-                    // NOTE: Only handling INSERT - UPDATE/DELETE not needed for real-time message sync
+                } catch (error) {
+                    console.error('❌ [Messages] Error processing message:', error);
                 }
             });
 
-            activeSubscriptions.add('conversation-messages');
-            console.log('✅ [Realtime Init] Conversation messages subscription active (sessions.messages)');
+            activeSubscriptions.add('messages');
+            console.log('✅ [Realtime Init] Messages subscription active');
 
         } catch (error) {
-            console.error('❌ [Realtime Init] Thread messages subscription failed:', error);
+            console.error('❌ [Realtime Init] Messages subscription failed:', error);
         }
     }
 

@@ -4225,6 +4225,14 @@ async function sendAgentMessage(agentId) {
     const threadSlug = currentThread.id;
     const sessionId = threadSlug;
 
+    // ✅ CROSS-SESSION SYNC: Get or create session token
+    let mySessionToken = localStorage.getItem('session_token');
+    if (!mySessionToken) {
+        mySessionToken = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('session_token', mySessionToken);
+        console.log(`[Agent ${getAgentName(agentId)}] Created new session token: ${mySessionToken.substr(0, 20)}...`);
+    }
+
     try {
         // ============================================
         // ✅ DATABASE AS SOURCE OF TRUTH
@@ -4277,6 +4285,7 @@ async function sendAgentMessage(agentId) {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+                    'X-Session-Token': mySessionToken  // ✅ Add session token
                 },
                 body: formData
             });
@@ -4294,6 +4303,7 @@ async function sendAgentMessage(agentId) {
                 tools_enabled: true,
                 available_tools: ToolManager.availableTools.length,
                 google_auth: AuthManager.isAuthenticated ? AuthManager.getAccessToken() : null,
+                session_token: mySessionToken,  // ✅ Add session token
                 preferences: {
                     use_tools: true,
                     verbose_tool_output: true,
@@ -4334,6 +4344,7 @@ async function sendAgentMessage(agentId) {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+                    'X-Session-Token': mySessionToken  // ✅ Add session token
                 },
                 body: JSON.stringify(requestBody)
             });
@@ -6117,6 +6128,79 @@ function scrollAgentToBottom(agentId) {
         container.scrollTop = container.scrollHeight;
     }
 }
+
+/**
+ * Update live viewers badge to show cross-session presence
+ * Shows when other sessions/devices are actively viewing this agent
+ * @param {number} agentId - Agent column ID
+ * @param {number} viewerCount - Number of other sessions viewing (0 to hide badge)
+ */
+window.updateLiveViewersBadge = function (agentId, viewerCount) {
+    const agentColumn = document.getElementById(`agent-${agentId}`);
+    if (!agentColumn) {
+        console.warn(`[Live Viewers] Agent column ${agentId} not found`);
+        return;
+    }
+
+    const header = agentColumn.querySelector('.agent-header');
+    if (!header) {
+        console.warn(`[Live Viewers] Agent ${agentId} header not found`);
+        return;
+    }
+
+    let badge = header.querySelector('.live-viewers-badge');
+
+    if (viewerCount > 0) {
+        if (!badge) {
+            // Create badge if it doesn't exist
+            badge = document.createElement('div');
+            badge.className = 'live-viewers-badge';
+            badge.innerHTML = `
+                <span class="pulse-dot"></span>
+                <span class="viewer-count">${viewerCount}</span>
+                <span class="viewer-label">live</span>
+            `;
+            badge.title = `${viewerCount} other session${viewerCount > 1 ? 's' : ''} viewing`;
+
+            // Insert after agent name
+            const agentName = header.querySelector('.agent-name');
+            if (agentName && agentName.nextSibling) {
+                header.insertBefore(badge, agentName.nextSibling);
+            } else {
+                header.appendChild(badge);
+            }
+
+            console.log(`✅ [Live Viewers] Added badge to Agent ${agentId}: ${viewerCount} viewer(s)`);
+        } else {
+            // Update existing badge
+            const countSpan = badge.querySelector('.viewer-count');
+            if (countSpan) {
+                countSpan.textContent = viewerCount;
+            }
+            badge.title = `${viewerCount} other session${viewerCount > 1 ? 's' : ''} viewing`;
+            console.log(`🔄 [Live Viewers] Updated badge for Agent ${agentId}: ${viewerCount} viewer(s)`);
+        }
+
+        // Add visual highlight to column
+        agentColumn.classList.add('other-session-viewing');
+
+        // Auto-remove after 30 seconds (session timeout)
+        setTimeout(() => {
+            const stillVisible = header.contains(badge);
+            if (stillVisible) {
+                console.log(`⏰ [Live Viewers] Auto-removing badge from Agent ${agentId} (timeout)`);
+                if (badge) badge.remove();
+                agentColumn.classList.remove('other-session-viewing');
+            }
+        }, 30000);
+
+    } else if (badge) {
+        // Remove badge if viewer count is 0
+        badge.remove();
+        agentColumn.classList.remove('other-session-viewing');
+        console.log(`🚫 [Live Viewers] Removed badge from Agent ${agentId} (no viewers)`);
+    }
+};
 
 // Render user interaction UI
 function renderUserInteraction(data, agentId) {

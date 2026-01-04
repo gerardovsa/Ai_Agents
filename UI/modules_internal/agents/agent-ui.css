@@ -1340,3 +1340,97 @@
 .agent-autoscroll-btn:not(.active)::after {
     content: 'Toggle auto-scroll on';
 }
+
+/* ==================== LIVE VIEWERS BADGE (Jan 4, 2026) ==================== */
+
+.live-viewers-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #22c55e;
+    margin-left: 8px;
+    animation: badge-appear 0.3s ease;
+    cursor: help;
+    transition: all 0.2s ease;
+}
+
+.live-viewers-badge:hover {
+    background: rgba(34, 197, 94, 0.2);
+    transform: scale(1.05);
+}
+
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse-green 2s infinite;
+    box-shadow: 0 0 4px rgba(34, 197, 94, 0.5);
+}
+
+.viewer-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: #22c55e;
+    min-width: 12px;
+    text-align: center;
+}
+
+.viewer-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(34, 197, 94, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@keyframes pulse-green {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes badge-appear {
+    0% {
+        opacity: 0;
+        transform: translateY(-5px) scale(0.9);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Agent column highlight when other session is viewing */
+.agent-column.other-session-viewing {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3) inset;
+    animation: glow-pulse 3s infinite;
+}
+
+@keyframes glow-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3) inset;
+    }
+
+    50% {
+        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5) inset,
+            0 0 20px rgba(34, 197, 94, 0.2);
+    }
+}
