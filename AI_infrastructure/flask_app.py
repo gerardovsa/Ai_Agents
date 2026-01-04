@@ -1057,7 +1057,7 @@ def default_disconnect():
     Handle disconnection from default namespace (/)
     """
     try:
-        log_info(logger, f"[WS] Disconnection from default namespace: {request.sid}")
+        logger.info(f"[WS] Disconnection from default namespace: {request.sid}")
     except Exception as e:
         log_error(logger, f"[WS] Error in default_disconnect: {e}")
 
@@ -1083,14 +1083,14 @@ def ws_synergy_connect(auth=None):
         client_id = flask_request.sid
         
         # Log connection attempt with details for debugging
-        log_info(logger, f"[WS /ws/synergy] ✅ Connection from SID: {client_id}")
-        log_info(logger, f"[WS /ws/synergy] Remote: {flask_request.remote_addr}")
-        log_info(logger, f"[WS /ws/synergy] Transport: {flask_request.environ.get('werkzeug.socket', 'unknown')}")
+        logger.info(f"[WS /ws/synergy] ✅ Connection from SID: {client_id}")
+        logger.info(f"[WS /ws/synergy] Remote: {flask_request.remote_addr}")
+        logger.info(f"[WS /ws/synergy] Transport: {flask_request.environ.get('werkzeug.socket', 'unknown')}")
         
         # DIAGNOSTIC: Check if client_id is valid
         if not client_id:
-            log_error(logger, "[WS] ROOT CAUSE: Flask-SocketIO failed to generate session ID")
-            log_error(logger, "   Possible causes: WSGI middleware conflict, session disabled, cookie issues")
+            logger.error("[WS] ROOT CAUSE: Flask-SocketIO failed to generate session ID")
+            logger.error("   Possible causes: WSGI middleware conflict, session disabled, cookie issues")
             return False  # Reject connection
         
         # DIAGNOSTIC: Check for duplicate connection (reconnection without proper disconnect)
