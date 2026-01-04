@@ -2745,14 +2745,21 @@ function unloadThreadFromPrime() {
         });
     }
 
-    // STEP 3: Hide input wrapper (return to empty state)
+    // STEP 3: Clear chat messages container
+    const messagesContainer = document.getElementById('ai-chat-messages');
+    if (messagesContainer) {
+        messagesContainer.innerHTML = '';
+        console.log('[PrimeAI] Cleared chat messages');
+    }
+
+    // STEP 4: Hide input wrapper (return to empty state)
     const inputWrapper = document.querySelector('.ai-chat-input-wrapper');
     if (inputWrapper) {
         inputWrapper.style.display = 'none';
         console.log('[PrimeAI] Hidden input wrapper (empty state)');
     }
 
-    // STEP 4: Clear input
+    // STEP 5: Clear input
     const inputTextarea = document.getElementById('ai-chat-input');
     if (inputTextarea) {
         inputTextarea.value = '';
@@ -2763,20 +2770,20 @@ function unloadThreadFromPrime() {
         attachedFilesContainer.innerHTML = '';
     }
 
-    // STEP 5: Clear session/thread ID in AppState
+    // STEP 6: Clear session/thread ID in AppState
     if (typeof AppState !== 'undefined') {
         AppState.sessionId = null;
         AppState.currentThreadId = null;
         console.log('[PrimeAI] Cleared AppState session/thread ID');
     }
 
-    // STEP 6: Clear ThreadManager current thread
+    // STEP 7: Clear ThreadManager current thread
     if (typeof ThreadManager !== 'undefined') {
         ThreadManager.currentThreadId = null;
         console.log('[PrimeAI] Cleared ThreadManager current thread');
     }
 
-    // STEP 7: Abort any active streaming
+    // STEP 8: Abort any active streaming
     if (typeof window.abortController !== 'undefined' && window.abortController.prime) {
         try {
             window.abortController.prime.abort();
@@ -2787,7 +2794,7 @@ function unloadThreadFromPrime() {
         }
     }
 
-    // STEP 8: Dispatch unload event
+    // STEP 9: Dispatch unload event
     const unloadEvent = new CustomEvent('thread-unloaded', {
         detail: { location: 'prime' }
     });

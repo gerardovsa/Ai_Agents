@@ -525,6 +525,12 @@ def get_email(email_id):
                     'outlook_available': OUTLOOK_AVAILABLE
                 }), 503
             
+            # 🔍 DEBUG: Log Outlook email fetch attempt
+            print(f"\n🔍 [COMMUNICATION ROUTES] Fetching Outlook email:")
+            print(f"   - Email ID: {email_id}")
+            print(f"   - Message ID: {message_id}")
+            print(f"   - User ID: {user_id}")
+            
             # Request message WITH attachments expanded to get full attachment metadata
             result = microsoft_outlook_get_message(
                 message_id=message_id,
@@ -532,7 +538,6 @@ def get_email(email_id):
                 _user_id=user_id,
                 _injected_credentials=True
             )
-            
             if result.get('success'):
                 email_data = result.get('message', {})
                 from_addr = email_data.get('from', {})
@@ -608,6 +613,17 @@ def get_email(email_id):
                         'has_attachments': len(attachment_list) > 0
                     }
                 })
+            else:
+                # Outlook API call failed
+                error_msg = result.get('error', 'Unknown error')
+                print(f"❌ [COMMUNICATION ROUTES] Outlook API failed: {error_msg}")
+                print(f"❌ [COMMUNICATION ROUTES] Full result: {result}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Failed to fetch Outlook email: {error_msg}',
+                    'provider': provider,
+                    'email_id': email_id
+                }), 500
         
         # If we reach here, provider matched but email fetch failed
         return jsonify({

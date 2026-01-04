@@ -1026,6 +1026,12 @@ def calculate_corflute_signs_shopify(
             EyeletOption
         )
         
+        # Convert string parameters to int (fix type errors from JSON)
+        quantity = int(quantity) if isinstance(quantity, str) else quantity
+        custom_width_mm = int(custom_width_mm) if isinstance(custom_width_mm, str) else custom_width_mm
+        custom_height_mm = int(custom_height_mm) if isinstance(custom_height_mm, str) else custom_height_mm
+        artworks = int(artworks) if isinstance(artworks, str) else artworks
+        
         # Map size preset string to enum
         size_map = {
             "450x600": CorfluteSizePreset.SIZE_450x600,

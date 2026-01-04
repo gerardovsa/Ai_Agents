@@ -772,6 +772,14 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
         "domain": "database",
         "tool": "inhouse_database_guide",
         
+        "schema_verification": {
+            "last_verified": "2026-01-05",
+            "verification_method": "Direct query against Fred database (3.25.76.138\\INHPSQLSERVER)",
+            "verified_tables": ["JobTickets (70 columns confirmed)", "Orders", "PaperSize", "BindType", "Clients"],
+            "verified_by": "verify_inhouse_schema.py script",
+            "note": "Schema documentation matches actual database structure as of Jan 2026"
+        },
+        
         "what_you_get": [
             "Complete table schemas (Orders, JobTickets, PaperSize, BindType, Clients) for InHouse Fred database",
             "Column names and types (prevents 'Invalid column name' errors)",
@@ -779,7 +787,7 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
             "Database architecture (InHouse Fred vs Supabase Stock - two separate databases)",
             "Common JOIN patterns (Orders → JobTickets → PaperSize → BindType)",
             "SQL templates (TESTED and VERIFIED query patterns)",
-            "Common mistakes to avoid (with real testing results from Dec 2025)"
+            "Common mistakes to avoid (with real testing results from Dec 2025-Jan 2026)"
         ],
         
         "schema": {
@@ -817,12 +825,11 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                     "TicketNotes": "nvarchar(MAX) - PRIMARY source of truth for specs",
                     "QTY": "int - Quantity ordered",
                     "Cost": "decimal(10,2) - Job cost",
-                    "PrintType": "nvarchar(50) - CMYK or Mono (print color)",
                     "ColourStatus": "nvarchar(50) - Red/Yellow/Green (PRODUCTION URGENCY, not print color!)",
                     "PaperSizeID": "int (Foreign Key to PaperSize)",
                     "BindTypeID": "int (Foreign Key to BindType)"
                 },
-                "critical_note": "NO DateCreated column! Use o.OrderDate instead (must JOIN Orders). TicketNotes is PRIMARY source when structured columns are NULL. ColourStatus is urgency, NOT print color (use PrintType for color)."
+                "critical_note": "NO DateCreated column! Use o.OrderDate instead (must JOIN Orders). TicketNotes is PRIMARY source when structured columns are NULL. ColourStatus is urgency status (Red/Yellow/Green), NOT print color type."
             },
             "PaperSize": {
                 "table": "PaperSize",
@@ -988,11 +995,11 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "frequency": "CRITICAL - tested and confirmed Dec 2025"
             },
             {
-                "mistake": "Assuming ColourStatus is print color",
-                "error": "Logic error - returns urgency not color",
-                "fix": "Use jt.PrintType for print color (CMYK/Mono)",
-                "why_it_happens": "Name is misleading - ColourStatus is production urgency (Red/Yellow/Green)",
-                "frequency": "COMMON - misleading name"
+                "mistake": "Assuming ColourStatus is print color type",
+                "error": "Logic error - returns urgency status not color type",
+                "fix": "ColourStatus is production urgency (Red/Yellow/Green ONLY) - check TicketNotes for color specifications",
+                "why_it_happens": "Name is misleading - ColourStatus tracks URGENCY (not print color). Color info is in TicketNotes text field.",
+                "frequency": "COMMON - misleading column name"
             },
             {
                 "mistake": "Using LIMIT syntax (MySQL/PostgreSQL)",
@@ -1003,11 +1010,11 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
             },
             {
-                "mistake": "Querying PrintTickets table columns without proper JOINs",
-                "error": "Invalid column name 'Status', 'TotalCost', 'PrintType' in wrong context",
-                "fix": "Status/TotalCost are in Orders table, PrintType is in JobTickets - JOIN properly",
-                "why_it_happens": "Assumed columns exist in PrintTickets table without verifying schema",
-                "real_world_example": "AI tried: SELECT ps.SizeID, Status, TotalCost FROM PrintTickets ps → FAILED (Status/TotalCost are in Orders, not PrintTickets)",
+                "mistake": "Querying table columns without proper JOINs",
+                "error": "Invalid column name 'Status', 'TotalCost' in wrong context",
+                "fix": "Status/TotalCost are in Orders table - must JOIN Orders to access them",
+                "why_it_happens": "Assumed columns exist in JobTickets/PrintTickets without verifying schema",
+                "real_world_example": "AI tried: SELECT ps.SizeID, Status, TotalCost FROM PrintTickets ps → FAILED (Status/TotalCost are in Orders table, not PrintTickets)",
                 "frequency": "VERY COMMON - happened in real AI conversation (Nov 2025)"
             },
             {
@@ -1033,6 +1040,14 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "why_it_happens": "Some databases allow double quotes for strings, SQL Server doesn't",
                 "real_world_example": "AI tried: WHERE ClientName = \"ABC Corp\" → May fail. Correct: WHERE ClientName = 'ABC Corp'",
                 "frequency": "OCCASIONAL - syntax confusion"
+            },
+            {
+                "mistake": "Not converting date columns to strings in SELECT",
+                "error": "Object of type date is not JSON serializable",
+                "fix": "Use CONVERT(VARCHAR(10), o.OrderDate, 120) to convert dates to strings",
+                "why_it_happens": "SQL Server returns date objects that Python backend can't serialize to JSON",
+                "real_world_example": "AI tried: SELECT o.OrderDate FROM Orders → Backend returns JSON error. Correct: SELECT CONVERT(VARCHAR(10), o.OrderDate, 120) as OrderDate FROM Orders",
+                "frequency": "VERY COMMON - affects ALL date/datetime columns (OrderDate, DateCreated, etc.)"
             },
             {
                 "mistake": "Writing SQL without calling database_guide first",
