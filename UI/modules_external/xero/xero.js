@@ -132,8 +132,18 @@ class XeroModule extends BaseModule {
     parseXeroDate(dateStr) {
         if (!dateStr || dateStr === 'undefined' || dateStr === 'null') return null;
 
+        // Type validation - ensure dateStr is actually a string
+        if (typeof dateStr !== 'string') {
+            // If it's already a Date object, return it
+            if (dateStr instanceof Date) return dateStr;
+            // If it's a number (timestamp), convert it
+            if (typeof dateStr === 'number') return new Date(dateStr);
+            // Otherwise, try to convert to string
+            dateStr = String(dateStr);
+        }
+
         // Handle Xero format: /Date(timestamp+timezone)/
-        const match = dateStr.match(/\/Date\((\d+)([\+\-]\d+)?\)\//);
+        const match = dateStr.match(/\/Date\((\d+)([\+\-]\d+)?\)\//)
         if (match) {
             const timestamp = parseInt(match[1]);
             return new Date(timestamp);
@@ -2337,7 +2347,7 @@ class XeroModule extends BaseModule {
                         </button>
                     `,
                     cellClick: (e, cell) => {
-                        this.showInvoiceDetails(cell.getRow().getData());
+                        this.showDetailsModal('invoice', cell.getRow().getData());
                     }
                 }
             ]
@@ -3167,6 +3177,21 @@ class XeroModule extends BaseModule {
                                 'Stable': '➡️'
                             };
                             return `${icons[trend] || ''} ${trend}`;
+                        }
+                    },
+                    {
+                        title: 'Actions',
+                        width: 100,
+                        hozAlign: 'center',
+                        headerSort: false,
+                        formatter: () => `
+                            <button class="xero-action-btn" style="padding: 6px 12px; background: #1f6feb; border: 1px solid #1f6feb; border-radius: 4px; color: white; cursor: pointer; font-size: 11px;">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        `,
+                        cellClick: (e, cell) => {
+                            const customerData = cell.getRow().getData();
+                            this.showDetailsModal('contact', customerData);
                         }
                     }
                 ]
@@ -4417,6 +4442,9 @@ class XeroModule extends BaseModule {
             )
             : (type === 'invoice' ? [data] : []);
 
+        // Determine which tabs to show based on available data
+        const hasIntelligenceData = data.rfm_segment || data.unified_risk_score || data.ml_churn_probability;
+        
         return `
             <div class="xero-modal-header" style="
                 padding: 16px 20px;
@@ -4458,12 +4486,27 @@ class XeroModule extends BaseModule {
                 display: flex;
                 gap: 8px;
             ">
+                ${hasIntelligenceData ? `
+                    <button class="modal-tab-btn" data-tab="intelligence" style="
+                        padding: 8px 16px;
+                        background: #1f6feb;
+                        border: 1px solid #1f6feb;
+                        border-radius: 6px;
+                        color: white;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    ">
+                        <i class="fas fa-brain"></i> Customer Intelligence
+                    </button>
+                ` : ''}
                 <button class="modal-tab-btn" data-tab="details" style="
                     padding: 8px 16px;
-                    background: #1f6feb;
-                    border: 1px solid #1f6feb;
+                    background: ${hasIntelligenceData ? '#21262d' : '#1f6feb'};
+                    border: 1px solid ${hasIntelligenceData ? '#30363d' : '#1f6feb'};
                     border-radius: 6px;
-                    color: white;
+                    color: ${hasIntelligenceData ? '#8b949e' : 'white'};
                     font-size: 13px;
                     font-weight: 600;
                     cursor: pointer;
@@ -4491,124 +4534,193 @@ class XeroModule extends BaseModule {
                 overflow-y: auto;
                 max-height: calc(85vh - 140px);
             ">
+                ${hasIntelligenceData ? `
+                    <!-- Customer Intelligence Tab -->
+                    <div class="modal-tab-content" data-tab="intelligence" style="display: block;">
+                        ${this.buildCustomerIntelligenceContent(data)}
+                    </div>
+                ` : ''}
+
                 <!-- Customer Details Tab -->
-                <div class="modal-tab-content" data-tab="details" style="display: block;">
-                    ${this.buildCustomerDetailsContent(data, type)}
+                <div class="modal-tab-content" data-tab="details" style="display: ${hasIntelligenceData ? 'none' : 'block'};">
+                    ${this.buildCustomerDetailsContent(data, type, contactId)}
                 </div>
 
                 <!-- Invoices Tab -->
                 <div class="modal-tab-content" data-tab="invoices" style="display: none;">
-                    ${this.buildInvoicesTabContent(relatedInvoices, contactName)}
+                    ${this.buildInvoicesTabContent(relatedInvoices, contactName, data)}
                 </div>
             </div>
         `;
     }
 
-    buildCustomerDetailsContent(data, type) {
-        // Build customer/contact details section
-        const contact = type === 'contact' ? data : {
-            contact_name: data.contact_name || data.Contact?.Name,
-            email_address: data.email || data.email_address || data.Contact?.EmailAddress,
-            phone: data.phone || data.Contact?.Phones?.[0]?.PhoneNumber,
-            contact_status: data.contact_status || 'N/A',
+    buildCustomerIntelligenceContent(data) {
+        // This shows the intelligence/analytics data: RFM, risk scores, churn, etc.
+        const contact = {
             lifetime_revenue: data.lifetime_revenue || 0,
             rfm_segment: data.rfm_segment,
             unified_risk_score: data.unified_risk_score,
             ml_churn_probability: data.ml_churn_probability,
             days_since_last_order: data.days_since_last_order,
-            recommended_action: data.recommended_action
+            recommended_action: data.recommended_action,
+            recency_score: data.recency_score,
+            frequency_score: data.frequency_score,
+            monetary_score: data.monetary_score
         };
 
         return `
+            <!-- Key Metrics Grid -->
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
-                <div>
-                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px;">Email</div>
-                    <div style="font-size: 14px; color: #58a6ff;">${contact.email_address || 'N/A'}</div>
+                <div style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; border-left: 3px solid #3fb950;">
+                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 6px;">Lifetime Revenue</div>
+                    <div style="font-size: 32px; color: #3fb950; font-weight: 700;">$${contact.lifetime_revenue.toLocaleString()}</div>
                 </div>
-                <div>
-                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px;">Phone</div>
-                    <div style="font-size: 14px; color: #c9d1d9;">${contact.phone || 'N/A'}</div>
-                </div>
-                ${contact.lifetime_revenue ? `
-                    <div>
-                        <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px;">Lifetime Revenue</div>
-                        <div style="font-size: 18px; color: #3fb950; font-weight: 700;">$${contact.lifetime_revenue.toLocaleString()}</div>
+                <div style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; border-left: 3px solid #1f6feb;">
+                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 6px;">Customer Segment</div>
+                    <div style="font-size: 24px; margin-top: 8px;">
+                        <span style="
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            font-weight: 700;
+                            ${contact.rfm_segment === 'Champions' ? 'background: rgba(35, 134, 54, 0.2); color: #238636;' :
+                                contact.rfm_segment === 'At Risk' ? 'background: rgba(210, 153, 34, 0.2); color: #d29922;' :
+                                contact.rfm_segment === 'Lost' ? 'background: rgba(248, 81, 73, 0.2); color: #f85149;' :
+                                'background: rgba(31, 111, 235, 0.2); color: #1f6feb;'}
+                        ">
+                            ${contact.rfm_segment || 'N/A'}
+                        </span>
                     </div>
-                ` : ''}
-                ${contact.rfm_segment ? `
-                    <div>
-                        <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px;">Customer Segment</div>
-                        <div style="font-size: 14px;">
-                            <span style="
-                                padding: 4px 12px;
-                                border-radius: 4px;
-                                font-weight: 600;
-                                ${contact.rfm_segment === 'Champions' ? 'background: rgba(35, 134, 54, 0.15); color: #238636;' :
-                    contact.rfm_segment === 'At Risk' ? 'background: rgba(210, 153, 34, 0.15); color: #d29922;' :
-                        contact.rfm_segment === 'Lost' ? 'background: rgba(248, 81, 73, 0.15); color: #f85149;' :
-                            'background: rgba(31, 111, 235, 0.15); color: #1f6feb;'}
-                            ">
-                                ${contact.rfm_segment}
-                            </span>
+                </div>
+            </div>
+
+            <!-- RFM Scores -->
+            ${contact.recency_score || contact.frequency_score || contact.monetary_score ? `
+                <div style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 16px 0; color: #c9d1d9; font-size: 14px; text-transform: uppercase;">
+                        <i class="fas fa-chart-bar" style="color: #1f6feb;"></i> RFM Analysis
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        ${contact.recency_score ? `
+                            <div>
+                                <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Recency Score</div>
+                                <div style="font-size: 36px; color: #58a6ff; font-weight: 700;">${contact.recency_score}</div>
+                                <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">How recently purchased</div>
+                            </div>
+                        ` : ''}
+                        ${contact.frequency_score ? `
+                            <div>
+                                <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Frequency Score</div>
+                                <div style="font-size: 36px; color: #a371f7; font-weight: 700;">${contact.frequency_score}</div>
+                                <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">How often purchases</div>
+                            </div>
+                        ` : ''}
+                        ${contact.monetary_score ? `
+                            <div>
+                                <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Monetary Score</div>
+                                <div style="font-size: 36px; color: #3fb950; font-weight: 700;">${contact.monetary_score}</div>
+                                <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">How much spends</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Risk Analysis -->
+            <div style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; color: #c9d1d9; font-size: 14px; text-transform: uppercase;">
+                    <i class="fas fa-exclamation-triangle" style="color: #f85149;"></i> Risk Analysis
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                    ${contact.unified_risk_score ? `
+                        <div>
+                            <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Risk Score</div>
+                            <div style="font-size: 36px; color: ${contact.unified_risk_score > 70 ? '#f85149' : contact.unified_risk_score > 40 ? '#d29922' : '#3fb950'}; font-weight: 700;">
+                                ${contact.unified_risk_score.toFixed(1)}%
+                            </div>
+                            <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">Overall risk level</div>
+                        </div>
+                    ` : ''}
+                    ${contact.ml_churn_probability ? `
+                        <div>
+                            <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Churn Probability</div>
+                            <div style="font-size: 36px; color: #f85149; font-weight: 700;">${contact.ml_churn_probability.toFixed(1)}%</div>
+                            <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">Likelihood to leave</div>
+                        </div>
+                    ` : ''}
+                    ${contact.days_since_last_order !== undefined ? `
+                        <div>
+                            <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Days Inactive</div>
+                            <div style="font-size: 36px; color: ${contact.days_since_last_order > 180 ? '#f85149' : contact.days_since_last_order > 90 ? '#d29922' : '#3fb950'}; font-weight: 700;">
+                                ${contact.days_since_last_order}d
+                            </div>
+                            <div style="font-size: 11px; color: #8b949e; margin-top: 4px;">Since last order</div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                ${contact.recommended_action ? `
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #30363d;">
+                        <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Recommended Action</div>
+                        <div style="font-size: 16px; color: #58a6ff; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                            ${contact.recommended_action === 'call_now' ? '📞 Call Now - Immediate attention required' :
+                                contact.recommended_action === 'email_campaign' ? '✉️ Email Campaign - Re-engagement needed' :
+                                contact.recommended_action === 'monitor' ? '👀 Monitor - Keep watching' : contact.recommended_action}
                         </div>
                     </div>
                 ` : ''}
             </div>
+        `;
+    }
 
-            ${contact.unified_risk_score || contact.ml_churn_probability ? `
-                <div style="padding: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 20px;">
-                    <h4 style="margin: 0 0 12px 0; color: #c9d1d9; font-size: 13px; text-transform: uppercase;">
-                        <i class="fas fa-exclamation-triangle" style="color: #f85149;"></i> Risk Analysis
+    buildCustomerDetailsContent(data, type, contactId) {
+        // This shows actual contact information: name, address, phone, email, etc.
+        // We'll make this load via API call when the tab is clicked
+        const contact = type === 'contact' ? data : {
+            contact_name: data.contact_name || data.Contact?.Name,
+            email_address: data.email || data.email_address || data.Contact?.EmailAddress,
+            phone: data.phone || data.Contact?.Phones?.[0]?.PhoneNumber,
+            contact_status: data.contact_status || 'N/A'
+        };
+
+        return `
+            <div id="customer-details-loading" style="display: none; text-align: center; padding: 40px; color: #8b949e;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 12px;"></i>
+                <div>Loading customer details...</div>
+            </div>
+            
+            <div id="customer-details-content">
+                <!-- Contact Information -->
+                <div style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 16px 0; color: #c9d1d9; font-size: 14px; text-transform: uppercase;">
+                        <i class="fas fa-address-card" style="color: #58a6ff;"></i> Contact Information
                     </h4>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                        ${contact.unified_risk_score ? `
-                            <div>
-                                <div style="font-size: 11px; color: #8b949e; margin-bottom: 4px;">Risk Score</div>
-                                <div style="font-size: 20px; color: ${contact.unified_risk_score > 70 ? '#f85149' : contact.unified_risk_score > 40 ? '#d29922' : '#3fb950'}; font-weight: 700;">
-                                    ${contact.unified_risk_score.toFixed(1)}%
-                                </div>
-                            </div>
-                        ` : ''}
-                        ${contact.ml_churn_probability ? `
-                            <div>
-                                <div style="font-size: 11px; color: #8b949e; margin-bottom: 4px;">Churn Probability</div>
-                                <div style="font-size: 20px; color: #f85149; font-weight: 700;">${contact.ml_churn_probability.toFixed(1)}%</div>
-                            </div>
-                        ` : ''}
-                        ${contact.days_since_last_order ? `
-                            <div>
-                                <div style="font-size: 11px; color: #8b949e; margin-bottom: 4px;">Days Inactive</div>
-                                <div style="font-size: 20px; color: ${contact.days_since_last_order > 180 ? '#f85149' : contact.days_since_last_order > 90 ? '#d29922' : '#8b949e'}; font-weight: 700;">
-                                    ${contact.days_since_last_order}d
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
-                    ${contact.recommended_action ? `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #30363d;">
-                            <div style="font-size: 11px; color: #8b949e; margin-bottom: 4px;">Recommended Action</div>
-                            <div style="font-size: 14px; color: #58a6ff; font-weight: 600;">
-                                ${contact.recommended_action === 'call_now' ? '📞 Call Now' :
-                        contact.recommended_action === 'email_campaign' ? '✉️ Email Campaign' :
-                            contact.recommended_action === 'monitor' ? '👀 Monitor' : contact.recommended_action}
-                            </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                        <div>
+                            <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px;">Email</div>
+                            <div style="font-size: 14px; color: #58a6ff; word-break: break-all;">${contact.email_address || 'N/A'}</div>
                         </div>
-                    ` : ''}
+                        <div>
+                            <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px;">Phone</div>
+                            <div style="font-size: 14px; color: #c9d1d9;">${contact.phone || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px;">Status</div>
+                            <div style="font-size: 14px; color: #c9d1d9; font-weight: 600;">${contact.contact_status || 'Active'}</div>
+                        </div>
+                    </div>
                 </div>
-            ` : ''}
 
-            <div style="padding: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;">
-                <h4 style="margin: 0 0 12px 0; color: #c9d1d9; font-size: 13px; text-transform: uppercase;">
-                    <i class="fas fa-info-circle" style="color: #58a6ff;"></i> Contact Information
-                </h4>
-                <div style="font-size: 13px; color: #8b949e; line-height: 1.8;">
-                    Status: <span style="color: #c9d1d9; font-weight: 600;">${contact.contact_status || 'Active'}</span>
+                <!-- Placeholder for full details from API -->
+                <div style="padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; text-align: center; color: #8b949e;">
+                    <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 12px; opacity: 0.5;"></i>
+                    <div style="font-size: 13px;">Additional customer details will be loaded from Xero API</div>
+                    <div style="font-size: 11px; margin-top: 8px;">Including addresses, tax numbers, account details, etc.</div>
                 </div>
             </div>
         `;
     }
 
-    buildInvoicesTabContent(invoices, contactName) {
+    buildInvoicesTabContent(invoices, contactName, contactData) {
         if (!invoices || invoices.length === 0) {
             return `
                 <div style="text-align: center; padding: 60px 20px; color: #8b949e;">
