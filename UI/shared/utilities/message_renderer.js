@@ -604,25 +604,26 @@ const UnifiedMessageRenderer = (function () {
 
                 if (block.type === 'tool_result') {
                     console.log(`[renderUserContent] ✅ Rendering tool_result block`, block);
-                    // Render tool_result block compactly
+                    // Render tool_result block compactly with dark theme styling
                     const resultDiv = document.createElement('div');
                     resultDiv.className = 'content-block tool-result-block';
-                    resultDiv.style.cssText = 'margin: 8px 0; padding: 10px; background: #f0f9ff; border-left: 3px solid #3b82f6; border-radius: 4px;';
+                    // Dark theme: subtle green accent with transparency
+                    resultDiv.style.cssText = 'margin: 8px 0; padding: 12px; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; border-radius: 6px;';
 
-                    // Tool result header
+                    // Tool result header - improved spacing and colors
                     const headerDiv = document.createElement('div');
-                    headerDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; color: #1e40af; font-weight: 500; margin-bottom: 8px;';
+                    headerDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; color: #10b981; font-weight: 600; margin-bottom: 10px; font-size: 0.9em;';
                     headerDiv.innerHTML = `
                         <i class="fas fa-check-circle" style="color: #10b981;"></i>
                         <span>Tool Result</span>
-                        ${block.tool_use_id ? `<span style="font-size: 0.75em; color: #6b7280; font-family: monospace;">${block.tool_use_id.substring(0, 12)}...</span>` : ''}
+                        ${block.tool_use_id ? `<span style="font-size: 0.8em; color: #6b7280; font-family: 'Courier New', monospace; opacity: 0.7;">${block.tool_use_id.substring(0, 10)}...</span>` : ''}
                     `;
                     resultDiv.appendChild(headerDiv);
 
-                    // Tool result content (collapsed by default, show first 200 chars)
+                    // Tool result content (collapsed by default, show first 200 chars) - dark theme friendly
                     if (block.content) {
                         const contentPreview = document.createElement('div');
-                        contentPreview.style.cssText = 'font-size: 0.85em; color: #4b5563; font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow: hidden;';
+                        contentPreview.style.cssText = 'font-size: 0.85em; color: #d1d5db; font-family: "Courier New", monospace; white-space: pre-wrap; max-height: 120px; overflow: hidden; line-height: 1.5; background: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 4px;';
 
                         const contentStr = typeof block.content === 'string'
                             ? block.content
