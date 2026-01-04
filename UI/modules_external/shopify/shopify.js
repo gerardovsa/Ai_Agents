@@ -16,7 +16,7 @@ class BaseModule {
             if (response.ok) {
                 this.manifest = await response.json();
                 console.log(` Manifest loaded for ${this.moduleId}:`, this.manifest);
-                
+
                 // Create module structure after manifest is loaded
                 if (this.container && this.manifest) {
                     this.createModuleStructure();
@@ -708,7 +708,7 @@ class ShopifyModule extends BaseModule {
 
         // Create the UI structure first (like Xero does)
         this.createUIStructure();
-        
+
         // Then initialize sub-tabs
         this.initializeSubTabs();
     }

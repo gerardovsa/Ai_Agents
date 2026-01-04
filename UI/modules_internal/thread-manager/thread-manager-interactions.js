@@ -1176,28 +1176,39 @@ Object.assign(window.ThreadManager, {
      * Formats the entire conversation for pasting into documents
      */
     async copyThreadConversation(threadId) {
+        console.log('📋 [Copy Thread] Starting copy operation for thread:', threadId);
+        
         const thread = this.threads.find(t => t.id === threadId);
         if (!thread) {
-            console.error('❌ [Interactions] Thread not found:', threadId);
+            console.error('❌ [Copy Thread] Thread not found:', threadId);
             if (typeof showNotification === 'function') {
                 showNotification('Thread not found', 'error');
             }
             return;
         }
 
+        console.log('📋 [Copy Thread] Found thread:', thread.title || 'Untitled');
+
         // Fetch full messages if not loaded
         if (!thread.messages || thread.messages.length === 0) {
-            console.log('📥 [Interactions] Fetching messages for thread:', threadId);
+            console.log('📥 [Copy Thread] Fetching messages for thread:', threadId);
+            if (typeof showNotification === 'function') {
+                showNotification('Loading thread messages...', 'info', 1500);
+            }
+            
             const messages = await this.loadMessagesForThread(threadId);
             if (messages && messages.length > 0) {
                 thread.messages = messages;
+                console.log('✅ [Copy Thread] Loaded', messages.length, 'messages');
             } else {
-                console.warn('⚠️ [Interactions] No messages found for thread');
+                console.warn('⚠️ [Copy Thread] No messages found for thread');
                 if (typeof showNotification === 'function') {
                     showNotification('No messages to copy', 'warning');
                 }
                 return;
             }
+        } else {
+            console.log('📋 [Copy Thread] Using cached messages:', thread.messages.length, 'messages');
         }
 
         // Format the conversation
@@ -1217,18 +1228,26 @@ Object.assign(window.ThreadManager, {
         });
 
         // Copy to clipboard
+        console.log('📋 [Copy Thread] Formatted text ready, copying to clipboard...');
+        console.log('📋 [Copy Thread] Text length:', formattedText.length, 'characters');
+        
         try {
             await navigator.clipboard.writeText(formattedText);
-            console.log('✅ [Interactions] Copied full conversation:', threadId);
+            console.log('✅ [Copy Thread] Successfully copied full conversation');
+            console.log('✅ [Copy Thread] Thread:', thread.title || 'Untitled');
+            console.log('✅ [Copy Thread] Messages:', thread.messages.length);
+            console.log('✅ [Copy Thread] Characters:', formattedText.length);
+            
             if (typeof showNotification === 'function') {
-                showNotification('Full conversation copied to clipboard', 'success', 2000);
+                showNotification(`Copied ${thread.messages.length} messages to clipboard`, 'success', 3000);
             }
+            
             // Close the menu
             this.toggleCopyMenu(threadId);
         } catch (err) {
-            console.error('❌ [Interactions] Failed to copy conversation:', err);
+            console.error('❌ [Copy Thread] Failed to copy conversation:', err);
             if (typeof showNotification === 'function') {
-                showNotification('Failed to copy conversation', 'error');
+                showNotification('Failed to copy conversation: ' + err.message, 'error');
             }
         }
     },

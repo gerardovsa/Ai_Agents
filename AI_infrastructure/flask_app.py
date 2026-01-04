@@ -807,7 +807,14 @@ try:
         max_http_buffer_size=1e8 if IS_RENDER else 1e6,  # 100MB on Render, 1MB local (for large messages)
         allow_upgrades=True,  # Allow transport upgrades (polling -> WebSocket)
         http_compression=True,  # Compress HTTP responses
-        compression_threshold=1024  # Compress messages > 1KB
+        compression_threshold=1024,  # Compress messages > 1KB
+        # ✅ CONNECTION STATE RECOVERY (Socket.IO v4.6+)
+        # Recovers session state after temporary disconnections without re-authentication
+        # Improves UX during network hiccups, page refreshes, or mobile network switches
+        connection_state_recovery={
+            'maxDisconnectionDuration': 2 * 60 * 1000,  # 2 minutes buffer for recovery
+            'skipMiddlewares': True  # Skip re-authentication on successful recovery
+        }
     )
     if socketio_message_queue:
         log_config(logger, f"[WS] message_queue enabled: {socketio_message_queue}")
@@ -834,7 +841,12 @@ except Exception as e:
         max_http_buffer_size=1e8 if IS_RENDER else 1e6,
         allow_upgrades=True,
         http_compression=True,
-        compression_threshold=1024
+        compression_threshold=1024,
+        # ✅ CONNECTION STATE RECOVERY (fallback initialization)
+        connection_state_recovery={
+            'maxDisconnectionDuration': 2 * 60 * 1000,
+            'skipMiddlewares': True
+        }
     )
     log_success(logger, f"[WS] SocketIO initialized (fallback mode) - ping_timeout={ping_timeout_config}s")
 
@@ -1605,6 +1617,7 @@ def ws_synergy_session_update(data):
     session_id = data.get('session_id')
     updates = data.get('updates', {})
     room = data.get('room', 'default')
+    user_id = data.get('user_id')
     
     print(f'[WS] Session update: {session_id} in room {room}')
     
@@ -1614,6 +1627,14 @@ def ws_synergy_session_update(data):
         'updates': updates,
         'timestamp': datetime.now().isoformat()
     }, room=room, include_self=False)
+    
+    # ✅ CROSS-DEVICE SYNC: Also broadcast to user room for device sync
+    if user_id:
+        emit('session_updated', {
+            'session_id': session_id,
+            'updates': updates,
+            'timestamp': datetime.now().isoformat()
+        }, room=f'user_{user_id}', include_self=False)
 
 
 # ============================================================================
@@ -2002,7 +2023,8 @@ def ws_synergy_agent_message_sent(data):
             log_config(logger, f"[WS] Agent message LOCAL mode: thread={thread_id}, no broadcast (private)")
             return  # Skip broadcast
         
-        # Central HQ: Broadcast to all sessions with same user_id (team collaboration)
+        # ✅ PRODUCTION FIX: Always broadcast to user room (remove local mode - doesn't work)
+        # Broadcast to all sessions with same user_id (team collaboration)
         emit('agent_message_received', {
             'source': 'socket.io',
             'thread_id': thread_id,
@@ -2011,11 +2033,11 @@ def ws_synergy_agent_message_sent(data):
             'role': role,
             'content_blocks': content_blocks,
             'session_token': session_token,
-            'privacy_mode': privacy_mode,
+            'privacy_mode': 'central',  # Force central mode (local mode removed)
             'timestamp': datetime.now().isoformat()
         }, room=f'user_{user_id}', skip_sid=flask_request.sid)
         
-        log_config(logger, f"[WS] Agent message CENTRAL broadcast: thread={thread_id}, agent={agent_id}, role={role}, mode={privacy_mode}")
+        log_config(logger, f"[WS] Agent message broadcast: thread={thread_id}, agent={agent_id}, role={role}, room=user_{user_id}")
         
     except Exception as e:
         log_error(logger, f"[WS ERROR] agent_message_sent failed: {e}")
@@ -2385,12 +2407,25 @@ def dev_presence_view():
 
 @app.route('/health', methods=['GET', 'OPTIONS'])
 def health_check():
-    """Health check endpoint with explicit CORS"""
+    """Enhanced health check endpoint with Socket.IO metrics and explicit CORS"""
+    from datetime import datetime
+    
+    # Gather Socket.IO connection metrics
+    socketio_status = {
+        'connected_clients': len(connected_clients),
+        'async_mode': socketio.async_mode if socketio else 'not_initialized',
+        'transport': 'websocket_ready',
+        'active_users': len(active_users) if 'active_users' in globals() else 0
+    }
+    
     response = jsonify({
         'status': 'healthy',
         'app': 'new_flask_app',
         'infrastructure': 'AI_infrastructure',
-        'providers': ['anthropic', 'deepseek', 'openai']
+        'providers': ['anthropic', 'deepseek', 'openai'],
+        'socketio': socketio_status,
+        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'environment': 'production' if IS_RENDER else 'development'
     })
     
     # Add CORS headers explicitly

@@ -26,7 +26,8 @@ window.SynergyRealtime = {
     connected: false,
     reconnectAttempts: 0,
     maxReconnectAttempts: 10,
-    reconnectDelay: 2000,
+    reconnectDelay: 1000,  // Start at 1s (improved from 2s)
+    reconnectDelayMax: 5000,  // Max 5s (improved from 10s to reduce wait time)
     sessionToken: null,  // Unique browser session identifier
     sessionDisplayName: null,  // Per-session display name for multi-user collaboration
     heartbeatInterval: null,
@@ -70,15 +71,15 @@ window.SynergyRealtime = {
             // Local development: Polling-first (more reliable for localhost)
             const isRenderProduction = apiUrl.includes('onrender.com');
             const isLocalhost = apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
-            
+
             // Transport priority based on environment
-            const transports = isRenderProduction 
+            const transports = isRenderProduction
                 ? ['websocket', 'polling']  // Render: Try WebSocket first to avoid load balancer interference
                 : ['polling', 'websocket']; // Local: Polling first (more stable for dev)
-            
+
             // Timeout configuration based on environment
             const timeout = isRenderProduction ? 30000 : 20000;  // 30s for Render cold starts, 20s local
-            
+
             this._log(`Environment: ${isRenderProduction ? 'Render Production' : isLocalhost ? 'Local Development' : 'Unknown'}`);
             this._log(`Transport priority: ${transports.join(' -> ')}`);
             this._log(`Connection timeout: ${timeout}ms`);
@@ -92,7 +93,8 @@ window.SynergyRealtime = {
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
                 reconnectionDelay: this.reconnectDelay,
-                reconnectionDelayMax: 10000,
+                reconnectionDelayMax: this.reconnectDelayMax,  // Use instance property (5s)
+                randomizationFactor: 0.5,  // ✅ Add jitter ±50% to prevent thundering herd on reconnect
                 timeout: timeout,  // Environment-aware timeout
                 forceNew: false,
                 upgrade: true,  // Allow transport upgrade (polling -> WebSocket or vice versa)
@@ -104,6 +106,12 @@ window.SynergyRealtime = {
                 withCredentials: false,
                 // Enhanced error recovery
                 closeOnBeforeunload: false  // Keep connection alive during page navigation
+            });
+
+            // ✅ TRANSPORT UPGRADE MONITORING
+            // Helps debug when connections are stuck in polling mode on production
+            this.socket.io.engine.on('upgrade', (transport) => {
+                this._log(`✅ Upgraded to ${transport.name}`);
             });
 
             // Connection events
@@ -130,6 +138,12 @@ window.SynergyRealtime = {
 
             // Command Center: agent thread synchronization across sessions
             this.socket.on('agent_thread_updated', (data) => this._handleAgentThreadUpdated(data));
+
+            // ✅ CROSS-DEVICE SYNC: Thread operations (save, delete)
+            this.socket.on('thread_updated', (data) => this._handleThreadUpdated(data));
+            this.socket.on('thread_deleted', (data) => this._handleThreadDeleted(data));
+            this.socket.on('thread_created', (data) => this._handleThreadCreated(data));
+            this.socket.on('prime_thread_updated', (data) => this._handlePrimeThreadUpdated(data));
 
             // Ping/pong for connection monitoring
             this.socket.on('pong', (data) => {
@@ -337,6 +351,91 @@ window.SynergyRealtime = {
             }));
         } catch (e) {
             console.warn('[REALTIME] Failed to dispatch agent_thread_updated event:', e);
+        }
+    },
+
+    // ✅ CROSS-DEVICE SYNC: Thread operation handlers
+    _handleThreadUpdated(data) {
+        this._log('💾 Thread updated (cross-device):', data);
+
+        try {
+            // Dispatch DOM event for other modules to handle
+            window.dispatchEvent(new CustomEvent('synergyrealtime:thread_updated', {
+                detail: data
+            }));
+
+            // Show notification (only if significant change)
+            if (data.action === 'saved') {
+                this._showNotification(
+                    `Thread "${data.thread_name || data.thread_id}" saved`,
+                    `${data.message_count} messages`,
+                    'info'
+                );
+            }
+        } catch (e) {
+            console.warn('[REALTIME] Failed to dispatch thread_updated event:', e);
+        }
+    },
+
+    _handleThreadDeleted(data) {
+        this._log('🗑️ Thread deleted (cross-device):', data);
+
+        try {
+            // Dispatch DOM event for other modules to handle
+            window.dispatchEvent(new CustomEvent('synergyrealtime:thread_deleted', {
+                detail: data
+            }));
+
+            // Show notification
+            this._showNotification(
+                'Thread deleted',
+                `Thread ${data.thread_id} removed`,
+                'warning'
+            );
+        } catch (e) {
+            console.warn('[REALTIME] Failed to dispatch thread_deleted event:', e);
+        }
+    },
+
+    _handleThreadCreated(data) {
+        this._log('✨ Thread created (cross-device):', data);
+
+        try {
+            // Dispatch DOM event for other modules to handle
+            window.dispatchEvent(new CustomEvent('synergyrealtime:thread_created', {
+                detail: data
+            }));
+
+            // Show notification
+            this._showNotification(
+                'New thread created',
+                data.thread_name || data.thread_id,
+                'success'
+            );
+        } catch (e) {
+            console.warn('[REALTIME] Failed to dispatch thread_created event:', e);
+        }
+    },
+
+    _handlePrimeThreadUpdated(data) {
+        this._log('👑 Prime thread updated (cross-device):', data);
+
+        try {
+            // Dispatch DOM event for other modules to handle
+            window.dispatchEvent(new CustomEvent('synergyrealtime:prime_thread_updated', {
+                detail: data
+            }));
+
+            // Show notification (only if different agent)
+            if (data.agent_id) {
+                this._showNotification(
+                    'Prime thread changed',
+                    `Now active on Agent ${data.agent_id}`,
+                    'info'
+                );
+            }
+        } catch (e) {
+            console.warn('[REALTIME] Failed to dispatch prime_thread_updated event:', e);
         }
     },
 

@@ -1196,6 +1196,55 @@ export default {
     /**
      * Load emails from backend
      */
+    /**
+     * Group emails by thread_id (helper for future conversation view)
+     * @param {Array} messages - Array of email messages
+     * @returns {Object} { chains: Array, singles: Array, stats: Object }
+     */
+    groupEmailsByThread(messages) {
+        const threadMap = new Map();
+
+        // Group messages by thread_id
+        messages.forEach(msg => {
+            const threadId = msg.thread_id || msg.id;
+            if (!threadMap.has(threadId)) {
+                threadMap.set(threadId, []);
+            }
+            threadMap.get(threadId).push(msg);
+        });
+
+        const chains = [];
+        const singles = [];
+
+        // Classify as chains (>1 message) or singles
+        threadMap.forEach((msgs, threadId) => {
+            // Sort messages within thread by date (newest first)
+            msgs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (msgs.length > 1) {
+                chains.push({
+                    thread_id: threadId,
+                    message_count: msgs.length,
+                    messages: msgs,
+                    latest_message: msgs[0]
+                });
+            } else {
+                singles.push(msgs[0]);
+            }
+        });
+
+        return {
+            chains: chains,
+            singles: singles,
+            stats: {
+                total_messages: messages.length,
+                total_conversations: threadMap.size,
+                chain_count: chains.length,
+                single_count: singles.length
+            }
+        };
+    },
+
     async loadEmails() {
         this.log.info('Loading emails...');
 
@@ -1221,7 +1270,10 @@ export default {
             const response = await this.api.get(`${this.state.apiBase}/emails`, { params });
 
             this.state.emails = response.emails || [];
-            this.log.success(`Loaded ${this.state.emails.length} emails`);
+            
+            // ✅ NEW: Calculate conversation stats
+            const groupingStats = this.groupEmailsByThread(this.state.emails);
+            this.log.success(`Loaded ${this.state.emails.length} emails in ${groupingStats.stats.total_conversations} conversations (${groupingStats.stats.chain_count} chains, ${groupingStats.stats.single_count} singles)`);
 
             // Check if no emails returned and no accounts connected
             if (this.state.emails.length === 0 && this.state.accounts.length === 0) {
@@ -1234,8 +1286,8 @@ export default {
                 this.log.warn('No emails found despite having connected accounts');
             }
 
-            // Update stats
-            this.updateStats();
+            // Update stats (pass grouping stats for enhanced display)
+            this.updateStats(groupingStats.stats);
 
             // ✅ FIX #5 (Jan 4, 2026): Load email-thread mappings BEFORE creating table
             // This ensures AI Agent column shows badges immediately on first render
@@ -1327,25 +1379,32 @@ export default {
                     headerFilter: "input",
                     headerFilterPlaceholder: "Search date...",
                     formatter: (cell) => {
-                        const date = new Date(cell.getValue());
-                        const formatted = date.toLocaleDateString('en-GB', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                        });
-                        const time = date.toLocaleTimeString('en-GB', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
+                        const dateStr = cell.getValue();
+                        if (!dateStr) {
+                            return '<span style="color: #6b7280;">Unknown</span>';
+                        }
+
+                        const date = new Date(dateStr);
+                        const now = new Date();
+                        const diff = now - date;
+                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+                        // Smart date display (Gmail/Outlook style)
+                        let displayText;
+                        if (days === 0) {
+                            displayText = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        } else if (days === 1) {
+                            displayText = 'Yesterday';
+                        } else if (days < 7) {
+                            displayText = `${days} days ago`;
+                        } else {
+                            displayText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        }
 
                         return `<div style="text-align: left;">
-                            <div style="color: #ffffff; font-weight: 500;">
+                            <div style="color: #ffffff; font-weight: 500;" title="${date.toLocaleString()}">
                                 <i class="fas fa-calendar" style="color: #6b7280; margin-right: 4px;"></i>
-                                ${formatted}
-                            </div>
-                            <div style="color: #9ca3af; font-size: 11px; margin-top: 2px;">
-                                <i class="fas fa-clock" style="color: #6b7280; margin-right: 4px;"></i>
-                                ${time}
+                                ${displayText}
                             </div>
                         </div>`;
                     }
@@ -1462,11 +1521,21 @@ export default {
                         const isRead = data.is_read;
                         const hasAttachments = data.has_attachments;
 
+                        // ✅ NEW: Detect if this email is part of a chain (multiple emails with same thread_id)
+                        const threadId = data.thread_id;
+                        const chainCount = threadId ? this.state.emails.filter(e => e.thread_id === threadId).length : 0;
+                        const isChain = chainCount > 1;
+
                         let html = '<div style="display: flex; align-items: center; gap: 8px;">';
 
-                        // Thread indicator
+                        // ✅ NEW: Chain badge (shows message count if >1)
+                        if (isChain) {
+                            html += `<span style="background: #6366f1; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;" title="${chainCount} messages in conversation">${chainCount}</span>`;
+                        }
+
+                        // Thread indicator (AI assignment)
                         if (hasThread) {
-                            html += `<i class="fas fa-comments" style="color: #6366f1; font-size: 12px;" title="Part of thread"></i>`;
+                            html += `<i class="fas fa-comments" style="color: #6366f1; font-size: 12px;" title="Assigned to AI agent"></i>`;
                         }
 
                         // Subject text
@@ -3407,7 +3476,7 @@ Draft questions for the customer listing all missing details required for accura
         }
 
         this.log.debug('Email preview hidden');
-    }
+    },
 
     /**
      * Show email preview panel (supports multiple popups)
@@ -4754,18 +4823,27 @@ Draft questions for the customer listing all missing details required for accura
     /**
      * Update stats cards
      */
-    updateStats() {
+    updateStats(groupingStats = null) {
         const totalCount = this.state.emails.length;
         const gmailCount = this.state.emails.filter(e => e.provider === 'gmail').length;
         const outlookCount = this.state.emails.filter(e => e.provider === 'outlook').length;
         const unreadCount = this.state.emails.filter(e => !e.is_read).length;
 
-        this.updateStatCard('total-emails-count', totalCount);
+        // ✅ NEW: Enhanced display with conversation grouping
+        if (groupingStats && groupingStats.total_conversations !== totalCount) {
+            this.updateStatCard('total-emails-count', `${totalCount} (${groupingStats.total_conversations} convos)`);
+        } else {
+            this.updateStatCard('total-emails-count', totalCount);
+        }
+
         this.updateStatCard('gmail-count', gmailCount);
         this.updateStatCard('outlook-count', outlookCount);
         this.updateStatCard('unread-count', unreadCount);
 
-        this.log.debug(`Stats updated: Total=${totalCount}, Gmail=${gmailCount}, Outlook=${outlookCount}, Unread=${unreadCount}`);
+        const statsMsg = groupingStats 
+            ? `Total=${totalCount}, Conversations=${groupingStats.total_conversations} (${groupingStats.chain_count} chains), Gmail=${gmailCount}, Outlook=${outlookCount}, Unread=${unreadCount}`
+            : `Total=${totalCount}, Gmail=${gmailCount}, Outlook=${outlookCount}, Unread=${unreadCount}`;
+        this.log.debug(`Stats updated: ${statsMsg}`);
     },
 
     /**

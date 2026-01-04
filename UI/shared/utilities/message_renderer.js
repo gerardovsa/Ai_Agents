@@ -493,7 +493,8 @@ const UnifiedMessageRenderer = (function () {
                     if (!window.USE_BASIC_RENDERER && typeof TwoRuleStreamProcessor !== 'undefined') {
                         try {
                             const processor = new TwoRuleStreamProcessor(textDiv);
-                            await processor.processChunk(textContent);  // ✅ FIX: AWAIT the async operation
+                            await processor.processChunk(textContent);  // Process the content
+                            await processor.finalize();  // 🔥 FIX: Flush buffer and render remaining content
 
                             if (!textDiv.innerHTML || textDiv.innerHTML.trim() === '') {
                                 console.warn('[renderAssistantContent] Visualization engine produced empty HTML, using markdown fallback');
@@ -607,23 +608,23 @@ const UnifiedMessageRenderer = (function () {
                     // Render tool_result block compactly with dark theme styling
                     const resultDiv = document.createElement('div');
                     resultDiv.className = 'content-block tool-result-block';
-                    // Dark theme: subtle green accent border with dark background
-                    resultDiv.style.cssText = 'margin: 8px 0; padding: 12px; background: rgba(16, 185, 129, 0.15); border-left: 3px solid #10b981; border-radius: 6px;';
+                    // Dark theme: white border with subtle dark background
+                    resultDiv.style.cssText = 'margin: 8px 0; padding: 12px; background: rgba(230, 237, 243, 0.08); border-left: 3px solid #e6edf3; border-radius: 6px;';
 
-                    // Tool result header - white text with green icon
+                    // Tool result header - white text with white icon
                     const headerDiv = document.createElement('div');
-                    headerDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; color: #e5e7eb; font-weight: 600; margin-bottom: 10px; font-size: 0.9em;';
+                    headerDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; color: #e6edf3; font-weight: 600; margin-bottom: 10px; font-size: 0.9em;';
                     headerDiv.innerHTML = `
-                        <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                        <i class="fas fa-check-circle" style="color: #e6edf3;"></i>
                         <span>Tool Result</span>
-                        ${block.tool_use_id ? `<span style="font-size: 0.8em; color: #9ca3af; font-family: 'Courier New', monospace;">${block.tool_use_id.substring(0, 10)}...</span>` : ''}
+                        ${block.tool_use_id ? `<span style="font-size: 0.8em; color: #e6edf3; opacity: 0.7; font-family: 'Monaco', 'Menlo', 'Consolas', monospace;">${block.tool_use_id.substring(0, 10)}...</span>` : ''}
                     `;
                     resultDiv.appendChild(headerDiv);
 
                     // Tool result content (collapsed by default, show first 200 chars) - dark theme friendly
                     if (block.content) {
                         const contentPreview = document.createElement('div');
-                        contentPreview.style.cssText = 'font-size: 0.85em; color: #d1d5db; font-family: "Courier New", monospace; white-space: pre-wrap; max-height: 120px; overflow: hidden; line-height: 1.5; background: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 4px;';
+                        contentPreview.style.cssText = 'font-size: 0.85em; color: #e6edf3; font-family: "Monaco", "Menlo", "Consolas", monospace; white-space: pre-wrap; max-height: 120px; overflow: hidden; line-height: 1.5; background: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 4px;';
 
                         const contentStr = typeof block.content === 'string'
                             ? block.content

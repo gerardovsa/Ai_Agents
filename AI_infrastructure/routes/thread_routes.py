@@ -1311,6 +1311,25 @@ def save_thread():
             except Exception as e:
                 print(f"⚠️ [Thread Save] Failed to update thread assignment: {e}")
         
+        # ✅ CROSS-DEVICE SYNC: Broadcast thread update to all user's devices
+        try:
+            from flask import current_app
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                socketio.emit('thread_updated', {
+                    'thread_id': thread_id_full,
+                    'agent_id': agent_id,
+                    'session_id': session_id,
+                    'thread_name': thread_name,
+                    'message_count': len(conversation),
+                    'location': location,
+                    'action': 'saved',
+                    'timestamp': datetime.now().isoformat()
+                }, room=f'user_{user_id}', namespace='/ws/synergy')
+                print(f"📡 [Thread Save] Broadcast to user_{user_id} devices")
+        except Exception as broadcast_err:
+            print(f"⚠️ [Thread Save] Broadcast failed (non-critical): {broadcast_err}")
+        
         print(f"[THREAD SAVE] ✅ SUCCESS: Thread saved")
         print(f"[THREAD SAVE] Messages: {len(conversation)}")
         print(f"{'='*80}\n")
@@ -1443,6 +1462,21 @@ def delete_thread(thread_id):
                 threads_deleted = cursor.rowcount
                 
                 conn.commit()
+        
+        # ✅ CROSS-DEVICE SYNC: Broadcast thread deletion to all user's devices
+        try:
+            from flask import current_app
+            user_id = request.args.get('user_id', type=int) or 1
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                socketio.emit('thread_deleted', {
+                    'thread_id': thread_id,
+                    'action': 'deleted',
+                    'timestamp': datetime.now().isoformat()
+                }, room=f'user_{user_id}', namespace='/ws/synergy')
+                print(f"📡 [Thread Delete] Broadcast to user_{user_id} devices")
+        except Exception as broadcast_err:
+            print(f"⚠️ [Thread Delete] Broadcast failed (non-critical): {broadcast_err}")
         
         print(f"[DELETE THREAD] Successfully deleted thread {thread_id}")
         
