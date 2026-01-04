@@ -1,0 +1,253 @@
+{
+    "id": "inhouse-kanban",
+    "name": "Production Workflow",
+    "version": "4.0.0",
+    "description": "InHousePrint production workflow Kanban board with AI priority scoring, real-time job tracking, drag & drop, and production logging",
+    "type": "external",
+    "category": "business",
+    "author": "InHouse Print",
+    "icon": "fas fa-industry",
+    "color": "#00509E",
+    "colors": {
+        "primary": "#00509E",
+        "secondary": "#7FB3D5",
+        "hover": "#003D7A",
+        "background": "#0B0E13",
+        "border": "#2A3142"
+    },
+    "capabilities": {
+        "dashboard": {
+            "enabled": true,
+            "tab_id": "inhouse-kanban",
+            "tab_label": "Production Board",
+            "tab_icon": "fas fa-industry",
+            "rendering": "js-controlled",
+            "initialization": "lazy",
+            "default_view": true,
+            "replaces_chat": true
+        },
+        "sidebar": {
+            "enabled": true,
+            "side": "right",
+            "width": "480px",
+            "html_file": "inhouse-kanban-SIDEBAR.html",
+            "framework": "SidebarManager",
+            "toggle_button": {
+                "enabled": true,
+                "label": "Production Workflow",
+                "icon": "fas fa-industry",
+                "position": "right",
+                "default_top": 280,
+                "color": "#00509E"
+            },
+            "features": {
+                "draggable_toggle": true,
+                "persistent_state": true,
+                "lazy_load": true,
+                "auto_close": false
+            }
+        },
+        "thread_integration": {
+            "enabled": false,
+            "drag_drop": false,
+            "context_menu": false
+        }
+    },
+    "dependencies": {
+        "utilities": [
+            "dom",
+            "api",
+            "storage",
+            "events",
+            "log"
+        ],
+        "frameworks": [
+            "SidebarManager"
+        ],
+        "modules": []
+    },
+    "loading": {
+        "strategy": "lazy",
+        "priority": 50,
+        "preload": false,
+        "defer_sidebar": true,
+        "framework": "v4"
+    },
+    "files": {
+        "js": "inhouse-kanban-V4-COMPLETE.js",
+        "css": "inhouse-kanban-NEW.css",
+        "html": "inhouse-kanban-SIDEBAR.html"
+    },
+    "paths": {
+        "base": "UI/modules_external/inhouse-kanban",
+        "js": "UI/modules_external/inhouse-kanban/inhouse-kanban-V4-COMPLETE.js?v=4.0.0",
+        "css": "UI/modules_external/inhouse-kanban/inhouse-kanban-NEW.css?v=4.0.0",
+        "html": "UI/modules_external/inhouse-kanban/inhouse-kanban-SIDEBAR.html?v=4.0.0"
+    },
+    "additional_scripts": [
+        {
+            "src": "external/modules/inhouse-kanban/kanban-logger.js?v=1.0.0",
+            "defer": true,
+            "optional": true
+        },
+        {
+            "src": "external/modules/inhouse-kanban/kanban-supabase-integration.js?v=1.0.0",
+            "defer": true,
+            "optional": true
+        },
+        {
+            "src": "external/modules/inhouse-kanban/kanban-supabase-ui.js?v=1.0.0",
+            "defer": true,
+            "optional": true
+        }
+    ],
+    "permissions": [
+        "api:inhouse-print",
+        "api:production-log",
+        "storage:local",
+        "storage:session",
+        "events:emit",
+        "events:subscribe"
+    ],
+    "settings": {
+        "api_endpoint": "/api/inhouse-kanban",
+        "backend_url": "http://localhost:5001",
+        "analytics_endpoint": "/api/inhouse-kanban/analytics",
+        "production_log_endpoint": "/api/production-log",
+        "default_timeframe": -6,
+        "refresh_interval": 300,
+        "auto_refresh": true,
+        "enable_drag_drop": true,
+        "enable_stage_transitions": true,
+        "enable_production_logging": true,
+        "enable_client_notifications": true,
+        "color_coding": {
+            "show_border_colors": true,
+            "show_background_colors": true,
+            "show_banner_colors": true
+        },
+        "workboards": {
+            "default": "main",
+            "available": [
+                "main",
+                "wide-format",
+                "apg",
+                "publishing"
+            ]
+        }
+    },
+    "ui": {
+        "theme": "dark",
+        "responsive": true,
+        "animations": true,
+        "transitions": "cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+    "features": {
+        "ai_priority_scoring": true,
+        "stage_transition_tracking": true,
+        "production_logging": true,
+        "client_notifications": true,
+        "drag_drop_jobs": true,
+        "color_customization": true,
+        "card_mute_settings": true,
+        "advanced_filtering": true,
+        "analytics_dashboard": true,
+        "workboard_switching": true,
+        "auto_refresh": true
+    },
+    "data_sources": {
+        "primary": {
+            "type": "sql_server",
+            "database": "InHousePrint",
+            "connection": "backend_api"
+        },
+        "analytics": {
+            "type": "supabase",
+            "database": "kanban_analytics",
+            "connection": "supabase_client",
+            "optional": true
+        }
+    },
+    "api_endpoints": {
+        "jobs": {
+            "list": "/api/inhouse-kanban/jobs",
+            "details": "/api/inhouse-kanban/jobs/:id",
+            "update": "/api/inhouse-kanban/jobs/:id",
+            "move": "/api/inhouse-kanban/jobs/:id/move"
+        },
+        "stages": {
+            "list": "/api/inhouse-kanban/stages",
+            "summary": "/api/inhouse-kanban/stages/summary"
+        },
+        "metrics": {
+            "dashboard": "/api/inhouse-kanban/metrics",
+            "analytics": "/api/inhouse-kanban/analytics"
+        },
+        "production_log": {
+            "list": "/api/production-log/:ticket_id",
+            "add": "/api/production-log/:ticket_id",
+            "delete": "/api/production-log/entry/:log_id",
+            "stage_change": "/api/production-log/:ticket_id/stage-change",
+            "notification": "/api/production-log/:ticket_id/notification"
+        },
+        "transitions": {
+            "history": "/api/inhouse-kanban/transitions/:ticket_id",
+            "summary": "/api/inhouse-kanban/transitions/summary"
+        }
+    },
+    "storage_keys": {
+        "filters": "kanban-filters",
+        "active_workboard": "kanban-active-workboard",
+        "color_settings": "kanban-color-settings",
+        "color_toggles": "kanban-color-toggles",
+        "muted_cards": "kanban-muted-cards",
+        "sidebar_state": "kanban-sidebar-state",
+        "sidebar_filters": "kanban-sidebar-filters"
+    },
+    "events": {
+        "emit": [
+            "kanban:job-moved",
+            "kanban:job-updated",
+            "kanban:stage-changed",
+            "kanban:data-refreshed",
+            "kanban:workboard-changed",
+            "kanban:filter-changed"
+        ],
+        "subscribe": [
+            "system:data-refresh",
+            "system:theme-changed"
+        ]
+    },
+    "documentation": {
+        "readme": "README.md",
+        "changelog": "CHANGELOG.md",
+        "api_docs": "API.md",
+        "user_guide": "USER_GUIDE.md"
+    },
+    "development": {
+        "debug_mode": false,
+        "log_level": "info",
+        "enable_console_logs": true,
+        "enable_performance_tracking": false
+    },
+    "compatibility": {
+        "framework_version": "4.0.0",
+        "min_framework_version": "3.0.0",
+        "browser_support": [
+            "Chrome >= 90",
+            "Firefox >= 88",
+            "Safari >= 14",
+            "Edge >= 90"
+        ]
+    },
+    "metadata": {
+        "created": "2024-11-01",
+        "updated": "2025-11-30",
+        "migrated_from": "BaseModule",
+        "migration_date": "2025-11-30",
+        "architecture": "modern-composition",
+        "pattern": "export-default-object",
+        "status": "production",
+        "maintainer": "InHouse Print Development Team"
+    }
+}
