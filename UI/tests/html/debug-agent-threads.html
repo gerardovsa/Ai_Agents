@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Debug: Agent Thread Status</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0d1117;
+            color: #f0f6fc;
+            padding: 20px;
+        }
+
+        .agent-list {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .agent-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: #1c2128;
+            border-left: 3px solid #22c55e;
+            border-radius: 4px;
+        }
+
+        .agent-item.empty {
+            border-left-color: #6b7280;
+            opacity: 0.5;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        .summary {
+            background: #0d419d;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Agent Thread Status Checker</h1>
+    <p>Run this on the same domain as your app to check MultiAgent.loadedThreads</p>
+
+    <button onclick="checkAgents()">🔄 Check Agent Status</button>
+
+    <div id="output"></div>
+
+    <script>
+        function checkAgents() {
+            const output = document.getElementById('output');
+
+            if (typeof MultiAgent === 'undefined') {
+                output.innerHTML = '<div style="color: #f85149; padding: 16px;">❌ MultiAgent not found. Run this on the main app page.</div>';
+                return;
+            }
+
+            let html = '<div class="summary">';
+            html += '<h2>Summary</h2>';
+
+            const loadedCount = Object.keys(MultiAgent.loadedThreads || {}).length;
+            const primeThread = typeof ThreadManager !== 'undefined' ? ThreadManager.currentThreadId : null;
+
+            html += `<p>✅ Agents with threads: ${loadedCount}</p>`;
+            html += `<p>✅ Prime thread: ${primeThread || 'None'}</p>`;
+            html += '</div>';
+
+            html += '<div class="agent-list">';
+            html += '<h2>Agent Details</h2>';
+
+            // Check Prime
+            if (primeThread && typeof ThreadManager !== 'undefined') {
+                const thread = ThreadManager.threads?.find(t => t.id === primeThread);
+                html += `<div class="agent-item">
+                    <strong>Agent 27 (Prime-Loaded)</strong><br>
+                    Thread: ${thread?.title || 'Unknown'}<br>
+                    Thread ID: ${primeThread}
+                </div>`;
+            }
+
+            // Check agents 1-26
+            if (MultiAgent.loadedThreads) {
+                Object.entries(MultiAgent.loadedThreads).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).forEach(([agentId, info]) => {
+                    const name = MultiAgent.getAgentName(parseInt(agentId));
+                    html += `<div class="agent-item">
+                        <strong>Agent ${agentId} (${name})</strong><br>
+                        Thread: ${info.threadTitle}<br>
+                        Thread ID: ${info.threadId}<br>
+                        Loaded: ${new Date(info.loadedAt).toLocaleString()}
+                    </div>`;
+                });
+            }
+
+            // Show empty agents
+            html += '<h3 style="margin-top: 20px;">Empty Agents</h3>';
+            for (let i = 1; i <= 26; i++) {
+                if (!MultiAgent.loadedThreads[i]) {
+                    const name = MultiAgent.getAgentName(i);
+                    html += `<div class="agent-item empty">Agent ${i} (${name}) - Empty</div>`;
+                }
+            }
+
+            html += '</div>';
+            output.innerHTML = html;
+        }
+
+        // Auto-run on load
+        if (document.readyState === 'complete') {
+            checkAgents();
+        } else {
+            window.addEventListener('load', checkAgents);
+        }
+    </script>
+</body>
+
+</html>

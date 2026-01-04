@@ -1,0 +1,145 @@
+[
+    {
+        "name": "analyze_content_with_ai",
+        "description": "Use AI (Claude/GPT) to deeply analyze website content for authenticity, quality, AI-generation probability, and red flags. Detects generic AI-generated filler vs genuine business content with specific claims and expertise. Returns detailed scoring of content authenticity (0-100), writing quality (0-100), AI-generation probability (0-100%), red flags, and legitimacy indicators. Use this when you need to assess if website content is genuine or AI-generated marketing fluff.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "description": "Website text content to analyze (will be truncated to 3000 chars for AI analysis)"
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Domain being analyzed (for context)"
+                }
+            },
+            "required": [
+                "content",
+                "domain"
+            ]
+        },
+        "platform": "professional-verification",
+        "category": "advanced_analysis",
+        "ai_interpretation": "When analyzing website content, provide the full text or main paragraphs from the website. The AI will assess: 1) Is this genuine business content with specific claims, data, and expertise? Or is it generic AI-generated filler with buzzwords? 2) Writing quality - professional tone, depth, technical accuracy 3) AI-generated probability based on repetitive patterns, vague claims, lack of specifics 4) Red flags like too-good-to-be-true promises 5) Legitimacy indicators like specific names, dates, locations, technical depth. Returns comprehensive analysis with scores and explanations. Use when verifying if a company website has substantive content or is just marketing fluff."
+    },
+    {
+        "name": "estimate_web_traffic",
+        "description": "Estimate website traffic and popularity using FREE ranking services (Tranco Top 1M, Certificate Transparency, DNS propagation). Returns traffic tier (Very High/High/Medium/Low), popularity rank if in Top 1M sites, certificate activity indicator, global DNS reachability, social media search URLs, and overall traffic score (0-100). Use this to assess if a website actually has visitors or is a recently created shell site.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "Domain to analyze for traffic estimation"
+                }
+            },
+            "required": [
+                "domain"
+            ]
+        },
+        "platform": "professional-verification",
+        "category": "advanced_analysis",
+        "ai_interpretation": "This tool checks multiple FREE sources to estimate if a website has actual traffic: 1) Tranco List - if domain is in Top 1M sites worldwide, shows actual popularity rank 2) Certificate Transparency Logs - shows SSL/TLS activity level (high cert count = active site) 3) Global DNS propagation - checks if domain resolves from Google/Cloudflare/OpenDNS (global presence indicator) 4) Provides social media search URLs to manually check mentions. Returns traffic tier assessment and 0-100 score. A legitimate business should have SOME web traffic. Use when suspicious of newly created domains with no visitors."
+    },
+    {
+        "name": "analyze_backlinks",
+        "description": "Analyze backlinks, citations, and domain authority using FREE sources (Common Crawl, Web Archive, Wikipedia, GitHub code references). Returns pages indexed in Common Crawl, total Web Archive snapshots, Wikipedia mentions, GitHub code references, calculated domain authority score (0-100), and authority tier (High/Medium/Low). Use this to verify if other legitimate sites link to or reference this domain.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "Domain to analyze for backlinks and authority"
+                }
+            },
+            "required": [
+                "domain"
+            ]
+        },
+        "platform": "professional-verification",
+        "category": "advanced_analysis",
+        "ai_interpretation": "Backlinks from other websites are a strong legitimacy indicator. This tool checks: 1) Common Crawl - massive web index showing if domain is widely linked 2) Web Archive - total historical snapshots (more = longer existence) 3) Wikipedia mentions - citations in Wikipedia articles (high authority) 4) GitHub - code repositories referencing this domain (developer trust) 5) Google Scholar search URL for academic citations. Calculates domain authority score 0-100 based on these factors. Legitimate businesses have backlinks from other sites. Scam sites have zero external references. Use when verifying domain credibility."
+    },
+    {
+        "name": "verify_government_claims",
+        "description": "Verify claims about government funding, partnerships, grants, or contracts. Searches official government databases (USA: USASpending.gov, SAM.gov | Australia: AusTender, ABR | UK: Contracts Finder | EU: TED). Returns search results from official registries, news search URLs, and press release verification links. Use this when a company claims government funding or partnerships.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "organization_name": {
+                    "type": "string",
+                    "description": "Name of organization claiming government relationship"
+                },
+                "claim_text": {
+                    "type": "string",
+                    "description": "Specific claim being made (e.g., 'received $2M DOD grant', 'partnered with Australian government')"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country code: US, AU, UK, EU, BE, FR, DE, CO",
+                    "default": "US"
+                }
+            },
+            "required": [
+                "organization_name",
+                "claim_text"
+            ]
+        },
+        "platform": "professional-verification",
+        "category": "advanced_analysis",
+        "ai_interpretation": "Government claims are EASILY VERIFIABLE in official databases. This tool provides: 1) Direct API search of government contract databases (USA: USASpending.gov shows ALL federal spending, SAM.gov shows registered vendors | Australia: AusTender shows government tenders | UK: Contracts Finder | EU: TED public procurement) 2) Official .gov site search URLs 3) News search for press releases 4) Verification instructions. If a company claims government funding/partnership but NOTHING appears in official databases = MAJOR RED FLAG. Use when assessing claims about government relationships, grants, contracts, or partnerships."
+    },
+    {
+        "name": "analyze_business_registries",
+        "description": "Search business registries and company databases for verification. Checks OpenCorporates (global), country-specific registries (USA: Secretary of State, Australia: ASIC/ABN, UK: Companies House, Colombia: RUES/CCB). Returns registry search URLs, API endpoints where available, and registration verification links. Use this to verify a company is legally registered.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "company_name": {
+                    "type": "string",
+                    "description": "Company name to search"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country code: US, AU, UK, CO, etc.",
+                    "default": "US"
+                },
+                "registration_number": {
+                    "type": "string",
+                    "description": "Company registration number, tax ID, ABN, NIT, etc. (optional but improves accuracy)"
+                }
+            },
+            "required": [
+                "company_name"
+            ]
+        },
+        "platform": "professional-verification",
+        "category": "advanced_analysis",
+        "ai_interpretation": "Every legitimate business is registered with government authorities. This tool provides search URLs and API endpoints for: 1) OpenCorporates - global company database (500 free requests/month) 2) Country-specific registries: USA state Secretary of State databases, Australia ASIC/ABN lookup, UK Companies House (FREE API available), Colombia RUES/CCB 3) If registration_number provided, can do direct lookups. A company claiming to be a business but NOT appearing in official registries = FRAUD. Use when verifying company legal existence and registration details."
+    },
+    {
+        "name": "calculate_digital_presence_score",
+        "description": "Comprehensive digital footprint assessment across 7 categories: website quality, social media presence, professional networks, content marketing, community engagement, technical presence, media coverage. Returns search URLs for all platforms and overall presence score (0-100). Use this to assess overall digital footprint beyond just the website.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "Company domain"
+                },
+                "company_name": {
+                    "type": "string",
+                    "description": "Company name for searching other platforms"
+                }
+            },
+            "required": [
+                "domain",
+                "company_name"
+            ]
+        },
+        "platform": "professional-verification",
+        "category": "advanced_analysis",
+        "ai_interpretation": "Legitimate businesses have a BROAD digital presence across multiple platforms. This tool provides search URLs for: 1) Social Media: Facebook, Twitter, LinkedIn, Instagram, YouTube 2) Professional Networks: GitHub, StackOverflow, Medium, Dev.to 3) Content Marketing: Blog posts, news coverage, press releases 4) Community: Reddit, HackerNews, ProductHunt 5) Technical: GitHub repos, Docker Hub, npm/PyPI packages 6) Media Coverage: Wikipedia, Crunchbase, news articles. Returns organized search URLs for manual verification. A real company has activity across MULTIPLE platforms. A shell/scam company exists ONLY on their website. Use for comprehensive legitimacy assessment."
+    }
+]

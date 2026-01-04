@@ -1,0 +1,275 @@
+{
+  "platform": "design_engineering",
+  "description": "Structural engineering tools for T-slot aluminum design - beam analysis, profile selection, CAD generation, BOM creation",
+  "tools": [
+    {
+      "name": "calculate_beam_deflection",
+      "description": "Calculate structural properties for a T-slot aluminum beam under load. Returns deflection, stress, safety factor, and pass/fail status. Use this when users ask to 'calculate beam deflection', 'check if beam can support load', or 'analyze structural performance'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "length_mm": {
+            "type": "number",
+            "description": "Beam span in millimeters (e.g., 1900 for 1.9m bed frame)"
+          },
+          "load_kg": {
+            "type": "number",
+            "description": "Expected load in kilograms (e.g., 200 for two people on a bed)"
+          },
+          "profile_type": {
+            "type": "string",
+            "description": "T-slot profile size",
+            "enum": [
+              "20x20_light",
+              "30x30_standard",
+              "40x40_light",
+              "40x40_standard",
+              "40x40_heavy",
+              "60x60_standard",
+              "80x80_standard"
+            ],
+            "default": "40x40_standard"
+          },
+          "support_type": {
+            "type": "string",
+            "description": "How beam is supported",
+            "enum": [
+              "simply_supported",
+              "cantilever",
+              "fixed_both"
+            ],
+            "default": "simply_supported"
+          }
+        },
+        "required": [
+          "length_mm",
+          "load_kg"
+        ]
+      },
+      "platform": "design_engineering"
+    },
+    {
+      "name": "compare_beam_profiles",
+      "description": "Compare multiple T-slot profiles to find the best option for a given load and span. Returns cost comparison and recommendations. Use when users ask 'what's the cheapest profile', 'compare beam sizes', or 'which profile should I use'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "length_mm": {
+            "type": "number",
+            "description": "Beam span in millimeters"
+          },
+          "load_kg": {
+            "type": "number",
+            "description": "Expected load in kilograms"
+          },
+          "support_type": {
+            "type": "string",
+            "description": "How beam is supported",
+            "enum": [
+              "simply_supported",
+              "cantilever",
+              "fixed_both"
+            ],
+            "default": "simply_supported"
+          }
+        },
+        "required": [
+          "length_mm",
+          "load_kg"
+        ]
+      },
+      "platform": "design_engineering"
+    },
+    {
+      "name": "recommend_profile",
+      "description": "Get automatic T-slot profile recommendation for specific applications (bed frame, workbench, campervan interior, etc). Returns recommended profile with justification. Use when users ask 'what profile do I need for...' or describe a specific project.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "length_mm": {
+            "type": "number",
+            "description": "Primary span dimension in millimeters"
+          },
+          "load_kg": {
+            "type": "number",
+            "description": "Expected load in kilograms"
+          },
+          "application": {
+            "type": "string",
+            "description": "Application type (e.g., 'campervan_bed', 'workbench', 'shelving', 'enclosure')",
+            "enum": [
+              "campervan_bed",
+              "campervan_kitchen",
+              "workbench",
+              "shelving",
+              "enclosure",
+              "custom"
+            ]
+          }
+        },
+        "required": [
+          "length_mm",
+          "load_kg"
+        ]
+      },
+      "platform": "design_engineering"
+    },
+    {
+      "name": "generate_bom",
+      "description": "Generate Bill of Materials with real supplier parts, pricing, and availability from 4 Australian/international suppliers. Returns detailed BOM with part numbers, quantities, unit costs, and total cost in AUD. Use when users ask 'how much will this cost', 'generate parts list', or 'create BOM'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "parts": {
+            "type": "array",
+            "description": "List of parts with profile IDs, lengths, and quantities",
+            "items": {
+              "type": "object",
+              "properties": {
+                "profile_id": {
+                  "type": "string",
+                  "description": "Profile identifier (e.g., 40x40_standard)"
+                },
+                "length_mm": {
+                  "type": "number",
+                  "description": "Length in millimeters"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "description": "Number of pieces",
+                  "default": 1
+                }
+              },
+              "required": [
+                "profile_id",
+                "length_mm"
+              ]
+            }
+          },
+          "include_fasteners": {
+            "type": "boolean",
+            "description": "Include corner brackets, screws, and t-nuts in BOM",
+            "default": true
+          },
+          "format": {
+            "type": "string",
+            "description": "Output format",
+            "enum": [
+              "json",
+              "markdown",
+              "csv"
+            ],
+            "default": "markdown"
+          }
+        },
+        "required": [
+          "parts"
+        ]
+      },
+      "platform": "design_engineering"
+    },
+    {
+      "name": "generate_tslot_cad",
+      "description": "Generate parametric CAD model of T-slot beam with 3D visualization and technical drawing. Returns delimiter-formatted output compatible with visualization engine. Use when users ask 'show me a CAD model', 'generate 3D model', or 'create technical drawing'. IMPORTANT: When generating SVG diagrams, follow spacing rules from .github/SVG_CAD_GENERATION_RULES.md: Title block height = (font sizes × 1.5 × lines) + 20px, text Y = block top + (font × 1.2), content start = block bottom + 40-60px clearance.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "description": "T-slot profile identifier"
+          },
+          "length_mm": {
+            "type": "number",
+            "description": "Beam length in millimeters"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for 3D model",
+            "default": "#C0C0C0"
+          }
+        },
+        "required": [
+          "profile_id",
+          "length_mm"
+        ]
+      },
+      "platform": "design_engineering"
+    },
+    {
+      "name": "generate_constrained_beam_cad",
+      "description": "Generate parametric CAD model of T-slot beam using CadQuery constraint solver for accurate dimensions. Returns CAD object and delimiter-formatted output. Use for precise engineering CAD generation where dimensional accuracy is critical. IMPORTANT: When generating SVG technical drawings, follow .github/SVG_CAD_GENERATION_RULES.md: Ensure 40-60px clearance between title blocks and content, use formula: text Y = block top + (font × 1.2), content starts at block bottom + 50px minimum.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "description": "T-slot profile identifier"
+          },
+          "length_mm": {
+            "type": "number",
+            "description": "Beam length in millimeters"
+          },
+          "mounting_holes": {
+            "type": "array",
+            "description": "Optional mounting hole specifications",
+            "items": {
+              "type": "object",
+              "properties": {
+                "position_mm": {
+                  "type": "number",
+                  "description": "Position along beam length"
+                },
+                "diameter_mm": {
+                  "type": "number",
+                  "description": "Hole diameter"
+                }
+              }
+            }
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code",
+            "default": "#C0C0C0"
+          }
+        },
+        "required": [
+          "profile_id",
+          "length_mm"
+        ]
+      },
+      "platform": "design_engineering"
+    },
+    {
+      "name": "list_available_profiles",
+      "description": "List all available T-slot aluminum profiles with dimensions and specifications. Returns complete profile catalog with cross-section dimensions, weight, and properties.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Filter by category",
+            "enum": [
+              "all",
+              "light",
+              "standard",
+              "heavy"
+            ],
+            "default": "all"
+          }
+        },
+        "required": []
+      },
+      "platform": "design_engineering"
+    },
+    {
+      "name": "list_available_materials",
+      "description": "List aluminum alloy materials with mechanical properties. Returns material specifications including yield strength, elastic modulus, and density.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "platform": "design_engineering"
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>48V Battery System - Electrical Schematic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .schematic-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        svg {
+            width: 100%;
+            height: auto;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            background: #1a1a2e;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="schematic-container">
+        <h1>🔌 48V 200Ah Lithium Battery System - Electrical Schematic</h1>
+
+        <svg viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
+            <title>48V 200Ah Battery System - Complete Wiring Schematic</title>
+            <desc>4× DUMFUME 24V 100Ah batteries in 2S2P configuration with Victron MultiPlus-II 48/3000/35
+                inverter/charger</desc>
+
+            <!-- Background -->
+            <rect width="1200" height="900" fill="#1a1a2e" />
+
+            <!-- Title Block - FIXED: Increased height and spacing -->
+            <rect x="20" y="20" width="1160" height="90" fill="none" stroke="#ffd700" stroke-width="2" />
+            <text x="600" y="55" text-anchor="middle" font-size="28" fill="#ffd700" font-weight="bold">48V 200Ah LITHIUM
+                BATTERY SYSTEM</text>
+            <text x="600" y="85" text-anchor="middle" font-size="14" fill="#ffd700">2S2P Configuration | Max Continuous:
+                3000W | Surge: 6000W</text>
+
+            <!-- SERIES STRING 1 (Left) - FIXED: Moved down from y="140" to y="180" -->
+            <text x="150" y="160" font-size="16" fill="#4db8ff" font-weight="bold">STRING 1 (48V 100Ah)</text>
+
+            <!-- Battery A - FIXED: Moved down from y="160" to y="200" -->
+            <rect x="80" y="180" width="140" height="180" fill="none" stroke="#ffd700" stroke-width="3" rx="5" />
+            <text x="150" y="210" text-anchor="middle" font-size="14" fill="#ffd700" font-weight="bold">BATTERY A</text>
+            <text x="150" y="230" text-anchor="middle" font-size="12" fill="#ffd700">DUMFUME</text>
+            <text x="150" y="250" text-anchor="middle" font-size="12" fill="#ffd700">24V 100Ah</text>
+            <text x="150" y="270" text-anchor="middle" font-size="12" fill="#ffd700">LiFePO4</text>
+            <text x="150" y="290" text-anchor="middle" font-size="11" fill="#4db8ff">2560Wh</text>
+
+            <!-- Battery A Terminals -->
+            <circle cx="110" cy="330" r="12" fill="#ff4444" stroke="#fff" stroke-width="2" />
+            <text x="110" y="335" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">+</text>
+            <circle cx="190" cy="330" r="12" fill="#4444ff" stroke="#fff" stroke-width="2" />
+            <text x="190" y="335" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">−</text>
+
+            <!-- Series Link Cable -->
+            <line x1="190" y1="330" x2="280" y2="330" stroke="#ffd700" stroke-width="4" />
+            <text x="235" y="320" text-anchor="middle" font-size="10" fill="#4db8ff">2 AWG (35mm²)</text>
+            <text x="235" y="350" text-anchor="middle" font-size="10" fill="#4db8ff">12" length</text>
+
+            <!-- Battery B -->
+            <rect x="280" y="180" width="140" height="180" fill="none" stroke="#ffd700" stroke-width="3" rx="5" />
+            <text x="350" y="210" text-anchor="middle" font-size="14" fill="#ffd700" font-weight="bold">BATTERY B</text>
+            <text x="350" y="230" text-anchor="middle" font-size="12" fill="#ffd700">DUMFUME</text>
+            <text x="350" y="250" text-anchor="middle" font-size="12" fill="#ffd700">24V 100Ah</text>
+            <text x="350" y="270" text-anchor="middle" font-size="12" fill="#ffd700">LiFePO4</text>
+            <text x="350" y="290" text-anchor="middle" font-size="11" fill="#4db8ff">2560Wh</text>
+
+            <!-- Battery B Terminals -->
+            <circle cx="310" cy="330" r="12" fill="#ff4444" stroke="#fff" stroke-width="2" />
+            <text x="310" y="335" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">+</text>
+            <circle cx="390" cy="330" r="12" fill="#4444ff" stroke="#fff" stroke-width="2" />
+            <text x="390" y="335" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">−</text>
+
+            <!-- SERIES STRING 2 (Right) -->
+            <text x="850" y="160" font-size="16" fill="#4db8ff" font-weight="bold">STRING 2 (48V 100Ah)</text>
+
+            <!-- Battery C -->
+            <rect x="780" y="180" width="140" height="180" fill="none" stroke="#ffd700" stroke-width="3" rx="5" />
+            <text x="850" y="210" text-anchor="middle" font-size="14" fill="#ffd700" font-weight="bold">BATTERY C</text>
+            <text x="850" y="250" text-anchor="middle" font-size="12" fill="#ffd700">DUMFUME</text>
+            <text x="850" y="270" text-anchor="middle" font-size="12" fill="#ffd700">24V 100Ah</text>
+            <text x="850" y="290" text-anchor="middle" font-size="12" fill="#ffd700">LiFePO4</text>
+            <text x="850" y="310" text-anchor="middle" font-size="11" fill="#4db8ff">2560Wh</text>
+
+            <!-- Battery C Terminals -->
+            <circle cx="810" cy="350" r="12" fill="#ff4444" stroke="#fff" stroke-width="2" />
+            <text x="810" y="355" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">+</text>
+            <circle cx="890" cy="350" r="12" fill="#4444ff" stroke="#fff" stroke-width="2" />
+            <text x="890" y="355" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">−</text>
+
+            <!-- Series Link Cable -->
+            <line x1="890" y1="350" x2="980" y2="350" stroke="#ffd700" stroke-width="4" />
+            <text x="935" y="340" text-anchor="middle" font-size="10" fill="#4db8ff">2 AWG (35mm²)</text>
+            <text x="935" y="370" text-anchor="middle" font-size="10" fill="#4db8ff">12" length</text>
+
+            <!-- Battery D -->
+            <rect x="980" y="200" width="140" height="180" fill="none" stroke="#ffd700" stroke-width="3" rx="5" />
+            <text x="1050" y="230" text-anchor="middle" font-size="14" fill="#ffd700" font-weight="bold">BATTERY
+                D</text>
+            <text x="1050" y="250" text-anchor="middle" font-size="12" fill="#ffd700">DUMFUME</text>
+            <text x="1050" y="270" text-anchor="middle" font-size="12" fill="#ffd700">24V 100Ah</text>
+            <text x="1050" y="290" text-anchor="middle" font-size="12" fill="#ffd700">LiFePO4</text>
+            <text x="1050" y="310" text-anchor="middle" font-size="11" fill="#4db8ff">2560Wh</text>
+
+            <!-- Battery D Terminals -->
+            <circle cx="1010" cy="350" r="12" fill="#ff4444" stroke="#fff" stroke-width="2" />
+            <text x="1010" y="355" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">+</text>
+            <circle cx="1090" cy="350" r="12" fill="#4444ff" stroke="#fff" stroke-width="2" />
+            <text x="1090" y="355" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">−</text>
+
+            <!-- Parallel Connection Cables to Busbars -->
+            <line x1="110" y1="350" x2="110" y2="470" stroke="#ff4444" stroke-width="4" />
+            <text x="130" y="410" font-size="10" fill="#4db8ff">6" | 2 AWG</text>
+
+            <line x1="810" y1="350" x2="810" y2="470" stroke="#ff4444" stroke-width="4" />
+            <text x="830" y="410" font-size="10" fill="#4db8ff">6" | 2 AWG</text>
+
+            <line x1="390" y1="350" x2="390" y2="570" stroke="#4444ff" stroke-width="4" />
+            <text x="410" y="460" font-size="10" fill="#4db8ff">6" | 2 AWG</text>
+
+            <line x1="1090" y1="350" x2="1090" y2="570" stroke="#4444ff" stroke-width="4" />
+            <text x="1040" y="460" font-size="10" fill="#4db8ff">6" | 2 AWG</text>
+
+            <!-- POSITIVE BUSBAR -->
+            <rect x="80" y="470" width="760" height="50" fill="#cc8800" stroke="#ffd700" stroke-width="3" rx="3" />
+            <text x="460" y="495" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold">POSITIVE BUSBAR
+                (+)</text>
+            <text x="460" y="512" text-anchor="middle" font-size="12" fill="#fff">200A Copper | M8 Terminals | 6
+                Studs</text>
+
+            <!-- Busbar connection points -->
+            <circle cx="110" cy="495" r="8" fill="#ff4444" stroke="#fff" stroke-width="2" />
+            <text x="110" y="535" text-anchor="middle" font-size="9" fill="#4db8ff">A(+)</text>
+            <circle cx="810" cy="495" r="8" fill="#ff4444" stroke="#fff" stroke-width="2" />
+            <text x="810" y="535" text-anchor="middle" font-size="9" fill="#4db8ff">C(+)</text>
+
+            <!-- NEGATIVE BUSBAR -->
+            <rect x="360" y="570" width="760" height="50" fill="#003366" stroke="#4db8ff" stroke-width="3" rx="3" />
+            <text x="740" y="595" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold">NEGATIVE BUSBAR
+                (−)</text>
+            <text x="740" y="612" text-anchor="middle" font-size="12" fill="#fff">200A Copper | M8 Terminals | 6
+                Studs</text>
+
+            <!-- Busbar connection points -->
+            <circle cx="390" cy="595" r="8" fill="#4444ff" stroke="#fff" stroke-width="2" />
+            <text x="390" y="635" text-anchor="middle" font-size="9" fill="#4db8ff">B(−)</text>
+            <circle cx="1090" cy="595" r="8" fill="#4444ff" stroke="#fff" stroke-width="2" />
+            <text x="1090" y="635" text-anchor="middle" font-size="9" fill="#4db8ff">D(−)</text>
+
+            <!-- Main Power Cable from Positive Busbar -->
+            <line x1="840" y1="495" x2="900" y2="495" stroke="#ff4444" stroke-width="6" />
+            <text x="870" y="485" text-anchor="middle" font-size="10" fill="#4db8ff">3" cable</text>
+
+            <!-- 150A FUSE -->
+            <rect x="900" y="475" width="80" height="40" fill="#ff6600" stroke="#fff" stroke-width="2" rx="5" />
+            <text x="940" y="493" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">150A</text>
+            <text x="940" y="507" text-anchor="middle" font-size="10" fill="#fff">FUSE</text>
+            <circle cx="900" cy="495" r="4" fill="#fff" />
+            <circle cx="980" cy="495" r="4" fill="#fff" />
+
+            <!-- Fuse to Inverter Cable -->
+            <line x1="980" y1="495" x2="980" y2="680" stroke="#ff4444" stroke-width="6" />
+            <text x="1000" y="580" font-size="10" fill="#4db8ff">2/0 AWG (50mm²)</text>
+            <text x="1000" y="595" font-size="10" fill="#4db8ff">24-36" length</text>
+
+            <!-- Negative to Inverter Cable -->
+            <line x1="740" y1="620" x2="740" y2="680" stroke="#4444ff" stroke-width="6" />
+            <text x="680" y="650" font-size="10" fill="#4db8ff">2/0 AWG (50mm²)</text>
+            <text x="680" y="665" font-size="10" fill="#4db8ff">24-36" length</text>
+
+            <!-- VICTRON INVERTER -->
+            <rect x="620" y="680" width="480" height="120" fill="#16213e" stroke="#ffd700" stroke-width="3" rx="8" />
+            <text x="860" y="710" text-anchor="middle" font-size="18" fill="#ffd700" font-weight="bold">VICTRON
+                MULTIPLUS-II</text>
+            <text x="860" y="730" text-anchor="middle" font-size="14" fill="#ffd700">48/3000/35</text>
+            <text x="860" y="750" text-anchor="middle" font-size="12" fill="#4db8ff">3000W Continuous | 6000W Surge
+                (30s)</text>
+            <text x="860" y="770" text-anchor="middle" font-size="12" fill="#4db8ff">35A Built-in Charger | VEConnect
+                Bluetooth</text>
+
+            <!-- Inverter Terminals -->
+            <circle cx="980" cy="710" r="12" fill="#ff4444" stroke="#fff" stroke-width="2" />
+            <text x="980" y="715" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">+</text>
+            <text x="980" y="735" text-anchor="middle" font-size="9" fill="#4db8ff">DC IN</text>
+
+            <circle cx="740" cy="710" r="12" fill="#4444ff" stroke="#fff" stroke-width="2" />
+            <text x="740" y="715" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">−</text>
+            <text x="740" y="735" text-anchor="middle" font-size="9" fill="#4db8ff">DC IN</text>
+
+            <!-- AC Outputs -->
+            <rect x="680" y="760" width="100" height="25" fill="#00ff00" fill-opacity="0.3" stroke="#00ff00"
+                stroke-width="2" rx="3" />
+            <text x="730" y="777" text-anchor="middle" font-size="11" fill="#00ff00" font-weight="bold">AC OUT 1</text>
+            <text x="730" y="795" text-anchor="middle" font-size="9" fill="#4db8ff">Main Loads</text>
+
+            <rect x="900" y="760" width="100" height="25" fill="#00ff00" fill-opacity="0.3" stroke="#00ff00"
+                stroke-width="2" rx="3" />
+            <text x="950" y="777" text-anchor="middle" font-size="11" fill="#00ff00" font-weight="bold">AC OUT 2</text>
+            <text x="950" y="795" text-anchor="middle" font-size="9" fill="#4db8ff">Shore Only</text>
+
+            <!-- Shore Power Input -->
+            <rect x="790" y="745" width="80" height="15" fill="#ffaa00" fill-opacity="0.3" stroke="#ffaa00"
+                stroke-width="2" rx="3" />
+            <text x="830" y="756" text-anchor="middle" font-size="10" fill="#ffaa00" font-weight="bold">AC IN</text>
+            <text x="830" y="810" text-anchor="middle" font-size="9" fill="#4db8ff">240V 15A Shore</text>
+
+            <!-- System Specs Box - Moved down -->
+            <rect x="50" y="430" width="520" height="110" fill="#16213e" stroke="#4db8ff" stroke-width="2" rx="5" />
+            <text x="310" y="455" text-anchor="middle" font-size="14" fill="#4db8ff" font-weight="bold">SYSTEM
+                SPECIFICATIONS</text>
+
+            <text x="70" y="480" font-size="11" fill="#ffd700">• Nominal Voltage: 48V (51.2V charged, 43V empty)</text>
+            <text x="70" y="496" font-size="11" fill="#ffd700">• Total Capacity: 200Ah (9,600Wh / 9.6kWh)</text>
+            <text x="70" y="512" font-size="11" fill="#ffd700">• Max Continuous Current: 125A (3000W)</text>
+            <text x="70" y="528" font-size="11" fill="#ffd700">• Total Weight: 76kg (4× 19kg batteries)</text>
+
+            <!-- Safety Annotations -->
+            <text x="920" y="550" font-size="10" fill="#ff6600" font-weight="bold">⚠ FUSE MUST BE WITHIN 18cm
+                (7")</text>
+            <text x="920" y="565" font-size="10" fill="#ff6600" font-weight="bold">OF POSITIVE BUSBAR</text>
+
+            <!-- Cable Legend -->
+            <rect x="50" y="160" width="20" height="4" fill="#ffd700" />
+            <text x="75" y="165" font-size="10" fill="#fff">2 AWG (35mm²) - Series Links & Busbar Connections</text>
+
+            <rect x="350" y="160" width="20" height="6" fill="#ffd700" />
+            <text x="375" y="167" font-size="10" fill="#fff">2/0 AWG (50mm²) - Main DC Power Cables</text>
+        </svg>
+    </div>
+</body>
+
+</html>

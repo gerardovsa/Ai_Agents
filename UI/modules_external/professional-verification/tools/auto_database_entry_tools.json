@@ -1,0 +1,145 @@
+[
+    {
+        "name": "auto_enter_verification_results",
+        "description": "Automatically enter professional verification results into a web form or database using Anthropic Computer Use API. Claude will navigate to the URL, fill the form fields with verified data, submit, and capture screenshots. Perfect for automating CRM entry, database updates, or any web-based system. Requires Docker and Anthropic API key.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "verification_data": {
+                    "type": "object",
+                    "description": "Dictionary of verified data to enter (name, company, email, legitimacy_score, status, etc.)",
+                    "additionalProperties": true
+                },
+                "target_system": {
+                    "type": "string",
+                    "description": "Type of system to fill: 'crm', 'database', 'erp', 'custom'",
+                    "enum": [
+                        "crm",
+                        "database",
+                        "erp",
+                        "custom"
+                    ]
+                },
+                "target_url": {
+                    "type": "string",
+                    "description": "URL of the form or system to fill (must be accessible from Docker container)"
+                },
+                "form_fields": {
+                    "type": "object",
+                    "description": "Mapping of form field names to verification_data keys. Example: {'full_name': 'name', 'email_address': 'email'}",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "verification_data",
+                "target_system",
+                "target_url",
+                "form_fields"
+            ]
+        },
+        "returns": {
+            "success": "bool - Whether entry was successful",
+            "records_created": "int - Number of records created (1 if successful)",
+            "screenshot_before": "str - Base64 screenshot before entry",
+            "screenshot_after": "str - Base64 screenshot after entry",
+            "actions_taken": "List[str] - Log of all actions Claude performed",
+            "execution_time": "float - Seconds taken to complete",
+            "ai_response": "str - Claude's final response about the task",
+            "error": "str - Error message if failed"
+        },
+        "platform": "professional-verification",
+        "category": "automation"
+    },
+    {
+        "name": "auto_enter_to_postgres",
+        "description": "Directly insert verification results into a PostgreSQL database table without using Computer Use. Fast and efficient for bulk operations. Uses the platform's database connection. Specify table name, schema, and data dictionary. Data keys must match column names in the target table.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "verification_data": {
+                    "type": "object",
+                    "description": "Dictionary where keys are column names and values are data to insert",
+                    "additionalProperties": true
+                },
+                "table_name": {
+                    "type": "string",
+                    "description": "Name of the PostgreSQL table to insert into"
+                },
+                "schema_name": {
+                    "type": "string",
+                    "description": "Schema name (default 'public')",
+                    "default": "public"
+                }
+            },
+            "required": [
+                "verification_data",
+                "table_name"
+            ]
+        },
+        "returns": {
+            "success": "bool - Whether insertion succeeded",
+            "records_created": "int - Number of records created (1 if successful)",
+            "insert_id": "int - The ID of the inserted record (if table has RETURNING id)",
+            "table": "str - Full table name with schema",
+            "error": "str - Error message if failed"
+        },
+        "platform": "professional-verification",
+        "category": "automation"
+    },
+    {
+        "name": "batch_enter_verifications",
+        "description": "Process multiple verification results and automatically enter them into a system using Computer Use. Will iterate through each record, fill the form, submit, and verify. Good for bulk data entry after batch verification. Includes 2-second delays between entries to avoid rate limiting.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "verification_list": {
+                    "type": "array",
+                    "description": "List of verification data dictionaries to enter",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "target_system": {
+                    "type": "string",
+                    "description": "Type of system to fill: 'crm', 'database', 'erp', 'custom'",
+                    "enum": [
+                        "crm",
+                        "database",
+                        "erp",
+                        "custom"
+                    ]
+                },
+                "target_url": {
+                    "type": "string",
+                    "description": "URL of the form or system to fill"
+                },
+                "form_fields": {
+                    "type": "object",
+                    "description": "Mapping of form field names to data keys",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "verification_list",
+                "target_system",
+                "target_url",
+                "form_fields"
+            ]
+        },
+        "returns": {
+            "success": "bool - True if all records succeeded",
+            "total_records": "int - Total records processed",
+            "records_created": "int - Number successfully created",
+            "records_failed": "int - Number that failed",
+            "results": "List[Dict] - Detailed results for each record",
+            "execution_time": "float - Total seconds taken"
+        },
+        "platform": "professional-verification",
+        "category": "automation"
+    }
+]

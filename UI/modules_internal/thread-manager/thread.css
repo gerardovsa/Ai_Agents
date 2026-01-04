@@ -608,9 +608,9 @@
     box-shadow: 0 0 12px var(--accent-primary);
 }
 
-/* Other user/session viewing - purple border + bubble (shows initials or count) */
+/* Other user/session viewing - dashed border with device-specific color + bubble (shows initials or count) */
 .agent-quick-nav-badge.other-user {
-    border: 2px solid #a855f7;
+    border: 3px dashed var(--session-color, #a855f7);
     position: relative;
 }
 
@@ -619,7 +619,7 @@
     position: absolute;
     top: -8px;
     right: -8px;
-    background: #a855f7;
+    background: var(--session-color, #a855f7);
     color: white;
     font-size: 10px;
     font-weight: 600;
@@ -637,15 +637,15 @@
 
 /* Pulsing animation when other sessions are viewing */
 .agent-quick-nav-badge.other-user {
-    animation: pulse-purple 2s ease-in-out infinite;
+    animation: pulse-session 2s ease-in-out infinite;
 }
 
-@keyframes pulse-purple {
+@keyframes pulse-session {
 
     0%,
     100% {
-        border-color: #a855f7;
-        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+        border-color: var(--session-color, #a855f7);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--session-color, #a855f7) 40%, transparent);
     }
 
     50% {

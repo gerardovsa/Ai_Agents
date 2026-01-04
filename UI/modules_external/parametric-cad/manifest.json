@@ -1,0 +1,65 @@
+{
+    "id": "parametric-cad",
+    "name": "Parametric CAD",
+    "version": "1.0.0",
+    "description": "Browser-based parametric CAD using OpenCascade.js with T-slot aluminum extrusion library",
+    "icon": "fas fa-cube",
+    "type": "sidebar",
+    "category": "engineering",
+    "scriptPath": "external/modules/parametric-cad/parametric-cad.js",
+    "stylePath": "external/modules/parametric-cad/parametric-cad.css",
+    "files": {
+        "js": "parametric-cad.js",
+        "css": "parametric-cad.css",
+        "html": "parametric-cad.html"
+    },
+    "dependencies": {
+        "utilities": [],
+        "frameworks": [
+            "https://cdn.jsdelivr.net/npm/opencascade.js@1.1.1/dist/opencascade.wasm.js"
+        ],
+        "modules": []
+    },
+    "colors": {
+        "primary": "#00bcd4",
+        "secondary": "#0097a7",
+        "hover": "#00acc1"
+    },
+    "author": "AI Agent",
+    "settings": {
+        "api_endpoint": "/api/parametric-cad",
+        "backend_url": "http://localhost:5001",
+        "supabase_realtime": true
+    },
+    "features": [
+        "Browser-based parametric CAD modeling",
+        "T-slot aluminum extrusion library (Profile 5/6/8, 80/20)",
+        "Real-time collaborative design",
+        "Export to STEP, STL, DXF, OBJ",
+        "Pre-built templates (workbenches, frames, enclosures)",
+        "AI-assisted design recommendations"
+    ],
+    "extrusion_library": {
+        "profiles": [
+            "Profile 5 (20x20mm, 40x40mm, 80x40mm)",
+            "Profile 6 (30x30mm, 60x30mm, 60x60mm)",
+            "Profile 8 (40x40mm, 80x40mm, 80x80mm, 160x80mm)",
+            "80/20 Series 10 (25.4x25.4mm, 1\"x1\")",
+            "80/20 Series 15 (38.1x38.1mm, 1.5\"x1.5\")"
+        ],
+        "fasteners": [
+            "T-nuts (M4, M5, M6, M8)",
+            "Button head screws",
+            "Slide-in T-nuts",
+            "End caps",
+            "Corner brackets (90°, 45°, adjustable)"
+        ],
+        "accessories": [
+            "Angle brackets",
+            "Gusset plates",
+            "Hinges",
+            "Linear motion (slides, bearings)",
+            "Panel clips"
+        ]
+    }
+}

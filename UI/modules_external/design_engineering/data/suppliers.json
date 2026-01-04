@@ -1,0 +1,278 @@
+{
+  "makerbeam_australia": {
+    "name": "Makerbeam Australia",
+    "country": "Australia",
+    "website": "https://www.makerbeam.com.au",
+    "contact": {
+      "email": "sales@makerbeam.com.au",
+      "phone": "+61 2 9876 5432"
+    },
+    "shipping": {
+      "regions": [
+        "Australia",
+        "New Zealand"
+      ],
+      "free_shipping_threshold_aud": 150,
+      "typical_delivery_days": 5
+    },
+    "profiles": {
+      "40x40_standard": {
+        "part_number": "MB-4040-STD",
+        "price_aud_per_meter": 16.80,
+        "min_order_meters": 1,
+        "cut_to_length": true,
+        "cut_fee_aud": 2.50,
+        "stock_lengths_mm": [
+          500,
+          1000,
+          1500,
+          2000,
+          3000
+        ]
+      },
+      "40x40_light": {
+        "part_number": "MB-4040-LT",
+        "price_aud_per_meter": 12.50,
+        "min_order_meters": 1,
+        "cut_to_length": true,
+        "cut_fee_aud": 2.50,
+        "stock_lengths_mm": [
+          500,
+          1000,
+          1500,
+          2000
+        ]
+      },
+      "80x80_standard": {
+        "part_number": "MB-8080-STD",
+        "price_aud_per_meter": 42.50,
+        "min_order_meters": 1,
+        "cut_to_length": true,
+        "cut_fee_aud": 4.00,
+        "stock_lengths_mm": [
+          1000,
+          2000,
+          3000
+        ]
+      }
+    },
+    "connectors": {
+      "corner_bracket_90deg": {
+        "part_number": "MB-CB-90-40",
+        "price_aud": 4.50,
+        "material": "aluminum",
+        "load_rating_kg": 50,
+        "compatible_profiles": [
+          "40x40_standard",
+          "40x40_light"
+        ]
+      },
+      "t_bracket": {
+        "part_number": "MB-TB-40",
+        "price_aud": 5.20,
+        "material": "aluminum",
+        "load_rating_kg": 75,
+        "compatible_profiles": [
+          "40x40_standard",
+          "40x40_light",
+          "40x40_heavy"
+        ]
+      },
+      "anchor_fastener": {
+        "part_number": "MB-AF-M8",
+        "price_aud": 0.85,
+        "thread": "M8",
+        "compatible_profiles": [
+          "all"
+        ]
+      },
+      "end_cap": {
+        "part_number": "MB-EC-40",
+        "price_aud": 0.50,
+        "compatible_profiles": [
+          "40x40_standard",
+          "40x40_light",
+          "40x40_heavy"
+        ]
+      }
+    }
+  },
+  "faztek_global": {
+    "name": "Faztek LLC",
+    "country": "USA (ships globally)",
+    "website": "https://www.faztek.com",
+    "contact": {
+      "email": "info@faztek.com",
+      "phone": "+1 800 322 8835"
+    },
+    "shipping": {
+      "regions": [
+        "Worldwide"
+      ],
+      "australia_shipping_aud": 85,
+      "typical_delivery_days": 14
+    },
+    "profiles": {
+      "40x40_standard": {
+        "part_number": "15-4040",
+        "price_aud_per_meter": 18.50,
+        "min_order_meters": 3,
+        "cut_to_length": true,
+        "cut_fee_aud": 3.00,
+        "stock_lengths_mm": [
+          610,
+          1220,
+          1830,
+          2440,
+          3050
+        ]
+      },
+      "60x60_standard": {
+        "part_number": "15-6060",
+        "price_aud_per_meter": 32.00,
+        "min_order_meters": 2,
+        "cut_to_length": true,
+        "cut_fee_aud": 4.50,
+        "stock_lengths_mm": [
+          1220,
+          2440,
+          3050
+        ]
+      }
+    },
+    "connectors": {
+      "heavy_duty_bracket": {
+        "part_number": "FT-HDB-40",
+        "price_aud": 12.50,
+        "material": "steel",
+        "load_rating_kg": 150,
+        "compatible_profiles": [
+          "40x40_standard",
+          "40x40_heavy"
+        ]
+      }
+    }
+  },
+  "openbuilds_parts": {
+    "name": "OpenBuilds Part Store",
+    "country": "USA (ships globally)",
+    "website": "https://openbuildspartstore.com",
+    "contact": {
+      "email": "support@openbuilds.com"
+    },
+    "shipping": {
+      "regions": [
+        "Worldwide"
+      ],
+      "australia_shipping_aud": 65,
+      "typical_delivery_days": 10
+    },
+    "profiles": {
+      "20x20_light": {
+        "part_number": "OB-2020-V",
+        "price_aud_per_meter": 9.80,
+        "min_order_meters": 1,
+        "cut_to_length": false,
+        "stock_lengths_mm": [
+          250,
+          500,
+          1000,
+          1500
+        ]
+      },
+      "40x40_standard": {
+        "part_number": "OB-4040-V",
+        "price_aud_per_meter": 15.50,
+        "min_order_meters": 1,
+        "cut_to_length": false,
+        "stock_lengths_mm": [
+          500,
+          1000,
+          1500
+        ]
+      }
+    },
+    "connectors": {
+      "90deg_joining_plate": {
+        "part_number": "OB-JP-90",
+        "price_aud": 3.80,
+        "material": "aluminum",
+        "load_rating_kg": 40,
+        "compatible_profiles": [
+          "20x20_light",
+          "40x40_standard"
+        ]
+      },
+      "tee_nut_m5": {
+        "part_number": "OB-TN-M5",
+        "price_aud": 0.45,
+        "thread": "M5",
+        "compatible_profiles": [
+          "all"
+        ]
+      }
+    }
+  },
+  "misumi_australia": {
+    "name": "MISUMI Australia",
+    "country": "Australia",
+    "website": "https://au.misumi-ec.com",
+    "contact": {
+      "email": "info@misumi.com.au",
+      "phone": "+61 3 9589 5355"
+    },
+    "shipping": {
+      "regions": [
+        "Australia"
+      ],
+      "free_shipping_threshold_aud": 200,
+      "typical_delivery_days": 3
+    },
+    "profiles": {
+      "30x30_standard": {
+        "part_number": "HFSB5-3030",
+        "price_aud_per_meter": 13.20,
+        "min_order_meters": 0.1,
+        "cut_to_length": true,
+        "cut_fee_aud": 0,
+        "stock_lengths_mm": "any_length_100mm_increments"
+      },
+      "40x40_standard": {
+        "part_number": "HFSB5-4040",
+        "price_aud_per_meter": 19.50,
+        "min_order_meters": 0.1,
+        "cut_to_length": true,
+        "cut_fee_aud": 0,
+        "stock_lengths_mm": "any_length_100mm_increments"
+      },
+      "40x80_standard": {
+        "part_number": "HFSB5-4080",
+        "price_aud_per_meter": 28.90,
+        "min_order_meters": 0.1,
+        "cut_to_length": true,
+        "cut_fee_aud": 0,
+        "stock_lengths_mm": "any_length_100mm_increments"
+      }
+    },
+    "connectors": {
+      "bracket_hblfsn5": {
+        "part_number": "HBLFSN5",
+        "price_aud": 6.80,
+        "material": "aluminum_die_cast",
+        "load_rating_kg": 100,
+        "compatible_profiles": [
+          "30x30_standard",
+          "40x40_standard"
+        ]
+      },
+      "post_assembly_insertion_nut": {
+        "part_number": "HNTP5-M5",
+        "price_aud": 0.65,
+        "thread": "M5",
+        "compatible_profiles": [
+          "all"
+        ]
+      }
+    }
+  }
+}

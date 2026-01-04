@@ -1,0 +1,47 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "title": "Professional Verification Guide Tool",
+    "description": "Comprehensive guide for using the professional verification module including workflows, best practices, and AI instructions",
+    "version": "1.0.0",
+    "created": "2025-12-18",
+    "tools": [
+        {
+            "name": "professional_verification_guide",
+            "category": "documentation",
+            "description": "Get comprehensive guide for professional verification workflows, tool usage, and AI agent instructions. Returns detailed guidance on how to interpret results, assess risk, and make hiring decisions. CALL THIS FIRST before using verification tools.",
+            "implementation": "verification_guide_wrapper.professional_verification_guide",
+            "required_credentials": [],
+            "parameters": {
+                "topic": {
+                    "type": "string",
+                    "description": "Guide topic to retrieve",
+                    "enum": [
+                        "overview",
+                        "quickstart",
+                        "workflows",
+                        "resume_verification",
+                        "github_verification",
+                        "company_verification",
+                        "criminal_checks",
+                        "credential_verification",
+                        "risk_assessment",
+                        "legal_compliance",
+                        "industry_specific",
+                        "all_tools"
+                    ],
+                    "default": "overview"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "topic": "string - Topic requested",
+                "guide_content": "string - Formatted markdown guide",
+                "related_tools": "array - Relevant tools for this topic",
+                "next_steps": "array - Suggested workflow steps",
+                "examples": "array - Real-world usage examples"
+            },
+            "profession_agnostic": true,
+            "example_usage": "professional_verification_guide(topic='quickstart')"
+        }
+    ]
+}

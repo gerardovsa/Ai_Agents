@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Console Logger - Thread 2112 Debug</title>
+    <style>
+        body {
+            font-family: 'Consolas', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #4ec9b0;
+            font-size: 18px;
+            margin: 0 0 20px 0;
+        }
+
+        #controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2d2d2d;
+            border-radius: 6px;
+        }
+
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1177bb;
+        }
+
+        button.danger {
+            background: #c72e0f;
+        }
+
+        button.danger:hover {
+            background: #e73c24;
+        }
+
+        #logContainer {
+            background: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #2d2d2d;
+        }
+
+        .log-entry.info {
+            color: #4ec9b0;
+        }
+
+        .log-entry.warn {
+            color: #dcdcaa;
+        }
+
+        .log-entry.error {
+            color: #f48771;
+        }
+
+        .log-entry.debug {
+            color: #9cdcfe;
+        }
+
+        .log-entry.success {
+            color: #4fc1ff;
+        }
+
+        .timestamp {
+            color: #858585;
+            margin-right: 10px;
+        }
+
+        .highlight {
+            background: rgba(255, 255, 0, 0.2);
+            padding: 2px 4px;
+        }
+
+        #status {
+            padding: 10px;
+            background: #2d2d2d;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .stats {
+            display: inline-block;
+            margin-right: 20px;
+        }
+
+        .stats strong {
+            color: #4ec9b0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Console Logger - Monitoring Thread 2112 Message Loading</h1>
+
+    <div id="controls">
+        <button onclick="startMonitoring()">▶️ Start Monitoring</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        <button onclick="downloadLogs()">💾 Download Logs</button>
+        <button class="danger" onclick="window.close()">❌ Close</button>
+        <div id="status" style="margin-top: 10px;">
+            <span class="stats"><strong>Status:</strong> <span id="statusText">Waiting...</span></span>
+            <span class="stats"><strong>Logs:</strong> <span id="logCount">0</span></span>
+            <span class="stats"><strong>Renders:</strong> <span id="renderCount">0</span></span>
+            <span class="stats"><strong>Errors:</strong> <span id="errorCount">0</span></span>
+        </div>
+    </div>
+
+    <div id="logContainer"></div>
+
+    <script>
+        const logs = [];
+        let renderCount = 0;
+        let errorCount = 0;
+        let monitoring = false;
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const entry = {
+                timestamp,
+                message,
+                type
+            };
+            logs.push(entry);
+
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry ${type}`;
+            logDiv.innerHTML = `<span class="timestamp">[${timestamp}]</span>${escapeHtml(message)}`;
+
+            document.getElementById('logContainer').appendChild(logDiv);
+            document.getElementById('logContainer').scrollTop = document.getElementById('logContainer').scrollHeight;
+
+            document.getElementById('logCount').textContent = logs.length;
+
+            if (type === 'error') {
+                errorCount++;
+                document.getElementById('errorCount').textContent = errorCount;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function startMonitoring() {
+            if (monitoring) {
+                addLog('Already monitoring!', 'warn');
+                return;
+            }
+
+            monitoring = true;
+            document.getElementById('statusText').textContent = 'Monitoring...';
+            addLog('🚀 Starting console monitoring...', 'info');
+            addLog('Opening main app window...', 'info');
+
+            // Open main app in new window
+            const appWindow = window.open('http://localhost:5000', 'MainApp', 'width=1400,height=900');
+
+            if (!appWindow) {
+                addLog('❌ Failed to open app window (popup blocked?)', 'error');
+                monitoring = false;
+                return;
+            }
+
+            addLog('✅ App window opened', 'success');
+            addLog('Waiting for app to load...', 'info');
+
+            // Wait for app to load, then inject monitoring
+            setTimeout(() => {
+                try {
+                    // Inject console interceptor into app window
+                    const script = appWindow.document.createElement('script');
+                    script.textContent = `
+                        // Intercept console methods
+                        const originalLog = console.log;
+                        const originalWarn = console.warn;
+                        const originalError = console.error;
+
+                        window.consoleLogs = [];
+
+                        console.log = function(...args) {
+                            const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                            window.consoleLogs.push({ type: 'info', message });
+                            window.opener?.postMessage({ type: 'console', level: 'info', message }, '*');
+                            originalLog.apply(console, args);
+                        };
+
+                        console.warn = function(...args) {
+                            const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                            window.consoleLogs.push({ type: 'warn', message });
+                            window.opener?.postMessage({ type: 'console', level: 'warn', message }, '*');
+                            originalWarn.apply(console, args);
+                        };
+
+                        console.error = function(...args) {
+                            const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                            window.consoleLogs.push({ type: 'error', message });
+                            window.opener?.postMessage({ type: 'console', level: 'error', message }, '*');
+                            originalError.apply(console, args);
+                        };
+
+                        console.log('✅ Console monitoring active');
+                    `;
+                    appWindow.document.head.appendChild(script);
+
+                    addLog('✅ Console interceptor injected', 'success');
+                    addLog('📝 Now load thread 2112 in an agent column...', 'info');
+                    addLog('All console logs will appear below:', 'info');
+
+                } catch (error) {
+                    addLog(`❌ Failed to inject monitoring: ${error.message}`, 'error');
+                }
+            }, 2000);
+        }
+
+        // Listen for console messages from app window
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'console') {
+                const { level, message } = event.data;
+
+                // Track renders
+                if (message.includes('Rendering message') || message.includes('Rendered')) {
+                    renderCount++;
+                    document.getElementById('renderCount').textContent = renderCount;
+                }
+
+                // Highlight important messages
+                let displayMessage = message;
+                if (message.includes('thread 2112') || message.includes('Thread 2112') ||
+                    message.includes('assistant') || message.includes('UnifiedMessageRenderer')) {
+                    displayMessage = `<span class="highlight">${escapeHtml(message)}</span>`;
+                } else {
+                    displayMessage = escapeHtml(message);
+                }
+
+                addLog(displayMessage, level);
+            }
+        });
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            logs.length = 0;
+            renderCount = 0;
+            errorCount = 0;
+            document.getElementById('logCount').textContent = '0';
+            document.getElementById('renderCount').textContent = '0';
+            document.getElementById('errorCount').textContent = '0';
+            addLog('Logs cleared', 'info');
+        }
+
+        function downloadLogs() {
+            const logText = logs.map(l => `[${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `console_logs_thread_2112_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLog('📥 Logs downloaded', 'success');
+        }
+
+        // Initial status
+        addLog('Console logger ready. Click "Start Monitoring" to begin.', 'info');
+    </script>
+</body>
+
+</html>

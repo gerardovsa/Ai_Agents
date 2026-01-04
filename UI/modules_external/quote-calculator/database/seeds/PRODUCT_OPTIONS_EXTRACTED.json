@@ -1,0 +1,5021 @@
+{
+  "EconomicalBusinessCards": {
+    "calculator_key": "shopify_economical_business_cards",
+    "product_title": "Economical Business Cards",
+    "total_options": 6,
+    "total_choices": 12,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "500",
+        "choices": [
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "5000",
+            "price": 5000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "10000",
+            "price": 10000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 6
+          }
+        ]
+      },
+      {
+        "option_name": "Print Sides",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Single side print",
+        "choices": [
+          {
+            "choice_title": "Single side print",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "ssp",
+            "description": "Print on front side only",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double side print",
+            "price": 2,
+            "price_type": "multiplier",
+            "sku": "dsp",
+            "description": "Print on both front and back",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Print Type",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Colour",
+        "choices": [
+          {
+            "choice_title": "Colour",
+            "price": 0.044,
+            "price_type": "per_sheet",
+            "sku": "colp",
+            "description": "Full color printing (CMYK)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "bnwp",
+            "description": "Black and white printing only",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "90mm x 55mm",
+        "choices": [
+          {
+            "choice_title": "90mm x 55mm",
+            "price": 21,
+            "price_type": "cards_per_sheet",
+            "sku": "",
+            "description": "Standard business card size",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Paper Stock Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Satin 300GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 300GSM",
+            "price": 126,
+            "price_type": "per_1000_sheets",
+            "sku": "pSAT300",
+            "description": "Premium satin finish, smooth texture",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F6",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      }
+    ]
+  },
+  "FoldedPrintedFlyers": {
+    "calculator_key": "shopify_folded_printed_flyers",
+    "product_title": "Folded Printed Flyers",
+    "total_options": 8,
+    "total_choices": 31,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "500",
+        "choices": [
+          {
+            "choice_title": "100",
+            "price": 100,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "5000",
+            "price": 5000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "10000",
+            "price": 10000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 7
+          }
+        ]
+      },
+      {
+        "option_name": "Print Sides",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Double side print",
+        "choices": [
+          {
+            "choice_title": "Single side print",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "ssp",
+            "description": "Print on front side only",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double side print",
+            "price": 2,
+            "price_type": "multiplier",
+            "sku": "dsp",
+            "description": "Print on both front and back",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Print Type",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Colour",
+        "choices": [
+          {
+            "choice_title": "Colour",
+            "price": 0.042,
+            "price_type": "per_sheet",
+            "sku": "colp",
+            "description": "Full color printing (CMYK)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.01,
+            "price_type": "per_sheet",
+            "sku": "bnwp",
+            "description": "Black and white printing only",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A4 - 210mm x 297mm",
+        "choices": [
+          {
+            "choice_title": "A5 - 148mm x 210mm",
+            "price": 4,
+            "price_type": "items_per_sheet",
+            "sku": "psa5",
+            "description": "A5 folded flyer size",
+            "display_order": 1
+          },
+          {
+            "choice_title": "A4 - 210mm x 297mm",
+            "price": 2,
+            "price_type": "items_per_sheet",
+            "sku": "psa4",
+            "description": "A4 folded flyer size",
+            "display_order": 2
+          },
+          {
+            "choice_title": "A3 - 297mm x 420mm",
+            "price": 1,
+            "price_type": "items_per_sheet",
+            "sku": "psa3",
+            "description": "A3 folded flyer size",
+            "display_order": 3
+          },
+          {
+            "choice_title": "6pp A4 - 630mm x 297mm",
+            "price": 0.5,
+            "price_type": "items_per_sheet",
+            "sku": "psa2",
+            "description": "6-panel A4 tri-fold brochure",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Paper Stock Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Satin 150GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 128GSM",
+            "price": 39.6,
+            "price_type": "per_1000_sheets",
+            "sku": "pSAT128",
+            "description": "Standard satin finish",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Satin 150GSM",
+            "price": 64.8,
+            "price_type": "per_1000_sheets",
+            "sku": "pSAT150",
+            "description": "Premium satin finish",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Satin 250GSM",
+            "price": 115.5,
+            "price_type": "per_1000_sheets",
+            "sku": "pSAT250",
+            "description": "Heavy satin stock",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Satin 300GSM",
+            "price": 126,
+            "price_type": "per_1000_sheets",
+            "sku": "pSAT300",
+            "description": "Extra heavy satin stock",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Satin 350GSM",
+            "price": 138.6,
+            "price_type": "per_1000_sheets",
+            "sku": "pSAT350",
+            "description": "Ultra heavy satin stock",
+            "display_order": 5
+          },
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 31.6,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC80",
+            "description": "Economy uncoated paper",
+            "display_order": 6
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 35.41,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC90",
+            "description": "Standard uncoated paper",
+            "display_order": 7
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 35.2,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC100",
+            "description": "Premium uncoated paper",
+            "display_order": 8
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F6",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Fold Type",
+        "field_id": "F7",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Single Fold",
+        "choices": [
+          {
+            "choice_title": "Single Fold",
+            "price": 1,
+            "price_type": "fold_multiplier",
+            "sku": "",
+            "description": "One fold - creates 4 panels",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double Fold",
+            "price": 2,
+            "price_type": "fold_multiplier",
+            "sku": "",
+            "description": "Two folds - creates 6 panels (tri-fold)",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Triple Fold",
+            "price": 3,
+            "price_type": "fold_multiplier",
+            "sku": "",
+            "description": "Three folds - creates 8 panels",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "None",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "No lamination",
+            "display_order": 1
+          },
+          {
+            "choice_title": "1 Side Gloss",
+            "price": 0.19,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Gloss lamination on one side",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 Side Gloss",
+            "price": 0.38,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Gloss lamination on both sides",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1 Side Matt",
+            "price": 0.19,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Matt lamination on one side",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 Side Matt",
+            "price": 0.38,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Matt lamination on both sides",
+            "display_order": 5
+          }
+        ]
+      }
+    ]
+  },
+  "PerfectBound": {
+    "calculator_key": "shopify_perfect_bound_books",
+    "product_title": "Perfect Bound Books",
+    "total_options": 9,
+    "total_choices": 31,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Printed Pages (pp)",
+        "field_id": "F2",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Proof Requirements",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Digital Emailed Proof",
+        "choices": [
+          {
+            "choice_title": "Digital Emailed Proof",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "PDF proof sent via email",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Physical Unbound Proof",
+            "price": 40,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "Printed proof copy (unbound)",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Cover Stock",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Satin 300GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 250GSM",
+            "price": 0.12,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Satin 300GSM",
+            "price": 0.14,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Satin 350GSM",
+            "price": 0.18,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Gloss 300GSM",
+            "price": 0.14,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Gloss 350GSM",
+            "price": 0.18,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "Uncoated 300GSM",
+            "price": 0.14,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 6
+          }
+        ]
+      },
+      {
+        "option_name": "Cover Print Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "2 side colour (4pp)",
+        "choices": [
+          {
+            "choice_title": "1 side colour (2pp)",
+            "price": 0.048,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "2 side colour (4pp)",
+            "price": 0.096,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1 side Black & White (2pp)",
+            "price": 0.01,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2 side Black & White (4pp)",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Gloss outside only",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Gloss outside only",
+            "price": 0.19,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Gloss lamination on front cover only",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Matt outside only",
+            "price": 0.19,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Matt lamination on front cover only",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Soft Touch outside only",
+            "price": 0.25,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Premium soft touch finish on front cover",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A5 Portrait",
+        "choices": [
+          {
+            "choice_title": "A6 Portrait",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "105mm \u00d7 148mm",
+            "display_order": 1
+          },
+          {
+            "choice_title": "A5 Portrait",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "148mm \u00d7 210mm (Most common)",
+            "display_order": 2
+          },
+          {
+            "choice_title": "A5 Landscape",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "210mm \u00d7 148mm",
+            "display_order": 3
+          },
+          {
+            "choice_title": "A4 Portrait",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "210mm \u00d7 297mm",
+            "display_order": 4
+          },
+          {
+            "choice_title": "A4 Landscape",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "297mm \u00d7 210mm",
+            "display_order": 5
+          },
+          {
+            "choice_title": "US Trade - 152mm x 229mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "US Trade size (6\" \u00d7 9\")",
+            "display_order": 6
+          },
+          {
+            "choice_title": "B-Format - 127mm x 198mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "British standard book size",
+            "display_order": 7
+          }
+        ]
+      },
+      {
+        "option_name": "Content Print Type",
+        "field_id": "F10",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Black & White",
+        "choices": [
+          {
+            "choice_title": "Full Colour",
+            "price": 0.088,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Full color printing on internal pages",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.015,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Black & white printing on internal pages",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Content Stock Type",
+        "field_id": "F11",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Uncoated Bond 100GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 128GSM",
+            "price": 0.054,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Best for full color internals",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Satin 150GSM",
+            "price": 0.064,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Premium color internals",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 0.0322,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Economy B&W printing",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 0.0354,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Standard B&W printing",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 0.0392,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Quality B&W printing (Most common)",
+            "display_order": 5
+          },
+          {
+            "choice_title": "Uncoated Bond 120GSM",
+            "price": 0.045,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Premium B&W printing",
+            "display_order": 6
+          }
+        ]
+      }
+    ]
+  },
+  "PremiumBusinessCards": {
+    "calculator_key": "shopify_premium_business_cards",
+    "product_title": "Premium Business Cards",
+    "total_options": 7,
+    "total_choices": 22,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "500",
+        "choices": [
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "5000",
+            "price": 5000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "10000",
+            "price": 10000,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 6
+          }
+        ]
+      },
+      {
+        "option_name": "Print Sides",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Single side print",
+        "choices": [
+          {
+            "choice_title": "Single side print",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "ssp",
+            "description": "Print on front side only",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double side print",
+            "price": 2,
+            "price_type": "multiplier",
+            "sku": "dsp",
+            "description": "Print on both front and back",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Print Type",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Colour",
+        "choices": [
+          {
+            "choice_title": "Colour",
+            "price": 0.048,
+            "price_type": "per_sheet",
+            "sku": "colp",
+            "description": "Full color printing (CMYK)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "bnwp",
+            "description": "Black and white printing only",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "90mm x 55mm",
+        "choices": [
+          {
+            "choice_title": "90mm x 55mm",
+            "price": 21,
+            "price_type": "cards_per_sheet",
+            "sku": "psdl",
+            "description": "Standard business card size",
+            "display_order": 1
+          },
+          {
+            "choice_title": "90mm x 45mm",
+            "price": 30,
+            "price_type": "cards_per_sheet",
+            "sku": "psa6",
+            "description": "Compact business card size",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Paper Stock Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Satin 350GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 350GSM",
+            "price": 180,
+            "price_type": "per_1000_sheets",
+            "sku": "pSAT350",
+            "description": "Premium thick satin finish",
+            "display_order": 1
+          },
+          {
+            "choice_title": "King Kong High Bulk",
+            "price": 300,
+            "price_type": "per_1000_sheets",
+            "sku": "pKong420",
+            "description": "Ultra-thick uncoated premium stock",
+            "display_order": 2
+          },
+          {
+            "choice_title": "EcoStar 350GSM Uncoated",
+            "price": 500,
+            "price_type": "per_1000_sheets",
+            "sku": "",
+            "description": "Eco-friendly premium uncoated stock",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F6",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F7",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "1 Side Gloss",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "No lamination",
+            "display_order": 1
+          },
+          {
+            "choice_title": "1 Side Gloss",
+            "price": 0.16,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Gloss lamination on one side",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 Side Gloss",
+            "price": 0.32,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Gloss lamination on both sides",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1 Side Matt",
+            "price": 0.16,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Matt lamination on one side",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 Side Matt",
+            "price": 0.32,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Matt lamination on both sides",
+            "display_order": 5
+          },
+          {
+            "choice_title": "1 Side SILK FEEL Matt",
+            "price": 0.32,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Premium silk feel matt lamination on one side",
+            "display_order": 6
+          },
+          {
+            "choice_title": "2 Side SILK FEEL Matt",
+            "price": 0.64,
+            "price_type": "per_sheet",
+            "sku": "",
+            "description": "Premium silk feel matt lamination on both sides",
+            "display_order": 7
+          }
+        ]
+      }
+    ]
+  },
+  "BollardSigns": {
+    "calculator_key": "shopify_bollard_signs",
+    "product_title": "Bollard Signs",
+    "total_options": 4,
+    "total_choices": 14,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Material",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "5mm Corflute",
+        "choices": [
+          {
+            "choice_title": "3mm Corflute",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "3mm_corflute",
+            "description": "3mm corrugated plastic - lightweight option",
+            "display_order": 1
+          },
+          {
+            "choice_title": "5mm Corflute",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "5mm_corflute",
+            "description": "5mm corrugated plastic - standard durability",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "270mm W x 1000mm H - Three Sided",
+        "choices": [
+          {
+            "choice_title": "270mm W x 1000mm H - Three Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "270x1000_3side",
+            "description": "270mm wide x 1000mm high, three-sided configuration",
+            "display_order": 1
+          },
+          {
+            "choice_title": "270mm W x 1200mm H - Three Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "270x1200_3side",
+            "description": "270mm wide x 1200mm high, three-sided configuration",
+            "display_order": 2
+          },
+          {
+            "choice_title": "270mm W x 1800mm H - Three Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "270x1800_3side",
+            "description": "270mm wide x 1800mm high, three-sided configuration",
+            "display_order": 3
+          },
+          {
+            "choice_title": "300mm W x 1000mm H - Three Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "300x1000_3side",
+            "description": "300mm wide x 1000mm high, three-sided configuration",
+            "display_order": 4
+          },
+          {
+            "choice_title": "300mm W x 1200mm H - Three Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "300x1200_3side",
+            "description": "300mm wide x 1200mm high, three-sided configuration",
+            "display_order": 5
+          },
+          {
+            "choice_title": "300mm W x 1800mm H - Three Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "300x1800_3side",
+            "description": "300mm wide x 1800mm high, three-sided configuration",
+            "display_order": 6
+          },
+          {
+            "choice_title": "155mm W x 1000mm H - Four Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "155x1000_4side",
+            "description": "155mm wide x 1000mm high, four-sided configuration",
+            "display_order": 7
+          },
+          {
+            "choice_title": "155mm W x 1200mm H - Four Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "155x1200_4side",
+            "description": "155mm wide x 1200mm high, four-sided configuration",
+            "display_order": 8
+          },
+          {
+            "choice_title": "155mm W x 1800mm H - Four Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "155x1800_4side",
+            "description": "155mm wide x 1800mm high, four-sided configuration",
+            "display_order": 9
+          },
+          {
+            "choice_title": "175mm W x 1000mm H - Four Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "175x1000_4side",
+            "description": "175mm wide x 1000mm high, four-sided configuration",
+            "display_order": 10
+          },
+          {
+            "choice_title": "175mm W x 1200mm H - Four Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "175x1200_4side",
+            "description": "175mm wide x 1200mm high, four-sided configuration",
+            "display_order": 11
+          },
+          {
+            "choice_title": "175mm W x 1800mm H - Four Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "175x1800_4side",
+            "description": "175mm wide x 1800mm high, four-sided configuration",
+            "display_order": 12
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F10",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      }
+    ]
+  },
+  "ConstructionSigns": {
+    "calculator_key": "shopify_construction_signs",
+    "product_title": "Construction Signs",
+    "total_options": 9,
+    "total_choices": 18,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Eyelets",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "No Eyelets",
+        "choices": [
+          {
+            "choice_title": "No Eyelets",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_eyelets",
+            "description": "No eyelets - plain sign",
+            "display_order": 1
+          },
+          {
+            "choice_title": "4 x Eyelets (1 In Each Corner)",
+            "price": 1.6,
+            "price_type": "fixed",
+            "sku": "4_corner_eyelets",
+            "description": "Four eyelets positioned in each corner",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 x Eyelets (top left & right corners)",
+            "price": 0.8,
+            "price_type": "fixed",
+            "sku": "2_top_eyelets",
+            "description": "Two eyelets in top left and right corners",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2 x Eyelets (center left & right)",
+            "price": 0.8,
+            "price_type": "fixed",
+            "sku": "2_center_lr_eyelets",
+            "description": "Two eyelets positioned center left and right",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 x Eyelets (center top & bottom)",
+            "price": 0.8,
+            "price_type": "fixed",
+            "sku": "2_center_tb_eyelets",
+            "description": "Two eyelets positioned center top and bottom",
+            "display_order": 5
+          },
+          {
+            "choice_title": "6 x Eyelets (3 each top & bottom)",
+            "price": 2.4,
+            "price_type": "fixed",
+            "sku": "6_top_bottom_eyelets",
+            "description": "Six eyelets - three each along top and bottom edges",
+            "display_order": 6
+          },
+          {
+            "choice_title": "6 x Eyelets (3 each left & right)",
+            "price": 2.4,
+            "price_type": "fixed",
+            "sku": "6_left_right_eyelets",
+            "description": "Six eyelets - three each along left and right edges",
+            "display_order": 7
+          }
+        ]
+      },
+      {
+        "option_name": "Width (mm)",
+        "field_id": "F3",
+        "option_type": "number",
+        "is_required": false,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Thickness",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "5mm",
+        "choices": [
+          {
+            "choice_title": "3mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "3mm_corflute",
+            "description": "3mm corrugated plastic - lightweight option",
+            "display_order": 1
+          },
+          {
+            "choice_title": "5mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "5mm_corflute",
+            "description": "5mm corrugated plastic - premium durability",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "600mm x 900mm",
+        "choices": [
+          {
+            "choice_title": "450mm x 600mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size6x4",
+            "description": "Small construction sign - 450mm x 600mm",
+            "display_order": 1
+          },
+          {
+            "choice_title": "600mm x 900mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size6x9",
+            "description": "Medium construction sign - 600mm x 900mm",
+            "display_order": 2
+          },
+          {
+            "choice_title": "900mm x 1200mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size9x12",
+            "description": "Large construction sign - 900mm x 1200mm",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1200mm x 2400mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size12x24",
+            "description": "Extra large construction sign - 1200mm x 2400mm",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Custom",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "sizeCustom",
+            "description": "Custom size - specify width and height",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Length (mm)",
+        "field_id": "F7",
+        "option_type": "number",
+        "is_required": false,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Sides?",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Single Sided",
+        "choices": [
+          {
+            "choice_title": "Single Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "ssPrint",
+            "description": "Printing on one side only",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "dsPrint",
+            "description": "Printing on both sides",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Cutting",
+        "field_id": "F9",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Standard square edge",
+        "choices": [
+          {
+            "choice_title": "Standard square edge",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "standard_cut",
+            "description": "Standard rectangular cutting",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Custom Shape",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "custom_cut",
+            "description": "Custom shape cutting",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F10",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      }
+    ]
+  },
+  "CorfluteInsertAFrame": {
+    "calculator_key": "shopify_corflute_insert_a_frame",
+    "product_title": "Corflute Insert A-Frame",
+    "total_options": 3,
+    "total_choices": 1,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "600mm(W) x 900mm(H)",
+        "choices": [
+          {
+            "choice_title": "600mm(W) x 900mm(H)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size_600x900",
+            "description": "Standard A-frame size (600mm wide x 900mm high)",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F3",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      }
+    ]
+  },
+  "CustomPosterPrinting": {
+    "calculator_key": "shopify_custom_poster_printing",
+    "product_title": "Custom Poster Printing",
+    "total_options": 6,
+    "total_choices": 6,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      },
+      {
+        "option_name": "Width (mm)",
+        "field_id": "F3",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 420,
+        "choices": []
+      },
+      {
+        "option_name": "Paper Type",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "250GSM Satin Poster Paper",
+        "choices": [
+          {
+            "choice_title": "250GSM Satin Poster Paper",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "satin_250",
+            "description": "Premium satin finish poster paper - ideal for indoor displays",
+            "display_order": 1
+          },
+          {
+            "choice_title": "200GSM Yuppo Synthetic Paper",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "yuppo_200",
+            "description": "Waterproof synthetic paper - perfect for outdoor use",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A2 - 420mm x 594mm",
+        "choices": [
+          {
+            "choice_title": "A2 - 420mm x 594mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size6x4",
+            "description": "A2 standard size (420mm x 594mm)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "A1 - 594mm x 841mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size6x9",
+            "description": "A1 standard size (594mm x 841mm)",
+            "display_order": 2
+          },
+          {
+            "choice_title": "A0 - 841mm x 1189mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size9x12",
+            "description": "A0 large size (841mm x 1189mm)",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Custom",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "sizeCustom",
+            "description": "Custom dimensions - specify width and height",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Length (mm)",
+        "field_id": "F7",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 594,
+        "choices": []
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F10",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      }
+    ]
+  },
+  "CustomVinylStickers": {
+    "calculator_key": "shopify_custom_vinyl_stickers",
+    "product_title": "Custom Vinyl Stickers",
+    "total_options": 10,
+    "total_choices": 23,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 100,
+        "choices": []
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "75mm Circle",
+        "choices": [
+          {
+            "choice_title": "50mm Circle",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "75mm Circle",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "100mm Circle",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "50mm Square",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "75mm Square",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "100mm Square",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "75mm \u00d7 50mm Rectangle",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 7
+          },
+          {
+            "choice_title": "100mm \u00d7 75mm Rectangle",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 8
+          },
+          {
+            "choice_title": "150mm \u00d7 100mm Rectangle",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 9
+          },
+          {
+            "choice_title": "Custom Size",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 10
+          }
+        ]
+      },
+      {
+        "option_name": "Width (mm)",
+        "field_id": "F3",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 75,
+        "choices": []
+      },
+      {
+        "option_name": "Height (mm)",
+        "field_id": "F4",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 75,
+        "choices": []
+      },
+      {
+        "option_name": "Vinyl Family",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Standard (Monomeric)",
+        "choices": [
+          {
+            "choice_title": "Standard (Monomeric)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "mono",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Premium (Polymeric)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "poly",
+            "description": "",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Adhesive",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Permanent",
+        "choices": [
+          {
+            "choice_title": "Permanent",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Removable",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Laminate",
+        "field_id": "F7",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "No Lamination",
+        "choices": [
+          {
+            "choice_title": "No Lamination",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Gloss Laminate",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Matte Laminate",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Cutting Method",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Kiss-Cut (Individual)",
+        "choices": [
+          {
+            "choice_title": "Kiss-Cut (Individual)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "kiss_cut",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Die-Cut (No background)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "die_cut",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Contour-Cut (Custom shapes)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "contour_cut",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Sheet (Uncut Grid)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "sheet_uncut",
+            "description": "",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F9",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      },
+      {
+        "option_name": "Labour Rate",
+        "field_id": "F10",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Trade",
+        "choices": [
+          {
+            "choice_title": "Trade ($70/hr)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Non-Trade ($90/hr)",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          }
+        ]
+      }
+    ]
+  },
+  "ElectionSigns": {
+    "calculator_key": "shopify_election_signs",
+    "product_title": "Election Signs",
+    "total_options": 9,
+    "total_choices": 18,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Eyelets",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "No Eyelets",
+        "choices": [
+          {
+            "choice_title": "No Eyelets",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_eyelets",
+            "description": "No eyelets - plain sign",
+            "display_order": 1
+          },
+          {
+            "choice_title": "4 x Eyelets (1 In Each Corner)",
+            "price": 1.6,
+            "price_type": "fixed",
+            "sku": "4_corner_eyelets",
+            "description": "Four eyelets positioned in each corner",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 x Eyelets (top left and right corners)",
+            "price": 0.8,
+            "price_type": "fixed",
+            "sku": "2_top_eyelets",
+            "description": "Two eyelets in top left and right corners",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2 x Eyelets (center left and right)",
+            "price": 0.8,
+            "price_type": "fixed",
+            "sku": "2_center_lr_eyelets",
+            "description": "Two eyelets positioned center left and right",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 x Eyelets (center top and bottom)",
+            "price": 0.8,
+            "price_type": "fixed",
+            "sku": "2_center_tb_eyelets",
+            "description": "Two eyelets positioned center top and bottom",
+            "display_order": 5
+          },
+          {
+            "choice_title": "6 x Eyelets (3 each top and bottom)",
+            "price": 2.4,
+            "price_type": "fixed",
+            "sku": "6_top_bottom_eyelets",
+            "description": "Six eyelets - three each along top and bottom edges",
+            "display_order": 6
+          },
+          {
+            "choice_title": "6 x Eyelets (3 each left and right)",
+            "price": 2.4,
+            "price_type": "fixed",
+            "sku": "6_left_right_eyelets",
+            "description": "Six eyelets - three each along left and right edges",
+            "display_order": 7
+          }
+        ]
+      },
+      {
+        "option_name": "Width (mm)",
+        "field_id": "F3",
+        "option_type": "number",
+        "is_required": false,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Thickness",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "5mm",
+        "choices": [
+          {
+            "choice_title": "3mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "3mm_corflute",
+            "description": "3mm corrugated plastic - lightweight option",
+            "display_order": 1
+          },
+          {
+            "choice_title": "5mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "5mm_corflute",
+            "description": "5mm corrugated plastic - premium durability",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "600mm x 900mm",
+        "choices": [
+          {
+            "choice_title": "450mm x 600mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size6x4",
+            "description": "Small election sign - 450mm x 600mm",
+            "display_order": 1
+          },
+          {
+            "choice_title": "600mm x 900mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size6x9",
+            "description": "Medium election sign - 600mm x 900mm",
+            "display_order": 2
+          },
+          {
+            "choice_title": "900mm x 1200mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size9x12",
+            "description": "Large election sign - 900mm x 1200mm",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1200mm x 2400mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size12x24",
+            "description": "Extra large election sign - 1200mm x 2400mm",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Custom",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "sizeCustom",
+            "description": "Custom size - specify width and height",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Length (mm)",
+        "field_id": "F7",
+        "option_type": "number",
+        "is_required": false,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Sides?",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Single Sided",
+        "choices": [
+          {
+            "choice_title": "Single Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "ssPrint",
+            "description": "Printing on one side only",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double Sided",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "dsPrint",
+            "description": "Printing on both sides",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Cutting",
+        "field_id": "F9",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Standard square edge",
+        "choices": [
+          {
+            "choice_title": "Standard square edge",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "standard_cut",
+            "description": "Standard rectangular cutting",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Custom Shape",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "custom_cut",
+            "description": "Custom shape cutting",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "art",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      }
+    ]
+  },
+  "LuxuryClassicPullUpBanners": {
+    "calculator_key": "shopify_luxury_classic_pull_up_banners",
+    "product_title": "Luxury Classic Pull Up Banners",
+    "total_options": 4,
+    "total_choices": 5,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F2",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Base Colour",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Silver",
+        "choices": [
+          {
+            "choice_title": "Silver",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "silver_base",
+            "description": "Silver aluminum base finish",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "black_base",
+            "description": "Black aluminum base finish",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "850mm W x 2000mm H",
+        "choices": [
+          {
+            "choice_title": "850mm W x 2000mm H",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "850x2000",
+            "description": "Standard pull up banner - 850mm wide x 2000mm high",
+            "display_order": 1
+          },
+          {
+            "choice_title": "850mm W x 1500mm H",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "850x1500",
+            "description": "Compact pull up banner - 850mm wide x 1500mm high",
+            "display_order": 2
+          },
+          {
+            "choice_title": "850mm W x 1400mm H Shopping Center",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "850x1400_sc",
+            "description": "Shopping center compliant - 850mm wide x 1400mm high",
+            "display_order": 3
+          }
+        ]
+      }
+    ]
+  },
+  "MetalFaceAFrame": {
+    "calculator_key": "shopify_metal_face_a_frame",
+    "product_title": "Metal Face A-Frame",
+    "total_options": 3,
+    "total_choices": 1,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F2",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "600mm W x 900mm H",
+        "choices": [
+          {
+            "choice_title": "600mm W x 900mm H",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size_600x900",
+            "description": "Standard metal face A-frame size (600mm wide x 900mm high)",
+            "display_order": 1
+          }
+        ]
+      }
+    ]
+  },
+  "NotepadsA4": {
+    "calculator_key": "shopify_notepads_a4",
+    "product_title": "Notepads A4",
+    "total_options": 6,
+    "total_choices": 25,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "100",
+        "choices": [
+          {
+            "choice_title": "25",
+            "price": 25,
+            "price_type": "fixed",
+            "sku": "qty_25",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "50",
+            "price": 50,
+            "price_type": "fixed",
+            "sku": "qty_50",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "75",
+            "price": 75,
+            "price_type": "fixed",
+            "sku": "qty_75",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "100",
+            "price": 100,
+            "price_type": "fixed",
+            "sku": "qty_100",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "150",
+            "price": 150,
+            "price_type": "fixed",
+            "sku": "qty_150",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "200",
+            "price": 200,
+            "price_type": "fixed",
+            "sku": "qty_200",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "qty_250",
+            "description": "",
+            "display_order": 7
+          },
+          {
+            "choice_title": "300",
+            "price": 300,
+            "price_type": "fixed",
+            "sku": "qty_300",
+            "description": "",
+            "display_order": 8
+          },
+          {
+            "choice_title": "400",
+            "price": 400,
+            "price_type": "fixed",
+            "sku": "qty_400",
+            "description": "",
+            "display_order": 9
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "qty_500",
+            "description": "",
+            "display_order": 10
+          },
+          {
+            "choice_title": "750",
+            "price": 750,
+            "price_type": "fixed",
+            "sku": "qty_750",
+            "description": "",
+            "display_order": 11
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "qty_1000",
+            "description": "",
+            "display_order": 12
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "qty_2000",
+            "description": "",
+            "display_order": 13
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F2",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      },
+      {
+        "option_name": "Leaves Per Pad",
+        "field_id": "F7",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "50",
+        "choices": [
+          {
+            "choice_title": "25",
+            "price": 12.5,
+            "price_type": "fixed",
+            "sku": "leaves_25",
+            "description": "25 leaves per pad",
+            "display_order": 1
+          },
+          {
+            "choice_title": "50",
+            "price": 25,
+            "price_type": "fixed",
+            "sku": "leaves_50",
+            "description": "50 leaves per pad",
+            "display_order": 2
+          },
+          {
+            "choice_title": "100",
+            "price": 50,
+            "price_type": "fixed",
+            "sku": "leaves_100",
+            "description": "100 leaves per pad",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A4 Portrait",
+        "choices": [
+          {
+            "choice_title": "A4 Portrait",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "a4_port",
+            "description": "A4 Portrait size (210 x 297mm)",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Print Type",
+        "field_id": "F10",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Black & White 1 sided",
+        "choices": [
+          {
+            "choice_title": "Colour 1 sided",
+            "price": 0.048,
+            "price_type": "per_sheet",
+            "sku": "col_1s",
+            "description": "Full color printing on one side",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Colour 2 sided",
+            "price": 0.096,
+            "price_type": "per_sheet",
+            "sku": "col_2s",
+            "description": "Full color printing on both sides",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Black & White 1 sided",
+            "price": 0.01,
+            "price_type": "per_sheet",
+            "sku": "bw_1s",
+            "description": "Black and white printing on one side",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Black & White 2 sided",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "bw_2s",
+            "description": "Black and white printing on both sides",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Stock Type",
+        "field_id": "F11",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Uncoated Bond 80GSM",
+        "choices": [
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 0.03,
+            "price_type": "per_sheet",
+            "sku": "bond_80gsm",
+            "description": "Standard uncoated bond paper 80GSM",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 0.033,
+            "price_type": "per_sheet",
+            "sku": "bond_90gsm",
+            "description": "Medium weight uncoated bond paper 90GSM",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 0.045,
+            "price_type": "per_sheet",
+            "sku": "bond_100gsm",
+            "description": "Heavy weight uncoated bond paper 100GSM",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Revive 100% Recycled 80GSM Bond",
+            "price": 0.06,
+            "price_type": "per_sheet",
+            "sku": "recycled_80gsm",
+            "description": "Environmentally friendly 100% recycled paper 80GSM",
+            "display_order": 4
+          }
+        ]
+      }
+    ]
+  },
+  "PremiumBookmarks": {
+    "calculator_key": "shopify_premium_bookmarks",
+    "product_title": "Premium Bookmarks",
+    "total_options": 6,
+    "total_choices": 23,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "500",
+        "choices": [
+          {
+            "choice_title": "25",
+            "price": 25,
+            "price_type": "fixed",
+            "sku": "qty_25",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "50",
+            "price": 50,
+            "price_type": "fixed",
+            "sku": "qty_50",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "100",
+            "price": 100,
+            "price_type": "fixed",
+            "sku": "qty_100",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "qty_250",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "qty_500",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "750",
+            "price": 750,
+            "price_type": "fixed",
+            "sku": "qty_750",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "qty_1000",
+            "description": "",
+            "display_order": 7
+          },
+          {
+            "choice_title": "1250",
+            "price": 1250,
+            "price_type": "fixed",
+            "sku": "qty_1250",
+            "description": "",
+            "display_order": 8
+          },
+          {
+            "choice_title": "1500",
+            "price": 1500,
+            "price_type": "fixed",
+            "sku": "qty_1500",
+            "description": "",
+            "display_order": 9
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "qty_2000",
+            "description": "",
+            "display_order": 10
+          }
+        ]
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "None",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_cello",
+            "description": "No protective coating",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Gloss 1 Sided",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "gloss_1s",
+            "description": "Glossy protective coating on one side",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Gloss 2 Sided",
+            "price": 0.82,
+            "price_type": "per_sheet",
+            "sku": "gloss_2s",
+            "description": "Glossy protective coating on both sides",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Matt 1 Sided",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "matt_1s",
+            "description": "Matte protective coating on one side",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Matt 2 Sided",
+            "price": 0.82,
+            "price_type": "per_sheet",
+            "sku": "matt_2s",
+            "description": "Matte protective coating on both sides",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Print Type",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Colour 1 sided",
+        "choices": [
+          {
+            "choice_title": "Colour 1 sided",
+            "price": 0.056,
+            "price_type": "per_sheet",
+            "sku": "colp",
+            "description": "Full color printing on one side",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Colour 2 sided",
+            "price": 0.112,
+            "price_type": "per_sheet",
+            "sku": "bnwp",
+            "description": "Full color printing on both sides",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "65mm x 215mm",
+        "choices": [
+          {
+            "choice_title": "50mm x 150mm",
+            "price": 16,
+            "price_type": "per_1000_sheets",
+            "sku": "psdl",
+            "description": "Small rectangular bookmark (50mm x 150mm)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "50mm x 185mm",
+            "price": 15,
+            "price_type": "per_1000_sheets",
+            "sku": "psa6",
+            "description": "Medium rectangular bookmark (50mm x 185mm)",
+            "display_order": 2
+          },
+          {
+            "choice_title": "50mm x 230mm",
+            "price": 10,
+            "price_type": "per_1000_sheets",
+            "sku": "psa5",
+            "description": "Long rectangular bookmark (50mm x 230mm)",
+            "display_order": 3
+          },
+          {
+            "choice_title": "65mm x 215mm",
+            "price": 8,
+            "price_type": "per_1000_sheets",
+            "sku": "psa4",
+            "description": "Large rectangular bookmark (65mm x 215mm)",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Paper Stock Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Satin 350GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 350GSM",
+            "price": 150,
+            "price_type": "per_1000_sheets",
+            "sku": "satin_350",
+            "description": "Premium satin finish heavyweight stock",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Uncoated 300GSM",
+            "price": 280,
+            "price_type": "per_1000_sheets",
+            "sku": "uncoated_300",
+            "description": "Uncoated heavyweight cardstock",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F6",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      }
+    ]
+  },
+  "PrintedLetterheads": {
+    "calculator_key": "shopify_printed_letterheads",
+    "product_title": "Printed Letterheads",
+    "total_options": 6,
+    "total_choices": 22,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "500",
+        "choices": [
+          {
+            "choice_title": "50",
+            "price": 50,
+            "price_type": "fixed",
+            "sku": "qty_50",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "100",
+            "price": 100,
+            "price_type": "fixed",
+            "sku": "qty_100",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "qty_250",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "qty_500",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "750",
+            "price": 750,
+            "price_type": "fixed",
+            "sku": "qty_750",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "qty_1000",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "1250",
+            "price": 1250,
+            "price_type": "fixed",
+            "sku": "qty_1250",
+            "description": "",
+            "display_order": 7
+          },
+          {
+            "choice_title": "1500",
+            "price": 1500,
+            "price_type": "fixed",
+            "sku": "qty_1500",
+            "description": "",
+            "display_order": 8
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "qty_2000",
+            "description": "",
+            "display_order": 9
+          },
+          {
+            "choice_title": "2500",
+            "price": 2500,
+            "price_type": "fixed",
+            "sku": "qty_2500",
+            "description": "",
+            "display_order": 10
+          },
+          {
+            "choice_title": "3000",
+            "price": 3000,
+            "price_type": "fixed",
+            "sku": "qty_3000",
+            "description": "",
+            "display_order": 11
+          },
+          {
+            "choice_title": "3500",
+            "price": 3500,
+            "price_type": "fixed",
+            "sku": "qty_3500",
+            "description": "",
+            "display_order": 12
+          },
+          {
+            "choice_title": "4000",
+            "price": 4000,
+            "price_type": "fixed",
+            "sku": "qty_4000",
+            "description": "",
+            "display_order": 13
+          },
+          {
+            "choice_title": "5000",
+            "price": 5000,
+            "price_type": "fixed",
+            "sku": "qty_5000",
+            "description": "",
+            "display_order": 14
+          }
+        ]
+      },
+      {
+        "option_name": "Print Sides",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Single side print",
+        "choices": [
+          {
+            "choice_title": "Single side print",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "ssp",
+            "description": "Printing on one side only",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double side print",
+            "price": 2,
+            "price_type": "multiplier",
+            "sku": "dsp",
+            "description": "Printing on both sides",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Print Type",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Colour",
+        "choices": [
+          {
+            "choice_title": "Colour",
+            "price": 0.044,
+            "price_type": "per_sheet",
+            "sku": "colp",
+            "description": "Full color printing (CMYK)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "bnwp",
+            "description": "Black and white printing only",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A4 - 210mm x 297mm",
+        "choices": [
+          {
+            "choice_title": "A4 - 210mm x 297mm",
+            "price": 2,
+            "price_type": "sheets_per_unit",
+            "sku": "psa4",
+            "description": "Standard A4 size letterhead",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Paper Stock Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Uncoated Bond 80GSM",
+        "choices": [
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 26.34,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC80",
+            "description": "Standard uncoated bond paper 80GSM",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 29.51,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC90",
+            "description": "Medium weight uncoated bond paper 90GSM",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 32.68,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC100",
+            "description": "Heavy weight uncoated bond paper 100GSM",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F6",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      }
+    ]
+  },
+  "SaddleStitchBooks": {
+    "calculator_key": "shopify_saddle_stitch_books",
+    "product_title": "Saddle Stitch Books",
+    "total_options": 10,
+    "total_choices": 54,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "250",
+        "choices": [
+          {
+            "choice_title": "25",
+            "price": 25,
+            "price_type": "fixed",
+            "sku": "qty_25",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "50",
+            "price": 50,
+            "price_type": "fixed",
+            "sku": "qty_50",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "75",
+            "price": 75,
+            "price_type": "fixed",
+            "sku": "qty_75",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "100",
+            "price": 100,
+            "price_type": "fixed",
+            "sku": "qty_100",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "150",
+            "price": 150,
+            "price_type": "fixed",
+            "sku": "qty_150",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "200",
+            "price": 200,
+            "price_type": "fixed",
+            "sku": "qty_200",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "qty_250",
+            "description": "",
+            "display_order": 7
+          },
+          {
+            "choice_title": "300",
+            "price": 300,
+            "price_type": "fixed",
+            "sku": "qty_300",
+            "description": "",
+            "display_order": 8
+          },
+          {
+            "choice_title": "400",
+            "price": 400,
+            "price_type": "fixed",
+            "sku": "qty_400",
+            "description": "",
+            "display_order": 9
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "qty_500",
+            "description": "",
+            "display_order": 10
+          },
+          {
+            "choice_title": "750",
+            "price": 750,
+            "price_type": "fixed",
+            "sku": "qty_750",
+            "description": "",
+            "display_order": 11
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "qty_1000",
+            "description": "",
+            "display_order": 12
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "qty_2000",
+            "description": "",
+            "display_order": 13
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F2",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      },
+      {
+        "option_name": "Cover Option",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Hard Cover",
+        "choices": [
+          {
+            "choice_title": "Self Cover",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "self_cover",
+            "description": "Cover printed on same stock as content",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Hard Cover",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "hard_cover",
+            "description": "Separate cover on heavier stock",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Cover Stock",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Satin 200GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 150GSM",
+            "price": 0.064,
+            "price_type": "per_sheet",
+            "sku": "satin_150",
+            "description": "Premium satin finish 150GSM",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Satin 200GSM",
+            "price": 0.075,
+            "price_type": "per_sheet",
+            "sku": "satin_200",
+            "description": "Premium satin finish 200GSM",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Satin 250GSM",
+            "price": 0.09,
+            "price_type": "per_sheet",
+            "sku": "satin_250",
+            "description": "Premium satin finish 250GSM",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Satin 300GSM",
+            "price": 0.14,
+            "price_type": "per_sheet",
+            "sku": "satin_300",
+            "description": "Premium satin finish 300GSM",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Satin 350GSM",
+            "price": 0.18,
+            "price_type": "per_sheet",
+            "sku": "satin_350",
+            "description": "Premium satin finish 350GSM",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Cover Print Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "2 side colour (4pp)",
+        "choices": [
+          {
+            "choice_title": "1 side colour (2pp)",
+            "price": 0.048,
+            "price_type": "per_sheet",
+            "sku": "cover_1s_col",
+            "description": "Full color printing on one side",
+            "display_order": 1
+          },
+          {
+            "choice_title": "2 side colour (4pp)",
+            "price": 0.096,
+            "price_type": "per_sheet",
+            "sku": "cover_2s_col",
+            "description": "Full color printing on both sides",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1 side Black & White (2pp)",
+            "price": 0.01,
+            "price_type": "per_sheet",
+            "sku": "cover_1s_bw",
+            "description": "Black and white printing on one side",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2 side Black & White (4pp)",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "cover_2s_bw",
+            "description": "Black and white printing on both sides",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "None",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_cello",
+            "description": "No protective coating",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Gloss outside only",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "gloss_outside",
+            "description": "Glossy protective coating on outside only",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Matt outside only",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "matt_outside",
+            "description": "Matte protective coating on outside only",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Printed Pages",
+        "field_id": "F7",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "16pp",
+        "choices": [
+          {
+            "choice_title": "4pp",
+            "price": 1,
+            "price_type": "fixed",
+            "sku": "pp_4",
+            "description": "4 printed pages",
+            "display_order": 1
+          },
+          {
+            "choice_title": "8pp",
+            "price": 2,
+            "price_type": "fixed",
+            "sku": "pp_8",
+            "description": "8 printed pages",
+            "display_order": 2
+          },
+          {
+            "choice_title": "12pp",
+            "price": 3,
+            "price_type": "fixed",
+            "sku": "pp_12",
+            "description": "12 printed pages",
+            "display_order": 3
+          },
+          {
+            "choice_title": "16pp",
+            "price": 4,
+            "price_type": "fixed",
+            "sku": "pp_16",
+            "description": "16 printed pages",
+            "display_order": 4
+          },
+          {
+            "choice_title": "20pp",
+            "price": 5,
+            "price_type": "fixed",
+            "sku": "pp_20",
+            "description": "20 printed pages",
+            "display_order": 5
+          },
+          {
+            "choice_title": "24pp",
+            "price": 6,
+            "price_type": "fixed",
+            "sku": "pp_24",
+            "description": "24 printed pages",
+            "display_order": 6
+          },
+          {
+            "choice_title": "28pp",
+            "price": 7,
+            "price_type": "fixed",
+            "sku": "pp_28",
+            "description": "28 printed pages",
+            "display_order": 7
+          },
+          {
+            "choice_title": "32pp",
+            "price": 8,
+            "price_type": "fixed",
+            "sku": "pp_32",
+            "description": "32 printed pages",
+            "display_order": 8
+          },
+          {
+            "choice_title": "36pp",
+            "price": 9,
+            "price_type": "fixed",
+            "sku": "pp_36",
+            "description": "36 printed pages",
+            "display_order": 9
+          },
+          {
+            "choice_title": "40pp",
+            "price": 10,
+            "price_type": "fixed",
+            "sku": "pp_40",
+            "description": "40 printed pages",
+            "display_order": 10
+          },
+          {
+            "choice_title": "44pp",
+            "price": 11,
+            "price_type": "fixed",
+            "sku": "pp_44",
+            "description": "44 printed pages",
+            "display_order": 11
+          },
+          {
+            "choice_title": "48pp",
+            "price": 12,
+            "price_type": "fixed",
+            "sku": "pp_48",
+            "description": "48 printed pages",
+            "display_order": 12
+          },
+          {
+            "choice_title": "52pp",
+            "price": 13,
+            "price_type": "fixed",
+            "sku": "pp_52",
+            "description": "52 printed pages",
+            "display_order": 13
+          },
+          {
+            "choice_title": "56pp",
+            "price": 14,
+            "price_type": "fixed",
+            "sku": "pp_56",
+            "description": "56 printed pages",
+            "display_order": 14
+          },
+          {
+            "choice_title": "60pp",
+            "price": 15,
+            "price_type": "fixed",
+            "sku": "pp_60",
+            "description": "60 printed pages",
+            "display_order": 15
+          },
+          {
+            "choice_title": "64pp",
+            "price": 16,
+            "price_type": "fixed",
+            "sku": "pp_64",
+            "description": "64 printed pages",
+            "display_order": 16
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A4 Portrait",
+        "choices": [
+          {
+            "choice_title": "A5 Portrait",
+            "price": 0.5,
+            "price_type": "multiplier",
+            "sku": "a5_port",
+            "description": "A5 Portrait size (148 x 210mm)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "A4 Portrait",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "a4_port",
+            "description": "A4 Portrait size (210 x 297mm)",
+            "display_order": 2
+          },
+          {
+            "choice_title": "A4 Landscape",
+            "price": 1.5,
+            "price_type": "multiplier",
+            "sku": "a4_land",
+            "description": "A4 Landscape size (297 x 210mm)",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Content Print Type",
+        "field_id": "F10",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Black & White",
+        "choices": [
+          {
+            "choice_title": "Colour",
+            "price": 0.096,
+            "price_type": "per_sheet",
+            "sku": "content_colour",
+            "description": "Full color printing for content pages",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.01,
+            "price_type": "per_sheet",
+            "sku": "content_bw",
+            "description": "Black and white printing for content pages",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Content Stock Type",
+        "field_id": "F11",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Uncoated Bond 80GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 128GSM",
+            "price": 0.054,
+            "price_type": "per_sheet",
+            "sku": "satin_128",
+            "description": "Premium satin finish 128GSM",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Satin 150GSM",
+            "price": 0.064,
+            "price_type": "per_sheet",
+            "sku": "satin_150_content",
+            "description": "Premium satin finish 150GSM",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Satin 200GSM",
+            "price": 0.075,
+            "price_type": "per_sheet",
+            "sku": "satin_200_content",
+            "description": "Premium satin finish 200GSM",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 0.03,
+            "price_type": "per_sheet",
+            "sku": "bond_80gsm",
+            "description": "Standard uncoated bond paper 80GSM",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 0.033,
+            "price_type": "per_sheet",
+            "sku": "bond_90gsm",
+            "description": "Medium weight uncoated bond paper 90GSM",
+            "display_order": 5
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 0.054,
+            "price_type": "per_sheet",
+            "sku": "bond_100gsm",
+            "description": "Heavy weight uncoated bond paper 100GSM",
+            "display_order": 6
+          }
+        ]
+      }
+    ]
+  },
+  "SelfieFrames": {
+    "calculator_key": "shopify_selfie_frames",
+    "product_title": "Selfie Frames",
+    "total_options": 3,
+    "total_choices": 2,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Size",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Small 600mm x 900mm",
+        "choices": [
+          {
+            "choice_title": "Small 600mm x 900mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "small_600x900",
+            "description": "Small selfie frame - 600mm x 900mm",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Large 900mm x 1200mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "large_900x1200",
+            "description": "Large selfie frame - 900mm x 1200mm",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Number of Artworks",
+        "field_id": "F3",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      }
+    ]
+  },
+  "SpiralBoundBooks": {
+    "calculator_key": "shopify_spiral_bound_books",
+    "product_title": "Spiral Bound Books",
+    "total_options": 14,
+    "total_choices": 49,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "100",
+        "choices": []
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F2",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Outer Front Cover",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Not Required",
+        "choices": [
+          {
+            "choice_title": "Not Required",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_outer_front",
+            "description": "No outer front cover",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Clear PVC",
+            "price": 0.12,
+            "price_type": "fixed",
+            "sku": "clear_pvc_front",
+            "description": "Clear PVC front cover protection",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Printed Front Cover",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "None",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_front_cover",
+            "description": "No printed front cover",
+            "display_order": 1
+          },
+          {
+            "choice_title": "250GSM Satin",
+            "price": 0.09,
+            "price_type": "per_sheet",
+            "sku": "250gsm_satin",
+            "description": "250GSM Satin cover stock",
+            "display_order": 2
+          },
+          {
+            "choice_title": "300GSM Satin",
+            "price": 0.14,
+            "price_type": "per_sheet",
+            "sku": "300gsm_satin",
+            "description": "300GSM Satin cover stock",
+            "display_order": 3
+          },
+          {
+            "choice_title": "350GSM Satin",
+            "price": 0.18,
+            "price_type": "per_sheet",
+            "sku": "350gsm_satin",
+            "description": "350GSM Satin cover stock",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Cover Print Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "1pp Colour",
+        "choices": [
+          {
+            "choice_title": "1pp Colour",
+            "price": 0.04,
+            "price_type": "per_sheet",
+            "sku": "1pp_colour",
+            "description": "Single sided full color printing",
+            "display_order": 1
+          },
+          {
+            "choice_title": "2pp Colour",
+            "price": 0.08,
+            "price_type": "per_sheet",
+            "sku": "2pp_colour",
+            "description": "Double sided full color printing",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1pp Black & White",
+            "price": 0.01,
+            "price_type": "per_sheet",
+            "sku": "1pp_bw",
+            "description": "Single sided black and white printing",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2pp Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "2pp_bw",
+            "description": "Double sided black and white printing",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "None",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_cello",
+            "description": "No celloglaze finish",
+            "display_order": 1
+          },
+          {
+            "choice_title": "1 Side Gloss",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "1side_gloss",
+            "description": "Single sided gloss celloglaze",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 Sided Gloss",
+            "price": 0.82,
+            "price_type": "per_sheet",
+            "sku": "2side_gloss",
+            "description": "Double sided gloss celloglaze",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1 Side Matt",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "1side_matt",
+            "description": "Single sided matt celloglaze",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 Sided Matt",
+            "price": 0.82,
+            "price_type": "per_sheet",
+            "sku": "2side_matt",
+            "description": "Double sided matt celloglaze",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Outer Back Cover",
+        "field_id": "F7",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Not Required",
+        "choices": [
+          {
+            "choice_title": "Not Required",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_outer_back",
+            "description": "No outer back cover",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Clear PVC",
+            "price": 0.12,
+            "price_type": "fixed",
+            "sku": "clear_pvc_back",
+            "description": "Clear PVC back cover protection",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Printed Back Cover",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "None",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_back_cover",
+            "description": "No printed back cover",
+            "display_order": 1
+          },
+          {
+            "choice_title": "250GSM Satin",
+            "price": 0.09,
+            "price_type": "per_sheet",
+            "sku": "250gsm_satin_back",
+            "description": "250GSM Satin back cover stock",
+            "display_order": 2
+          },
+          {
+            "choice_title": "300GSM Satin",
+            "price": 0.14,
+            "price_type": "per_sheet",
+            "sku": "300gsm_satin_back",
+            "description": "300GSM Satin back cover stock",
+            "display_order": 3
+          },
+          {
+            "choice_title": "350GSM Satin",
+            "price": 0.18,
+            "price_type": "per_sheet",
+            "sku": "350gsm_satin_back",
+            "description": "350GSM Satin back cover stock",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Back Cover Print Type",
+        "field_id": "F9",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "1pp Colour",
+        "choices": [
+          {
+            "choice_title": "1pp Colour",
+            "price": 0.04,
+            "price_type": "per_sheet",
+            "sku": "1pp_colour_back",
+            "description": "Single sided full color printing",
+            "display_order": 1
+          },
+          {
+            "choice_title": "2pp Colour",
+            "price": 0.08,
+            "price_type": "per_sheet",
+            "sku": "2pp_colour_back",
+            "description": "Double sided full color printing",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1pp Black & White",
+            "price": 0.01,
+            "price_type": "per_sheet",
+            "sku": "1pp_bw_back",
+            "description": "Single sided black and white printing",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2pp Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "2pp_bw_back",
+            "description": "Double sided black and white printing",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Back Celloglaze",
+        "field_id": "F10",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "None",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "no_cello_back",
+            "description": "No celloglaze finish on back",
+            "display_order": 1
+          },
+          {
+            "choice_title": "1 Side Gloss",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "1side_gloss_back",
+            "description": "Single sided gloss celloglaze",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 Sided Gloss",
+            "price": 0.82,
+            "price_type": "per_sheet",
+            "sku": "2side_gloss_back",
+            "description": "Double sided gloss celloglaze",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1 Side Matt",
+            "price": 0.41,
+            "price_type": "per_sheet",
+            "sku": "1side_matt_back",
+            "description": "Single sided matt celloglaze",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 Sided Matt",
+            "price": 0.82,
+            "price_type": "per_sheet",
+            "sku": "2side_matt_back",
+            "description": "Double sided matt celloglaze",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Number of Content Pages",
+        "field_id": "F11",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "50",
+        "choices": []
+      },
+      {
+        "option_name": "Content Paper Stock",
+        "field_id": "F12",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Uncoated Bond 80GSM",
+        "choices": [
+          {
+            "choice_title": "Satin 128GSM",
+            "price": 38.5,
+            "price_type": "per_1000_sheets",
+            "sku": "satin128",
+            "description": "Satin coated paper 128GSM",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Satin 150GSM",
+            "price": 54.0,
+            "price_type": "per_1000_sheets",
+            "sku": "satin150",
+            "description": "Satin coated paper 150GSM",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 26.34,
+            "price_type": "per_1000_sheets",
+            "sku": "bond80",
+            "description": "Uncoated bond paper 80GSM",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 29.67,
+            "price_type": "per_1000_sheets",
+            "sku": "bond90",
+            "description": "Uncoated bond paper 90GSM",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Uncoated Bond 140GSM",
+            "price": 46.2,
+            "price_type": "per_1000_sheets",
+            "sku": "bond140",
+            "description": "Uncoated bond paper 140GSM",
+            "display_order": 5
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 33.0,
+            "price_type": "per_1000_sheets",
+            "sku": "bond100",
+            "description": "Uncoated bond paper 100GSM",
+            "display_order": 6
+          },
+          {
+            "choice_title": "Satin 300GSM",
+            "price": 108.0,
+            "price_type": "per_1000_sheets",
+            "sku": "satin300",
+            "description": "Heavy satin coated paper 300GSM",
+            "display_order": 7
+          }
+        ]
+      },
+      {
+        "option_name": "Content Print Type",
+        "field_id": "F13",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "2pp Black & White",
+        "choices": [
+          {
+            "choice_title": "1pp Colour",
+            "price": 0.044,
+            "price_type": "per_sheet",
+            "sku": "1pp_colour_content",
+            "description": "Single sided full color printing",
+            "display_order": 1
+          },
+          {
+            "choice_title": "2pp Colour",
+            "price": 0.088,
+            "price_type": "per_sheet",
+            "sku": "2pp_colour_content",
+            "description": "Double sided full color printing",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1pp Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "1pp_bw_content",
+            "description": "Single sided black and white printing",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2pp Black & White",
+            "price": 0.04,
+            "price_type": "per_sheet",
+            "sku": "2pp_bw_content",
+            "description": "Double sided black and white printing",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F14",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A4 Portrait",
+        "choices": [
+          {
+            "choice_title": "A6 Portrait",
+            "price": 8,
+            "price_type": "sheets_per_sra3",
+            "sku": "a6_port",
+            "description": "A6 Portrait (105 x 148mm)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "A6 Landscape",
+            "price": 8,
+            "price_type": "sheets_per_sra3",
+            "sku": "a6_land",
+            "description": "A6 Landscape (148 x 105mm)",
+            "display_order": 2
+          },
+          {
+            "choice_title": "DL Portrait",
+            "price": 6,
+            "price_type": "sheets_per_sra3",
+            "sku": "dl_port",
+            "description": "DL Portrait (99 x 210mm)",
+            "display_order": 3
+          },
+          {
+            "choice_title": "DL Landscape",
+            "price": 6,
+            "price_type": "sheets_per_sra3",
+            "sku": "dl_land",
+            "description": "DL Landscape (210 x 99mm)",
+            "display_order": 4
+          },
+          {
+            "choice_title": "A5 Portrait",
+            "price": 4,
+            "price_type": "sheets_per_sra3",
+            "sku": "a5_port",
+            "description": "A5 Portrait (148 x 210mm)",
+            "display_order": 5
+          },
+          {
+            "choice_title": "A5 Landscape",
+            "price": 4,
+            "price_type": "sheets_per_sra3",
+            "sku": "a5_land",
+            "description": "A5 Landscape (210 x 148mm)",
+            "display_order": 6
+          },
+          {
+            "choice_title": "A4 Portrait",
+            "price": 2,
+            "price_type": "sheets_per_sra3",
+            "sku": "a4_port",
+            "description": "A4 Portrait (210 x 297mm)",
+            "display_order": 7
+          },
+          {
+            "choice_title": "A4 Landscape",
+            "price": 2,
+            "price_type": "sheets_per_sra3",
+            "sku": "a4_land",
+            "description": "A4 Landscape (297 x 210mm)",
+            "display_order": 8
+          }
+        ]
+      }
+    ]
+  },
+  "StackableCubes": {
+    "calculator_key": "shopify_stackable_cubes",
+    "product_title": "Stackable Cubes",
+    "total_options": 4,
+    "total_choices": 6,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "q",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "art",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Material",
+        "field_id": "f3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "5mm Corflute",
+        "choices": [
+          {
+            "choice_title": "3mm Corflute",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "3mm_corflute",
+            "description": "3mm corrugated plastic - lightweight and cost-effective",
+            "display_order": 1
+          },
+          {
+            "choice_title": "5mm Corflute",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "5mm_corflute",
+            "description": "5mm corrugated plastic - premium durability and stability",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Cube Size",
+        "field_id": "f4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Medium 400mm x 400mm",
+        "choices": [
+          {
+            "choice_title": "Small 300mm x 300mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "small_300x300",
+            "description": "Small cube - 300mm x 300mm x 300mm (0.36 sqm per cube)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Medium 400mm x 400mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "medium_400x400",
+            "description": "Medium cube - 400mm x 400mm x 400mm (0.64 sqm per cube)",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Large 500mm x 500mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "large_500x500",
+            "description": "Large cube - 500mm x 500mm x 500mm (1.0 sqm per cube)",
+            "display_order": 3
+          },
+          {
+            "choice_title": "X-Large 580mm x 580mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "xlarge_580x580",
+            "description": "Extra Large cube - 580mm x 580mm x 580mm (1.35 sqm per cube)",
+            "display_order": 4
+          }
+        ]
+      }
+    ]
+  },
+  "StrutCardsA3": {
+    "calculator_key": "shopify_strut_cards_a3",
+    "product_title": "Strut Cards A3",
+    "total_options": 4,
+    "total_choices": 2,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Stock",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "2mm Screenboard",
+        "choices": [
+          {
+            "choice_title": "2mm Screenboard",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "2mm_screenboard",
+            "description": "2mm screenboard - premium rigid material for counter displays",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Size:",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A3 - 297mm x 420mm",
+        "choices": [
+          {
+            "choice_title": "A3 - 297mm x 420mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "a3_size",
+            "description": "Standard A3 size - 297mm x 420mm",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F4",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      }
+    ]
+  },
+  "StrutCardsA4": {
+    "calculator_key": "shopify_strut_cards_a4",
+    "product_title": "Strut Cards A4",
+    "total_options": 4,
+    "total_choices": 2,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      },
+      {
+        "option_name": "Stock",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "2mm Screenboard",
+        "choices": [
+          {
+            "choice_title": "2mm Screenboard",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "2mm_screenboard",
+            "description": "2mm screenboard - premium rigid material for counter displays",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Size:",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "A4 - 210mm x 297mm",
+        "choices": [
+          {
+            "choice_title": "A4 - 210mm x 297mm",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "a4_size",
+            "description": "Standard A4 size - 210mm x 297mm",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F4",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "1",
+        "choices": []
+      }
+    ]
+  },
+  "WithComplimentsSlips": {
+    "calculator_key": "shopify_with_compliments_slips",
+    "product_title": "With Compliments Slips",
+    "total_options": 6,
+    "total_choices": 22,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "500",
+        "choices": [
+          {
+            "choice_title": "50",
+            "price": 50,
+            "price_type": "fixed",
+            "sku": "qty_50",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "100",
+            "price": 100,
+            "price_type": "fixed",
+            "sku": "qty_100",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "250",
+            "price": 250,
+            "price_type": "fixed",
+            "sku": "qty_250",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "500",
+            "price": 500,
+            "price_type": "fixed",
+            "sku": "qty_500",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "750",
+            "price": 750,
+            "price_type": "fixed",
+            "sku": "qty_750",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "1000",
+            "price": 1000,
+            "price_type": "fixed",
+            "sku": "qty_1000",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "1250",
+            "price": 1250,
+            "price_type": "fixed",
+            "sku": "qty_1250",
+            "description": "",
+            "display_order": 7
+          },
+          {
+            "choice_title": "1500",
+            "price": 1500,
+            "price_type": "fixed",
+            "sku": "qty_1500",
+            "description": "",
+            "display_order": 8
+          },
+          {
+            "choice_title": "2000",
+            "price": 2000,
+            "price_type": "fixed",
+            "sku": "qty_2000",
+            "description": "",
+            "display_order": 9
+          },
+          {
+            "choice_title": "2500",
+            "price": 2500,
+            "price_type": "fixed",
+            "sku": "qty_2500",
+            "description": "",
+            "display_order": 10
+          },
+          {
+            "choice_title": "3000",
+            "price": 3000,
+            "price_type": "fixed",
+            "sku": "qty_3000",
+            "description": "",
+            "display_order": 11
+          },
+          {
+            "choice_title": "3500",
+            "price": 3500,
+            "price_type": "fixed",
+            "sku": "qty_3500",
+            "description": "",
+            "display_order": 12
+          },
+          {
+            "choice_title": "4000",
+            "price": 4000,
+            "price_type": "fixed",
+            "sku": "qty_4000",
+            "description": "",
+            "display_order": 13
+          },
+          {
+            "choice_title": "5000",
+            "price": 5000,
+            "price_type": "fixed",
+            "sku": "qty_5000",
+            "description": "",
+            "display_order": 14
+          }
+        ]
+      },
+      {
+        "option_name": "Print Sides",
+        "field_id": "F2",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Single side print",
+        "choices": [
+          {
+            "choice_title": "Single side print",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "ssp",
+            "description": "Printing on one side only",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Double side print",
+            "price": 2,
+            "price_type": "multiplier",
+            "sku": "dsp",
+            "description": "Printing on both sides",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Print Type",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Colour",
+        "choices": [
+          {
+            "choice_title": "Colour",
+            "price": 0.044,
+            "price_type": "per_sheet",
+            "sku": "colp",
+            "description": "Full color printing (CMYK)",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "bnwp",
+            "description": "Black and white printing only",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "DL - 99mm x 210mm",
+        "choices": [
+          {
+            "choice_title": "DL - 99mm x 210mm",
+            "price": 6,
+            "price_type": "sheets_per_unit",
+            "sku": "psdl",
+            "description": "DL size compliments slip (99mm x 210mm) - compact format",
+            "display_order": 1
+          }
+        ]
+      },
+      {
+        "option_name": "Paper Stock Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "Uncoated Bond 80GSM",
+        "choices": [
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 26.34,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC80",
+            "description": "Standard uncoated bond paper 80GSM",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 29.51,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC90",
+            "description": "Medium weight uncoated bond paper 90GSM",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 32.68,
+            "price_type": "per_1000_sheets",
+            "sku": "pUnC100",
+            "description": "Heavy weight uncoated bond paper 100GSM",
+            "display_order": 3
+          }
+        ]
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F6",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": 1,
+        "choices": []
+      }
+    ]
+  },
+  "WireBound": {
+    "calculator_key": "shopify_wire_bound_books",
+    "product_title": "Wire Bound Books",
+    "total_options": 14,
+    "total_choices": 47,
+    "options": [
+      {
+        "option_name": "Quantity",
+        "field_id": "F1",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Artworks",
+        "field_id": "F2",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Finish Size",
+        "field_id": "F14",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "A6 Portrait",
+            "price": 8,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "A6 Landscape",
+            "price": 8,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "DL Portrait",
+            "price": 6,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "DL Landscape",
+            "price": 6,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "A5 Portrait",
+            "price": 4,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          },
+          {
+            "choice_title": "A5 Landscape",
+            "price": 4,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 6
+          },
+          {
+            "choice_title": "A4 Portrait",
+            "price": 2,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 7
+          },
+          {
+            "choice_title": "A4 Landscape",
+            "price": 2,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 8
+          }
+        ]
+      },
+      {
+        "option_name": "Outer Front Cover",
+        "field_id": "F3",
+        "option_type": "select",
+        "is_required": false,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "Not Required",
+            "price": 0.0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Clear PVC",
+            "price": 0.12,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          }
+        ]
+      },
+      {
+        "option_name": "Printed Front Cover",
+        "field_id": "F4",
+        "option_type": "select",
+        "is_required": false,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0.0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "250GSM Satin",
+            "price": 0.09,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "300GSM Satin",
+            "price": 0.14,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "350GSM Satin",
+            "price": 0.18,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Cover Print Type",
+        "field_id": "F5",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "1pp Colour",
+            "price": 0.04,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "2pp Colour",
+            "price": 0.08,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1pp Black & White",
+            "price": 0.01,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2pp Black & White",
+            "price": 0.02,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F6",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0.0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "1 Side Gloss",
+            "price": 0.41,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 Sided Gloss",
+            "price": 0.82,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1 Side Matt",
+            "price": 0.41,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 Sided Matt",
+            "price": 0.82,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Outer Back Cover",
+        "field_id": "F7",
+        "option_type": "select",
+        "is_required": false,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0.0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Clear PVC",
+            "price": 0.12,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Black Leather grain",
+            "price": 0.12,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "350GSM Satin Blank",
+            "price": 0.12,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Printed Back Cover",
+        "field_id": "F8",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0.0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "250GSM Satin",
+            "price": 0.09,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "300GSM Satin",
+            "price": 0.14,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "350GSM Satin",
+            "price": 0.18,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Cover Print Type",
+        "field_id": "F9",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "1pp Colour",
+            "price": 0.04,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "2pp Colour",
+            "price": 0.08,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "1pp Black & White",
+            "price": 0.01,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "2pp Black & White",
+            "price": 0.02,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          }
+        ]
+      },
+      {
+        "option_name": "Celloglaze",
+        "field_id": "F10",
+        "option_type": "select",
+        "is_required": false,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "None",
+            "price": 0.0,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "1 Side Gloss",
+            "price": 0.41,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "2 Sided Gloss",
+            "price": 0.82,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "1 Side Matt",
+            "price": 0.41,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "2 Sided Matt",
+            "price": 0.82,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Internal/Text Pages (pp)",
+        "field_id": "F11",
+        "option_type": "number",
+        "is_required": true,
+        "default_choice": "",
+        "choices": []
+      },
+      {
+        "option_name": "Internal Stock Type",
+        "field_id": "F12",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "Satin 128GSM",
+            "price": 0.054,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Satin 150GSM",
+            "price": 0.064,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          },
+          {
+            "choice_title": "Uncoated Bond 80GSM",
+            "price": 0.075,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 3
+          },
+          {
+            "choice_title": "Uncoated Bond 90GSM",
+            "price": 0.03,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 4
+          },
+          {
+            "choice_title": "Uncoated Bond 100GSM",
+            "price": 0.054,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 5
+          }
+        ]
+      },
+      {
+        "option_name": "Internal Print Type",
+        "field_id": "F13",
+        "option_type": "select",
+        "is_required": true,
+        "default_choice": "",
+        "choices": [
+          {
+            "choice_title": "Full colour",
+            "price": 0.096,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 1
+          },
+          {
+            "choice_title": "Black & White",
+            "price": 0.02,
+            "price_type": "fixed",
+            "sku": "",
+            "description": "",
+            "display_order": 2
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,257 @@
+{
+  "module_name": "inhouse-kanban",
+  "module_path": "C:\\Users\\gpoli\\GIT\\AI_agents\\UI\\modules_external\\inhouse-kanban",
+  "timestamp": "2025-11-30T20:02:59.784406",
+  "checks": {
+    "file_structure": {
+      "has_manifest": true,
+      "js_files": 4,
+      "css_files": 1,
+      "html_files": 1,
+      "doc_files": 2,
+      "backup_files": 0,
+      "test_files": 0,
+      "status": "PASS"
+    },
+    "manifest_compliance": {
+      "version": "3.0",
+      "has_all_required": true,
+      "missing_required": [],
+      "has_optional": [
+        "loading",
+        "capabilities"
+      ],
+      "capabilities_defined": true,
+      "status": "PASS"
+    },
+    "dependencies_validation": {
+      "status": "PASS",
+      "format": "dict (modern)",
+      "dependencies": {
+        "utilities": [
+          "dom",
+          "api",
+          "storage",
+          "events",
+          "log"
+        ],
+        "frameworks": [
+          "SidebarManager"
+        ],
+        "modules": []
+      },
+      "issues": [],
+      "warnings": [],
+      "message": "Dependencies format valid"
+    },
+    "html_path_validation": {
+      "html_file_exists": false,
+      "html_path_exists": false,
+      "html_file_value": null,
+      "html_path_value": null,
+      "actual_html_files": [
+        "inhouse-kanban-SIDEBAR.html"
+      ],
+      "path_mismatches": [],
+      "recommendations": [
+        "Add 'html_file' or 'htmlPath' to manifest.json"
+      ],
+      "status": "WARNING"
+    },
+    "es6_v4_compliance": {
+      "pattern": "Modern Framework V4 (ES6 composition)",
+      "es6_compliant": true,
+      "v4_ready": true,
+      "legacy_compatible": false,
+      "has_export_default": true,
+      "has_composition": true,
+      "has_lifecycle_hooks": [
+        "onDashboardLoad",
+        "onSidebarLoad",
+        "onUnload"
+      ],
+      "extends_base_module": false,
+      "is_class_based": false,
+      "manifest_framework": "v4",
+      "migration_needed": [],
+      "migration_steps": [],
+      "status": "READY"
+    },
+    "architecture_pattern": {
+      "architecture": "Architecture 1 (Separate Files)",
+      "confidence": 80,
+      "js_files": 4,
+      "html_files": 1,
+      "status": "PASS"
+    },
+    "sidebar_integration": {
+      "uses_sidebar": true,
+      "uses_sidebar_manager": false,
+      "custom_implementation": true,
+      "sidebar_files": [
+        "inhouse-kanban-SIDEBAR.html"
+      ],
+      "recommendations": [],
+      "status": "CUSTOM"
+    },
+    "api_endpoints": {
+      "total_endpoints": 0,
+      "api_routes": 0,
+      "has_backend_url": true,
+      "endpoints": [],
+      "status": "NONE"
+    },
+    "api_endpoint_testing": {
+      "enabled": true,
+      "endpoints_tested": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": [],
+      "test_results": [],
+      "avg_response_time_ms": 0,
+      "status": "SKIPPED"
+    },
+    "authentication_pattern": {
+      "status": "SKIP",
+      "message": "No routes folder found",
+      "has_routes": false
+    },
+    "ui_rendering": {
+      "has_initialize": true,
+      "has_render_method": false,
+      "has_container_helper": true,
+      "has_event_listeners": true,
+      "render_implementation_valid": false,
+      "render_calls_valid_methods": false,
+      "undefined_method_calls": [],
+      "container_id_mismatches": [
+        "inhouse-kanban-critical-styles"
+      ],
+      "rendering_issues": [
+        "Container ID mismatch: getElementById('inhouse-kanban-critical-styles') but ID never created in HTML"
+      ],
+      "status": "PARTIAL"
+    },
+    "runtime_diagnostic": {
+      "containers_checked": [
+        "tab-inhouse-kanban",
+        "inhouse-kanban-main-container",
+        "inhouse-kanban-board"
+      ],
+      "container_generation": {
+        "tab_container": false,
+        "main_container": false,
+        "board_container": true
+      },
+      "module_registry": {
+        "should_register": false,
+        "init_method_exists": false
+      },
+      "initialization_flow": {
+        "has_initialize_method": true,
+        "calls_init_board": true,
+        "calls_display_board": false,
+        "calls_refresh_data": true
+      },
+      "diagnostic_issues": [
+        "Module does not register in window.ModuleRegistry['inhouse-kanban']",
+        "CRITICAL: refreshData() called but displayBoard() NOT called - dashboard will be empty!"
+      ],
+      "recommendations": [
+        "Add ModuleRegistry registration in init() method",
+        "Add displayBoard() call after refreshData() completes (see MODULE_LOADING_COMPLETE_FIX_NOV29.md)"
+      ],
+      "status": "CRITICAL"
+    },
+    "module_registry_compat": {
+      "status": "PASS",
+      "compatibility_score": 10,
+      "max_score": 10,
+      "percentage": 100,
+      "issues": [],
+      "warnings": [
+        "api_endpoints is dict - will be flattened to list by registry"
+      ],
+      "message": "Registry compatibility: 10/10 (100%)"
+    },
+    "connections": {
+      "databases": [
+        "SQL Server",
+        "Supabase"
+      ],
+      "external_apis": [],
+      "websockets": [],
+      "requires_credentials": false,
+      "total_connections": 2,
+      "status": "PASS"
+    },
+    "documentation": {
+      "has_readme": true,
+      "has_integration_guide": false,
+      "total_docs": 2,
+      "doc_files": [
+        "MODULE_CLEANUP_NOV30.md",
+        "README.md"
+      ],
+      "status": "PASS"
+    },
+    "best_practices": {
+      "good_practices": 13,
+      "issues": 3,
+      "practices_list": [
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (8 instances)",
+        "Uses class-based architecture",
+        "Uses logging (13 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (6 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture"
+      ],
+      "issues_list": [
+        "Excessive inline styles (206) - use CSS instead",
+        "Limited error handling detected",
+        "Excessive inline styles (21) - use CSS instead"
+      ],
+      "status": "NEEDS_IMPROVEMENT"
+    },
+    "duplicate_declarations": {
+      "duplicate_classes": [],
+      "duplicate_functions": [],
+      "redeclared_globals": [],
+      "files_with_issues": [],
+      "total_issues": 0,
+      "status": "PASS"
+    }
+  },
+  "issues": [
+    "CRITICAL: 1 container ID mismatch(es) - getElementById() looking for IDs that don't exist in HTML",
+    "CRITICAL: Module loads data but never displays it - add displayBoard() call after refreshData()",
+    "CRITICAL runtime diagnostic issues found - module may not initialize properly"
+  ],
+  "warnings": [
+    "HTML files exist but not declared in manifest.json",
+    "No API endpoints detected - module may be static only",
+    "Rendering: Container ID mismatch: getElementById('inhouse-kanban-critical-styles') but ID never created in HTML",
+    "Error analyzing inhouse-kanban-V4-COMPLETE.js for duplicates: cannot access local variable 'class_name' where it is not associated with a value",
+    "Error analyzing kanban-logger.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing kanban-supabase-integration.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing kanban-supabase-ui.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value"
+  ],
+  "recommendations": [
+    "Architecture 1 detected - verify HTML templates are properly structured",
+    "Sidebar uses custom implementation - consider migrating to SidebarManager framework",
+    "Fix container ID mismatches: Ensure getElementById('X') matches id='X' in generated HTML",
+    "Add ModuleRegistry registration in init() method",
+    "Add displayBoard() call after refreshData() completes (see MODULE_LOADING_COMPLETE_FIX_NOV29.md)",
+    "ES6 READY: Module can use Modern Framework V4 loader for 50% performance improvement"
+  ],
+  "metrics": {},
+  "compliance_score": 95
+}

@@ -1,0 +1,152 @@
+[
+  {
+    "name": "reverse_image_search_urls",
+    "description": "Generate reverse image search URLs for Google Images, TinEye, Yandex, and Bing. Use this to find where else a profile image appears online. FREE service - generates URLs for manual verification.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "image_url": {
+          "type": "string",
+          "description": "Direct URL to the profile image to search (e.g., LinkedIn profile picture URL)"
+        }
+      },
+      "required": [
+        "image_url"
+      ]
+    },
+    "platform": "professional_verification_image"
+  },
+  {
+    "name": "reverse_image_search_file",
+    "description": "Generate reverse image search upload instructions for a local image file. Use when you have downloaded a profile picture and want to search for it. FREE service - provides upload instructions.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "image_path": {
+          "type": "string",
+          "description": "Full path to the local image file (e.g., C:\\Downloads\\profile.jpg)"
+        }
+      },
+      "required": [
+        "image_path"
+      ]
+    },
+    "platform": "professional_verification_image"
+  },
+  {
+    "name": "detect_ai_generated_face",
+    "description": "Analyze profile image for AI-generated face indicators. Checks for common AI generation artifacts like perfect symmetry, unrealistic skin texture, warped backgrounds. FREE analysis with visual inspection guidelines.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "image_url": {
+          "type": "string",
+          "description": "URL to the profile image to analyze"
+        }
+      },
+      "required": [
+        "image_url"
+      ]
+    },
+    "platform": "professional_verification_image"
+  },
+  {
+    "name": "extract_image_metadata",
+    "description": "Extract EXIF metadata from image including camera model, date taken, GPS coordinates. AI-generated images typically lack camera metadata. FREE service. Requires Pillow library.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "image_url": {
+          "type": "string",
+          "description": "URL to the image to extract metadata from"
+        }
+      },
+      "required": [
+        "image_url"
+      ]
+    },
+    "platform": "professional_verification_image"
+  },
+  {
+    "name": "verify_profile_image_consistency",
+    "description": "Check if person uses the same profile image across LinkedIn, Facebook, Twitter. Inconsistent images may indicate fraud. FREE verification with manual steps.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "linkedin_url": {
+          "type": "string",
+          "description": "LinkedIn profile URL"
+        },
+        "facebook_url": {
+          "type": "string",
+          "description": "Facebook profile URL"
+        },
+        "twitter_url": {
+          "type": "string",
+          "description": "Twitter/X profile URL (optional)"
+        }
+      },
+      "required": [
+        "linkedin_url",
+        "facebook_url"
+      ]
+    },
+    "platform": "professional_verification_image"
+  },
+  {
+    "name": "search_profile_image_online",
+    "description": "Generate Google Image search queries to find profile pictures of a person at their claimed company. Use to verify if person's photos appear in legitimate contexts. FREE service.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "person_name": {
+          "type": "string",
+          "description": "Full name of the person (e.g., 'Gregory Dutton')"
+        },
+        "company_name": {
+          "type": "string",
+          "description": "Company or organization name (e.g., 'Institute of Sustainable Biodiversity')"
+        }
+      },
+      "required": [
+        "person_name",
+        "company_name"
+      ]
+    },
+    "platform": "professional_verification_image"
+  },
+  {
+    "name": "check_facial_recognition_databases",
+    "description": "Get information about paid facial recognition services (PimEyes, FaceCheck.ID, Social Catfish) that can search for a face across the entire internet. PAID services - use only when stakes are high.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "image_url": {
+          "type": "string",
+          "description": "URL to the profile image"
+        }
+      },
+      "required": [
+        "image_url"
+      ]
+    },
+    "platform": "professional_verification_image"
+  },
+  {
+    "name": "analyze_profile_image_quality",
+    "description": "Analyze profile image quality, dimensions, file format to detect potential red flags like screenshots, AI generation, or stock photos. FREE analysis. Requires Pillow library.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "image_url": {
+          "type": "string",
+          "description": "URL to the profile image to analyze"
+        }
+      },
+      "required": [
+        "image_url"
+      ]
+    },
+    "platform": "professional_verification_image"
+  }
+]

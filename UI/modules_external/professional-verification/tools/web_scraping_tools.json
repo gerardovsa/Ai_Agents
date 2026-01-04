@@ -1,0 +1,129 @@
+[
+    {
+        "name": "scrape_website_content",
+        "description": "Scrape and analyze complete website content including HTML structure, metadata, headings, links, images, contact info, social media links, and detected technologies. FREE service using BeautifulSoup. Returns structured data about website content and organization.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Website URL to scrape (e.g., 'https://isb.eco' or 'scatechnology.ai')"
+                }
+            },
+            "required": [
+                "url"
+            ]
+        },
+        "platform": "professional_verification_web"
+    },
+    {
+        "name": "analyze_website_structure",
+        "description": "Analyze website structure including robots.txt, sitemap.xml, common pages (about, contact, team), and security headers. Calculates security score. FREE analysis. Useful for assessing website legitimacy and professionalism.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Website URL to analyze"
+                }
+            },
+            "required": [
+                "url"
+            ]
+        },
+        "platform": "professional_verification_web"
+    },
+    {
+        "name": "extract_ssl_certificate_info",
+        "description": "Extract SSL certificate details including issuer, expiry date, validity status, and days until expiration. FREE verification. Critical for security assessment - legitimate businesses have valid SSL certificates.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "Domain name without protocol (e.g., 'isb.eco' or 'scatechnology.ai')"
+                }
+            },
+            "required": [
+                "domain"
+            ]
+        },
+        "platform": "professional_verification_web"
+    },
+    {
+        "name": "check_dns_records",
+        "description": "Check DNS records (A, AAAA, MX, NS, TXT) for domain verification. Shows IP addresses, mail servers, nameservers. FREE lookup. Requires dnspython library. Helps verify domain configuration and hosting.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "Domain name to check"
+                }
+            },
+            "required": [
+                "domain"
+            ]
+        },
+        "platform": "professional_verification_web"
+    },
+    {
+        "name": "search_github_repositories",
+        "description": "Search GitHub for repositories related to person or organization. FREE GitHub API (60 requests/hour without token). Returns repository names, descriptions, stars, forks, languages, creation dates. Useful for verifying technical presence.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query (person name, company name, project name)"
+                },
+                "organization": {
+                    "type": "string",
+                    "description": "GitHub organization name (optional, for org-specific search)"
+                }
+            },
+            "required": [
+                "query"
+            ]
+        },
+        "platform": "professional_verification_web"
+    },
+    {
+        "name": "analyze_builtwith_technology",
+        "description": "Detect website technologies including analytics (Google Analytics), CMS (WordPress, Shopify), frameworks (React, Vue), CDN (Cloudflare), payment (Stripe, PayPal). FREE detection. Returns technology stack breakdown.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Website URL to analyze"
+                }
+            },
+            "required": [
+                "url"
+            ]
+        },
+        "platform": "professional_verification_web"
+    },
+    {
+        "name": "check_wayback_availability",
+        "description": "Check if website is archived in Wayback Machine and get latest snapshot information using FREE Wayback API. Returns archive status, latest snapshot URL, and snapshot date. Critical for verifying website history.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Website URL to check"
+                },
+                "year": {
+                    "type": "integer",
+                    "description": "Specific year to check (optional)"
+                }
+            },
+            "required": [
+                "url"
+            ]
+        },
+        "platform": "professional_verification_web"
+    }
+]

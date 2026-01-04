@@ -1,0 +1,42 @@
+{
+  "id": "salesforce",
+  "name": "Salesforce CRM",
+  "version": "1.0.0",
+  "enabled": false,
+  "description": "Salesforce integration for managing leads, accounts, and opportunities (DISABLED - No implementation)",
+  "author": "Valor AI",
+  "icon": "fab fa-salesforce",
+  "color": "#00A1E0",
+  "scriptPath": "external/modules/salesforce/salesforce.js",
+  "permissions": [
+    "api:salesforce",
+    "storage:local"
+  ],
+  "tabs": [
+    {
+      "id": "leads",
+      "name": "Leads",
+      "icon": "fas fa-user-plus",
+      "default": true
+    },
+    {
+      "id": "accounts",
+      "name": "Accounts",
+      "icon": "fas fa-building"
+    },
+    {
+      "id": "opportunities",
+      "name": "Opportunities",
+      "icon": "fas fa-handshake"
+    },
+    {
+      "id": "reports",
+      "name": "Reports",
+      "icon": "fas fa-chart-bar"
+    }
+  ],
+  "settings": {
+    "api_endpoint": "https://your-instance.salesforce.com",
+    "refresh_interval": 300
+  }
+}

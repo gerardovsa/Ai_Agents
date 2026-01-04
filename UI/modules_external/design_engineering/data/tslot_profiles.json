@@ -1,0 +1,218 @@
+{
+  "20x20_light": {
+    "name": "20x20mm Light T-Slot Profile",
+    "dimensions": {
+      "width_mm": 20,
+      "height_mm": 20,
+      "wall_thickness_mm": 1.5,
+      "slot_width_mm": 6
+    },
+    "section_properties": {
+      "area_mm2": 112,
+      "moment_inertia_x_mm4": 8400,
+      "moment_inertia_y_mm4": 8400,
+      "section_modulus_mm3": 840,
+      "radius_gyration_mm": 8.7
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 0.30,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 8.50,
+    "typical_applications": [
+      "Light frames",
+      "Small enclosures",
+      "Hobbyist projects"
+    ]
+  },
+  "30x30_standard": {
+    "name": "30x30mm Standard T-Slot Profile",
+    "dimensions": {
+      "width_mm": 30,
+      "height_mm": 30,
+      "wall_thickness_mm": 2.0,
+      "slot_width_mm": 8
+    },
+    "section_properties": {
+      "area_mm2": 225,
+      "moment_inertia_x_mm4": 28900,
+      "moment_inertia_y_mm4": 28900,
+      "section_modulus_mm3": 1927,
+      "radius_gyration_mm": 11.3
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 0.61,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 11.20,
+    "typical_applications": [
+      "Medium frames",
+      "Workbenches",
+      "Equipment stands"
+    ]
+  },
+  "40x40_light": {
+    "name": "40x40mm Light T-Slot Profile",
+    "dimensions": {
+      "width_mm": 40,
+      "height_mm": 40,
+      "wall_thickness_mm": 2.5,
+      "slot_width_mm": 10
+    },
+    "section_properties": {
+      "area_mm2": 385,
+      "moment_inertia_x_mm4": 68000,
+      "moment_inertia_y_mm4": 68000,
+      "section_modulus_mm3": 3400,
+      "radius_gyration_mm": 13.3
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 1.04,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 12.50,
+    "typical_applications": [
+      "Campervan bed frames",
+      "Furniture",
+      "Display stands"
+    ]
+  },
+  "40x40_standard": {
+    "name": "40x40mm Standard T-Slot Profile",
+    "dimensions": {
+      "width_mm": 40,
+      "height_mm": 40,
+      "wall_thickness_mm": 3.5,
+      "slot_width_mm": 10
+    },
+    "section_properties": {
+      "area_mm2": 615,
+      "moment_inertia_x_mm4": 82000,
+      "moment_inertia_y_mm4": 82000,
+      "section_modulus_mm3": 4100,
+      "radius_gyration_mm": 11.5
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 1.66,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 16.80,
+    "typical_applications": [
+      "Heavy-duty frames",
+      "Machine bases",
+      "Campervan kitchens"
+    ]
+  },
+  "40x40_heavy": {
+    "name": "40x40mm Heavy T-Slot Profile",
+    "dimensions": {
+      "width_mm": 40,
+      "height_mm": 40,
+      "wall_thickness_mm": 4.5,
+      "slot_width_mm": 10
+    },
+    "section_properties": {
+      "area_mm2": 785,
+      "moment_inertia_x_mm4": 95000,
+      "moment_inertia_y_mm4": 95000,
+      "section_modulus_mm3": 4750,
+      "radius_gyration_mm": 11.0
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 2.12,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 21.50,
+    "typical_applications": [
+      "Industrial machinery",
+      "Heavy loads",
+      "Structural supports"
+    ]
+  },
+  "60x60_standard": {
+    "name": "60x60mm Standard T-Slot Profile",
+    "dimensions": {
+      "width_mm": 60,
+      "height_mm": 60,
+      "wall_thickness_mm": 3.5,
+      "slot_width_mm": 10
+    },
+    "section_properties": {
+      "area_mm2": 820,
+      "moment_inertia_x_mm4": 312000,
+      "moment_inertia_y_mm4": 312000,
+      "section_modulus_mm3": 10400,
+      "radius_gyration_mm": 19.5
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 2.21,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 28.90,
+    "typical_applications": [
+      "Large frames",
+      "Gantries",
+      "Heavy structures"
+    ]
+  },
+  "80x80_standard": {
+    "name": "80x80mm Standard T-Slot Profile",
+    "dimensions": {
+      "width_mm": 80,
+      "height_mm": 80,
+      "wall_thickness_mm": 4.0,
+      "slot_width_mm": 10
+    },
+    "section_properties": {
+      "area_mm2": 1240,
+      "moment_inertia_x_mm4": 820000,
+      "moment_inertia_y_mm4": 820000,
+      "section_modulus_mm3": 20500,
+      "radius_gyration_mm": 25.7
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 3.35,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 42.50,
+    "typical_applications": [
+      "Very heavy loads",
+      "Portal frames",
+      "Industrial robots"
+    ]
+  },
+  "40x80_standard": {
+    "name": "40x80mm Rectangular T-Slot Profile",
+    "dimensions": {
+      "width_mm": 40,
+      "height_mm": 80,
+      "wall_thickness_mm": 3.5,
+      "slot_width_mm": 10
+    },
+    "section_properties": {
+      "area_mm2": 820,
+      "moment_inertia_x_mm4": 420000,
+      "moment_inertia_y_mm4": 82000,
+      "section_modulus_mm3": 10500,
+      "radius_gyration_mm": 22.6
+    },
+    "mechanical": {
+      "weight_per_meter_kg": 2.21,
+      "max_deflection_ratio": 360
+    },
+    "material": "6063-T5",
+    "cost_aud_per_meter": 25.40,
+    "typical_applications": [
+      "Vertical supports",
+      "Column beams",
+      "High moment loads"
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+    "id": "vsa-veterinary-alerts",
+    "name": "VSA Veterinary Alerts",
+    "version": "1.0.0",
+    "description": "Real-time veterinary call alerts and follow-up actions dashboard with AI-powered insights and priority management",
+    "type": "external",
+    "category": "business",
+    "author": "VSA Analytics",
+    "icon": "fas fa-bell",
+    "color": "#d32f2f",
+    "colors": {
+        "primary": "#d32f2f",
+        "secondary": "#f57c00",
+        "success": "#388e3c",
+        "warning": "#f57c00",
+        "danger": "#d32f2f",
+        "info": "#1976d2",
+        "background": "#0B0E13",
+        "border": "#2A3142"
+    },
+    "css_file": "vsa-veterinary-alerts.css",
+    "js_file": "vsa-veterinary-alerts.js",
+    "html_file": "vsa-veterinary-alerts.html",
+    "capabilities": {
+        "dashboard": {
+            "enabled": true,
+            "tab_id": "vsa-veterinary-alerts",
+            "tab_label": "VSA Alerts",
+            "tab_icon": "fas fa-bell",
+            "rendering": "js-controlled",
+            "initialization": "lazy",
+            "replaces_chat": true
+        },
+        "sidebar": {
+            "enabled": true,
+            "side": "left",
+            "width": "450px",
+            "html_file": "vsa-alerts-sidebar.html",
+            "framework": "SidebarManager",
+            "toggle_button": {
+                "enabled": true,
+                "label": "Quick Alerts",
+                "icon": "fas fa-bell",
+                "position": "left",
+                "default_top": 340,
+                "color": "#d32f2f"
+            },
+            "features": {
+                "draggable_toggle": true,
+                "persistent_state": true,
+                "lazy_load": true,
+                "auto_close": false
+            }
+        }
+    },
+    "dependencies": {
+        "utilities": [
+            "dom",
+            "api",
+            "storage",
+            "events",
+            "log"
+        ]
+    },
+    "loading": {
+        "framework": "v4",
+        "strategy": "lazy",
+        "priority": 60
+    },
+    "paths": {
+        "js": "UI/modules_external/vsa-veterinary-alerts/vsa-veterinary-alerts.js",
+        "css": "UI/modules_external/vsa-veterinary-alerts/vsa-veterinary-alerts.css",
+        "html": "UI/modules_external/vsa-veterinary-alerts/vsa-veterinary-alerts.html",
+        "base": "UI/modules_external/vsa-veterinary-alerts"
+    },
+    "data_sources": {
+        "primary": {
+            "type": "supabase",
+            "table": "veterinary_calls",
+            "refresh_interval": 30000
+        }
+    },
+    "features": {
+        "real_time_alerts": true,
+        "follow_up_tracking": true,
+        "ai_insights": true,
+        "priority_scoring": true,
+        "alert_filtering": true,
+        "export_reports": true,
+        "email_notifications": false
+    },
+    "required_platforms": [],
+    "optional_platforms": [],
+    "permissions": {
+        "data_read": true,
+        "data_write": false,
+        "admin_required": false
+    }
+}

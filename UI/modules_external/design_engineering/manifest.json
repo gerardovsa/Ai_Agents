@@ -1,0 +1,38 @@
+{
+    "id": "design-engineering",
+    "name": "Design Engineering",
+    "version": "1.0.0",
+    "description": "Constrained CAD system with parametric design, constraints solver, and real-time rendering",
+    "icon": "fas fa-drafting-compass",
+    "type": "sidebar",
+    "category": "engineering",
+    "scriptPath": "external/modules/design-engineering/design-engineering.js",
+    "stylePath": "external/modules/design-engineering/design-engineering.css",
+    "files": {
+        "js": "design-engineering.js",
+        "css": "design-engineering.css",
+        "html": "design-engineering.html"
+    },
+    "dependencies": {
+        "utilities": [],
+        "frameworks": [],
+        "modules": []
+    },
+    "colors": {
+        "primary": "#2196F3",
+        "secondary": "#1976D2",
+        "hover": "#42A5F5"
+    },
+    "author": "AI Agent",
+    "settings": {
+        "api_endpoint": "/api/design-engineering",
+        "backend_url": "http://localhost:5001"
+    },
+    "features": [
+        "Parametric CAD design",
+        "Constraint-based modeling",
+        "Real-time constraint solver",
+        "SVG rendering engine",
+        "Design documentation"
+    ]
+}

@@ -858,12 +858,19 @@ const MultiAgent = {
 
         if (column) {
             column.classList.add('other-session-viewing');
-            column.style.border = `3px solid ${sessionColor}`;
+            // Dashed border with device-specific color
+            column.style.border = `3px dashed ${sessionColor}`;
             column.style.boxShadow = `0 0 0 4px ${sessionColor}33`; // 20% opacity for outer glow
+            // Set CSS variable for potential CSS usage
+            column.style.setProperty('--session-color', sessionColor);
         }
 
         // Show indicator for multiple sessions
-        if (badge) badge.classList.add('other-user');
+        if (badge) {
+            badge.classList.add('other-user');
+            // Apply same session color to quick nav badge
+            badge.style.setProperty('--session-color', sessionColor);
+        }
 
         // Build display text (no emojis)
         if (sessions.length === 1) {
@@ -919,11 +926,25 @@ const MultiAgent = {
     },
 
     // Get color for session based on hash of session token
+    // Static map to persist session colors across all calls
+    sessionColorMap: new Map(),
+
     getSessionColor(sessionToken) {
         if (!sessionToken) return this.PRESENCE_COLORS[0];
+        
+        // Check if we already assigned a color to this session
+        if (this.sessionColorMap.has(sessionToken)) {
+            return this.sessionColorMap.get(sessionToken);
+        }
+        
+        // Assign new color based on hash
         const hash = sessionToken.split('').reduce((acc, char) =>
             acc + char.charCodeAt(0), 0);
-        return this.PRESENCE_COLORS[hash % this.PRESENCE_COLORS.length];
+        const color = this.PRESENCE_COLORS[hash % this.PRESENCE_COLORS.length];
+        
+        // Store for future lookups
+        this.sessionColorMap.set(sessionToken, color);
+        return color;
     },
 
     // Show lock banner when agent is locked by another session

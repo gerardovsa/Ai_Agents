@@ -1,0 +1,80 @@
+{
+  "6061-T6": {
+    "name": "Aluminum Alloy 6061-T6",
+    "description": "Heat-treated aluminum alloy with excellent strength-to-weight ratio. Most common structural aluminum.",
+    "properties": {
+      "yield_strength_mpa": 276,
+      "tensile_strength_mpa": 310,
+      "elastic_modulus_mpa": 68900,
+      "shear_modulus_mpa": 26000,
+      "density_kg_m3": 2700,
+      "poisson_ratio": 0.33,
+      "thermal_expansion_per_c": 2.36e-5
+    },
+    "typical_applications": [
+      "Structural framing",
+      "Aircraft components",
+      "Marine fittings",
+      "Campervan frames"
+    ],
+    "cost_multiplier": 1.2
+  },
+  "6063-T5": {
+    "name": "Aluminum Alloy 6063-T5",
+    "description": "Extrusion alloy with good surface finish. Most common for T-slot aluminum profiles.",
+    "properties": {
+      "yield_strength_mpa": 145,
+      "tensile_strength_mpa": 185,
+      "elastic_modulus_mpa": 69000,
+      "shear_modulus_mpa": 26000,
+      "density_kg_m3": 2700,
+      "poisson_ratio": 0.33,
+      "thermal_expansion_per_c": 2.34e-5
+    },
+    "typical_applications": [
+      "T-slot extrusions",
+      "Architectural framing",
+      "Furniture",
+      "Modular structures"
+    ],
+    "cost_multiplier": 1.0
+  },
+  "6063-T6": {
+    "name": "Aluminum Alloy 6063-T6",
+    "description": "Fully heat-treated 6063 with higher strength. Premium T-slot option.",
+    "properties": {
+      "yield_strength_mpa": 214,
+      "tensile_strength_mpa": 241,
+      "elastic_modulus_mpa": 69000,
+      "shear_modulus_mpa": 26000,
+      "density_kg_m3": 2700,
+      "poisson_ratio": 0.33,
+      "thermal_expansion_per_c": 2.34e-5
+    },
+    "typical_applications": [
+      "Heavy-duty T-slot systems",
+      "Load-bearing structures",
+      "Industrial automation"
+    ],
+    "cost_multiplier": 1.15
+  },
+  "5052-H32": {
+    "name": "Aluminum Alloy 5052-H32",
+    "description": "Excellent corrosion resistance, good for marine environments.",
+    "properties": {
+      "yield_strength_mpa": 193,
+      "tensile_strength_mpa": 228,
+      "elastic_modulus_mpa": 70300,
+      "shear_modulus_mpa": 25900,
+      "density_kg_m3": 2680,
+      "poisson_ratio": 0.33,
+      "thermal_expansion_per_c": 2.38e-5
+    },
+    "typical_applications": [
+      "Marine structures",
+      "Sheet metal panels",
+      "Fuel tanks"
+    ],
+    "cost_multiplier": 1.1
+  }
+}

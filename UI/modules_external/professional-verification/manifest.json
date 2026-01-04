@@ -1,0 +1,163 @@
+{
+    "id": "professional-verification",
+    "name": "Professional Verification",
+    "version": "1.0.0",
+    "type": "external",
+    "category": "security",
+    "icon": "fas fa-shield-alt",
+    "color": "#E53E3E",
+    "description": "Universal background verification for any profession - validates resumes, credentials, company legitimacy, and online presence",
+    "main_script": "professional-verification.js",
+    "styles": [
+        "professional-verification.css"
+    ],
+    "routes_file": "routes/professional_verification.py",
+    "capabilities": {
+        "dashboard": {
+            "enabled": true,
+            "tab_id": "verification",
+            "sub_tabs": [
+                {
+                    "id": "new-verification",
+                    "name": "New Verification",
+                    "icon": "fas fa-user-shield"
+                },
+                {
+                    "id": "verification-history",
+                    "name": "History",
+                    "icon": "fas fa-history"
+                },
+                {
+                    "id": "reports",
+                    "name": "Reports",
+                    "icon": "fas fa-chart-bar"
+                },
+                {
+                    "id": "settings",
+                    "name": "Settings",
+                    "icon": "fas fa-cog"
+                }
+            ]
+        },
+        "sidebar": {
+            "enabled": false
+        },
+        "platform_connection": {
+            "enabled": true,
+            "requires_credentials": true
+        }
+    },
+    "required_platforms": [
+        "github"
+    ],
+    "optional_platforms": [
+        "hunter_io",
+        "clearbit",
+        "linkedin_verifier"
+    ],
+    "credential_forms": {
+        "github_token": {
+            "type": "token",
+            "label": "GitHub Personal Access Token",
+            "required": true,
+            "placeholder": "ghp_xxxxxxxxxxxxxxxxxxxx",
+            "instructions": "Create at https://github.com/settings/tokens with 'read:user' and 'public_repo' scopes. FREE tier: 5000 requests/hour.",
+            "validation": "^ghp_[a-zA-Z0-9]{36}$"
+        },
+        "hunter_io_api_key": {
+            "type": "token",
+            "label": "Hunter.io API Key (Optional)",
+            "required": false,
+            "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "instructions": "Sign up at https://hunter.io/api. FREE tier: 50 requests/month for email verification.",
+            "validation": "^[a-f0-9]{32}$"
+        },
+        "clearbit_api_key": {
+            "type": "token",
+            "label": "Clearbit API Key (Optional)",
+            "required": false,
+            "placeholder": "sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "instructions": "Sign up at https://clearbit.com/. FREE tier: 100 requests/month for company data enrichment.",
+            "validation": "^sk_[a-f0-9]{32}$"
+        },
+        "linkedin_verifier_account": {
+            "type": "credentials",
+            "label": "LinkedIn Verifier Account (Optional)",
+            "required": false,
+            "fields": {
+                "username": {
+                    "type": "email",
+                    "label": "LinkedIn Email",
+                    "placeholder": "verifier@company.com"
+                },
+                "password": {
+                    "type": "password",
+                    "label": "LinkedIn Password",
+                    "placeholder": "••••••••"
+                }
+            },
+            "instructions": "Dedicated LinkedIn account for automated profile searches. Use a SEPARATE account, not your personal one. Enable 2FA for security.",
+            "warning": "Never use your personal LinkedIn account. Create a dedicated verifier account to avoid account restrictions."
+        },
+        "anthropic_api_key": {
+            "type": "token",
+            "label": "Anthropic API Key (Optional - for Computer Use)",
+            "required": false,
+            "placeholder": "sk-ant-xxxxxxxxxxxxxxxxxxxx",
+            "instructions": "Required for Computer Use features (LinkedIn search, credential registry verification). Get API key at https://console.anthropic.com/",
+            "validation": "^sk-ant-[a-zA-Z0-9\\-]{32,}$"
+        }
+    },
+    "dependencies": {
+        "modules": [],
+        "utilities": [
+            "dom",
+            "api",
+            "storage",
+            "events",
+            "log"
+        ],
+        "global_services": [
+            "ComputerUseExecutor",
+            "DocumentParser"
+        ]
+    },
+    "features": {
+        "requires_auth": true,
+        "show_in_sidebar": true,
+        "auto_load": false,
+        "ai_integration": true,
+        "tool_access": true
+    },
+    "tools": {
+        "schema_file": "tools/verification_tools_schema.json",
+        "implementation_file": "tools/verification_tools_impl.py",
+        "enabled": true
+    },
+    "api_endpoints": [
+        "/api/verification/parse-resume",
+        "/api/verification/run-check",
+        "/api/verification/get-report",
+        "/api/verification/list-history",
+        "/api/verification/delete-verification"
+    ],
+    "permissions": [
+        "read_user_data",
+        "write_user_data",
+        "access_credentials",
+        "make_external_api_calls"
+    ],
+    "metadata": {
+        "author": "Valor AI",
+        "created": "2025-12-16",
+        "last_updated": "2025-12-16",
+        "tags": [
+            "verification",
+            "background-check",
+            "security",
+            "fraud-detection",
+            "OSINT"
+        ],
+        "documentation": "README.md"
+    }
+}

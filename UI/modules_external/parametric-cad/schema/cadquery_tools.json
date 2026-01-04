@@ -1,0 +1,156 @@
+{
+  "platform": "cadquery",
+  "description": "Parametric CAD generation using CadQuery Python library - Generate 3D models, validate code, export to STEP/STL/DXF formats",
+  "tools": [
+    {
+      "name": "generate_cad_from_code",
+    "description": "Generate 3D CAD geometry from CadQuery Python code. AI writes the code, CadQuery generates professional-quality CAD geometry. Exports to STEP and STL formats. Use when users request 3D models, CAD designs, or technical drawings.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "CadQuery Python code that creates geometry. MUST set 'result' variable. Example: result = cq.Workplane('XY').box(100, 100, 50)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the CAD part (e.g., 'Fiat Ducato 2011 van body')",
+          "default": "CAD part"
+        }
+      },
+      "required": ["code"]
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "validate_cadquery_code",
+    "description": "Validate CadQuery Python code before execution. Checks for syntax errors, missing imports, and common mistakes. Use this before calling generate_cad_from_code to avoid errors.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "CadQuery Python code to validate"
+        }
+      },
+      "required": ["code"]
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "list_cadquery_templates",
+    "description": "List all available CadQuery code templates (examples). Includes fasteners (hex bolts, screws), gears, bearings, mechanical parts, automotive components, and enclosures. Use these as reference patterns for creating new designs.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "get_cadquery_template",
+    "description": "Get specific CadQuery template code by name. Returns working Python code that can be modified. Available templates: hex_bolt, socket_head_cap_screw, spur_gear, ball_bearing, t_slot_extrusion, simple_car_body, wheel_rim, enclosure_box.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Template name (e.g., 'simple_car_body', 'wheel_rim', 'spur_gear')"
+        }
+      },
+      "required": ["name"]
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "cadquery_export_dxf",
+    "description": "Export STEP file to DXF format for laser cutting or CNC machining. Converts 3D CAD to 2D profile suitable for manufacturing.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "step_file_path": {
+          "type": "string",
+          "description": "Path to STEP file (from generate_cad_from_code result)"
+        },
+        "output_path": {
+          "type": "string",
+          "description": "Optional custom output path for DXF file"
+        }
+      },
+      "required": ["step_file_path"]
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "cadquery_export_svg",
+    "description": "Export STEP file to SVG format for technical drawings and documentation. Creates 2D vector graphics with orthographic projections.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "step_file_path": {
+          "type": "string",
+          "description": "Path to STEP file (from generate_cad_from_code result)"
+        },
+        "output_path": {
+          "type": "string",
+          "description": "Optional custom output path for SVG file"
+        }
+      },
+      "required": ["step_file_path"]
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "cadquery_list_generated_files",
+    "description": "List all previously generated CAD files (STEP, STL, DXF, SVG). Shows file names, sizes, creation dates. Use to find and reference existing CAD models.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file_type": {
+          "type": "string",
+          "description": "Filter by file type",
+          "enum": ["all", "step", "stl", "dxf", "svg"],
+          "default": "all"
+        }
+      },
+      "required": []
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "cadquery_get_file_info",
+    "description": "Get detailed information about a specific CAD file. Returns geometry statistics (vertices, faces, volume), bounding box, and file metadata.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "description": "Path to CAD file (STEP or STL)"
+        }
+      },
+      "required": ["file_path"]
+    },
+    "platform": "cadquery"
+  },
+  {
+    "name": "cadquery_calculate_mass",
+    "description": "Calculate mass properties of a CAD part given material density. Returns mass, center of gravity, and moment of inertia. Use for engineering analysis and weight calculations.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "step_file_path": {
+          "type": "string",
+          "description": "Path to STEP file"
+        },
+        "density_g_cm3": {
+          "type": "number",
+          "description": "Material density in g/cm³ (e.g., 2.7 for aluminum, 7.85 for steel, 1.2 for ABS plastic)",
+          "default": 2.7
+        }
+      },
+      "required": ["step_file_path"]
+    },
+    "platform": "cadquery"
+  }
+  ]
+}

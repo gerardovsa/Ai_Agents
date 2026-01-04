@@ -1,0 +1,96 @@
+[
+  {
+    "name": "get_current_weather",
+    "description": "Get current weather conditions for a location. Uses IP-based geolocation if no coordinates provided. Data cached for 1 hour.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate (optional, auto-detected from IP if not provided)"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate (optional, auto-detected from IP if not provided)"
+        },
+        "location_name": {
+          "type": "string",
+          "description": "Human-readable location name for display (optional)"
+        }
+      },
+      "required": []
+    },
+    "platform": "weather"
+  },
+  {
+    "name": "get_weather_forecast",
+    "description": "Get weather forecast for up to 16 days. Includes temperature, precipitation, wind speed, and weather conditions. Data cached for 1 hour.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate (optional, auto-detected from IP if not provided)"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate (optional, auto-detected from IP if not provided)"
+        },
+        "days": {
+          "type": "integer",
+          "description": "Number of forecast days (1-16)",
+          "default": 7
+        },
+        "location_name": {
+          "type": "string",
+          "description": "Human-readable location name for display (optional)"
+        }
+      },
+      "required": []
+    },
+    "platform": "weather"
+  },
+  {
+    "name": "get_hourly_forecast",
+    "description": "Get hourly weather forecast for up to 7 days. Includes detailed hourly conditions, temperature, precipitation probability, and more.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate (optional, auto-detected from IP if not provided)"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate (optional, auto-detected from IP if not provided)"
+        },
+        "hours": {
+          "type": "integer",
+          "description": "Number of hours ahead (1-168 for 7 days)",
+          "default": 48
+        },
+        "location_name": {
+          "type": "string",
+          "description": "Human-readable location name for display (optional)"
+        }
+      },
+      "required": []
+    },
+    "platform": "weather"
+  },
+  {
+    "name": "search_location_weather",
+    "description": "Search for weather by city name or address. Returns weather data with resolved coordinates.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "City name, address, or location query (e.g., 'Brisbane, Australia' or 'New York')"
+        }
+      },
+      "required": ["query"]
+    },
+    "platform": "weather"
+  }
+]

@@ -1,0 +1,1193 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "title": "Professional Verification Tools Schema",
+    "description": "Comprehensive toolkit for verifying professional credentials, resumes, and backgrounds across ANY profession using free APIs and OSINT techniques",
+    "version": "1.0.0",
+    "created": "2025-12-16",
+    "tools": [
+        {
+            "name": "parse_resume",
+            "category": "resume_parsing",
+            "description": "Parse resume/CV document and extract structured data including name, contact info, skills, education, and experience. Supports PDF, DOCX, TXT formats. Works for ANY profession.",
+            "implementation": "verification_core.parse_resume",
+            "required_credentials": [],
+            "parameters": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Absolute path to resume file (PDF, DOCX, or TXT)"
+                },
+                "detect_ai_content": {
+                    "type": "boolean",
+                    "description": "Run AI-generated content detection",
+                    "default": true
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "name": "string - Candidate name",
+                "emails": "array - Email addresses found",
+                "phones": "array - Phone numbers found",
+                "skills": "array - Technical/professional skills",
+                "education": "array - Education history",
+                "experience": "array - Work experience entries",
+                "certifications": "array - Professional certifications",
+                "ai_detection": "object - AI content analysis {is_ai_generated, confidence, indicators}"
+            },
+            "profession_agnostic": true,
+            "example_usage": "parse_resume(file_path='/uploads/resume.pdf', detect_ai_content=true)"
+        },
+        {
+            "name": "extract_contact_info",
+            "category": "resume_parsing",
+            "description": "Extract all contact information from resume text: emails, phone numbers, LinkedIn, GitHub, personal websites. Uses regex pattern matching.",
+            "implementation": "verification_core.extract_contact_info",
+            "required_credentials": [],
+            "parameters": {
+                "resume_text": {
+                    "type": "string",
+                    "description": "Full text content of resume"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "emails": "array - All email addresses",
+                "phones": "array - Phone numbers (formatted)",
+                "linkedin_urls": "array - LinkedIn profile URLs",
+                "github_urls": "array - GitHub profile URLs",
+                "personal_websites": "array - Personal website URLs",
+                "other_urls": "array - Other URLs found"
+            },
+            "profession_agnostic": true,
+            "example_usage": "extract_contact_info(resume_text='John Doe\\njohn@example.com...')"
+        },
+        {
+            "name": "analyze_skills_match",
+            "category": "resume_parsing",
+            "description": "Compare resume skills against job requirements and calculate match percentage. Works across all professions by analyzing keyword overlap and semantic similarity.",
+            "implementation": "verification_core.analyze_skills_match",
+            "required_credentials": [],
+            "parameters": {
+                "resume_skills": {
+                    "type": "array",
+                    "description": "Skills listed in resume"
+                },
+                "required_skills": {
+                    "type": "array",
+                    "description": "Skills required for position"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "match_percentage": "number - 0-100 match score",
+                "matched_skills": "array - Skills that match",
+                "missing_skills": "array - Required skills not found",
+                "extra_skills": "array - Bonus skills candidate has",
+                "recommendations": "array - Suggestions for candidate"
+            },
+            "profession_agnostic": true,
+            "example_usage": "analyze_skills_match(resume_skills=['Python', 'SQL'], required_skills=['Python', 'Java'])"
+        },
+        {
+            "name": "verify_github_profile",
+            "category": "github_verification",
+            "description": "Verify GitHub profile exists and extract activity metrics: repositories, contributions, languages, star counts. Free API, 5000 requests/hour. Works for tech professionals.",
+            "implementation": "verification_core.verify_github_profile",
+            "required_credentials": [
+                "github_token"
+            ],
+            "parameters": {
+                "github_username": {
+                    "type": "string",
+                    "description": "GitHub username to verify"
+                },
+                "check_contributions": {
+                    "type": "boolean",
+                    "description": "Analyze contribution history",
+                    "default": true
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "profile_exists": "boolean",
+                "name": "string",
+                "bio": "string",
+                "location": "string",
+                "company": "string",
+                "email": "string",
+                "created_at": "string - Account creation date",
+                "public_repos": "number",
+                "followers": "number",
+                "following": "number",
+                "total_commits": "number",
+                "languages": "array - Programming languages used",
+                "top_repositories": "array - Most starred repos",
+                "activity_score": "number - 0-100 activity rating"
+            },
+            "profession_agnostic": false,
+            "applicable_professions": [
+                "Software Engineering",
+                "IT",
+                "Data Science"
+            ],
+            "example_usage": "verify_github_profile(github_username='octocat', check_contributions=true)"
+        },
+        {
+            "name": "analyze_github_code_quality",
+            "category": "github_verification",
+            "description": "Analyze code quality metrics from GitHub repositories: code review participation, commit messages, documentation, test coverage indicators. For technical verification.",
+            "implementation": "verification_core.analyze_github_code_quality",
+            "required_credentials": [
+                "github_token"
+            ],
+            "parameters": {
+                "github_username": {
+                    "type": "string",
+                    "description": "GitHub username"
+                },
+                "repo_limit": {
+                    "type": "number",
+                    "description": "Max repos to analyze",
+                    "default": 10
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "code_quality_score": "number - 0-100 overall score",
+                "has_documentation": "boolean - README presence",
+                "has_tests": "boolean - Test file detection",
+                "commit_message_quality": "number - 0-100 score",
+                "code_review_participation": "number - PR reviews count",
+                "contribution_consistency": "string - Regular/Sporadic/Inactive",
+                "red_flags": "array - Issues found"
+            },
+            "profession_agnostic": false,
+            "applicable_professions": [
+                "Software Engineering",
+                "IT"
+            ],
+            "example_usage": "analyze_github_code_quality(github_username='octocat', repo_limit=5)"
+        },
+        {
+            "name": "cross_reference_github_resume",
+            "category": "github_verification",
+            "description": "Cross-reference GitHub activity timeline with resume work history. Detects inconsistencies like claimed employment during GitHub inactivity periods.",
+            "implementation": "verification_core.cross_reference_github_resume",
+            "required_credentials": [
+                "github_token"
+            ],
+            "parameters": {
+                "github_username": {
+                    "type": "string",
+                    "description": "GitHub username"
+                },
+                "work_history": {
+                    "type": "array",
+                    "description": "Resume work history entries with dates"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "timeline_consistent": "boolean",
+                "inconsistencies": "array - Timeline gaps/overlaps",
+                "verified_periods": "array - Periods with GitHub activity",
+                "suspicious_gaps": "array - Employment claims without activity",
+                "risk_score": "number - 0-100 inconsistency rating"
+            },
+            "profession_agnostic": false,
+            "applicable_professions": [
+                "Software Engineering",
+                "IT"
+            ],
+            "example_usage": "cross_reference_github_resume(github_username='dev123', work_history=[{...}])"
+        },
+        {
+            "name": "check_github_commit_authenticity",
+            "category": "github_verification",
+            "description": "Analyze commit patterns to detect fake commits, bulk imports, or contribution padding. Checks commit timestamps, file changes, and commit messages.",
+            "implementation": "verification_core.check_github_commit_authenticity",
+            "required_credentials": [
+                "github_token"
+            ],
+            "parameters": {
+                "github_username": {
+                    "type": "string",
+                    "description": "GitHub username"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "authenticity_score": "number - 0-100 genuine score",
+                "bulk_import_detected": "boolean",
+                "commit_time_anomalies": "array - Suspicious patterns",
+                "contribution_padding_detected": "boolean",
+                "evidence": "array - Supporting evidence"
+            },
+            "profession_agnostic": false,
+            "applicable_professions": [
+                "Software Engineering",
+                "IT"
+            ],
+            "example_usage": "check_github_commit_authenticity(github_username='dev123')"
+        },
+        {
+            "name": "verify_github_organization_membership",
+            "category": "github_verification",
+            "description": "Verify claimed company affiliations by checking GitHub organization memberships. Confirms if candidate was part of organization repositories.",
+            "implementation": "verification_core.verify_github_organization_membership",
+            "required_credentials": [
+                "github_token"
+            ],
+            "parameters": {
+                "github_username": {
+                    "type": "string",
+                    "description": "GitHub username"
+                },
+                "claimed_organizations": {
+                    "type": "array",
+                    "description": "Company names claimed in resume"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "verified_memberships": "array - Confirmed org memberships",
+                "unverified_claims": "array - Claims without evidence",
+                "current_organizations": "array - Active memberships",
+                "past_organizations": "array - Previous memberships"
+            },
+            "profession_agnostic": false,
+            "applicable_professions": [
+                "Software Engineering",
+                "IT"
+            ],
+            "example_usage": "verify_github_organization_membership(github_username='dev123', claimed_organizations=['Google', 'Microsoft'])"
+        },
+        {
+            "name": "check_domain_age",
+            "category": "company_legitimacy",
+            "description": "Check domain registration age using WHOIS lookup. Helps verify company legitimacy - new domains may indicate fake companies. FREE (rate-limited). \n\n**AI INTERPRETATION REQUIRED:** \n- age_days < 180 (6 months) = 🚨 HIGH RISK: Very new company, possible fraud\n- age_days 180-730 (6mo-2yr) = ⚠️ MODERATE RISK: Newer company, verify thoroughly\n- age_days > 730 (2+ years) = ✅ ESTABLISHED: Legitimate timeline\n\n**AI RESPONSE FORMAT:** 'Domain registered [date] ([age] old). Risk level: [HIGH/MODERATE/LOW]. [Interpretation]' \n**DO NOT** return raw JSON. Interpret the risk for the user.",
+            "implementation": "verification_core.check_domain_age",
+            "required_credentials": [],
+            "parameters": {
+                "domain": {
+                    "type": "string",
+                    "description": "Company domain name (e.g., 'example.com')"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "domain_exists": "boolean",
+                "creation_date": "string - Domain registration date",
+                "age_days": "number - Domain age in days",
+                "registrar": "string",
+                "is_recently_created": "boolean - Created < 6 months ago",
+                "risk_flag": "boolean - Suspicious new domain"
+            },
+            "profession_agnostic": true,
+            "example_usage": "check_domain_age(domain='example.com')"
+        },
+        {
+            "name": "check_wayback_history",
+            "category": "company_legitimacy",
+            "description": "Check Internet Archive Wayback Machine for historical snapshots of company website. Verifies company existed during claimed employment period. FREE unlimited.",
+            "implementation": "verification_core.check_wayback_history",
+            "required_credentials": [],
+            "parameters": {
+                "url": {
+                    "type": "string",
+                    "description": "Company website URL"
+                },
+                "date_from": {
+                    "type": "string",
+                    "description": "Start date (YYYY-MM-DD) for historical check"
+                },
+                "date_to": {
+                    "type": "string",
+                    "description": "End date (YYYY-MM-DD) for historical check"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "snapshots_found": "number",
+                "earliest_snapshot": "string - First archived date",
+                "latest_snapshot": "string - Most recent archived date",
+                "active_during_period": "boolean - Website existed in date range",
+                "snapshot_urls": "array - URLs of archived snapshots",
+                "content_changes": "array - Major website changes detected"
+            },
+            "profession_agnostic": true,
+            "example_usage": "check_wayback_history(url='https://example.com', date_from='2020-01-01', date_to='2023-12-31')"
+        },
+        {
+            "name": "verify_email_deliverability",
+            "category": "company_legitimacy",
+            "description": "Verify email address exists and is deliverable using Hunter.io API. Checks MX records, mailbox existence. FREE tier: 50 requests/month.",
+            "implementation": "verification_core.verify_email_deliverability",
+            "required_credentials": [
+                "hunter_io_api_key"
+            ],
+            "parameters": {
+                "email": {
+                    "type": "string",
+                    "description": "Email address to verify"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "email_valid": "boolean",
+                "deliverable": "boolean",
+                "disposable": "boolean - Temporary email service",
+                "webmail": "boolean - Gmail, Yahoo, etc.",
+                "mx_records_found": "boolean",
+                "smtp_check": "boolean",
+                "score": "number - 0-100 confidence",
+                "sources": "array - Where email was found online"
+            },
+            "profession_agnostic": true,
+            "example_usage": "verify_email_deliverability(email='john@example.com')"
+        },
+        {
+            "name": "check_company_data",
+            "category": "company_legitimacy",
+            "description": "Fetch company information using Clearbit API: employee count, industry, location, social profiles. FREE tier: 100 requests/month.",
+            "implementation": "verification_core.check_company_data",
+            "required_credentials": [
+                "clearbit_api_key"
+            ],
+            "parameters": {
+                "domain": {
+                    "type": "string",
+                    "description": "Company domain name"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "company_exists": "boolean",
+                "name": "string",
+                "description": "string",
+                "location": "string",
+                "employee_count": "number",
+                "industry": "string",
+                "founded_year": "number",
+                "linkedin_url": "string",
+                "twitter_url": "string",
+                "logo_url": "string",
+                "tags": "array - Industry tags"
+            },
+            "profession_agnostic": true,
+            "example_usage": "check_company_data(domain='google.com')"
+        },
+        {
+            "name": "search_company_social_media",
+            "category": "company_legitimacy",
+            "description": "Search for company presence on social media platforms (LinkedIn, Twitter, Facebook). Verifies legitimate companies have social footprint.",
+            "implementation": "verification_core.search_company_social_media",
+            "required_credentials": [],
+            "parameters": {
+                "company_name": {
+                    "type": "string",
+                    "description": "Company name to search"
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Company domain for verification"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "linkedin_found": "boolean",
+                "linkedin_url": "string",
+                "twitter_found": "boolean",
+                "twitter_url": "string",
+                "facebook_found": "boolean",
+                "facebook_url": "string",
+                "social_score": "number - 0-100 presence rating",
+                "red_flags": "array - Missing expected profiles"
+            },
+            "profession_agnostic": true,
+            "example_usage": "search_company_social_media(company_name='Acme Corp', domain='acme.com')"
+        },
+        {
+            "name": "search_linkedin_profile",
+            "category": "social_media_analysis",
+            "description": "Search for LinkedIn profile using Computer Use. Extracts job history, skills, endorsements, connections. Uses Anthropic Computer Use for automated browsing.",
+            "implementation": "computer_use_verification.search_linkedin_profile",
+            "required_credentials": [
+                "linkedin_verifier_account"
+            ],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Candidate's full name"
+                },
+                "company_name": {
+                    "type": "string",
+                    "description": "Current/past company for filtering"
+                },
+                "location": {
+                    "type": "string",
+                    "description": "Location for disambiguation"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "profile_found": "boolean",
+                "profile_url": "string",
+                "job_title": "string",
+                "company": "string",
+                "location": "string",
+                "work_history": "array - Past positions",
+                "education": "array - Education history",
+                "skills": "array - Listed skills",
+                "endorsements": "number",
+                "connections": "number",
+                "screenshot": "string - Base64 evidence",
+                "ai_annotations": "array - Claude observations"
+            },
+            "profession_agnostic": true,
+            "uses_computer_use": true,
+            "example_usage": "search_linkedin_profile(full_name='John Doe', company_name='Google', location='San Francisco')"
+        },
+        {
+            "name": "cross_platform_timeline",
+            "category": "social_media_analysis",
+            "description": "Build unified timeline from LinkedIn, GitHub, Twitter activity. Detects inconsistencies across platforms and validates work history.",
+            "implementation": "computer_use_verification.cross_platform_timeline",
+            "required_credentials": [
+                "github_token"
+            ],
+            "parameters": {
+                "linkedin_data": {
+                    "type": "object",
+                    "description": "Data from search_linkedin_profile"
+                },
+                "github_data": {
+                    "type": "object",
+                    "description": "Data from verify_github_profile"
+                },
+                "resume_data": {
+                    "type": "object",
+                    "description": "Data from parse_resume"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "unified_timeline": "array - Chronological events",
+                "consistency_score": "number - 0-100 cross-platform consistency",
+                "verified_claims": "array - Claims confirmed by multiple sources",
+                "unverified_claims": "array - Claims on resume only",
+                "conflicting_data": "array - Contradictions found",
+                "gaps": "array - Unexplained timeline gaps",
+                "red_flags": "array - Suspicious patterns"
+            },
+            "profession_agnostic": true,
+            "example_usage": "cross_platform_timeline(linkedin_data={...}, github_data={...}, resume_data={...})"
+        },
+        {
+            "name": "analyze_social_media_authenticity",
+            "category": "social_media_analysis",
+            "description": "Analyze social media profiles for signs of fake accounts: recent creation, few connections, generic posts, bot activity.",
+            "implementation": "computer_use_verification.analyze_social_media_authenticity",
+            "required_credentials": [],
+            "parameters": {
+                "profile_data": {
+                    "type": "object",
+                    "description": "Social media profile data"
+                },
+                "platform": {
+                    "type": "string",
+                    "description": "Platform name (linkedin/twitter/facebook)"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "authenticity_score": "number - 0-100 genuine likelihood",
+                "account_age": "number - Days since creation",
+                "connection_network_size": "number",
+                "post_frequency": "string - Regular/Sporadic/None",
+                "engagement_rate": "number - Likes/comments ratio",
+                "bot_indicators": "array - Signs of automation",
+                "red_flags": "array - Suspicious patterns",
+                "verdict": "string - Likely_Genuine/Suspicious/Likely_Fake"
+            },
+            "profession_agnostic": true,
+            "example_usage": "analyze_social_media_authenticity(profile_data={...}, platform='linkedin')"
+        },
+        {
+            "name": "google_dork_search",
+            "category": "social_media_analysis",
+            "description": "Perform targeted Google searches using Computer Use to find mentions of candidate online: publications, news articles, forum posts, etc.",
+            "implementation": "computer_use_verification.google_dork_search",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Candidate's full name"
+                },
+                "keywords": {
+                    "type": "array",
+                    "description": "Additional keywords (company, profession, etc.)"
+                },
+                "limit": {
+                    "type": "number",
+                    "description": "Max results to analyze",
+                    "default": 10
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "total_results": "number",
+                "mentions": "array - URLs and snippets",
+                "publications": "array - Academic/professional publications",
+                "news_articles": "array - News mentions",
+                "social_media_posts": "array - Public posts found",
+                "professional_profiles": "array - Professional directories",
+                "screenshot": "string - Base64 search results evidence"
+            },
+            "profession_agnostic": true,
+            "uses_computer_use": true,
+            "example_usage": "google_dork_search(full_name='Dr. Jane Smith', keywords=['cardiology', 'research'])"
+        },
+        {
+            "name": "verify_credential_registry",
+            "category": "credential_verification",
+            "description": "Verify professional credentials against official registries using Computer Use. Supports: Medical (AHPRA, GMC), Legal (Bar Associations), Finance (CPA, CFA), Engineering (PE licenses), etc.",
+            "implementation": "computer_use_verification.verify_credential_registry",
+            "required_credentials": [],
+            "parameters": {
+                "profession": {
+                    "type": "string",
+                    "description": "Profession type (medical/legal/finance/engineering/nursing/etc.)"
+                },
+                "credential_number": {
+                    "type": "string",
+                    "description": "License/registration number"
+                },
+                "full_name": {
+                    "type": "string",
+                    "description": "Professional's full name"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country for registry lookup"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "credential_valid": "boolean",
+                "status": "string - Active/Expired/Suspended/Not_Found",
+                "issue_date": "string",
+                "expiry_date": "string",
+                "specializations": "array - Verified specialties",
+                "disciplinary_actions": "array - Any sanctions found",
+                "registry_url": "string - Source registry",
+                "screenshot": "string - Base64 evidence",
+                "verification_timestamp": "string"
+            },
+            "profession_agnostic": true,
+            "supported_professions": [
+                "Medical",
+                "Nursing",
+                "Legal",
+                "Finance",
+                "Engineering",
+                "Education",
+                "Pharmacy",
+                "Psychology",
+                "Architecture",
+                "Real Estate"
+            ],
+            "uses_computer_use": true,
+            "example_usage": "verify_credential_registry(profession='medical', credential_number='MED12345', full_name='Dr. Smith', country='Australia')"
+        },
+        {
+            "name": "check_education_credentials",
+            "category": "credential_verification",
+            "description": "Verify university degrees and education credentials. Searches university registries, alumni databases, and accreditation records using Computer Use.",
+            "implementation": "computer_use_verification.check_education_credentials",
+            "required_credentials": [],
+            "parameters": {
+                "institution_name": {
+                    "type": "string",
+                    "description": "University/college name"
+                },
+                "degree_type": {
+                    "type": "string",
+                    "description": "Degree type (Bachelor/Master/PhD/etc.)"
+                },
+                "field_of_study": {
+                    "type": "string",
+                    "description": "Major/field of study"
+                },
+                "graduation_year": {
+                    "type": "string",
+                    "description": "Year of graduation"
+                },
+                "candidate_name": {
+                    "type": "string",
+                    "description": "Graduate's name"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "institution_accredited": "boolean",
+                "degree_verifiable": "boolean - Alumni records found",
+                "verification_method": "string - How verified",
+                "institution_details": "object - Accreditation info",
+                "red_flags": "array - Diploma mills, unaccredited, etc.",
+                "confidence_score": "number - 0-100 verification confidence"
+            },
+            "profession_agnostic": true,
+            "uses_computer_use": true,
+            "example_usage": "check_education_credentials(institution_name='MIT', degree_type='Bachelor', field_of_study='Computer Science', graduation_year='2018', candidate_name='John Doe')"
+        },
+        {
+            "name": "verify_certification",
+            "category": "credential_verification",
+            "description": "Verify professional certifications (PMP, AWS, CPA, etc.) against issuing body databases. Uses Computer Use to search certification registries.",
+            "implementation": "computer_use_verification.verify_certification",
+            "required_credentials": [],
+            "parameters": {
+                "certification_name": {
+                    "type": "string",
+                    "description": "Certification name (e.g., 'AWS Solutions Architect', 'CPA')"
+                },
+                "certification_number": {
+                    "type": "string",
+                    "description": "Certificate number/ID if available"
+                },
+                "candidate_name": {
+                    "type": "string",
+                    "description": "Certificate holder's name"
+                },
+                "issuing_body": {
+                    "type": "string",
+                    "description": "Organization that issued certification"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "certification_valid": "boolean",
+                "status": "string - Active/Expired/Not_Found",
+                "issue_date": "string",
+                "expiry_date": "string",
+                "registry_url": "string",
+                "screenshot": "string - Base64 evidence",
+                "verification_confidence": "number - 0-100 confidence score"
+            },
+            "profession_agnostic": true,
+            "uses_computer_use": true,
+            "example_usage": "verify_certification(certification_name='AWS Solutions Architect', candidate_name='Jane Doe', issuing_body='Amazon Web Services')"
+        },
+        {
+            "name": "check_data_breach_exposure",
+            "category": "credential_verification",
+            "description": "Check if email has been exposed in data breaches using Have I Been Pwned API. Security risk indicator. FREE unlimited.",
+            "implementation": "verification_core.check_data_breach_exposure",
+            "required_credentials": [],
+            "parameters": {
+                "email": {
+                    "type": "string",
+                    "description": "Email address to check"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "exposed": "boolean - Found in breaches",
+                "breach_count": "number",
+                "breaches": "array - Breach details with dates",
+                "sensitive_breaches": "array - High-risk breaches",
+                "risk_level": "string - Low/Medium/High",
+                "recommendations": "array - Security advice"
+            },
+            "profession_agnostic": true,
+            "example_usage": "check_data_breach_exposure(email='user@example.com')"
+        },
+        {
+            "name": "build_verification_timeline",
+            "category": "timeline_analysis",
+            "description": "Aggregate all verification data into chronological timeline. Identifies gaps, overlaps, and inconsistencies in work/education history.",
+            "implementation": "verification_core.build_verification_timeline",
+            "required_credentials": [],
+            "parameters": {
+                "resume_data": {
+                    "type": "object",
+                    "description": "Parsed resume data"
+                },
+                "linkedin_data": {
+                    "type": "object",
+                    "description": "LinkedIn profile data"
+                },
+                "github_data": {
+                    "type": "object",
+                    "description": "GitHub activity data"
+                },
+                "credential_data": {
+                    "type": "array",
+                    "description": "Verified credentials"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "timeline": "array - Chronological events with sources",
+                "gaps": "array - Unexplained time periods",
+                "overlaps": "array - Conflicting simultaneous claims",
+                "verified_periods": "array - Confirmed employment/education",
+                "unverified_periods": "array - Claims without evidence",
+                "consistency_score": "number - 0-100 timeline consistency"
+            },
+            "profession_agnostic": true,
+            "example_usage": "build_verification_timeline(resume_data={...}, linkedin_data={...}, github_data={...}, credential_data=[...])"
+        },
+        {
+            "name": "calculate_verification_risk_score",
+            "category": "timeline_analysis",
+            "description": "Calculate overall risk score (0-100) based on all verification findings. Combines inconsistencies, red flags, and unverified claims into single metric.\n\n**AI INTERPRETATION REQUIRED:**\n- Score 0-25 = ✅ LOW RISK: Recommend proceeding with hire. Minor or no concerns.\n- Score 26-50 = ⚠️ MEDIUM RISK: Recommend additional verification or reference checks before proceeding.\n- Score 51-75 = 🚨 HIGH RISK: Significant concerns. Recommend rejection unless role is low-sensitivity and concerns can be fully resolved.\n- Score 76-100 = 🚨 CRITICAL RISK: Strong recommend rejection. Multiple serious red flags.\n\n**AI RESPONSE FORMAT:** 'Overall verification risk score: [score]/100 - [RISK LEVEL]. Recommendation: [PROCEED/ADDITIONAL VERIFICATION/REJECT]. Key concerns: [list top 3 issues]. Verified claims: [count]'\n**CRITICAL:** Explain which specific findings drove the score up. One sex offender hit = instant 100. Multiple small inconsistencies ≠ same as criminal record.",
+            "implementation": "verification_core.calculate_verification_risk_score",
+            "required_credentials": [],
+            "parameters": {
+                "verification_results": {
+                    "type": "object",
+                    "description": "All verification tool results"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "overall_risk_score": "number - 0-100 (0=low risk, 100=high risk)",
+                "risk_level": "string - Low/Medium/High/Critical",
+                "category_scores": "object - Breakdown by category",
+                "red_flags": "array - All identified issues",
+                "verified_claims": "array - Confirmed information",
+                "unverified_claims": "array - Unconfirmed information",
+                "recommendations": "array - Next steps for verification",
+                "confidence": "number - 0-100 confidence in assessment"
+            },
+            "profession_agnostic": true,
+            "example_usage": "calculate_verification_risk_score(verification_results={...})"
+        },
+        {
+            "name": "run_osint_sherlock",
+            "category": "osint_tools",
+            "description": "Run Sherlock tool to find social media accounts across 300+ platforms. Uses username to discover online presence. Requires Sherlock installed.",
+            "implementation": "verification_core.run_osint_sherlock",
+            "required_credentials": [],
+            "parameters": {
+                "username": {
+                    "type": "string",
+                    "description": "Username to search across platforms"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "platforms_found": "array - Platforms where username exists",
+                "profile_urls": "array - URLs of found profiles",
+                "total_matches": "number",
+                "search_timestamp": "string"
+            },
+            "profession_agnostic": true,
+            "example_usage": "run_osint_sherlock(username='johndoe123')"
+        },
+        {
+            "name": "analyze_digital_footprint",
+            "category": "osint_tools",
+            "description": "Comprehensive digital footprint analysis. Combines all OSINT data to create complete online presence map.",
+            "implementation": "verification_core.analyze_digital_footprint",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full name of person"
+                },
+                "email": {
+                    "type": "string",
+                    "description": "Email address"
+                },
+                "username": {
+                    "type": "string",
+                    "description": "Primary username if known"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "footprint_size": "string - Large/Medium/Small",
+                "professional_presence": "array - LinkedIn, GitHub, etc.",
+                "social_presence": "array - Twitter, Facebook, etc.",
+                "public_records": "array - Articles, publications, mentions",
+                "privacy_score": "number - 0-100 how private they are",
+                "risk_indicators": "array - Concerning findings",
+                "comprehensive_report": "string - Summary"
+            },
+            "profession_agnostic": true,
+            "example_usage": "analyze_digital_footprint(full_name='John Doe', email='john@example.com', username='johndoe')"
+        },
+        {
+            "name": "check_criminal_records_public",
+            "category": "criminal_background_checks",
+            "description": "Search public criminal records databases using Computer Use. Searches court records, sex offender registries, and public legal databases. Works for USA, Australia, UK, Canada.\n\n**AI INTERPRETATION REQUIRED:**\n- records_found=false + risk_level='Clear' = ✅ PASS: No criminal history found\n- records_found=true + risk_level='Low' (minor charges, old records) = ⚠️ REVIEW: Assess relevance to position\n- records_found=true + risk_level='High/Critical' (violence, fraud, sex crimes) = 🚨 FAIL: Serious concerns, recommend rejection\n- sex_offender_registry=true = 🚨 AUTOMATIC DISQUALIFICATION for most positions\n\n**AI RESPONSE FORMAT:** '[PASS/REVIEW/FAIL] Criminal records check: [Clear/Found]. [Details if found]. Risk: [level]. Recommendation: [specific action]'\n**CRITICAL:** Always explain WHY the record matters for the specific role. A 20-year-old DUI is different from recent fraud charges for an accountant.",
+            "implementation": "computer_use_verification.check_criminal_records_public",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full legal name of person"
+                },
+                "date_of_birth": {
+                    "type": "string",
+                    "description": "Date of birth (YYYY-MM-DD) for disambiguation"
+                },
+                "state_province": {
+                    "type": "string",
+                    "description": "State/Province for targeted search"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country (USA/Australia/UK/Canada)"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "records_found": "boolean",
+                "criminal_records": "array - Court cases, charges, convictions",
+                "sex_offender_registry": "boolean - Found on registry",
+                "pending_cases": "array - Active legal cases",
+                "conviction_history": "array - Past convictions with dates",
+                "sources_checked": "array - Databases searched",
+                "risk_level": "string - Clear/Low/Medium/High/Critical",
+                "screenshots": "array - Evidence screenshots",
+                "verification_timestamp": "string"
+            },
+            "profession_agnostic": true,
+            "supported_countries": [
+                "USA",
+                "Australia",
+                "UK",
+                "Canada"
+            ],
+            "uses_computer_use": true,
+            "example_usage": "check_criminal_records_public(full_name='John Smith', date_of_birth='1985-03-15', state_province='California', country='USA')"
+        },
+        {
+            "name": "check_court_records",
+            "category": "criminal_background_checks",
+            "description": "Search public court records for civil and criminal cases using Computer Use. Checks federal, state, and county court systems.",
+            "implementation": "computer_use_verification.check_court_records",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full legal name"
+                },
+                "state_province": {
+                    "type": "string",
+                    "description": "State/Province jurisdiction"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country for court system"
+                },
+                "case_type": {
+                    "type": "string",
+                    "description": "criminal/civil/both",
+                    "default": "both"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "cases_found": "number",
+                "criminal_cases": "array - Criminal court cases",
+                "civil_cases": "array - Civil lawsuits",
+                "case_details": "array - Case numbers, dates, outcomes",
+                "judgments": "array - Financial judgments/liens",
+                "active_cases": "array - Ongoing litigation",
+                "case_history_summary": "string"
+            },
+            "profession_agnostic": true,
+            "uses_computer_use": true,
+            "example_usage": "check_court_records(full_name='Jane Doe', state_province='New York', country='USA', case_type='both')"
+        },
+        {
+            "name": "check_sex_offender_registry",
+            "category": "criminal_background_checks",
+            "description": "Check national and state sex offender registries. Critical for positions involving children, vulnerable adults. USA, Australia, UK registries supported. FREE.\n\n**AI INTERPRETATION REQUIRED:**\n- found_on_registry=false = ✅ PASS: Clear for all positions\n- found_on_registry=true = 🚨 AUTOMATIC DISQUALIFICATION for education, healthcare, childcare, elder care roles. SERIOUS RED FLAG for ANY position.\n\n**AI RESPONSE FORMAT:** If found: '🚨 CRITICAL: Candidate found on sex offender registry. AUTOMATIC DISQUALIFICATION. Do not proceed with hiring.' If clear: '✅ Sex offender registry: Clear. No concerns.'\n**LEGAL NOTICE:** Many jurisdictions legally prohibit hiring registered sex offenders for certain roles. This is a ZERO-TOLERANCE finding.",
+            "implementation": "verification_core.check_sex_offender_registry",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full legal name"
+                },
+                "state_province": {
+                    "type": "string",
+                    "description": "State/Province to search"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country (USA/Australia/UK)"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "found_on_registry": "boolean",
+                "registry_details": "object - Offense details if found",
+                "risk_level": "string - Clear/Critical",
+                "registries_checked": "array - Which registries searched",
+                "verification_date": "string"
+            },
+            "profession_agnostic": true,
+            "critical_for_roles": [
+                "Education",
+                "Healthcare",
+                "Childcare",
+                "Elder Care"
+            ],
+            "example_usage": "check_sex_offender_registry(full_name='John Doe', state_province='California', country='USA')"
+        },
+        {
+            "name": "check_professional_sanctions",
+            "category": "criminal_background_checks",
+            "description": "Check for professional sanctions, disciplinary actions, and license revocations across medical, legal, financial, and other professional boards.",
+            "implementation": "computer_use_verification.check_professional_sanctions",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Professional's full name"
+                },
+                "profession": {
+                    "type": "string",
+                    "description": "Profession (medical/legal/finance/engineering/real_estate/etc.)"
+                },
+                "license_number": {
+                    "type": "string",
+                    "description": "License number if known"
+                },
+                "state_province": {
+                    "type": "string",
+                    "description": "State/Province of license"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "sanctions_found": "boolean",
+                "disciplinary_actions": "array - Formal complaints, sanctions",
+                "license_status": "string - Active/Suspended/Revoked/None",
+                "malpractice_claims": "array - Medical malpractice if applicable",
+                "ethics_violations": "array - Ethics board findings",
+                "board_actions": "array - State board disciplinary actions",
+                "risk_assessment": "string - Clear/Concerning/Critical"
+            },
+            "profession_agnostic": false,
+            "applicable_professions": [
+                "Medical",
+                "Legal",
+                "Finance",
+                "Engineering",
+                "Real Estate",
+                "Nursing",
+                "Psychology",
+                "Pharmacy"
+            ],
+            "uses_computer_use": true,
+            "example_usage": "check_professional_sanctions(full_name='Dr. Smith', profession='medical', state_province='California', country='USA')"
+        },
+        {
+            "name": "check_bankruptcy_records",
+            "category": "criminal_background_checks",
+            "description": "Search federal and state bankruptcy court records. Important for financial positions or fiduciary roles. Uses PACER (USA) or equivalent systems.",
+            "implementation": "computer_use_verification.check_bankruptcy_records",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full legal name"
+                },
+                "state_province": {
+                    "type": "string",
+                    "description": "State/Province"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "bankruptcy_found": "boolean",
+                "bankruptcy_filings": "array - Chapter 7, 11, 13 filings",
+                "filing_dates": "array - When filed",
+                "discharge_status": "array - Discharged/Active/Dismissed",
+                "total_debt_amount": "number - Total debt claimed",
+                "creditors": "array - Major creditors listed",
+                "financial_risk_score": "number - 0-100 risk rating"
+            },
+            "profession_agnostic": true,
+            "critical_for_roles": [
+                "Finance",
+                "Accounting",
+                "Executive",
+                "Fiduciary"
+            ],
+            "uses_computer_use": true,
+            "example_usage": "check_bankruptcy_records(full_name='John Doe', state_province='Florida', country='USA')"
+        },
+        {
+            "name": "check_terrorist_watchlist",
+            "category": "criminal_background_checks",
+            "description": "Check international terrorist watchlists and sanctions lists (OFAC, UN, EU, Interpol). Critical for government, defense, finance sectors. FREE public APIs.",
+            "implementation": "verification_core.check_terrorist_watchlist",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full legal name"
+                },
+                "date_of_birth": {
+                    "type": "string",
+                    "description": "Date of birth (YYYY-MM-DD)"
+                },
+                "nationality": {
+                    "type": "string",
+                    "description": "Country of citizenship"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "found_on_watchlist": "boolean",
+                "match_details": "array - Watchlist matches",
+                "sanction_lists": "array - OFAC/UN/EU/Interpol hits",
+                "pep_status": "boolean - Politically Exposed Person",
+                "risk_level": "string - Clear/Medium/High/Critical",
+                "lists_checked": "array - Which databases searched"
+            },
+            "profession_agnostic": true,
+            "critical_for_roles": [
+                "Government",
+                "Defense",
+                "Finance",
+                "Banking",
+                "Aviation"
+            ],
+            "example_usage": "check_terrorist_watchlist(full_name='John Doe', date_of_birth='1980-05-20', nationality='USA')"
+        },
+        {
+            "name": "check_interpol_red_notices",
+            "category": "criminal_background_checks",
+            "description": "Check Interpol Red Notices database for international arrest warrants. FREE public API access to Interpol notices.",
+            "implementation": "verification_core.check_interpol_red_notices",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full legal name"
+                },
+                "nationality": {
+                    "type": "string",
+                    "description": "Nationality if known"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "red_notice_found": "boolean",
+                "notice_details": "array - Active notices",
+                "charges": "array - Alleged offenses",
+                "issuing_country": "string",
+                "warrant_status": "string - Active/Expired",
+                "risk_level": "string - Clear/Critical"
+            },
+            "profession_agnostic": true,
+            "example_usage": "check_interpol_red_notices(full_name='John Doe', nationality='Canada')"
+        },
+        {
+            "name": "verify_identity_documents",
+            "category": "criminal_background_checks",
+            "description": "Verify identity documents (passport, driver's license, national ID) using Computer Use with OCR and document authentication checks.",
+            "implementation": "computer_use_verification.verify_identity_documents",
+            "required_credentials": [],
+            "parameters": {
+                "document_image_path": {
+                    "type": "string",
+                    "description": "Path to document image file"
+                },
+                "document_type": {
+                    "type": "string",
+                    "description": "passport/drivers_license/national_id"
+                },
+                "expected_name": {
+                    "type": "string",
+                    "description": "Expected name for cross-check"
+                },
+                "expected_dob": {
+                    "type": "string",
+                    "description": "Expected date of birth (YYYY-MM-DD)"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "document_valid": "boolean",
+                "extracted_data": "object - Name, DOB, number, expiry",
+                "name_matches": "boolean",
+                "dob_matches": "boolean",
+                "document_expired": "boolean",
+                "forgery_indicators": "array - Signs of fake documents",
+                "confidence_score": "number - 0-100 authenticity confidence"
+            },
+            "profession_agnostic": true,
+            "uses_computer_use": true,
+            "example_usage": "verify_identity_documents(document_image_path='/uploads/passport.jpg', document_type='passport', expected_name='John Doe', expected_dob='1985-03-15')"
+        },
+        {
+            "name": "comprehensive_background_check",
+            "category": "criminal_background_checks",
+            "description": "Run comprehensive background check combining criminal records, court cases, sanctions, bankruptcy, watchlists, and identity verification. Single tool for complete screening.",
+            "implementation": "verification_core.comprehensive_background_check",
+            "required_credentials": [],
+            "parameters": {
+                "full_name": {
+                    "type": "string",
+                    "description": "Full legal name"
+                },
+                "date_of_birth": {
+                    "type": "string",
+                    "description": "Date of birth (YYYY-MM-DD)"
+                },
+                "state_province": {
+                    "type": "string",
+                    "description": "State/Province of residence"
+                },
+                "country": {
+                    "type": "string",
+                    "description": "Country"
+                },
+                "profession": {
+                    "type": "string",
+                    "description": "Profession for targeted checks"
+                },
+                "check_level": {
+                    "type": "string",
+                    "description": "basic/standard/comprehensive",
+                    "default": "standard"
+                }
+            },
+            "returns": {
+                "success": "boolean",
+                "overall_risk_score": "number - 0-100 (0=clear, 100=critical)",
+                "risk_level": "string - Clear/Low/Medium/High/Critical",
+                "criminal_records": "object - Criminal history summary",
+                "court_cases": "object - Civil/criminal cases",
+                "sanctions": "object - Professional disciplinary actions",
+                "financial_issues": "object - Bankruptcy/judgments",
+                "watchlist_status": "object - Terrorist/sanctions lists",
+                "identity_verification": "object - Identity validation",
+                "red_flags": "array - All issues found",
+                "cleared_checks": "array - Passed checks",
+                "recommendations": "array - Next steps",
+                "comprehensive_report": "string - Executive summary"
+            },
+            "profession_agnostic": true,
+            "example_usage": "comprehensive_background_check(full_name='John Doe', date_of_birth='1985-03-15', state_province='California', country='USA', profession='healthcare', check_level='comprehensive')"
+        }
+    ]
+}

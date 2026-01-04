@@ -607,16 +607,16 @@ const UnifiedMessageRenderer = (function () {
                     // Render tool_result block compactly with dark theme styling
                     const resultDiv = document.createElement('div');
                     resultDiv.className = 'content-block tool-result-block';
-                    // Dark theme: subtle green accent with transparency
-                    resultDiv.style.cssText = 'margin: 8px 0; padding: 12px; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; border-radius: 6px;';
+                    // Dark theme: subtle green accent border with dark background
+                    resultDiv.style.cssText = 'margin: 8px 0; padding: 12px; background: rgba(16, 185, 129, 0.15); border-left: 3px solid #10b981; border-radius: 6px;';
 
-                    // Tool result header - improved spacing and colors
+                    // Tool result header - white text with green icon
                     const headerDiv = document.createElement('div');
-                    headerDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; color: #10b981; font-weight: 600; margin-bottom: 10px; font-size: 0.9em;';
+                    headerDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; color: #e5e7eb; font-weight: 600; margin-bottom: 10px; font-size: 0.9em;';
                     headerDiv.innerHTML = `
                         <i class="fas fa-check-circle" style="color: #10b981;"></i>
                         <span>Tool Result</span>
-                        ${block.tool_use_id ? `<span style="font-size: 0.8em; color: #6b7280; font-family: 'Courier New', monospace; opacity: 0.7;">${block.tool_use_id.substring(0, 10)}...</span>` : ''}
+                        ${block.tool_use_id ? `<span style="font-size: 0.8em; color: #9ca3af; font-family: 'Courier New', monospace;">${block.tool_use_id.substring(0, 10)}...</span>` : ''}
                     `;
                     resultDiv.appendChild(headerDiv);
 

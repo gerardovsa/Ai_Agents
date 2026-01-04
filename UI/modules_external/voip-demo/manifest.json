@@ -1,0 +1,160 @@
+{
+    "id": "voip-demo",
+    "name": "VoIP Demo",
+    "version": "1.0.0",
+    "description": "Simple VoIP call demonstration using WebRTC with AI transcription",
+    "author": "AI Agents Platform",
+    "type": "external",
+    "category": "business",
+    "icon": "fa-phone",
+    "color": "#10b981",
+    "capabilities": {
+        "dashboard": {
+            "enabled": true,
+            "html_file": "voip-dashboard.html",
+            "replaces_chat": true
+        },
+        "sidebar": {
+            "enabled": true,
+            "position": "left",
+            "default_width": "350px",
+            "html_file": "voip-sidebar.html"
+        },
+        "embedded": {
+            "enabled": true,
+            "target_selectors": [
+                ".message-body"
+            ],
+            "inline": false
+        }
+    },
+    "communication": {
+        "protocols": [
+            "websocket",
+            "webrtc"
+        ],
+        "websocket": {
+            "url": "wss://localhost:5001/ws/voip",
+            "reconnect": true,
+            "heartbeat_interval": 30000
+        },
+        "webrtc": {
+            "signaling_server": "wss://localhost:5001/ws/voip-signal",
+            "ice_servers": [
+                {
+                    "urls": "stun:stun.l.google.com:19302"
+                },
+                {
+                    "urls": "stun:stun1.l.google.com:19302"
+                }
+            ]
+        }
+    },
+    "data_modes": {
+        "primary_mode": "realtime",
+        "realtime": {
+            "enabled": true,
+            "sources": [
+                "websocket"
+            ],
+            "update_frequency": "instant",
+            "buffer_strategy": "latest"
+        }
+    },
+    "media_capabilities": {
+        "audio": {
+            "enabled": true,
+            "formats": [
+                "opus",
+                "pcm"
+            ],
+            "streaming": true,
+            "recording": true,
+            "playback": true,
+            "processing": {
+                "transcription": true,
+                "noise_cancellation": false,
+                "echo_cancellation": false
+            }
+        },
+        "video": {
+            "enabled": false
+        }
+    },
+    "ai_capabilities": {
+        "inference": {
+            "enabled": true,
+            "real_time": true,
+            "models": [
+                {
+                    "id": "call-transcription",
+                    "type": "speech-to-text",
+                    "provider": "openai",
+                    "real_time": true
+                },
+                {
+                    "id": "call-summary",
+                    "type": "text-summarization",
+                    "provider": "anthropic"
+                }
+            ]
+        }
+    },
+    "storage": {
+        "types": [
+            "local",
+            "cache"
+        ],
+        "local": {
+            "enabled": true,
+            "max_size": "10MB",
+            "encrypted": false
+        },
+        "cache": {
+            "enabled": true,
+            "ttl": 300,
+            "max_entries": 100
+        }
+    },
+    "security": {
+        "data_classification": "internal",
+        "encryption": {
+            "at_rest": false,
+            "in_transit": true
+        },
+        "pii_handling": {
+            "contains_pii": true,
+            "pii_types": [
+                "voice_biometric"
+            ]
+        }
+    },
+    "loading": {
+        "strategy": "lazy",
+        "priority": 70,
+        "dependencies": []
+    },
+    "assets": {
+        "scripts": [
+            {
+                "path": "modules_external/voip-demo/voip-demo.js"
+            }
+        ],
+        "styles": [
+            {
+                "path": "modules_external/voip-demo/voip-demo.css"
+            }
+        ]
+    },
+    "credentials": {
+        "required": false,
+        "platforms": [],
+        "fallback_behavior": "disable"
+    },
+    "sidebar_button": {
+        "enabled": true,
+        "position": 80,
+        "label": "VoIP Calls",
+        "icon": "fa-phone"
+    }
+}

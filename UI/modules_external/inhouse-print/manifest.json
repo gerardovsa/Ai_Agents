@@ -1,0 +1,41 @@
+{
+  "id": "inhouse-print",
+  "name": "InHouse Print Tools",
+  "version": "1.0.0",
+  "description": "Hybrid approach with 6 intelligent tools: SQL query capability, calculator requirements, quote calculation, and inventory management",
+  "author": "AI Agents Team",
+  "type": "plugin",
+  "entry_point": "implementations/inhouse_wrapper.py",
+  "tools": {
+    "meta_tools": [
+      "inhouse_get_query_library_catalog",
+      "inhouse_execute_sql",
+      "inhouse_get_calculator_requirements"
+    ],
+    "action_tools": [
+      "inhouse_calculate_quote",
+      "inhouse_query_stock_levels",
+      "inhouse_get_reorder_alerts"
+    ]
+  },
+  "dependencies": {
+    "backend": "backend/tool_use_agent.py",
+    "database": "config/database-config.json",
+    "sql_server": "FredDEV (InHousePrintDB)",
+    "sqlite": "backend/stock_data.db"
+  },
+  "features": [
+    "SQL query execution with 500+ lines schema knowledge",
+    "50+ pre-built query catalog",
+    "Dynamic calculator parameter learning",
+    "Quote calculation (GOD + Shopify calculators)",
+    "Real-time inventory management",
+    "Stock shortage alerts"
+  ],
+  "schemas": [
+    "schema/inhouse_tools.json"
+  ],
+  "enabled": true,
+  "context": "quote_agent",
+  "system_prompt": "viki_inhouse_agent"
+}

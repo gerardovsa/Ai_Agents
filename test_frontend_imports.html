@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Import Test - Business AI Platform</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #60a5fa;
+            margin-top: 0;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 12px;
+        }
+
+        h2 {
+            color: #93c5fd;
+            margin-top: 24px;
+            font-size: 18px;
+        }
+
+        .test-section {
+            margin: 16px 0;
+            padding: 16px;
+            background: #334155;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 4px 0;
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .status.success {
+            background: #22c55e;
+        }
+
+        .status.error {
+            background: #ef4444;
+        }
+
+        .status.loading {
+            background: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+
+        .test-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .test-detail {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-left: 32px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .summary {
+            margin-top: 24px;
+            padding: 16px;
+            background: #1e293b;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 8px 4px;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .log {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>🧪 Frontend Import Test Suite</h1>
+        <p>Testing all JavaScript libraries, CSS files, and dependencies from business-ai-platform-v2.html</p>
+
+        <div style="margin: 16px 0;">
+            <button class="btn" onclick="runAllTests()">▶️ Run All Tests</button>
+            <button class="btn" onclick="location.reload()">🔄 Reload</button>
+        </div>
+
+        <div class="summary" id="summary">
+            <div class="summary-item">
+                <div class="summary-number" style="color: #3b82f6;" id="total">0</div>
+                <div class="summary-label">Total Tests</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" style="color: #22c55e;" id="passed">0</div>
+                <div class="summary-label">Passed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" style="color: #ef4444;" id="failed">0</div>
+                <div class="summary-label">Failed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" style="color: #f59e0b;" id="pending">0</div>
+                <div class="summary-label">Pending</div>
+            </div>
+        </div>
+
+        <div id="tests"></div>
+
+        <h2>📋 Console Logs</h2>
+        <div class="log" id="console-log"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        const tests = {
+            'Core Libraries': [
+                { name: 'jQuery', check: () => typeof $ !== 'undefined' && typeof jQuery !== 'undefined', url: 'https://code.jquery.com/jquery-3.6.0.min.js' },
+                { name: 'Socket.IO Client', check: () => typeof io !== 'undefined', url: 'https://cdn.socket.io/4.5.4/socket.io.min.js' },
+                { name: 'Marked (Markdown)', check: () => typeof marked !== 'undefined', url: 'https://cdn.jsdelivr.net/npm/marked/marked.min.js' },
+                { name: 'DOMPurify', check: () => typeof DOMPurify !== 'undefined', url: 'https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js' },
+                { name: 'Dragula (Drag & Drop)', check: () => typeof dragula !== 'undefined', url: 'https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js' },
+                { name: 'Chart.js', check: () => typeof Chart !== 'undefined', url: 'https://cdn.jsdelivr.net/npm/chart.js' },
+                { name: 'Prism.js', check: () => typeof Prism !== 'undefined', url: 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js' },
+            ],
+            'Internal Modules': [
+                { name: 'UserAuth', check: () => typeof UserAuth !== 'undefined', internal: true },
+                { name: 'ThreadManager', check: () => typeof ThreadManager !== 'undefined', internal: true },
+                { name: 'CommunicationHub', check: () => typeof CommunicationHub !== 'undefined', internal: true },
+                { name: 'ModuleLoader', check: () => typeof window.moduleLoader !== 'undefined', internal: true },
+                { name: 'VectorDatabaseModule', check: () => typeof VectorDatabaseModule !== 'undefined', internal: true },
+                { name: 'SynergyManager', check: () => typeof SynergyManager !== 'undefined', internal: true },
+                { name: 'WorkflowManager', check: () => typeof WorkflowManager !== 'undefined', internal: true },
+                { name: 'InternalDocsManager', check: () => typeof InternalDocsManager !== 'undefined', internal: true },
+            ],
+            'UI Components': [
+                { name: 'AI Chat Panel', check: () => document.querySelector('.ai-chat-panel') !== null },
+                { name: 'Main Content Wrapper', check: () => document.querySelector('.main-content-wrapper') !== null },
+                { name: 'Platform Container', check: () => document.querySelector('.platform-container') !== null },
+                { name: 'Login Container', check: () => document.getElementById('loginContainer') !== null },
+                { name: 'Side Menu', check: () => document.getElementById('sideMenu') !== null },
+            ],
+            'CSS Files': [
+                { name: 'Main Stylesheet', check: () => checkStylesheet('/business-ai-platform-v2.css'), file: true },
+                { name: 'Dragula CSS', check: () => checkStylesheet('dragula'), file: true },
+                { name: 'Prism CSS', check: () => checkStylesheet('prism'), file: true },
+            ],
+        };
+
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+        let pendingTests = 0;
+
+        function checkStylesheet(href) {
+            const sheets = Array.from(document.styleSheets);
+            return sheets.some(sheet => {
+                try {
+                    return sheet.href && sheet.href.includes(href);
+                } catch (e) {
+                    return false;
+                }
+            });
+        }
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('console-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ef4444' : type === 'success' ? '#22c55e' : '#94a3b8';
+            logDiv.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[TEST] ${message}`);
+        }
+
+        function updateSummary() {
+            document.getElementById('total').textContent = totalTests;
+            document.getElementById('passed').textContent = passedTests;
+            document.getElementById('failed').textContent = failedTests;
+            document.getElementById('pending').textContent = pendingTests;
+        }
+
+        function createTestItem(name, status, detail = '') {
+            return `
+                <div class="test-item">
+                    <div class="status ${status}"></div>
+                    <div class="test-name">${name}</div>
+                </div>
+                ${detail ? `<div class="test-detail">${detail}</div>` : ''}
+            `;
+        }
+
+        async function runTest(test, category) {
+            totalTests++;
+            pendingTests++;
+            updateSummary();
+
+            try {
+                const result = await test.check();
+                if (result) {
+                    passedTests++;
+                    log(`✅ ${category} → ${test.name}`, 'success');
+                    return { status: 'success', detail: '' };
+                } else {
+                    failedTests++;
+                    const detail = test.url ? `Expected at: ${test.url}` : test.internal ? 'Module not loaded' : 'Element not found';
+                    log(`❌ ${category} → ${test.name}: ${detail}`, 'error');
+                    return { status: 'error', detail };
+                }
+            } catch (error) {
+                failedTests++;
+                log(`❌ ${category} → ${test.name}: ${error.message}`, 'error');
+                return { status: 'error', detail: error.message };
+            } finally {
+                pendingTests--;
+                updateSummary();
+            }
+        }
+
+        async function runAllTests() {
+            const testsDiv = document.getElementById('tests');
+            testsDiv.innerHTML = '';
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+            pendingTests = 0;
+            updateSummary();
+
+            log('🚀 Starting test suite...', 'info');
+
+            for (const [category, categoryTests] of Object.entries(tests)) {
+                const section = document.createElement('div');
+                section.className = 'test-section';
+                section.innerHTML = `<h2>${category}</h2>`;
+                testsDiv.appendChild(section);
+
+                for (const test of categoryTests) {
+                    const testDiv = document.createElement('div');
+                    testDiv.innerHTML = createTestItem(test.name, 'loading', 'Testing...');
+                    section.appendChild(testDiv);
+
+                    const result = await runTest(test, category);
+                    testDiv.innerHTML = createTestItem(test.name, result.status, result.detail);
+                }
+            }
+
+            log(`✨ Test suite complete: ${passedTests}/${totalTests} passed`, passedTests === totalTests ? 'success' : 'error');
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('📄 Test page loaded', 'info');
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+
+</html>

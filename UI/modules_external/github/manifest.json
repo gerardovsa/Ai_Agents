@@ -1,0 +1,57 @@
+{
+    "id": "github",
+    "name": "GitHub Management",
+    "version": "2.0.0",
+    "description": "Personal GitHub integration with sidebar and dashboard - manage repos, commits, issues, and pull requests",
+    "author": "AI Agents Platform",
+    "icon": "fab fa-github",
+    "color": "#24292e",
+    "html_file": "github.html",
+    "js_file": "github.js",
+    "css_file": "github.css",
+    "colors": {
+        "primary": "#24292e",
+        "secondary": "#0366d6",
+        "hover": "#0366d6"
+    },
+    "scriptPath": "external/modules/github/github.js?v=2.0.0",
+    "stylePath": "external/modules/github/github.css?v=2.0.0",
+    "htmlPath": "external/modules/github/github.html",
+    "permissions": [
+        "repo",
+        "workflow",
+        "write:org"
+    ],
+    "dependencies": [],
+    "main_tab": true,
+    "main_tab_id": "github",
+    "settings": {
+        "api_endpoint": "/api/github",
+        "backend_url": "http://localhost:5001",
+        "refresh_interval": 300
+    },
+    "sidebar": {
+        "enabled": true,
+        "width": 400,
+        "html_file": "github-sidebar.html"
+    },
+    "floating_toggle": true,
+    "floating_toggle_position": "right",
+    "floating_toggle_default_top": 200,
+    "floating_toggle_opens_sidebar": true,
+    "show_in_sidebar": true,
+    "credentials_required": true,
+    "required_platforms": [
+        "github"
+    ],
+    "features": [
+        "Repository dashboard with stats",
+        "Sidebar with quick actions",
+        "Create repositories",
+        "Commit files",
+        "Create pull requests",
+        "Issue tracking",
+        "Recent activity feed",
+        "Personal token integration"
+    ]
+}
