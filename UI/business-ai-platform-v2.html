@@ -6477,9 +6477,47 @@
                         <i class="fas fa-comments"></i> Communication Hub
                     </h2>
 
+                    <!-- Email Management Card -->
+                    <div class="dashboard-card" style="margin-bottom: var(--space-4);">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); flex-wrap: wrap; gap: var(--space-3);">
+                            <h3 class="card-title"><i class="fas fa-envelope"></i> Email Inbox</h3>
+
+                            <!-- Top Bar Controls -->
+                            <div style="display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap;">
+                                <!-- Record Count Info -->
+                                <div id="email-count" style="padding: 8px 16px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">
+                                    <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+                                    <span id="email-count-text">Loading...</span>
+                                </div>
+
+                                <!-- Limit Selector -->
+                                <select id="email-limit" onchange="loadEmails()" style="padding: 10px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 12px; cursor: pointer;">
+                                    <option value="25">25 emails</option>
+                                    <option value="50" selected>50 emails</option>
+                                    <option value="100">100 emails</option>
+                                    <option value="200">200 emails</option>
+                                </select>
+
+                                <!-- Refresh Button -->
+                                <button onclick="loadEmails()" class="btn btn-primary" style="padding: 10px 16px; font-size: 12px;">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+
+                                <!-- Compose Button -->
+                                <button class="btn btn-success" style="padding: 10px 16px; font-size: 12px;">
+                                    <i class="fas fa-paper-plane"></i> Compose
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Email Table Container -->
+                        <div id="email-table-container" style="background: var(--bg-secondary); border-radius: 8px; overflow: hidden;"></div>
+                    </div>
+
+                    <!-- Slack Integration Card -->
                     <div class="dashboard-card">
                         <div class="card-header">
-                            <h3 class="card-title">Slack Integration</h3>
+                            <h3 class="card-title"><i class="fab fa-slack"></i> Slack Integration</h3>
                             <button class="btn btn-primary">
                                 <i class="fas fa-paper-plane"></i> Send Message
                             </button>
@@ -14145,6 +14183,389 @@
                                                 function wcProcessRefund() {showNotification('Refund processing dialog coming soon...', 'info'); }
                                                 function wcExportReport() {showNotification('Report export coming soon...', 'info'); }
                                                 function wcSaveSettings() {showNotification('Settings save functionality coming soon...', 'info'); }
+
+            // ==================== EMAIL COMMUNICATION HUB ====================
+
+            // Global variables for email management
+            let emailTable = null;
+            let currentEmails = [];
+            let emailThreadsExpanded = new Set();
+
+            /**
+             * Load emails from Gmail API
+             */
+            async function loadEmails() {
+                const container = document.getElementById('email-table-container');
+                if (!container) return;
+
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin" style="font-size: 32px;"></i><br><br>Loading emails...</div>';
+
+                try {
+                    console.log('📧 Fetching emails from Gmail...');
+
+                    // Get limit from dropdown
+                    const limitSelect = document.getElementById('email-limit');
+                    const limit = limitSelect ? parseInt(limitSelect.value) : 50;
+
+                    // Call Gmail API to list messages
+                    const response = await fetch(`${API_BASE_URL}/api/gmail/list?max_results=${limit}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.messages) {
+                        // Group emails by thread_id
+                        const emailGroups = groupEmailsByThread(data.messages);
+                        currentEmails = emailGroups;
+
+                        if (emailGroups.length > 0) {
+                            renderEmailTable(emailGroups, container);
+                            updateEmailCount(data.messages.length, emailGroups.length);
+                            showNotification(`Loaded ${data.messages.length} emails in ${emailGroups.length} conversations`, 'success');
+                        } else {
+                            container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px;"></i><br>No emails found</div>';
+                            updateEmailCount(0, 0);
+                        }
+                    } else {
+                        throw new Error(data.error || 'Failed to load emails');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Failed to load emails:', error);
+                    container.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--accent-error);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 16px;"></i><br>
+                        Failed to load emails: ${error.message}<br><br>
+                        <button onclick="loadEmails()" class="btn btn-primary">Retry</button>
+                    </div>`;
+                    showNotification('Failed to load emails: ' + error.message, 'error');
+                }
+            }
+
+            /**
+             * Group emails by thread_id
+             * @param {Array} messages - Array of email messages
+             * @returns {Array} Array of grouped emails (chains and singles)
+             */
+            function groupEmailsByThread(messages) {
+                const threadMap = new Map();
+
+                // Group messages by thread_id
+                messages.forEach(msg => {
+                    const threadId = msg.thread_id || msg.id;
+                    if (!threadMap.has(threadId)) {
+                        threadMap.set(threadId, []);
+                    }
+                    threadMap.get(threadId).push(msg);
+                });
+
+                // Convert to array and sort by most recent
+                const grouped = [];
+                threadMap.forEach((msgs, threadId) => {
+                    // Sort messages within thread by date (newest first)
+                    msgs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+                    const isChain = msgs.length > 1;
+                    const latestMsg = msgs[0];
+
+                    grouped.push({
+                        thread_id: threadId,
+                        is_chain: isChain,
+                        message_count: msgs.length,
+                        messages: msgs,
+                        // Use latest message data for display
+                        id: latestMsg.id,
+                        from: latestMsg.from,
+                        subject: latestMsg.subject || '(No Subject)',
+                        snippet: latestMsg.snippet || '',
+                        date: latestMsg.date,
+                        timestamp: latestMsg.timestamp || 0,
+                        labels: latestMsg.labels || [],
+                        has_attachments: msgs.some(m => m.attachments && m.attachments.length > 0)
+                    });
+                });
+
+                // Sort by timestamp (most recent first)
+                grouped.sort((a, b) => b.timestamp - a.timestamp);
+
+                return grouped;
+            }
+
+            /**
+             * Update email count display
+             */
+            function updateEmailCount(emailCount, threadCount) {
+                const countText = document.getElementById('email-count-text');
+                if (countText) {
+                    if (emailCount === threadCount) {
+                        countText.textContent = `${emailCount} email${emailCount !== 1 ? 's' : ''}`;
+                    } else {
+                        countText.textContent = `${emailCount} email${emailCount !== 1 ? 's' : ''} in ${threadCount} conversation${threadCount !== 1 ? 's' : ''}`;
+                    }
+                }
+            }
+
+            /**
+             * Render email table with Tabulator
+             */
+            function renderEmailTable(emails, container) {
+                // Clear container
+                container.innerHTML = '';
+
+                // Initialize Tabulator
+                emailTable = new Tabulator(container, {
+                    data: emails,
+                    layout: "fitDataStretch",
+                    pagination: "local",
+                    paginationSize: 25,
+                    paginationSizeSelector: [10, 25, 50, 100],
+                    movableColumns: true,
+                    resizableColumns: true,
+                    placeholder: "No emails found",
+                    rowFormatter: function(row) {
+                        const data = row.getData();
+                        // Highlight unread emails (if they have UNREAD label)
+                        if (data.labels && data.labels.includes('UNREAD')) {
+                            row.getElement().style.fontWeight = '600';
+                            row.getElement().style.background = 'rgba(59, 130, 246, 0.1)';
+                        }
+
+                        // Add click handler for expandable chains
+                        if (data.is_chain) {
+                            row.getElement().style.cursor = 'pointer';
+                            row.getElement().addEventListener('click', function(e) {
+                                // Don't expand if clicking on action buttons
+                                if (!e.target.closest('.email-actions')) {
+                                    toggleEmailChain(row);
+                                }
+                            });
+                        }
+                    },
+                    columns: [
+                        {
+                            title: "",
+                            field: "is_chain",
+                            width: 40,
+                            headerSort: false,
+                            formatter: function(cell) {
+                                const isChain = cell.getValue();
+                                const rowData = cell.getRow().getData();
+                                if (isChain) {
+                                    const isExpanded = emailThreadsExpanded.has(rowData.thread_id);
+                                    return `<div style="text-align: center; color: var(--text-secondary);">
+                                        <i class="fas fa-chevron-${isExpanded ? 'down' : 'right'}" style="font-size: 12px;"></i>
+                                    </div>`;
+                                }
+                                return '';
+                            }
+                        },
+                        {
+                            title: "From",
+                            field: "from",
+                            width: 200,
+                            headerSort: true,
+                            headerFilter: "input",
+                            headerFilterPlaceholder: "Search sender...",
+                            formatter: function(cell) {
+                                const from = cell.getValue();
+                                const name = from?.name || from?.email || 'Unknown';
+                                const email = from?.email || '';
+                                const rowData = cell.getRow().getData();
+                                const isUnread = rowData.labels && rowData.labels.includes('UNREAD');
+
+                                return `<div style="color: var(--text-primary);">
+                                    <div style="font-weight: ${isUnread ? '700' : '600'};">${name}</div>
+                                    ${email && email !== name ? `<div style="font-size: 11px; color: var(--text-secondary);">${email}</div>` : ''}
+                                </div>`;
+                            }
+                        },
+                        {
+                            title: "Subject",
+                            field: "subject",
+                            headerSort: true,
+                            headerFilter: "input",
+                            headerFilterPlaceholder: "Search subject...",
+                            formatter: function(cell) {
+                                const subject = cell.getValue() || '(No Subject)';
+                                const rowData = cell.getRow().getData();
+                                const isUnread = rowData.labels && rowData.labels.includes('UNREAD');
+                                const isChain = rowData.is_chain;
+
+                                return `<div style="color: var(--text-primary);">
+                                    <div style="font-weight: ${isUnread ? '700' : '500'};">
+                                        ${isChain ? `<span style="background: var(--accent-primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">${rowData.message_count}</span>` : ''}
+                                        ${subject}
+                                        ${rowData.has_attachments ? '<i class="fas fa-paperclip" style="margin-left: 8px; font-size: 11px; color: var(--text-secondary);"></i>' : ''}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${rowData.snippet}</div>
+                                </div>`;
+                            }
+                        },
+                        {
+                            title: "Date",
+                            field: "date",
+                            width: 150,
+                            headerSort: true,
+                            sorter: "datetime",
+                            formatter: function(cell) {
+                                const dateStr = cell.getValue();
+                                if (!dateStr) return '<span style="color: var(--text-secondary);">Unknown</span>';
+
+                                const date = new Date(dateStr);
+                                const now = new Date();
+                                const diff = now - date;
+                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+                                let displayText;
+                                if (days === 0) {
+                                    displayText = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                } else if (days === 1) {
+                                    displayText = 'Yesterday';
+                                } else if (days < 7) {
+                                    displayText = `${days} days ago`;
+                                } else {
+                                    displayText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                }
+
+                                return `<span style="color: var(--text-primary);" title="${date.toLocaleString()}">${displayText}</span>`;
+                            }
+                        },
+                        {
+                            title: "Actions",
+                            field: "id",
+                            width: 120,
+                            headerSort: false,
+                            formatter: function(cell) {
+                                return `<div class="email-actions" style="display: flex; gap: 8px; justify-content: center;">
+                                    <button onclick="viewEmail('${cell.getValue()}')" class="btn btn-sm" title="View" style="padding: 6px 12px; font-size: 12px;">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="replyEmail('${cell.getValue()}')" class="btn btn-sm" title="Reply" style="padding: 6px 12px; font-size: 12px;">
+                                        <i class="fas fa-reply"></i>
+                                    </button>
+                                </div>`;
+                            }
+                        }
+                    ]
+                });
+            }
+
+            /**
+             * Toggle email chain expansion
+             */
+            function toggleEmailChain(row) {
+                const data = row.getData();
+                if (!data.is_chain) return;
+
+                const threadId = data.thread_id;
+                const rowElement = row.getElement();
+
+                // Toggle expansion state
+                if (emailThreadsExpanded.has(threadId)) {
+                    // Collapse
+                    emailThreadsExpanded.delete(threadId);
+                    const chainRow = rowElement.nextElementSibling;
+                    if (chainRow && chainRow.classList.contains('email-chain-expansion')) {
+                        chainRow.remove();
+                    }
+                    // Update chevron
+                    const chevron = rowElement.querySelector('.fa-chevron-down');
+                    if (chevron) {
+                        chevron.classList.remove('fa-chevron-down');
+                        chevron.classList.add('fa-chevron-right');
+                    }
+                } else {
+                    // Expand
+                    emailThreadsExpanded.add(threadId);
+
+                    // Create expansion row
+                    const expansionRow = document.createElement('tr');
+                    expansionRow.classList.add('email-chain-expansion');
+                    expansionRow.innerHTML = `<td colspan="5" style="padding: 0; background: var(--bg-tertiary);">
+                        <div style="padding: 16px; margin: 8px 16px; background: var(--bg-secondary); border-left: 4px solid var(--accent-primary); border-radius: 6px;">
+                            <div style="font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+                                <i class="fas fa-comments"></i> Email Chain (${data.message_count} messages)
+                            </div>
+                            ${renderEmailChain(data.messages)}
+                        </div>
+                    </td>`;
+
+                    // Insert after current row
+                    rowElement.parentNode.insertBefore(expansionRow, rowElement.nextSibling);
+
+                    // Update chevron
+                    const chevron = rowElement.querySelector('.fa-chevron-right');
+                    if (chevron) {
+                        chevron.classList.remove('fa-chevron-right');
+                        chevron.classList.add('fa-chevron-down');
+                    }
+                }
+            }
+
+            /**
+             * Render email chain messages
+             */
+            function renderEmailChain(messages) {
+                return messages.map((msg, index) => {
+                    const date = new Date(msg.date);
+                    const isUnread = msg.labels && msg.labels.includes('UNREAD');
+
+                    return `<div style="padding: 12px; margin-bottom: 8px; background: var(--bg-primary); border-radius: 6px; ${isUnread ? 'border-left: 3px solid var(--accent-primary);' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">
+                                    ${msg.from?.name || msg.from?.email || 'Unknown'} ${isUnread ? '<span style="background: var(--accent-primary); color: white; padding: 2px 8px; border-radius: 8px; font-size: 10px; margin-left: 8px;">NEW</span>' : ''}
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-secondary);">${msg.from?.email || ''}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 12px; color: var(--text-secondary);">${date.toLocaleDateString()}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">${date.toLocaleTimeString()}</div>
+                            </div>
+                        </div>
+                        <div style="padding: 8px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5;">
+                            ${msg.snippet || '(No preview available)'}
+                        </div>
+                        <div style="margin-top: 8px;">
+                            <button onclick="viewEmail('${msg.id}')" class="btn btn-sm btn-primary" style="font-size: 11px; padding: 4px 12px;">
+                                <i class="fas fa-eye"></i> View Full
+                            </button>
+                            <button onclick="replyEmail('${msg.id}')" class="btn btn-sm" style="font-size: 11px; padding: 4px 12px;">
+                                <i class="fas fa-reply"></i> Reply
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            /**
+             * View full email (placeholder)
+             */
+            function viewEmail(emailId) {
+                console.log('📧 View email:', emailId);
+                showNotification('Email viewer coming soon...', 'info');
+                // TODO: Implement email viewer modal
+            }
+
+            /**
+             * Reply to email (placeholder)
+             */
+            function replyEmail(emailId) {
+                console.log('📧 Reply to email:', emailId);
+                showNotification('Email composer coming soon...', 'info');
+                // TODO: Implement email composer
+            }
+
+            // Auto-load emails when communication tab is opened
+            document.querySelectorAll('.sidebar-icon-btn[data-tab="communication"]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Load emails only if table hasn't been initialized yet
+                    if (!emailTable) {
+                        setTimeout(loadEmails, 100);
+                    }
+                });
+            });
 
                                                 // ==================== COPY FUNCTIONALITY ====================
                                                 function copyRenderedText(messageDiv, button) {
