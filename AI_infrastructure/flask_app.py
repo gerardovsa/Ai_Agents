@@ -758,38 +758,75 @@ CORS(app,
 # NOTE: For multi-worker deployments, set SOCKETIO_MESSAGE_QUEUE (e.g. redis://) so rooms/broadcasts coordinate.
 socketio_message_queue = os.environ.get('SOCKETIO_MESSAGE_QUEUE')
 
+# ========================================
+# ENVIRONMENT-AWARE SOCKET.IO CONFIGURATION
+# ========================================
+# Render production: Specific CORS origins for security
+# Local development: Allow all origins for flexibility
+IS_RENDER = os.getenv('RENDER', 'false').lower() == 'true'
+RENDER_EXTERNAL_URL = os.getenv('RENDER_EXTERNAL_URL', '')
+
+if IS_RENDER and RENDER_EXTERNAL_URL:
+    # Production: Allow only Render domain + WebSocket protocol variant
+    cors_origins = [
+        RENDER_EXTERNAL_URL,
+        RENDER_EXTERNAL_URL.replace('https://', 'wss://'),
+        RENDER_EXTERNAL_URL.replace('https://', 'http://'),  # Fallback for internal requests
+    ]
+    log_config(logger, f"[WS] Render production mode - CORS origins: {cors_origins}")
+else:
+    # Local development: Allow all origins
+    cors_origins = "*"
+    log_config(logger, "[WS] Local development mode - CORS: allow all origins")
+
+# Enhanced configuration for Render deployment
+# Increased timeouts for cold starts and load balancer delays
+ping_timeout_config = 90 if IS_RENDER else 60  # 90s for Render cold starts
+ping_interval_config = 25  # Keep-alive ping every 25s
+
 try:
     socketio = SocketIO(
         app,
-        cors_allowed_origins="*",
+        cors_allowed_origins=cors_origins,  # Environment-aware CORS
         async_mode='threading',
         logger=False,
         engineio_logger=False,
-        ping_timeout=60,
-        ping_interval=25,
+        ping_timeout=ping_timeout_config,  # 90s on Render, 60s local
+        ping_interval=ping_interval_config,  # 25s keep-alive
         always_connect=True,
         manage_session=False,  # ✅ FIX: Disable Flask-SocketIO session management to avoid WSGI conflicts
         cookie=None,  # ✅ FIX: Disable cookies to prevent "write before start_response" errors
         engineio_logger_level='WARNING',  # Only show warnings/errors
-        message_queue=socketio_message_queue
+        message_queue=socketio_message_queue,
+        # Render-specific: Enhanced connection handling
+        max_http_buffer_size=1e8 if IS_RENDER else 1e6,  # 100MB on Render, 1MB local (for large messages)
+        allow_upgrades=True,  # Allow transport upgrades (polling -> WebSocket)
+        http_compression=True,  # Compress HTTP responses
+        compression_threshold=1024  # Compress messages > 1KB
     )
     if socketio_message_queue:
         log_config(logger, f"[WS] message_queue enabled: {socketio_message_queue}")
+    log_success(logger, f"[WS] SocketIO initialized - ping_timeout={ping_timeout_config}s, ping_interval={ping_interval_config}s")
 except Exception as e:
     log_warning(logger, f"[WS] Failed to initialize message_queue ({socketio_message_queue}): {e} - using single-worker mode")
     socketio = SocketIO(
         app,
-        cors_allowed_origins="*",
+        cors_allowed_origins=cors_origins,  # Environment-aware CORS
         async_mode='threading',
         logger=False,
         engineio_logger=False,
-        ping_timeout=60,
-        ping_interval=25,
+        ping_timeout=ping_timeout_config,
+        ping_interval=ping_interval_config,
         always_connect=True,
         manage_session=False,
         cookie=None,
-        engineio_logger_level='WARNING'
+        engineio_logger_level='WARNING',
+        max_http_buffer_size=1e8 if IS_RENDER else 1e6,
+        allow_upgrades=True,
+        http_compression=True,
+        compression_threshold=1024
     )
+    log_success(logger, f"[WS] SocketIO initialized (fallback mode) - ping_timeout={ping_timeout_config}s")
 
 # Track connected clients and their rooms
 connected_clients = {}
@@ -947,7 +984,16 @@ def handle_websocket_errors(error):
     error_type = type(error).__name__
     
     # Pattern matching for root cause identification
-    if "write() before start_response" in error_str or isinstance(error, AssertionError):
+    if "Session is disconnected" in error_str or (isinstance(error, KeyError) and "Session is disconnected" in str(error)):
+        # ROOT CAUSE: Client sent request after session was terminated (race condition)
+        # This happens when:
+        # 1. Server terminates session (timeout/disconnect)
+        # 2. Client still has pending HTTP polling requests in flight
+        # 3. Server tries to lookup session -> KeyError
+        log_warning(logger, f"[WS] Session lookup failed - client request arrived after session termination (normal race condition)")
+        return None  # Suppress - this is expected behavior
+    
+    elif "write() before start_response" in error_str or isinstance(error, AssertionError):
         # ROOT CAUSE: Client disconnected mid-handshake (browser refresh, network issue)
         log_warning(logger, f"[WS] Client aborted WebSocket upgrade (likely browser refresh or network issue)")
         return None  # Suppress - this is normal behavior

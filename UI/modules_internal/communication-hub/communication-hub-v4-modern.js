@@ -1490,13 +1490,16 @@ export default {
                         const emailId = cell.getRow().getData().id;
                         const threadSlug = this.state.emailThreads?.[emailId];
 
-                        // 🔍 CRITICAL DEBUG: Check EVERY step
+                        // 🔍 DEBUG: Log thread assignment status (reduced verbosity)
                         if (!threadSlug) {
-                            console.warn(`❌ [AI Agent Formatter] Email ${emailId} - NO threadSlug in state!`);
-                            console.warn(`   this.state.emailThreads keys:`, Object.keys(this.state.emailThreads || {}));
-                            console.warn(`   Expected to find key "${emailId}"`);
+                            // Only log as warning if we have OTHER threads loaded (indicates data inconsistency)
+                            // Otherwise, this is normal for unassigned emails - no need to spam console
+                            const hasOtherThreads = Object.keys(this.state.emailThreads || {}).length > 0;
+                            if (hasOtherThreads && this.state.tableReady) {
+                                this.log.debug(`Email ${emailId.substring(0, 20)}... not assigned to thread`);
+                            }
                         } else {
-                            console.log(`✅ [AI Agent Formatter] Email ${emailId} → thread ${threadSlug}`);
+                            this.log.debug(`Email ${emailId.substring(0, 20)}... → thread ${threadSlug}`);
                         }
 
                         // Check if email has an assigned thread

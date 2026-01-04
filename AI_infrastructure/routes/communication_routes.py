@@ -389,8 +389,20 @@ def get_email(email_id):
         user_id = request.args.get('user_id', 1, type=int)
     
     try:
-        # Parse provider and message ID
+        # Parse provider and message ID with validation
+        if '_' not in email_id:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid email ID format: {email_id}. Expected format: provider_messageId'
+            }), 400
+        
         provider, message_id = email_id.split('_', 1)
+        
+        if provider not in ['gmail', 'outlook']:
+            return jsonify({
+                'success': False,
+                'error': f'Unsupported email provider: {provider}. Supported: gmail, outlook'
+            }), 400
         
         if provider == 'gmail':
             # Fetch COMPLETE message with format='full' to get full body content (not truncated)
@@ -422,6 +434,22 @@ def get_email(email_id):
                     
                     # Check if this is an attachment
                     if filename and part.get('body', {}).get('attachmentId'):
+                        # 🎯 FILTER: Skip inline attachments (email footers/signature images)
+                        headers = part.get('headers', [])
+                        is_inline = False
+                        has_content_id = False
+                        
+                        for header in headers:
+                            header_name = header.get('name', '').lower()
+                            if header_name == 'content-disposition' and 'inline' in header.get('value', '').lower():
+                                is_inline = True
+                            elif header_name == 'content-id':
+                                has_content_id = True
+                        
+                        # Skip inline attachments (footer images, signatures)
+                        if is_inline or has_content_id:
+                            continue
+                        
                         atts.append({
                             'id': part.get('body', {}).get('attachmentId'),
                             'name': filename,
@@ -526,14 +554,27 @@ def get_email(email_id):
                 # Parse attachments metadata
                 attachments = email_data.get('attachments', [])
                 attachment_list = []
+                inline_filtered = 0
+                
                 for att in attachments:
+                    # 🎯 FILTER: Skip inline attachments (email footers/signature images)
+                    is_inline = att.get('isInline', False)
+                    has_content_id = att.get('contentId') is not None
+                    
+                    if is_inline or has_content_id:
+                        inline_filtered += 1
+                        continue  # Skip email footer/signature images
+                    
                     attachment_list.append({
                         'id': att.get('id'),
                         'name': att.get('name'),
                         'contentType': att.get('contentType'),
                         'size': att.get('size'),
-                        'isInline': att.get('isInline', False)
+                        'isInline': False  # Guaranteed false at this point
                     })
+                
+                if inline_filtered > 0:
+                    print(f"🎯 [INLINE FILTER] Excluded {inline_filtered} inline attachment(s) from preview")
                 
                 if attachment_list:
                     print(f"🔍 [COMMUNICATION ROUTES DEBUG] Attachment details:")
@@ -557,10 +598,26 @@ def get_email(email_id):
                     }
                 })
         
-        return jsonify({
-            'success': False,
-            'error': 'Provider not supported or email not found'
-        })
+        # Provide specific error based on provider availability
+        if provider == 'outlook' and not OUTLOOK_AVAILABLE:
+            return jsonify({
+                'success': False,
+                'error': 'Outlook email viewing is currently unavailable. Microsoft Outlook tools failed to load. Please check server logs or contact your administrator.',
+                'provider': provider,
+                'outlook_available': OUTLOOK_AVAILABLE
+            }), 503
+        elif provider == 'gmail':
+            return jsonify({
+                'success': False,
+                'error': 'Gmail email not found or access denied. The email may have been deleted or you may not have permission to view it.',
+                'provider': provider
+            }), 404
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Email provider "{provider}" is not supported or the email was not found.',
+                'provider': provider
+            }), 404
     
     except Exception as e:
         print(f"[Communication Hub] Error fetching email: {e}")
@@ -1239,18 +1296,7 @@ def get_email_thread_mappings():
             'success': False,
             'error': str(e)
         }), 500
-    
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+    # ✅ NO finally block needed - execute_query() handles connection cleanup via context managers
 
 
 # ==================== ATTACHMENT ENDPOINTS ====================
