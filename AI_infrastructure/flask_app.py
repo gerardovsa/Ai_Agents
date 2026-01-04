@@ -784,11 +784,16 @@ else:
 ping_timeout_config = 90 if IS_RENDER else 60  # 90s for Render cold starts
 ping_interval_config = 25  # Keep-alive ping every 25s
 
+# Auto-detect best async mode: gevent on Render (better for WebSockets), threading locally
+# None = auto-detect (Flask-SocketIO will choose gevent if available, else threading)
+async_mode_config = None  # Auto-detect: gevent if available, else threading
+log_config(logger, f"[WS] Async mode: auto-detect (will use gevent on Render, threading locally)")
+
 try:
     socketio = SocketIO(
         app,
         cors_allowed_origins=cors_origins,  # Environment-aware CORS
-        async_mode='threading',
+        async_mode=async_mode_config,  # Auto-detect: gevent on Render, threading locally
         logger=False,
         engineio_logger=False,
         ping_timeout=ping_timeout_config,  # 90s on Render, 60s local
@@ -807,12 +812,13 @@ try:
     if socketio_message_queue:
         log_config(logger, f"[WS] message_queue enabled: {socketio_message_queue}")
     log_success(logger, f"[WS] SocketIO initialized - ping_timeout={ping_timeout_config}s, ping_interval={ping_interval_config}s")
+    log_config(logger, f"[WS] Async mode: {socketio.async_mode} (auto-detected)")
 except Exception as e:
     log_warning(logger, f"[WS] Failed to initialize message_queue ({socketio_message_queue}): {e} - using single-worker mode")
     socketio = SocketIO(
         app,
         cors_allowed_origins=cors_origins,  # Environment-aware CORS
-        async_mode='threading',
+        async_mode=async_mode_config,  # Auto-detect: gevent on Render, threading locally
         logger=False,
         engineio_logger=False,
         ping_timeout=ping_timeout_config,
@@ -1075,6 +1081,11 @@ def ws_synergy_connect(auth=None):
         from flask import request as flask_request
         
         client_id = flask_request.sid
+        
+        # Log connection attempt with details for debugging
+        log_info(logger, f"[WS /ws/synergy] ✅ Connection from SID: {client_id}")
+        log_info(logger, f"[WS /ws/synergy] Remote: {flask_request.remote_addr}")
+        log_info(logger, f"[WS /ws/synergy] Transport: {flask_request.environ.get('werkzeug.socket', 'unknown')}")
         
         # DIAGNOSTIC: Check if client_id is valid
         if not client_id:

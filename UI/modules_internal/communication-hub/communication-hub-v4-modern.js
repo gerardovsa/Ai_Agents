@@ -3536,12 +3536,27 @@ Draft questions for the customer listing all missing details required for accura
             this.dom.injectHTML(previewContent, contentHtml);
 
         } catch (error) {
-            this.log.error(`Failed to load email content: ${error}`);
+            // Graceful degradation: Show snippet view when full content unavailable
+            this.log.warn(`Full content unavailable (showing snippet): ${error.message}`);
 
-            // Show error state
-            const errorHtml = `
+            // Determine error type for user feedback
+            const isNotFound = error.message.includes('404');
+            const isTimeout = error.message.includes('timeout') || error.name === 'TypeError';
+            const errorIcon = isNotFound ? 'fa-file-slash' : isTimeout ? 'fa-clock' : 'fa-exclamation-triangle';
+            const errorText = isNotFound 
+                ? 'Email not found in provider account'
+                : isTimeout 
+                ? 'Connection timeout - showing preview'
+                : 'Unable to load full content';
+
+            // Show snippet view with graceful degradation
+            const snippetHtml = `
                 <div class="email-preview-subject" style="flex-shrink: 0; padding: 10px 12px; border-bottom: 1px solid var(--border-default, #30363d);">
                     <h4 style="margin: 0; font-size: 15px;">${this.escapeHtml(emailData.subject)}</h4>
+                    <span style="font-size: 11px; color: var(--text-warning, #ffa500); display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <i class="fas ${errorIcon}" style="font-size: 10px;"></i>
+                        ${errorText}
+                    </span>
                 </div>
                 <div class="email-preview-meta" style="flex-shrink: 0; padding: 8px 12px; background: var(--bg-secondary, #161b22); border-bottom: 1px solid var(--border-default, #30363d); font-size: 12px;">
                     <div class="meta-row">
@@ -3552,20 +3567,21 @@ Draft questions for the customer listing all missing details required for accura
                         <span class="meta-label">Date:</span>
                         <span class="meta-value">${this.formatDate(emailData.date)}</span>
                     </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Account:</span>
+                        <span class="meta-value">${emailData.provider}</span>
+                    </div>
                 </div>
                 <div class="email-preview-content" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px;">
-                    <div style="padding: 20px; background: var(--bg-error, #2a1a1a); border-radius: 8px;">
-                        <p style="color: var(--text-error, #ff6b6b); margin: 0 0 8px 0;">
-                            <i class="fas fa-exclamation-triangle"></i> Failed to load email content
-                        </p>
-                        <p style="color: var(--text-secondary); margin: 0; font-size: 12px;">
-                            ${this.escapeHtml(emailData.snippet || 'Preview not available')}
+                    <div style="padding: 16px; background: var(--bg-tertiary, #0d1117); border-radius: 8px; border: 1px solid var(--border-default, #30363d);">
+                        <p style="color: var(--text-secondary, #8b949e); margin: 0; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">
+                            ${this.escapeHtml(emailData.snippet || 'No preview available')}
                         </p>
                     </div>
                 </div>
             `;
 
-            this.dom.injectHTML(previewContent, errorHtml);
+            this.dom.injectHTML(previewContent, snippetHtml);
         }
     },
 
@@ -3952,47 +3968,66 @@ Draft questions for the customer listing all missing details required for accura
     },
 
     /**
-     * Fetch full email content from backend (with caching)
+     * Fetch full email content from backend (with caching and retry logic)
      */
-    async fetchEmailContent(emailId) {
+    async fetchEmailContent(emailId, retryCount = 0) {
         // Check cache first
         if (this.state.emailContentCache[emailId]) {
             this.log.debug(`Using cached content for email: ${emailId}`);
             return this.state.emailContentCache[emailId];
         }
 
-        this.log.debug(`Fetching full content for email: ${emailId}`);
+        this.log.debug(`Fetching full content for email: ${emailId} (attempt ${retryCount + 1}/3)`);
 
         const userId = window.UserAuth?.user?.id || 1;
         const url = `${this.state.apiBase}/emails/${emailId}?user_id=${userId}`;
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000  // 10 second timeout
+            });
+
+            if (!response.ok) {
+                // Retry on 5xx errors or timeouts (not 404s)
+                if (response.status >= 500 && retryCount < 2) {
+                    const delay = Math.pow(2, retryCount) * 1000;  // 1s, 2s, 4s
+                    this.log.warn(`Server error ${response.status}, retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return this.fetchEmailContent(emailId, retryCount + 1);
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-        });
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch email');
+            }
+
+            // ✅ Cache the ACTUAL EMAIL DATA (result.email), not the wrapper
+            const emailData = result.email;
+
+            this.state.emailContentCache[emailId] = emailData;
+            setTimeout(() => {
+                delete this.state.emailContentCache[emailId];
+                this.log.debug(`Cache expired for email: ${emailId}`);
+            }, 5 * 60 * 1000);  // 5 minutes
+
+            return emailData;
+        } catch (fetchError) {
+            // Retry on network errors
+            if (retryCount < 2 && fetchError.name === 'TypeError') {
+                const delay = Math.pow(2, retryCount) * 1000;
+                this.log.warn(`Network error, retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.fetchEmailContent(emailId, retryCount + 1);
+            }
+            throw fetchError;
         }
-
-        const result = await response.json();
-
-        if (!result.success) {
-            throw new Error(result.error || 'Failed to fetch email');
-        }
-
-        // ✅ FIX: Cache the ACTUAL EMAIL DATA (result.email), not the wrapper
-        const emailData = result.email;
-
-        this.state.emailContentCache[emailId] = emailData;
-        setTimeout(() => {
-            delete this.state.emailContentCache[emailId];
-            this.log.debug(`Cache expired for email: ${emailId}`);
-        }, 5 * 60 * 1000);  // 5 minutes
-
-        return emailData;
     },
 
     /**
