@@ -189,6 +189,8 @@ log_debug("Importing scheduler_routes...")
 from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
 log_debug("Importing automation_routes...")
 from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
+log_debug("Importing ml_routes...")
+from routes.ml_routes import ml_bp  # NEW: ML Analytics & Predictions (churn, payment timing, fraud detection)
 log_debug("Done with main route imports!")
 
 # Optional: InHousePrint production workflow (requires pymssql)
@@ -461,6 +463,7 @@ app.register_blueprint(cloud_storage_bp)                             # NEW: Clou
 app.register_blueprint(connections_bp)                               # Platform connections (2 endpoints: list, disconnect)
 app.register_blueprint(scheduler_bp)                                 # NEW: AI Automation Scheduler (10 endpoints: /api/scheduler/*)
 app.register_blueprint(automation_bp)                                # NEW: Visual Automation Canvas (9 endpoints: /api/automation/*)
+app.register_blueprint(ml_bp)                                        # NEW: ML Analytics & Predictions (6 endpoints: /api/ml/*)
 if INHOUSE_KANBAN_AVAILABLE:
     app.register_blueprint(inhouse_kanban_bp)                        # NEW: InHousePrint production workflow (5 endpoints)
 app.register_blueprint(kanban_supabase_bp)                           # NEW: Kanban Supabase integration (10 endpoints: /api/kanban/supabase/*)

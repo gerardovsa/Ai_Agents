@@ -1386,7 +1386,42 @@ class XeroModule extends BaseModule {
 
         contentArea.innerHTML = `
             <div class="xero-dashboard">
-                <div class="xero-stats-grid">
+                <!-- AI Executive Summary -->
+                <div class="xero-ai-summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px; margin-bottom: 24px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <i class="fas fa-brain" style="font-size: 24px;"></i>
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 600;">🤖 AI Executive Summary</h3>
+                    </div>
+                    <div id="xero-ai-summary-text" style="font-size: 15px; line-height: 1.6; opacity: 0.95;">
+                        Loading AI insights...
+                    </div>
+                    <div id="xero-ai-summary-timestamp" style="font-size: 12px; opacity: 0.7; margin-top: 8px;">
+                        Generated: --
+                    </div>
+                </div>
+
+                <!-- Critical Alerts -->
+                <div id="xero-critical-alerts-section" style="margin-bottom: 24px; display: none;">
+                    <h3 style="color: var(--text-primary); font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+                        Critical Alerts
+                    </h3>
+                    <div id="xero-critical-alerts-container"></div>
+                </div>
+
+                <!-- Top Priorities -->
+                <div class="xero-priorities-card" style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border-color);">
+                    <h3 style="color: var(--text-primary); font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-tasks" style="color: #3b82f6;"></i>
+                        🎯 Top Priorities
+                    </h3>
+                    <div id="xero-priorities-list">
+                        <div style="color: var(--text-secondary); font-style: italic;">Loading priorities...</div>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="xero-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     <div class="xero-stat-card" id="xero-stat-revenue">
                         <div class="xero-stat-icon" style="background: #10b981;">
                             <i class="fas fa-dollar-sign"></i>
@@ -1406,6 +1441,9 @@ class XeroModule extends BaseModule {
                             <div class="xero-stat-label">Outstanding</div>
                             <div class="xero-stat-value">$0.00</div>
                             <div class="xero-stat-change">Loading...</div>
+                            <div id="xero-predicted-collections" style="font-size: 12px; color: #8b949e; margin-top: 4px;">
+                                Predicted: --
+                            </div>
                         </div>
                     </div>
 
@@ -1420,42 +1458,48 @@ class XeroModule extends BaseModule {
                         </div>
                     </div>
 
-                    <div class="xero-stat-card" id="xero-stat-invoices">
+                    <div class="xero-stat-card" id="xero-stat-customers">
                         <div class="xero-stat-icon" style="background: #3b82f6;">
-                            <i class="fas fa-file-invoice"></i>
+                            <i class="fas fa-users"></i>
                         </div>
                         <div class="xero-stat-content">
-                            <div class="xero-stat-label">Total Invoices</div>
+                            <div class="xero-stat-label">Active Customers</div>
                             <div class="xero-stat-value">0</div>
                             <div class="xero-stat-change">Loading...</div>
+                            <div id="xero-at-risk-customers" style="font-size: 12px; color: #ef4444; margin-top: 4px;">
+                                At-risk: --
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="xero-charts-row">
                     <div class="xero-chart-container">
-                        <h3 class="xero-chart-title">Revenue Over Time</h3>
+                        <h3 class="xero-chart-title"><i class="fas fa-chart-line"></i> Revenue Forecast (12 Months)</h3>
                         <div id="xero-chart-revenue" class="xero-chart"></div>
                     </div>
                     <div class="xero-chart-container">
-                        <h3 class="xero-chart-title">Invoice Status Distribution</h3>
+                        <h3 class="xero-chart-title"><i class="fas fa-chart-pie"></i> Invoice Status Distribution</h3>
                         <div id="xero-chart-status" class="xero-chart"></div>
                     </div>
                 </div>
 
                 <div class="xero-charts-row">
                     <div class="xero-chart-container">
-                        <h3 class="xero-chart-title">Top Customers by Revenue</h3>
+                        <h3 class="xero-chart-title"><i class="fas fa-trophy"></i> Top Customers by Revenue</h3>
                         <div id="xero-chart-customers" class="xero-chart"></div>
                     </div>
                 </div>
 
                 <div class="xero-recent-section">
-                    <h3 class="xero-section-title">Recent Invoices</h3>
+                    <h3 class="xero-section-title"><i class="fas fa-history"></i> Recent Activity</h3>
                     <div id="xero-recent-invoices-table"></div>
                 </div>
             </div>
         `;
+        
+        // Load ML dashboard summary
+        this.loadMLDashboardSummary();
     }
 
     async loadDashboard() {
@@ -1708,6 +1752,246 @@ class XeroModule extends BaseModule {
     }
 
     // ========================================================================
+    // ML DASHBOARD ENHANCEMENTS
+    // ========================================================================
+
+    async loadMLDashboardSummary() {
+        console.log('[Xero ML] Loading ML dashboard summary...');
+        
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/ml/dashboard/summary?business_id=${this.currentBusiness}`);
+            if (!response.ok) {
+                console.warn('[Xero ML] ML endpoint not available, using default dashboard');
+                return;
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                console.warn('[Xero ML] ML data failed:', data.error);
+                return;
+            }
+
+            // Update AI Summary
+            const summaryText = this.container.querySelector('#xero-ai-summary-text');
+            if (summaryText && data.summary) {
+                summaryText.textContent = data.summary.text;
+            }
+
+            const summaryTimestamp = this.container.querySelector('#xero-ai-summary-timestamp');
+            if (summaryTimestamp && data.summary) {
+                const date = new Date(data.summary.generated_at);
+                summaryTimestamp.textContent = `Generated: ${date.toLocaleString()}`;
+            }
+
+            // Update Critical Alerts
+            if (data.alerts && data.alerts.length > 0) {
+                const alertsSection = this.container.querySelector('#xero-critical-alerts-section');
+                const alertsContainer = this.container.querySelector('#xero-critical-alerts-container');
+                
+                if (alertsSection && alertsContainer) {
+                    alertsSection.style.display = 'block';
+                    alertsContainer.innerHTML = data.alerts.map(alert => `
+                        <div class="xero-alert xero-alert-${alert.severity}" style="padding: 12px 16px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid ${
+                            alert.severity === 'high' ? '#ef4444' : 
+                            alert.severity === 'medium' ? '#f59e0b' : '#3b82f6'
+                        }; background: var(--bg-tertiary);">
+                            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                <i class="fas fa-${alert.severity === 'high' ? 'exclamation-circle' : 'exclamation-triangle'}" 
+                                   style="color: ${alert.severity === 'high' ? '#ef4444' : '#f59e0b'}; font-size: 18px; margin-top: 2px;"></i>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${alert.message}</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">
+                                        <strong>Action:</strong> ${alert.action}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Update Priorities
+            if (data.priorities && data.priorities.length > 0) {
+                const prioritiesList = this.container.querySelector('#xero-priorities-list');
+                if (prioritiesList) {
+                    prioritiesList.innerHTML = data.priorities.map((priority, index) => `
+                        <div class="xero-priority-item" style="padding: 12px 16px; margin-bottom: 8px; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid ${
+                            priority.urgency === 'high' ? '#ef4444' : 
+                            priority.urgency === 'medium' ? '#f59e0b' : '#3b82f6'
+                        };">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 20px; font-weight: 700; color: var(--text-secondary);">${index + 1}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${priority.title}</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">${priority.description}</div>
+                                </div>
+                                <div class="xero-priority-badge" style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${
+                                    priority.urgency === 'high' ? 'rgba(239, 68, 68, 0.2)' : 
+                                    priority.urgency === 'medium' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)'
+                                }; color: ${
+                                    priority.urgency === 'high' ? '#ef4444' : 
+                                    priority.urgency === 'medium' ? '#f59e0b' : '#3b82f6'
+                                };">
+                                    ${priority.urgency}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Update Metrics
+            if (data.metrics) {
+                // Predicted Collections
+                if (data.metrics.predicted_collections) {
+                    const predictedEl = this.container.querySelector('#xero-predicted-collections');
+                    if (predictedEl) {
+                        predictedEl.innerHTML = `<i class="fas fa-chart-line"></i> Predicted: $${this.formatNumber(data.metrics.predicted_collections)}`;
+                    }
+                }
+
+                // At-Risk Customers
+                if (data.metrics.at_risk_customers !== undefined) {
+                    const atRiskEl = this.container.querySelector('#xero-at-risk-customers');
+                    if (atRiskEl) {
+                        atRiskEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> At-risk: ${data.metrics.at_risk_customers} customers`;
+                        atRiskEl.style.display = data.metrics.at_risk_customers > 0 ? 'block' : 'none';
+                    }
+                }
+
+                // Update Active Customers stat card
+                if (data.metrics.active_customers !== undefined) {
+                    const customersStat = this.container.querySelector('#xero-stat-customers .xero-stat-value');
+                    if (customersStat) {
+                        customersStat.textContent = data.metrics.active_customers;
+                    }
+                    const customersChange = this.container.querySelector('#xero-stat-customers .xero-stat-change');
+                    if (customersChange) {
+                        customersChange.textContent = `${data.metrics.active_customers} active (last 90 days)`;
+                    }
+                }
+            }
+
+            console.log('[Xero ML] Dashboard summary loaded successfully');
+        } catch (error) {
+            console.error('[Xero ML] Error loading ML dashboard summary:', error);
+            // Don't show error to user - ML features are optional enhancements
+        }
+    }
+
+    formatNumber(num) {
+        if (typeof num !== 'number') return '0';
+        return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    async loadMLInvoicePredictions() {
+        try {
+            console.log('[Xero ML] Loading invoice predictions...');
+
+            // Get unpaid invoices
+            const unpaidInvoices = this.data.invoices.filter(inv => inv.status !== 'PAID' && inv.status !== 'VOIDED');
+            
+            if (unpaidInvoices.length === 0) {
+                console.log('[Xero ML] No unpaid invoices to predict');
+                this.updateInvoiceAnalytics();
+                return;
+            }
+
+            // Fetch predictions in batch (limit to 50 for performance)
+            const invoicesToPredict = unpaidInvoices.slice(0, 50);
+            console.log(`[Xero ML] Fetching predictions for ${invoicesToPredict.length} invoices`);
+
+            const predictions = await Promise.allSettled(
+                invoicesToPredict.map(inv => 
+                    fetch(`${this.API_BASE_URL}/api/ml/predict/payment/${inv.invoice_id}?business_id=${this.currentBusiness}`)
+                        .then(res => res.ok ? res.json() : null)
+                        .then(data => ({ invoice_id: inv.invoice_id, data }))
+                        .catch(() => ({ invoice_id: inv.invoice_id, data: null }))
+                )
+            );
+
+            // Apply predictions to invoice data
+            let predictedCount = 0;
+            predictions.forEach((result, idx) => {
+                if (result.status === 'fulfilled' && result.value.data && result.value.data.success) {
+                    const invoiceId = result.value.invoice_id;
+                    const prediction = result.value.data;
+                    
+                    // Find invoice in data array
+                    const invoice = this.data.invoices.find(i => i.invoice_id === invoiceId);
+                    if (invoice) {
+                        invoice.ml_predicted_payment_date = prediction.predicted_payment_date;
+                        invoice.ml_confidence = prediction.confidence;
+                        invoice.ml_anomaly_flags = prediction.anomaly_flags || [];
+                        predictedCount++;
+                    }
+                }
+            });
+
+            console.log(`[Xero ML] Applied ${predictedCount} predictions to invoices`);
+
+            // Update analytics cards
+            this.updateInvoiceAnalytics();
+
+        } catch (error) {
+            console.error('[Xero ML] Error loading invoice predictions:', error);
+            // Don't show error to user - ML features are optional
+            this.updateInvoiceAnalytics();
+        }
+    }
+
+    updateInvoiceAnalytics() {
+        // Calculate total outstanding
+        const totalOutstanding = this.data.invoices
+            .filter(inv => inv.status !== 'PAID' && inv.status !== 'VOIDED')
+            .reduce((sum, inv) => sum + (inv.amount_due || 0), 0);
+
+        const totalOutstandingEl = this.container.querySelector('#xero-invoice-total-outstanding');
+        if (totalOutstandingEl) {
+            totalOutstandingEl.textContent = this.formatCurrency(totalOutstanding);
+        }
+
+        // Calculate predicted 30-day collections
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+        const predicted30d = this.data.invoices
+            .filter(inv => {
+                if (!inv.ml_predicted_payment_date || inv.status === 'PAID' || inv.status === 'VOIDED') return false;
+                const predictedDate = new Date(inv.ml_predicted_payment_date);
+                return predictedDate <= thirtyDaysFromNow;
+            })
+            .reduce((sum, inv) => sum + (inv.amount_due || 0), 0);
+
+        const predicted30dEl = this.container.querySelector('#xero-invoice-predicted-30d');
+        if (predicted30dEl) {
+            predicted30dEl.textContent = this.formatCurrency(predicted30d);
+        }
+
+        // Calculate late payment count
+        const lateCount = this.data.invoices.filter(inv => {
+            if (!inv.ml_predicted_payment_date || !inv.due_date || inv.status === 'PAID' || inv.status === 'VOIDED') return false;
+            const predicted = new Date(inv.ml_predicted_payment_date);
+            const due = new Date(inv.due_date);
+            return predicted > due;
+        }).length;
+
+        const lateCountEl = this.container.querySelector('#xero-invoice-late-count');
+        if (lateCountEl) {
+            lateCountEl.textContent = lateCount;
+        }
+
+        // Calculate anomaly count
+        const anomalyCount = this.data.invoices.filter(inv => 
+            inv.ml_anomaly_flags && inv.ml_anomaly_flags.length > 0
+        ).length;
+
+        const anomalyCountEl = this.container.querySelector('#xero-invoice-anomalies-count');
+        if (anomalyCountEl) {
+            anomalyCountEl.textContent = anomalyCount;
+        }
+    }
+
+    // ========================================================================
     // INVOICES TAB
     // ========================================================================
 
@@ -1808,6 +2092,31 @@ class XeroModule extends BaseModule {
                     </div>
                 </div>
 
+                <!-- ML Smart Views -->
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-brain" style="color: #1f6feb;"></i>
+                        Smart Views (AI)
+                    </label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="xero-smart-view" data-view="all" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-list"></i> All Invoices
+                        </button>
+                        <button class="xero-smart-view" data-view="predicted-late" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-clock"></i> Predicted Late
+                        </button>
+                        <button class="xero-smart-view" data-view="high-value" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-dollar-sign"></i> High Value
+                        </button>
+                        <button class="xero-smart-view" data-view="anomalies" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-exclamation-triangle"></i> Anomalies Detected
+                        </button>
+                        <button class="xero-smart-view" data-view="needs-review" style="padding: 6px 12px; background: #30363d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; font-size: 12px; font-weight: 500; cursor: pointer;">
+                            <i class="fas fa-eye"></i> Needs Review
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Search Bar -->
                 <div style="margin-bottom: 20px;">
                     <input type="text" id="xero-invoice-global-search" placeholder="🔍 Search invoices by number, contact, or amount..." style="width: 100%; padding: 12px 16px; background: #161b22; border: 2px solid #30363d; border-radius: 6px; color: #ffffff; font-size: 14px;">
@@ -1824,6 +2133,46 @@ class XeroModule extends BaseModule {
                             <button class="xero-btn xero-btn-sm xero-btn-danger" id="xero-delete-selected" style="padding: 6px 12px; background: #f85149; border: none; border-radius: 4px; color: white; font-size: 12px; cursor: pointer;">
                                 <i class="fas fa-trash"></i> Delete Selected
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ML Invoice Analytics Card -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #1f6feb 0%, #1a56db 100%); padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <i class="fas fa-dollar-sign" style="font-size: 24px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; text-transform: uppercase;">Total Outstanding</div>
+                                <div id="xero-invoice-total-outstanding" style="color: white; font-size: 24px; font-weight: 700;">$0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #8957e5 0%, #7643d1 100%); padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(137, 87, 229, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <i class="fas fa-calendar-check" style="font-size: 24px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; text-transform: uppercase;">Predicted 30d Collections</div>
+                                <div id="xero-invoice-predicted-30d" style="color: white; font-size: 24px; font-weight: 700;">$0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f0883e 0%, #e07628 100%); padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(240, 136, 62, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <i class="fas fa-clock" style="font-size: 24px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; text-transform: uppercase;">Late Payments</div>
+                                <div id="xero-invoice-late-count" style="color: white; font-size: 24px; font-weight: 700;">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f85149 0%, #da3633 100%); padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(248, 81, 73, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: white;"></i>
+                            <div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; text-transform: uppercase;">Anomalies Detected</div>
+                                <div id="xero-invoice-anomalies-count" style="color: white; font-size: 24px; font-weight: 700;">0</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2104,6 +2453,58 @@ class XeroModule extends BaseModule {
             });
         });
 
+        // Smart View filter buttons (ML-powered)
+        const smartViews = container.querySelectorAll('.xero-smart-view');
+        smartViews.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active state
+                smartViews.forEach(b => {
+                    b.style.background = '#30363d';
+                    b.style.color = '#8b949e';
+                });
+                btn.style.background = 'linear-gradient(135deg, #1f6feb 0%, #8957e5 100%)';
+                btn.style.color = 'white';
+
+                // Apply smart filter
+                const view = btn.dataset.view;
+                if (this.tables.invoices) {
+                    if (view === 'all') {
+                        this.tables.invoices.clearFilter();
+                    } else if (view === 'predicted-late') {
+                        // Show invoices predicted to be paid late (variance > 0)
+                        this.tables.invoices.setFilter((data) => {
+                            if (!data.ml_predicted_payment_date || !data.due_date) return false;
+                            const predicted = new Date(data.ml_predicted_payment_date);
+                            const due = new Date(data.due_date);
+                            return predicted > due;
+                        });
+                    } else if (view === 'high-value') {
+                        // Show high-value invoices (>$5000 or top 20%)
+                        const amounts = this.data.invoices.map(i => i.total).sort((a, b) => b - a);
+                        const threshold = Math.max(5000, amounts[Math.floor(amounts.length * 0.2)]);
+                        this.tables.invoices.setFilter('total', '>=', threshold);
+                    } else if (view === 'anomalies') {
+                        // Show invoices with anomaly flags
+                        this.tables.invoices.setFilter((data) => {
+                            return data.ml_anomaly_flags && data.ml_anomaly_flags.length > 0;
+                        });
+                    } else if (view === 'needs-review') {
+                        // Show invoices that need review (late prediction OR anomalies)
+                        this.tables.invoices.setFilter((data) => {
+                            const hasAnomalies = data.ml_anomaly_flags && data.ml_anomaly_flags.length > 0;
+                            let isLate = false;
+                            if (data.ml_predicted_payment_date && data.due_date) {
+                                const predicted = new Date(data.ml_predicted_payment_date);
+                                const due = new Date(data.due_date);
+                                isLate = predicted > due;
+                            }
+                            return hasAnomalies || isLate;
+                        });
+                    }
+                }
+            });
+        });
+
         // Bulk actions
         if (exportSelectedBtn) {
             exportSelectedBtn.addEventListener('click', () => {
@@ -2167,6 +2568,9 @@ class XeroModule extends BaseModule {
                 };
             });
             console.log(`[Xero] ✅ Loaded ${this.data.invoices.length} invoices into memory (dates converted)`);
+
+            // Load ML predictions for unpaid invoices
+            await this.loadMLInvoicePredictions();
 
             // Create the table
             console.log('[Xero] 📊 Creating invoices table...');
@@ -2291,6 +2695,81 @@ class XeroModule extends BaseModule {
                         if (!val) return '<span style="color: #8b949e;">N/A</span>';
                         const dateObj = val instanceof Date ? val : this.parseXeroDate(val);
                         return `<span style="color: #ffffff;">${this.formatDate(dateObj)}</span>`;
+                    }
+                },
+                {
+                    title: '🤖 Predicted Payment',
+                    field: 'ml_predicted_payment_date',
+                    minWidth: 140,
+                    maxWidth: 180,
+                    widthGrow: 1,
+                    widthShrink: 1,
+                    headerSort: true,
+                    headerTooltip: 'AI-predicted payment date based on customer behavior',
+                    sorter: 'date',
+                    sorterParams: {
+                        format: 'iso',
+                        alignEmptyValues: 'bottom'
+                    },
+                    formatter: (cell) => {
+                        const rowData = cell.getRow().getData();
+                        const predicted = rowData.ml_predicted_payment_date;
+                        const dueDate = rowData.due_date;
+                        
+                        if (!predicted || rowData.status === 'PAID') {
+                            return '<span style="color: #8b949e; font-size: 11px;">N/A</span>';
+                        }
+                        
+                        const predictedDate = predicted instanceof Date ? predicted : this.parseXeroDate(predicted);
+                        const dueDateObj = dueDate instanceof Date ? dueDate : this.parseXeroDate(dueDate);
+                        
+                        if (!predictedDate || !dueDateObj) {
+                            return '<span style="color: #8b949e; font-size: 11px;">N/A</span>';
+                        }
+                        
+                        // Calculate days variance (+ means late, - means early)
+                        const variance = Math.round((predictedDate - dueDateObj) / (1000 * 60 * 60 * 24));
+                        const varianceText = variance > 0 ? `+${variance}d` : variance < 0 ? `${variance}d` : '0d';
+                        const varianceColor = variance > 7 ? '#f85149' : variance > 0 ? '#f0883e' : '#3fb950';
+                        
+                        return `
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="color: #ffffff; font-size: 12px;">${this.formatDate(predictedDate)}</span>
+                                <span style="background: ${varianceColor}; color: #0d1117; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">${varianceText}</span>
+                            </div>
+                        `;
+                    }
+                },
+                {
+                    title: '⚠️ Flags',
+                    field: 'ml_anomaly_flags',
+                    minWidth: 70,
+                    maxWidth: 100,
+                    widthGrow: 0.5,
+                    widthShrink: 0.5,
+                    headerSort: false,
+                    hozAlign: 'center',
+                    headerTooltip: 'ML-detected anomalies (pricing errors, duplicates, fraud)',
+                    formatter: (cell) => {
+                        const rowData = cell.getRow().getData();
+                        const flags = rowData.ml_anomaly_flags || [];
+                        
+                        if (!flags || flags.length === 0) {
+                            return '<span style="color: #3fb950; font-size: 14px;">✓</span>';
+                        }
+                        
+                        const flagIcons = {
+                            pricing_error: '💰',
+                            duplicate: '📋',
+                            fraud_risk: '🚨',
+                            unusual_amount: '📊',
+                            unusual_terms: '📝'
+                        };
+                        
+                        const iconList = flags.map(f => flagIcons[f.type] || '⚠️').slice(0, 3).join(' ');
+                        const tooltip = flags.map(f => f.description).join('; ');
+                        
+                        return `<span style="font-size: 14px; cursor: help;" title="${tooltip}">${iconList}</span>`;
                     }
                 },
                 {

@@ -7,7 +7,9 @@
     "type": "external",
     "category": "business",
     "main_script": "shopify.js",
-    "styles": ["shopify.css"],
+    "styles": [
+        "shopify.css"
+    ],
     "show_in_sidebar": true,
     "dependencies": [
         "https://cdn.plot.ly/plotly-2.27.0.min.js",

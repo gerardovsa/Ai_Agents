@@ -1,4 +1,4 @@
-﻿{
+{
   "database": {
     "type": "sqlite",
     "path": "C:/Users/gpoli/GIT/In_House_SQL/G_Folder/Quote_Calculator/stocks/stock_data.db"

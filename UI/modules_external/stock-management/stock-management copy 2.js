@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Stock Management Module
  * Complete inventory management, analytics, and AI-powered invoice processing
  * 
