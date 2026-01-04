@@ -119,14 +119,15 @@ fi
 # Start Flask application with Gunicorn (production) or Python (development)
 if [ "$RENDER" = "true" ]; then
     echo "→ Starting Flask with Gunicorn (production)..."
-    echo "  Workers: 2 (1 CPU × 2)"
-    echo "  Worker Class: gevent (async I/O)"
-    echo "  Max Concurrent: ~100 requests"
-    echo "  DB Init: File-locked (prevents WAL race condition)"
+    echo "  Workers: 1 (WebSocket limitation - sticky sessions required)"
+    echo "  Worker Class: geventwebsocket (WebSocket support)"
+    echo "  Max Concurrent: ~1000 connections per worker"
+    echo "  Timeout: 120s (for long-running AI requests)"
+    echo "  Note: Multi-worker requires Redis message queue (SOCKETIO_MESSAGE_QUEUE)"
     echo ""
     exec gunicorn \
         --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
-        --workers 2 \
+        --workers 1 \
         --bind 0.0.0.0:$PORT \
         --timeout 120 \
         --keep-alive 5 \

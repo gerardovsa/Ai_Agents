@@ -811,6 +811,10 @@ try:
     )
     if socketio_message_queue:
         log_config(logger, f"[WS] message_queue enabled: {socketio_message_queue}")
+    else:
+        if IS_RENDER:
+            log_warning(logger, "[WS] ⚠️ No message_queue configured - MUST use single worker (--workers 1)")
+            log_warning(logger, "[WS] For multi-worker, set SOCKETIO_MESSAGE_QUEUE=redis://... in environment")
     log_success(logger, f"[WS] SocketIO initialized - ping_timeout={ping_timeout_config}s, ping_interval={ping_interval_config}s")
     log_config(logger, f"[WS] Async mode: {socketio.async_mode} (auto-detected)")
 except Exception as e:
