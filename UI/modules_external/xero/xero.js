@@ -9357,10 +9357,15 @@ class XeroModule extends BaseModule {
                         <h4 style="margin: 0 0 16px 0; color: #c9d1d9; display: flex; align-items: center; gap: 8px;">
                             <i class="fas fa-brain" style="color: #8957e5;"></i>
                             ML-Powered Insights
-                            <span style="margin-left: auto; font-size: 11px; color: #8b949e; font-weight: 400;">
+                            <span style="margin-left: auto; font-size: 11px; color: #8b949e; font-weight: 400; display: flex; align-items: center; gap: 6px;">
                                 Confidence: ${data.ml_insights.avg_ml_confidence}%
+                                <i class="fas fa-info-circle" style="color: #58a6ff; cursor: help;" title="ML confidence is based on data quality: customers with 5+ invoices get 100%, 3-4 invoices get 70%, and <3 invoices get 30%. Average is ${data.ml_insights.avg_ml_confidence}% across all customers."></i>
                             </span>
                         </h4>
+                        
+                        <div style="margin-bottom: 12px; padding: 8px 12px; background: #0d1117; border-left: 3px solid #58a6ff; border-radius: 4px; font-size: 12px; color: #8b949e;">
+                            <strong style="color: #58a6ff;">💡 Tip:</strong> Click any segment card below to filter the table and see which customers belong to that category.
+                        </div>
                         
                         <!-- ML Segments Grid -->
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
@@ -9376,7 +9381,7 @@ class XeroModule extends BaseModule {
                 };
                 const color = segmentColors[segment] || '#8b949e';
                 return `
-                                    <div style="padding: 12px; background: ${color}15; border: 1px solid ${color}; border-radius: 4px;">
+                                    <div class="ml-segment-card" data-ml-segment="${segment}" style="padding: 12px; background: ${color}15; border: 1px solid ${color}; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='${color}30'" onmouseout="this.style.background='${color}15'">
                                         <div style="font-size: 11px; color: ${color}; font-weight: 600; margin-bottom: 4px;">${segment}</div>
                                         <div style="font-size: 24px; color: ${color}; font-weight: 700;">${count}</div>
                                     </div>
@@ -9879,6 +9884,27 @@ class XeroModule extends BaseModule {
                     // Apply filter
                     table.setFilter('rfm_segment', '=', segment);
                     console.log(`[Xero] Filtering by segment: ${segment}`);
+                });
+            });
+
+            // ML Segment card filters (for ML-Powered Insights cards)
+            document.querySelectorAll('.ml-segment-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const mlSegment = card.dataset.mlSegment;
+
+                    // Reset filter buttons
+                    document.querySelectorAll('.filter-btn').forEach(b => {
+                        b.style.background = '#21262d';
+                        b.style.color = b.style.borderColor;
+                    });
+
+                    // Apply filter to table
+                    table.setFilter('ml_segment', '=', mlSegment);
+                    
+                    // Scroll to table
+                    document.getElementById('customer-intelligence-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    console.log(`[Xero] Filtering by ML segment: ${mlSegment}`);
                 });
             });
 
