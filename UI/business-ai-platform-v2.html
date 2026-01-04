@@ -785,14 +785,16 @@
             window.communicationHub = CommunicationHub;
 
             // Auto-initialize dashboard if container exists
-            const container = document.getElementById('communication-main-container');
+            const container = document.getElementById('communication-hub-main-container');
             if (container && typeof CommunicationHub.initialize === 'function') {
                 try {
-                    CommunicationHub.initialize('communication-main-container');
+                    CommunicationHub.initialize('communication-hub-main-container');
                     console.log('? [CORE] Communication Hub initialized');
                 } catch (error) {
                     console.error('? [CORE] Communication Hub init failed:', error);
                 }
+            } else if (!container) {
+                console.warn('?? [CORE] Communication Hub container not found: #communication-hub-main-container');
             }
         }
     </script>
