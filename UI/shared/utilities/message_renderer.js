@@ -622,15 +622,47 @@ const UnifiedMessageRenderer = (function () {
                     resultDiv.appendChild(headerDiv);
 
                     // Tool result content (collapsed by default, show first 200 chars) - dark theme friendly
+                    // Tool result content - expandable with click to show full content
                     if (block.content) {
-                        const contentPreview = document.createElement('div');
-                        contentPreview.style.cssText = 'font-size: 0.85em; color: #e6edf3; font-family: "Monaco", "Menlo", "Consolas", monospace; white-space: pre-wrap; max-height: 120px; overflow: hidden; line-height: 1.5; background: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 4px;';
-
                         const contentStr = typeof block.content === 'string'
                             ? block.content
                             : JSON.stringify(block.content, null, 2);
 
+                        const contentPreview = document.createElement('div');
+                        contentPreview.style.cssText = 'font-size: 0.85em; color: #e6edf3; font-family: "Monaco", "Menlo", "Consolas", monospace; white-space: pre-wrap; max-height: 120px; overflow: hidden; line-height: 1.5; background: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 4px; cursor: pointer; position: relative;';
                         contentPreview.textContent = contentStr.substring(0, 200) + (contentStr.length > 200 ? '...' : '');
+
+                        // Add expand indicator if content is truncated
+                        if (contentStr.length > 200) {
+                            const expandHint = document.createElement('div');
+                            expandHint.style.cssText = 'position: absolute; bottom: 8px; right: 8px; background: rgba(16, 185, 129, 0.8); color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.75em; pointer-events: none;';
+                            expandHint.textContent = 'Click to expand';
+                            contentPreview.appendChild(expandHint);
+                        }
+
+                        // Toggle expand/collapse on click
+                        let isExpanded = false;
+                        contentPreview.addEventListener('click', () => {
+                            isExpanded = !isExpanded;
+                            if (isExpanded) {
+                                contentPreview.style.maxHeight = 'none';
+                                contentPreview.style.overflow = 'auto';
+                                contentPreview.textContent = contentStr;
+                            } else {
+                                contentPreview.style.maxHeight = '120px';
+                                contentPreview.style.overflow = 'hidden';
+                                contentPreview.textContent = contentStr.substring(0, 200) + (contentStr.length > 200 ? '...' : '');
+                            }
+
+                            // Re-add expand hint if collapsed
+                            if (!isExpanded && contentStr.length > 200) {
+                                const expandHint = document.createElement('div');
+                                expandHint.style.cssText = 'position: absolute; bottom: 8px; right: 8px; background: rgba(16, 185, 129, 0.8); color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.75em; pointer-events: none;';
+                                expandHint.textContent = 'Click to expand';
+                                contentPreview.appendChild(expandHint);
+                            }
+                        });
+
                         resultDiv.appendChild(contentPreview);
                     }
 
