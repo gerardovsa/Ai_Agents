@@ -2409,6 +2409,7 @@ def dev_presence_view():
         return html
 
 @app.route('/health', methods=['GET', 'OPTIONS'])
+@app.route('/api/health', methods=['GET', 'OPTIONS'])  # ✅ Also available at /api/health
 def health_check():
     """Enhanced health check endpoint with Socket.IO metrics and explicit CORS"""
     from datetime import datetime

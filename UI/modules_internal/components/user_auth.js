@@ -482,6 +482,19 @@ const UserAuth = {
                 throw new Error('Agent scripts failed to load - cannot initialize app');
             }
 
+            // ✅ DEFENSIVE: Wait for backend before initializing
+            if (window.BackendHealthCheck) {
+                this.setLoadingProgress(45, 'Connecting to server...');
+                const isHealthy = await window.BackendHealthCheck.waitForBackend((attempt, max) => {
+                    this.setLoadingProgress(45 + (attempt / max) * 5, `Connecting... (${attempt}/${max})`);
+                });
+
+                if (!isHealthy) {
+                    console.warn('⚠️ [AUTH] Backend unavailable - some features may be limited');
+                    // Continue anyway - app can work offline with Supabase
+                }
+            }
+
             await window.initializeMainApp();
             console.log('✅ [AUTH] initializeMainApp() complete');
             this.setLoadingProgress(50, 'Application initialized');

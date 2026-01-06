@@ -68,9 +68,32 @@ class ModuleLoaderV4 {
         this.userId = userId;
 
         try {
-            // Fetch all registered modules from API
-            const response = await fetch('/api/modules/list');
-            const data = await response.json();
+            // ✅ DEFENSIVE: Wait for backend to be healthy before fetching
+            if (window.BackendHealthCheck) {
+                const isHealthy = await window.BackendHealthCheck.waitForBackend((attempt, max) => {
+                    console.log(`🔄 [ModuleLoader] Waiting for backend... (${attempt}/${max})`);
+                });
+
+                if (!isHealthy) {
+                    console.error('❌ [ModuleLoader] Backend unavailable - using offline mode');
+                    this.initializing = false;
+                    return; // Graceful degradation - app works without modules
+                }
+            }
+
+            // Fetch all registered modules from API with retry
+            const fetchFn = window.BackendHealthCheck?.fetchWithRetry || fetch;
+            const response = await fetchFn('/api/modules/list');
+
+            // ✅ DEFENSIVE: Check response status before parsing
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // ✅ DEFENSIVE: Safe JSON parsing
+            const data = window.BackendHealthCheck
+                ? await window.BackendHealthCheck.safeJsonParse(response)
+                : await response.json();
 
             if (!data.modules) {
                 throw new Error('No modules returned from API');

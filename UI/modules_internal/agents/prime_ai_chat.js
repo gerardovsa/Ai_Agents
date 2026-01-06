@@ -2716,7 +2716,16 @@ function initChatPanelResize() {
 function unloadThreadFromPrime() {
     console.log('[PrimeAI] Unloading thread from Prime...');
 
-    // STEP 1: Show welcome container (with greeting, tip, and buttons)
+    // STEP 1: Clear message bubbles (but keep welcome container and processing indicator)
+    const messagesContainer = document.getElementById('ai-chat-messages');
+    if (messagesContainer) {
+        // Remove only message elements, keep welcome-container and processing-indicator
+        const messageElements = messagesContainer.querySelectorAll('.message-wrapper, .user-message, .ai-message, .tool-message, .empty-state');
+        messageElements.forEach(el => el.remove());
+        console.log('[PrimeAI] Cleared message bubbles');
+    }
+
+    // STEP 2: Show welcome container (with greeting, tip, and buttons)
     const welcomeContainer = document.getElementById('prime-welcome-container');
     if (welcomeContainer) {
         welcomeContainer.style.display = 'flex';
@@ -2731,7 +2740,7 @@ function unloadThreadFromPrime() {
         console.warn('[PrimeAI] Welcome container not found - showing fallback empty state');
     }
 
-    // STEP 2: Clear thread info and show selector
+    // STEP 3: Clear thread info and show selector
     const threadInfoContainer = document.getElementById('prime-thread-info');
     if (threadInfoContainer && typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
         threadInfoContainer.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
@@ -2743,13 +2752,6 @@ function unloadThreadFromPrime() {
             threadManagerExists: typeof ThreadManager !== 'undefined',
             renderFunctionExists: typeof ThreadManager?.renderThreadInfoContainer === 'function'
         });
-    }
-
-    // STEP 3: Clear chat messages container
-    const messagesContainer = document.getElementById('ai-chat-messages');
-    if (messagesContainer) {
-        messagesContainer.innerHTML = '';
-        console.log('[PrimeAI] Cleared chat messages');
     }
 
     // STEP 4: Hide input wrapper (return to empty state)

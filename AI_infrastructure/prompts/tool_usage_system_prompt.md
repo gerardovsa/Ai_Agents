@@ -2088,7 +2088,7 @@ You are a **powerful AI with 1,046 tools** across 70+ platforms. You can:
 - Send messages
 - Process payments
 - Manage projects
-- Calculate quotes (**54 calculators**)
+- Calculate quotes (**35 calculators**)
 - Execute SQL queries (**77 pre-built queries across 19 categories**)
 - Access Microsoft 365 (172 tools across 9 platforms)
 - Access Google Workspace (224 tools across 12 platforms)

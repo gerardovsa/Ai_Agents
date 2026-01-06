@@ -21,6 +21,7 @@
  * - storage (localStorage for filters/preferences)
  * - events (Inter-module communication)
  * - log (Module-specific logger - always included)
+ * - realtime-sync (Supabase Realtime subscriptions for multi-device sync)
  * 
  * EXTERNAL LIBRARIES:
  * ===================
@@ -36,15 +37,18 @@
  * Full-text search across accounts
  * Export to Excel/CSV/PDF
  * Pagination and filtering
+ * Real-time synchronization across multiple devices (NEW - Jan 6, 2026)
  * 
  * MIGRATION FROM: BaseModule inheritance pattern (v2.3)
  * MIGRATED TO: V4-Modern composition pattern
- * VERSION: 4.0.0
+ * VERSION: 4.1.0
  * 
- * LAST MODIFIED: 2025-11-30 - Refactored to Modern Module Framework
+ * LAST MODIFIED: 2026-01-06 - Added real-time multi-device synchronization
  */
 
-console.log('Communication Hub Module V4.0 - Modern Framework Pattern');
+import { realtimeSyncService } from './services/realtime-sync.js';
+
+console.log('Communication Hub Module V4.1 - Modern Framework Pattern with Realtime Sync');
 
 export default {
     // 
@@ -159,6 +163,23 @@ export default {
             this.state.apiBase = `${window.API_BASE_URL || 'http://localhost:5001'}/api/communication-hub`;
             this.log.info(`API Base: ${this.state.apiBase}`);
 
+            // 2.5. Initialize Realtime Sync Service (NEW - Jan 6, 2026)
+            try {
+                const supabaseClient = await window.SupabaseConnectionManager.getClient();
+                if (supabaseClient) {
+                    realtimeSyncService.initialize(supabaseClient);
+                    this.log.success('RealtimeSync service initialized for multi-device synchronization');
+
+                    // Setup realtime event listeners
+                    this.setupRealtimeEventListeners();
+                } else {
+                    this.log.warn('Failed to get Supabase client - realtime sync disabled');
+                }
+            } catch (error) {
+                this.log.error('Failed to initialize realtime sync:', error);
+                // Continue without realtime (graceful degradation)
+            }
+
             // 3. Get dashboard container
             this.dashboardContainer = this.dom.getContainer();
             if (!this.dashboardContainer) {
@@ -246,6 +267,14 @@ export default {
             if (this.state.contextMenu) {
                 this.state.contextMenu.remove();
                 this.state.contextMenu = null;
+            }
+
+            // 5. Cleanup realtime subscriptions (NEW - Jan 6, 2026)
+            try {
+                realtimeSyncService.unsubscribeAll();
+                this.log.success('Realtime subscriptions cleaned up');
+            } catch (error) {
+                this.log.warn('Failed to cleanup realtime subscriptions:', error);
             }
 
             // 5. Clear references
@@ -2685,7 +2714,7 @@ export default {
             console.log('   emailId:', emailId);
             console.log('   threadSlug:', threadSlug);
             console.log('   this.state.emailThreads:', this.state.emailThreads);
-            
+
             // FIX: Immediately update cell with "Processing" state for instant feedback
             if (cell && cell.getElement) {
                 cell.getElement().innerHTML = '<div style="display: flex; align-items: center; justify-content: center; gap: 6px;"><i class="fas fa-spinner fa-spin" style="color: #3b82f6;"></i><span style="color: #3b82f6; font-size: 11px; font-weight: 600;">Processing...</span></div>';
@@ -2701,7 +2730,7 @@ export default {
                     console.log('[assignEmailToAgentWithTask] Thread details:', { id: assignedThread.id, slug: assignedThread.thread_slug, location: assignedThread.location, email_thread_id: assignedThread.email_thread_id });
                 }
                 this.log.success('ThreadManager refreshed with new thread');
-                
+
                 // FIX: Force immediate cell update now that thread is loaded in ThreadManager
                 if (cell && cell.getElement) {
                     const emailRow = this.state.emails.find(e => e.id === emailId);
@@ -4168,13 +4197,13 @@ Draft questions for the customer listing all missing details required for accura
 
             if (thread) {
                 const location = thread.location;
-                this.log.info(``Thread ${threadSlug} is in location: ${location}``);
+                this.log.info(``Thread ${ threadSlug } is in location: ${ location }``);
 
                 // Step 1: Switch to Command Center tab if not already there
-                const commandCenterBtn = document.querySelector('[data-tab="multi-agent"]') || 
-                                        document.querySelector('[onclick*="switchTab"][onclick*="multi-agent"]') ||
-                                        document.getElementById('command-center-tab-btn');
-                
+                const commandCenterBtn = document.querySelector('[data-tab="multi-agent"]') ||
+                    document.querySelector('[onclick*="switchTab"][onclick*="multi-agent"]') ||
+                    document.getElementById('command-center-tab-btn');
+
                 if (commandCenterBtn && !commandCenterBtn.classList.contains('active')) {
                     commandCenterBtn.click();
                     this.log.info('Switched to Command Center view');
@@ -6128,39 +6157,197 @@ Draft questions for the customer listing all missing details required for accura
      * NEW: Subscribe to realtime thread updates
      * Updates email assignments when threads are created/updated/deleted
      */
-    subscribeToRealtimeUpdates() {
-        this.log.info('Subscribing to realtime thread updates...');
+    /**
+     * Setup Realtime Event Listeners (NEW - Jan 6, 2026)
+     * 
+     * Subscribes to database changes for multi-device synchronization:
+     * - sessions.threads: Thread creation, updates, deletions
+     * - sessions.messages: New messages, AI responses
+     * 
+     * Called during onDashboardLoad after RealtimeSync service initialization.
+     */
+    setupRealtimeEventListeners() {
+        this.log.info('Setting up realtime event listeners for multi-device sync...');
 
-        // Listen for ThreadManager updates (threads subscription already exists in realtime-subscriptions-init.js)
-        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.on === 'function') {
-            ThreadManager.on('threads-updated', () => {
-                this.log.info('Threads updated - syncing email assignments');
-                this.syncEmailAssignments();
+        // Subscribe to thread list changes (for current user)
+        const userId = this.storage.get('user_id') || window.USER_ID;
+        if (userId) {
+            this.log.info(`Subscribing to thread list changes for user ${userId}`);
+            realtimeSyncService.subscribeToThreadList(userId, (change) => {
+                this.handleThreadListChange(change);
             });
-            this.log.success('Subscribed to ThreadManager updates');
         } else {
-            this.log.warn('ThreadManager events not available - realtime sync disabled');
+            this.log.warn('No user ID found - skipping thread list subscription');
         }
 
-        // FIX (Jan 3, 2026): Re-sync email mappings when agent threads load
-        // This ensures badges render correctly for agent-4, agent-5, etc. after async load
-        window.addEventListener('multiagent-threads-loaded', () => {
-            this.log.info('MultiAgent threads loaded - re-syncing email assignments');
-            this.syncEmailAssignments(); // Re-sync mappings from newly loaded threads
+        // Listen for custom events from RealtimeSync service
+        realtimeSyncService.addEventListener('thread:new', (data) => {
+            this.log.info('New thread created:', data.thread.name);
+            this.syncEmailAssignments();
         });
 
-        // Also listen for window events (backup mechanism)
+        realtimeSyncService.addEventListener('thread:update', (data) => {
+            this.log.info('Thread updated:', data.thread.name);
+            this.syncEmailAssignments();
+        });
+
+        realtimeSyncService.addEventListener('thread:delete', (data) => {
+            this.log.info('Thread deleted:', data.thread.thread_slug);
+            this.syncEmailAssignments();
+        });
+
+        realtimeSyncService.addEventListener('message:new', (data) => {
+            this.log.info('New message received:', data.message.id);
+            // If email is visible in current view, refresh it
+            this.refreshEmailIfVisible(data.threadId);
+        });
+
+        realtimeSyncService.addEventListener('connection:established', () => {
+            this.log.success('Realtime connection established');
+            // Sync data after reconnection to catch missed updates
+            this.syncAfterReconnection();
+        });
+
+        realtimeSyncService.addEventListener('connection:lost', () => {
+            this.log.warn('Realtime connection lost - attempting reconnect...');
+        });
+
+        realtimeSyncService.addEventListener('connection:offline', () => {
+            this.log.warn('Network offline - realtime sync paused');
+        });
+
+        // LEGACY: Keep existing ThreadManager event listeners for backward compatibility
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.on === 'function') {
+            ThreadManager.on('threads-updated', () => {
+                this.log.info('Threads updated (ThreadManager event) - syncing email assignments');
+                this.syncEmailAssignments();
+            });
+        }
+
+        // LEGACY: Keep window event listeners (backup mechanism)
+        window.addEventListener('multiagent-threads-loaded', () => {
+            this.log.info('MultiAgent threads loaded - re-syncing email assignments');
+            this.syncEmailAssignments();
+        });
+
         window.addEventListener('thread-created', (e) => {
-            this.log.info('Thread created event:', e.detail);
+            this.log.info('Thread created event (window):', e.detail);
             this.syncEmailAssignments();
         });
 
         window.addEventListener('thread-updated', (e) => {
-            this.log.info('Thread updated event:', e.detail);
+            this.log.info('Thread updated event (window):', e.detail);
             this.syncEmailAssignments();
         });
 
-        this.log.success('Realtime subscriptions active');
+        this.log.success('Realtime event listeners configured');
+    },
+
+    /**
+     * Handle thread list changes from realtime subscription
+     */
+    handleThreadListChange(change) {
+        this.log.info('Thread list change detected:', change.type, change.thread);
+
+        switch (change.type) {
+            case 'INSERT':
+                // New thread created - refresh thread list
+                this.log.info('New thread created:', change.thread.name);
+                this.syncEmailAssignments();
+                break;
+
+            case 'UPDATE':
+                // Thread metadata updated
+                this.log.info('Thread updated:', change.thread.name);
+                this.syncEmailAssignments();
+
+                // If thread location changed, update UI badges
+                if (change.old?.location !== change.thread.location) {
+                    this.log.info(`Thread ${change.thread.thread_slug} moved from ${change.old.location} to ${change.thread.location}`);
+                }
+                break;
+
+            case 'DELETE':
+                // Thread deleted - remove from UI
+                this.log.info('Thread deleted:', change.thread.thread_slug);
+                this.removeThreadFromEmailAssignments(change.thread.thread_slug);
+                break;
+
+            default:
+                this.log.warn('Unknown thread change type:', change.type);
+        }
+    },
+
+    /**
+     * Sync data after realtime reconnection
+     * Catches updates that occurred while offline
+     */
+    async syncAfterReconnection() {
+        this.log.info('Syncing data after reconnection...');
+
+        try {
+            // Re-load thread assignments
+            await this.loadThreadAssignments();
+
+            // Re-sync email assignments
+            this.syncEmailAssignments();
+
+            this.log.success('Post-reconnection sync complete');
+        } catch (error) {
+            this.log.error('Failed to sync after reconnection:', error);
+        }
+    },
+
+    /**
+     * Refresh email in UI if visible in current view
+     */
+    refreshEmailIfVisible(threadId) {
+        // Find email associated with this thread
+        const email = this.state.emails.find(e => {
+            const threadSlug = this.state.emailThreads[e.id];
+            if (!threadSlug) return false;
+
+            // Find thread by slug
+            const thread = this.state.threads.find(t => t.thread_slug === threadSlug);
+            return thread && thread.id === threadId;
+        });
+
+        if (email) {
+            this.log.info('Refreshing email in UI:', email.subject);
+            // Re-render email row in table
+            if (this.state.tabulatorTable) {
+                this.state.tabulatorTable.updateRow(email.id, email);
+            }
+        }
+    },
+
+    /**
+     * Remove thread from email assignments
+     */
+    removeThreadFromEmailAssignments(threadSlug) {
+        // Find and remove email assignments for this thread
+        const emailIds = Object.keys(this.state.emailThreads).filter(
+            emailId => this.state.emailThreads[emailId] === threadSlug
+        );
+
+        emailIds.forEach(emailId => {
+            delete this.state.emailThreads[emailId];
+            this.log.info(`Removed thread assignment for email ${emailId}`);
+        });
+
+        // Refresh UI
+        if (this.state.tabulatorTable) {
+            this.state.tabulatorTable.redraw();
+        }
+    },
+
+    /**
+     * LEGACY METHOD: Kept for backward compatibility
+     * New code should use setupRealtimeEventListeners()
+     */
+    subscribeToRealtimeUpdates() {
+        this.log.info('[DEPRECATED] subscribeToRealtimeUpdates called - use setupRealtimeEventListeners instead');
+        this.setupRealtimeEventListeners();
     },
 
     /**

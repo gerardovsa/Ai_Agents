@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime Sync Test - Multi-Device Simulation</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .device-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-info .badge {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #10b981;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+        }
+
+        .test-section h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-section h2::before {
+            content: '🧪';
+        }
+
+        .messages-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #fafafa;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.own {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .message-content {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .message-device {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .log-container {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-timestamp {
+            color: #94a3b8;
+        }
+
+        .log-level {
+            font-weight: bold;
+        }
+
+        .log-level.info {
+            color: #60a5fa;
+        }
+
+        .log-level.success {
+            color: #34d399;
+        }
+
+        .log-level.warning {
+            color: #fbbf24;
+        }
+
+        .log-level.error {
+            color: #f87171;
+        }
+
+        .instructions {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: #1e40af;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #1e3a8a;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Realtime Sync Test</h1>
+            <p class="subtitle">Multi-Device Synchronization Demo</p>
+        </header>
+
+        <div class="instructions">
+            <h3>📋 Test Instructions:</h3>
+            <ol>
+                <li>Open this page in <strong>2 or more browser tabs</strong> (or different browsers)</li>
+                <li>Each tab represents a different "device" with unique ID</li>
+                <li>Send a message in one tab → See it appear instantly in other tabs</li>
+                <li>Monitor connection status and sync statistics below</li>
+            </ol>
+        </div>
+
+        <div class="device-info">
+            <div>
+                <strong>Device ID:</strong>
+                <span class="badge" id="deviceId">Loading...</span>
+            </div>
+            <div class="connection-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Messages (Thread #42)</h2>
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <p>No messages yet. Send one to test sync!</p>
+                </div>
+            </div>
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="Type a message and press Enter..." disabled>
+                <button id="sendButton" disabled>Send</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="messageCount">0</div>
+                <div class="stat-label">Messages Sent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="receivedCount">0</div>
+                <div class="stat-label">Messages Received</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="latency">0ms</div>
+                <div class="stat-label">Avg Latency</div>
+            </div>
+        </div>
+
+        <div class="test-section" style="margin-top: 30px;">
+            <h2>Event Log</h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span>
+                    <span class="log-level info">[INFO]</span>
+                    <span>Initializing realtime sync test...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Configuration (replace with your Supabase credentials)
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const TEST_THREAD_ID = 42;
+
+        // State
+        let supabase = null;
+        let subscription = null;
+        let deviceId = null;
+        let messagesSent = 0;
+        let messagesReceived = 0;
+        let latencies = [];
+
+        // DOM elements
+        const deviceIdEl = document.getElementById('deviceId');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const messageCountEl = document.getElementById('messageCount');
+        const receivedCountEl = document.getElementById('receivedCount');
+        const latencyEl = document.getElementById('latency');
+        const logContainer = document.getElementById('logContainer');
+
+        // Initialize
+        async function init() {
+            // Generate device ID
+            deviceId = generateDeviceId();
+            deviceIdEl.textContent = deviceId;
+            log('info', `Device ID generated: ${deviceId}`);
+
+            // Check if config is set
+            if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+                log('error', 'Supabase credentials not configured! Edit SUPABASE_URL and SUPABASE_ANON_KEY in the script.');
+                statusText.textContent = 'Configuration Error';
+                statusDot.classList.add('disconnected');
+                return;
+            }
+
+            // Initialize Supabase client
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                log('success', 'Supabase client initialized');
+            } catch (error) {
+                log('error', `Failed to initialize Supabase: ${error.message}`);
+                statusText.textContent = 'Connection Failed';
+                statusDot.classList.add('disconnected');
+                return;
+            }
+
+            // Subscribe to realtime messages
+            await subscribeToMessages();
+
+            // Setup event listeners
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !messageInput.disabled) {
+                    sendMessage();
+                }
+            });
+
+            sendButton.addEventListener('click', sendMessage);
+
+            // Load existing messages
+            await loadExistingMessages();
+        }
+
+        // Subscribe to realtime messages
+        async function subscribeToMessages() {
+            log('info', `Subscribing to thread #${TEST_THREAD_ID}...`);
+
+            subscription = supabase
+                .channel(`thread-${TEST_THREAD_ID}-test`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'sessions',
+                        table: 'messages',
+                        filter: `thread_id=eq.${TEST_THREAD_ID}`
+                    },
+                    (payload) => {
+                        handleNewMessage(payload.new);
+                    }
+                )
+                .subscribe((status) => {
+                    log('info', `Subscription status: ${status}`);
+
+                    if (status === 'SUBSCRIBED') {
+                        statusText.textContent = 'Connected';
+                        statusDot.classList.remove('disconnected');
+                        statusDot.classList.add('connected');
+                        messageInput.disabled = false;
+                        sendButton.disabled = false;
+                        log('success', 'Realtime subscription active!');
+                    } else if (status === 'CLOSED') {
+                        statusText.textContent = 'Disconnected';
+                        statusDot.classList.remove('connected');
+                        statusDot.classList.add('disconnected');
+                        messageInput.disabled = true;
+                        sendButton.disabled = true;
+                        log('warning', 'Connection closed');
+                    }
+                });
+        }
+
+        // Load existing messages
+        async function loadExistingMessages() {
+            try {
+                const { data, error } = await supabase
+                    .from('sessions.messages')
+                    .select('*')
+                    .eq('thread_id', TEST_THREAD_ID)
+                    .order('timestamp', { ascending: true })
+                    .limit(20);
+
+                if (error) throw error;
+
+                // Clear empty state
+                if (data && data.length > 0) {
+                    messagesContainer.innerHTML = '';
+                    data.forEach(message => displayMessage(message, false));
+                    log('info', `Loaded ${data.length} existing messages`);
+                }
+            } catch (error) {
+                log('error', `Failed to load messages: ${error.message}`);
+            }
+        }
+
+        // Send message
+        async function sendMessage() {
+            const content = messageInput.value.trim();
+            if (!content) return;
+
+            messageInput.value = '';
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            const timestamp = new Date().toISOString();
+            const messageData = {
+                thread_id: TEST_THREAD_ID,
+                role: 'user',
+                content: {
+                    text: content,
+                    device: deviceId,
+                    timestamp: Date.now()
+                },
+                user_id: 1, // Test user
+                timestamp: timestamp
+            };
+
+            try {
+                const { data, error } = await supabase
+                    .from('sessions.messages')
+                    .insert(messageData)
+                    .select();
+
+                if (error) throw error;
+
+                messagesSent++;
+                updateStats();
+                log('success', `Message sent: "${content}"`);
+            } catch (error) {
+                log('error', `Failed to send message: ${error.message}`);
+            } finally {
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Handle new message from realtime
+        function handleNewMessage(message) {
+            // Calculate latency
+            const sentTime = message.content?.timestamp || Date.now();
+            const latency = Date.now() - sentTime;
+            latencies.push(latency);
+            if (latencies.length > 10) latencies.shift();
+
+            // Check if message is from this device
+            const isOwnMessage = message.content?.device === deviceId;
+
+            if (!isOwnMessage) {
+                messagesReceived++;
+                log('info', `Received message from ${message.content?.device} (${latency}ms latency)`);
+            }
+
+            displayMessage(message, isOwnMessage);
+            updateStats();
+        }
+
+        // Display message in UI
+        function displayMessage(message, isOwnMessage) {
+            // Remove empty state if exists
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${isOwnMessage ? 'own' : ''}`;
+            messageEl.innerHTML = `
+                <div class="message-header">
+                    <span class="message-device">${message.content?.device || 'Unknown Device'}</span>
+                    <span>${new Date(message.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div class="message-content">${escapeHtml(message.content?.text || '')}</div>
+            `;
+
+            messagesContainer.appendChild(messageEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Update statistics
+        function updateStats() {
+            messageCountEl.textContent = messagesSent;
+            receivedCountEl.textContent = messagesReceived;
+
+            if (latencies.length > 0) {
+                const avgLatency = Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length);
+                latencyEl.textContent = `${avgLatency}ms`;
+            }
+        }
+
+        // Log function
+        function log(level, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="log-level ${level}">[${level.toUpperCase()}]</span>
+                <span>${escapeHtml(message)}</span>
+            `;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // Also log to console
+            console.log(`[${level.toUpperCase()}] ${message}`);
+        }
+
+        // Utility functions
+        function generateDeviceId() {
+            return `device-${Math.random().toString(36).substr(2, 9)}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+
+</html>
