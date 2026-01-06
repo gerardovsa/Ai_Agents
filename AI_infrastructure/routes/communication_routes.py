@@ -1099,23 +1099,22 @@ def get_thread_emails(thread_slug):
         
         print(f"[Communication Hub] Fetching emails for thread: {thread_slug}, user: {user_id}")
         
-        # Query thread-assignments table for all emails in this thread
+        # Query threads table for email data (email stored in columns: email_thread_id, email_subject, email_participants)
         from shared.database_utils import get_database_connection
         
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
                 
-                # Get all email_thread_ids for this thread_slug
+                # Get email data from thread columns
                 cursor.execute("""
                     SELECT email_thread_id, email_subject, email_participants, created_at
-                    FROM sessions.thread_assignments
-                    WHERE thread_slug = %s AND user_id = %s
-                    ORDER BY created_at ASC
+                    FROM sessions.threads
+                    WHERE thread_slug = %s AND user_id = %s AND email_thread_id IS NOT NULL
                 """, (thread_slug, user_id))
                 
-                assignments = cursor.fetchall()
+                thread_row = cursor.fetchone()
         
-        if not assignments:
+        if not thread_row:
             return jsonify({
                 'success': True,
                 'emails': [],
@@ -1123,69 +1122,83 @@ def get_thread_emails(thread_slug):
                 'message': 'No emails found in thread'
             })
         
-        # Fetch full email content for each email_id (AFTER database closed)
-        emails = []
-        for assignment in assignments:
-            email_id, subject, participants, created_at = assignment
-            
-            try:
-                # Fetch full email (reuse existing logic)
-                # Extract provider from email_id format (gmail_xxx or outlook_xxx)
-                if email_id.startswith('gmail_'):
-                    provider = 'gmail'
-                    actual_id = email_id.replace('gmail_', '')
-                    
-                    # Get Google credentials
-                    google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
-                    if google_creds:
-                        # Fetch email from Gmail
-                        email_result = gmail_get_message(
-                            message_id=actual_id,
-                            _user_id=user_id,
-                            _injected_credentials=True,
-                            access_token=google_creds.get('access_token'),
-                            refresh_token=google_creds.get('refresh_token'),
-                            token_uri=google_creds.get('token_uri')
-                        )
-                        
-                        if email_result.get('success'):
-                            email_data = email_result.get('message', {})
-                            email_data['id'] = email_id
-                            email_data['provider'] = 'gmail'
-                            emails.append(email_data)
-                
-                elif email_id.startswith('outlook_'):
-                    provider = 'outlook'
-                    actual_id = email_id.replace('outlook_', '')
-                    
-                    # Get Microsoft credentials
-                    microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
-                    if microsoft_creds and OUTLOOK_AVAILABLE:
-                        # Fetch email from Outlook
-                        from Microsoft_365_Connection.microsoft_outlook_tools import microsoft_outlook_get_message
-                        
-                        email_result = microsoft_outlook_get_message(
-                            message_id=actual_id,
-                            _user_id=user_id,
-                            _injected_credentials=True,
-                            access_token=microsoft_creds.get('access_token')
-                        )
-                        
-                        if email_result.get('success'):
-                            email_data = email_result.get('message', {})
-                            email_data['id'] = email_id
-                            email_data['provider'] = 'outlook'
-                            emails.append(email_data)
-            
-            except Exception as email_error:
-                print(f"[Communication Hub] Error fetching email {email_id}: {email_error}")
-                # Continue with other emails
-                continue
+        # Fetch full email content (AFTER database closed)
+        email_id, subject, participants, created_at = thread_row
         
+        try:
+            # Fetch full email (reuse existing logic)
+            # Extract provider from email_id format (gmail_xxx or outlook_xxx)
+            if email_id.startswith('gmail_'):
+                provider = 'gmail'
+                actual_id = email_id.replace('gmail_', '')
+                
+                # Get Google credentials
+                google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
+                if google_creds:
+                    # Fetch email from Gmail
+                    email_result = gmail_get_message(
+                        message_id=actual_id,
+                        _user_id=user_id,
+                        _injected_credentials=True,
+                        access_token=google_creds.get('access_token'),
+                        refresh_token=google_creds.get('refresh_token'),
+                        token_uri=google_creds.get('token_uri')
+                    )
+                    
+                    if email_result.get('success'):
+                        email_data = email_result.get('message', {})
+                        email_data['id'] = email_id
+                        email_data['provider'] = 'gmail'
+                        
+                        return jsonify({
+                            'success': True,
+                            'emails': [email_data],
+                            'count': 1,
+                            'thread_slug': thread_slug
+                        })
+            
+            elif email_id.startswith('outlook_'):
+                provider = 'outlook'
+                actual_id = email_id.replace('outlook_', '')
+                
+                # Get Microsoft credentials
+                microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
+                if microsoft_creds and OUTLOOK_AVAILABLE:
+                    # Fetch email from Outlook
+                    from Microsoft_365_Connection.microsoft_outlook_tools import microsoft_outlook_get_message
+                    
+                    email_result = microsoft_outlook_get_message(
+                        message_id=actual_id,
+                        _user_id=user_id,
+                        _injected_credentials=True,
+                        access_token=microsoft_creds.get('access_token')
+                    )
+                    
+                    if email_result.get('success'):
+                        email_data = email_result.get('message', {})
+                        email_data['id'] = email_id
+                        email_data['provider'] = 'outlook'
+                        
+                        return jsonify({
+                            'success': True,
+                            'emails': [email_data],
+                            'count': 1,
+                            'thread_slug': thread_slug
+                        })
+        
+        except Exception as email_error:
+            print(f"[Communication Hub] Error fetching email {email_id}: {email_error}")
+        
+        # Fallback: return basic email info from thread data
         return jsonify({
             'success': True,
-            'emails': emails,
-            'count': len(emails),
+            'emails': [{
+                'id': email_id,
+                'subject': subject,
+                'participants': participants,
+                'created_at': created_at.isoformat() if created_at else None
+            }],
+            'count': 1,
             'thread_slug': thread_slug
         })
     

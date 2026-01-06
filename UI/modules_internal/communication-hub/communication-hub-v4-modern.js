@@ -1,6 +1,6 @@
 /**
  * FILE: UI/modules_external/communication-hub/communication-hub-v4-modern.js
- * MODULE TYPE: external
+ * MODULE TYPE: internal (loaded as regular script, not ES6 module)
  * ARCHITECTURE: V4-Modern (Composition pattern)
  * 
  * PURPOSE: Communication Hub - Unified inbox for Gmail and Outlook with AI agent integration
@@ -21,7 +21,7 @@
  * - storage (localStorage for filters/preferences)
  * - events (Inter-module communication)
  * - log (Module-specific logger - always included)
- * - realtime-sync (Supabase Realtime subscriptions for multi-device sync)
+ * - realtime-sync (Supabase Realtime subscriptions for multi-device sync) - OPTIONAL
  * 
  * EXTERNAL LIBRARIES:
  * ===================
@@ -40,17 +40,28 @@
  * Real-time synchronization across multiple devices (NEW - Jan 6, 2026)
  * 
  * MIGRATION FROM: BaseModule inheritance pattern (v2.3)
- * MIGRATED TO: V4-Modern composition pattern
- * VERSION: 4.1.0
+ * MIGRATED TO: V4-Modern composition pattern (loaded as regular script)
+ * VERSION: 4.2.0
  * 
- * LAST MODIFIED: 2026-01-06 - Added real-time multi-device synchronization
+ * LAST MODIFIED: 2026-01-07 - Converted from ES6 module to regular script for stability
  */
 
-import { realtimeSyncService } from './services/realtime-sync.js';
+console.log('Communication Hub Module V4.2 - Modern Framework Pattern (Regular Script Loading)');
 
-console.log('Communication Hub Module V4.1 - Modern Framework Pattern with Realtime Sync');
+// Realtime sync service - load if available, graceful degradation if not
+let realtimeSyncService = null;
+try {
+    if (typeof window.RealtimeSyncService !== 'undefined') {
+        realtimeSyncService = new window.RealtimeSyncService();
+        console.log('✅ [Communication Hub] Realtime sync service loaded');
+    } else {
+        console.log('⏳ [Communication Hub] Realtime sync not available - running without multi-device sync');
+    }
+} catch (error) {
+    console.warn('⚠️ [Communication Hub] Failed to load realtime sync:', error);
+}
 
-export default {
+window.communicationHub = {
     // 
     // STATE (Private to this object)
     // 
@@ -4197,7 +4208,7 @@ Draft questions for the customer listing all missing details required for accura
 
             if (thread) {
                 const location = thread.location;
-                this.log.info(``Thread ${ threadSlug } is in location: ${ location }``);
+                this.log.info(`Thread ${threadSlug} is in location: ${location}`);
 
                 // Step 1: Switch to Command Center tab if not already there
                 const commandCenterBtn = document.querySelector('[data-tab="multi-agent"]') ||

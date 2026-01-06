@@ -763,47 +763,10 @@
     <link rel="stylesheet" href="modules_internal/communication-hub/communication-hub.css?v=20260103_213801">
 
     <!-- Communication Hub Dependencies: Attachment Processing and Email Formatting -->
-    <script src="modules_internal/communication-hub/attachment-processor.js?v=20260103_213801"></script>
-    <script src="modules_internal/communication-hub/email-ai-formatter.js?v=20260103_213801"></script>
-
-    <script type="module">
-        // Load Communication Hub as core component (not lazy-loaded module)
-        import CommunicationHub from './modules_internal/communication-hub/communication-hub-v4-modern.js?v=20260103_213801';
-
-        // Initialize when DOM ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => initCommunicationHub());
-        } else {
-            initCommunicationHub();
-        }
-
-        function initCommunicationHub() {
-            console.log('🔷 [CORE] Initializing Communication Hub...');
-            console.log('🔷 [CORE] CommunicationHub module loaded:', typeof CommunicationHub);
-
-            // Make globally accessible
-            window.communicationHub = CommunicationHub;
-            console.log('✅ [CORE] window.communicationHub assigned');
-
-            // Auto-initialize dashboard if container exists
-            const container = document.getElementById('communication-hub-main-container');
-            console.log('🔷 [CORE] Container #communication-hub-main-container exists:', !!container);
-
-            if (container && typeof CommunicationHub.initialize === 'function') {
-                try {
-                    CommunicationHub.initialize('communication-hub-main-container');
-                    console.log('✅ [CORE] Communication Hub initialized');
-                } catch (error) {
-                    console.error('❌ [CORE] Communication Hub init failed:', error);
-                }
-            } else if (!container) {
-                console.log('⏳ [CORE] Container not found yet - will initialize on button click');
-            } else if (typeof CommunicationHub.initialize !== 'function') {
-                console.error('❌ [CORE] CommunicationHub.initialize is not a function');
-                console.log('Available methods:', Object.keys(CommunicationHub));
-            }
-        }
-    </script>
+    <script src="modules_internal/communication-hub/attachment-processor.js?v=20260107_020000"></script>
+    <script src="modules_internal/communication-hub/email-ai-formatter.js?v=20260107_020000"></script>
+    <!-- Communication Hub Main Module (Loaded as regular script like Synergy) -->
+    <script src="modules_internal/communication-hub/communication-hub-v4-modern.js?v=20260107_020000"></script>
 
     <!-- ==================== SHARED MODULES (Nov 2025) ==================== -->
     <!-- Unified message rendering for Prime and Agent columns -->
