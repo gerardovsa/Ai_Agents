@@ -175,20 +175,24 @@ window.communicationHub = {
             this.log.info(`API Base: ${this.state.apiBase}`);
 
             // 2.5. Initialize Realtime Sync Service (NEW - Jan 6, 2026)
-            try {
-                const supabaseClient = await window.SupabaseConnectionManager.getClient();
-                if (supabaseClient) {
-                    realtimeSyncService.initialize(supabaseClient);
-                    this.log.success('RealtimeSync service initialized for multi-device synchronization');
+            if (realtimeSyncService) {
+                try {
+                    const supabaseClient = await window.SupabaseConnectionManager.getClient();
+                    if (supabaseClient) {
+                        realtimeSyncService.initialize(supabaseClient);
+                        this.log.success('RealtimeSync service initialized for multi-device synchronization');
 
-                    // Setup realtime event listeners
-                    this.setupRealtimeEventListeners();
-                } else {
-                    this.log.warn('Failed to get Supabase client - realtime sync disabled');
+                        // Setup realtime event listeners
+                        this.setupRealtimeEventListeners();
+                    } else {
+                        this.log.warn('Failed to get Supabase client - realtime sync disabled');
+                    }
+                } catch (error) {
+                    this.log.error('Failed to initialize realtime sync:', error);
+                    // Continue without realtime (graceful degradation)
                 }
-            } catch (error) {
-                this.log.error('Failed to initialize realtime sync:', error);
-                // Continue without realtime (graceful degradation)
+            } else {
+                this.log.info('Realtime sync service not available - running in standalone mode');
             }
 
             // 3. Get dashboard container
@@ -1577,19 +1581,30 @@ window.communicationHub = {
                     hozAlign: "center",
                     headerSort: false,
                     formatter: (cell) => {
-                        const emailId = cell.getRow().getData().id;
+                        const rowData = cell.getRow().getData();
+                        const emailId = rowData.id;
                         const threadSlug = this.state.emailThreads?.[emailId];
+                        const isProcessing = rowData._processing === true;
+
+                        // Show processing state if actively assigning
+                        if (isProcessing) {
+                            return `
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 0;">
+                                    <span style="color: #3b82f6; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(59, 130, 246, 0.1); border-radius: 4px; font-weight: 600;">
+                                        <i class="fas fa-circle-notch fa-spin" style="font-size: 10px;"></i>
+                                        Processing...
+                                    </span>
+                                    <span style="color: #6b7280; font-size: 9px;">Assigning to AI</span>
+                                </div>
+                            `;
+                        }
 
                         // DEBUG: Log thread assignment status (reduced verbosity)
                         if (!threadSlug) {
-                            // Only log as warning if we have OTHER threads loaded (indicates data inconsistency)
-                            // Otherwise, this is normal for unassigned emails - no need to spam console
                             const hasOtherThreads = Object.keys(this.state.emailThreads || {}).length > 0;
                             if (hasOtherThreads && this.state.tableReady) {
                                 this.log.debug(`Email ${emailId.substring(0, 20)}... not assigned to thread`);
                             }
-                        } else {
-                            this.log.debug(`Email ${emailId.substring(0, 20)}... thread ${threadSlug}`);
                         }
 
                         // Check if email has an assigned thread
@@ -1605,16 +1620,13 @@ window.communicationHub = {
                             `;
                         }
 
-                        // IS ASSIGNED - Show agent badge + thread info
-                        // FIX (Jan 3, 2026): Try multiple lookup strategies to find thread
+                        // IS ASSIGNED - Show agent badge + thread info + action buttons
                         let thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
 
-                        // Fallback 1: Try thread_slug field
                         if (!thread) {
                             thread = ThreadManager?.threads?.find(t => t.thread_slug === threadSlug);
                         }
 
-                        // Fallback 2: Try email_thread_id metadata
                         if (!thread) {
                             thread = ThreadManager?.threads?.find(t =>
                                 t.email_thread_id === emailId ||
@@ -1622,17 +1634,8 @@ window.communicationHub = {
                             );
                         }
 
-                        // Debug logging for troubleshooting
-                        if (!thread && typeof console !== 'undefined') {
-                            console.warn(`[CommunicationHub] Thread lookup failed for email ${emailId}:`,
-                                `\n  threadSlug: ${threadSlug}`,
-                                `\n  ThreadManager.threads count: ${ThreadManager?.threads?.length || 0}`,
-                                `\n  Available thread IDs:`, ThreadManager?.threads?.slice(0, 5).map(t => ({ id: t.id, slug: t.thread_slug, location: t.location }))
-                            );
-                        }
-
                         if (!thread) {
-                            // Thread not loaded yet in ThreadManager - show thread slug with loading state
+                            // Thread not loaded yet - show syncing state
                             const threadShort = threadSlug.substring(0, 8);
                             return `
                                 <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
@@ -1679,48 +1682,36 @@ window.communicationHub = {
                         }
 
                         const threadShort = threadSlug.substring(0, 8);
-
-                        // Determine navigation action based on location
-                        let onclickAction;
-                        if (location === 'unassigned' || location === 'prime') {
-                            // Prime: Open AI Prime sidebar with thread and update location
-                            onclickAction = `event.stopPropagation(); window.CommunicationHub.openThreadInPrime('${threadSlug}');`;
-                        } else if (location.startsWith('agent-')) {
-                            // Agent: Navigate to command centre and scroll to agent
-                            const agentNum = parseInt(location.replace('agent-', ''));
-                            onclickAction = `event.stopPropagation(); if (typeof switchTab === 'function') { switchTab('multi-agent'); } setTimeout(() => { if (typeof MultiAgent !== 'undefined' && MultiAgent.scrollToAgent) { MultiAgent.scrollToAgent(${agentNum}); } }, 300);`;
-                        } else {
-                            onclickAction = `event.stopPropagation();`;
-                        }
+                        const threadId = thread.id || threadSlug;
 
                         return `
-                            <div class="email-agent-assignment" style="display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 4px 0;">
+                            <div class="email-agent-assignment" style="display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; padding: 6px 4px;">
                                 <span class="agent-badge" 
                                       data-thread-slug="${threadSlug}"
                                       data-location="${location}"
-                                      style="background: ${badgeColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; width: fit-content;"
-                                      title="${location === 'unassigned' || location === 'prime' ? 'AI Prime' : badgeText}">
+                                      style="background: ${badgeColor}; color: white; padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; width: fit-content; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
+                                      title="${location === 'unassigned' || location === 'prime' ? 'AI Prime' : badgeText} - Thread ${threadId}">
                                     <i class="fas ${badgeIcon}"></i> ${this.escapeHtml(badgeText)}
                                 </span>
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: monospace;" title="Thread ID: ${threadSlug}">
+                                    <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: 'Courier New', monospace; background: rgba(107, 114, 128, 0.08); padding: 2px 6px; border-radius: 3px;" title="Thread ID: ${threadId}">
                                         #${threadShort}
                                     </span>
                                     <button class="open-agent-btn" 
-                                            onclick="event.stopPropagation(); window.CommunicationHub.openAIThread('${threadSlug}')"
-                                            title="Open in Command Center"
-                                            style="background: #3b82f6; border: none; color: white; cursor: pointer; padding: 3px 8px; font-size: 10px; border-radius: 4px; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 4px;"
-                                            onmouseover="this.style.background='#2563eb'"
-                                            onmouseout="this.style.background='#3b82f6'">
-                                        <i class="fas fa-external-link-alt" style="font-size: 9px;"></i> Open
+                                            onclick="event.stopPropagation(); window.communicationHub.openAIThread('${threadSlug}')"
+                                            title="Open thread in Command Center"
+                                            style="background: #10b981; border: none; color: white; cursor: pointer; padding: 5px 8px; font-size: 12px; border-radius: 4px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"
+                                            onmouseover="this.style.background='#059669'; this.style.transform='translateY(-1px)'"
+                                            onmouseout="this.style.background='#10b981'; this.style.transform='translateY(0)'">
+                                        <i class="fas fa-external-link-alt"></i>
                                     </button>
                                     <button class="unload-thread-btn" 
-                                            onclick="event.stopPropagation(); window.CommunicationHub.unloadEmailFromAgent('${emailId}', '${threadSlug}', event)"
-                                            title="Unload from agent"
-                                            style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 2px 4px; font-size: 11px; opacity: 0.7; transition: opacity 0.2s;"
-                                            onmouseover="this.style.opacity='1'"
-                                            onmouseout="this.style.opacity='0.7'">
-                                        <i class="fas fa-sign-out-alt"></i>
+                                            onclick="event.stopPropagation(); window.communicationHub.unloadEmailFromAgent('${emailId}', '${threadSlug}', event)"
+                                            title="Unload email from agent (thread remains)"
+                                            style="background: #ef4444; border: none; color: white; cursor: pointer; padding: 5px 8px; font-size: 12px; border-radius: 4px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"
+                                            onmouseover="this.style.background='#dc2626'; this.style.transform='translateY(-1px)'"
+                                            onmouseout="this.style.background='#ef4444'; this.style.transform='translateY(0)'">
+                                        <i class="fas fa-door-open"></i>
                                     </button>
                                 </div>
                             </div>
@@ -2721,6 +2712,14 @@ window.communicationHub = {
             }
             this.state.emailThreads[emailId] = threadSlug;
 
+            // ✅ UPDATE EMAIL ROW DATA IMMEDIATELY so formatter can access threadSlug
+            const emailRow = this.state.emails.find(e => e.id === emailId);
+            if (emailRow) {
+                emailRow.assigned_agent = agentName;
+                emailRow._threadSlug = threadSlug;
+                emailRow._processing = true;
+            }
+
             console.log('[assignEmailToAgentWithTask] ASSIGNED email to thread:');
             console.log('   emailId:', emailId);
             console.log('   threadSlug:', threadSlug);
@@ -2759,33 +2758,51 @@ window.communicationHub = {
                 showToast(`Email sent to ${agentName} (${taskType.replace('_', ' ')})`, 'success', 4000);
             }
 
-            // Now update table to show agent badge (formatter will find thread in ThreadManager)
-            // Only update cell if it was provided (from table, not preview panel)
+            // ✅ CLEAR CUSTOM INSTRUCTION TEXTAREA IMMEDIATELY after assignment
+            const customInstructionTextarea = document.getElementById(`ai-custom-instruction-${emailId}`);
+            if (customInstructionTextarea) {
+                customInstructionTextarea.value = '';
+                this.log.info('✅ Cleared custom instruction textarea (early)');
+            }
+
+            // ✅ FORCE IMMEDIATE TABLE REDRAW with threadSlug so formatter shows processing state
+            if (this.state.tabulatorTable) {
+                this.state.tabulatorTable.redraw();
+                this.log.info('✅ Initial table redraw - showing processing state with thread mapping');
+            }
+
+            // Update table to show "Processing..." state in AI Agent column
             if (cell && cell.getRow) {
-                cell.getRow().update({ assigned_agent: agentName });
-            } else {
-                // Called from preview panel - just redraw table
-                if (this.state.tabulatorTable) {
-                    this.state.tabulatorTable.redraw();
+                cell.getRow().update({ assigned_agent: agentName, _processing: true, _threadSlug: threadSlug });
+            } else if (this.state.tabulatorTable) {
+                const emailRow = this.state.emails.find(e => e.id === emailId);
+                if (emailRow) {
+                    emailRow._processing = true;
+                    emailRow._threadSlug = threadSlug;
                 }
+                this.state.tabulatorTable.redraw();
             }
 
             // NEW: Load thread and send task-specific prompt
-            await this.loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, fullEmail, processedAttachments, taskType);
+            await this.loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, fullEmail, processedAttachments, taskType, customInstructions);
+
+            // Clear processing state and update with thread info
+            if (cell && cell.getRow) {
+                cell.getRow().update({ assigned_agent: agentName, _processing: false, _threadSlug: threadSlug });
+            } else if (this.state.tabulatorTable) {
+                const emailRow = this.state.emails.find(e => e.id === emailId);
+                if (emailRow) {
+                    emailRow._processing = false;
+                    emailRow._threadSlug = threadSlug;
+                }
+            }
 
             // SECOND NOTIFICATION: Confirm task was sent to AI
             if (typeof showToast === 'function') {
                 showToast(`AI ${agentName} is processing your ${taskType.replace('_', ' ')} request`, 'success', 3000);
             }
 
-            // CLEAR CUSTOM INSTRUCTION TEXTAREA after successful send
-            const customInstructionTextarea = document.getElementById(`ai-custom-instruction-${emailId}`);
-            if (customInstructionTextarea) {
-                customInstructionTextarea.value = '';
-                this.log.info('Cleared custom instruction textarea');
-            }
-
-            // CRITICAL: Multiple table redraws to ensure AI Agent column updates
+            // CRITICAL: Multiple table redraws to ensure AI Agent column updates with full thread details
             if (this.state.tabulatorTable) {
                 // First redraw immediately
                 this.state.tabulatorTable.redraw();
@@ -2825,7 +2842,7 @@ window.communicationHub = {
     /**
      * FIX #4: Load thread and trigger AI with task-specific prompt (SINGLE MESSAGE ONLY)
      */
-    async loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, emailData, processedAttachments, taskType) {
+    async loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, emailData, processedAttachments, taskType, customInstructions = '') {
         try {
             this.log.info(`Loading thread ${threadSlug} with task: ${taskType}`);
 
@@ -4197,12 +4214,18 @@ Draft questions for the customer listing all missing details required for accura
     },
 
     /**
-     * Open existing AI thread
+     * Open existing AI thread in Command Center (safe tab switching)
      */
     openAIThread(threadSlug) {
         this.log.debug(`Opening AI thread: ${threadSlug}`);
 
-        // FIX: Complete navigation to Command Center + agent column
+        // ✅ CRITICAL FIX: Prevent any sidebar toggles during navigation
+        // Close all sidebars before switching tabs to prevent Transcription sidebar from opening
+        if (typeof window.SidebarManager !== 'undefined' && typeof window.SidebarManager.closeAll === 'function') {
+            window.SidebarManager.closeAll();
+            this.log.info('✅ Closed all sidebars before navigation');
+        }
+
         if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
             const thread = ThreadManager.threads.find(t => t.id === threadSlug || t.thread_slug === threadSlug);
 
@@ -4210,28 +4233,34 @@ Draft questions for the customer listing all missing details required for accura
                 const location = thread.location;
                 this.log.info(`Thread ${threadSlug} is in location: ${location}`);
 
-                // Step 1: Switch to Command Center tab if not already there
-                const commandCenterBtn = document.querySelector('[data-tab="multi-agent"]') ||
-                    document.querySelector('[onclick*="switchTab"][onclick*="multi-agent"]') ||
-                    document.getElementById('command-center-tab-btn');
-
-                if (commandCenterBtn && !commandCenterBtn.classList.contains('active')) {
-                    commandCenterBtn.click();
-                    this.log.info('Switched to Command Center view');
+                // ✅ FIX: Use proper tab switching function without disrupting UI
+                if (typeof window.switchTab === 'function') {
+                    window.switchTab('multi-agent');
+                    this.log.info('✅ Switched to Command Center tab');
+                } else {
+                    // Fallback: Direct DOM manipulation
+                    const multiAgentTab = document.getElementById('tab-multi-agent');
+                    const communicationTab = document.getElementById('tab-communication');
+                    if (multiAgentTab && communicationTab) {
+                        communicationTab.classList.remove('active');
+                        communicationTab.style.display = 'none';
+                        multiAgentTab.classList.add('active');
+                        multiAgentTab.style.display = 'flex';
+                        this.log.info('✅ Switched to Command Center tab (fallback)');
+                    }
                 }
 
-                // Close Communication Hub panel
-                this.closePanel();
-
+                // Wait for tab transition to complete, then scroll to agent column
                 setTimeout(() => {
-                    // Parse agent number from location (e.g., 'agent-3' -> 3)
                     if (location && location.startsWith('agent-')) {
                         const agentNum = parseInt(location.split('-')[1]);
                         const agentColumn = document.getElementById(`agent-column-${agentNum}`);
 
                         if (agentColumn) {
-                            this.log.info(`Scrolling to agent ${agentNum}`);
+                            this.log.info(`✅ Scrolling to agent ${agentNum}`);
                             agentColumn.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                            // Visual highlight effect
                             agentColumn.style.transition = 'box-shadow 0.3s ease';
                             agentColumn.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
                             setTimeout(() => { agentColumn.style.boxShadow = ''; }, 1500);
@@ -4239,14 +4268,16 @@ Draft questions for the customer listing all missing details required for accura
                     } else if (location === 'prime') {
                         const primeColumn = document.getElementById('ai-prime');
                         if (primeColumn) {
-                            this.log.info(`Scrolling to Prime`);
+                            this.log.info(`✅ Scrolling to Prime`);
                             primeColumn.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                            // Visual highlight effect
                             primeColumn.style.transition = 'box-shadow 0.3s ease';
                             primeColumn.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
                             setTimeout(() => { primeColumn.style.boxShadow = ''; }, 1500);
                         }
                     }
-                }, 200);
+                }, 300);
             }
         }
 
@@ -6178,10 +6209,21 @@ Draft questions for the customer listing all missing details required for accura
      * Called during onDashboardLoad after RealtimeSync service initialization.
      */
     setupRealtimeEventListeners() {
+        if (!realtimeSyncService) {
+            this.log.info('Realtime sync not available - skipping event listeners');
+            return;
+        }
+
         this.log.info('Setting up realtime event listeners for multi-device sync...');
 
         // Subscribe to thread list changes (for current user)
         const userId = this.storage.get('user_id') || window.USER_ID;
+        // Guard: Only subscribe if realtimeSyncService is available
+        if (!realtimeSyncService) {
+            this.log.warn('RealtimeSync service not available - skipping subscriptions');
+            return;
+        }
+
         if (userId) {
             this.log.info(`Subscribing to thread list changes for user ${userId}`);
             realtimeSyncService.subscribeToThreadList(userId, (change) => {
@@ -6192,40 +6234,44 @@ Draft questions for the customer listing all missing details required for accura
         }
 
         // Listen for custom events from RealtimeSync service
-        realtimeSyncService.addEventListener('thread:new', (data) => {
-            this.log.info('New thread created:', data.thread.name);
-            this.syncEmailAssignments();
-        });
+        if (realtimeSyncService && typeof realtimeSyncService.addEventListener === 'function') {
+            realtimeSyncService.addEventListener('thread:new', (data) => {
+                this.log.info('New thread created:', data.thread.name);
+                this.syncEmailAssignments();
+            });
 
-        realtimeSyncService.addEventListener('thread:update', (data) => {
-            this.log.info('Thread updated:', data.thread.name);
-            this.syncEmailAssignments();
-        });
+            realtimeSyncService.addEventListener('thread:update', (data) => {
+                this.log.info('Thread updated:', data.thread.name);
+                this.syncEmailAssignments();
+            });
 
-        realtimeSyncService.addEventListener('thread:delete', (data) => {
-            this.log.info('Thread deleted:', data.thread.thread_slug);
-            this.syncEmailAssignments();
-        });
+            realtimeSyncService.addEventListener('thread:delete', (data) => {
+                this.log.info('Thread deleted:', data.thread.thread_slug);
+                this.syncEmailAssignments();
+            });
 
-        realtimeSyncService.addEventListener('message:new', (data) => {
-            this.log.info('New message received:', data.message.id);
-            // If email is visible in current view, refresh it
-            this.refreshEmailIfVisible(data.threadId);
-        });
+            realtimeSyncService.addEventListener('message:new', (data) => {
+                this.log.info('New message received:', data.message.id);
+                // If email is visible in current view, refresh it
+                this.refreshEmailIfVisible(data.threadId);
+            });
 
-        realtimeSyncService.addEventListener('connection:established', () => {
-            this.log.success('Realtime connection established');
-            // Sync data after reconnection to catch missed updates
-            this.syncAfterReconnection();
-        });
+            realtimeSyncService.addEventListener('connection:established', () => {
+                this.log.success('Realtime connection established');
+                // Sync data after reconnection to catch missed updates
+                this.syncAfterReconnection();
+            });
 
-        realtimeSyncService.addEventListener('connection:lost', () => {
-            this.log.warn('Realtime connection lost - attempting reconnect...');
-        });
+            realtimeSyncService.addEventListener('connection:lost', () => {
+                this.log.warn('Realtime connection lost - attempting reconnect...');
+            });
 
-        realtimeSyncService.addEventListener('connection:offline', () => {
-            this.log.warn('Network offline - realtime sync paused');
-        });
+            realtimeSyncService.addEventListener('connection:offline', () => {
+                this.log.warn('Network offline - realtime sync paused');
+            });
+        } else {
+            this.log.warn('RealtimeSync service not fully initialized - skipping event listeners');
+        }
 
         // LEGACY: Keep existing ThreadManager event listeners for backward compatibility
         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.on === 'function') {

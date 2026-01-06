@@ -119,34 +119,35 @@ from shared.database_utils import execute_query
 # Create blueprint
 ml_bp = Blueprint('ml', __name__, url_prefix='/api/ml')
 
-# 🛡️ DEFENSIVE FIX: Initialize cache with timeout protection
+# 🛡️ DEFENSIVE FIX: Initialize cache with timeout protection (cross-platform)
 # Run cache initialization in background thread to prevent server startup hang
 # If database connection hangs, server will still start and cache will retry on first request
 import threading
 
 def _safe_initialize_cache():
-    """Initialize cache with timeout protection (runs in background)"""
-    try:
-        # Set timeout alarm to prevent indefinite hang
-        import signal
-        
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Cache initialization timed out after 10 seconds")
-        
-        # Only use signal on Unix-like systems (not Windows)
-        if hasattr(signal, 'SIGALRM'):
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(10)  # 10 second timeout
-        
-        _initialize_table_cache()
-        
-        if hasattr(signal, 'SIGALRM'):
-            signal.alarm(0)  # Cancel alarm
-            
-    except TimeoutError as e:
-        print(f"[ML Routes] ⚠️ Cache initialization timed out - will retry on first request")
-    except Exception as e:
-        print(f"[ML Routes] ⚠️ Cache initialization failed - will retry on first request: {e}")
+    """Initialize cache with timeout protection (runs in background, cross-platform)"""
+    timeout_seconds = 10
+    cache_result = {'completed': False, 'error': None}
+    
+    def _init_with_timeout():
+        try:
+            _initialize_table_cache()
+            cache_result['completed'] = True
+        except Exception as e:
+            cache_result['error'] = str(e)
+    
+    # Run initialization in a thread
+    init_thread = threading.Thread(target=_init_with_timeout, daemon=True)
+    init_thread.start()
+    init_thread.join(timeout=timeout_seconds)
+    
+    # Check results
+    if init_thread.is_alive():
+        print(f"[ML Routes] ⚠️ Cache initialization timed out after {timeout_seconds}s - will retry on first request")
+    elif cache_result['error']:
+        print(f"[ML Routes] ⚠️ Cache initialization failed - will retry on first request: {cache_result['error']}")
+    elif cache_result['completed']:
+        print(f"[ML Routes] ✅ Cache initialized successfully")
 
 # Start cache initialization in background (don't block server startup)
 cache_thread = threading.Thread(target=_safe_initialize_cache, daemon=True)
