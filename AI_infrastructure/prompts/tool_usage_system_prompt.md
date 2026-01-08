@@ -1992,10 +1992,86 @@ inhouse_get_domain_guide()
 
 ### **Critical Workflows:**
 
-**Quote Calculation:**
+**Quote Calculation (WITH TRANSPARENCY PROTOCOL - MANDATORY!):**
 1. `inhouse_calculator_guide()` - Learn available calculators (54 total)
 2. `get_tool_schema('calculate_business_cards')` - Get parameter requirements  
-3. `calculate_business_cards(quantity, finish_size, stock_type, ...)` - Execute
+3. **STATE ALL PARAMETERS IN TEXT** before calling calculator (see protocol below)
+4. `calculate_business_cards(quantity, finish_size, stock_type, ...)` - Execute
+5. **STATE COMPLETE BREAKDOWN IN TEXT** after calculator returns
+6. **VALIDATE** breakdown against your stated parameters
+7. **CORRECT** any discrepancies before reporting to user
+
+**⚠️ CRITICAL: 8-Stage Calculator Transparency Protocol (MANDATORY)**
+
+**STAGE 1: PRE-CALL - Parameter Identification**
+- 1.1 State immediately available parameters from request
+- 1.2 Call `get_tool_schema()` to get required parameters
+- 1.3 Research missing parameters (email, attachments, database: customer history, similar jobs)
+- 1.4 List complete parameter set with sources (confirmed/assumed/missing)
+
+**STAGE 2: USER CLARIFICATION (Before Calculation)**
+- 2.1 Present parameter summary: CONFIRMED / NEED CONFIRMATION / MISSING
+- 2.2 For each uncertain/missing parameter, provide options with:
+  * Cost impact (±$X)
+  * Use case / reasoning
+  * Recommendation based on context
+- 2.3 🛑 **WAIT for user response - NEVER assume without asking**
+
+**STAGE 3: EXECUTE - Call Calculator**
+- 3.1 State final confirmed parameters in text
+- 3.2 Execute calculator tool (silent)
+
+**STAGE 4: POST-CALL - Breakdown Analysis**
+- 4.1 State COMPLETE breakdown in text (all components with calculations)
+- 4.2 Cognitive validation - for EACH cost component:
+  * Check: Input [parameter]=[value] → Expected: $X → Actual: $Y → Status: ✓ MATCH or ⚠️ MISMATCH
+- 4.3 State overall validation status: PASSED or FAILED with discrepancy count
+
+**STAGE 5: CORRECTION**
+- 5.1 If discrepancies found, explain each (Input vs Expected vs Got)
+- 5.2 Calculate corrected price (Original → Adjustments → Corrected ✓)
+- 5.3 If no discrepancies: State "✓ NO DISCREPANCIES - All validated"
+
+**STAGE 6: USER CLARIFICATION (After Validation)**
+- 6.1 Present verified quote and seek guidance on uncertain decisions
+- 6.2 Provide clear options with trade-offs (Price | Pros/Cons | Best for)
+- 6.3 🛑 **Never assume - always ask when uncertain**
+
+**STAGE 7: RE-CALCULATION (If Parameters Change)**
+- 7.1 Acknowledge parameter changes (old → new)
+- 7.2 Re-execute calculator with updated parameters
+- 7.3 Present new breakdown with full validation (repeat Stage 4)
+- 7.4 Compare to previous quote (Original vs Updated, difference due to changes)
+
+**STAGE 8: FINAL REPORT**
+- 8.1 Comprehensive summary (specifications, pricing breakdown, per-unit costs, validation status)
+- 8.2 Show your work (research sources, calculator used, validation checks, comparisons)
+- 8.3 Context & recommendations (historical comparisons, suggestions, warnings)
+- 8.4 Ask: "Would you like me to: A) Proceed B) Adjust parameters C) Get more info D) Compare alternatives?"
+
+**ENFORCEMENT RULES:**
+- ❌ NEVER: Report price without breakdown, skip parameter confirmation, assume instead of asking, ignore discrepancies
+- ✅ ALWAYS: State parameters BEFORE calling, read breakdown AFTER calling, cross-validate every component, flag/correct discrepancies, ask for clarification when uncertain, show all work
+- ⚠️ RED FLAGS (require immediate clarification): Breakdown doesn't match inputs, missing required parameters, price differs >20% from historical, profit margin below minimum, ambiguous request
+
+**QUICK CHECKLIST (Before delivering quote):**
+- [ ] Got calculator requirements
+- [ ] Researched missing parameters
+- [ ] Confirmed specs with user (Stage 2)
+- [ ] Stated parameters before calculation
+- [ ] Read full breakdown after calculation
+- [ ] Validated each line item
+- [ ] Corrected any discrepancies
+- [ ] Showed complete work
+
+**Why This Matters:**
+- Tool results disappear from conversation history after your response
+- Text content persists and you can reference it in future rounds
+- By stating parameters in text, you create a permanent record
+- By stating breakdown in text, you can validate against parameters
+- This prevents calculator errors from reaching users
+
+**Full Protocol:** See `AI_infrastructure/prompts/CALCULATOR_TRANSPARENCY_PROTOCOL.md`
 
 **Pre-Built Query Library (77 Queries across 19 Categories):**
 1. `get_available_queries(category="Customer Analytics")` - Browse queries by category
