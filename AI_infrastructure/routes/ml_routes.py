@@ -1,4 +1,4 @@
-"""
+﻿"""
 ML Analytics Routes - Machine Learning Predictions & Intelligence
 ========================================================================
 
@@ -23,136 +23,16 @@ from flask import Blueprint, jsonify, request
 from flask_cors import cross_origin
 import traceback
 import json
-from functools import lru_cache
-import time
-import threading
 
 # Add AI_infrastructure to path
 ai_infra_path = str(Path(__file__).parent.parent)
 if ai_infra_path not in sys.path:
     sys.path.insert(0, ai_infra_path)
 
-# ================================
-# CONNECTION POOL FIX (Jan 5, 2026 - Updated Jan 6, 2026)
-# ================================
-# Cache table existence checks to prevent pool exhaustion from repeated queries.
-# Problem v1: Each ML prediction endpoint was checking if cache tables exist on EVERY request,
-# causing 271+ connection pool acquisitions during load testing.
-# Solution v1: Cache table existence for 5 minutes to reduce queries.
-# Problem v2: Concurrent requests hit check_table_exists() before cache populates, exhausting pool.
-# Solution v2: Thread-safe caching + pre-populate cache on module load + graceful degradation.
-
-_cache_table_exists = {}
-_cache_ttl = 300  # 5 minutes
-_cache_lock = threading.Lock()
-_cache_initialized = False
-
-def check_table_exists(table_name):
-    """
-    Check if table exists (cached for 5 minutes to reduce DB load).
-    Thread-safe with graceful degradation if connection pool exhausted.
-    """
-    now = time.time()
-    
-    # Fast path: Return cached result without locking
-    if table_name in _cache_table_exists:
-        cached_time, exists = _cache_table_exists[table_name]
-        if now - cached_time < _cache_ttl:
-            return exists
-    
-    # Slow path: Query database with lock to prevent concurrent queries
-    with _cache_lock:
-        # Double-check cache after acquiring lock (another thread may have populated it)
-        if table_name in _cache_table_exists:
-            cached_time, exists = _cache_table_exists[table_name]
-            if now - cached_time < _cache_ttl:
-                return exists
-        
-        # Query database
-        try:
-            from shared.database_utils import execute_query
-            result = execute_query(
-                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = %s)",
-                (table_name,),
-                fetch_mode='value'
-            )
-            _cache_table_exists[table_name] = (now, result)
-            print(f"[ML Routes] Table '{table_name}' existence cached: {result}")
-            return result
-        except Exception as e:
-            # Graceful degradation: Assume table doesn't exist if pool exhausted
-            error_msg = str(e)
-            if 'pool exhausted' in error_msg.lower() or 'connection' in error_msg.lower():
-                print(f"[ML Routes] ⚠️ Connection pool exhausted - assuming '{table_name}' doesn't exist")
-                _cache_table_exists[table_name] = (now, False)
-                return False
-            else:
-                print(f"[ML Routes] Table existence check failed for {table_name}: {e}")
-                _cache_table_exists[table_name] = (now, False)
-                return False
-
-def _initialize_table_cache():
-    """Pre-populate table existence cache on module load to prevent concurrent queries."""
-    global _cache_initialized
-    if _cache_initialized:
-        return
-    
-    with _cache_lock:
-        if _cache_initialized:  # Double-check after acquiring lock
-            return
-        
-        print("[ML Routes] Pre-populating table existence cache...")
-        tables_to_check = ['xero_contacts_cache', 'xero_invoices_cache']
-        
-        for table in tables_to_check:
-            try:
-                check_table_exists(table)  # Will populate cache
-            except Exception as e:
-                print(f"[ML Routes] Failed to pre-populate cache for '{table}': {e}")
-        
-        _cache_initialized = True
-        print(f"[ML Routes] Cache initialized with {len(_cache_table_exists)} tables")
-
-
 from shared.database_utils import execute_query
 
 # Create blueprint
 ml_bp = Blueprint('ml', __name__, url_prefix='/api/ml')
-
-# 🛡️ DEFENSIVE FIX: Initialize cache with timeout protection (cross-platform)
-# Run cache initialization in background thread to prevent server startup hang
-# If database connection hangs, server will still start and cache will retry on first request
-import threading
-
-def _safe_initialize_cache():
-    """Initialize cache with timeout protection (runs in background, cross-platform)"""
-    timeout_seconds = 10
-    cache_result = {'completed': False, 'error': None}
-    
-    def _init_with_timeout():
-        try:
-            _initialize_table_cache()
-            cache_result['completed'] = True
-        except Exception as e:
-            cache_result['error'] = str(e)
-    
-    # Run initialization in a thread
-    init_thread = threading.Thread(target=_init_with_timeout, daemon=True)
-    init_thread.start()
-    init_thread.join(timeout=timeout_seconds)
-    
-    # Check results
-    if init_thread.is_alive():
-        print(f"[ML Routes] ⚠️ Cache initialization timed out after {timeout_seconds}s - will retry on first request")
-    elif cache_result['error']:
-        print(f"[ML Routes] ⚠️ Cache initialization failed - will retry on first request: {cache_result['error']}")
-    elif cache_result['completed']:
-        print(f"[ML Routes] ✅ Cache initialized successfully")
-
-# Start cache initialization in background (don't block server startup)
-cache_thread = threading.Thread(target=_safe_initialize_cache, daemon=True)
-cache_thread.start()
-print("[ML Routes] Cache initialization started in background (non-blocking)")
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -328,19 +208,6 @@ def predict_churn(contact_id):
     try:
         business_id = int(request.args.get('business_id', 1))
         
-        # ✅ FIX: Check if cache table exists before querying (prevents pool exhaustion)
-        if not check_table_exists('xero_contacts_cache'):
-            print(f"[ML Routes] xero_contacts_cache table doesn't exist - using default prediction")
-            return jsonify({
-                'success': True,
-                'churn_probability': 0.25,
-                'predicted_ltv': 5000,
-                'next_purchase_date': (datetime.now() + timedelta(days=30)).isoformat(),
-                'segment': 'new',
-                'recommended_action': 'check_in',
-                'note': 'Prediction based on default assumptions (cache table not available)'
-            })
-        
         # Try to get customer data from cache (if available)
         query = """
             SELECT contact_id, name, days_since_last_order, order_count, 
@@ -456,18 +323,6 @@ def predict_payment_date(invoice_id):
     """
     try:
         business_id = int(request.args.get('business_id', 1))
-        
-        # ✅ FIX: Check if cache tables exist before querying (prevents pool exhaustion)
-        if not check_table_exists('xero_invoices_cache') or not check_table_exists('xero_contacts_cache'):
-            print(f"[ML Routes] Cache tables don't exist - using default prediction")
-            predicted_date = datetime.now() + timedelta(days=7)
-            return jsonify({
-                'success': True,
-                'predicted_payment_date': predicted_date.isoformat(),
-                'confidence': 0.50,
-                'anomaly_flags': [],
-                'note': 'Prediction based on default assumptions (cache tables not available)'
-            })
         
         # Try to get invoice data from cache (if available)
         query = """

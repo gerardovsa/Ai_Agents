@@ -153,24 +153,17 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
                 thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
                 cprint(f"[DB LOAD] Thread ID: {thread_id}", Colors.DB)
                 
-                # Get messages for this thread (with optional pagination)
-                if limit:
-                    # Paginated query - get MOST RECENT messages first
-                    cursor.execute("""
-                        SELECT role, content, created_at, model, tokens_used
-                        FROM sessions.messages 
-                        WHERE thread_id = %s 
-                        ORDER BY created_at DESC
-                        LIMIT %s OFFSET %s
-                    """, (thread_id, limit, offset))
-                else:
-                    # Get ALL messages (ordered by creation time)
-                    cursor.execute("""
-                        SELECT role, content, created_at, model, tokens_used
-                        FROM sessions.messages 
-                        WHERE thread_id = %s 
-                        ORDER BY created_at ASC
-                    """, (thread_id,))
+                # Get messages for this thread (always in chronological order)
+                # ✅ FIX: Always use ASC to prevent message clustering and missing AI responses
+                # CRITICAL: Pagination with DESC caused user messages to cluster together
+                # because AI responses between them were cut off by the LIMIT
+                cursor.execute("""
+                    SELECT role, content, created_at, model, tokens_used
+                    FROM sessions.messages 
+                    WHERE thread_id = %s 
+                    ORDER BY created_at ASC
+                    LIMIT %s OFFSET %s
+                """, (thread_id, limit if limit else 999999, offset))
                 
                 rows = cursor.fetchall()
                 cprint(f"[DB LOAD] Found {len(rows)} messages in database", Colors.INFO)

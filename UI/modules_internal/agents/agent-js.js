@@ -3645,7 +3645,7 @@ async function loadThreadIntoAgent(agentId, sessionId) {
                                     const resultDiv = document.createElement('div');
                                     resultDiv.className = 'content-block tool-result-block';
                                     resultDiv.innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 8px; color: #28a745; font-weight: 500; margin-bottom: 4px;">
+                                <div style="display: flex; align-items: center; gap: 8px; color: #e6edf3; font-weight: 500; margin-bottom: 4px;">
                                     <i class="fas fa-check-circle"></i>
                                     <span>Tool Result</span>
                                 </div>

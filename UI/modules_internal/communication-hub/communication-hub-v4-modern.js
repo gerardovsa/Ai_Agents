@@ -1636,14 +1636,10 @@ window.communicationHub = {
 
                         if (!thread) {
                             // Thread not loaded yet - show syncing state
-                            const threadShort = threadSlug.substring(0, 8);
                             return `
                                 <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
                                     <span class="agent-badge" style="background: #6b7280; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                                         <i class="fas fa-sync fa-spin"></i> Syncing...
-                                    </span>
-                                    <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: monospace;" title="Thread ID: ${threadSlug}">
-                                        #${threadShort}
                                     </span>
                                 </div>
                             `;
@@ -1681,39 +1677,33 @@ window.communicationHub = {
                             badgeIcon = 'fa-question';
                         }
 
-                        const threadShort = threadSlug.substring(0, 8);
                         const threadId = thread.id || threadSlug;
 
                         return `
-                            <div class="email-agent-assignment" style="display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; padding: 6px 4px;">
+                            <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 8px; justify-content: center; padding: 6px 4px;">
                                 <span class="agent-badge" 
                                       data-thread-slug="${threadSlug}"
                                       data-location="${location}"
                                       style="background: ${badgeColor}; color: white; padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; width: fit-content; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
-                                      title="${location === 'unassigned' || location === 'prime' ? 'AI Prime' : badgeText} - Thread ${threadId}">
+                                      title="${location === 'unassigned' || location === 'prime' ? 'AI Prime' : badgeText}">
                                     <i class="fas ${badgeIcon}"></i> ${this.escapeHtml(badgeText)}
                                 </span>
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span class="thread-slug-badge" style="color: #6b7280; font-size: 9px; font-family: 'Courier New', monospace; background: rgba(107, 114, 128, 0.08); padding: 2px 6px; border-radius: 3px;" title="Thread ID: ${threadId}">
-                                        #${threadShort}
-                                    </span>
-                                    <button class="open-agent-btn" 
-                                            onclick="event.stopPropagation(); window.communicationHub.openAIThread('${threadSlug}')"
-                                            title="Open thread in Command Center"
-                                            style="background: #10b981; border: none; color: white; cursor: pointer; padding: 5px 8px; font-size: 12px; border-radius: 4px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"
-                                            onmouseover="this.style.background='#059669'; this.style.transform='translateY(-1px)'"
-                                            onmouseout="this.style.background='#10b981'; this.style.transform='translateY(0)'">
-                                        <i class="fas fa-external-link-alt"></i>
-                                    </button>
-                                    <button class="unload-thread-btn" 
-                                            onclick="event.stopPropagation(); window.communicationHub.unloadEmailFromAgent('${emailId}', '${threadSlug}', event)"
-                                            title="Unload email from agent (thread remains)"
-                                            style="background: #ef4444; border: none; color: white; cursor: pointer; padding: 5px 8px; font-size: 12px; border-radius: 4px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"
-                                            onmouseover="this.style.background='#dc2626'; this.style.transform='translateY(-1px)'"
-                                            onmouseout="this.style.background='#ef4444'; this.style.transform='translateY(0)'">
-                                        <i class="fas fa-door-open"></i>
-                                    </button>
-                                </div>
+                                <button class="open-agent-btn" 
+                                        onclick="event.stopPropagation(); window.communicationHub.openAIThread('${threadSlug}')"
+                                        title="Open thread in Command Center"
+                                        style="background: #10b981; border: none; color: white; cursor: pointer; padding: 5px 8px; font-size: 12px; border-radius: 4px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"
+                                        onmouseover="this.style.background='#059669'; this.style.transform='translateY(-1px)'"
+                                        onmouseout="this.style.background='#10b981'; this.style.transform='translateY(0)'">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                                <button class="unload-thread-btn" 
+                                        onclick="event.stopPropagation(); window.communicationHub.unloadEmailFromAgent('${emailId}', '${threadSlug}', event)"
+                                        title="Unload email from agent (thread remains)"
+                                        style="background: #ef4444; border: none; color: white; cursor: pointer; padding: 5px 8px; font-size: 12px; border-radius: 4px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"
+                                        onmouseover="this.style.background='#dc2626'; this.style.transform='translateY(-1px)'"
+                                        onmouseout="this.style.background='#ef4444'; this.style.transform='translateY(0)'">
+                                    <i class="fas fa-door-open"></i>
+                                </button>
                             </div>
                         `;
                     }

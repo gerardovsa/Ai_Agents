@@ -2062,38 +2062,25 @@ def get_messages():
                 
                 print(f"[THREAD MESSAGES] Total count: {total_count}")
                 
-                # Query messages
-                if limit:
-                    sql, params = convert_sql_placeholders(f"""
-                        SELECT 
-                            m.id,
-                            m.role,
-                            m.content,
-                            m.tool_calls,
-                            m.tokens_used,
-                            m.created_at,
-                            m.metadata
-                        FROM sessions.messages m
-                        JOIN sessions.threads t ON m.thread_id = t.id
-                        WHERE {where_clause}
-                        ORDER BY m.created_at DESC
-                        LIMIT %s OFFSET %s
-                    """, (lookup_value, limit, offset))
-                else:
-                    sql, params = convert_sql_placeholders(f"""
-                        SELECT 
-                            m.id,
-                            m.role,
-                            m.content,
-                            m.tool_calls,
-                            m.tokens_used,
-                            m.created_at,
-                            m.metadata
-                        FROM sessions.messages m
-                        JOIN sessions.threads t ON m.thread_id = t.id
-                        WHERE {where_clause}
-                        ORDER BY m.created_at ASC
-                    """, (lookup_value,))
+                # Query messages (always in chronological order)
+                # ✅ FIX: Always use ASC to prevent message clustering and missing AI responses
+                # CRITICAL: DESC with LIMIT caused user messages to appear clustered because
+                # AI responses between them were cut off by pagination (e.g., missing rows 1-20)
+                sql, params = convert_sql_placeholders(f"""
+                    SELECT 
+                        m.id,
+                        m.role,
+                        m.content,
+                        m.tool_calls,
+                        m.tokens_used,
+                        m.created_at,
+                        m.metadata
+                    FROM sessions.messages m
+                    JOIN sessions.threads t ON m.thread_id = t.id
+                    WHERE {where_clause}
+                    ORDER BY m.created_at ASC
+                    LIMIT %s OFFSET %s
+                """, (lookup_value, limit if limit else 999999, offset))
                 
                 cursor.execute(sql, params)
                 rows = cursor.fetchall()

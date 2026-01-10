@@ -31,13 +31,10 @@ from tools.registry_v3 import tool_executor
 # ==================== EMAIL ATTACHMENTS ====================
 
 @tool_executor()
-@tool_executor()
 def process_outlook_attachment_for_ai(
     message_id: str,
     attachment_id: str,
     mode: str = 'auto',
-    _user_id: Optional[int] = None,
-    _injected_credentials: Optional[bool] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -53,8 +50,7 @@ def process_outlook_attachment_for_ai(
             - 'direct': Force base64 content block
             - 'files_api': Force Anthropic Files API upload
             - 'extract': Force text extraction (for DOCX/XLSX/PPTX)
-        _user_id: User ID (injected by credential_injector)
-        _injected_credentials: Credentials injection flag
+        **kwargs: Includes _user_id and _injected_credentials (auto-injected)
     
     Returns:
         {
@@ -74,9 +70,16 @@ def process_outlook_attachment_for_ai(
         Result: Content block automatically accessible to AI
         AI: "I can see the Q4 report shows revenue of $2.5M..."
     """
-    # Remove user_id from kwargs to avoid "multiple values" error
-    kwargs.pop('user_id', None)
-    handler = UniversalFileHandler(user_id=_user_id, **kwargs)
+    # Extract user_id from kwargs (injected by credential system)
+    user_id = kwargs.pop('_user_id', None) or kwargs.pop('user_id', None)
+    
+    if not user_id:
+        return {
+            'success': False,
+            'error': 'No user_id provided. User must be authenticated to use Microsoft tools.'
+        }
+    
+    handler = UniversalFileHandler(user_id=user_id, **kwargs)
     return handler.process_file(
         source='outlook',
         source_id={'message_id': message_id, 'attachment_id': attachment_id},
@@ -89,8 +92,6 @@ def process_gmail_attachment_for_ai(
     message_id: str,
     attachment_id: str,
     mode: str = 'auto',
-    _user_id: Optional[int] = None,
-    _injected_credentials: Optional[bool] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -102,15 +103,21 @@ def process_gmail_attachment_for_ai(
         message_id: Gmail message ID
         attachment_id: Attachment ID from Gmail API
         mode: Delivery mode (see process_outlook_attachment_for_ai)
-        _user_id: User ID (injected by credential_injector)
-        _injected_credentials: Credentials injection flag
+        **kwargs: Includes _user_id and _injected_credentials (auto-injected)
     
     Returns:
         {'content_block': {...}, 'metadata': {...}}
     """
-    # Remove user_id from kwargs to avoid "multiple values" error
-    kwargs.pop('user_id', None)
-    handler = UniversalFileHandler(user_id=_user_id, **kwargs)
+    # Extract user_id from kwargs (injected by credential system)
+    user_id = kwargs.pop('_user_id', None) or kwargs.pop('user_id', None)
+    
+    if not user_id:
+        return {
+            'success': False,
+            'error': 'No user_id provided. User must be authenticated to use Gmail tools.'
+        }
+    
+    handler = UniversalFileHandler(user_id=user_id, **kwargs)
     return handler.process_file(
         source='gmail',
         source_id={'message_id': message_id, 'attachment_id': attachment_id},
@@ -124,8 +131,6 @@ def process_gmail_attachment_for_ai(
 def process_onedrive_file_for_ai(
     file_id: str,
     mode: str = 'auto',
-    _user_id: Optional[int] = None,
-    _injected_credentials: Optional[bool] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -141,8 +146,7 @@ def process_onedrive_file_for_ai(
             - 'auto': Smart detection
             - 'direct': Base64 content block (< 5MB)
             - 'extract': Text extraction (DOCX/XLSX/PPTX)
-        _user_id: User ID (injected by credential_injector)
-        _injected_credentials: Credentials injection flag
+        **kwargs: Includes _user_id and _injected_credentials (auto-injected)
     
     Returns:
         {'content_block': {...}, 'metadata': {...}}
@@ -152,9 +156,16 @@ def process_onedrive_file_for_ai(
         Tool call: process_onedrive_file_for_ai(file_id='ABC123')
         Result: AI can access spreadsheet content
     """
-    # Remove user_id from kwargs to avoid "multiple values" error
-    kwargs.pop('user_id', None)
-    handler = UniversalFileHandler(user_id=_user_id, **kwargs)
+    # Extract user_id from kwargs (injected by credential system)
+    user_id = kwargs.pop('_user_id', None) or kwargs.pop('user_id', None)
+    
+    if not user_id:
+        return {
+            'success': False,
+            'error': 'No user_id provided. User must be authenticated to use Microsoft OneDrive tools.'
+        }
+    
+    handler = UniversalFileHandler(user_id=user_id, **kwargs)
     return handler.process_file(
         source='onedrive',
         source_id={'file_id': file_id},
@@ -166,8 +177,6 @@ def process_onedrive_file_for_ai(
 def process_google_drive_file_for_ai(
     file_id: str,
     mode: str = 'auto',
-    _user_id: Optional[int] = None,
-    _injected_credentials: Optional[bool] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -181,8 +190,7 @@ def process_google_drive_file_for_ai(
     Args:
         file_id: Google Drive file ID (from google_drive_list_files)
         mode: Delivery mode (see process_onedrive_file_for_ai)
-        _user_id: User ID (injected by credential_injector)
-        _injected_credentials: Credentials injection flag
+        **kwargs: Includes _user_id and _injected_credentials (auto-injected)
     
     Returns:
         {'content_block': {...}, 'metadata': {...}}
@@ -192,9 +200,16 @@ def process_google_drive_file_for_ai(
         Tool call: process_google_drive_file_for_ai(file_id='1ABC...')
         Result: AI can analyze slides content
     """
-    # Remove user_id from kwargs to avoid "multiple values" error
-    kwargs.pop('user_id', None)
-    handler = UniversalFileHandler(user_id=_user_id, **kwargs)
+    # Extract user_id from kwargs (injected by credential system)
+    user_id = kwargs.pop('_user_id', None) or kwargs.pop('user_id', None)
+    
+    if not user_id:
+        return {
+            'success': False,
+            'error': 'No user_id provided. User must be authenticated to use Google Drive tools.'
+        }
+    
+    handler = UniversalFileHandler(user_id=user_id, **kwargs)
     return handler.process_file(
         source='google_drive',
         source_id={'file_id': file_id},
