@@ -258,20 +258,23 @@ except Exception as e:
 
 
 # ============================================================================
-# 🚀 PRE-EMPTIVE SEMANTIC SEARCH INITIALIZATION
+# 🚀 BACKGROUND SEMANTIC SEARCH INITIALIZATION (Non-Blocking)
 # ============================================================================
-def initialize_semantic_search_on_startup():
+_semantic_search_initialization_complete = False
+_semantic_search_initialization_error = None
+
+def initialize_semantic_search_async():
     """
-    Pre-emptively initialize persistent semantic search during server startup.
+    Initialize persistent semantic search in background thread.
     
-    This runs BEFORE server starts to ensure embeddings are ready for first request.
+    This runs AFTER server starts to prevent health check timeouts.
     Uses Supabase persistence - loads instantly if cache exists, regenerates if tools changed.
-    
-    Called after Flask app is created but before routes are registered.
     """
+    global _semantic_search_initialization_complete, _semantic_search_initialization_error
+    
     try:
         print("\n" + "=" * 80)
-        print("[STARTUP] INITIALIZING PERSISTENT SEMANTIC SEARCH (Supabase-backed)")
+        print("[BACKGROUND] INITIALIZING PERSISTENT SEMANTIC SEARCH (Supabase-backed)")
         print("=" * 80)
         
         # Import registry and semantic search initializer
@@ -279,30 +282,44 @@ def initialize_semantic_search_on_startup():
         from AI_infrastructure.routes.agent_routes_v4 import get_semantic_search
         
         # Get singleton registry (NOT a new instance)
-        print("[STARTUP] Loading tool registry...")
+        print("[BACKGROUND] Loading tool registry...")
         registry = get_registry()
-        print(f"[STARTUP] [OK] Registry loaded with {len(registry.tools)} tools")
+        print(f"[BACKGROUND] [OK] Registry loaded with {len(registry.tools)} tools")
         
         # Initialize persistent semantic search (loads from Supabase or regenerates)
-        print("[STARTUP] Loading embeddings from Supabase (or regenerating if needed)...")
+        print("[BACKGROUND] Loading embeddings from Supabase (or regenerating if needed)...")
         semantic_search = get_semantic_search(registry)
         
         if semantic_search and semantic_search.available:
             source = "Supabase" if semantic_search.db_available else "Generated (Database unavailable)"
-            print(f"[STARTUP] [OK] Loaded {len(semantic_search.tool_embeddings)} embeddings from {source}")
-            print(f"[STARTUP] Version Hash: {semantic_search.version_hash[:16]}...")
+            print(f"[BACKGROUND] [OK] Loaded {len(semantic_search.tool_embeddings)} embeddings from {source}")
+            print(f"[BACKGROUND] Version Hash: {semantic_search.version_hash[:16]}...")
             print("=" * 80)
-            print("[STARTUP] ✅ SEMANTIC SEARCH READY - Embeddings loaded and cached!")
+            print("[BACKGROUND] ✅ SEMANTIC SEARCH READY - Embeddings loaded and cached!")
             print("=" * 80 + "\n")
         else:
-            print("[STARTUP] [WARNING] Semantic search not available (sentence-transformers not installed)")
+            print("[BACKGROUND] [WARNING] Semantic search not available (sentence-transformers not installed)")
             print("=" * 80 + "\n")
+        
+        _semantic_search_initialization_complete = True
             
     except Exception as e:
-        print(f"[STARTUP] [ERROR] Failed to initialize semantic search: {e}")
+        print(f"[BACKGROUND] [ERROR] Failed to initialize semantic search: {e}")
         import traceback
         print(traceback.format_exc())
         print("=" * 80 + "\n")
+        _semantic_search_initialization_error = str(e)
+
+def start_semantic_search_initialization():
+    """Start semantic search initialization in background thread"""
+    thread = threading.Thread(
+        target=initialize_semantic_search_async,
+        daemon=True,
+        name="SemanticSearchInit"
+    )
+    thread.start()
+    print("[STARTUP] 🚀 Semantic search initialization started in background")
+    print("[STARTUP] Server will respond to health checks immediately\n")
 
 
 # Note: OAuth state tokens are stored in database (oauth_states table) instead of Flask sessions
@@ -2422,12 +2439,19 @@ def health_check():
         'active_users': len(active_users) if 'active_users' in globals() else 0
     }
     
+    # Check semantic search initialization status
+    semantic_search_status = {
+        'initialized': _semantic_search_initialization_complete,
+        'error': _semantic_search_initialization_error
+    }
+    
     response = jsonify({
         'status': 'healthy',
         'app': 'new_flask_app',
         'infrastructure': 'AI_infrastructure',
         'providers': ['anthropic', 'deepseek', 'openai'],
         'socketio': socketio_status,
+        'semantic_search': semantic_search_status,
         'timestamp': datetime.utcnow().isoformat() + 'Z',
         'environment': 'production' if IS_RENDER else 'development'
     })
@@ -4080,12 +4104,12 @@ if __name__ == '__main__':
     print(f"Auto-reload: {not is_production}")
     print("=" * 80 + "\n")
     
-    # 🚀 PRE-EMPTIVE SEMANTIC SEARCH INITIALIZATION
-    # Initialize BEFORE server starts to ensure embeddings are ready for first request
+    # 🚀 BACKGROUND SEMANTIC SEARCH INITIALIZATION (Non-Blocking)
+    # Start in background thread to prevent health check timeouts
     # Uses Supabase persistence - loads instantly if cache exists, regenerates if tools changed
-    print("[STARTUP] Initializing persistent semantic search (loads from Supabase)...")
-    print("[STARTUP] Server will start accepting requests after initialization completes.\n")
-    initialize_semantic_search_on_startup()
+    print("[STARTUP] Starting semantic search initialization in background...")
+    print("[STARTUP] Server will respond to health checks immediately while embeddings load.\n")
+    start_semantic_search_initialization()
     
     if USE_SOCKETIO:
         # Use SocketIO server (supports WebSockets + HTTP)

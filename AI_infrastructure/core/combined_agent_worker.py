@@ -2668,6 +2668,33 @@ def execute_streaming_request(
         messages = validate_messages_for_api(messages, log_prefix)
         print(f"{log_prefix} ✅ Pre-API validation complete: {len(messages)} messages ready for stream")
         
+        # ✅ ATTACHMENT RECONSTRUCTION: Convert attachment metadata to multimodal content
+        # (Jan 11, 2026) - Download attachments on-demand, never store base64 in database
+        try:
+            from core.attachment_reconstructor import reconstruct_multimodal_content, has_attachment_references
+            
+            # Check if any messages have attachment references
+            has_attachments = any(has_attachment_references(msg.get('content')) for msg in messages)
+            
+            if has_attachments:
+                print(f"{log_prefix} 📎 Attachment references detected, reconstructing multimodal content...")
+                
+                # Extract email_id from thread metadata if available
+                email_id = None
+                provider = 'gmail'
+                # TODO: Extract from thread context or session metadata
+                
+                messages = reconstruct_multimodal_content(
+                    messages=messages,
+                    email_id=email_id,
+                    user_id=user_id,
+                    provider=provider
+                )
+                print(f"{log_prefix} ✅ Multimodal content reconstructed (base64 ephemeral - not stored)")
+        except Exception as e:
+            print(f"{log_prefix} ⚠️ Attachment reconstruction failed: {e}")
+            # Continue without multimodal content
+        
         # Stream response from Claude with USER'S AI PREFERENCES
         stream_params = {
             'model': ai_model,

@@ -303,6 +303,105 @@ def predict_churn(contact_id):
         }), 500
 
 # ============================================================================
+# CUSTOMER LIFETIME VALUE (LTV) PREDICTION
+# ============================================================================
+
+@ml_bp.route('/predict/ltv/<contact_id>', methods=['GET', 'OPTIONS'])
+@cross_origin()
+def predict_customer_ltv(contact_id):
+    """
+    Predict customer lifetime value (12-month forecast)
+    
+    Args:
+        contact_id: Xero Contact ID
+        
+    Returns:
+        - predicted_ltv: Estimated 12-month value
+        - confidence: Prediction confidence (0-1)
+        - segment: Customer segment
+        - drivers: Key value drivers
+    """
+    try:
+        business_id = request.args.get('business_id', 1)
+        
+        # Get customer data
+        customers = get_xero_contacts(business_id)
+        customer = next((c for c in customers if c['contact_id'] == contact_id), None)
+        
+        if not customer:
+            return jsonify({
+                'success': False,
+                'error': 'Customer not found'
+            }), 404
+        
+        # Extract customer metrics
+        total_revenue = float(customer.get('total_revenue', 0) or 0)
+        order_count = int(customer.get('order_count', 0) or 0)
+        avg_order = float(customer.get('avg_order_value', 0) or 0)
+        last_order_str = customer.get('last_order_date')
+        
+        # Calculate LTV based on historical data
+        if order_count > 0 and total_revenue > 0:
+            # Calculate purchase frequency (orders per month)
+            if last_order_str:
+                try:
+                    last_order = datetime.fromisoformat(last_order_str.replace('Z', '+00:00'))
+                    months_active = max(1, (datetime.now(timezone.utc) - last_order).days / 30)
+                    purchase_frequency = order_count / months_active
+                except:
+                    purchase_frequency = order_count / 12  # Default to 1 year
+            else:
+                purchase_frequency = order_count / 12
+            
+            # Predict orders in next 12 months
+            predicted_orders = purchase_frequency * 12
+            predicted_ltv = avg_order * predicted_orders
+            confidence = min(0.9, 0.5 + (order_count * 0.05))  # More orders = higher confidence
+            
+            # Determine segment
+            if avg_order > 1000:
+                segment = 'premium'
+            elif avg_order > 500:
+                segment = 'standard'
+            else:
+                segment = 'economy'
+            
+            drivers = []
+            if purchase_frequency > 1:
+                drivers.append('High purchase frequency')
+            if avg_order > 500:
+                drivers.append('High average order value')
+            if order_count > 10:
+                drivers.append('Established customer relationship')
+            
+        else:
+            # New customer - use defaults
+            predicted_ltv = 5000
+            confidence = 0.3
+            segment = 'new'
+            drivers = ['New customer - estimate based on industry averages']
+        
+        return jsonify({
+            'success': True,
+            'contact_id': contact_id,
+            'predicted_ltv': round(predicted_ltv, 2),
+            'confidence': round(confidence, 2),
+            'segment': segment,
+            'drivers': drivers,
+            'historical_revenue': round(total_revenue, 2),
+            'order_count': order_count,
+            'avg_order_value': round(avg_order, 2)
+        })
+    
+    except Exception as e:
+        print(f"[ML Routes] Error in predict_customer_ltv: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ============================================================================
 # PAYMENT TIMING PREDICTION
 # ============================================================================
 
@@ -488,6 +587,127 @@ def forecast_revenue():
     
     except Exception as e:
         print(f"[ML Routes] Error in forecast_revenue: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ============================================================================
+# CUSTOMER SEGMENTATION ANALYSIS
+# ============================================================================
+
+@ml_bp.route('/analytics/customer/segments', methods=['GET', 'OPTIONS'])
+@cross_origin()
+def analyze_customer_segments():
+    """
+    Segment customers by behavior and value
+    
+    Returns:
+        - segments: Array of customer segments with stats
+        - recommendations: Actions for each segment
+    """
+    try:
+        business_id = request.args.get('business_id', 1)
+        
+        # Get all customers
+        customers = get_xero_contacts(business_id)
+        
+        # Initialize segments
+        segments = {
+            'vip': {'customers': [], 'revenue': 0, 'count': 0},
+            'loyal': {'customers': [], 'revenue': 0, 'count': 0},
+            'at_risk': {'customers': [], 'revenue': 0, 'count': 0},
+            'new': {'customers': [], 'revenue': 0, 'count': 0},
+            'dormant': {'customers': [], 'revenue': 0, 'count': 0}
+        }
+        
+        now = datetime.now(timezone.utc)
+        
+        for customer in customers:
+            revenue = float(customer.get('total_revenue', 0) or 0)
+            order_count = int(customer.get('order_count', 0) or 0)
+            last_order_str = customer.get('last_order_date')
+            
+            # Determine days since last order
+            if last_order_str:
+                try:
+                    last_order = datetime.fromisoformat(last_order_str.replace('Z', '+00:00'))
+                    days_since_order = (now - last_order).days
+                except:
+                    days_since_order = 9999
+            else:
+                days_since_order = 9999
+            
+            # Classify customer
+            if revenue > 10000 and order_count > 5:
+                segment = 'vip'
+            elif order_count > 3 and days_since_order < 90:
+                segment = 'loyal'
+            elif order_count > 0 and days_since_order > 180:
+                segment = 'at_risk'
+            elif order_count <= 1:
+                segment = 'new'
+            else:
+                segment = 'dormant'
+            
+            segments[segment]['customers'].append({
+                'contact_id': customer['contact_id'],
+                'name': customer.get('name', 'Unknown'),
+                'revenue': revenue,
+                'order_count': order_count,
+                'days_since_order': days_since_order
+            })
+            segments[segment]['revenue'] += revenue
+            segments[segment]['count'] += 1
+        
+        # Build response
+        result_segments = []
+        for segment_name, segment_data in segments.items():
+            if segment_data['count'] > 0:
+                avg_revenue = segment_data['revenue'] / segment_data['count']
+                result_segments.append({
+                    'name': segment_name.title(),
+                    'count': segment_data['count'],
+                    'total_revenue': round(segment_data['revenue'], 2),
+                    'avg_revenue': round(avg_revenue, 2),
+                    'customers': segment_data['customers'][:5]  # Top 5 only
+                })
+        
+        # Sort by revenue
+        result_segments.sort(key=lambda x: x['total_revenue'], reverse=True)
+        
+        # Generate recommendations
+        recommendations = []
+        if segments['vip']['count'] > 0:
+            recommendations.append({
+                'segment': 'VIP',
+                'action': 'Personal outreach and exclusive offers',
+                'priority': 'high'
+            })
+        if segments['at_risk']['count'] > 0:
+            recommendations.append({
+                'segment': 'At Risk',
+                'action': 'Win-back campaign with special incentives',
+                'priority': 'high'
+            })
+        if segments['new']['count'] > 0:
+            recommendations.append({
+                'segment': 'New',
+                'action': 'Onboarding sequence and first purchase follow-up',
+                'priority': 'medium'
+            })
+        
+        return jsonify({
+            'success': True,
+            'segments': result_segments,
+            'recommendations': recommendations,
+            'total_customers': len(customers),
+            'analyzed_at': now.isoformat()
+        })
+    
+    except Exception as e:
+        print(f"[ML Routes] Error in analyze_customer_segments: {e}")
         traceback.print_exc()
         return jsonify({
             'success': False,

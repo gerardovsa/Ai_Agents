@@ -145,6 +145,7 @@ def get_accounts():
         else:
             print(f"[Communication Hub] ⚠️  No Google OAuth tokens for user {user_id}")
     except Exception as e:
+        logger.error(f"[Communication Hub] ❌ Error checking Gmail credentials: {e}")
         print(f"[Communication Hub] ❌ Error checking Gmail credentials: {e}")
     
     # ✅ FIX: Check Microsoft OAuth credentials FROM ai_infrastructure.oauth_tokens table
@@ -166,6 +167,7 @@ def get_accounts():
             else:
                 print(f"[Communication Hub] ⚠️  No Microsoft OAuth tokens for user {user_id}")
         except Exception as e:
+            logger.error(f"[Communication Hub] ❌ Error checking Outlook credentials: {e}")
             print(f"[Communication Hub] ❌ Error checking Outlook credentials: {e}")
     
     print(f"[Communication Hub] 📋 Returning {len(accounts)} account(s)")
@@ -1849,6 +1851,31 @@ def extract_spreadsheet_text():
             'success': False,
             'error': str(e)
         }), 500
+
+
+# 🛡️ Global error handlers for Communication Hub Blueprint
+@communication_bp.errorhandler(500)
+def handle_internal_error(error):
+    """Handle internal server errors with proper JSON response"""
+    logger.error(f"[Communication Hub] Internal error: {error}")
+    return jsonify({
+        'success': False,
+        'error': 'Internal server error - check server logs',
+        'type': 'internal_error'
+    }), 500
+
+
+@communication_bp.errorhandler(Exception)
+def handle_unexpected_error(error):
+    """Catch-all handler for unexpected errors"""
+    logger.error(f"[Communication Hub] Unexpected error: {error}")
+    import traceback
+    traceback.print_exc()
+    return jsonify({
+        'success': False,
+        'error': str(error),
+        'type': 'unexpected_error'
+    }), 500
 
 
 # Log module initialization

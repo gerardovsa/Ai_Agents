@@ -282,61 +282,37 @@ Outline next steps for each option`
      * @returns {array} Claude message content blocks
      */
     generateClaudeMessageContent(textPrompt, processedAttachments) {
-        const contentBlocks = [];
+        // ✅ FIX: Return text-only content with attachment metadata
+        // Base64 data will be added by backend when calling Claude API
+        let message = textPrompt;
 
-        // Add text prompt first
-        contentBlocks.push({
-            type: 'text',
-            text: textPrompt
-        });
-
-        // Add images and documents in Messages API format
+        // Add attachment placeholders (NO base64 data)
         if (processedAttachments && processedAttachments.length > 0) {
-            processedAttachments.forEach(att => {
-                // Add images
-                if (att.detected_type === 'image' && att.image_data) {
-                    contentBlocks.push({
-                        type: 'image',
-                        source: {
-                            type: 'base64',
-                            media_type: att.image_data.media_type,
-                            data: att.image_data.data
-                        }
-                    });
+            const imageAttachments = processedAttachments.filter(a => a.detected_type === 'image');
+            const pdfAttachments = processedAttachments.filter(a => a.detected_type === 'pdf');
 
-                    // Add context text after each image
-                    contentBlocks.push({
-                        type: 'text',
-                        text: `\n[Image: ${att.filename} - ${this.formatFileSize(att.size)}]\nPlease analyze this image in the context of the email above.\n`
-                    });
-                }
+            if (imageAttachments.length > 0 || pdfAttachments.length > 0) {
+                message += '\n\n📎 **ATTACHMENTS FOR AI ANALYSIS:**\n\n';
 
-                // Add PDF documents
-                if (att.detected_type === 'pdf' && att.document_data) {
-                    contentBlocks.push({
-                        type: 'document',
-                        source: {
-                            type: 'base64',
-                            media_type: 'application/pdf',
-                            data: att.document_data.data
-                        }
-                    });
+                imageAttachments.forEach(att => {
+                    message += `🖼️ **Image**: ${att.filename} (${this.formatFileSize(att.size)})\n`;
+                    message += `   - Type: ${att.file_type}\n`;
+                    message += `   - Attachment ID: ${att.attachment_id || att.id}\n`;
+                    message += `   - Status: Ready for visual analysis\n\n`;
+                });
 
-                    // Add context text after each document
-                    contentBlocks.push({
-                        type: 'text',
-                        text: `\n[PDF Document: ${att.filename} - ${this.formatFileSize(att.size)}]\nPlease analyze this document and extract relevant information.\n`
-                    });
-                }
-            });
+                pdfAttachments.forEach(att => {
+                    message += `📄 **PDF Document**: ${att.filename} (${this.formatFileSize(att.size)})\n`;
+                    message += `   - Type: ${att.file_type}\n`;
+                    message += `   - Attachment ID: ${att.attachment_id || att.id}\n`;
+                    message += `   - Status: Ready for document analysis\n\n`;
+                });
+
+                message += '\n**Note**: Attachments will be automatically included for AI analysis.\n';
+            }
         }
 
-        // If no multimodal content, return as string instead of array
-        if (contentBlocks.length === 1) {
-            return contentBlocks[0].text;
-        }
-
-        return contentBlocks;
+        return message;
     },
 
     /**
@@ -359,6 +335,10 @@ Outline next steps for each option`
      */
     stripHtml(html) {
         if (!html) return '';
+
+        // ✅ FIX: Remove <img> tags with cid: URLs before parsing to prevent ERR_UNKNOWN_URL_SCHEME errors
+        // Email inline images use cid: (Content-ID) URLs which browsers cannot load
+        html = html.replace(/<img[^>]*>/gi, '[Image]');
 
         // Create a temporary div to parse HTML
         const tempDiv = document.createElement('div');

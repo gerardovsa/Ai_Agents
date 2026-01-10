@@ -92,20 +92,18 @@ const AttachmentProcessor = {
 
             case 'pdf':
                 processed.ai_accessible = true; // PDFs supported via Messages API
-                processed.document_data = await this.downloadDocumentAsBase64(attachment.id, attachment.filename, communicationHub);
-                processed.processing_status = processed.document_data ? 'success' : 'download_failed';
-                processed.ai_note = processed.document_data
-                    ? 'PDF encoded as base64 for Messages API document analysis'
-                    : 'PDF download failed or too large - manual review required';
+                // ✅ FIX: Store download URL only, don't download base64 here
+                processed.attachment_id = attachment.id;
+                processed.processing_status = 'ready_for_analysis';
+                processed.ai_note = 'PDF available for analysis via Messages API (will be downloaded on-demand)';
                 break;
 
             case 'image':
                 processed.ai_accessible = true; // Claude supports multimodal!
-                processed.image_data = await this.downloadImageAsBase64(emailId, attachment, communicationHub);
-                processed.processing_status = processed.image_data ? 'success' : 'download_failed';
-                processed.ai_note = processed.image_data
-                    ? 'Image encoded as base64 for Messages API analysis'
-                    : 'Image download failed - manual review required';
+                // ✅ FIX: Store download URL only, don't download base64 here
+                processed.attachment_id = attachment.id;
+                processed.processing_status = 'ready_for_analysis';
+                processed.ai_note = 'Image available for analysis via Messages API (will be downloaded on-demand)';
                 break;
 
             case 'archive':
@@ -445,13 +443,13 @@ const AttachmentProcessor = {
         lines.push('## ATTACHMENTS SUMMARY');
         lines.push('');
 
-        const imageCount = processedAttachments.filter(a => a.detected_type === 'image' && a.image_data).length;
-        const pdfCount = processedAttachments.filter(a => a.detected_type === 'pdf' && a.document_data).length;
+        const imageCount = processedAttachments.filter(a => a.detected_type === 'image').length;
+        const pdfCount = processedAttachments.filter(a => a.detected_type === 'pdf').length;
         const textCount = processedAttachments.filter(a => a.detected_type === 'text').length;
 
         lines.push(`Total attachments: ${processedAttachments.length}`);
-        if (imageCount > 0) lines.push(`- Images: ${imageCount} (included inline for visual analysis)`);
-        if (pdfCount > 0) lines.push(`- PDF Documents: ${pdfCount} (included inline for document analysis)`);
+        if (imageCount > 0) lines.push(`- Images: ${imageCount} (will be included for visual analysis)`);
+        if (pdfCount > 0) lines.push(`- PDF Documents: ${pdfCount} (will be included for document analysis)`);
         if (textCount > 0) lines.push(`- Text files: ${textCount}`);
         lines.push('');
 
@@ -471,11 +469,17 @@ const AttachmentProcessor = {
                 lines.push(`- **Note**: ${att.ai_note}`);
             }
 
-            // Special handling for images
-            if (att.detected_type === 'image' && att.image_data) {
+            // ✅ Special handling for images and PDFs
+            if (att.detected_type === 'image') {
                 lines.push('');
-                lines.push('**📷 IMAGE INCLUDED**: This image has been embedded in the message for you to analyze visually.');
-                lines.push('Please examine the image carefully and describe what you see in relation to the email context.');
+                lines.push('**📷 IMAGE ATTACHMENT**: This image will be automatically included for AI visual analysis.');
+                lines.push(`Attachment ID: ${att.attachment_id || att.id}`);
+            }
+
+            if (att.detected_type === 'pdf') {
+                lines.push('');
+                lines.push('**📄 PDF DOCUMENT**: This document will be automatically included for AI analysis.');
+                lines.push(`Attachment ID: ${att.attachment_id || att.id}`);
             }
 
             // Text content for documents

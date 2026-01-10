@@ -1314,8 +1314,16 @@ class UserAuthManager:
     
     def get_user_google_oauth_credentials(self, user_id: int) -> Optional[Dict]:
         """Get Google OAuth credentials for user from oauth_tokens table"""
+        conn = None
         try:
-            with get_connection('ai_infrastructure') as conn:
+            # 🔒 LEAK FIX: Defensive connection handling to prevent cascading failures
+            try:
+                conn = get_connection('ai_infrastructure')
+            except Exception as conn_err:
+                logger.warning(f"[AUTH] Connection pool exhausted for user {user_id} Google OAuth check: {conn_err}")
+                return None
+            
+            with conn:
                 with conn.cursor() as cursor:
                     
                     cursor.execute('''
