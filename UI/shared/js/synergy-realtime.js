@@ -88,18 +88,21 @@ window.SynergyRealtime = {
             // Server config: ping_interval=25s, ping_timeout=90s (Render) / 60s (local)
             // Client heartbeat: 20s (see _startHeartbeat) - must be < server ping_interval
             this.socket = io(apiUrl + this.config.namespace, {
-                // Intelligent transport selection (see above)
-                transports: transports,
+                // ✅ IMPROVED STABILITY: Start with polling, upgrade to WebSocket once stable
+                transports: ['polling', 'websocket'],
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
-                reconnectionDelay: this.reconnectDelay,
-                reconnectionDelayMax: this.reconnectDelayMax,  // Use instance property (5s)
+                reconnectionDelay: 1000,  // ✅ Start with 1s delay
+                reconnectionDelayMax: 5000,  // ✅ Max 5s between reconnection attempts
                 randomizationFactor: 0.5,  // ✅ Add jitter ±50% to prevent thundering herd on reconnect
                 timeout: timeout,  // Environment-aware timeout
                 forceNew: false,
-                upgrade: true,  // Allow transport upgrade (polling -> WebSocket or vice versa)
+                upgrade: true,  // Allow transport upgrade (polling -> WebSocket once stable)
                 rememberUpgrade: true,
                 autoConnect: true,
+                // ✅ STABILITY: Enhanced ping/pong settings
+                pingTimeout: 60000,  // 60s - wait this long for pong before considering disconnected
+                pingInterval: 25000,  // 25s - send ping every 25 seconds
                 // Render-specific: Explicit path to avoid proxy routing issues
                 path: '/socket.io/',
                 // Disable credentials to prevent CORS issues on Render

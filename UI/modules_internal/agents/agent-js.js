@@ -3392,16 +3392,21 @@ function createAddAgentBar() {
                 </div>
             `;
 
-    // Only show if multi-agent tab is currently active
-    if (AppState.currentTab === 'multi-agent') {
-        bar.classList.add('visible');
-    }
-
     // Append to multi-agent-container (as last flex item)
     const container = document.getElementById('multi-agent-container');
     if (container) {
         container.appendChild(bar);
         console.log('[Multi-Agent] Add Agent bar appended to container');
+
+        // Force visible class after a short delay to ensure proper rendering
+        setTimeout(() => {
+            const currentTab = document.querySelector('.tab-button.active')?.dataset?.tab;
+            console.log('[Multi-Agent] Current active tab:', currentTab);
+            if (currentTab === 'multi-agent' || AppState?.currentTab === 'multi-agent') {
+                bar.classList.add('visible');
+                console.log('[Multi-Agent] Add Agent bar set to VISIBLE');
+            }
+        }, 100);
     }
 }
 

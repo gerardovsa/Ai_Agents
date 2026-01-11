@@ -4242,13 +4242,40 @@ Draft questions for the customer listing all missing details required for accura
 
                 // Wait for tab transition to complete, then scroll to agent column
                 setTimeout(() => {
+                    // Reset viewport scroll position FIRST to prevent page scroll
+                    if (window.scrollY !== 0) {
+                        window.scrollTo({ top: 0, behavior: 'instant' });
+                        this.log.info('✅ Reset viewport scroll to top');
+                    }
+
                     if (location && location.startsWith('agent-')) {
                         const agentNum = parseInt(location.split('-')[1]);
                         const agentColumn = document.getElementById(`agent-column-${agentNum}`);
 
                         if (agentColumn) {
                             this.log.info(`✅ Scrolling to agent ${agentNum}`);
-                            agentColumn.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                            // ✅ FIX: Scroll within the multi-agent-container horizontally only
+                            const scrollContainer = document.getElementById('multi-agent-container');
+                            if (scrollContainer) {
+                                // Calculate horizontal scroll position to center the column
+                                const containerRect = scrollContainer.getBoundingClientRect();
+                                const columnRect = agentColumn.getBoundingClientRect();
+                                const columnLeft = agentColumn.offsetLeft;
+                                const columnWidth = columnRect.width;
+                                const containerWidth = containerRect.width;
+
+                                // Center the column in the viewport
+                                const scrollLeft = columnLeft - (containerWidth / 2) + (columnWidth / 2);
+
+                                scrollContainer.scrollTo({
+                                    left: Math.max(0, scrollLeft),
+                                    behavior: 'smooth'
+                                });
+                                this.log.info(`✅ Scrolled container horizontally to agent ${agentNum} (scrollLeft: ${scrollLeft})`);
+                            } else {
+                                this.log.warn('⚠️ multi-agent-container not found, cannot scroll to agent');
+                            }
 
                             // Visual highlight effect
                             agentColumn.style.transition = 'box-shadow 0.3s ease';
@@ -4259,7 +4286,26 @@ Draft questions for the customer listing all missing details required for accura
                         const primeColumn = document.getElementById('ai-prime');
                         if (primeColumn) {
                             this.log.info(`✅ Scrolling to Prime`);
-                            primeColumn.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                            // ✅ FIX: Scroll within the multi-agent-container horizontally only
+                            const scrollContainer = document.getElementById('multi-agent-container');
+                            if (scrollContainer) {
+                                const containerRect = scrollContainer.getBoundingClientRect();
+                                const columnRect = primeColumn.getBoundingClientRect();
+                                const columnLeft = primeColumn.offsetLeft;
+                                const columnWidth = columnRect.width;
+                                const containerWidth = containerRect.width;
+
+                                const scrollLeft = columnLeft - (containerWidth / 2) + (columnWidth / 2);
+
+                                scrollContainer.scrollTo({
+                                    left: Math.max(0, scrollLeft),
+                                    behavior: 'smooth'
+                                });
+                                this.log.info(`✅ Scrolled container horizontally to Prime (scrollLeft: ${scrollLeft})`);
+                            } else {
+                                this.log.warn('⚠️ multi-agent-container not found, cannot scroll to Prime');
+                            }
 
                             // Visual highlight effect
                             primeColumn.style.transition = 'box-shadow 0.3s ease';
