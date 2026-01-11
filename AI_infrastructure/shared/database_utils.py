@@ -172,18 +172,18 @@ def get_connection_pool(schema_name: str):
             cprint(f" [POOL] Using {connection_mode} for '{schema_name}'", Colors.DB)
             
             # Create thread-safe connection pool
-            # OPTIMIZED for Supabase Nano Transaction Mode (Nov 25, 2025):
+            # OPTIMIZED for Supabase Micro Plan (Jan 11, 2026):
             # - Transaction Mode pooler supports 200 concurrent CLIENT connections
-            # - Backend limit is 60 connections (shared across all poolers)
+            # - Backend limit is 60 connections (Supabase Micro plan limit)
             # - UI makes 10-15 concurrent requests on page load
-            # - INCREASED POOL SIZE to handle concurrent requests (was maxconn=2)
-            # - minconn=2: Keep connections ready (was 1)
-            # - maxconn=5: Allow burst traffic (was 2) - handles concurrent UI requests
+            # - 3 schemas (ai_infrastructure, sessions, synergy_sessions)
+            # - minconn=6: Keep 6 connections ready per schema (18 total baseline)
+            # - maxconn=20: Allow up to 20 per schema during bursts (60 total = exactly at limit)
             # - Each connection is short-lived in transaction mode (seconds, not minutes)
-            # - With 3 schemas (ai_infrastructure, sessions, synergy_sessions), max = 36 connections total  
+            # - Pool auto-scales: 18 connections normally, up to 60 during traffic spikes
             _connection_pools[schema_name] = pool.ThreadedConnectionPool(
-                minconn=4,      # Keep 4 connections ready (increased from 3)
-                maxconn=12,     # Allow up to 12 concurrent connections (increased from 8 to handle UI bursts + GC delays)
+                minconn=6,      # Keep 6 connections ready (increased from 4)
+                maxconn=20,     # Allow up to 20 concurrent connections (increased from 12 to use full Micro plan capacity)
                 dsn=db_url,
                 sslmode='require',
                 connect_timeout=30,  # Increased from 10 to 30 seconds to handle network latency
@@ -196,10 +196,10 @@ def get_connection_pool(schema_name: str):
             _pool_stats['pools_created'] += 1
             _pool_stats['pool_misses'] += 1
             
-            cprint(f" [POOL] Created connection pool for '{schema_name}' (4-12 connections)", Colors.SUCCESS)
+            cprint(f" [POOL] Created connection pool for '{schema_name}' (6-20 connections)", Colors.SUCCESS)
             cprint(f" [POOL] Total pools: {_pool_stats['pools_created']}", Colors.INFO)
-            cprint(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 12} (Supabase Nano limit: 60)", Colors.INFO)
-            cprint(f" [POOL] Pool configuration: minconn=4, maxconn=12 (handles UI bursts + Python GC delays)", Colors.INFO)
+            cprint(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 20} (Supabase Micro limit: 60)", Colors.INFO)
+            cprint(f" [POOL] Pool configuration: minconn=6, maxconn=20 (uses full Micro plan capacity)", Colors.INFO)
         else:
             _pool_stats['pool_hits'] += 1
         
@@ -427,19 +427,36 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         
         if thread.is_alive() or conn is None:
             # Pool exhausted or connection failed - log leaked connections
+            # ✅ FIX: Show both global and per-schema stats for better debugging
+            pool_instance = _connection_pools.get(schema_name)
+            pool_info = "N/A"
+            if pool_instance:
+                try:
+                    # Get current pool state (private variables, may not always work)
+                    pool_info = f"minconn={pool_instance.minconn}, maxconn={pool_instance.maxconn}"
+                except:
+                    pool_info = "Unable to get pool details"
+            
             print(f"\n{'='*70}")
-            cprint(f" [POOL] CONNECTION POOL EXHAUSTED - LEAKED CONNECTIONS DETECTED", Colors.ERROR)
+            cprint(f" [POOL] CONNECTION POOL EXHAUSTED FOR SCHEMA: {schema_name}", Colors.ERROR)
             print(f"{'='*70}")
             print(f"Schema: {schema_name}")
-            print(f"Pool stats:")
+            print(f"Pool config: {pool_info}")
+            print(f"\nGlobal stats (all schemas combined):")
             print(f"  Acquired: {_pool_stats['connections_acquired']}")
             print(f"  Returned: {_pool_stats['connections_returned']}")
             print(f"  LEAKED: {_pool_stats['connections_acquired'] - _pool_stats['connections_returned']}")
+            print(f"\n⚠️  NOTE: These are GLOBAL stats across all schemas.")
+            print(f"   Each schema has its own pool (maxconn=12).")
+            print(f"   If global leaked=0 but pool exhausted, issue is:")
+            print(f"     1. Too many CONCURRENT requests for this schema")
+            print(f"     2. Slow queries holding connections too long")
+            print(f"     3. Network latency to Supabase")
             print(f"\n SOLUTION:")
-            print(f"  1. Check code for missing conn.close() calls")
-            print(f"  2. Use context managers: with get_database_connection() as conn:")
-            print(f"  3. Restart application to reset pool")
-            print(f"  4. Check network connectivity to Supabase")
+            print(f"  1. Restart service to reset pools: Render dashboard → Manual Deploy")
+            print(f"  2. Optimize slow queries (check for 20+ second queries)")
+            print(f"  3. Add query caching for frequently accessed data")
+            print(f"  4. Consider increasing maxconn if legitimate high concurrency")
             print(f"{'='*70}\n")
             
             # If thread is still alive, it may have acquired connection - mark as leaked
