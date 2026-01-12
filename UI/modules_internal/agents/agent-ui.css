@@ -203,11 +203,10 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-}
-
-.agent-title-wrapper h2 i {
     font-style: normal !important;
     /* Override user agent stylesheet font-style:italic */
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
 }
 
 .agent-title-wrapper h2 i::before {
@@ -216,6 +215,8 @@
     font-variant: normal;
     text-rendering: auto;
     -webkit-font-smoothing: antialiased;
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
 }
 
 .agent-header-controls {

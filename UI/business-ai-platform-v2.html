@@ -54,6 +54,282 @@
         console.error('?? If you see visualisation_copy.js in errors, YOUR BROWSER CACHE IS CORRUPT');
     </script>
 
+    <!-- 🔍 DEBUG CAPTURE SYSTEM - Console log timeline with copy-to-clipboard -->
+    <script>
+        (function setupDebugCapture() {
+            // Skip if already initialized (in case of multiple loads)
+            if (window.DEBUG_CAPTURE_INITIALIZED) {
+                console.log('[DEBUG] Capture already initialized, skipping...');
+                return;
+            }
+            window.DEBUG_CAPTURE_INITIALIZED = true;
+
+            const startTime = performance.now();
+            const timeline = [];
+            const MAX_ENTRIES = 5000; // Prevent memory issues
+
+            // Helper to safely stringify objects
+            function safeStringify(obj) {
+                try {
+                    if (obj === null) return 'null';
+                    if (obj === undefined) return 'undefined';
+                    if (typeof obj === 'string') return obj;
+                    if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+                    if (obj instanceof Error) return `${obj.name}: ${obj.message}`;
+                    if (typeof obj === 'object') {
+                        // Avoid circular references
+                        const cache = new Set();
+                        return JSON.stringify(obj, (key, value) => {
+                            if (typeof value === 'object' && value !== null) {
+                                if (cache.has(value)) return '[Circular]';
+                                cache.add(value);
+                            }
+                            return value;
+                        });
+                    }
+                    return String(obj);
+                } catch (e) {
+                    return '[Unstringifiable Object]';
+                }
+            }
+
+            // Get caller info from stack trace
+            function getCallerInfo() {
+                try {
+                    const stack = new Error().stack;
+                    if (!stack) return { func: 'unknown', line: '' };
+
+                    const lines = stack.split('\n');
+                    // Skip: Error, getCallerInfo, console wrapper, find first real caller
+                    for (let i = 3; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line && !line.includes('console.') && !line.includes('setupDebugCapture')) {
+                            // Extract function name and line number
+                            const match = line.match(/at\s+(?:(.+?)\s+\()?(.+?):(\d+):(\d+)/);
+                            if (match) {
+                                const funcName = match[1] || 'anonymous';
+                                const lineNum = match[3];
+                                // Clean up function name - remove URL parts
+                                const cleanFunc = funcName.split('?')[0].split('#')[0].trim();
+                                return { func: cleanFunc, line: lineNum };
+                            }
+                            // Fallback parsing
+                            const simpleMatch = line.match(/at\s+(.+)/);
+                            if (simpleMatch) {
+                                return { func: simpleMatch[1].substring(0, 30), line: '' };
+                            }
+                        }
+                    }
+                    return { func: 'unknown', line: '' };
+                } catch (e) {
+                    return { func: 'error', line: '' };
+                }
+            }
+
+            // Intercept all console methods
+            const methods = ['log', 'warn', 'error', 'info', 'debug'];
+            const originalMethods = {};
+
+            methods.forEach(method => {
+                originalMethods[method] = console[method].bind(console);
+
+                console[method] = function (...args) {
+                    const elapsed = (performance.now() - startTime).toFixed(2);
+                    const callerInfo = getCallerInfo();
+                    const message = args.map(safeStringify).join(' ');
+
+                    // Add to timeline (with rotation if too large)
+                    if (timeline.length >= MAX_ENTRIES) {
+                        timeline.shift(); // Remove oldest
+                    }
+
+                    timeline.push({
+                        time: elapsed,
+                        type: method,
+                        func: callerInfo.func,
+                        line: callerInfo.line,
+                        message: message,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // Call original console method
+                    originalMethods[method].apply(console, args);
+                };
+            });
+
+            // Export functions to window
+            window.exportTimeline = function (filter = '', format = 'simple') {
+                const filtered = filter ?
+                    timeline.filter(l =>
+                        l.message.toLowerCase().includes(filter.toLowerCase()) ||
+                        l.func.toLowerCase().includes(filter.toLowerCase()) ||
+                        l.type.toLowerCase().includes(filter.toLowerCase())
+                    ) :
+                    timeline;
+
+                let report;
+
+                if (format === 'json') {
+                    report = JSON.stringify(filtered, null, 2);
+                } else if (format === 'csv') {
+                    report = 'Time(ms),Type,Function,Line,Message\n' +
+                        filtered.map(l =>
+                            `${l.time},${l.type},"${l.func}",${l.line},"${l.message.replace(/"/g, '""')}"`
+                        ).join('\n');
+                } else {
+                    // Simple format (default) - Time, Function, Line, Message
+                    report = filtered.map(l => {
+                        const lineStr = l.line ? `:${l.line}` : '';
+                        return `[${l.time.padStart(10)}ms] ${l.func.padEnd(30).substring(0, 30)}${lineStr.padEnd(6)} | ${l.message}`;
+                    }).join('\n');
+                }
+
+                // Try to copy to clipboard with better focus handling
+                const copyToClipboard = async () => {
+                    try {
+                        await navigator.clipboard.writeText(report);
+                        originalMethods.log(`✅ Copied ${filtered.length} entries (${timeline.length} total)`);
+                        if (filter) originalMethods.log(`📌 Filter: "${filter}"`);
+                        return true;
+                    } catch (err) {
+                        return false;
+                    }
+                };
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    copyToClipboard().then(success => {
+                        if (!success) {
+                            originalMethods.warn('⚠️ Clipboard copy failed (document not focused). Output below - select and copy manually:');
+                            originalMethods.log('═══════════ START OUTPUT ═══════════');
+                            originalMethods.log(report);
+                            originalMethods.log('════════════ END OUTPUT ════════════');
+                        }
+                    });
+                } else {
+                    // Fallback for older browsers
+                    originalMethods.warn('⚠️ Clipboard API not available. Output below - select and copy manually:');
+                    originalMethods.log('═══════════ START OUTPUT ═══════════');
+                    originalMethods.log(report);
+                    originalMethods.log('════════════ END OUTPUT ════════════');
+                }
+
+                return report;
+            };
+
+            // Quick stats
+            window.logStats = function () {
+                const stats = {
+                    total: timeline.length,
+                    log: timeline.filter(l => l.type === 'log').length,
+                    warn: timeline.filter(l => l.type === 'warn').length,
+                    error: timeline.filter(l => l.type === 'error').length,
+                    info: timeline.filter(l => l.type === 'info').length,
+                    debug: timeline.filter(l => l.type === 'debug').length,
+                    firstLog: timeline[0]?.time || 0,
+                    lastLog: timeline[timeline.length - 1]?.time || 0,
+                    duration: ((timeline[timeline.length - 1]?.time || 0) - (timeline[0]?.time || 0)).toFixed(2)
+                };
+
+                originalMethods.log('📊 Console Timeline Stats:', stats);
+                return stats;
+            };
+
+            // Clear timeline
+            window.clearTimeline = function () {
+                const count = timeline.length;
+                timeline.length = 0;
+                originalMethods.log(`🗑️ Cleared ${count} log entries`);
+            };
+
+            // Quick filters
+            window.exportErrors = () => exportTimeline('error');
+            window.exportWarnings = () => exportTimeline('warn');
+            window.exportErrorsAndWarnings = function () {
+                const filtered = timeline.filter(l => l.type === 'error' || l.type === 'warn');
+                const report = filtered.map(l => {
+                    const lineStr = l.line ? `:${l.line}` : '';
+                    return `[${l.time.padStart(10)}ms] ${l.type.toUpperCase().padEnd(5)} ${l.func.padEnd(30).substring(0, 30)}${lineStr.padEnd(6)} | ${l.message}`;
+                }).join('\n');
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(report).then(() => {
+                        originalMethods.log(`✅ Copied ${filtered.length} errors/warnings (${timeline.length} total)`);
+                    }).catch(() => {
+                        originalMethods.warn('⚠️ Clipboard failed. Output below:');
+                        originalMethods.log('═══════════ START OUTPUT ═══════════');
+                        originalMethods.log(report);
+                        originalMethods.log('════════════ END OUTPUT ════════════');
+                    });
+                }
+                return report;
+            };
+            window.exportInit = () => exportTimeline('init');
+            window.exportLoad = () => exportTimeline('load');
+            window.exportSocket = () => exportTimeline('socket');
+            window.exportStreamEvents = function () {
+                // Filter for stream start/end and major events only (exclude verbose deltas)
+                const filtered = timeline.filter(l => {
+                    const msg = l.message.toLowerCase();
+                    // Include stream markers
+                    if (msg.includes('stream isolation') ||
+                        msg.includes('connecting to sse') ||
+                        msg.includes('receiving streamed') ||
+                        msg.includes('streaming function loaded') ||
+                        msg.includes('stream complete') ||
+                        msg.includes('stream closed') ||
+                        msg.includes('stream error')) return true;
+
+                    // Include status changes
+                    if (msg.includes('[status]')) return true;
+
+                    // Include thinking/tool start (but not every delta)
+                    if (msg.includes('event:') && msg.includes('delta_type')) {
+                        // Only include "start" and "stop" events, skip "delta"
+                        return msg.includes("'start'") || msg.includes("'stop'") || msg.includes('"start"') || msg.includes('"stop"');
+                    }
+
+                    // Include thread/message markers
+                    if (msg.includes('user message rendered') ||
+                        msg.includes('agent started') ||
+                        msg.includes('message added:')) return true;
+
+                    return false;
+                });
+
+                const report = filtered.map(l => {
+                    const lineStr = l.line ? `:${l.line}` : '';
+                    return `[${l.time.padStart(10)}ms] ${l.type.toUpperCase().padEnd(5)} ${l.func.padEnd(30).substring(0, 30)}${lineStr.padEnd(6)} | ${l.message}`;
+                }).join('\n');
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(report).then(() => {
+                        originalMethods.log(`✅ Copied ${filtered.length} stream events (${timeline.length} total)`);
+                    }).catch(() => {
+                        originalMethods.warn('⚠️ Clipboard failed. Output below:');
+                        originalMethods.log('═══════════ START OUTPUT ═══════════');
+                        originalMethods.log(report);
+                        originalMethods.log('════════════ END OUTPUT ════════════');
+                    });
+                }
+                return report;
+            };
+
+            originalMethods.log('🔍 Debug Capture Active');
+            originalMethods.log('📋 Commands:');
+            originalMethods.log('  exportTimeline()              - Copy all logs');
+            originalMethods.log('  exportTimeline("keyword")     - Copy filtered logs');
+            originalMethods.log('  exportTimeline("", "json")    - Export as JSON');
+            originalMethods.log('  exportTimeline("", "csv")     - Export as CSV');
+            originalMethods.log('  exportErrors()                - Copy only errors');
+            originalMethods.log('  exportWarnings()              - Copy only warnings');
+            originalMethods.log('  exportErrorsAndWarnings()     - Copy errors + warnings together');
+            originalMethods.log('  exportStreamEvents()          - Copy stream start/end (no verbose deltas)');
+            originalMethods.log('  exportInit()                  - Copy initialization logs');
+            originalMethods.log('  logStats()                    - Show timeline statistics');
+            originalMethods.log('  clearTimeline()               - Clear captured logs');
+        })();
+    </script>
+
     <!-- Favicon - Molecule Icon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="alternate icon" href="favicon.ico">

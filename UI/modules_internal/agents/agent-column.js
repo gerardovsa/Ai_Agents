@@ -1179,10 +1179,10 @@ const AgentColumn = (function () {
         // Toggle 'has-messages' class to show/hide scroll controls via CSS (opacity transition)
         if (hasMessages) {
             messagesContainer.classList.add('has-messages');
-            console.log(`[AgentColumn] ✅ Showing scroll controls for agent ${agentId} (${realMessageCount} messages)`);
+            // console.log(`[AgentColumn] ✅ Showing scroll controls for agent ${agentId} (${realMessageCount} messages)`);
         } else {
             messagesContainer.classList.remove('has-messages');
-            console.log(`[AgentColumn] ⬜ Hiding scroll controls for agent ${agentId} (no messages)`);
+            // console.log(`[AgentColumn] ⬜ Hiding scroll controls for agent ${agentId} (no messages)`);
         }
     }    /**
      * Toggle hamburger menu

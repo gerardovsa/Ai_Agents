@@ -947,13 +947,13 @@ const UnifiedMessageRenderer = (function () {
             messageDiv.appendChild(headerDiv);
             messageDiv.appendChild(contentDiv);
 
-            console.log(`[UnifiedMessageRenderer] Assembled ${role} message, messageDiv has ${messageDiv.children.length} children`);
-            console.log(`[UnifiedMessageRenderer] contentDiv innerHTML length: ${contentDiv.innerHTML.length}`);
+            // console.log(`[UnifiedMessageRenderer] Assembled ${role} message, messageDiv has ${messageDiv.children.length} children`);
+            // console.log(`[UnifiedMessageRenderer] contentDiv innerHTML length: ${contentDiv.innerHTML.length}`);
 
             // Append to container
             messagesContainer.appendChild(messageDiv);
 
-            console.log(`[UnifiedMessageRenderer] Appended to container ${messagesContainer.id}, container now has ${messagesContainer.children.length} messages`);
+            // console.log(`[UnifiedMessageRenderer] Appended to container ${messagesContainer.id}, container now has ${messagesContainer.children.length} messages`);
 
             // Auto-scroll if enabled
             if (scrollToBottom) {
@@ -962,7 +962,7 @@ const UnifiedMessageRenderer = (function () {
                 }, SCROLL_DELAY_MS);
             }
 
-            console.log(`[UnifiedMessageRenderer] ✅ Rendered ${role} message in ${messagesContainer.id}`);
+            // console.log(`[UnifiedMessageRenderer] ✅ Rendered ${role} message in ${messagesContainer.id}`);
             return messageDiv;
 
         } catch (error) {

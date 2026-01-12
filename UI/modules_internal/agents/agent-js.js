@@ -1998,7 +1998,7 @@ const MultiAgent = {
                             // Re-fetch from MessageStore after backend load
                             const loadedMessages = window.MessageStore.getMessages(thread.id);
                             if (loadedMessages && loadedMessages.length > 0) {
-                                console.log(`[LOAD] Rendering ${loadedMessages.length} messages...`);
+                                console.log(`[LOAD] 📨 Rendering ${loadedMessages.length} messages for "${thread.title}"`);
 
                                 // Remove processing indicator before rendering messages
                                 removeProcessingIndicator(agentId);
@@ -2006,10 +2006,10 @@ const MultiAgent = {
                                 // CRITICAL: Use for...of with await instead of forEach
                                 for (const [index, msg] of loadedMessages.entries()) {
                                     // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
-                                    console.log(`[LOAD] 📝 Rendering message ${index + 1}/${loadedMessages.length}`);
-                                    console.log(`[LOAD]    Role: ${msg.role}`);
-                                    console.log(`[LOAD]    Content type: ${typeof msg.content}`);
-                                    console.log(`[LOAD]    Content preview:`, Array.isArray(msg.content) ? `Array[${msg.content.length}]` : String(msg.content).substring(0, 100));
+                                    // console.log(`[LOAD] 📝 Rendering message ${index + 1}/${loadedMessages.length}`);
+                                    // console.log(`[LOAD]    Role: ${msg.role}`);
+                                    // console.log(`[LOAD]    Content type: ${typeof msg.content}`);
+                                    // console.log(`[LOAD]    Content preview:`, Array.isArray(msg.content) ? `Array[${msg.content.length}]` : String(msg.content).substring(0, 100));
 
                                     if (typeof UnifiedMessageRenderer !== 'undefined') {
                                         // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
@@ -2029,9 +2029,9 @@ const MultiAgent = {
 
                                         if (!rendered) {
                                             console.warn(`[LOAD] ❌ Message ${index + 1} NOT RENDERED (${msg.role})`);
-                                            console.log(`[LOAD]    Check console for skip reason from UnifiedMessageRenderer`);
+                                            // console.log(`[LOAD]    Check console for skip reason from UnifiedMessageRenderer`);
                                         } else {
-                                            console.log(`[LOAD] ✅ Message ${index + 1} rendered successfully`);
+                                            // console.log(`[LOAD] ✅ Message ${index + 1} rendered successfully`);
                                         }
                                     } else {
                                         console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
@@ -2056,7 +2056,7 @@ const MultiAgent = {
                                     }
                                 }
                                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                                console.log(`[OK] All ${loadedMessages.length} messages rendered for agent-${agentId}`);
+                                console.log(`[LOAD] ✅ Completed - ${loadedMessages.length} messages rendered for agent-${agentId}`);
 
                                 // ✅ Update scroll controls visibility after loading messages
                                 if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.updateScrollControlsVisibility === 'function') {
@@ -2077,12 +2077,12 @@ const MultiAgent = {
                 }
             } else {
                 // Load thread messages from MessageStore with proper rendering
-                console.log(`[LOAD] Rendering ${storedMessages.length} messages from MessageStore...`);
+                console.log(`[LOAD] 📨 Rendering ${storedMessages.length} messages from MessageStore for "${thread.title}"`);
 
                 // CRITICAL: Use for...of with await instead of forEach
                 for (const [index, msg] of storedMessages.entries()) {
                     // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
-                    console.log(`[LOAD] Rendering message ${index + 1}/${storedMessages.length} (${msg.role})`);
+                    // console.log(`[LOAD] Rendering message ${index + 1}/${storedMessages.length} (${msg.role})`);
 
                     if (typeof UnifiedMessageRenderer !== 'undefined') {
                         // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
@@ -3379,8 +3379,13 @@ function clearAgentAttachedFiles(agentId) {
 }
 
 function createAddAgentBar() {
+    console.log('[Multi-Agent] createAddAgentBar() called');
+
     const existingBar = document.querySelector('.add-agent-bar');
-    if (existingBar) return;
+    if (existingBar) {
+        console.log('[Multi-Agent] Add Agent bar already exists, skipping creation');
+        return;
+    }
 
     const bar = document.createElement('div');
     bar.className = 'add-agent-bar';
@@ -3394,19 +3399,28 @@ function createAddAgentBar() {
 
     // Append to multi-agent-container (as last flex item)
     const container = document.getElementById('multi-agent-container');
+    console.log('[Multi-Agent] Container found?', !!container);
+
     if (container) {
         container.appendChild(bar);
-        console.log('[Multi-Agent] Add Agent bar appended to container');
+        console.log('[Multi-Agent] ✅ Add Agent bar appended to container');
 
-        // Force visible class after a short delay to ensure proper rendering
+        // Check if multi-agent tab is visible right now (most reliable method)
         setTimeout(() => {
-            const currentTab = document.querySelector('.tab-button.active')?.dataset?.tab;
-            console.log('[Multi-Agent] Current active tab:', currentTab);
-            if (currentTab === 'multi-agent' || AppState?.currentTab === 'multi-agent') {
+            const multiAgentTabActive = document.getElementById('tab-multi-agent')?.classList.contains('active');
+            console.log('[Multi-Agent] Multi-agent tab DOM active?', multiAgentTabActive);
+            console.log('[Multi-Agent] AppState.currentTab:', AppState?.currentTab);
+
+            // If multi-agent tab DOM is active OR AppState says so, show the bar
+            if (multiAgentTabActive || AppState?.currentTab === 'multi-agent') {
                 bar.classList.add('visible');
-                console.log('[Multi-Agent] Add Agent bar set to VISIBLE');
+                console.log('[Multi-Agent] ✅ Add Agent bar set to VISIBLE');
+            } else {
+                console.log('[Multi-Agent] ⚠️ Multi-agent tab NOT active, bar will be hidden');
             }
-        }, 100);
+        }, 200);
+    } else {
+        console.error('[Multi-Agent] ❌ Container #multi-agent-container NOT FOUND');
     }
 }
 
@@ -4206,7 +4220,7 @@ async function sendAgentMessage(agentId) {
             messageId: null  // User-typed message, ID assigned after backend sync
         }
     );
-    console.log(`[Agent ${agentId}] User message rendered`);
+    // console.log(`[Agent ${agentId}] User message rendered`);
 
     // ✅ BROADCAST: Emit message to other sessions
     if (window.SynergyRealtime && window.SynergyRealtime.socket) {
@@ -4463,7 +4477,7 @@ async function sendAgentMessage(agentId) {
         let thinkingBubble = null;  // Thinking bubble (if needed)
         let lastEventType = null;  // Track event transitions to create new bubbles
 
-        console.log(`[Agent ${agentId}] 🔵 STREAMING FUNCTION LOADED (v20251122d)`);
+        // console.log(`[Agent ${agentId}] 🔵 STREAMING FUNCTION LOADED (v20251122d)`);
 
         // ISOLATION FIX: Thread-specific error tracking (prevents one agent breaking others)
         let threadErrorCount = 0;
@@ -4478,6 +4492,8 @@ async function sendAgentMessage(agentId) {
         const reader = streamResponse.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+
+        console.log(`[Agent ${agentId}] 🎬 Stream processing started - thread: ${streamThreadSlug}`);
 
         while (true) {
             const { done, value } = await reader.read();
@@ -4498,7 +4514,7 @@ async function sendAgentMessage(agentId) {
                     try {
                         const data = JSON.parse(dataStr);
 
-                        console.log(`[Agent ${agentId}] 📨 Event:`, data.type, data);
+                        // console.log(`[Agent ${agentId}] 📨 Event:`, data.type, data);
 
                         // CONVERSATION_SYNC EVENT - Receive backend's authoritative conversation (Nov 22, 2025 FIX)
                         // Backend sends complete conversation_history BEFORE 'complete' event
@@ -4541,7 +4557,7 @@ async function sendAgentMessage(agentId) {
                         else if ((data.type === 'thinking_block' || data.type === 'thinking') && (data.content || data.thinking)) {
                             const thinkingText = data.content || data.thinking || '';
                             if (thinkingText && thinkingText.trim().length > 0) {
-                                console.log(`[Agent ${agentId}] 💭 THINKING: ${thinkingText.substring(0, 50)}...`);
+                                // console.log(`[Agent ${agentId}] 💭 THINKING: ${thinkingText.substring(0, 50)}...`);
 
                                 // Update status
                                 if (typeof AgentStatusIndicator !== 'undefined') {
@@ -5217,7 +5233,7 @@ async function sendAgentMessage(agentId) {
             addAgentMessage(agentId, 'ai', ` Thread error: Too many parse errors. Please try again.`);
         }
 
-        console.log(`[Agent ${agentId}] Stream complete. Response length: ${fullResponse.length}`);
+        console.log(`[Agent ${agentId}] ✅ Stream complete - ${fullResponse.length} chars received`);
 
         // Clear status indicator
         if (typeof AgentStatusIndicator !== 'undefined') {
@@ -5964,7 +5980,7 @@ async function addAgentMessage(agentId, role, content) {
         return;
     }
 
-    console.log(`[Agent ${agentId}] Message rendered using unified renderer`);
+    // console.log(`[Agent ${agentId}] Message rendered using unified renderer`);
     return messageDiv;
 
     // OLD CODE BELOW (REPLACED BY UNIFIED RENDERER)

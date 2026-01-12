@@ -143,9 +143,9 @@ const AgentStatusIndicator = {
         // Add new status class to icon if provided
         if (status) {
             agentIcon.classList.add(`status-${status}`);
-            console.log(`[STATUS] Agent ${agentId}: ${status}`);
+            // console.log(`[STATUS] Agent ${agentId}: ${status}`);
         } else {
-            console.log(`[STATUS] Agent ${agentId}: idle`);
+            // console.log(`[STATUS] Agent ${agentId}: idle`);
         }
 
         // ✨ NEW: Also update the quick-nav-badge with the same status
@@ -170,7 +170,7 @@ const AgentStatusIndicator = {
         // Add new status class to badge if provided
         if (status) {
             badge.classList.add(`status-${status}`);
-            console.log(`[STATUS] Quick-nav badge ${agentId}: ${status}`);
+            // console.log(`[STATUS] Quick-nav badge ${agentId}: ${status}`);
         }
     },
 
