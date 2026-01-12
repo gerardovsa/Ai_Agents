@@ -2956,7 +2956,7 @@ window.communicationHub = {
 
                             allThreadEmails = await Promise.all(fullEmailPromises);
                             this.log.success(`Fetched full content for ${allThreadEmails.length} thread emails`);
-                            
+
                             // ✅ CRITICAL: Log the email IDs to verify we got the right thread
                             this.log.info(`Thread emails (${allThreadEmails.length}):`, allThreadEmails.map(e => ({
                                 id: e.id.substring(0, 20) + '...',
@@ -2971,7 +2971,7 @@ window.communicationHub = {
                     // Continue with single email
                 }
             }
-            
+
             // Fallback if thread fetch failed - use just the current email
             if (allThreadEmails.length === 0) {
                 allThreadEmails = [emailData];
@@ -3000,9 +3000,9 @@ window.communicationHub = {
                 // Split into: current email (clicked) + all other emails (thread history)
                 const threadHistoryEmails = allThreadEmails.filter(e => e.id !== currentEmailId);
                 const currentEmail = allThreadEmails.find(e => e.id === currentEmailId) || emailData;
-                
+
                 this.log.info(`Building AI prompt - Current: ${currentEmail.id.substring(0, 20)}..., Thread history: ${threadHistoryEmails.length} emails`);
-                
+
                 const emailWithThreadHistory = {
                     ...currentEmail,  // Use current email's data
                     thread_history: threadHistoryEmails.map(email => ({  // ALL other emails in thread
@@ -3216,9 +3216,9 @@ Draft questions for the customer listing all missing details required for accura
             // Split into: current email (clicked) + all other emails (thread history)
             const threadHistoryEmailsAgentX = allThreadEmails.filter(e => e.id !== currentEmailId);
             const currentEmailAgentX = allThreadEmails.find(e => e.id === currentEmailId) || emailData;
-            
+
             this.log.info(`Building AI prompt for agent-X - Current: ${currentEmailAgentX.id.substring(0, 20)}..., Thread history: ${threadHistoryEmailsAgentX.length} emails`);
-            
+
             const emailWithThreadHistory = {
                 ...currentEmailAgentX,  // Use current email's data
                 thread_history: threadHistoryEmailsAgentX.map(email => ({  // ALL other emails in thread

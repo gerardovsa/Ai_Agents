@@ -888,6 +888,93 @@ process_outlook_attachment_for_ai(
 # You see the visual content immediately!
 ```
 
+**🚨 CRITICAL: How to Actually Execute SMART Tools**
+
+These SMART bundled tools are now **FULLY IMPLEMENTED** and ready to use! Here's what you need to know:
+
+**✅ Backend Implementation Complete (January 13, 2026):**
+- Both `process_email_attachment_complete` and `process_local_file_universal` are implemented in `tools/implementations/universal_file_tools.py`
+- Tools automatically register via `@tool_executor()` decorator
+- Full intelligent routing: Office files → cloud platform tools, PDFs/images → vision processing, data files → local parsing
+- Auto-cleanup, error handling, and fallback mechanisms included
+
+**📋 How to Use:**
+```python
+# ✅ CORRECT - Just call the tool directly
+process_email_attachment_complete(
+    source='outlook',
+    message_id='msg_abc123',
+    attachment_id='att_xyz789',
+    processing_mode='auto'  # Intelligent routing
+)
+
+# ✅ ALSO CORRECT - For local files
+process_local_file_universal(
+    file_path='/tmp/outlook_attachments/report.xlsx',
+    processing_mode='auto'  # Intelligent routing
+)
+```
+
+**⚙️ Processing Modes Explained:**
+- `'auto'` (RECOMMENDED): Backend intelligently routes based on file type
+  - Excel/Word → Upload to OneDrive → Extract structured data
+  - PDF/images → Vision processing with content blocks
+  - CSV/TXT → Local Python parsing
+- `'cloud_onedrive'`: Force OneDrive upload → Microsoft platform tools
+- `'cloud_gdrive'`: Force Google Drive upload → Google platform tools  
+- `'vision'`: Force vision processing (PDFs rendered as images)
+- `'local_python'`: Force local parsing (CSV/TXT only)
+
+**🔍 What Happens Behind the Scenes:**
+1. Download attachment to temp folder
+2. Auto-detect file type (.xlsx, .pdf, .csv, etc.)
+3. Intelligent routing based on processing_mode
+4. For Office files: Upload to cloud → Use microsoft_excel_get_range or google_sheets_read_data → Extract structured data
+5. For PDFs/images: Use existing vision tools (process_outlook_attachment_for_ai)
+6. For data files: Parse locally with pandas/json
+7. Auto-cleanup temp files
+8. Return appropriate format (structured JSON or content_blocks)
+
+**❌ Common Mistakes to Avoid:**
+- Don't manually download → upload → read (the SMART tool does all this automatically!)
+- Don't use `execute_tool()` wrapper (just call the function directly)
+- Don't specify file paths manually (the tool handles temp file management)
+- Don't forget to check the `success` field in the response
+
+**🎯 Real-World Example:**
+```python
+# User: "Open the Excel attachment from my last email"
+
+# Step 1: List recent emails
+emails = microsoft_outlook_list_messages(limit=5)
+
+# Step 2: Get attachments
+attachments = microsoft_outlook_get_attachments(message_id=emails[0]['id'])
+
+# Step 3: Use SMART tool (ONE CALL = COMPLETE WORKFLOW)
+result = process_email_attachment_complete(
+    source='outlook',
+    message_id=emails[0]['id'],
+    attachment_id=attachments[0]['id'],
+    processing_mode='auto'
+)
+
+# Result contains structured data ready to analyze:
+# {
+#   "success": True,
+#   "file_type": "excel",
+#   "processing_mode": "cloud_onedrive",
+#   "data": {
+#     "rows": [...],  # All Excel rows as dicts
+#     "columns": ["Name", "Revenue", "Date"],
+#     "summary": {"total_revenue": 570000}
+#   }
+# }
+
+# Now you can directly analyze the data!
+print(f"Total revenue: ${result['data']['summary']['total_revenue']:,}")
+```
+
 **See COMPLETE WORKFLOW EXAMPLES section below for detailed examples of using these SMART tools.**
 
 ---
@@ -1415,9 +1502,60 @@ exec("code")  # ❌ ERROR: exec() not in safe_builtins
 eval("input")  # ❌ ERROR: eval() not in safe_builtins
 ```
 
+🚨 **CRITICAL: RestrictedPython Built-in Limitations**
+
+❌ **THESE BUILT-IN FUNCTIONS ARE BLOCKED (Use pandas/numpy instead):**
+```python
+# ❌ BLOCKED - Native Python functions not in safe_builtins:
+set([1, 2, 3])          # ERROR: name 'set' is not defined
+min([1, 2, 3])          # ERROR: name 'min' is not defined
+max([1, 2, 3])          # ERROR: name 'max' is not defined
+sum([1, 2, 3])          # ERROR: name 'sum' is not defined
+sorted([3, 1, 2])       # ERROR: name 'sorted' is not defined
+all([True, False])      # ERROR: name 'all' is not defined
+any([True, False])      # ERROR: name 'any' is not defined
+abs(-5)                 # ERROR: name 'abs' is not defined
+round(3.14159, 2)       # ERROR: name 'round' is not defined
+
+# ✅ USE PANDAS/NUMPY EQUIVALENTS INSTEAD:
+df['col'].unique()           # Instead of set()
+df['col'].min()              # Instead of min()
+df['col'].max()              # Instead of max()
+df['col'].sum()              # Instead of sum()
+df.sort_values('col')        # Instead of sorted()
+(df['col'] > 0).all()        # Instead of all()
+(df['col'] > 0).any()        # Instead of any()
+df['col'].abs()              # Instead of abs()
+df['col'].round(2)           # Instead of round()
+np.unique(values)            # Instead of set()
+np.min(values)               # Instead of min()
+np.max(values)               # Instead of max()
+np.sum(values)               # Instead of sum()
+```
+
+**Why This Matters:**
+RestrictedPython sandbox uses a limited `safe_builtins` dict that excludes many native Python functions for security. Always use pandas/numpy methods for data operations.
+
 ### Critical Rules for AI Agent
 
-🚨 **NEVER use python_exec for file reading:**
+🚨 **RULE 1: Use pandas/numpy methods, NOT native Python built-ins:**
+```python
+# ❌ WRONG - RestrictedPython blocks these:
+unique_prices = set(brochure_50['TotalCost'].tolist())  # NameError: 'set'
+price_range = f"${min(prices)} - ${max(prices)}"       # NameError: 'min'
+
+# ✅ CORRECT - Use pandas equivalents:
+unique_prices = brochure_50['TotalCost'].unique()       # Returns numpy array
+price_range = f"${prices.min()} - ${prices.max()}"     # Pandas methods
+
+# ❌ WRONG:
+total = sum([row['amount'] for row in data])            # NameError: 'sum'
+
+# ✅ CORRECT:
+total = df['amount'].sum()                              # Pandas method
+```
+
+🚨 **RULE 2: NEVER use python_exec for file reading:**
 ```python
 # ❌ WRONG - Don't do this:
 python_exec(code="content = open('file.txt').read(); print(content)")
@@ -1426,7 +1564,7 @@ python_exec(code="content = open('file.txt').read(); print(content)")
 file_content = file_read(file_path="file.txt")
 ```
 
-🚨 **For visualizations, ALWAYS use plt.savefig():**
+🚨 **RULE 3: For visualizations, ALWAYS use plt.savefig():**
 ```python
 # ❌ WRONG - Won't work in headless environment:
 python_exec(code="plt.plot(x, y); plt.show()")
@@ -1435,13 +1573,40 @@ python_exec(code="plt.plot(x, y); plt.show()")
 python_exec(code="plt.plot(x, y); plt.savefig('chart.png'); print('Chart saved!')")
 ```
 
-🚨 **Timeout is 30 seconds - Optimize code:**
+🚨 **RULE 4: Timeout is 30 seconds - Optimize code:**
 ```python
 # ❌ SLOW - Loop-based operations:
 code = "total = 0\nfor i, row in df.iterrows():\n    total += row['amount']"
 
 # ✅ FAST - Vectorized operations:
 code = "total = df['amount'].sum()"
+```
+
+**Quick Reference - Common Operations:**
+```python
+# Unique values:
+df['col'].unique()           # NOT set(df['col'])
+
+# Min/Max:
+df['col'].min(), df['col'].max()  # NOT min(list), max(list)
+
+# Sum:
+df['col'].sum()              # NOT sum(list)
+
+# Count:
+len(df)                      # Works (len is allowed)
+df['col'].count()            # Also works
+
+# Check uniqueness:
+len(df['col'].unique())      # NOT len(set(df['col']))
+df['col'].nunique()          # Best option
+
+# Sorting:
+df.sort_values('col')        # NOT sorted(df['col'])
+
+# Boolean operations:
+(df['col'] > 0).all()        # NOT all(df['col'] > 0)
+(df['col'] > 0).any()        # NOT any(df['col'] > 0)
 ```
 
 ### Common Use Cases
@@ -1513,11 +1678,18 @@ print(f'\\nStatistical Summary:\\n{df.describe()}')
 ```
 
 **Common errors and fixes:**
+- **NameError: name 'set' is not defined** → Use `df['col'].unique()` or `np.unique(values)` instead
+- **NameError: name 'min' is not defined** → Use `df['col'].min()` or `np.min(values)` instead
+- **NameError: name 'max' is not defined** → Use `df['col'].max()` or `np.max(values)` instead
+- **NameError: name 'sum' is not defined** → Use `df['col'].sum()` or `np.sum(values)` instead
+- **NameError: name 'sorted' is not defined** → Use `df.sort_values('col')` instead
 - **SyntaxError** → Check code syntax, indentation, colons
-- **NameError** → Variable not defined, use globals_dict parameter
+- **NameError** (other variables) → Variable not defined, use globals_dict parameter
 - **ImportError** → Module not in whitelist, use allowed libraries only
 - **Timeout** → Code took >30s, optimize with vectorized operations
 - **KeyError** → Column doesn't exist, check df.columns first
+
+**Pro Tip:** If you get "NameError: name 'X' is not defined" for a common Python built-in, check if pandas/numpy has an equivalent method first.
 
 ### Decision Tree: Which Tool to Use?
 
@@ -2314,7 +2486,7 @@ inhouse_get_domain_guide()
 - 1.4 List complete parameter set with sources (confirmed/assumed/missing)
 
 **STAGE 2: USER CLARIFICATION (Before Calculation)**
-- 2.1 Present parameter summary: CONFIRMED / NEED CONFIRMATION / MISSING
+- 2.1 Present parameter summary: CONFIRMED / NEED CONFIRMATION / MISSING / NEED CONFIRMATION / MISSING
 - 2.2 For each uncertain/missing parameter, provide options with:
   * Cost impact (±$X)
   * Use case / reasoning
