@@ -261,7 +261,7 @@ class MicrosoftOutlookTools:
         params = {
             '$top': min(max_results, 500),
             '$orderby': order_by,
-            '$select': 'id,subject,from,receivedDateTime,isRead,hasAttachments,importance,bodyPreview'
+            '$select': 'id,subject,from,receivedDateTime,isRead,hasAttachments,importance,bodyPreview,conversationId'
         }
         
         if filter:

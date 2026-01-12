@@ -1620,6 +1620,13 @@ const MultiAgent = {
                         AgentInput.setupHandlers(agentId);
                     }
                 }
+
+                // CRITICAL: Show resize handle when thread is loaded
+                const resizeHandle = document.querySelector(`.agent-resize-handle[data-agent-id="${agentId}"]`);
+                if (resizeHandle) {
+                    resizeHandle.style.display = 'block';
+                    console.log(`[updateAgentHeader] Showed resize handle for agent-${agentId} (thread loaded)`);
+                }
             } else {
                 console.warn(`[updateAgentHeader] Empty HTML returned for thread ${threadInfo.threadId}`);
                 headerEl.innerHTML = ThreadManager.renderEmptyThreadInfo(`agent-${agentId}`);
@@ -1649,6 +1656,13 @@ const MultiAgent = {
                 if (typeof AgentInput !== 'undefined' && typeof AgentInput.cleanupHandlers === 'function') {
                     AgentInput.cleanupHandlers(agentId);
                 }
+            }
+
+            // CRITICAL: Hide resize handle when no thread loaded
+            const resizeHandle = document.querySelector(`.agent-resize-handle[data-agent-id="${agentId}"]`);
+            if (resizeHandle) {
+                resizeHandle.style.display = 'none';
+                console.log(`[updateAgentHeader] Hid resize handle for agent-${agentId} (no thread)`);
             }
 
             // Also clear messages container when no thread loaded
@@ -2156,6 +2170,13 @@ const MultiAgent = {
                 }
             } else {
                 console.warn(`[UI] Input container not found for agent-${agentId}`);
+            }
+
+            // CRITICAL: Show resize handle when thread is loaded
+            const resizeHandle = document.querySelector(`.agent-resize-handle[data-agent-id="${agentId}"]`);
+            if (resizeHandle) {
+                resizeHandle.style.display = 'block';
+                console.log(`[UI] Showed resize handle for agent-${agentId} (thread loaded)`);
             }
 
             // Also ensure input field is enabled

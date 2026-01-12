@@ -203,9 +203,10 @@ def list_emails():
     else:
         user_id = request.args.get('user_id', 1, type=int)
     account = request.args.get('account', 'all')
-    limit = request.args.get('limit', 50, type=int)
+    limit = request.args.get('limit', 200, type=int)  # Increased from 50 to 200 for better thread coverage
+    thread_id = request.args.get('thread_id', None)  # ✅ NEW: Filter by specific thread
     
-    print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}")
+    print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, thread_id={thread_id}")
     
     # ✅ FIRST: Check which accounts user has connected (with circuit breaker protection)
     has_google = False
@@ -252,11 +253,20 @@ def list_emails():
             
             # ✅ FIX: Pass _user_id and _injected_credentials flag (NOT credentials dict)
             # The Gmail service will fetch credentials from database using UserAuthManager
-            gmail_result = gmail_list_messages(
-                max_results=limit,
-                _user_id=user_id,
-                _injected_credentials=True
-            )
+            gmail_params = {
+                'max_results': limit,
+                '_user_id': user_id,
+                '_injected_credentials': True
+            }
+            
+            # ✅ NEW: Add thread filter if specified
+            if thread_id:
+                # Gmail thread_id format: "gmail_<actual_thread_id>"
+                actual_thread_id = thread_id.replace('gmail_', '') if thread_id.startswith('gmail_') else thread_id
+                gmail_params['query'] = f'in:anywhere'  # Search all folders for thread
+                print(f"[Communication Hub] 🔍 Filtering Gmail by thread: {actual_thread_id}")
+            
+            gmail_result = gmail_list_messages(**gmail_params)
             
             # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
             # NOT {'success': True, ...} - check for 'messages' key instead
@@ -308,7 +318,13 @@ def list_emails():
                     for future in as_completed(future_to_msg):
                         result = future.result()
                         if result:
-                            emails.append(result)
+                            # ✅ NEW: Filter by thread_id if specified
+                            if thread_id:
+                                actual_thread_id = thread_id.replace('gmail_', '') if thread_id.startswith('gmail_') else thread_id
+                                if result.get('thread_id') == actual_thread_id:
+                                    emails.append(result)
+                            else:
+                                emails.append(result)
                 
                 elapsed = time.time() - start_time
                 print(f"[Communication Hub] ⚡ Fetched {len(emails)} emails in {elapsed:.2f}s (parallel)")
@@ -341,6 +357,14 @@ def list_emails():
                     else:
                         from_email = str(from_addr)
                     
+                    msg_thread_id = msg.get('conversationId')
+                    
+                    # ✅ NEW: Filter by thread_id if specified
+                    if thread_id:
+                        actual_thread_id = thread_id.replace('outlook_', '') if thread_id.startswith('outlook_') else thread_id
+                        if msg_thread_id != actual_thread_id:
+                            continue  # Skip emails not in this thread
+                    
                     emails.append({
                         'id': f"outlook_{msg['id']}",
                         'provider': 'outlook',
@@ -351,7 +375,7 @@ def list_emails():
                         'is_read': msg.get('isRead', False),
                         'snippet': msg.get('bodyPreview', ''),
                         'has_attachments': msg.get('hasAttachments', False),
-                        'thread_id': msg.get('conversationId')  # ✅ Outlook conversation threading
+                        'thread_id': msg_thread_id  # ✅ Outlook conversation threading
                     })
             else:
                 print(f"[Communication Hub] ⚠️  Outlook returned no messages or error: {outlook_result.get('error', 'Unknown')}")

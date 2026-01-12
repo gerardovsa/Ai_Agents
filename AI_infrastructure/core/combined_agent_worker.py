@@ -2010,7 +2010,8 @@ def run_simple_agent_worker(
                     metadata={'round': tool_iteration, 'has_tool_use': True},
                     sender_team_id=None,  # AI agent (no Team ID)
                     recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct'  # Broadcast=Central HQ, Direct=Local Ops
+                    message_type='broadcast' if not recipient_team_id else 'direct',  # Broadcast=Central HQ, Direct=Local Ops
+                    message_source='assistant_output'  # AI-generated content
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Assistant message saved immediately")
@@ -2034,7 +2035,8 @@ def run_simple_agent_worker(
                     metadata={'round': tool_iteration, 'tool_results': True},
                     sender_team_id=None,  # System-generated tool results
                     recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct'
+                    message_type='broadcast' if not recipient_team_id else 'direct',
+                    message_source='tool_result'  # System-generated tool response
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Tool results saved immediately")
@@ -2117,7 +2119,8 @@ def run_simple_agent_worker(
                     metadata={'final_response': True, 'rounds': tool_iteration},
                     sender_team_id=None,  # AI agent
                     recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct'
+                    message_type='broadcast' if not recipient_team_id else 'direct',
+                    message_source='assistant_output'  # Final AI response
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Final assistant message saved immediately")
@@ -2141,7 +2144,8 @@ def run_simple_agent_worker(
                     metadata={'direct_response': True},
                     sender_team_id=None,  # AI agent
                     recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct'
+                    message_type='broadcast' if not recipient_team_id else 'direct',
+                    message_source='assistant_output'  # Direct AI response
                 )
                 if save_success:
                     print(f"{log_prefix} ✅ Assistant message saved immediately")

@@ -49,6 +49,11 @@ class EconomicalBusinessCardsShopifyCalculator:
     """
     
     # ============================================================================
+    # PRICING TIERS - Flexible Quantity Handling
+    # ============================================================================
+    PRICING_TIERS = [250, 500, 1000, 2000, 5000, 10000]
+    
+    # ============================================================================
     # CONFIGURABLE PRICING VARIABLES
     # ============================================================================
     PRICE_INCREASE_MULTIPLIER = Decimal('1.00')  # NO price increase default (can be adjusted)
@@ -63,6 +68,45 @@ class EconomicalBusinessCardsShopifyCalculator:
             config_path: Optional path to shopify_economical_business_cards.json config file
         """
         self.config = self._load_config(config_path) if config_path else None
+    
+    def _round_to_pricing_tier(self, quantity: int) -> int:
+        """
+        Round quantity DOWN to nearest pricing tier (customer-friendly pricing)
+        
+        Examples:
+            176 → 250 (rounds to next tier up for minimum quantity)
+            375 → 250 (rounds down to lower tier)
+            847 → 500 (rounds down to lower tier)
+            15000 → 10000 (caps at maximum tier)
+        
+        Args:
+            quantity: Requested quantity
+            
+        Returns:
+            Pricing tier quantity to use for calculation
+        """
+        if quantity <= 0:
+            raise ValueError(f"Quantity must be positive. Got: {quantity}")
+        
+        # Below minimum: use first tier
+        if quantity < self.PRICING_TIERS[0]:
+            return self.PRICING_TIERS[0]
+        
+        # Above maximum: use last tier
+        if quantity >= self.PRICING_TIERS[-1]:
+            return self.PRICING_TIERS[-1]
+        
+        # Find appropriate tier (round DOWN for customer-friendly pricing)
+        for i in range(len(self.PRICING_TIERS)):
+            if quantity <= self.PRICING_TIERS[i]:
+                # If quantity is less than current tier and not first tier,
+                # use previous tier (round down)
+                if i > 0 and quantity < self.PRICING_TIERS[i]:
+                    return self.PRICING_TIERS[i-1]
+                else:
+                    return self.PRICING_TIERS[i]
+        
+        return self.PRICING_TIERS[-1]
         
     def _load_config(self, config_path: str) -> Dict:
         """Load configuration from JSON file"""
@@ -97,10 +141,17 @@ class EconomicalBusinessCardsShopifyCalculator:
         quantity = int(quantity) if not isinstance(quantity, int) else quantity
         artworks = int(artworks) if not isinstance(artworks, int) else artworks
         
-        # Validate quantity
-        valid_quantities = [250, 500, 1000, 2000, 5000, 10000]
-        if quantity not in valid_quantities:
-            raise ValueError(f"Quantity must be one of: {valid_quantities}. Got: {quantity}")
+        # Store original quantity for specifications tracking
+        original_quantity = quantity
+        
+        # FLEXIBLE QUANTITY HANDLING: Round to nearest pricing tier
+        pricing_tier_quantity = self._round_to_pricing_tier(quantity)
+        
+        # Track tier adjustment in specifications
+        quantity_adjusted = (original_quantity != pricing_tier_quantity)
+        
+        # Use pricing tier for calculations
+        quantity = pricing_tier_quantity
         
         # Validate artworks
         if artworks < 1 or artworks > 50:
@@ -241,6 +292,9 @@ class EconomicalBusinessCardsShopifyCalculator:
         
         specifications = {
             'quantity': quantity,
+            'original_quantity': original_quantity,
+            'quantity_adjusted': quantity_adjusted,
+            'pricing_tier_used': quantity if quantity_adjusted else None,
             'print_sides': print_sides,
             'print_type': print_type,
             'finish_size': finish_size,

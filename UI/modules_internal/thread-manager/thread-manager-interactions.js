@@ -269,6 +269,13 @@ Object.assign(window.ThreadManager, {
             // Update Prime header with thread info
             this.updatePrimeHeader(threadId);
 
+            // CRITICAL: Show input container when thread is loaded (expandable Prime-style input system)
+            const inputContainer = document.querySelector('.ai-chat-input-container');
+            if (inputContainer) {
+                inputContainer.style.display = 'block';
+                console.log('[Interactions] Showed Prime input container (thread loaded)');
+            }
+
         } finally {
             // Release load lock
             loadState.prime = false;

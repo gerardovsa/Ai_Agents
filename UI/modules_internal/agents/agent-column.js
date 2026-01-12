@@ -2183,6 +2183,25 @@ const AgentColumn = (function () {
             attachedFilesContainer.innerHTML = '';
         }
 
+        // STEP 4.5: Hide input container and resize handle in empty state
+        const inputContainer = document.querySelector(`#agent-column-${agentId} .agent-input-container`);
+        if (inputContainer) {
+            inputContainer.style.display = 'none';
+            console.log(`[AgentColumn] Hid input container for agent ${agentId} (empty state)`);
+
+            // Cleanup input handlers
+            if (typeof AgentInput !== 'undefined' && typeof AgentInput.cleanupHandlers === 'function') {
+                AgentInput.cleanupHandlers(agentId);
+                console.log(`[AgentColumn] Cleaned up input handlers for agent ${agentId}`);
+            }
+        }
+
+        const resizeHandle = document.querySelector(`.agent-resize-handle[data-agent-id="${agentId}"]`);
+        if (resizeHandle) {
+            resizeHandle.style.display = 'none';
+            console.log(`[AgentColumn] Hid resize handle for agent ${agentId} (empty state)`);
+        }
+
         // STEP 5: Notify MultiAgent system if available (with threadId if available)
         if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.unloadThreadFromAgent === 'function') {
             // Get threadId from MultiAgent state before clearing it

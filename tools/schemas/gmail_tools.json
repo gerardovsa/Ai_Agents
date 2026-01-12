@@ -1513,7 +1513,7 @@
     {
       "name": "gmail_get_attachment",
       "short_description": "Download Gmail email attachment by message ID and attachment ID to local file",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_attachment', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload email attachment",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_attachment', ...) - DO NOT call directly!\n\n⚠️ NEXT STEP RECOMMENDATION:\nAfter downloading, use process_email_attachment_complete (SMART tool) to automatically:\n- Route Office files (Excel/Word) → Upload to cloud → Extract structured queryable data\n- Route PDFs/images → Vision processing → Content blocks\n- Route CSV/TXT → Local parsing → Structured JSON\n- Auto-cleanup temp files\nOne tool call instead of 8-12 manual steps!\n\nOR use process_local_file_universal if you need to process the downloaded file with custom options.\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload email attachment",
       "platform": "gmail",
       "category": "basic",
       "multi_modal_parameters": {
@@ -1595,6 +1595,8 @@
           "gmail_get_message → gmail_get_attachment (read email then download attachment)",
           "gmail_list_messages → gmail_get_attachment (find then download)",
           "gmail_get_attachment(export='google_drive') (download and save)",
+          "gmail_get_attachment → process_email_attachment_complete (RECOMMENDED: download then auto-process with intelligent routing)",
+          "gmail_get_attachment → process_local_file_universal (download then process with custom options)",
           "gmail_get_attachment → ai_analyze_file (download then analyze)"
         ],
         "success_indicators": {

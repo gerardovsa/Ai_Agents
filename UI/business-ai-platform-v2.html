@@ -11852,8 +11852,8 @@
             justify-content: center;
         }
 
-        /* Status border for agent icons */
-        .agent-header h2 i::before {
+        /* Status border for agent icons - using ::after to not conflict with Font Awesome ::before */
+        .agent-header h2 i::after {
             content: '';
             position: absolute;
             top: -2px;
@@ -11864,27 +11864,28 @@
             border: 2px solid transparent;
             opacity: 0;
             transition: all 0.3s ease;
+            pointer-events: none;
         }
 
-        .agent-header h2 i.status-thinking::before {
+        .agent-header h2 i.status-thinking::after {
             border-color: #8b5cf6;
             opacity: 1;
             animation: statusPulse 2s ease-in-out infinite;
         }
 
-        .agent-header h2 i.status-tool-running::before {
+        .agent-header h2 i.status-tool-running::after {
             border-color: #eab308;
             opacity: 1;
             animation: statusPulse 1.5s ease-in-out infinite;
         }
 
-        .agent-header h2 i.status-tool-success::before {
+        .agent-header h2 i.status-tool-success::after {
             border-color: #60A5FA;
             opacity: 1;
             animation: statusPulse 1.5s ease-in-out infinite;
         }
 
-        .agent-header h2 i.status-writing::before {
+        .agent-header h2 i.status-writing::after {
             border-color: #ffffff;
             opacity: 1;
             animation: statusPulse 2s ease-in-out infinite;

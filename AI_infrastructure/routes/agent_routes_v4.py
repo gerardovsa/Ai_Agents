@@ -303,11 +303,13 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
                              metadata: Optional[Dict] = None,
                              sender_team_id: Optional[str] = None,
                              recipient_team_id: Optional[str] = None,
-                             message_type: str = 'broadcast') -> bool:
+                             message_type: str = 'broadcast',
+                             message_source: str = 'user_input') -> bool:
     """
     Save a single message to the database immediately with transaction management.
     
     FIXED: Proper cursor management with finally block and rollback handling.
+    UPDATED: Added message_source parameter to distinguish user input from tool results
     UPDATED: Added Team ID routing parameters for multi-user collaboration.
     
     Args:
@@ -385,15 +387,15 @@ def save_message_to_database(thread_slug: str, role: str, content: Any,
                     cprint(f"[DB SAVE] WARNING: Metadata serialization failed: {meta_error}", Colors.WARNING)
                     metadata_val = None
         
-                # Step 4: Insert message with Team ID routing
+                # Step 4: Insert message with Team ID routing and message_source
                 cursor.execute("""
                     INSERT INTO sessions.messages 
                     (thread_id, session_id, role, content, user_id, model, tokens_used, metadata, 
-                     sender_team_id, recipient_team_id, message_type, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                     sender_team_id, recipient_team_id, message_type, message_source, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     RETURNING id
                 """, (thread_id, thread_slug, role, content_value, user_id, model, tokens_used, metadata_val, 
-                      sender_team_id, recipient_team_id, message_type))
+                      sender_team_id, recipient_team_id, message_type, message_source))
                 
                 message_row = cursor.fetchone()
                 message_id = message_row[0] if isinstance(message_row, tuple) else message_row['id']
@@ -722,6 +724,10 @@ def start_agent(agent_id):
             recipient_team_id = data.get('recipient_team_id')  # Username of recipient (None = broadcast)
             message_type = data.get('message_type', 'direct')  # 'direct' for user messages
             session_token = data.get('session_token')
+            
+            # ✅ OPTION 2: Support metadata from Communication Hub (email_id, message_type:'email', etc.)
+            request_metadata = data.get('metadata', {})
+            print(f"[START] 🆕 Received metadata: {request_metadata}")
         
         # ✅ REALTIME SYNC: Extract session token from header if not in body
         if not session_token:
@@ -767,9 +773,20 @@ def start_agent(agent_id):
         # STEP 3: APPEND USER MESSAGE (in memory)
         # ============================================
         print(f"\n[START] 📝 STEP 3: Appending user message to conversation...")
-        user_message_content = message
-        if file_data:
+        
+        # ✅ OPTION 2: Support multimodal content arrays from Communication Hub
+        # If message is already a content blocks array (from email with attachments), use it directly
+        # Otherwise, convert string message to content block format
+        if isinstance(message, list):
+            # Message is already multimodal array: [{"type":"text","text":"..."}, {"type":"image","source":{...}}]
+            print(f"[START] 🆕 Multimodal content detected: {len(message)} blocks")
+            user_message_content = message
+        elif file_data:
+            # Legacy file upload handling (form data)
             user_message_content = file_data + [{'type': 'text', 'text': message}]
+        else:
+            # Simple text message
+            user_message_content = message
         
         user_message = {
             'role': 'user',
@@ -803,6 +820,11 @@ def start_agent(agent_id):
             from datetime import datetime, timezone
             message_metadata['session_token'] = session_token
             message_metadata['timestamp'] = datetime.now(timezone.utc).isoformat()
+        
+        # ✅ OPTION 2: Merge request metadata (email_id, message_type:'email', has_attachments, etc.)
+        if 'request_metadata' in locals() and request_metadata:
+            message_metadata.update(request_metadata)
+            print(f"[START] 🆕 Merged request metadata: {request_metadata}")
         
         for attempt in range(max_retries):
             save_success = save_message_to_database(

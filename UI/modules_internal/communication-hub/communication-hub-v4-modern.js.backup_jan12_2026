@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FILE: UI/modules_external/communication-hub/communication-hub-v4-modern.js
  * MODULE TYPE: internal (loaded as regular script, not ES6 module)
  * ARCHITECTURE: V4-Modern (Composition pattern)
@@ -1247,22 +1247,10 @@ window.communicationHub = {
      * @param {Array} messages - Array of email messages
      * @returns {Object} { chains: Array, singles: Array, stats: Object }
      */
-    /**
-     * Normalize email subject for threading (remove RE:, FW:, etc.)
-     */
-    normalizeSubject(subject) {
-        if (!subject) return '';
-        return subject
-            .replace(/^(re|fw|fwd):\s*/gi, '')  // Remove RE:, FW:, FWD:
-            .replace(/\s+/g, ' ')                // Normalize whitespace
-            .trim()
-            .toLowerCase();
-    },
-
     groupEmailsByThread(messages) {
-        // STEP 1: Try thread_id grouping first (Outlook/Gmail conversationId)
         const threadMap = new Map();
 
+        // Group messages by thread_id
         messages.forEach(msg => {
             const threadId = msg.thread_id || msg.id;
             if (!threadMap.has(threadId)) {
@@ -1271,12 +1259,14 @@ window.communicationHub = {
             threadMap.get(threadId).push(msg);
         });
 
-        // STEP 2: Check if thread_id grouping is too granular (mostly singles)
-        let chains = [];
-        let singles = [];
+        const chains = [];
+        const singles = [];
 
+        // Classify as chains (>1 message) or singles
         threadMap.forEach((msgs, threadId) => {
+            // Sort messages within thread by date (newest first)
             msgs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
             if (msgs.length > 1) {
                 chains.push({
                     thread_id: threadId,
@@ -1289,56 +1279,12 @@ window.communicationHub = {
             }
         });
 
-        const singleRatio = singles.length / messages.length;
-
-        // STEP 3: If >80% are singles, fallback to subject-based threading
-        if (singleRatio > 0.8 && singles.length > 10) {
-            console.log(`⚠️ Thread_id grouping too granular (${(singleRatio * 100).toFixed(0)}% singles). Falling back to subject-based threading...`);
-
-            // Regroup by normalized subject
-            const subjectMap = new Map();
-            messages.forEach(msg => {
-                const normalizedSubject = this.normalizeSubject(msg.subject);
-                if (!subjectMap.has(normalizedSubject)) {
-                    subjectMap.set(normalizedSubject, []);
-                }
-                subjectMap.get(normalizedSubject).push(msg);
-            });
-
-            // Rebuild chains and singles from subject grouping
-            chains = [];
-            singles = [];
-
-            subjectMap.forEach((msgs, subject) => {
-                msgs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                if (msgs.length > 1) {
-                    // Use first message's thread_id as thread identifier
-                    chains.push({
-                        thread_id: msgs[0].thread_id || msgs[0].id,
-                        message_count: msgs.length,
-                        messages: msgs,
-                        latest_message: msgs[0],
-                        grouped_by: 'subject'  // Flag for debugging
-                    });
-                    console.log(`📧 Subject thread: "${subject}" (${msgs.length} messages)`);
-                } else {
-                    singles.push(msgs[0]);
-                }
-            });
-        }
-
-        // Debug logging
-        console.log(`Threading results: ${chains.length} conversations, ${singles.length} singles (${messages.length} total)`);
-        chains.forEach(chain => {
-            console.log(`  Thread (${chain.message_count} msgs): ${chain.messages.map(m => m.subject).join(' → ')}`);
-        });
-
         return {
             chains: chains,
             singles: singles,
             stats: {
                 total_messages: messages.length,
-                total_conversations: chains.length + singles.length,
+                total_conversations: threadMap.size,
                 chain_count: chains.length,
                 single_count: singles.length
             }
@@ -1472,9 +1418,8 @@ window.communicationHub = {
 
         // Create table (WooCommerce Gold Standard Pattern)
         // Phase 2 Features: Header filters, pagination with size selector, movable/resizable columns, persistent layout
-        const tableData = this.state.collapsedEmails.length > 0 ? this.state.collapsedEmails : this.state.emails;
         this.state.tabulatorTable = new Tabulator(container, {
-            data: tableData,
+            data: this.state.emails,
             layout: "fitColumns",  // FIX: Responsive column sizing
             layoutColumnsOnNewData: true,
             responsiveLayout: false,  // FIX: Disable responsive collapse (keep all columns visible)
@@ -1641,12 +1586,25 @@ window.communicationHub = {
                         const isThread = data._isThread === true;
                         const threadCount = data._threadCount || 1;
                         const threadId = data.thread_id;
+                        const isExpanded = this.state.expandedThreads.has(threadId);
 
                         let html = '<div style="display: flex; align-items: center; gap: 8px;">';
 
-                        // Thread count badge (no expand/collapse - click email to view full thread)
+                        // Expand/collapse button for threads
                         if (isThread && threadCount > 1) {
-                            html += `<span style="background: #6366f1; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;" title="${threadCount} messages in conversation - Click to view full thread">${threadCount}</span>`;
+                            const icon = isExpanded ? 'chevron-down' : 'chevron-right';
+                            html += `<button 
+                                onclick="window.communicationHub.toggleThread('${threadId}', event)" 
+                                style="background: none; border: none; color: #9ca3af; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;"
+                                onmouseover="this.style.color='#3b82f6'"
+                                onmouseout="this.style.color='#9ca3af'"
+                                title="${isExpanded ? 'Collapse' : 'Expand'} thread"
+                            >
+                                <i class="fas fa-${icon}" style="font-size: 12px;"></i>
+                            </button>`;
+                            
+                            // Thread count badge
+                            html += `<span style="background: #6366f1; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;" title="${threadCount} messages in conversation">${threadCount}</span>`;
                         }
 
                         // Thread indicator (AI assignment)
@@ -2928,41 +2886,6 @@ window.communicationHub = {
         try {
             this.log.info(`Loading thread ${threadSlug} with task: ${taskType}`);
 
-            // ✅ NEW: Fetch ALL emails in the thread (not just the clicked one)
-            let allThreadEmails = [emailData]; // Start with current email
-            const threadId = emailData.thread_id;
-
-            if (threadId) {
-                try {
-                    this.log.info(`Fetching all emails in thread: ${threadId}...`);
-                    const response = await fetch(`/api/communication-hub/emails?limit=500&thread_id=${encodeURIComponent(threadId)}`);
-
-                    if (response.ok) {
-                        const threadData = await response.json();
-                        const threadEmails = (threadData.emails || [])
-                            .sort((a, b) => new Date(a.date) - new Date(b.date));  // OLDEST FIRST for AI context
-
-                        if (threadEmails.length > 0) {
-                            this.log.success(`Found ${threadEmails.length} emails in thread - fetching full content...`);
-
-                            // Fetch full content for ALL thread emails
-                            const fullEmailPromises = threadEmails.map(email =>
-                                this.fetchEmailContent(email.id).catch(err => {
-                                    this.log.warn(`Failed to fetch email ${email.id}:`, err);
-                                    return email; // Fallback to metadata
-                                })
-                            );
-
-                            allThreadEmails = await Promise.all(fullEmailPromises);
-                            this.log.success(`Fetched full content for ${allThreadEmails.length} thread emails`);
-                        }
-                    }
-                } catch (threadError) {
-                    this.log.warn('Could not fetch thread emails:', threadError);
-                    // Continue with single email
-                }
-            }
-
             // Step 1: Refresh thread list
             if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
                 await ThreadManager.loadThreadsFromBackend();
@@ -2982,22 +2905,8 @@ window.communicationHub = {
                     'discuss': `I need your assistance with this email. Please help me understand the context and suggest appropriate next steps.`
                 };
 
-                // ✅ NEW: Build email object with complete thread history for AI
-                const emailWithThreadHistory = {
-                    ...emailData,
-                    thread_history: allThreadEmails.length > 1
-                        ? allThreadEmails.slice(0, -1).map(email => ({  // All except current (last) email
-                            from: email.from,
-                            to: email.to,
-                            date: email.date,
-                            subject: email.subject,
-                            body: email.body_text || email.body_html || email.snippet,
-                            attachments: email.attachments || []
-                        }))
-                        : []
-                };
-
-                const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailWithThreadHistory, taskType);
+                // Use enhanced formatter to build the prompt
+                const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailData, taskType);
                 const attachmentSummary = AttachmentProcessor.generateAttachmentSummary(processedAttachments || []);
                 const completePrompt = basePrompt + attachmentSummary;
 
@@ -3194,22 +3103,8 @@ Draft questions for the customer listing all missing details required for accura
                 'discuss': `I need your assistance with this email. Please help me understand the context and suggest appropriate next steps.`
             };
 
-            // ✅ NEW: Build email object with complete thread history for AI
-            const emailWithThreadHistory = {
-                ...emailData,
-                thread_history: allThreadEmails.length > 1
-                    ? allThreadEmails.slice(0, -1).map(email => ({  // All except current (last) email
-                        from: email.from,
-                        to: email.to,
-                        date: email.date,
-                        subject: email.subject,
-                        body: email.body_text || email.body_html || email.snippet,
-                        attachments: email.attachments || []
-                    }))
-                    : []
-            };
-
-            const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailWithThreadHistory, taskType);
+            // Use enhanced formatter to build the prompt with template
+            const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailData, taskType);
             const attachmentSummary = AttachmentProcessor.generateAttachmentSummary(processedAttachments || []);
 
             // ✅ FIX: Inject custom instructions if provided
@@ -3656,10 +3551,72 @@ Draft questions for the customer listing all missing details required for accura
     },
 
     /**
-     * NOTE: Table expansion removed (Jan 13, 2026)
-     * Threads are now viewed ONLY in preview panel (Gmail-style scrollable conversation)
-     * Click any thread email to see full conversation in preview panel
+     * Toggle thread expansion/collapse (Gmail-style)
      */
+    toggleThread(threadId, event) {
+        if (event) {
+            event.stopPropagation();
+        }
+
+        const isExpanded = this.state.expandedThreads.has(threadId);
+
+        if (isExpanded) {
+            // Collapse: remove thread from expanded set
+            this.state.expandedThreads.delete(threadId);
+            this.log.debug(`Collapsed thread: ${threadId}`);
+        } else {
+            // Expand: add thread to expanded set
+            this.state.expandedThreads.add(threadId);
+            this.log.debug(`Expanded thread: ${threadId}`);
+        }
+
+        // Rebuild table data with expanded threads
+        this.refreshTableWithThreads();
+    },
+
+    /**
+     * Refresh table data with expanded threads shown
+     */
+    refreshTableWithThreads() {
+        if (!this.state.tabulatorTable) return;
+
+        const expandedData = [];
+
+        // Build new data array with expanded threads inline
+        this.state.collapsedEmails.forEach(email => {
+            if (email._isThread && email._threadCount > 1) {
+                const threadId = email.thread_id;
+                const isExpanded = this.state.expandedThreads.has(threadId);
+
+                // Always add the parent (collapsed view)
+                expandedData.push(email);
+
+                // If expanded, add all child messages indented
+                if (isExpanded && email._threadMessages) {
+                    // Sort thread messages by date (oldest first for chronological order)
+                    const sortedMessages = [...email._threadMessages].sort((a, b) => 
+                        new Date(a.date) - new Date(b.date)
+                    );
+
+                    // Add child messages (skip the first one as it's the parent)
+                    sortedMessages.slice(1).forEach(childEmail => {
+                        expandedData.push({
+                            ...childEmail,
+                            _isThreadChild: true,
+                            _parentThreadId: threadId
+                        });
+                    });
+                }
+            } else {
+                // Single email
+                expandedData.push(email);
+            }
+        });
+
+        // Update table data
+        this.state.tabulatorTable.setData(expandedData);
+        this.log.debug(`Table refreshed: ${expandedData.length} rows (${this.state.expandedThreads.size} expanded threads)`);
+    },
 
     /**
      * Hide email preview panel and restore full-width table
@@ -3801,43 +3758,18 @@ Draft questions for the customer listing all missing details required for accura
         try {
             const fullEmail = await this.fetchEmailContent(emailData.id);
 
-            // Check if email is part of conversation thread (Gmail/Outlook)
-            const threadId = fullEmail.thread_id || emailData.thread_id;
-            let conversationEmails = [];
+            // Check if email is part of thread
+            const threadSlug = this.state.emailThreads[emailData.id];
+            let threadEmails = [];
 
-            // Fetch all emails in same conversation thread
-            if (threadId) {
-                this.log.info(`Email is part of conversation thread: ${threadId}`);
+            // ENABLED: Fetch all emails in thread for chronological preview
+            if (threadSlug) {
+                this.log.info(`ðŸ“¬ Email is part of thread: ${threadSlug}`);
                 try {
-                    // CRITICAL FIX: Fetch ALL emails in thread from backend (not just cached ones)
-                    this.log.info(`Fetching all emails for thread: ${threadId}...`);
-                    const response = await fetch(`/api/communication-hub/emails?limit=500&thread_id=${encodeURIComponent(threadId)}`);
-
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch thread emails: ${response.status}`);
-                    }
-
-                    const threadData = await response.json();
-                    conversationEmails = (threadData.emails || [])
-                        .sort((a, b) => new Date(b.date) - new Date(a.date));  // NEWEST FIRST
-
-                    this.log.success(`Fetched ${conversationEmails.length} emails from thread via API`);
-
-                    // Fallback to cache if API fails
-                    if (conversationEmails.length === 0) {
-                        this.log.warn('API returned no thread emails, using cache fallback');
-                        if (emailData._threadMessages && emailData._threadMessages.length > 0) {
-                            conversationEmails = emailData._threadMessages
-                                .sort((a, b) => new Date(b.date) - new Date(a.date));
-                        } else {
-                            conversationEmails = this.state.emails
-                                .filter(e => e.thread_id === threadId)
-                                .sort((a, b) => new Date(b.date) - new Date(a.date));
-                        }
-                        this.log.info(`Cache fallback: ${conversationEmails.length} emails`);
-                    }
+                    threadEmails = await this.fetchThreadEmails(threadSlug);
+                    this.log.success(`Fetched ${threadEmails.length} emails in thread`);
                 } catch (threadError) {
-                    this.log.warn('Could not filter conversation emails:', threadError);
+                    this.log.warn('Could not fetch thread emails:', threadError);
                     // Continue with single email view
                 }
             }
@@ -3845,68 +3777,9 @@ Draft questions for the customer listing all missing details required for accura
             // Render preview based on thread status
             let contentHtml = '';
 
-            if (conversationEmails.length > 1) {
-                // Fetch full content for ALL emails in thread (parallel)
-                this.log.info(`Fetching full content for ${conversationEmails.length} emails in thread...`);
-                const fullEmailPromises = conversationEmails.map(email =>
-                    this.fetchEmailContent(email.id).catch(err => {
-                        this.log.warn(`Failed to fetch email ${email.id}:`, err);
-                        return email; // Fallback to metadata if fetch fails
-                    })
-                );
-
-                const fullThreadEmails = await Promise.all(fullEmailPromises);
-                this.log.success(`Fetched ${fullThreadEmails.length} full emails`);
-
-                // Conversation thread view - render each email normally, stacked vertically
-                contentHtml = `
-                    <div style="display: flex; flex-direction: column; height: 100%;">
-                        <!-- Thread header -->
-                        <div style="flex-shrink: 0; padding: 12px 16px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; border-bottom: 1px solid #30363d;">
-                            <div style="display: flex; align-items: center; gap: 8px; color: #3b82f6; font-weight: 600; font-size: 13px;">
-                                <i class="fas fa-comments"></i>
-                                <span>Conversation Thread (${fullThreadEmails.length} messages)</span>
-                            </div>
-                            <div style="color: #6b7280; font-size: 11px; margin-top: 4px;">Showing all emails in conversation • Newest first</div>
-                        </div>
-
-                        <!-- Scrollable emails container -->
-                        <div style="flex: 1; overflow-y: auto; overflow-x: hidden;">
-                            ${fullThreadEmails.map((email, index) => {
-                    const isFirst = index === 0;
-                    return `
-                                    <div style="border-bottom: ${index === fullThreadEmails.length - 1 ? 'none' : '2px solid #30363d'}; padding: 16px; background: ${isFirst ? 'rgba(59, 130, 246, 0.05)' : 'transparent'};">
-                                        <!-- Email header -->
-                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #30363d;">
-                                            <div style="flex: 1;">
-                                                ${isFirst ? '<span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-right: 8px;">CURRENT</span>' : ''}
-                                                <span style="color: #ffffff; font-weight: 600; font-size: 14px;">${this.escapeHtml(email.from)}</span>
-                                                <div style="color: #6b7280; font-size: 12px; margin-top: 4px;">${this.formatDate(email.date)}</div>
-                                            </div>
-                                            <div style="color: #6b7280; font-size: 11px; white-space: nowrap; margin-left: 12px;">
-                                                Message ${index + 1} of ${fullThreadEmails.length}
-                                                ${email.has_attachments ? '<i class="fas fa-paperclip" style="margin-left: 8px;" title="Has attachments"></i>' : ''}
-                                            </div>
-                                        </div>
-
-                                        <!-- Full email body (fetched with full content) -->
-                                        <div style="color: #e6edf3; font-size: 13px; line-height: 1.6;">
-                                            ${this.renderEmailBody(email)}
-                                        </div>
-
-                                        <!-- Attachments if any -->
-                                        ${email.has_attachments ? this.renderAttachmentsSection(email) : ''}
-                                    </div>
-                                `;
-                }).join('')}
-                        </div>
-
-                        <!-- AI Assistant section at bottom -->
-                        <div style="flex-shrink: 0; padding: 8px 12px; border-top: 1px solid var(--border-default, #30363d); background: var(--bg-secondary, #161b22);">
-                            ${this.renderAISection(fullEmail)}
-                        </div>
-                    </div>
-                `;
+            if (threadEmails.length > 1) {
+                // Thread view with all emails
+                contentHtml = this.renderThreadPreview(threadEmails, emailData.id);
             } else {
                 // Single email view
                 contentHtml = `
@@ -3996,11 +3869,69 @@ Draft questions for the customer listing all missing details required for accura
     /**
      * Render conversation thread (Gmail-style)
      */
-    /**
-     * NOTE: renderConversationThread() removed (Jan 13, 2026)
-     * Thread emails now render using normal email view with full body (not snippet)
-     * See showEmailPreview() for inline thread rendering
-     */
+    renderConversationThread(conversationEmails, currentEmail) {
+        let html = `
+            <div style="padding: 16px 20px;">
+                <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 12px 16px; border-radius: 4px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: #3b82f6; font-weight: 600; font-size: 13px;">
+                        <i class="fas fa-comments"></i>
+                        <span>Conversation Thread (${conversationEmails.length} messages)</span>
+                    </div>
+                </div>
+        `;
+
+        // Render each message in the conversation
+        conversationEmails.forEach((email, index) => {
+            const isCurrent = email.id === currentEmail.id;
+            const isLast = index === conversationEmails.length - 1;
+
+            html += `
+                <div style="
+                    border-left: 3px solid ${isCurrent ? '#3b82f6' : '#30363d'};
+                    padding-left: 16px;
+                    margin-bottom: ${isLast ? '0' : '24px'};
+                    background: ${isCurrent ? 'rgba(59, 130, 246, 0.05)' : 'transparent'};
+                    border-radius: 4px;
+                    padding: 12px;
+                ">
+                    <!-- Message header -->
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                ${isCurrent ? '<span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">CURRENT</span>' : ''}
+                                <span style="color: #ffffff; font-weight: 600; font-size: 14px;">${this.escapeHtml(email.from)}</span>
+                            </div>
+                            <div style="color: #6b7280; font-size: 12px;">
+                                ${this.formatDate(email.date)}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            ${email.has_attachments ? '<i class="fas fa-paperclip" style="color: #6b7280; font-size: 12px;" title="Has attachments"></i>' : ''}
+                            <span style="color: #6b7280; font-size: 11px;">Message ${index + 1} of ${conversationEmails.length}</span>
+                        </div>
+                    </div>
+
+                    <!-- Message content -->
+                    <div style="color: #e6edf3; font-size: 13px; line-height: 1.6;">
+                        ${email.snippet || '(No preview available)'}
+                    </div>
+
+                    ${isCurrent && email.body ? `
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #30363d;">
+                            <div style="color: #6b7280; font-size: 11px; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                <i class="fas fa-align-left" style="margin-right: 4px;"></i>
+                                Full Message Content
+                            </div>
+                            ${this.renderEmailBody({ body: email.body })}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        return html;
+    },
 
     /**
      * Render attachments section
@@ -7373,4 +7304,3 @@ Draft questions for the customer listing all missing details required for accura
         }
     }
 };
-

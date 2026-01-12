@@ -2754,11 +2754,11 @@ function unloadThreadFromPrime() {
         });
     }
 
-    // STEP 4: Hide input wrapper (return to empty state)
-    const inputWrapper = document.querySelector('.ai-chat-input-wrapper');
-    if (inputWrapper) {
-        inputWrapper.style.display = 'none';
-        console.log('[PrimeAI] Hidden input wrapper (empty state)');
+    // STEP 4: Hide input container (expandable Prime-style input system)
+    const inputContainer = document.querySelector('.ai-chat-input-container');
+    if (inputContainer) {
+        inputContainer.style.display = 'none';
+        console.log('[PrimeAI] Hidden input container (empty state)');
     }
 
     // STEP 5: Clear input
