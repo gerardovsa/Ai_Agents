@@ -2929,7 +2929,8 @@ window.communicationHub = {
             this.log.info(`Loading thread ${threadSlug} with task: ${taskType}`);
 
             // ✅ NEW: Fetch ALL emails in the thread (not just the clicked one)
-            let allThreadEmails = [emailData]; // Start with current email
+            let allThreadEmails = []; // Will contain ALL emails in thread
+            let currentEmailId = emailData.id; // Track which email was clicked
             const threadId = emailData.thread_id;
 
             if (threadId) {
@@ -2955,12 +2956,25 @@ window.communicationHub = {
 
                             allThreadEmails = await Promise.all(fullEmailPromises);
                             this.log.success(`Fetched full content for ${allThreadEmails.length} thread emails`);
+                            
+                            // ✅ CRITICAL: Log the email IDs to verify we got the right thread
+                            this.log.info(`Thread emails (${allThreadEmails.length}):`, allThreadEmails.map(e => ({
+                                id: e.id.substring(0, 20) + '...',
+                                from: e.from,
+                                date: e.date,
+                                subject: e.subject.substring(0, 30)
+                            })));
                         }
                     }
                 } catch (threadError) {
                     this.log.warn('Could not fetch thread emails:', threadError);
                     // Continue with single email
                 }
+            }
+            
+            // Fallback if thread fetch failed - use just the current email
+            if (allThreadEmails.length === 0) {
+                allThreadEmails = [emailData];
             }
 
             // Step 1: Refresh thread list
@@ -2983,18 +2997,22 @@ window.communicationHub = {
                 };
 
                 // ✅ NEW: Build email object with complete thread history for AI
+                // Split into: current email (clicked) + all other emails (thread history)
+                const threadHistoryEmails = allThreadEmails.filter(e => e.id !== currentEmailId);
+                const currentEmail = allThreadEmails.find(e => e.id === currentEmailId) || emailData;
+                
+                this.log.info(`Building AI prompt - Current: ${currentEmail.id.substring(0, 20)}..., Thread history: ${threadHistoryEmails.length} emails`);
+                
                 const emailWithThreadHistory = {
-                    ...emailData,
-                    thread_history: allThreadEmails.length > 1
-                        ? allThreadEmails.slice(0, -1).map(email => ({  // All except current (last) email
-                            from: email.from,
-                            to: email.to,
-                            date: email.date,
-                            subject: email.subject,
-                            body: email.body_text || email.body_html || email.snippet,
-                            attachments: email.attachments || []
-                        }))
-                        : []
+                    ...currentEmail,  // Use current email's data
+                    thread_history: threadHistoryEmails.map(email => ({  // ALL other emails in thread
+                        from: email.from,
+                        to: email.to,
+                        date: email.date,
+                        subject: email.subject,
+                        body: email.body_text || email.body_html || email.snippet,
+                        attachments: email.attachments || []
+                    }))
                 };
 
                 const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailWithThreadHistory, taskType);
@@ -3194,19 +3212,23 @@ Draft questions for the customer listing all missing details required for accura
                 'discuss': `I need your assistance with this email. Please help me understand the context and suggest appropriate next steps.`
             };
 
-            // ✅ NEW: Build email object with complete thread history for AI
+            // ✅ NEW: Build email object with complete thread history for AI (agent-X location)
+            // Split into: current email (clicked) + all other emails (thread history)
+            const threadHistoryEmailsAgentX = allThreadEmails.filter(e => e.id !== currentEmailId);
+            const currentEmailAgentX = allThreadEmails.find(e => e.id === currentEmailId) || emailData;
+            
+            this.log.info(`Building AI prompt for agent-X - Current: ${currentEmailAgentX.id.substring(0, 20)}..., Thread history: ${threadHistoryEmailsAgentX.length} emails`);
+            
             const emailWithThreadHistory = {
-                ...emailData,
-                thread_history: allThreadEmails.length > 1
-                    ? allThreadEmails.slice(0, -1).map(email => ({  // All except current (last) email
-                        from: email.from,
-                        to: email.to,
-                        date: email.date,
-                        subject: email.subject,
-                        body: email.body_text || email.body_html || email.snippet,
-                        attachments: email.attachments || []
-                    }))
-                    : []
+                ...currentEmailAgentX,  // Use current email's data
+                thread_history: threadHistoryEmailsAgentX.map(email => ({  // ALL other emails in thread
+                    from: email.from,
+                    to: email.to,
+                    date: email.date,
+                    subject: email.subject,
+                    body: email.body_text || email.body_html || email.snippet,
+                    attachments: email.attachments || []
+                }))
             };
 
             const basePrompt = EmailAIFormatter.generateEnhancedPrompt(emailWithThreadHistory, taskType);
